@@ -10,14 +10,15 @@ const S = {
   label: { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:1, marginBottom:4 },
   input: { width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box' },
   select: { width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box' },
+  selectDisabled: { width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--muted)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box', opacity:0.4 },
   grid2: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 },
   btnPrimary: { background:'var(--accent)', color:'#000', border:'none', borderRadius:8, padding:'10px 16px', fontWeight:'bold', fontSize:14, cursor:'pointer', width:'100%' },
   btnSec: { background:'var(--surface2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', fontSize:13, cursor:'pointer', flex:1 },
   btnDanger: { background:'var(--surface2)', color:'var(--accent2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', fontSize:13, cursor:'pointer', flex:1 },
-  badgeBlue: { fontSize:10, color:'var(--accent4)', background:'var(--surface3)', padding:'1px 6px', borderRadius:8 },
+  badgeModified: { fontSize:10, color:'var(--accent4)', background:'var(--surface3)', padding:'1px 6px', borderRadius:8 },
   badgeEdit: { fontSize:11, color:'var(--accent)', background:'var(--surface3)', padding:'2px 8px', borderRadius:10, height:'fit-content' },
   fixedBottom: { position:'fixed', bottom:0, left:0, right:0, padding:'12px 16px', background:'var(--surface)', borderTop:'1px solid var(--border)', zIndex:100 },
-  msgOk: { background:'var(--surface2)', borderRadius:8, padding:10, marginBottom:12, color:'var(--accent3)', fontSize:13, border:'1px solid var(--border)' },
+  msgOk:  { background:'var(--surface2)', borderRadius:8, padding:10, marginBottom:12, color:'var(--accent3)', fontSize:13, border:'1px solid var(--border)' },
   msgErr: { background:'var(--surface2)', borderRadius:8, padding:10, marginBottom:12, color:'var(--accent2)', fontSize:13, border:'1px solid var(--border)' },
 }
 
@@ -44,7 +45,6 @@ export default function DataSearch() {
     }).catch(e => { console.error(e); setLoading(false) })
   }, [])
 
-  // 店舗選択後にブース一覧を動的生成
   const boothOptions = useMemo(() => {
     if (!filterStore) return []
     const codes = new Set(
@@ -55,7 +55,6 @@ export default function DataSearch() {
     return [...codes].sort()
   }, [filterStore, allReadings])
 
-  // 店舗変更時はブース選択リセット
   function handleStoreChange(val) {
     setFilterStore(val)
     setFilterBooth('')
@@ -163,8 +162,8 @@ export default function DataSearch() {
                 {boothOptions.map(code=><option key={code} value={code}>{code}</option>)}
               </select>
             ) : (
-              <select style={{...S.select, opacity:0.4}} disabled>
-                <option>店舗を選択</option>
+              <select style={S.selectDisabled} disabled>
+                <option>店舗を先に選択</option>
               </select>
             )}
           </div>
@@ -253,7 +252,7 @@ export default function DataSearch() {
                 <div>
                   <div style={{display:'flex', alignItems:'center', gap:6}}>
                     <div style={{fontWeight:'bold', fontSize:14, color:'var(--text)'}}>{r.full_booth_code}</div>
-                    {isModified && <span style={S.badgeBlue}>変更済</span>}
+                    {isModified && <span style={S.badgeModified}>変更済</span>}
                   </div>
                   <div style={{fontSize:12, color:'var(--muted)', marginTop:2}}>
                     {r.read_time?.slice(0,10)} · IN: {parseNum(r.in_meter).toLocaleString()}
