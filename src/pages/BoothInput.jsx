@@ -1,8 +1,6 @@
-cat > src/pages/BoothInput.jsx << 'EOF'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { getBooths, getLastReading, getMachines } from '../services/sheets'
-import { saveDraft, getDrafts } from './DraftList'
+import { getBooths, getLastReading, getMachines, saveReading } from '../services/sheets'
 
 export default function BoothInput() {
   const { machineId } = useParams()
@@ -13,6 +11,7 @@ export default function BoothInput() {
   const [current, setCurrent] = useState(0)
   const [lastReadings, setLastReadings] = useState({})
   const [inputs, setInputs] = useState({})
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState({})
 
   useEffect(() => {
@@ -23,23 +22,6 @@ export default function BoothInput() {
         readings[b.booth_id] = await getLastReading(b.booth_id)
       }
       setLastReadings(readings)
-      // 既存の下書きを復元
-      const drafts = getDrafts()
-      const restored = {}
-      for (const b of bs) {
-        const draft = drafts.find(d => String(d.booth_id) === String(b.booth_id))
-        if (draft) {
-          restored[b.booth_id] = {
-            in_meter: draft.in_meter,
-            out_meter: draft.out_meter,
-            prize_restock: draft.prize_restock_count,
-            prize_stock: draft.prize_stock_count,
-            prize_name: draft.prize_name
-          }
-          setSaved(prev => ({ ...prev, [b.booth_id]: true }))
-        }
-      }
-      setInputs(restored)
     })
     if (state?.storeId) {
       getMachines(state.storeId).then(machines => {
@@ -63,27 +45,29 @@ export default function BoothInput() {
     setInputs(prev => ({ ...prev, [booth.booth_id]: { ...(prev[booth.booth_id]||{}), [key]: val } }))
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!inp.in_meter) { alert('INメーターを入力してください'); return }
-    saveDraft({
-      booth_id: booth.booth_id,
-      full_booth_code: booth.full_booth_code,
-      in_meter: inp.in_meter,
-      out_meter: inp.out_meter || '',
-      prize_restock_count: inp.prize_restock || '',
-      prize_stock_count: inp.prize_stock || '',
-      prize_name: inp.prize_name || last?.prize_name || '',
-      note: inp.note || ''
-    })
-    setSaved(prev => ({ ...prev, [booth.booth_id]: true }))
-    if (current < booths.length - 1) {
-      setCurrent(c => c + 1)
-    } else {
-      navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })
-    }
+    setSaving(true)
+    try {
+      await saveReading({
+        booth_id: booth.booth_id,
+        full_booth_code: booth.full_booth_code,
+        in_meter: inp.in_meter,
+        out_meter: inp.out_meter || '',
+        prize_restock_count: inp.prize_restock || '',
+        prize_stock_count: inp.prize_stock || '',
+        prize_name: inp.prize_name || last?.prize_name || '',
+        note: inp.note || ''
+      })
+      setSaved(prev => ({ ...prev, [booth.booth_id]: true }))
+      if (current < booths.length - 1) {
+        setCurrent(c => c + 1)
+      } else {
+        navigate('/complete', { state: { storeName: state?.storeName, storeId: state?.storeId } })
+      }
+    } catch(e) { alert('保存エラー: ' + e.message) }
+    setSaving(false)
   }
-
-  const draftCount = getDrafts().length
 
   return (
     <div className="container" style={{paddingTop:16}}>
@@ -93,15 +77,7 @@ export default function BoothInput() {
           <h2>{state?.storeName}</h2>
           <p style={{fontSize:12,color:'#666'}}>{machineName} · {booth.full_booth_code}</p>
         </div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
-          <span style={{fontSize:13,color:'#666'}}>{current+1}/{booths.length}</span>
-          {draftCount > 0 && (
-            <span style={{fontSize:11,color:'#1a73e8',cursor:'pointer'}}
-              onClick={() => navigate('/drafts')}>
-              下書き{draftCount}件
-            </span>
-          )}
-        </div>
+        <span style={{fontSize:13,color:'#666'}}>{current+1}/{booths.length}</span>
       </div>
       <div className="progress">
         {booths.map((b,i) => (
@@ -161,9 +137,8 @@ export default function BoothInput() {
             value={inp.prize_name||''}
             onChange={e => setInp('prize_name', e.target.value)} />
         </div>
-        <button className="btn btn-primary" onClick={handleSave}>
-          {saved[booth.booth_id] ? '✅ ' : ''}
-          {current < booths.length-1 ? '下書き保存して次へ →' : '📝 下書き一覧へ'}
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          {saving ? '保存中...' : current < booths.length-1 ? '保存して次へ →' : '✅ 保存して完了'}
         </button>
         {current > 0 && (
           <button className="btn btn-secondary" onClick={() => setCurrent(c => c-1)}>
@@ -174,4 +149,3 @@ export default function BoothInput() {
     </div>
   )
 }
-EOF

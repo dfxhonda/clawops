@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getMachines, getStores, getBooths, getAllMeterReadings } from '../services/sheets'
+import { getMachines, getStores, getBooths, getLastReading } from '../services/sheets'
 
 const typeLabel = {
   BUZZ_CRANE_4:'BUZZ CRANE 4', BUZZ_CRANE_SLIM:'BUZZスリム',
@@ -16,7 +16,7 @@ export default function MachineList() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    Promise.all([getMachines(storeId), getStores(), getAllMeterReadings()]).then(async ([m, s, allReadings]) => {
+    Promise.all([getMachines(storeId), getStores()]).then(async ([m, s]) => {
       setMachines(m)
       const store = s.find(x => x.store_id == storeId)
       if (store) setStoreName(store.store_name)
@@ -26,22 +26,30 @@ export default function MachineList() {
         const booths = await getBooths(machine.machine_id)
         let totalDiff = 0
         let inputCount = 0
+        let totalBooths = booths.length
+
         for (const booth of booths) {
-          const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_id))
-          if (br.length >= 2) {
-            const prev = Number(br[br.length-2].in_meter)
-            const curr = Number(br[br.length-1].in_meter)
-            if (!isNaN(prev) && !isNaN(curr) && curr >= prev) {
-              totalDiff += curr - prev
+          // 全履歴を取得して前回と今回を比較
+          const readings = await getAllReadings(booth.booth_id)
+          if (readings.length >= 2) {
+            const prev = readings[readings.length - 2]
+            const curr = readings[readings.length - 1]
+            const prevIn = Number(prev.in_meter)
+            const currIn = Number(curr.in_meter)
+            if (!isNaN(prevIn) && !isNaN(currIn) && currIn >= prevIn) {
+              totalDiff += currIn - prevIn
               inputCount++
             }
-          } else if (br.length === 1) {
+          } else if (readings.length === 1) {
             inputCount++
           }
         }
+
         stats[machine.machine_id] = {
-          inputCount, totalBooths: booths.length,
-          totalDiff, totalSales: totalDiff * 100
+          inputCount,
+          totalBooths,
+          totalDiff,
+          totalSales: totalDiff * 100
         }
       }
       setMachineStats(stats)
@@ -49,9 +57,14 @@ export default function MachineList() {
     })
   }, [storeId])
 
-  if (loading) return <div className="container" style={{paddingTop:40,textAlign:'center'}}>読み込み中...</div>
+  if (loading) return (
+    <div className="container" style={{paddingTop:40,textAlign:'center'}}>
+      <p>読み込み中...</p>
+      <p style={{fontSize:12,color:'#999',marginTop:8}}>売上データ集計中</p>
+    </div>
+  )
 
-  const totalSales = Object.values(machineStats).reduce((s, m) => s + (m.totalSales||0), 0)
+  const totalSales = Object.values(machineStats).reduce((sum, s) => sum + (s.totalSales||0), 0)
 
   return (
     <div className="container" style={{paddingTop:24}}>
@@ -65,7 +78,7 @@ export default function MachineList() {
 
       {totalSales > 0 && (
         <div style={{background:'#1a73e8',color:'white',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <span style={{fontSize:13}}>店舗合計（前回比）</span>
+          <span style={{fontSize:13}}>店舗合計売上（前回比）</span>
           <span style={{fontSize:20,fontWeight:'bold'}}>¥{totalSales.toLocaleString()}</span>
         </div>
       )}
@@ -75,8 +88,9 @@ export default function MachineList() {
         const done = stat?.inputCount || 0
         const total = stat?.totalBooths || Number(m.booth_count)
         const allDone = done >= total
-        const sales = stat?.totalSales || 0
         const diff = stat?.totalDiff || 0
+        const sales = stat?.totalSales || 0
+
         return (
           <div key={m.machine_id} className="machine-item"
             style={{flexDirection:'column',alignItems:'stretch',cursor:'pointer'}}
@@ -88,7 +102,7 @@ export default function MachineList() {
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
                 <span className="badge"
-                  style={{background:allDone?'#e6f4ea':'#e8f0fe', color:allDone?'#137333':'#1a73e8'}}>
+                  style={{background: allDone ? '#e6f4ea' : '#e8f0fe', color: allDone ? '#137333' : '#1a73e8'}}>
                   {allDone ? '✅ 完了' : `${done}/${total}入力済`}
                 </span>
                 <span style={{fontSize:12,color:'#999'}}>{m.machine_code}</span>
@@ -105,4 +119,19 @@ export default function MachineList() {
       })}
     </div>
   )
+}
+
+// 全履歴取得（sheetsから直接）
+async function getAllReadings(boothId) {
+  const { getToken } = await import('../services/sheets')
+  const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('meter_readings!A2:N')}`,
+    { headers: { Authorization: `Bearer ${getToken()}` } }
+  )
+  const data = await res.json()
+  const rows = data.values || []
+  return rows
+    .filter(r => String(r[1]) === String(boothId))
+    .map(r => ({ in_meter: r[4], out_meter: r[5], read_time: r[3] }))
 }
