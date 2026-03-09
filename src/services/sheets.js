@@ -5,6 +5,11 @@ export function getToken() { return sessionStorage.getItem(TOKEN_KEY) }
 export function setToken(t) { sessionStorage.setItem(TOKEN_KEY, t) }
 export function clearToken() { sessionStorage.removeItem(TOKEN_KEY) }
 
+export function parseNum(v) {
+  if (v === undefined || v === null || v === '') return NaN
+  return Number(String(v).replace(/,/g, ''))
+}
+
 async function sheetsGet(range) {
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,
@@ -25,12 +30,34 @@ async function sheetsAppend(range, values) {
 }
 
 export async function getAllMeterReadings() {
-  const rows = await sheetsGet('meter_readings!A2:N')
-  return rows.map(r => ({
-    reading_id:r[0], booth_id:r[1], full_booth_code:r[2], read_time:r[3],
-    in_meter:r[4], out_meter:r[5], prize_restock_count:r[6],
-    prize_stock_count:r[7], prize_name:r[8]
-  }))
+  // ヘッダー行も含めて取得して列順を動的に解決する
+  const rows = await sheetsGet('meter_readings!A1:P')
+  if (rows.length === 0) return []
+  const header = rows[0].map(h => String(h).trim().toLowerCase())
+  const idx = (name) => {
+    const i = header.indexOf(name)
+    return i >= 0 ? i : -1
+  }
+  // 列インデックスをヘッダーから解決
+  const iBoothId = idx('booth_id')
+  const iFullCode = idx('full_booth_code')
+  const iReadTime = idx('read_time')
+  const iInMeter = idx('in_meter')
+  const iOutMeter = idx('out_meter')
+  const iRestock = idx('prize_restock_count')
+  const iStock = idx('prize_stock_count')
+  const iPrizeName = idx('prize_name')
+
+  return rows.slice(1).map(r => ({
+    booth_id: iBoothId >= 0 ? r[iBoothId] : undefined,
+    full_booth_code: iFullCode >= 0 ? r[iFullCode] : r[2],
+    read_time: iReadTime >= 0 ? r[iReadTime] : r[3],
+    in_meter: iInMeter >= 0 ? r[iInMeter] : r[4],
+    out_meter: iOutMeter >= 0 ? r[iOutMeter] : r[5],
+    prize_restock_count: iRestock >= 0 ? r[iRestock] : r[6],
+    prize_stock_count: iStock >= 0 ? r[iStock] : r[7],
+    prize_name: iPrizeName >= 0 ? r[iPrizeName] : r[8],
+  })).filter(r => r.booth_id !== undefined && r.booth_id !== '')
 }
 
 export async function getReadingsByBooth(boothId) {
@@ -79,10 +106,4 @@ export async function updateReading(rowIndex, r) {
     { method: 'PUT', headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values: [[r.in_meter, r.out_meter, r.prize_restock_count, r.prize_stock_count, r.prize_name]] }) }
   )
-}
-
-// カンマ付き数値を安全にパースする共通関数
-export function parseNum(v) {
-  if (v === undefined || v === null || v === '') return NaN
-  return Number(String(v).replace(/,/g, ''))
 }
