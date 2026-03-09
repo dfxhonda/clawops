@@ -63,7 +63,7 @@ export default function BoothInput() {
       if (current < booths.length - 1) {
         setCurrent(c => c + 1)
       } else {
-        navigate('/complete', { state: { storeName: state?.storeName } })
+        navigate('/complete', { state: { storeName: state?.storeName, storeId: state?.storeId } })
       }
     } catch(e) { alert('保存エラー: ' + e.message) }
     setSaving(false)
