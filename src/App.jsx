@@ -8,6 +8,7 @@ import Complete from './pages/Complete'
 import RankingView from './pages/RankingView'
 import EditReading from './pages/EditReading'
 import DraftList from './pages/DraftList'
+import DataSearch from './pages/DataSearch'
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/complete" element={<PrivateRoute><Complete /></PrivateRoute>} />
       <Route path="/drafts" element={<PrivateRoute><DraftList /></PrivateRoute>} />
       <Route path="/ranking/:storeId" element={<PrivateRoute><RankingView /></PrivateRoute>} />
+      <Route path="/datasearch" element={<PrivateRoute><DataSearch /></PrivateRoute>} />
       <Route path="/edit/:boothId" element={<PrivateRoute><EditReading /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

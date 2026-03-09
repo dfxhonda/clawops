@@ -28,6 +28,7 @@ export default function StoreSelect() {
     { key:'input', icon:'📝', label:'巡回入力' },
     { key:'ranking', icon:'📊', label:'ランキング' },
     { key:'edit', icon:'✏️', label:'データ修正' },
+    { key:'search', icon:'🔍', label:'データ検索' },
   ]
 
   if (loading) return <div className="container" style={{paddingTop:40,textAlign:'center'}}>読み込み中...</div>
@@ -75,6 +76,7 @@ export default function StoreSelect() {
           onClick={() => {
             if (mode==='input') navigate(`/machines/${store.store_id}`, { state: { storeName: store.store_name, storeId: store.store_id } })
             if (mode==='ranking') navigate(`/ranking/${store.store_id}`, { state: { storeName: store.store_name } })
+            if (mode==='search') navigate('/datasearch')
             if (mode==='edit') navigate(`/machines/${store.store_id}`, { state: { storeName: store.store_name, storeId: store.store_id, editMode: true } })
           }}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
