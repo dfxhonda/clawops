@@ -1,4 +1,3 @@
-cat > src/pages/BoothInput.jsx << 'EOF'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { getBooths, getLastReading, getMachines, saveReading } from '../services/sheets'
@@ -139,7 +138,7 @@ export default function BoothInput() {
             onChange={e => setInp('prize_name', e.target.value)} />
         </div>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : current < booths.length-1 ? `保存して次へ →` : '✅ 保存して完了'}
+          {saving ? '保存中...' : current < booths.length-1 ? '保存して次へ →' : '✅ 保存して完了'}
         </button>
         {current > 0 && (
           <button className="btn btn-secondary" onClick={() => setCurrent(c => c-1)}>
@@ -150,4 +149,3 @@ export default function BoothInput() {
     </div>
   )
 }
-EOF
