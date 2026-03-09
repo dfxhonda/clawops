@@ -10,11 +10,20 @@ export function parseNum(v) {
   return Number(String(v).replace(/,/g, ''))
 }
 
-// セッションキャッシュ（同一セッション内は再取得しない）
 const cache = {}
 function getCache(key) { return cache[key] }
 function setCache(key, val) { cache[key] = val }
 export function clearCache() { Object.keys(cache).forEach(k => delete cache[k]) }
+
+// 2日前以前かどうか判定
+function isOldEnough(readTime) {
+  if (!readTime) return false
+  const d = new Date(readTime)
+  const threshold = new Date()
+  threshold.setDate(threshold.getDate() - 1)
+  threshold.setHours(0, 0, 0, 0)
+  return d < threshold
+}
 
 async function sheetsGet(range) {
   const res = await fetch(
@@ -68,18 +77,32 @@ export async function getReadingsByBooth(boothId) {
   return all.filter(r => String(r.booth_id) === String(boothId))
 }
 
-export async function getLastReading(boothId) {
+// 最新レコード（当日・前日問わず）← 前回値の表示用
+export async function getLatestReading(boothId) {
   const rows = await getReadingsByBooth(boothId)
   return rows.length ? rows[rows.length - 1] : null
 }
 
-// 全ブースの最終読み取りを一括取得（BoothInput高速化用）
+// 最低2日前のレコード ← 差分計算用
+export async function getLastReading(boothId) {
+  const rows = await getReadingsByBooth(boothId)
+  // 新しい順に並べて最初に「2日前以前」のものを返す
+  const old = [...rows].reverse().find(r => isOldEnough(r.read_time))
+  return old || null
+}
+
+// 一括取得（BoothInput高速化用）
+// 戻り値: { boothId: { latest, last } }
+// latest = 最新レコード（前回値表示用）
+// last = 最低2日前のレコード（差分計算用）
 export async function getLastReadingsMap(boothIds) {
   const all = await getAllMeterReadings()
   const map = {}
   for (const id of boothIds) {
     const rows = all.filter(r => String(r.booth_id) === String(id))
-    map[id] = rows.length ? rows[rows.length - 1] : null
+    const latest = rows.length ? rows[rows.length - 1] : null
+    const last = [...rows].reverse().find(r => isOldEnough(r.read_time)) || null
+    map[id] = { latest, last }
   }
   return map
 }
@@ -122,7 +145,7 @@ export async function saveReading(r) {
     r.in_meter, r.out_meter||'', r.prize_restock_count||'',
     r.prize_stock_count||'', r.prize_name||'', 'manual','','', r.note||'', now
   ]])
-  clearCache() // 保存後はキャッシュクリア
+  clearCache()
 }
 
 export async function updateReading(rowIndex, r) {
