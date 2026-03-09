@@ -1,12 +1,14 @@
+cat > src/pages/BoothInput.jsx << 'EOF'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { getBooths, getLastReading, saveReading } from '../services/sheets'
+import { getBooths, getLastReading, getMachines, saveReading } from '../services/sheets'
 
 export default function BoothInput() {
   const { machineId } = useParams()
   const { state } = useLocation()
   const navigate = useNavigate()
   const [booths, setBooths] = useState([])
+  const [machineName, setMachineName] = useState('')
   const [current, setCurrent] = useState(0)
   const [lastReadings, setLastReadings] = useState({})
   const [inputs, setInputs] = useState({})
@@ -22,6 +24,12 @@ export default function BoothInput() {
       }
       setLastReadings(readings)
     })
+    if (state?.storeId) {
+      getMachines(state.storeId).then(machines => {
+        const m = machines.find(x => String(x.machine_id) === String(machineId))
+        if (m) setMachineName(m.machine_name)
+      })
+    }
   }, [machineId])
 
   const booth = booths[current]
@@ -30,7 +38,7 @@ export default function BoothInput() {
   const last = lastReadings[booth.booth_id]
   const inp = inputs[booth.booth_id] || {}
   const inVal = inp.in_meter ? Number(inp.in_meter) : null
-  const lastIn = last?.in_meter ? Number(last.in_meter) : null
+  const lastIn = last?.in_meter && !isNaN(Number(last.in_meter)) ? Number(last.in_meter) : null
   const inDiff = inVal !== null && lastIn !== null ? inVal - lastIn : null
   const isAbnormal = inDiff !== null && (inDiff < 0 || inDiff > 50000)
 
@@ -47,7 +55,7 @@ export default function BoothInput() {
         full_booth_code: booth.full_booth_code,
         in_meter: inp.in_meter,
         out_meter: inp.out_meter || '',
-        prize_payout_count: inp.prize_payout || '',
+        prize_restock_count: inp.prize_restock || '',
         prize_stock_count: inp.prize_stock || '',
         prize_name: inp.prize_name || last?.prize_name || '',
         note: inp.note || ''
@@ -68,7 +76,7 @@ export default function BoothInput() {
         <button className="back-btn" onClick={() => navigate(-1)}>←</button>
         <div style={{flex:1}}>
           <h2>{state?.storeName}</h2>
-          <p style={{fontSize:12,color:'#666'}}>{booth.full_booth_code}</p>
+          <p style={{fontSize:12,color:'#666'}}>{machineName} · {booth.full_booth_code}</p>
         </div>
         <span style={{fontSize:13,color:'#666'}}>{current+1}/{booths.length}</span>
       </div>
@@ -81,7 +89,10 @@ export default function BoothInput() {
         {last && (
           <div style={{background:'#f8f9fa',borderRadius:8,padding:12,marginBottom:16,fontSize:13}}>
             <div style={{color:'#666',marginBottom:4}}>📋 前回値</div>
-            <div>IN: <strong>{Number(last.in_meter).toLocaleString()}</strong>　OUT: <strong>{last.out_meter ? Number(last.out_meter).toLocaleString() : '-'}</strong></div>
+            <div>
+              IN: <strong>{lastIn !== null ? lastIn.toLocaleString() : '-'}</strong>　
+              OUT: <strong>{last.out_meter && !isNaN(Number(last.out_meter)) ? Number(last.out_meter).toLocaleString() : '-'}</strong>
+            </div>
             {last.prize_name && <div style={{marginTop:4}}>景品: {last.prize_name}</div>}
             <div style={{color:'#999',marginTop:4,fontSize:11}}>{last.read_time?.slice(0,10)}</div>
           </div>
@@ -89,7 +100,7 @@ export default function BoothInput() {
         <div style={{marginBottom:16}}>
           <div className="label">INメーター *</div>
           <input className={`input ${isAbnormal?'error':''}`} type="number"
-            placeholder={last?.in_meter||'0000000'}
+            placeholder={lastIn !== null ? String(lastIn) : '0000000'}
             value={inp.in_meter||''}
             onChange={e => setInp('in_meter', e.target.value)} />
           {inDiff !== null && (
@@ -110,8 +121,8 @@ export default function BoothInput() {
           <div>
             <div className="label">景品補充数</div>
             <input className="input" type="number" placeholder="0"
-              value={inp.prize_payout||''}
-              onChange={e => setInp('prize_payout', e.target.value)} />
+              value={inp.prize_restock||''}
+              onChange={e => setInp('prize_restock', e.target.value)} />
           </div>
           <div>
             <div className="label">景品投入残</div>
@@ -139,3 +150,4 @@ export default function BoothInput() {
     </div>
   )
 }
+EOF
