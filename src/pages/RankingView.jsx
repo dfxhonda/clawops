@@ -8,6 +8,7 @@ export default function RankingView() {
   const navigate = useNavigate()
   const [boothStats, setBoothStats] = useState([])
   const [loading, setLoading] = useState(true)
+  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => { loadStats() }, [storeId])
 
@@ -17,6 +18,15 @@ export default function RankingView() {
       getMachines(storeId),
       getAllMeterReadings()
     ])
+
+    // デバッグ情報
+    const firstBooth = machines.length > 0 ? (await getBooths(machines[0].machine_id))[0] : null
+    const sampleReading = allReadings[0]
+    const debugMsg = `読込: machines=${machines.length} readings=${allReadings.length} | ` +
+      `booth_id例="${firstBooth?.booth_id}"(${typeof firstBooth?.booth_id}) ` +
+      `reading.booth_id例="${sampleReading?.booth_id}"(${typeof sampleReading?.booth_id})`
+    setDebugInfo(debugMsg)
+
     const stats = []
     for (const m of machines) {
       const booths = await getBooths(m.machine_id)
@@ -53,14 +63,11 @@ export default function RankingView() {
   }
 
   const withData = boothStats.filter(b => !b.noData)
-  const top3 = withData.slice(0, 3)
-  const worst3 = [...withData].reverse().slice(0, 3)
   const totalSales = withData.reduce((s, b) => s + b.sales, 0)
 
   if (loading) return (
     <div className="container" style={{paddingTop:40,textAlign:'center'}}>
       <p>集計中...</p>
-      <p style={{fontSize:12,color:'#999',marginTop:8}}>少々お待ちください</p>
     </div>
   )
 
@@ -74,58 +81,22 @@ export default function RankingView() {
         </div>
       </div>
 
+      {/* デバッグ表示 */}
+      <div style={{background:'#fff3cd',borderRadius:8,padding:10,marginBottom:12,fontSize:11,wordBreak:'break-all'}}>
+        {debugInfo}
+      </div>
+
       <div style={{background:'#1a73e8',color:'white',borderRadius:12,padding:'12px 16px',marginBottom:16,textAlign:'center'}}>
         <div style={{fontSize:12,opacity:0.8}}>店舗合計売上</div>
         <div style={{fontSize:28,fontWeight:'bold'}}>¥{totalSales.toLocaleString()}</div>
         <div style={{fontSize:11,opacity:0.7,marginTop:4}}>{withData.length}ブース集計済</div>
       </div>
 
-      {top3.length > 0 && <>
-        <h3 style={{fontSize:15,fontWeight:'bold',marginBottom:8,color:'#137333'}}>🏆 TOP3</h3>
-        {top3.map((b, i) => (
-          <div key={b.full_booth_code} className="card" style={{borderLeft:`4px solid ${['#FFD700','#C0C0C0','#CD7F32'][i]}`}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div>
-                <div style={{fontWeight:'bold'}}>{['🥇','🥈','🥉'][i]} {b.full_booth_code}</div>
-                <div style={{fontSize:12,color:'#666'}}>{b.machine_name} · {b.prize_name}</div>
-                <div style={{fontSize:11,color:'#999'}}>{b.read_time}</div>
-              </div>
-              <div style={{textAlign:'right'}}>
-                <div style={{fontWeight:'bold',color:'#137333',fontSize:16}}>¥{b.sales.toLocaleString()}</div>
-                <div style={{fontSize:12,color:'#999'}}>+{b.diff.toLocaleString()}回</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </>}
-
-      {worst3.length > 0 && <>
-        <h3 style={{fontSize:15,fontWeight:'bold',marginBottom:8,marginTop:16,color:'#ea4335'}}>⚠️ WORST3（入替候補）</h3>
-        {worst3.map((b) => (
-          <div key={b.full_booth_code} className="card" style={{borderLeft:'4px solid #ea4335'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div>
-                <div style={{fontWeight:'bold'}}>{b.full_booth_code}</div>
-                <div style={{fontSize:12,color:'#666'}}>{b.machine_name} · {b.prize_name}</div>
-              </div>
-              <div style={{textAlign:'right'}}>
-                <div style={{fontWeight:'bold',color:'#ea4335'}}>¥{b.sales.toLocaleString()}</div>
-                <div style={{fontSize:12,color:'#999'}}>+{b.diff.toLocaleString()}回</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </>}
-
-      <h3 style={{fontSize:15,fontWeight:'bold',marginBottom:8,marginTop:16}}>📋 全ブース</h3>
-      {boothStats.map((b, i) => (
+      {boothStats.map((b) => (
         <div key={b.full_booth_code} className="card" style={{padding:'10px 16px',opacity:b.noData?0.5:1}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
-              <div style={{fontWeight:'bold',fontSize:14}}>
-                {!b.noData && `#${withData.findIndex(x=>x.full_booth_code===b.full_booth_code)+1} `}
-                {b.full_booth_code}
-              </div>
+              <div style={{fontWeight:'bold',fontSize:14}}>{b.full_booth_code}</div>
               <div style={{fontSize:12,color:'#666'}}>{b.prize_name}</div>
             </div>
             <div style={{textAlign:'right'}}>
