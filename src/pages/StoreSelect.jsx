@@ -1,21 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStores, clearToken } from '../services/sheets'
+import { getStores, getMachines, clearToken } from '../services/sheets'
 
 export default function StoreSelect() {
   const [stores, setStores] = useState([])
+  const [boothCounts, setBoothCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    getStores()
-      .then(s => { setStores(s); setLoading(false) })
-      .catch(e => { setError(e.message); setLoading(false) })
+    getStores().then(async s => {
+      setStores(s)
+      const counts = {}
+      for (const store of s) {
+        const machines = await getMachines(store.store_id)
+        counts[store.store_id] = machines.reduce((sum, m) => sum + Number(m.booth_count), 0)
+      }
+      setBoothCounts(counts)
+      setLoading(false)
+    }).catch(e => { setError(e.message); setLoading(false) })
   }, [])
 
   const icons = { KIK01:'🏪', KOS01:'🏬', MNK01:'🎯' }
-  const counts = { '1':6, '2':17, '3':10 }
 
   if (loading) return <div className="container" style={{paddingTop:40,textAlign:'center'}}>読み込み中...</div>
   if (error) return (
@@ -47,7 +54,7 @@ export default function StoreSelect() {
             <span style={{fontSize:32}}>{icons[store.store_code]||'🏪'}</span>
             <div>
               <h3>{store.store_name}</h3>
-              <p>{store.store_code} · {counts[store.store_id]||'?'}ブース</p>
+              <p>{store.store_code} · {boothCounts[store.store_id]||'?'}ブース</p>
             </div>
           </div>
         </button>
