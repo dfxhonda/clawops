@@ -1,4 +1,3 @@
-cat > src/pages/DataSearch.jsx << 'EOF'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllMeterReadings, getStores, parseNum, getToken, clearCache } from '../services/sheets'
@@ -72,7 +71,7 @@ export default function DataSearch() {
       for (const [idxStr, edit] of entries) {
         const idx = Number(idxStr)
         const orig = edit._original
-        const rowIndex = idx + 2 // ヘッダー行 + 1
+        const rowIndex = idx + 2
         const range = `meter_readings!E${rowIndex}:I${rowIndex}`
         await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
@@ -127,7 +126,6 @@ export default function DataSearch() {
         </div>
       )}
 
-      {/* 検索フィルター */}
       <div className="card" style={{marginBottom:12}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
           <div>
@@ -270,4 +268,3 @@ export default function DataSearch() {
     </div>
   )
 }
-EOF
