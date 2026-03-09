@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllMeterReadings, getStores, parseNum, getToken, clearCache } from '../services/sheets'
 
@@ -44,11 +44,28 @@ export default function DataSearch() {
     }).catch(e => { console.error(e); setLoading(false) })
   }, [])
 
+  // 店舗選択後にブース一覧を動的生成
+  const boothOptions = useMemo(() => {
+    if (!filterStore) return []
+    const codes = new Set(
+      allReadings
+        .filter(r => r.full_booth_code?.startsWith(filterStore))
+        .map(r => r.full_booth_code)
+    )
+    return [...codes].sort()
+  }, [filterStore, allReadings])
+
+  // 店舗変更時はブース選択リセット
+  function handleStoreChange(val) {
+    setFilterStore(val)
+    setFilterBooth('')
+  }
+
   const filtered = allReadings
     .map((r, i) => ({ ...r, _idx: i }))
     .filter(r => {
       if (filterStore && !r.full_booth_code?.startsWith(filterStore)) return false
-      if (filterBooth && !r.full_booth_code?.toLowerCase().includes(filterBooth.toLowerCase())) return false
+      if (filterBooth && r.full_booth_code !== filterBooth) return false
       if (filterPrize && !r.prize_name?.toLowerCase().includes(filterPrize.toLowerCase())) return false
       if (filterDateFrom && r.read_time?.slice(0,10) < filterDateFrom) return false
       if (filterDateTo && r.read_time?.slice(0,10) > filterDateTo) return false
@@ -133,15 +150,23 @@ export default function DataSearch() {
         <div style={S.grid2}>
           <div>
             <div style={S.label}>店舗</div>
-            <select style={S.select} value={filterStore} onChange={e=>setFilterStore(e.target.value)}>
+            <select style={S.select} value={filterStore} onChange={e=>handleStoreChange(e.target.value)}>
               <option value="">全店舗</option>
               {stores.map(s=><option key={s.store_id} value={s.store_code}>{s.store_name}</option>)}
             </select>
           </div>
           <div>
-            <div style={S.label}>ブースコード</div>
-            <input style={S.input} type="text" placeholder="例: M01-B01"
-              value={filterBooth} onChange={e=>setFilterBooth(e.target.value)} />
+            <div style={S.label}>ブース</div>
+            {filterStore ? (
+              <select style={S.select} value={filterBooth} onChange={e=>setFilterBooth(e.target.value)}>
+                <option value="">全ブース</option>
+                {boothOptions.map(code=><option key={code} value={code}>{code}</option>)}
+              </select>
+            ) : (
+              <select style={{...S.select, opacity:0.4}} disabled>
+                <option>店舗を選択</option>
+              </select>
+            )}
           </div>
           <div>
             <div style={S.label}>日付（から）</div>
