@@ -80,3 +80,9 @@ export async function updateReading(rowIndex, r) {
       body: JSON.stringify({ values: [[r.in_meter, r.out_meter, r.prize_restock_count, r.prize_stock_count, r.prize_name]] }) }
   )
 }
+
+// カンマ付き数値を安全にパースする共通関数
+export function parseNum(v) {
+  if (v === undefined || v === null || v === '') return NaN
+  return Number(String(v).replace(/,/g, ''))
+}
