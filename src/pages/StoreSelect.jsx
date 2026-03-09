@@ -28,7 +28,6 @@ export default function StoreSelect() {
     { key:'input', icon:'📝', label:'巡回入力' },
     { key:'ranking', icon:'📊', label:'ランキング' },
     { key:'edit', icon:'✏️', label:'データ修正' },
-    { key:'search', icon:'🔍', label:'データ検索' },
   ]
 
   if (loading) return <div className="container" style={{paddingTop:40,textAlign:'center'}}>読み込み中...</div>
@@ -49,6 +48,10 @@ export default function StoreSelect() {
           <h1 style={{fontSize:22,fontWeight:'bold'}}>ClawOps</h1>
           <p style={{fontSize:13,color:'#666',marginTop:2}}>{new Date().toLocaleDateString('ja-JP')}</p>
         </div>
+        <button onClick={() => navigate('/datasearch')}
+          style={{background:'none',border:'none',color:'var(--accent4,#a07af0)',cursor:'pointer',fontSize:13}}>
+          🔍 データ検索
+        </button>
         <button onClick={() => { clearToken(); navigate('/login') }}
           style={{background:'none',border:'none',color:'#666',cursor:'pointer',fontSize:13}}>
           ログアウト

@@ -6,9 +6,9 @@ const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 
 const S = {
   backBtn: { background:'var(--surface2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'6px 12px', fontSize:16, cursor:'pointer' },
-  card: { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:14, marginBottom:12 },
+  card: { background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:14, marginBottom:12, minWidth:0, overflow:'hidden' },
   label: { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:1, marginBottom:4 },
-  input: { width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box' },
+  input: { width:'100%', maxWidth:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box' },
   select: { width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box' },
   selectDisabled: { width:'100%', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px', color:'var(--muted)', fontSize:14, fontFamily:'inherit', outline:'none', boxSizing:'border-box', opacity:0.4 },
   grid2: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 },
@@ -134,7 +134,7 @@ export default function DataSearch() {
   )
 
   return (
-    <div style={{padding:'16px 14px 100px'}}>
+    <div style={{padding:'16px 14px 100px', maxWidth:'100vw', overflowX:'hidden'}}>
       <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:16}}>
         <button style={S.backBtn} onClick={() => navigate('/')}>←</button>
         <div style={{flex:1}}>
