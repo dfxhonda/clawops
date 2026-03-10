@@ -45,9 +45,9 @@ export default function MachineList() {
             }
           } else if (br.length === 1) inputCount++
         }
-        stats[m.machine_id] = {
+        const lastRead = booths[0] && allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_id)).slice(-1)[0]; stats[m.machine_id] = {
           inputCount, totalBooths: booths.length,
-          totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100)
+          totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100), lastReadTime: lastRead?.read_time?.slice(0,10)||''
         }
       })
       setMachineStats(stats)
@@ -90,18 +90,17 @@ export default function MachineList() {
         const diff = stat?.totalDiff || 0
         return (
           <div key={m.machine_id} className="machine-item"
-            style={{flexDirection:'column',alignItems:'stretch',cursor:'pointer'}}
+            style={{flexDirection:'column',alignItems:'stretch',cursor:'pointer',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,marginBottom:8,padding:16}}
             onClick={() => navigate(`/booth/${m.machine_id}`, { state: { storeName, storeId } })}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div>
-                <div style={{fontWeight:'bold',fontSize:16}}>{m.machine_name}</div>
-                <div style={{fontSize:13,color:'#666',marginTop:2}}>{typeLabel[m.machine_type]||m.machine_type}</div>
+                <div style={{fontWeight:'bold',fontSize:16,color:'var(--text)'}}>{m.machine_name}</div>
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
                 <span className="badge" style={{background:allDone?'#e6f4ea':'#e8f0fe',color:allDone?'#137333':'#1a73e8'}}>
-                  {allDone?'✅ 完了':`${done}/${total}入力済`}
+                  {allDone ? `✅ ${stat?.lastReadTime||''}` : `${done}/${total}入力済`}
                 </span>
-                <span style={{fontSize:12,color:'#999'}}>{m.machine_code}</span>
+
               </div>
             </div>
             {diff > 0 && (
