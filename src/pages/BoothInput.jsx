@@ -115,7 +115,7 @@ export default function BoothInput() {
         <button className="back-btn" onClick={() => navigate(-1)}>←</button>
         <div style={{flex:1}}>
           <h2>{state?.storeName}</h2>
-          <p style={{fontSize:12,color:'#666'}}>{machineName} · {booth.full_booth_code}</p>
+          <p style={{fontSize:12,color:'var(--muted)'}}>{machineName} · {booth.full_booth_code}</p>
         </div>
         <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
           <span style={{fontSize:13,color:'#666'}}>{current+1}/{booths.length}</span>
@@ -148,22 +148,22 @@ export default function BoothInput() {
       <div className="card">
         {/* 前回値表示（最新レコード） */}
         {latest && (
-          <div style={{background:'#f8f9fa',borderRadius:8,padding:12,marginBottom:16,fontSize:13}}>
-            <div style={{color:'#666',marginBottom:4}}>📋 前回値（最新）</div>
+          <div style={{background:'var(--surface2)',borderRadius:8,padding:12,marginBottom:16,fontSize:13}}>
+            <div style={{color:'var(--muted)',marginBottom:4}}>📋 前回値（最新）</div>
             <div>IN: <strong>{latestIn!==null?latestIn.toLocaleString():'-'}</strong>　OUT: <strong>{latestOut!==null?latestOut.toLocaleString():'-'}</strong></div>
             {latest.prize_name && <div style={{marginTop:4}}>景品: {latest.prize_name}</div>}
-            <div style={{color:'#999',marginTop:4,fontSize:11}}>{latest.read_time?.slice(0,10)}</div>
+            <div style={{color:'var(--muted)',marginTop:4,fontSize:11}}>{latest.read_time?.slice(0,10)}</div>
           </div>
         )}
 
         {/* 差分計算基準（2日前以前） */}
         {last && last !== latest && (
-          <div style={{background:'#e8f0fe',borderRadius:8,padding:'8px 12px',marginBottom:16,fontSize:12,color:'#1a73e8'}}>
+          <div style={{background:'var(--surface3)',borderRadius:8,padding:'8px 12px',marginBottom:16,fontSize:12,color:'var(--accent)'}}>
             差分基準: IN {lastIn!==null?lastIn.toLocaleString():'-'} ({last.read_time?.slice(0,10)})
           </div>
         )}
         {!last && (
-          <div style={{background:'#fef7e0',borderRadius:8,padding:'8px 12px',marginBottom:16,fontSize:12,color:'#f29900'}}>
+          <div style={{background:'rgba(240,192,64,0.1)',borderRadius:8,padding:'8px 12px',marginBottom:16,fontSize:12,color:'var(--accent)'}}>
             ⚠️ 差分計算できる過去データがありません（2日前以前のレコードなし）
           </div>
         )}
