@@ -1,4 +1,4 @@
-const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+ws = await sheetsGet('machines!A2:M')const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 const TOKEN_KEY = 'gapi_token'
 
 export function getToken() { return sessionStorage.getItem(TOKEN_KEY) }
@@ -115,12 +115,25 @@ export async function getStores() {
 export async function getMachines(storeId) {
   const ckey = `machines_${storeId}`
   if (getCache(ckey)) return getCache(ckey)
-  const rows = await sheetsGet('machines!A2:L')
+  const rows = await sheetsGet('machines!A2:M')
   const result = rows
-    .filter(r => String(r[1]) === String(storeId) && String(r[11]) === '1')
-    .map(r => ({ machine_id:r[0], store_id:r[1], machine_code:r[2], machine_name:r[3],
-      machine_model:r[4], machine_type:r[5], booth_count:r[6], default_price:r[7] }))
-  setCache(ckey, result)
+    .filter(r => String(r[1]) === String(storeId) && String(r[12]) === '1')
+    .map(r => ({
+      machine_id:      r[0],
+      store_id:        r[1],
+      machine_code:    r[2],
+      machine_name:    r[3],
+      machine_model:   r[4],
+      machine_type:    r[5],
+      booth_count:     r[6],
+      default_price:   parseNum(r[7] || '100'),
+      meter_layout:    r[8],
+      rental_code:     r[9],
+      monthly_advance: parseNum(r[10] || '0'),
+      location_note:   r[11],
+      active_flag:     r[12],
+    }))
+  console.log('getMachines result:', storeId, result.length, rows.length); setCache(ckey, result)
   return result
 }
 
@@ -132,7 +145,7 @@ export async function getBooths(machineId) {
     .filter(r => String(r[1]) === String(machineId) && String(r[10]) === '1')
     .map(r => ({ booth_id:r[0], machine_id:r[1], booth_code:r[2], booth_number:r[3],
       full_booth_code:r[5], meter_in_digit:r[6], meter_out_digit:r[7], play_price:r[9] }))
-  setCache(ckey, result)
+  console.log('getMachines result:', storeId, result.length, rows.length); setCache(ckey, result)
   return result
 }
 

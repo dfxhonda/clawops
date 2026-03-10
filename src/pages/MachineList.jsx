@@ -47,7 +47,7 @@ export default function MachineList() {
         }
         stats[m.machine_id] = {
           inputCount, totalBooths: booths.length,
-          totalDiff, totalSales: totalDiff * 100
+          totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100)
         }
       })
       setMachineStats(stats)
