@@ -74,14 +74,17 @@ export default function StoreSelect() {
             style={{
               padding:'14px 8px', borderRadius:12, cursor:'pointer', textAlign:'center',
               border: mode === m.key ? '2px solid var(--accent)' : '2px solid var(--border)',
-              background: mode === m.key ? 'var(--surface2)' : 'var(--surface)',
-              transition:'all .15s'
+              background: mode === m.key ? 'var(--surface3)' : 'var(--surface)',
+              boxShadow: mode === m.key ? '0 0 0 1px var(--accent), inset 0 0 12px rgba(240,192,64,0.08)' : 'none',
+              transition:'all .2s'
             }}>
-            <div style={{fontSize:24}}>{m.icon}</div>
+            <div style={{fontSize:26, filter: mode === m.key ? 'none' : 'grayscale(0.4) opacity(0.7)'}}>{m.icon}</div>
             <div style={{
               fontSize:12, fontWeight:'bold', marginTop:6,
-              color: mode === m.key ? 'var(--accent)' : 'var(--muted)'
+              color: mode === m.key ? 'var(--accent)' : 'var(--muted)',
+              letterSpacing: mode === m.key ? '0.5px' : '0'
             }}>{m.label}</div>
+            {mode === m.key && <div style={{width:20,height:2,background:'var(--accent)',borderRadius:2,margin:'6px auto 0'}} />}
           </button>
         ))}
       </div>
@@ -89,12 +92,13 @@ export default function StoreSelect() {
       {/* データ検索・修正ボタン（独立） */}
       <button onClick={() => navigate('/datasearch')}
         style={{
-          width:'100%', marginBottom:24, padding:'14px 8px',
-          borderRadius:12, border:'2px solid var(--border)',
+          width:'100%', marginBottom:24, padding:'12px 8px',
+          borderRadius:12, border:'1px solid var(--border)',
           background:'var(--surface)', cursor:'pointer',
-          display:'flex', alignItems:'center', justifyContent:'center', gap:8
+          display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+          transition:'all .15s'
         }}>
-        <span style={{fontSize:22}}>🔍</span>
+        <span style={{fontSize:18}}>🔍</span>
         <span style={{fontSize:12, fontWeight:'bold', color:'var(--accent4)'}}>データ検索・修正</span>
       </button>
 
