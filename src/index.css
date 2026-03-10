@@ -1,28 +1,28 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, sans-serif; background: #f5f5f5; color: #333; }
 .container { max-width: 480px; margin: 0 auto; padding: 16px; }
-.card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 8px; }
 .btn-primary { background: #1a73e8; color: white; }
-.btn-secondary { background: #f0f0f0; color: #333; }
-.input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; text-align: center; }
-.input:focus { border-color: #1a73e8; outline: none; }
-.input.error { border-color: #ea4335; background: #fff0f0; }
-.label { font-size: 12px; color: #666; margin-bottom: 4px; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.input { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 18px; text-align: center; background: var(--surface2); color: var(--text); }
+.input:focus { border-color: var(--accent); outline: none; }
+.input.error { border-color: var(--accent2); background: rgba(224,90,90,0.1); }
+.label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 .diff { font-size: 24px; font-weight: bold; text-align: center; padding: 8px; border-radius: 8px; }
-.diff.normal { color: #1a73e8; background: #e8f0fe; }
-.diff.warning { color: #ea4335; background: #fce8e6; }
+.diff.normal { color: var(--accent); background: rgba(240,192,64,0.12); }
+.diff.warning { color: var(--accent2); background: rgba(224,90,90,0.12); }
 .store-btn { background: white; border: 2px solid #1a73e8; border-radius: 12px; padding: 20px; margin-bottom: 12px; cursor: pointer; text-align: left; width: 100%; }
 .store-btn h3 { color: #1a73e8; font-size: 18px; }
 .store-btn p { color: #666; font-size: 14px; margin-top: 4px; }
-.machine-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: white; border-radius: 12px; margin-bottom: 8px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.machine-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
 .badge { font-size: 12px; padding: 4px 8px; border-radius: 20px; background: #e8f0fe; color: #1a73e8; }
 .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .header h2 { font-size: 18px; }
-.back-btn { background: none; border: none; font-size: 20px; cursor: pointer; }
+.back-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); }
 .progress { display: flex; gap: 4px; margin-bottom: 16px; }
-.progress-dot { height: 4px; flex: 1; border-radius: 2px; background: #ddd; }
-.progress-dot.active { background: #1a73e8; }
+.progress-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); }
+.progress-dot.active { background: var(--accent); }
 
 :root {
   --bg: #0a0a0f;
