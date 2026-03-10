@@ -132,8 +132,9 @@ export default function BoothInput() {
         background:'var(--surface)',borderRadius:8,border:'1px solid var(--border)'}}>
         <span style={{fontSize:12,color:'var(--muted)'}}>📅 入力日付</span>
         <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
-          style={{flex:1,background:'transparent',border:'none',color:'var(--text)',
-            fontSize:13,fontWeight:'bold',cursor:'pointer',outline:'none'}} />
+          style={{flex:1,background:'var(--surface2)',border:'1px solid var(--border)',
+            color:'var(--text)',fontSize:14,padding:'4px 8px',borderRadius:6,
+            colorScheme:'dark'}} />
         {readDate !== new Date().toISOString().slice(0,10) &&
           <span style={{fontSize:10,color:'var(--accent2)',fontWeight:'bold'}}>過去日付</span>}
       </div>
