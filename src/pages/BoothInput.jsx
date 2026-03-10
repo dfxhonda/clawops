@@ -23,6 +23,7 @@ export default function BoothInput() {
   const [inputs, setInputs] = useState({})
   const [saved, setSaved] = useState({})
   const [loading, setLoading] = useState(true)
+  const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0,10))
 
   useEffect(() => {
     async function load() {
@@ -95,7 +96,7 @@ export default function BoothInput() {
     const finalIn = inp.in_meter || (latestIn !== null ? String(latestIn) : '')
     if (!finalIn) { alert('INメーターを入力してください'); return }
     const finalOut = inp.out_meter || (latestOut !== null ? String(latestOut) : '')
-    saveDraft({
+    saveDraft({ read_date: readDate,
       booth_id: booth.booth_id, full_booth_code: booth.full_booth_code,
       in_meter: finalIn, out_meter: finalOut,
       prize_restock_count: inp.prize_restock||'', prize_stock_count: inp.prize_stock||'',
@@ -124,6 +125,17 @@ export default function BoothInput() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* 入力日付選択 */}
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'8px 12px',
+        background:'var(--surface)',borderRadius:8,border:'1px solid var(--border)'}}>
+        <span style={{fontSize:12,color:'var(--muted)'}}>📅 入力日付</span>
+        <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
+          style={{flex:1,background:'transparent',border:'none',color:'var(--text)',
+            fontSize:13,fontWeight:'bold',cursor:'pointer',outline:'none'}} />
+        {readDate !== new Date().toISOString().slice(0,10) &&
+          <span style={{fontSize:10,color:'var(--accent2)',fontWeight:'bold'}}>過去日付</span>}
       </div>
 
       <div className="progress">

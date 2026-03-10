@@ -150,7 +150,7 @@ export async function getBooths(machineId) {
 }
 
 export async function saveReading(r) {
-  const now = new Date().toISOString()
+  const now = r.read_date ? new Date(r.read_date + "T12:00:00").toISOString() : new Date().toISOString()
   await sheetsAppend('meter_readings!A:N', [[
     'R'+Date.now(), r.booth_id, r.full_booth_code, now,
     r.in_meter, r.out_meter||'', r.prize_restock_count||'',
