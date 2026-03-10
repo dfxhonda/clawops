@@ -1,4 +1,4 @@
-ws = await sheetsGet('machines!A2:M')const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 const TOKEN_KEY = 'gapi_token'
 
 export function getToken() { return sessionStorage.getItem(TOKEN_KEY) }
