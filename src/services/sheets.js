@@ -58,7 +58,7 @@ export async function getAllMeterReadings(forceRefresh = false) {
   const iStock     = col('prize_stock_count')
   const iPrizeName = col('prize_name')
 
-  const result = rows.slice(1)
+  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows.slice(1)
     .filter(r => {
       // booth_id列が存在して値が入っている行だけ対象
       const bid = iBoothId >= 0 ? r[iBoothId] : undefined
@@ -105,7 +105,7 @@ export async function getLastReadingsMap(boothIds) {
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
   const rows = await sheetsGet('stores!A2:N')
-  const result = rows
+  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows
     .map(r => ({ store_id:r[0], store_code:r[1], store_name:r[2], active_flag:r[10] }))
     .filter(s => s.active_flag == 1 && s.store_code !== 'SIM01')
   setCache('stores', result)
@@ -116,7 +116,7 @@ export async function getMachines(storeId) {
   const ckey = `machines_${storeId}`
   if (getCache(ckey)) return getCache(ckey)
   const rows = await sheetsGet('machines!A2:M')
-  const result = rows
+  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows
     .filter(r => String(r[1]) === String(storeId) && String(r[12]) === '1')
     .map(r => ({
       machine_id:      r[0],
@@ -133,7 +133,7 @@ export async function getMachines(storeId) {
       location_note:   r[11],
       active_flag:     r[12],
     }))
-  console.log('getMachines result:', storeId, result.length, rows.length); setCache(ckey, result)
+
   return result
 }
 
@@ -141,11 +141,11 @@ export async function getBooths(machineId) {
   const ckey = `booths_${machineId}`
   if (getCache(ckey)) return getCache(ckey)
   const rows = await sheetsGet('booths!A2:K')
-  const result = rows
+  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows
     .filter(r => String(r[1]) === String(machineId) && String(r[10]) === '1')
     .map(r => ({ booth_id:r[0], machine_id:r[1], booth_code:r[2], booth_number:r[3],
       full_booth_code:r[5], meter_in_digit:r[6], meter_out_digit:r[7], play_price:r[9] }))
-  console.log('getMachines result:', storeId, result.length, rows.length); setCache(ckey, result)
+
   return result
 }
 
