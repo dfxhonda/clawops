@@ -43,7 +43,7 @@ async function sheetsAppend(range, values) {
 
 export async function getAllMeterReadings(forceRefresh = false) {
   if (!forceRefresh && getCache('meter_readings')) return getCache('meter_readings')
-  const rows = await sheetsGet('meter_readings!A1:P')
+  const rows = await sheetsGet('meter_readings!A1:U')
   if (rows.length === 0) return []
 
   // ヘッダー行でインデックス解決
@@ -57,10 +57,14 @@ export async function getAllMeterReadings(forceRefresh = false) {
   const iRestock   = col('prize_restock_count')
   const iStock     = col('prize_stock_count')
   const iPrizeName = col('prize_name')
+  const iSetA      = col('set_a')
+  const iSetC      = col('set_c')
+  const iSetL      = col('set_l')
+  const iSetR      = col('set_r')
+  const iSetO      = col('set_o')
 
-  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows.slice(1)
+  const result = rows.slice(1)
     .filter(r => {
-      // booth_id列が存在して値が入っている行だけ対象
       const bid = iBoothId >= 0 ? r[iBoothId] : undefined
       return bid !== undefined && bid !== null && String(bid).trim() !== ''
     })
@@ -73,6 +77,11 @@ export async function getAllMeterReadings(forceRefresh = false) {
       prize_restock_count: iRestock   >= 0 ? (r[iRestock]   || '') : '',
       prize_stock_count:   iStock     >= 0 ? (r[iStock]     || '') : '',
       prize_name:          iPrizeName >= 0 ? (r[iPrizeName] || '') : '',
+      set_a:               iSetA      >= 0 ? (r[iSetA]      || '') : '',
+      set_c:               iSetC      >= 0 ? (r[iSetC]      || '') : '',
+      set_l:               iSetL      >= 0 ? (r[iSetL]      || '') : '',
+      set_r:               iSetR      >= 0 ? (r[iSetR]      || '') : '',
+      set_o:               iSetO      >= 0 ? (r[iSetO]      || '') : '',
     }))
 
   setCache('meter_readings', result)
@@ -151,10 +160,11 @@ export async function getBooths(machineId) {
 
 export async function saveReading(r) {
   const now = r.read_date ? new Date(r.read_date + "T12:00:00").toISOString() : new Date().toISOString()
-  await sheetsAppend('meter_readings!A:N', [[
+  await sheetsAppend('meter_readings!A:U', [[
     'R'+Date.now(), r.booth_id, r.full_booth_code, now,
     r.in_meter, r.out_meter||'', r.prize_restock_count||'',
-    r.prize_stock_count||'', r.prize_name||'', 'manual','','', r.note||'', now
+    r.prize_stock_count||'', r.prize_name||'', 'manual','','', r.note||'', now,
+    r.set_a||'', r.set_c||'', r.set_l||'', r.set_r||'', r.set_o||''
   ]])
   clearCache()
 }
