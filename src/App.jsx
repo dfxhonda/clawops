@@ -9,6 +9,8 @@ import RankingView from './pages/RankingView'
 import EditReading from './pages/EditReading'
 import DraftList from './pages/DraftList'
 import DataSearch from './pages/DataSearch'
+import PatrolScan from './pages/PatrolScan'
+import PatrolInput from './pages/PatrolInput'
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
@@ -26,6 +28,8 @@ export default function App() {
       <Route path="/ranking/:storeId" element={<PrivateRoute><RankingView /></PrivateRoute>} />
       <Route path="/datasearch" element={<PrivateRoute><DataSearch /></PrivateRoute>} />
       <Route path="/edit/:boothId" element={<PrivateRoute><EditReading /></PrivateRoute>} />
+      <Route path="/patrol" element={<PrivateRoute><PatrolScan /></PrivateRoute>} />
+      <Route path="/patrol/input" element={<PrivateRoute><PatrolInput /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )

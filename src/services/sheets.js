@@ -159,6 +159,28 @@ export async function saveReading(r) {
   clearCache()
 }
 
+export async function findBoothByCode(fullBoothCode) {
+  const rows = await sheetsGet('booths!A2:K')
+  const booth = rows.find(r => String(r[5]).trim() === String(fullBoothCode).trim() && String(r[10]) === '1')
+  if (!booth) return null
+  return {
+    booth_id: booth[0], machine_id: booth[1], booth_code: booth[2], booth_number: booth[3],
+    full_booth_code: booth[5], meter_in_digit: booth[6], meter_out_digit: booth[7], play_price: booth[9]
+  }
+}
+
+export async function findMachineById(machineId) {
+  const rows = await sheetsGet('machines!A2:M')
+  const m = rows.find(r => String(r[0]) === String(machineId))
+  if (!m) return null
+  return { machine_id: m[0], store_id: m[1], machine_code: m[2], machine_name: m[3] }
+}
+
+export async function findStoreById(storeId) {
+  const stores = await getStores()
+  return stores.find(s => String(s.store_id) === String(storeId)) || null
+}
+
 export async function updateReading(rowIndex, r) {
   const range = `meter_readings!E${rowIndex}:I${rowIndex}`
   await fetch(

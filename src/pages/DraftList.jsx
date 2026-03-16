@@ -54,99 +54,107 @@ export default function DraftList() {
   }
 
   if (done) return (
-    <div className="container" style={{paddingTop:80,textAlign:'center'}}>
-      <div style={{fontSize:64,marginBottom:16}}>✅</div>
-      <h2 style={{fontSize:24,fontWeight:'bold',marginBottom:8}}>一括保存完了！</h2>
-      <p style={{color:'#666',marginBottom:32}}>Sheetsに保存しました</p>
-      <button className="btn btn-primary" onClick={() => navigate('/')}>トップに戻る</button>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center">
+        <div className="text-6xl mb-4">✅</div>
+        <h2 className="text-2xl font-bold mb-2">一括保存完了！</h2>
+        <p className="text-muted mb-8">Sheetsに保存しました</p>
+        <button onClick={() => navigate('/')}
+          className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors">
+          トップに戻る
+        </button>
+      </div>
     </div>
   )
 
   return (
-    <div className="container" style={{paddingTop:24}}>
-      <div className="header">
-        <button className="back-btn" onClick={() => navigate('/')}>←</button>
-        <div style={{flex:1}}>
-          <h2>下書き一覧</h2>
-          <p style={{fontSize:13,color:'#666'}}>{drafts.length}件の未保存データ</p>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
+      {/* ヘッダー */}
+      <div className="flex items-center gap-3 mb-5">
+        <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold">下書き一覧</h2>
+          <p className="text-xs text-muted">{drafts.length}件の未保存データ</p>
         </div>
       </div>
 
       {drafts.length === 0 ? (
-        <div className="card" style={{textAlign:'center',color:'#666',padding:32}}>
-          <div style={{fontSize:32,marginBottom:8}}>📝</div>
+        <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">
+          <div className="text-3xl mb-2">📝</div>
           <p>下書きデータがありません</p>
-          <p style={{fontSize:12,marginTop:4}}>巡回入力モードで入力すると<br/>ここに下書きが溜まります</p>
+          <p className="text-xs mt-1">巡回入力モードで入力すると<br/>ここに下書きが溜まります</p>
         </div>
       ) : (
         <>
-          <button className="btn btn-primary" onClick={handleSaveAll} disabled={saving}
-            style={{marginBottom:16}}>
+          <button onClick={handleSaveAll} disabled={saving}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors mb-4">
             {saving ? '保存中...' : `✅ ${drafts.length}件を一括保存`}
           </button>
 
+          {/* 編集フォーム */}
           {editing && (
-            <div className="card" style={{border:'2px solid #1a73e8',marginBottom:12}}>
-              <div style={{fontWeight:'bold',marginBottom:12}}>{editing.full_booth_code} を編集</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+            <div className="bg-surface border-2 border-blue-500 rounded-xl p-4 mb-3">
+              <div className="font-bold mb-3">{editing.full_booth_code} を編集</div>
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
-                  <div className="label">INメーター</div>
-                  <input className="input" type="number" value={editing.in_meter||''}
+                  <div className="text-xs text-muted mb-1">INメーター</div>
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.in_meter||''}
                     onChange={e => setEditing({...editing,in_meter:e.target.value})} />
                 </div>
                 <div>
-                  <div className="label">OUTメーター</div>
-                  <input className="input" type="number" value={editing.out_meter||''}
+                  <div className="text-xs text-muted mb-1">OUTメーター</div>
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.out_meter||''}
                     onChange={e => setEditing({...editing,out_meter:e.target.value})} />
                 </div>
                 <div>
-                  <div className="label">景品補充数</div>
-                  <input className="input" type="number" value={editing.prize_restock_count||''}
+                  <div className="text-xs text-muted mb-1">景品補充数</div>
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.prize_restock_count||''}
                     onChange={e => setEditing({...editing,prize_restock_count:e.target.value})} />
                 </div>
                 <div>
-                  <div className="label">景品投入残</div>
-                  <input className="input" type="number" value={editing.prize_stock_count||''}
+                  <div className="text-xs text-muted mb-1">景品投入残</div>
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.prize_stock_count||''}
                     onChange={e => setEditing({...editing,prize_stock_count:e.target.value})} />
                 </div>
               </div>
-              <div style={{marginBottom:12}}>
-                <div className="label">景品名</div>
-                <input className="input" type="text" style={{textAlign:'left'}}
+              <div className="mb-3">
+                <div className="text-xs text-muted mb-1">景品名</div>
+                <input className="w-full p-2.5 text-left rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent" type="text"
                   value={editing.prize_name||''}
                   onChange={e => setEditing({...editing,prize_name:e.target.value})} />
               </div>
-              <div style={{display:'flex',gap:8}}>
-                <button className="btn btn-primary" style={{flex:1}} onClick={handleEditSave}>保存</button>
-                <button className="btn btn-secondary" style={{flex:1}} onClick={() => setEditing(null)}>キャンセル</button>
+              <div className="flex gap-2">
+                <button onClick={handleEditSave} className="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg">保存</button>
+                <button onClick={() => setEditing(null)} className="flex-1 bg-surface2 border border-border text-text py-2.5 rounded-lg">キャンセル</button>
               </div>
             </div>
           )}
 
-          {drafts.map(d => (
-            <div key={d.booth_id} className="card" style={{marginBottom:8}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                <div style={{flex:1}} onClick={() => handleEdit(d)}>
-                  <div style={{fontWeight:'bold',fontSize:15}}>{d.full_booth_code}</div>
-                  <div style={{fontSize:13,color:'#333',marginTop:4}}>
-                    IN: <strong>{Number(String(d.in_meter).replace(/,/g,'')).toLocaleString()}</strong>
-                    {d.out_meter ? `　OUT: ${Number(String(d.out_meter).replace(/,/g,'')).toLocaleString()}` : ''}
+          {/* 下書きリスト */}
+          <div className="space-y-2">
+            {drafts.map(d => (
+              <div key={d.booth_id} className="bg-surface border border-border rounded-xl p-3.5">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 cursor-pointer" onClick={() => handleEdit(d)}>
+                    <div className="font-bold text-base">{d.full_booth_code}</div>
+                    <div className="text-sm mt-1">
+                      IN: <strong>{Number(String(d.in_meter).replace(/,/g,'')).toLocaleString()}</strong>
+                      {d.out_meter ? `　OUT: ${Number(String(d.out_meter).replace(/,/g,'')).toLocaleString()}` : ''}
+                    </div>
+                    {d.prize_name && <div className="text-xs text-muted mt-0.5">景品: {d.prize_name}</div>}
+                    <div className="text-[11px] text-muted mt-0.5">{d.updated_at?.slice(0,16).replace('T',' ')}</div>
                   </div>
-                  {d.prize_name && <div style={{fontSize:12,color:'#666',marginTop:2}}>景品: {d.prize_name}</div>}
-                  <div style={{fontSize:11,color:'#999',marginTop:2}}>{d.updated_at?.slice(0,16).replace('T',' ')}</div>
-                </div>
-                <div style={{display:'flex',gap:8,alignItems:'center',paddingLeft:8}}>
-                  <button onClick={() => handleEdit(d)}
-                    style={{background:'none',border:'none',fontSize:18,cursor:'pointer'}}>✏️</button>
-                  <button onClick={() => handleDelete(d.booth_id)}
-                    style={{background:'none',border:'none',fontSize:18,cursor:'pointer',color:'#ea4335'}}>🗑️</button>
+                  <div className="flex gap-2 items-center pl-2">
+                    <button onClick={() => handleEdit(d)} className="text-lg">✏️</button>
+                    <button onClick={() => handleDelete(d.booth_id)} className="text-lg text-accent2">🗑️</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
-          <button className="btn btn-secondary" onClick={() => { clearDrafts(); setDrafts([]) }}
-            style={{marginTop:8,color:'#ea4335'}}>
+          <button onClick={() => { clearDrafts(); setDrafts([]) }}
+            className="w-full mt-3 bg-surface2 border border-border text-accent2 font-medium py-2.5 rounded-xl">
             🗑️ 全下書きを削除
           </button>
         </>

@@ -25,19 +25,26 @@ export default function Login() {
   }
 
   return (
-    <div className="container" style={{paddingTop:80}}>
-      <div style={{textAlign:'center',marginBottom:40}}>
-        <div style={{fontSize:48,marginBottom:16}}>🎮</div>
-        <h1 style={{fontSize:28,fontWeight:'bold',color:'#1a73e8'}}>ClawOps</h1>
-        <p style={{color:'#666',marginTop:8}}>クレーンゲーム運営管理</p>
-      </div>
-      <div className="card">
-        <button className="btn btn-primary" onClick={handleLogin}>
-          Googleアカウントでログイン
-        </button>
-        <p style={{fontSize:12,color:'#999',textAlign:'center',marginTop:8}}>
-          Googleスプレッドシートへのアクセスを許可します
-        </p>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-sm text-center">
+        <div className="mb-10">
+          <div className="w-20 h-20 mx-auto mb-4 bg-surface2 rounded-2xl flex items-center justify-center text-5xl">
+            🎮
+          </div>
+          <h1 className="text-3xl font-bold text-accent tracking-wider">ClawOps</h1>
+          <p className="text-muted text-sm mt-2">クレーンゲーム運営管理</p>
+        </div>
+        <div className="bg-surface border border-border rounded-2xl p-5">
+          <button
+            onClick={handleLogin}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-colors text-base"
+          >
+            Googleアカウントでログイン
+          </button>
+          <p className="text-muted text-xs mt-3">
+            Googleスプレッドシートへのアクセスを許可します
+          </p>
+        </div>
       </div>
     </div>
   )

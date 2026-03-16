@@ -56,9 +56,11 @@ export default function BoothInput() {
   }, [machineId])
 
   if (loading) return (
-    <div className="container" style={{paddingTop:80,textAlign:'center'}}>
-      <p>読み込み中...</p>
-      <p style={{fontSize:12,color:'#999',marginTop:8}}>前回データを取得しています</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
+        <p className="text-muted text-sm">前回データを取得しています...</p>
+      </div>
     </div>
   )
 
@@ -69,11 +71,8 @@ export default function BoothInput() {
   const inp = inputs[booth.booth_id] || {}
   const price = parseNum(booth.play_price||'100')
 
-  // 前回値表示用（最新レコード）
   const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
   const latestOut = latest?.out_meter ? parseNum(latest.out_meter) : null
-
-  // 差分計算用（最低2日前）
   const lastIn = last?.in_meter ? parseNum(last.in_meter) : null
   const lastOut = last?.out_meter ? parseNum(last.out_meter) : null
 
@@ -84,9 +83,6 @@ export default function BoothInput() {
   const outDiff = outVal !== null && lastOut !== null ? outVal - lastOut : null
   const inAbnormal = inDiff !== null && (inDiff < 0 || inDiff > 50000)
   const outAbnormal = outDiff !== null && (outDiff < 0 || outDiff > 50000)
-
-  const usingLatestIn = !inp.in_meter && latestIn !== null
-  const usingLatestOut = !inp.out_meter && latestOut !== null
 
   function setInp(key, val) {
     setInputs(prev => ({ ...prev, [booth.booth_id]: { ...(prev[booth.booth_id]||{}), [key]: val } }))
@@ -110,125 +106,150 @@ export default function BoothInput() {
   const draftCount = getDrafts().length
 
   return (
-    <div className="container" style={{paddingTop:16}}>
-      <div className="header">
-        <button className="back-btn" onClick={() => navigate(-1)}>←</button>
-        <div style={{flex:1}}>
-          <h2>{state?.storeName}</h2>
-          <p style={{fontSize:12,color:'var(--muted)'}}>{machineName} · {booth.full_booth_code}</p>
+    <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
+      {/* ヘッダー */}
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={() => navigate(-1)} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold">{state?.storeName}</h2>
+          <p className="text-xs text-muted">{machineName} · {booth.full_booth_code}</p>
         </div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
-          <span style={{fontSize:13,color:'#666'}}>{current+1}/{booths.length}</span>
+        <div className="flex flex-col items-end gap-0.5">
+          <span className="text-sm text-muted">{current+1}/{booths.length}</span>
           {draftCount > 0 && (
-            <span style={{fontSize:11,color:'#1a73e8',cursor:'pointer'}} onClick={() => navigate('/drafts')}>
+            <span className="text-[11px] text-blue-400 cursor-pointer" onClick={() => navigate('/drafts')}>
               下書き{draftCount}件
             </span>
           )}
         </div>
       </div>
 
-      {/* 入力日付選択 */}
-      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'8px 12px',
-        background:'var(--surface)',borderRadius:8,border:'1px solid var(--border)'}}>
-        <span style={{fontSize:12,color:'var(--muted)'}}>📅 入力日付</span>
+      {/* 入力日付 */}
+      <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-surface rounded-lg border border-border">
+        <span className="text-xs text-muted">📅 入力日付</span>
         <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
-          style={{flex:1,background:'var(--surface2)',border:'1px solid var(--border)',
-            color:'var(--text)',fontSize:14,padding:'4px 8px',borderRadius:6,
-            colorScheme:'dark'}} />
+          className="flex-1 bg-surface2 border border-border text-text text-sm px-2 py-1 rounded-md [color-scheme:dark]" />
         {readDate !== new Date().toISOString().slice(0,10) &&
-          <span style={{fontSize:10,color:'var(--accent2)',fontWeight:'bold'}}>過去日付</span>}
+          <span className="text-[10px] text-accent2 font-bold">過去日付</span>}
       </div>
 
-      <div className="progress">
+      {/* プログレスドット */}
+      <div className="flex gap-1 mb-4">
         {booths.map((b,i) => (
-          <div key={i} className={`progress-dot ${i<=current||saved[b.booth_id]?'active':''}`} />
+          <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i<=current||saved[b.booth_id] ? 'bg-accent' : 'bg-border'}`} />
         ))}
       </div>
 
-      <div className="card">
-        {/* 前回値表示（最新レコード） */}
+      <div className="bg-surface border border-border rounded-xl p-4">
+        {/* 前回値 */}
         {latest && (
-          <div style={{background:'var(--surface2)',borderRadius:8,padding:12,marginBottom:16,fontSize:13}}>
-            <div style={{color:'var(--muted)',marginBottom:4}}>📋 前回値（最新）</div>
+          <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm">
+            <div className="text-muted text-xs mb-1">📋 前回値（最新）</div>
             <div>IN: <strong>{latestIn!==null?latestIn.toLocaleString():'-'}</strong>　OUT: <strong>{latestOut!==null?latestOut.toLocaleString():'-'}</strong></div>
-            {latest.prize_name && <div style={{marginTop:4}}>景品: {latest.prize_name}</div>}
-            <div style={{color:'var(--muted)',marginTop:4,fontSize:11}}>{latest.read_time?.slice(0,10)}</div>
+            {latest.prize_name && <div className="mt-1">景品: {latest.prize_name}</div>}
+            <div className="text-muted text-[11px] mt-1">{latest.read_time?.slice(0,10)}</div>
           </div>
         )}
 
-        {/* 差分計算基準（2日前以前） */}
+        {/* 差分基準 */}
         {last && last !== latest && (
-          <div style={{background:'var(--surface3)',borderRadius:8,padding:'8px 12px',marginBottom:16,fontSize:12,color:'var(--accent)'}}>
+          <div className="bg-surface3 rounded-lg px-3 py-2 mb-4 text-xs text-accent">
             差分基準: IN {lastIn!==null?lastIn.toLocaleString():'-'} ({last.read_time?.slice(0,10)})
           </div>
         )}
         {!last && (
-          <div style={{background:'rgba(240,192,64,0.1)',borderRadius:8,padding:'8px 12px',marginBottom:16,fontSize:12,color:'var(--accent)'}}>
+          <div className="bg-accent/10 rounded-lg px-3 py-2 mb-4 text-xs text-accent">
             ⚠️ 差分計算できる過去データがありません（2日前以前のレコードなし）
           </div>
         )}
 
-        <div style={{marginBottom:16}}>
-          <div className="label">INメーター *
-            {usingLatestIn && <span style={{fontSize:11,color:'#f29900',marginLeft:6}}>※未入力時は前回値で保存</span>}
+        {/* INメーター */}
+        <div className="mb-4">
+          <div className="text-xs text-muted mb-1">
+            INメーター *
+            {!inp.in_meter && latestIn !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
           </div>
-          <input className={`input ${inAbnormal?'error':''}`} type="number"
+          <input
+            className={`w-full p-3 text-lg text-center rounded-lg border-2 bg-surface2 text-text outline-none transition-colors
+              ${inAbnormal ? 'border-accent2 bg-accent2/10' : 'border-border focus:border-accent'}`}
+            type="number"
             placeholder={latestIn!==null?String(latestIn):'0000000'}
             value={inp.in_meter||''}
-            onChange={e => setInp('in_meter', e.target.value)} />
+            onChange={e => setInp('in_meter', e.target.value)}
+          />
           {inDiff !== null && (
-            <div className={`diff ${inAbnormal?'warning':'normal'}`} style={{marginTop:6}}>
+            <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg
+              ${inAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
               差分: {inDiff>=0?'+':''}{inDiff.toLocaleString()}回 / ¥{(inDiff*price).toLocaleString()}
-              {inAbnormal && <div style={{fontSize:12,marginTop:2}}>⚠️ 異常値の可能性</div>}
+              {inAbnormal && <div className="text-xs mt-1">⚠️ 異常値の可能性</div>}
             </div>
           )}
         </div>
 
-        <div style={{marginBottom:16}}>
-          <div className="label">OUTメーター
-            {usingLatestOut && <span style={{fontSize:11,color:'#f29900',marginLeft:6}}>※未入力時は前回値で保存</span>}
+        {/* OUTメーター */}
+        <div className="mb-4">
+          <div className="text-xs text-muted mb-1">
+            OUTメーター
+            {!inp.out_meter && latestOut !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
           </div>
-          <input className={`input ${outAbnormal?'error':''}`} type="number"
+          <input
+            className={`w-full p-3 text-lg text-center rounded-lg border-2 bg-surface2 text-text outline-none transition-colors
+              ${outAbnormal ? 'border-accent2 bg-accent2/10' : 'border-border focus:border-accent'}`}
+            type="number"
             placeholder={latestOut!==null?String(latestOut):'0000000'}
             value={inp.out_meter||''}
-            onChange={e => setInp('out_meter', e.target.value)} />
+            onChange={e => setInp('out_meter', e.target.value)}
+          />
           {outDiff !== null && (
-            <div className={`diff ${outAbnormal?'warning':'normal'}`} style={{marginTop:6}}>
+            <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg
+              ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
               差分: {outDiff>=0?'+':''}{outDiff.toLocaleString()}回
-              {outAbnormal && <div style={{fontSize:12,marginTop:2}}>⚠️ 異常値の可能性</div>}
+              {outAbnormal && <div className="text-xs mt-1">⚠️ 異常値の可能性</div>}
             </div>
           )}
         </div>
 
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+        {/* 景品数 */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <div>
-            <div className="label">景品補充数</div>
-            <input className="input" type="number" placeholder="0"
+            <div className="text-xs text-muted mb-1">景品補充数</div>
+            <input className="w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent" type="number" placeholder="0"
               value={inp.prize_restock||''} onChange={e => setInp('prize_restock', e.target.value)} />
           </div>
           <div>
-            <div className="label">景品投入残</div>
-            <input className="input" type="number" placeholder="0"
+            <div className="text-xs text-muted mb-1">景品投入残</div>
+            <input className="w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent" type="number" placeholder="0"
               value={inp.prize_stock||''} onChange={e => setInp('prize_stock', e.target.value)} />
           </div>
         </div>
 
-        <div style={{marginBottom:16}}>
-          <div className="label">景品名
-            {!inp.prize_name && latest?.prize_name && <span style={{fontSize:11,color:'#f29900',marginLeft:6}}>※未入力時は前回値で保存</span>}
+        {/* 景品名 */}
+        <div className="mb-4">
+          <div className="text-xs text-muted mb-1">
+            景品名
+            {!inp.prize_name && latest?.prize_name && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
           </div>
-          <input className="input" type="text" style={{textAlign:'left'}}
+          <input className="w-full p-3 text-base text-left rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent" type="text"
             placeholder={latest?.prize_name||'景品名を入力'}
             value={inp.prize_name||''}
             onChange={e => setInp('prize_name', e.target.value)} />
         </div>
 
-        <button className="btn btn-primary" onClick={handleSave}>
+        {/* 保存ボタン */}
+        <button
+          onClick={handleSave}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors mb-2"
+        >
           {saved[booth.booth_id]?'✅ ':''}
           {current < booths.length-1 ? '下書き保存して次へ →' : '📝 下書き一覧へ'}
         </button>
         {current > 0 && (
-          <button className="btn btn-secondary" onClick={() => setCurrent(c => c-1)}>← 前のブースに戻る</button>
+          <button
+            onClick={() => setCurrent(c => c-1)}
+            className="w-full bg-surface2 border border-border text-text font-medium py-3 rounded-xl hover:border-accent/30 transition-colors"
+          >
+            ← 前のブースに戻る
+          </button>
         )}
       </div>
     </div>

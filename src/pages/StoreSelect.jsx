@@ -36,94 +36,103 @@ export default function StoreSelect() {
   }
 
   if (loading) return (
-    <div style={{paddingTop:80, textAlign:'center', color:'var(--text)'}}>読み込み中...</div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
+        <p className="text-muted text-sm">店舗情報を読み込み中...</p>
+      </div>
+    </div>
   )
+
   if (error) return (
-    <div style={{padding:24}}>
-      <div style={{background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:14}}>
-        <p style={{color:'var(--accent2)'}}>エラー: {error}</p>
-        <button style={{marginTop:12, background:'var(--surface2)', border:'1px solid var(--border)',
-          color:'var(--text)', borderRadius:8, padding:'8px 14px', cursor:'pointer'}}
-          onClick={() => { clearToken(); navigate('/login') }}>ログインし直す</button>
+    <div className="p-6">
+      <div className="bg-surface border border-border rounded-xl p-4">
+        <p className="text-accent2 mb-3">エラー: {error}</p>
+        <button
+          className="bg-surface2 border border-border text-text rounded-lg px-4 py-2 text-sm"
+          onClick={() => { clearToken(); navigate('/login') }}
+        >
+          ログインし直す
+        </button>
       </div>
     </div>
   )
 
   return (
-    <div style={{padding:'24px 14px 40px', minHeight:'100vh'}}>
-
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-10 min-h-screen">
       {/* ヘッダー */}
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <div style={{fontSize:24, fontWeight:'bold', color:'var(--accent)',
-            letterSpacing:2, fontFamily:'var(--fd)'}}>CLAWOPS</div>
-          <div style={{fontSize:12, color:'var(--muted)', marginTop:2}}>
+          <div className="text-2xl font-bold text-accent tracking-widest">CLAWOPS</div>
+          <div className="text-xs text-muted mt-0.5">
             {new Date().toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'short'})}
           </div>
         </div>
-        <button style={{background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:13}}
-          onClick={() => { clearToken(); navigate('/login') }}>
+        <button
+          className="text-muted text-sm hover:text-accent2 transition-colors"
+          onClick={() => { clearToken(); navigate('/login') }}
+        >
           ログアウト
         </button>
       </div>
 
-      {/* モード選択：巡回・ランキング */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}}>
+      {/* モード選択 */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
         {modes.map(m => (
           <button key={m.key} onClick={() => setMode(m.key)}
-            style={{
-              padding:'14px 8px', borderRadius:12, cursor:'pointer', textAlign:'center',
-              border: mode === m.key ? '2px solid var(--accent)' : '2px solid var(--border)',
-              background: mode === m.key ? 'var(--surface3)' : 'var(--surface)',
-              boxShadow: mode === m.key ? '0 0 0 1px var(--accent), inset 0 0 12px rgba(240,192,64,0.08)' : 'none',
-              transition:'all .2s'
-            }}>
-            <div style={{fontSize:26, filter: mode === m.key ? 'none' : 'grayscale(0.4) opacity(0.7)'}}>{m.icon}</div>
-            <div style={{
-              fontSize:12, fontWeight:'bold', marginTop:6,
-              color: mode === m.key ? 'var(--accent)' : 'var(--muted)',
-              letterSpacing: mode === m.key ? '0.5px' : '0'
-            }}>{m.label}</div>
-            {mode === m.key && <div style={{width:20,height:2,background:'var(--accent)',borderRadius:2,margin:'6px auto 0'}} />}
+            className={`py-3.5 px-2 rounded-xl text-center transition-all duration-200
+              ${mode === m.key
+                ? 'border-2 border-accent bg-surface3 shadow-[0_0_0_1px_var(--color-accent),inset_0_0_12px_rgba(240,192,64,0.08)]'
+                : 'border-2 border-border bg-surface'}`}
+          >
+            <div className={`text-2xl ${mode !== m.key ? 'grayscale-[0.4] opacity-70' : ''}`}>{m.icon}</div>
+            <div className={`text-xs font-bold mt-1.5 ${mode === m.key ? 'text-accent tracking-wide' : 'text-muted'}`}>
+              {m.label}
+            </div>
+            {mode === m.key && <div className="w-5 h-0.5 bg-accent rounded-full mx-auto mt-1.5" />}
           </button>
         ))}
       </div>
 
-      {/* データ検索・修正ボタン（独立） */}
+      {/* QRスキャン */}
+      <button onClick={() => navigate('/patrol')}
+        className="w-full mb-3 py-4 px-2 rounded-xl border-2 border-accent3 bg-accent3/8 flex items-center justify-center gap-2.5 transition-all hover:bg-accent3/15 active:scale-[0.98]"
+      >
+        <span className="text-2xl">📷</span>
+        <div className="text-left">
+          <div className="text-sm font-bold text-accent3">QRスキャン巡回</div>
+          <div className="text-[11px] text-muted mt-0.5">ブースQRを読んで即入力</div>
+        </div>
+      </button>
+
+      {/* データ検索 */}
       <button onClick={() => navigate('/datasearch')}
-        style={{
-          width:'100%', marginBottom:24, padding:'12px 8px',
-          borderRadius:12, border:'1px solid var(--border)',
-          background:'var(--surface)', cursor:'pointer',
-          display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-          transition:'all .15s'
-        }}>
-        <span style={{fontSize:18}}>🔍</span>
-        <span style={{fontSize:12, fontWeight:'bold', color:'var(--accent4)'}}>データ検索・修正</span>
+        className="w-full mb-6 py-3 px-2 rounded-xl border border-border bg-surface flex items-center justify-center gap-2 transition-all hover:border-accent4/30 active:scale-[0.98]"
+      >
+        <span className="text-lg">🔍</span>
+        <span className="text-xs font-bold text-accent4">データ検索・修正</span>
       </button>
 
       {/* 店舗選択 */}
-      <div style={{fontSize:11, color:'var(--muted)', textTransform:'uppercase',
-        letterSpacing:1, marginBottom:8}}>店舗を選択</div>
-      {stores.map(store => (
-        <button key={store.store_id}
-          style={{
-            width:'100%', marginBottom:10, background:'var(--surface)',
-            border:'1px solid var(--border)', borderRadius:12, padding:14,
-            cursor:'pointer', textAlign:'left'
-          }}
-          onClick={() => handleStoreClick(store)}>
-          <div style={{display:'flex', alignItems:'center', gap:12}}>
-            <span style={{fontSize:36}}>{icons[store.store_code]||'🏪'}</span>
-            <div>
-              <div style={{fontSize:16, fontWeight:'bold', color:'var(--text)'}}>{store.store_name}</div>
-              <div style={{fontSize:12, color:'var(--muted)', marginTop:2}}>
-                {store.store_code} · {boothCounts[store.store_id]||'?'}ブース
+      <div className="text-[11px] text-muted uppercase tracking-widest mb-2">店舗を選択</div>
+      <div className="space-y-2.5">
+        {stores.map(store => (
+          <button key={store.store_id}
+            className="w-full bg-surface border border-border rounded-xl p-3.5 text-left hover:border-accent/40 transition-colors active:scale-[0.98]"
+            onClick={() => handleStoreClick(store)}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{icons[store.store_code]||'🏪'}</span>
+              <div>
+                <div className="text-base font-bold">{store.store_name}</div>
+                <div className="text-xs text-muted mt-0.5">
+                  {store.store_code} · {boothCounts[store.store_id]||'?'}ブース
+                </div>
               </div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

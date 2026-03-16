@@ -2,11 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getMachines, getStores, getBooths, getAllMeterReadings, parseNum } from '../services/sheets'
 
-const typeLabel = {
-  BUZZ_CRANE_4:'BUZZ CRANE 4', BUZZ_CRANE_SLIM:'BUZZスリム',
-  BUZZ_CRANE_MINI:'BUZZミニ', SESAME_W:'セサミW'
-}
-
 export default function MachineList() {
   const { storeId } = useParams()
   const [machines, setMachines] = useState([])
@@ -17,19 +12,14 @@ export default function MachineList() {
 
   useEffect(() => {
     async function load() {
-      // 全データを並列で一括取得（キャッシュ活用）
       const [allMachines, stores, allReadings] = await Promise.all([
-        getMachines(storeId),
-        getStores(),
-        getAllMeterReadings()
+        getMachines(storeId), getStores(), getAllMeterReadings()
       ])
       setMachines(allMachines)
       const store = stores.find(x => String(x.store_id) === String(storeId))
       if (store) setStoreName(store.store_name)
 
-      // 全機械のブースを並列取得
       const allBooths = await Promise.all(allMachines.map(m => getBooths(m.machine_id)))
-
       const stats = {}
       allMachines.forEach((m, i) => {
         const booths = allBooths[i]
@@ -45,9 +35,11 @@ export default function MachineList() {
             }
           } else if (br.length === 1) inputCount++
         }
-        const lastRead = booths[0] && allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_id)).slice(-1)[0]; stats[m.machine_id] = {
+        const lastRead = booths[0] && allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_id)).slice(-1)[0]
+        stats[m.machine_id] = {
           inputCount, totalBooths: booths.length,
-          totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100), lastReadTime: lastRead?.read_time?.slice(0,10)||''
+          totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100),
+          lastReadTime: lastRead?.read_time?.slice(0,10)||''
         }
       })
       setMachineStats(stats)
@@ -57,61 +49,67 @@ export default function MachineList() {
   }, [storeId])
 
   if (loading) return (
-    <div className="container" style={{paddingTop:80,textAlign:'center'}}>
-      <p>読み込み中...</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
+        <p className="text-muted text-sm">機械情報を読み込み中...</p>
+      </div>
     </div>
   )
 
   const totalSales = Object.values(machineStats).reduce((s, m) => s + (m.totalSales||0), 0)
 
   return (
-    <div className="container" style={{paddingTop:24}}>
-      <div className="header">
-        <button className="back-btn" onClick={() => navigate('/')}>←</button>
-        <div style={{flex:1}}>
-          <h2>{storeName}</h2>
-          <p style={{fontSize:13,color:'#666'}}>機械を選択してください</p>
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
+      {/* ヘッダー */}
+      <div className="flex items-center gap-3 mb-5">
+        <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+        <div className="flex-1">
+          <h2 className="text-lg font-bold">{storeName}</h2>
+          <p className="text-xs text-muted">機械を選択してください</p>
         </div>
       </div>
 
+      {/* 店舗合計 */}
       {totalSales > 0 && (
-        <div style={{background:'#1a73e8',color:'white',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <span style={{fontSize:13}}>店舗合計（前回比）</span>
-          <span style={{fontSize:20,fontWeight:'bold'}}>¥{totalSales.toLocaleString()}</span>
+        <div className="bg-blue-600 text-white rounded-xl px-4 py-3 mb-4 flex justify-between items-center">
+          <span className="text-sm">店舗合計（前回比）</span>
+          <span className="text-xl font-bold">¥{totalSales.toLocaleString()}</span>
         </div>
       )}
 
-      {machines.map(m => {
-        const stat = machineStats[m.machine_id]
-        const done = stat?.inputCount || 0
-        const total = stat?.totalBooths || Number(m.booth_count)
-        const allDone = done >= total
-        const sales = stat?.totalSales || 0
-        const diff = stat?.totalDiff || 0
-        return (
-          <div key={m.machine_id} className="machine-item"
-            style={{flexDirection:'column',alignItems:'stretch',cursor:'pointer',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,marginBottom:8,padding:16}}
-            onClick={() => navigate(`/booth/${m.machine_id}`, { state: { storeName, storeId } })}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div>
-                <div style={{fontWeight:'bold',fontSize:16,color:'var(--text)'}}>{m.machine_name}</div>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
-                <span className="badge" style={{background:allDone?'#e6f4ea':'#e8f0fe',color:allDone?'#137333':'#1a73e8'}}>
+      {/* 機械リスト */}
+      <div className="space-y-2">
+        {machines.map(m => {
+          const stat = machineStats[m.machine_id]
+          const done = stat?.inputCount || 0
+          const total = stat?.totalBooths || Number(m.booth_count)
+          const allDone = done >= total
+          const sales = stat?.totalSales || 0
+          const diff = stat?.totalDiff || 0
+          return (
+            <button key={m.machine_id}
+              className="w-full bg-surface border border-border rounded-xl p-4 text-left hover:border-accent/40 transition-colors active:scale-[0.98]"
+              onClick={() => navigate(`/booth/${m.machine_id}`, { state: { storeName, storeId } })}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-bold text-base">{m.machine_name}</div>
+                </div>
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${allDone ? 'bg-green-900/30 text-green-400' : 'bg-blue-900/30 text-blue-400'}`}>
                   {allDone ? `✅ ${stat?.lastReadTime||''}` : `${done}/${total}入力済`}
                 </span>
-
               </div>
-            </div>
-            {diff > 0 && (
-              <div style={{marginTop:10,paddingTop:10,borderTop:'1px solid #f0f0f0',display:'flex',justifyContent:'space-between'}}>
-                <span style={{fontSize:13,color:'#666'}}>前回差分: +{diff.toLocaleString()}回</span>
-                <span style={{fontSize:15,fontWeight:'bold',color:'#1a73e8'}}>¥{sales.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-        )
-      })}
+              {diff > 0 && (
+                <div className="mt-2.5 pt-2.5 border-t border-border flex justify-between">
+                  <span className="text-sm text-muted">前回差分: +{diff.toLocaleString()}回</span>
+                  <span className="text-base font-bold text-blue-400">¥{sales.toLocaleString()}</span>
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
