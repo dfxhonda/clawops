@@ -1,18 +1,52 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  getPrizes, addPrize, updatePrize,
+  getPrizes, addPrize, addPrizesBatch, updatePrize,
   getPrizeOrders, addPrizeOrder,
   getVehicleStocks, addVehicleStock, updateVehicleStock, deleteVehicleStock,
   getInventoryChecks, saveInventoryCheck,
 } from '../services/sheets'
 
 const TABS = [
-  { key: 'master', label: '景品マスタ' },
-  { key: 'orders', label: '発注履歴' },
+  { key: 'master', label: 'マスタ' },
+  { key: 'import', label: 'CSV取込' },
+  { key: 'orders', label: '発注' },
   { key: 'inventory', label: '棚卸し' },
   { key: 'vehicle', label: '車在庫' },
 ]
+
+// 商品名から短縮名とサイズを自動抽出
+function extractFromName(name) {
+  if (!name) return { short_name: '', item_size: '' }
+  let item_size = ''
+  let short_name = name
+
+  // サイズ抽出パターン
+  const sizePatterns = [
+    /\b(BIG|big|Big)\b/,
+    /\b(XXL|XL|LL|L|M|S|SS)\b/i,
+    /(\d+[cm×xX]\d+[cm]*)/,
+    /(\d+cm)/i,
+    /(特大|大|中|小|ミニ)/,
+    /(Lサイズ|Mサイズ|Sサイズ)/,
+    /(ぬいぐるみ|BIG|メガ|ギガ|ジャンボ)/,
+  ]
+  for (const pat of sizePatterns) {
+    const m = name.match(pat)
+    if (m) { item_size = m[1] || m[0]; break }
+  }
+
+  // 短縮名: 先頭20文字、カッコ内やサイズ部分を除去
+  short_name = name
+    .replace(/【.*?】/g, '')
+    .replace(/\(.*?\)/g, '')
+    .replace(/（.*?）/g, '')
+    .replace(/\s*(BIG|XXL|XL|LL|Lサイズ|Mサイズ|Sサイズ|特大|ジャンボ|メガ|ギガ)\s*/gi, ' ')
+    .trim()
+  if (short_name.length > 20) short_name = short_name.slice(0, 20)
+
+  return { short_name, item_size }
+}
 
 export default function PrizeManagement() {
   const navigate = useNavigate()
@@ -36,6 +70,16 @@ export default function PrizeManagement() {
   const [selectedForMove, setSelectedForMove] = useState({}) // { prize_id: true }
   const [moveStaff, setMoveStaff] = useState('')
   const [showMoveModal, setShowMoveModal] = useState(false)
+
+  // CSV取込用state
+  const [csvFile, setCsvFile] = useState(null)
+  const [csvRows, setCsvRows] = useState([])       // パース済みデータ
+  const [csvHeaders, setCsvHeaders] = useState([])  // CSVのヘッダー行
+  const [csvMapping, setCsvMapping] = useState({})  // CSV列→フィールドのマッピング
+  const [csvPreview, setCsvPreview] = useState([])  // 変換後プレビュー
+  const [csvStep, setCsvStep] = useState('upload')  // upload → map → preview → done
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState('')
 
   // 車在庫フィルタ
   const [vehicleFilter, setVehicleFilter] = useState('')
@@ -264,6 +308,144 @@ export default function PrizeManagement() {
     } catch (e) { setMsg('削除エラー: ' + e.message) }
   }
 
+  // --- CSV取込 ---
+  const CSV_FIELDS = [
+    { key: 'prize_name', label: '商品名', required: true },
+    { key: 'unit_cost', label: '単価' },
+    { key: 'supplier_name', label: 'サプライヤー' },
+    { key: 'jan_code', label: 'JANコード' },
+    { key: 'category', label: 'カテゴリ' },
+    { key: 'order_at', label: '発注日' },
+    { key: 'arrival_at', label: '到着予定日' },
+    { key: 'case_count', label: 'ケース数' },
+    { key: 'pieces_per_case', label: '入数/ケース' },
+    { key: 'restock_count', label: '後入り数' },
+    { key: 'stock_count', label: '在庫数' },
+  ]
+
+  // CSV列名の自動マッチング
+  const HEADER_ALIASES = {
+    prize_name: ['商品名','品名','品目','アイテム名','prize_name','name','item'],
+    unit_cost: ['単価','仕入単価','原価','コスト','price','cost','unit_cost'],
+    supplier_name: ['サプライヤー','仕入先','メーカー','supplier','vendor'],
+    jan_code: ['jan','janコード','jan_code','バーコード','barcode'],
+    category: ['カテゴリ','分類','種類','category','type'],
+    order_at: ['発注日','注文日','order_at','order_date','発注'],
+    arrival_at: ['到着予定日','入荷予定','納期','arrival','arrival_at','到着日'],
+    case_count: ['ケース数','ケース','case','cases','case_count'],
+    pieces_per_case: ['入数','入数/ケース','pcs','pieces','pieces_per_case'],
+    restock_count: ['後入り数','後入り','restock','restock_count'],
+    stock_count: ['在庫数','在庫','stock','stock_count'],
+  }
+
+  function autoMapHeaders(headers) {
+    const mapping = {}
+    for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
+      for (const h of headers) {
+        const normalized = h.trim().toLowerCase()
+        if (aliases.some(a => normalized === a.toLowerCase() || normalized.includes(a.toLowerCase()))) {
+          mapping[field] = h
+          break
+        }
+      }
+    }
+    return mapping
+  }
+
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim())
+    if (lines.length < 2) return { headers: [], rows: [] }
+    // ヘッダー行を取得
+    const headers = parseCSVLine(lines[0])
+    const rows = lines.slice(1).map(line => {
+      const vals = parseCSVLine(line)
+      const obj = {}
+      headers.forEach((h, i) => { obj[h] = vals[i] || '' })
+      return obj
+    }).filter(r => Object.values(r).some(v => v.trim()))
+    return { headers, rows }
+  }
+
+  function parseCSVLine(line) {
+    const result = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (inQuotes) {
+        if (ch === '"' && line[i+1] === '"') { current += '"'; i++ }
+        else if (ch === '"') inQuotes = false
+        else current += ch
+      } else {
+        if (ch === '"') inQuotes = true
+        else if (ch === ',') { result.push(current.trim()); current = '' }
+        else current += ch
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
+  function handleCsvFile(file) {
+    if (!file) return
+    setCsvFile(file)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target.result
+      const { headers, rows } = parseCSV(text)
+      setCsvHeaders(headers)
+      setCsvRows(rows)
+      const mapping = autoMapHeaders(headers)
+      setCsvMapping(mapping)
+      setCsvStep('map')
+    }
+    reader.readAsText(file, 'UTF-8')
+  }
+
+  function buildPreview() {
+    const preview = csvRows.map(row => {
+      const item = {}
+      for (const [field, csvCol] of Object.entries(csvMapping)) {
+        if (csvCol) item[field] = row[csvCol] || ''
+      }
+      // 商品名から short_name, item_size を自動抽出
+      if (item.prize_name) {
+        const { short_name, item_size } = extractFromName(item.prize_name)
+        item.short_name = short_name
+        item.item_size = item_size
+      }
+      item.is_active = 'TRUE'
+      return item
+    }).filter(item => item.prize_name)
+    setCsvPreview(preview)
+    setCsvStep('preview')
+  }
+
+  async function runImport() {
+    if (csvPreview.length === 0) return
+    setImporting(true)
+    setImportResult('')
+    try {
+      const count = await addPrizesBatch(csvPreview)
+      setImportResult(`${count}件の景品を登録しました`)
+      setCsvStep('done')
+      await loadData()
+    } catch (e) {
+      setImportResult('インポートエラー: ' + e.message)
+    }
+    setImporting(false)
+  }
+
+  function resetCsv() {
+    setCsvFile(null)
+    setCsvRows([])
+    setCsvHeaders([])
+    setCsvMapping({})
+    setCsvPreview([])
+    setCsvStep('upload')
+    setImportResult('')
+  }
+
   const SORT_OPTIONS = [
     { key: 'name', label: '名前' },
     { key: 'short', label: '短縮名' },
@@ -327,31 +509,53 @@ export default function PrizeManagement() {
         </div>
         {msg && <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm text-accent">{msg}</div>}
         <div className="space-y-4">
-          <Field label="景品名" k="prize_name" form={form} setForm={setForm} required />
-          <Field label="短縮名" k="short_name" form={form} setForm={setForm} placeholder="一覧表示用の短い名前" />
+          <Field label="商品名" k="prize_name" form={form} setForm={setForm} required />
           <div className="grid grid-cols-2 gap-3">
-            <Field label="仕入単価(円)" k="unit_cost" form={form} setForm={setForm} type="number" />
-            <Field label="サイズ" k="item_size" form={form} setForm={setForm} placeholder="例: S/M/L" />
+            <Field label="短縮名" k="short_name" form={form} setForm={setForm} placeholder="自動抽出可" />
+            <Field label="サイズ" k="item_size" form={form} setForm={setForm} placeholder="自動抽出可" />
           </div>
+          {/* 商品名から自動抽出ボタン */}
+          {form.prize_name && !form.short_name && (
+            <button onClick={() => {
+              const { short_name, item_size } = extractFromName(form.prize_name)
+              setForm(p => ({ ...p, short_name: short_name || p.short_name, item_size: item_size || p.item_size }))
+            }} className="text-xs text-accent underline">商品名から短縮名・サイズを自動抽出</button>
+          )}
           <div>
-            <label className="block text-muted text-sm mb-1">用途</label>
-            <select value={form.usage_type||''} onChange={e => setForm(p=>({...p, usage_type:e.target.value}))}
+            <label className="block text-muted text-sm mb-1">カテゴリ</label>
+            <select value={form.category||''} onChange={e => setForm(p=>({...p, category:e.target.value}))}
               className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
               <option value="">未設定</option>
-              <option value="通常">通常</option>
+              <option value="フィギュア">フィギュア</option>
+              <option value="ぬいぐるみ">ぬいぐるみ</option>
+              <option value="雑貨">雑貨</option>
+              <option value="食品">食品</option>
               <option value="ラスワン">ラスワン</option>
-              <option value="セット">セット</option>
               <option value="限定">限定</option>
+              <option value="セット">セット</option>
             </select>
           </div>
-          <Field label="JANコード" k="jan_code" form={form} setForm={setForm} placeholder="空欄可" />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="仕入単価(円)" k="unit_cost" form={form} setForm={setForm} type="number" />
+            <Field label="JANコード" k="jan_code" form={form} setForm={setForm} placeholder="空欄可" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="ケース数" k="case_count" form={form} setForm={setForm} type="number" placeholder="0" />
+            <Field label="入数/ケース" k="pieces_per_case" form={form} setForm={setForm} type="number" placeholder="0" />
+            <div>
+              <label className="block text-muted text-sm mb-1">合計数</label>
+              <div className="bg-surface2 border border-border rounded-lg px-3 py-2 text-accent font-bold text-center">
+                {(parseInt(form.case_count)||0) * (parseInt(form.pieces_per_case)||0) || '—'}
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="サプライヤー" k="supplier_name" form={form} setForm={setForm} />
             <Field label="連絡先" k="supplier_contact" form={form} setForm={setForm} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="発注日" k="order_at" form={form} setForm={setForm} type="date" />
-            <Field label="入荷日(納期)" k="arrival_at" form={form} setForm={setForm} type="date" />
+            <Field label="到着予定日" k="arrival_at" form={form} setForm={setForm} type="date" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="後入り数" k="restock_count" form={form} setForm={setForm} type="number" placeholder="0" />
@@ -575,7 +779,7 @@ export default function PrizeManagement() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-text font-bold text-sm truncate">{displayName}</span>
                         {p.item_size && <span className="text-accent4 text-[10px] font-bold px-1 py-0.5 bg-accent4/10 rounded">{p.item_size}</span>}
-                        {p.usage_type && <span className="text-accent text-[10px] font-bold px-1 py-0.5 bg-accent/10 rounded">{p.usage_type}</span>}
+                        {p.category && <span className="text-accent text-[10px] font-bold px-1 py-0.5 bg-accent/10 rounded">{p.category}</span>}
                       </div>
                       <div className="text-muted text-[11px] truncate flex items-center gap-2">
                         {p.short_name && <span>{p.prize_name}</span>}
@@ -601,6 +805,139 @@ export default function PrizeManagement() {
             })}
             {filteredPrizes.length === 0 && <div className="text-center text-muted py-8">景品が登録されていません</div>}
           </div>
+        </>
+      )}
+
+      {/* ===== CSV取込 ===== */}
+      {tab === 'import' && (
+        <>
+          {/* ステップ1: アップロード */}
+          {csvStep === 'upload' && (
+            <div className="space-y-4">
+              <div className="bg-surface border border-border rounded-xl p-4 text-center">
+                <div className="text-muted text-sm mb-3">CSVファイルを選択して景品を一括登録</div>
+                <label className="inline-block bg-accent text-black font-bold rounded-lg px-6 py-3 text-sm cursor-pointer">
+                  CSVファイルを選択
+                  <input type="file" accept=".csv,.txt" className="hidden"
+                    onChange={e => handleCsvFile(e.target.files[0])} />
+                </label>
+                <div className="text-muted text-[11px] mt-3">
+                  対応列: 商品名, 単価, サプライヤー, JANコード, カテゴリ, 発注日, 到着予定日, ケース数, 入数 など
+                </div>
+              </div>
+              <div className="bg-surface2 rounded-xl p-3 text-[11px] text-muted space-y-1">
+                <div className="font-bold text-text text-xs mb-1">自動処理</div>
+                <div>・商品名から短縮名(20文字)を自動生成</div>
+                <div>・商品名からサイズ(BIG/L/M/S等)を自動抽出</div>
+                <div>・CSV列名を自動でフィールドにマッピング</div>
+              </div>
+            </div>
+          )}
+
+          {/* ステップ2: 列マッピング */}
+          {csvStep === 'map' && (
+            <div className="space-y-4">
+              <div className="bg-surface2 rounded-xl p-3 flex items-center justify-between">
+                <div className="text-sm">
+                  <span className="text-muted">ファイル: </span>
+                  <span className="text-accent font-bold">{csvFile?.name}</span>
+                  <span className="text-muted ml-2">({csvRows.length}行)</span>
+                </div>
+                <button onClick={resetCsv} className="text-xs text-muted hover:text-accent2">リセット</button>
+              </div>
+
+              <div className="text-xs text-muted font-bold uppercase tracking-wider">列マッピング</div>
+              <div className="space-y-2">
+                {CSV_FIELDS.map(f => (
+                  <div key={f.key} className="flex items-center gap-2">
+                    <span className={`text-xs w-28 shrink-0 ${f.required ? 'text-accent2 font-bold' : 'text-muted'}`}>
+                      {f.label}{f.required && ' *'}
+                    </span>
+                    <select value={csvMapping[f.key] || ''}
+                      onChange={e => setCsvMapping(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      className="flex-1 bg-surface border border-border rounded-lg px-2 py-1.5 text-xs text-text">
+                      <option value="">（未割当）</option>
+                      {csvHeaders.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={resetCsv}
+                  className="flex-1 bg-surface2 text-muted rounded-lg py-3 text-sm">キャンセル</button>
+                <button onClick={buildPreview} disabled={!csvMapping.prize_name}
+                  className="flex-1 bg-accent text-black font-bold rounded-lg py-3 text-sm disabled:opacity-30">
+                  プレビュー
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ステップ3: プレビュー */}
+          {csvStep === 'preview' && (
+            <div className="space-y-4">
+              <div className="bg-surface2 rounded-xl p-3 flex items-center justify-between">
+                <span className="text-sm">
+                  <span className="text-accent font-bold">{csvPreview.length}件</span>
+                  <span className="text-muted"> の景品をインポートします</span>
+                </span>
+                <button onClick={() => setCsvStep('map')} className="text-xs text-muted hover:text-accent">戻る</button>
+              </div>
+
+              <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
+                {csvPreview.map((item, i) => (
+                  <div key={i} className="bg-surface border border-border rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-text font-bold text-sm truncate">{item.short_name || item.prize_name}</span>
+                      {item.item_size && <span className="text-accent4 text-[10px] font-bold px-1 py-0.5 bg-accent4/10 rounded">{item.item_size}</span>}
+                      {item.category && <span className="text-accent text-[10px] font-bold px-1 py-0.5 bg-accent/10 rounded">{item.category}</span>}
+                    </div>
+                    <div className="text-muted text-[11px] truncate flex items-center gap-2 mt-0.5">
+                      {item.short_name && <span className="text-muted/60">{item.prize_name}</span>}
+                      {item.supplier_name && <span>{item.supplier_name}</span>}
+                      {item.unit_cost && <span className="text-accent font-bold">¥{parseInt(item.unit_cost||0).toLocaleString()}</span>}
+                      {item.case_count && item.pieces_per_case && (
+                        <span className="text-accent3">{item.case_count}C×{item.pieces_per_case}</span>
+                      )}
+                      {item.arrival_at && <span>{item.arrival_at}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {importResult && (
+                <div className="bg-surface2 rounded-lg p-3 text-sm text-accent">{importResult}</div>
+              )}
+
+              <div className="flex gap-3">
+                <button onClick={resetCsv}
+                  className="flex-1 bg-surface2 text-muted rounded-lg py-3 text-sm">キャンセル</button>
+                <button onClick={runImport} disabled={importing || csvPreview.length === 0}
+                  className="flex-1 bg-accent3 text-black font-bold rounded-lg py-3 text-sm disabled:opacity-30">
+                  {importing ? 'インポート中...' : `${csvPreview.length}件をインポート`}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ステップ4: 完了 */}
+          {csvStep === 'done' && (
+            <div className="space-y-4">
+              <div className="bg-accent3/10 border border-accent3/30 rounded-xl p-6 text-center">
+                <div className="text-accent3 text-3xl mb-2">✅</div>
+                <div className="text-accent3 font-bold text-lg">{importResult}</div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={resetCsv}
+                  className="flex-1 bg-surface2 text-muted rounded-lg py-3 text-sm">別のCSVを取込</button>
+                <button onClick={() => { setTab('master'); resetCsv() }}
+                  className="flex-1 bg-accent text-black font-bold rounded-lg py-3 text-sm">マスタを確認</button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

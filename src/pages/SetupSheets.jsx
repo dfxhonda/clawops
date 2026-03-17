@@ -15,10 +15,10 @@ const SHEETS_TO_CREATE = [
   },
 ]
 
-// 既存prizesシートに追加する列 (K1:Q1)
+// 既存prizesシートに追加する列 (K1:S1)
 const PRIZES_EXTRA_HEADERS = {
-  range: 'prizes!K1:Q1',
-  headers: ['short_name', 'item_size', 'usage_type', 'order_at', 'arrival_at', 'restock_count', 'stock_count'],
+  range: 'prizes!K1:S1',
+  headers: ['short_name', 'item_size', 'category', 'order_at', 'arrival_at', 'restock_count', 'stock_count', 'case_count', 'pieces_per_case'],
 }
 
 export default function SetupSheets() {
@@ -103,7 +103,7 @@ export default function SetupSheets() {
       }
     }
 
-    // prizesシートの拡張列を追加 (K-Q)
+    // prizesシートの拡張列を追加 (K-S)
     addLog('prizesシートの拡張列を確認中...')
     try {
       const checkRes = await fetch(
@@ -124,7 +124,7 @@ export default function SetupSheets() {
           }
         )
         if (!putRes.ok) throw new Error('prizes列追加エラー: ' + putRes.status)
-        addLog('prizes拡張列 (short_name〜stock_count) を追加しました ✅', 'success')
+        addLog('prizes拡張列 (short_name〜pieces_per_case) を追加しました ✅', 'success')
       }
     } catch (e) {
       addLog('prizes列追加エラー: ' + e.message, 'error')
@@ -151,7 +151,7 @@ export default function SetupSheets() {
           </div>
         ))}
         <div className="mb-1">
-          <div className="text-text font-bold text-sm">prizes列拡張 (K〜Q)</div>
+          <div className="text-text font-bold text-sm">prizes列拡張 (K〜S)</div>
           <div className="text-muted text-xs font-mono">{PRIZES_EXTRA_HEADERS.headers.join(' / ')}</div>
         </div>
       </div>

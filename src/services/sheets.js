@@ -308,23 +308,24 @@ export async function updateMachine(rowNum, m) {
 // ============================================
 // 景品管理 CRUD
 // ============================================
-// prizes シート列構成 (A-Q):
+// prizes シート列構成 (A-S):
 // A:prize_id B:prize_name C:jan_code D:barcode_value E:unit_cost
 // F:supplier_name G:supplier_contact H:is_active I:created_at J:updated_at
-// K:short_name L:item_size M:usage_type N:order_at O:arrival_at
-// P:restock_count Q:stock_count
+// K:short_name L:item_size M:category N:order_at O:arrival_at
+// P:restock_count Q:stock_count R:case_count S:pieces_per_case
 export async function getPrizes() {
   if (getCache('prizes')) return getCache('prizes')
-  const rows = await sheetsGet('prizes!A2:Q')
+  const rows = await sheetsGet('prizes!A2:S')
   const result = rows.map((r, i) => ({
     _row: i + 2,
     prize_id: r[0]||'', prize_name: r[1]||'', jan_code: r[2]||'',
     barcode_value: r[3]||'', unit_cost: r[4]||'', supplier_name: r[5]||'',
     supplier_contact: r[6]||'', is_active: r[7]||'TRUE',
     created_at: r[8]||'', updated_at: r[9]||'',
-    short_name: r[10]||'', item_size: r[11]||'', usage_type: r[12]||'',
+    short_name: r[10]||'', item_size: r[11]||'', category: r[12]||'',
     order_at: r[13]||'', arrival_at: r[14]||'',
     restock_count: r[15]||'', stock_count: r[16]||'',
+    case_count: r[17]||'', pieces_per_case: r[18]||'',
   }))
   setCache('prizes', result)
   return result
@@ -337,27 +338,57 @@ export async function addPrize(p) {
     ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
     : 1
   const barcode = p.jan_code || `PRZ-${nextId}`
-  await sheetsAppend('prizes!A:Q', [[
+  await sheetsAppend('prizes!A:S', [[
     nextId, p.prize_name, p.jan_code||'', barcode,
     p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
-    'TRUE', now, now,
-    p.short_name||'', p.item_size||'', p.usage_type||'',
+    p.is_active || 'TRUE', now, now,
+    p.short_name||'', p.item_size||'', p.category||'',
     p.order_at||'', p.arrival_at||'',
     p.restock_count||'', p.stock_count||'',
+    p.case_count||'', p.pieces_per_case||'',
   ]])
   clearCache()
   return nextId
 }
 
+export async function addPrizesBatch(items) {
+  // CSV一括インポート用
+  const now = new Date().toISOString()
+  const existing = await getPrizes()
+  let nextId = existing.length > 0
+    ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
+    : 1
+  const rows = items.map(p => {
+    const id = nextId++
+    const barcode = p.jan_code || `PRZ-${id}`
+    return [
+      id, p.prize_name||'', p.jan_code||'', barcode,
+      p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
+      p.is_active || 'TRUE', now, now,
+      p.short_name||'', p.item_size||'', p.category||'',
+      p.order_at||'', p.arrival_at||'',
+      p.restock_count||'', p.stock_count||'',
+      p.case_count||'', p.pieces_per_case||'',
+    ]
+  })
+  // バッチappend（1行ずつ送ると遅いのでまとめる）
+  for (const row of rows) {
+    await sheetsAppend('prizes!A:S', [row])
+  }
+  clearCache()
+  return rows.length
+}
+
 export async function updatePrize(rowNum, p) {
   const now = new Date().toISOString()
-  await sheetsPut(`prizes!B${rowNum}:Q${rowNum}`, [[
+  await sheetsPut(`prizes!B${rowNum}:S${rowNum}`, [[
     p.prize_name, p.jan_code||'', p.barcode_value||'',
     p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
     p.is_active||'TRUE', p.created_at||'', now,
-    p.short_name||'', p.item_size||'', p.usage_type||'',
+    p.short_name||'', p.item_size||'', p.category||'',
     p.order_at||'', p.arrival_at||'',
     p.restock_count||'', p.stock_count||'',
+    p.case_count||'', p.pieces_per_case||'',
   ]])
   clearCache()
 }
