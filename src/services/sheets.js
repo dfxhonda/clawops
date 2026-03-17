@@ -308,15 +308,23 @@ export async function updateMachine(rowNum, m) {
 // ============================================
 // 景品管理 CRUD
 // ============================================
+// prizes シート列構成 (A-Q):
+// A:prize_id B:prize_name C:jan_code D:barcode_value E:unit_cost
+// F:supplier_name G:supplier_contact H:is_active I:created_at J:updated_at
+// K:short_name L:item_size M:usage_type N:order_at O:arrival_at
+// P:restock_count Q:stock_count
 export async function getPrizes() {
   if (getCache('prizes')) return getCache('prizes')
-  const rows = await sheetsGet('prizes!A2:J')
+  const rows = await sheetsGet('prizes!A2:Q')
   const result = rows.map((r, i) => ({
     _row: i + 2,
     prize_id: r[0]||'', prize_name: r[1]||'', jan_code: r[2]||'',
     barcode_value: r[3]||'', unit_cost: r[4]||'', supplier_name: r[5]||'',
     supplier_contact: r[6]||'', is_active: r[7]||'TRUE',
     created_at: r[8]||'', updated_at: r[9]||'',
+    short_name: r[10]||'', item_size: r[11]||'', usage_type: r[12]||'',
+    order_at: r[13]||'', arrival_at: r[14]||'',
+    restock_count: r[15]||'', stock_count: r[16]||'',
   }))
   setCache('prizes', result)
   return result
@@ -324,16 +332,18 @@ export async function getPrizes() {
 
 export async function addPrize(p) {
   const now = new Date().toISOString()
-  // prize_idは自動連番
   const existing = await getPrizes()
   const nextId = existing.length > 0
     ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
     : 1
   const barcode = p.jan_code || `PRZ-${nextId}`
-  await sheetsAppend('prizes!A:J', [[
+  await sheetsAppend('prizes!A:Q', [[
     nextId, p.prize_name, p.jan_code||'', barcode,
     p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
-    'TRUE', now, now
+    'TRUE', now, now,
+    p.short_name||'', p.item_size||'', p.usage_type||'',
+    p.order_at||'', p.arrival_at||'',
+    p.restock_count||'', p.stock_count||'',
   ]])
   clearCache()
   return nextId
@@ -341,10 +351,13 @@ export async function addPrize(p) {
 
 export async function updatePrize(rowNum, p) {
   const now = new Date().toISOString()
-  await sheetsPut(`prizes!B${rowNum}:J${rowNum}`, [[
+  await sheetsPut(`prizes!B${rowNum}:Q${rowNum}`, [[
     p.prize_name, p.jan_code||'', p.barcode_value||'',
     p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
-    p.is_active||'TRUE', p.created_at||'', now
+    p.is_active||'TRUE', p.created_at||'', now,
+    p.short_name||'', p.item_size||'', p.usage_type||'',
+    p.order_at||'', p.arrival_at||'',
+    p.restock_count||'', p.stock_count||'',
   ]])
   clearCache()
 }

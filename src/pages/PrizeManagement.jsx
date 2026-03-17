@@ -266,10 +266,13 @@ export default function PrizeManagement() {
 
   const SORT_OPTIONS = [
     { key: 'name', label: '名前' },
+    { key: 'short', label: '短縮名' },
     { key: 'cost', label: '単価' },
     { key: 'supplier', label: 'サプライヤー' },
+    { key: 'order', label: '発注日' },
+    { key: 'arrival', label: '納期' },
+    { key: 'stock', label: '在庫数' },
     { key: 'active', label: 'ステータス' },
-    { key: 'created', label: '登録日' },
   ]
 
   function toggleSort(key) {
@@ -278,18 +281,21 @@ export default function PrizeManagement() {
   }
 
   const filteredPrizes = prizes
-    .filter(p => !search || p.prize_name?.includes(search) || p.supplier_name?.includes(search))
+    .filter(p => !search || p.prize_name?.includes(search) || p.supplier_name?.includes(search) || p.short_name?.includes(search))
     .sort((a, b) => {
       const dir = sortAsc ? 1 : -1
       switch (sortKey) {
+        case 'short': return (a.short_name||'').localeCompare(b.short_name||'') * dir
         case 'cost': return ((parseInt(a.unit_cost)||0) - (parseInt(b.unit_cost)||0)) * dir
         case 'supplier': return (a.supplier_name||'').localeCompare(b.supplier_name||'') * dir
+        case 'order': return (a.order_at||'').localeCompare(b.order_at||'') * dir
+        case 'arrival': return (a.arrival_at||'').localeCompare(b.arrival_at||'') * dir
+        case 'stock': return ((parseInt(a.stock_count)||0) - (parseInt(b.stock_count)||0)) * dir
         case 'active': {
           const av = a.is_active === 'TRUE' ? 0 : 1
           const bv = b.is_active === 'TRUE' ? 0 : 1
           return (av - bv) * dir
         }
-        case 'created': return (a.created_at||'').localeCompare(b.created_at||'') * dir
         default: return (a.prize_name||'').localeCompare(b.prize_name||'') * dir
       }
     })
@@ -322,20 +328,43 @@ export default function PrizeManagement() {
         {msg && <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm text-accent">{msg}</div>}
         <div className="space-y-4">
           <Field label="景品名" k="prize_name" form={form} setForm={setForm} required />
+          <Field label="短縮名" k="short_name" form={form} setForm={setForm} placeholder="一覧表示用の短い名前" />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="仕入単価(円)" k="unit_cost" form={form} setForm={setForm} type="number" />
+            <Field label="サイズ" k="item_size" form={form} setForm={setForm} placeholder="例: S/M/L" />
+          </div>
+          <div>
+            <label className="block text-muted text-sm mb-1">用途</label>
+            <select value={form.usage_type||''} onChange={e => setForm(p=>({...p, usage_type:e.target.value}))}
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
+              <option value="">未設定</option>
+              <option value="通常">通常</option>
+              <option value="ラスワン">ラスワン</option>
+              <option value="セット">セット</option>
+              <option value="限定">限定</option>
+            </select>
+          </div>
           <Field label="JANコード" k="jan_code" form={form} setForm={setForm} placeholder="空欄可" />
-          <Field label="仕入単価(円)" k="unit_cost" form={form} setForm={setForm} type="number" />
-          <Field label="サプライヤー" k="supplier_name" form={form} setForm={setForm} />
-          <Field label="サプライヤー連絡先" k="supplier_contact" form={form} setForm={setForm} />
-          {editing.mode === 'edit' && (
-            <div>
-              <label className="block text-muted text-sm mb-1">ステータス</label>
-              <select value={form.is_active||'TRUE'} onChange={e => setForm(p=>({...p, is_active:e.target.value}))}
-                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
-                <option value="TRUE">有効</option>
-                <option value="FALSE">無効</option>
-              </select>
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="サプライヤー" k="supplier_name" form={form} setForm={setForm} />
+            <Field label="連絡先" k="supplier_contact" form={form} setForm={setForm} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="発注日" k="order_at" form={form} setForm={setForm} type="date" />
+            <Field label="入荷日(納期)" k="arrival_at" form={form} setForm={setForm} type="date" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="後入り数" k="restock_count" form={form} setForm={setForm} type="number" placeholder="0" />
+            <Field label="在庫数" k="stock_count" form={form} setForm={setForm} type="number" placeholder="0" />
+          </div>
+          <div>
+            <label className="block text-muted text-sm mb-1">ステータス</label>
+            <select value={form.is_active||'TRUE'} onChange={e => setForm(p=>({...p, is_active:e.target.value}))}
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
+              <option value="TRUE">有効</option>
+              <option value="FALSE">無効</option>
+            </select>
+          </div>
         </div>
         <div className="mt-6 flex gap-3">
           <button onClick={() => setEditing(null)} className="flex-1 bg-surface2 text-muted rounded-lg py-3">キャンセル</button>
@@ -525,32 +554,51 @@ export default function PrizeManagement() {
 
           {/* カード一覧 */}
           <div className="space-y-1.5">
-            {filteredPrizes.map(p => (
-              <div key={p.prize_id} onClick={() => startEditPrize(p)}
-                className="bg-surface border border-border rounded-xl px-3 py-2.5 active:bg-surface2 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  {/* ステータスドット */}
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${
-                    p.is_active === 'TRUE' ? 'bg-accent3' : 'bg-accent2/50'
-                  }`} />
+            {filteredPrizes.map(p => {
+              const displayName = p.short_name || p.prize_name
+              const hasArrival = p.arrival_at && !p.arrival_at.startsWith('0')
+              const stockNum = parseInt(p.stock_count) || 0
+              const restockNum = parseInt(p.restock_count) || 0
+              return (
+                <div key={p.prize_id} onClick={() => startEditPrize(p)}
+                  className={`bg-surface border rounded-xl px-3 py-2.5 active:bg-surface2 cursor-pointer ${
+                    p.is_active !== 'TRUE' ? 'border-border opacity-50' : 'border-border'
+                  }`}>
+                  <div className="flex items-center gap-2">
+                    {/* ステータスドット */}
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      p.is_active === 'TRUE' ? 'bg-accent3' : 'bg-accent2/50'
+                    }`} />
 
-                  {/* メイン: サプライヤー + 単価を上、景品名を下（小さく） */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-text font-bold text-sm truncate">{p.supplier_name || '—'}</span>
-                      <span className="text-accent text-xs font-bold">¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
+                    {/* メイン: 短縮名+用途を上、景品フル名を下（小さく） */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-text font-bold text-sm truncate">{displayName}</span>
+                        {p.item_size && <span className="text-accent4 text-[10px] font-bold px-1 py-0.5 bg-accent4/10 rounded">{p.item_size}</span>}
+                        {p.usage_type && <span className="text-accent text-[10px] font-bold px-1 py-0.5 bg-accent/10 rounded">{p.usage_type}</span>}
+                      </div>
+                      <div className="text-muted text-[11px] truncate flex items-center gap-2">
+                        {p.short_name && <span>{p.prize_name}</span>}
+                        <span>{p.supplier_name || '—'}</span>
+                        <span className="text-accent font-bold">¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
+                      </div>
                     </div>
-                    <div className="text-muted text-[11px] truncate">{p.prize_name}</div>
-                  </div>
 
-                  {/* 右側: JAN + 矢印 */}
-                  <div className="shrink-0 text-right">
-                    {p.jan_code && <div className="text-muted text-[10px] font-mono">{p.jan_code}</div>}
+                    {/* 右側: 在庫・納期 */}
+                    <div className="shrink-0 text-right">
+                      <div className="flex items-center gap-1.5 justify-end">
+                        {restockNum > 0 && <span className="text-accent4 text-[10px]">+{restockNum}</span>}
+                        <span className={`text-xs font-bold ${stockNum <= 0 ? 'text-accent2' : 'text-accent3'}`}>{stockNum}</span>
+                      </div>
+                      {hasArrival && (
+                        <div className="text-muted text-[10px]">{p.arrival_at}</div>
+                      )}
+                    </div>
+                    <span className="text-muted/30 text-sm">›</span>
                   </div>
-                  <span className="text-muted/30 text-sm">›</span>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {filteredPrizes.length === 0 && <div className="text-center text-muted py-8">景品が登録されていません</div>}
           </div>
         </>

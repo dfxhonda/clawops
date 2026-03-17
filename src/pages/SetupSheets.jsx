@@ -15,6 +15,12 @@ const SHEETS_TO_CREATE = [
   },
 ]
 
+// 既存prizesシートに追加する列 (K1:Q1)
+const PRIZES_EXTRA_HEADERS = {
+  range: 'prizes!K1:Q1',
+  headers: ['short_name', 'item_size', 'usage_type', 'order_at', 'arrival_at', 'restock_count', 'stock_count'],
+}
+
 export default function SetupSheets() {
   const navigate = useNavigate()
   const [log, setLog] = useState([])
@@ -97,6 +103,33 @@ export default function SetupSheets() {
       }
     }
 
+    // prizesシートの拡張列を追加 (K-Q)
+    addLog('prizesシートの拡張列を確認中...')
+    try {
+      const checkRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(PRIZES_EXTRA_HEADERS.range)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const checkData = await checkRes.json()
+      const existingHeaders = checkData.values?.[0] || []
+      if (existingHeaders.length > 0 && existingHeaders[0]) {
+        addLog('prizes拡張列は既に設定済み → スキップ', 'warn')
+      } else {
+        const putRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(PRIZES_EXTRA_HEADERS.range)}?valueInputOption=USER_ENTERED`,
+          {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [PRIZES_EXTRA_HEADERS.headers] })
+          }
+        )
+        if (!putRes.ok) throw new Error('prizes列追加エラー: ' + putRes.status)
+        addLog('prizes拡張列 (short_name〜stock_count) を追加しました ✅', 'success')
+      }
+    } catch (e) {
+      addLog('prizes列追加エラー: ' + e.message, 'error')
+    }
+
     addLog('セットアップ完了！', 'success')
     setDone(true)
     setRunning(false)
@@ -110,13 +143,17 @@ export default function SetupSheets() {
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-4 mb-4">
-        <div className="text-sm text-muted mb-3">以下のシートを作成します:</div>
+        <div className="text-sm text-muted mb-3">以下を実行します:</div>
         {SHEETS_TO_CREATE.map(s => (
           <div key={s.name} className="mb-3">
-            <div className="text-text font-bold text-sm">{s.name}</div>
+            <div className="text-text font-bold text-sm">新規シート: {s.name}</div>
             <div className="text-muted text-xs font-mono">{s.headers.join(' / ')}</div>
           </div>
         ))}
+        <div className="mb-1">
+          <div className="text-text font-bold text-sm">prizes列拡張 (K〜Q)</div>
+          <div className="text-muted text-xs font-mono">{PRIZES_EXTRA_HEADERS.headers.join(' / ')}</div>
+        </div>
       </div>
 
       {!done && (
