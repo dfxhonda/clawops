@@ -1,13 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { getToken } from './services/sheets'
 import Login from './pages/Login'
-import StoreSelect from './pages/StoreSelect'
-import MachineList from './pages/MachineList'
-import BoothInput from './pages/BoothInput'
-import Complete from './pages/Complete'
-import RankingView from './pages/RankingView'
+import MainInput from './pages/MainInput'
+import Dashboard from './pages/Dashboard'
+import AdminMenu from './pages/AdminMenu'
+import TabBar from './components/TabBar'
+
+// 既存ページ（管理系）
 import EditReading from './pages/EditReading'
-import DraftList from './pages/DraftList'
 import DataSearch from './pages/DataSearch'
 import PatrolScan from './pages/PatrolScan'
 import PatrolInput from './pages/PatrolInput'
@@ -20,16 +20,26 @@ function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
 }
 
+function WithTabs({ children }) {
+  return (
+    <>
+      {children}
+      <TabBar />
+    </>
+  )
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<PrivateRoute><StoreSelect /></PrivateRoute>} />
-      <Route path="/machines/:storeId" element={<PrivateRoute><MachineList /></PrivateRoute>} />
-      <Route path="/booth/:machineId" element={<PrivateRoute><BoothInput /></PrivateRoute>} />
-      <Route path="/complete" element={<PrivateRoute><Complete /></PrivateRoute>} />
-      <Route path="/drafts" element={<PrivateRoute><DraftList /></PrivateRoute>} />
-      <Route path="/ranking/:storeId" element={<PrivateRoute><RankingView /></PrivateRoute>} />
+
+      {/* メイン3タブ */}
+      <Route path="/" element={<PrivateRoute><WithTabs><MainInput /></WithTabs></PrivateRoute>} />
+      <Route path="/dashboard" element={<PrivateRoute><WithTabs><Dashboard /></WithTabs></PrivateRoute>} />
+      <Route path="/admin" element={<PrivateRoute><WithTabs><AdminMenu /></WithTabs></PrivateRoute>} />
+
+      {/* サブページ（タブバー非表示） */}
       <Route path="/datasearch" element={<PrivateRoute><DataSearch /></PrivateRoute>} />
       <Route path="/edit/:boothId" element={<PrivateRoute><EditReading /></PrivateRoute>} />
       <Route path="/patrol" element={<PrivateRoute><PatrolScan /></PrivateRoute>} />
@@ -39,6 +49,7 @@ export default function App() {
       <Route path="/admin/machines/:storeId" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
       <Route path="/admin/prizes" element={<PrivateRoute><PrizeManagement /></PrivateRoute>} />
       <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
+
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
