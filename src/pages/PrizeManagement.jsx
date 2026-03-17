@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPrizes, addPrize, updatePrize, getPrizeOrders, addPrizeOrder } from '../services/sheets'
+import {
+  getPrizes, addPrize, updatePrize,
+  getPrizeOrders, addPrizeOrder,
+  getVehicleStocks, addVehicleStock, updateVehicleStock, deleteVehicleStock,
+  getInventoryChecks, saveInventoryCheck,
+} from '../services/sheets'
 
 const TABS = [
   { key: 'master', label: '景品マスタ' },
   { key: 'orders', label: '発注履歴' },
+  { key: 'inventory', label: '棚卸し' },
+  { key: 'vehicle', label: '車在庫' },
 ]
 
 export default function PrizeManagement() {
@@ -12,6 +19,8 @@ export default function PrizeManagement() {
   const [tab, setTab] = useState('master')
   const [prizes, setPrizes] = useState([])
   const [orders, setOrders] = useState([])
+  const [vehicleStocks, setVehicleStocks] = useState([])
+  const [inventoryChecks, setInventoryChecks] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({})
@@ -19,14 +28,29 @@ export default function PrizeManagement() {
   const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
 
+  // 棚卸し用state
+  const [checkItems, setCheckItems] = useState({}) // { prize_id: { checked, qty, note } }
+  const [checkedBy, setCheckedBy] = useState('')
+  const [selectedForMove, setSelectedForMove] = useState({}) // { prize_id: true }
+  const [moveStaff, setMoveStaff] = useState('')
+  const [showMoveModal, setShowMoveModal] = useState(false)
+
+  // 車在庫フィルタ
+  const [vehicleFilter, setVehicleFilter] = useState('')
+
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
     setLoading(true)
     try {
-      const [p, o] = await Promise.all([getPrizes(), getPrizeOrders()])
+      const [p, o, vs, ic] = await Promise.all([
+        getPrizes(), getPrizeOrders(),
+        getVehicleStocks(), getInventoryChecks(),
+      ])
       setPrizes(p)
       setOrders(o)
+      setVehicleStocks(vs.filter(v => v.stock_id)) // 空行除外
+      setInventoryChecks(ic)
     } catch (e) { setMsg('読み込みエラー: ' + e.message) }
     setLoading(false)
   }
@@ -85,9 +109,177 @@ export default function PrizeManagement() {
     setSaving(false)
   }
 
+  // --- 棚卸し ---
+  function initCheckItems() {
+    const items = {}
+    prizes.filter(p => p.is_active === 'TRUE').forEach(p => {
+      items[p.prize_id] = { checked: false, qty: '', note: '' }
+    })
+    setCheckItems(items)
+    setSelectedForMove({})
+  }
+
+  useEffect(() => {
+    if (tab === 'inventory' && prizes.length > 0) {
+      initCheckItems()
+    }
+  }, [tab, prizes])
+
+  function toggleCheck(prizeId) {
+    setCheckItems(prev => ({
+      ...prev,
+      [prizeId]: { ...prev[prizeId], checked: !prev[prizeId]?.checked }
+    }))
+  }
+
+  function updateCheckQty(prizeId, qty) {
+    setCheckItems(prev => ({
+      ...prev,
+      [prizeId]: { ...prev[prizeId], qty }
+    }))
+  }
+
+  function updateCheckNote(prizeId, note) {
+    setCheckItems(prev => ({
+      ...prev,
+      [prizeId]: { ...prev[prizeId], note }
+    }))
+  }
+
+  async function saveCheck() {
+    const items = Object.entries(checkItems)
+      .filter(([_, v]) => v.checked)
+      .map(([pid, v]) => {
+        const p = prizes.find(x => String(x.prize_id) === pid)
+        return {
+          prize_id: pid,
+          prize_name: p?.prize_name || '',
+          warehouse_qty: v.qty || '0',
+          checked_by: checkedBy,
+          note: v.note,
+        }
+      })
+    if (items.length === 0) { setMsg('チェック済みの景品がありません'); return }
+    setSaving(true)
+    try {
+      await saveInventoryCheck(items)
+      setMsg(`✅ ${items.length}件の棚卸しを記録しました`)
+      await loadData()
+    } catch (e) { setMsg('保存エラー: ' + e.message) }
+    setSaving(false)
+  }
+
+  // --- 棚卸し→車在庫 移動 ---
+  function toggleMoveSelect(prizeId) {
+    setSelectedForMove(prev => {
+      const next = { ...prev }
+      if (next[prizeId]) delete next[prizeId]
+      else next[prizeId] = true
+      return next
+    })
+  }
+
+  async function moveToVehicle() {
+    const ids = Object.keys(selectedForMove)
+    if (ids.length === 0) { setMsg('移動する景品を選択してください'); return }
+    if (!moveStaff.trim()) { setMsg('担当者名を入力してください'); return }
+    setSaving(true)
+    try {
+      for (const pid of ids) {
+        const p = prizes.find(x => String(x.prize_id) === pid)
+        const qty = checkItems[pid]?.qty || '1'
+        // 既存の車在庫に同じ担当者・景品がある場合は数量加算
+        const existing = vehicleStocks.find(
+          v => String(v.prize_id) === pid && v.staff_name === moveStaff.trim()
+        )
+        if (existing) {
+          const newQty = (parseInt(existing.quantity) || 0) + (parseInt(qty) || 1)
+          await updateVehicleStock(existing._row, {
+            ...existing, quantity: String(newQty)
+          })
+        } else {
+          await addVehicleStock({
+            staff_name: moveStaff.trim(),
+            prize_id: pid,
+            prize_name: p?.prize_name || '',
+            quantity: qty || '1',
+          })
+        }
+      }
+      setMsg(`✅ ${ids.length}件を ${moveStaff} の車在庫に移動しました`)
+      setShowMoveModal(false)
+      setSelectedForMove({})
+      setMoveStaff('')
+      await loadData()
+    } catch (e) { setMsg('移動エラー: ' + e.message) }
+    setSaving(false)
+  }
+
+  // --- 車在庫 ---
+  function startEditVehicle(v) {
+    setForm({ ...v })
+    setEditing({ type: 'vehicle', mode: 'edit', data: v })
+    setMsg('')
+  }
+
+  function startAddVehicle() {
+    setForm({ quantity: '1' })
+    setEditing({ type: 'vehicle', mode: 'new' })
+    setMsg('')
+  }
+
+  async function saveVehicleItem() {
+    if (!form.prize_id) { setMsg('景品を選択してください'); return }
+    if (!form.staff_name) { setMsg('担当者名を入力してください'); return }
+    const p = prizes.find(x => String(x.prize_id) === String(form.prize_id))
+    setSaving(true)
+    try {
+      if (editing.mode === 'new') {
+        await addVehicleStock({
+          ...form,
+          prize_name: p?.prize_name || form.prize_name || '',
+        })
+        setMsg('✅ 車在庫に追加しました')
+      } else {
+        await updateVehicleStock(editing.data._row, {
+          ...form,
+          prize_name: p?.prize_name || form.prize_name || '',
+        })
+        setMsg('✅ 車在庫を更新しました')
+      }
+      setEditing(null)
+      await loadData()
+    } catch (e) { setMsg('保存エラー: ' + e.message) }
+    setSaving(false)
+  }
+
+  async function removeVehicleItem(v) {
+    if (!confirm(`${v.prize_name} を車在庫から削除しますか？`)) return
+    try {
+      await deleteVehicleStock(v._row)
+      setMsg('✅ 削除しました')
+      await loadData()
+    } catch (e) { setMsg('削除エラー: ' + e.message) }
+  }
+
   const filteredPrizes = prizes.filter(p =>
     !search || p.prize_name?.includes(search) || p.supplier_name?.includes(search)
   )
+
+  const activePrizes = prizes.filter(p => p.is_active === 'TRUE')
+
+  // 車在庫: 担当者リスト取得
+  const staffList = [...new Set(vehicleStocks.map(v => v.staff_name).filter(Boolean))]
+  const filteredVehicle = vehicleFilter
+    ? vehicleStocks.filter(v => v.staff_name === vehicleFilter)
+    : vehicleStocks
+
+  // 車在庫を担当者別にグループ化
+  const vehicleByStaff = {}
+  filteredVehicle.forEach(v => {
+    if (!vehicleByStaff[v.staff_name]) vehicleByStaff[v.staff_name] = []
+    vehicleByStaff[v.staff_name].push(v)
+  })
 
   if (loading) return <div className="min-h-screen bg-bg text-text flex items-center justify-center">読み込み中...</div>
 
@@ -101,11 +293,11 @@ export default function PrizeManagement() {
         </div>
         {msg && <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm text-accent">{msg}</div>}
         <div className="space-y-4">
-          <Field label="景品名" k="prize_name" required />
-          <Field label="JANコード" k="jan_code" placeholder="空欄可" />
-          <Field label="仕入単価(円)" k="unit_cost" type="number" />
-          <Field label="サプライヤー" k="supplier_name" />
-          <Field label="サプライヤー連絡先" k="supplier_contact" />
+          <Field label="景品名" k="prize_name" form={form} setForm={setForm} required />
+          <Field label="JANコード" k="jan_code" form={form} setForm={setForm} placeholder="空欄可" />
+          <Field label="仕入単価(円)" k="unit_cost" form={form} setForm={setForm} type="number" />
+          <Field label="サプライヤー" k="supplier_name" form={form} setForm={setForm} />
+          <Field label="サプライヤー連絡先" k="supplier_contact" form={form} setForm={setForm} />
           {editing.mode === 'edit' && (
             <div>
               <label className="block text-muted text-sm mb-1">ステータス</label>
@@ -147,9 +339,9 @@ export default function PrizeManagement() {
               ))}
             </select>
           </div>
-          <Field label="発注日" k="ordered_at" type="date" />
-          <Field label="発注数" k="order_quantity" type="number" required />
-          <Field label="発注時単価" k="unit_cost_at_order" type="number" />
+          <Field label="発注日" k="ordered_at" form={form} setForm={setForm} type="date" />
+          <Field label="発注数" k="order_quantity" form={form} setForm={setForm} type="number" required />
+          <Field label="発注時単価" k="unit_cost_at_order" form={form} setForm={setForm} type="number" />
           {form.order_quantity && form.unit_cost_at_order && (
             <div className="bg-surface2 rounded-lg p-3 text-center">
               <span className="text-muted text-sm">合計: </span>
@@ -158,7 +350,7 @@ export default function PrizeManagement() {
               </span>
             </div>
           )}
-          <Field label="備考" k="note" />
+          <Field label="備考" k="note" form={form} setForm={setForm} />
         </div>
         <div className="mt-6 flex gap-3">
           <button onClick={() => setEditing(null)} className="flex-1 bg-surface2 text-muted rounded-lg py-3">キャンセル</button>
@@ -169,40 +361,111 @@ export default function PrizeManagement() {
         </div>
       </div>
     )
+
+    if (editing.type === 'vehicle') return (
+      <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => setEditing(null)} className="text-muted text-2xl">←</button>
+          <h1 className="text-xl font-bold text-accent">{editing.mode === 'new' ? '車在庫追加' : '車在庫編集'}</h1>
+        </div>
+        {msg && <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm text-accent">{msg}</div>}
+        <div className="space-y-4">
+          <Field label="担当者" k="staff_name" form={form} setForm={setForm} required />
+          <div>
+            <label className="block text-muted text-sm mb-1">景品 <span className="text-accent2">*</span></label>
+            <select value={form.prize_id||''} onChange={e => {
+              const p = prizes.find(x => String(x.prize_id) === e.target.value)
+              setForm(prev => ({...prev, prize_id: e.target.value, prize_name: p?.prize_name||''}))
+            }} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
+              <option value="">選択してください</option>
+              {activePrizes.map(p => (
+                <option key={p.prize_id} value={p.prize_id}>{p.prize_name}</option>
+              ))}
+            </select>
+          </div>
+          <Field label="数量" k="quantity" form={form} setForm={setForm} type="number" required />
+          <Field label="備考" k="note" form={form} setForm={setForm} />
+        </div>
+        <div className="mt-6 flex gap-3">
+          <button onClick={() => setEditing(null)} className="flex-1 bg-surface2 text-muted rounded-lg py-3">キャンセル</button>
+          <button onClick={saveVehicleItem} disabled={saving}
+            className="flex-1 bg-accent text-black font-bold rounded-lg py-3 disabled:opacity-50">
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  function Field({ label, k, type='text', placeholder='', required }) {
+  // --- 移動モーダル ---
+  if (showMoveModal) {
+    const moveIds = Object.keys(selectedForMove)
     return (
-      <div>
-        <label className="block text-muted text-sm mb-1">{label}{required && <span className="text-accent2 ml-1">*</span>}</label>
-        <input type={type} value={form[k]||''} onChange={e => setForm(p=>({...p, [k]:e.target.value}))}
-          placeholder={placeholder}
-          className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:border-accent" />
+      <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => setShowMoveModal(false)} className="text-muted text-2xl">←</button>
+          <h1 className="text-xl font-bold text-accent">車在庫へ移動</h1>
+        </div>
+        {msg && <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm text-accent">{msg}</div>}
+
+        <div className="mb-4">
+          <label className="block text-muted text-sm mb-1">担当者名 <span className="text-accent2">*</span></label>
+          <input type="text" value={moveStaff} onChange={e => setMoveStaff(e.target.value)}
+            placeholder="例: 田中" list="staff-list"
+            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text" />
+          {staffList.length > 0 && (
+            <datalist id="staff-list">
+              {staffList.map(s => <option key={s} value={s} />)}
+            </datalist>
+          )}
+        </div>
+
+        <div className="text-muted text-sm mb-2">移動する景品 ({moveIds.length}件)</div>
+        <div className="space-y-2 mb-6">
+          {moveIds.map(pid => {
+            const p = prizes.find(x => String(x.prize_id) === pid)
+            const qty = checkItems[pid]?.qty || '1'
+            return (
+              <div key={pid} className="bg-surface border border-border rounded-xl p-3 flex justify-between items-center">
+                <span className="text-text font-bold">{p?.prize_name}</span>
+                <span className="text-accent text-sm">x{qty}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={() => setShowMoveModal(false)} className="flex-1 bg-surface2 text-muted rounded-lg py-3">キャンセル</button>
+          <button onClick={moveToVehicle} disabled={saving}
+            className="flex-1 bg-accent3 text-black font-bold rounded-lg py-3 disabled:opacity-50">
+            {saving ? '移動中...' : '移動する'}
+          </button>
+        </div>
       </div>
     )
   }
 
   // --- メイン一覧 ---
   return (
-    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto">
+    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto pb-8">
       <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate('/')} className="text-muted text-2xl">←</button>
+        <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
         <h1 className="text-xl font-bold text-accent">景品管理</h1>
       </div>
 
       {msg && <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm text-accent">{msg}</div>}
 
       {/* タブ */}
-      <div className="flex bg-surface rounded-xl p-1 mb-4">
+      <div className="flex bg-surface rounded-xl p-1 mb-4 overflow-x-auto">
         {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
+          <button key={t.key} onClick={() => { setTab(t.key); setMsg('') }}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors whitespace-nowrap px-2 ${
               tab === t.key ? 'bg-accent text-black' : 'text-muted'
             }`}>{t.label}</button>
         ))}
       </div>
 
-      {/* 景品マスタ */}
+      {/* ===== 景品マスタ ===== */}
       {tab === 'master' && (
         <>
           <div className="flex gap-2 mb-4">
@@ -236,7 +499,7 @@ export default function PrizeManagement() {
         </>
       )}
 
-      {/* 発注履歴 */}
+      {/* ===== 発注履歴 ===== */}
       {tab === 'orders' && (
         <>
           <div className="flex justify-end mb-4">
@@ -256,7 +519,7 @@ export default function PrizeManagement() {
                   </div>
                   <div className="text-muted text-xs mt-1 flex gap-3">
                     <span>{o.ordered_at}</span>
-                    <span>×{o.order_quantity}</span>
+                    <span>x{o.order_quantity}</span>
                     <span>¥{parseInt(o.total_cost||0).toLocaleString()}</span>
                   </div>
                 </div>
@@ -266,6 +529,206 @@ export default function PrizeManagement() {
           </div>
         </>
       )}
+
+      {/* ===== 棚卸し ===== */}
+      {tab === 'inventory' && (
+        <>
+          {/* 担当者入力 */}
+          <div className="flex gap-2 mb-4">
+            <input type="text" value={checkedBy} onChange={e => setCheckedBy(e.target.value)}
+              placeholder="確認者名" className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
+          </div>
+
+          {/* サマリー */}
+          <div className="bg-surface2 rounded-xl p-3 mb-4 flex items-center justify-between">
+            <div className="text-sm">
+              <span className="text-muted">アクティブ景品: </span>
+              <span className="text-accent font-bold">{activePrizes.length}</span>
+              <span className="text-muted ml-3">チェック済: </span>
+              <span className="text-accent3 font-bold">
+                {Object.values(checkItems).filter(v => v.checked).length}
+              </span>
+            </div>
+          </div>
+
+          {/* 一括操作バー */}
+          {Object.keys(selectedForMove).length > 0 && (
+            <div className="sticky top-0 z-40 bg-surface3 border border-accent3/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+              <span className="text-sm text-accent3 font-bold">
+                {Object.keys(selectedForMove).length}件選択中
+              </span>
+              <button onClick={() => setShowMoveModal(true)}
+                className="bg-accent3 text-black font-bold rounded-lg px-4 py-2 text-sm">
+                車在庫へ移動
+              </button>
+            </div>
+          )}
+
+          {/* アクティブ景品リスト */}
+          <div className="space-y-2 mb-6">
+            {activePrizes.map(p => {
+              const ci = checkItems[p.prize_id] || {}
+              const isChecked = ci.checked
+              const isSelected = selectedForMove[p.prize_id]
+              return (
+                <div key={p.prize_id}
+                  className={`bg-surface border rounded-xl p-3 transition-all ${
+                    isSelected ? 'border-accent3/60 bg-accent3/5' :
+                    isChecked ? 'border-accent/30' : 'border-border'
+                  }`}>
+                  <div className="flex items-center gap-3">
+                    {/* チェックボックス */}
+                    <button onClick={() => toggleCheck(p.prize_id)}
+                      className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                        isChecked ? 'bg-accent border-accent text-black' : 'border-border'
+                      }`}>
+                      {isChecked && <span className="text-sm font-bold">✓</span>}
+                    </button>
+
+                    {/* 景品情報 */}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-text font-bold text-sm truncate block">{p.prize_name}</span>
+                      <div className="text-muted text-xs flex gap-2">
+                        <span>¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
+                        <span>{p.supplier_name}</span>
+                      </div>
+                    </div>
+
+                    {/* 車移動選択 */}
+                    {isChecked && (
+                      <button onClick={() => toggleMoveSelect(p.prize_id)}
+                        className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all ${
+                          isSelected
+                            ? 'bg-accent3/20 border-accent3 text-accent3'
+                            : 'border-border text-muted hover:border-accent3/50'
+                        }`}>
+                        {isSelected ? '選択中' : '車へ'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* チェック済みの場合: 数量・メモ入力 */}
+                  {isChecked && (
+                    <div className="mt-2 pl-10 flex gap-2">
+                      <input type="number" value={ci.qty||''} onChange={e => updateCheckQty(p.prize_id, e.target.value)}
+                        placeholder="倉庫数量" className="w-24 bg-surface2 border border-border rounded-lg px-2 py-1 text-sm text-text" />
+                      <input type="text" value={ci.note||''} onChange={e => updateCheckNote(p.prize_id, e.target.value)}
+                        placeholder="メモ" className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1 text-sm text-text" />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {activePrizes.length === 0 && <div className="text-center text-muted py-8">有効な景品がありません</div>}
+          </div>
+
+          {/* 保存ボタン */}
+          <button onClick={saveCheck} disabled={saving || Object.values(checkItems).filter(v=>v.checked).length === 0}
+            className="w-full bg-accent text-black font-bold rounded-xl py-3 disabled:opacity-30 text-sm">
+            {saving ? '保存中...' : '棚卸し記録を保存'}
+          </button>
+
+          {/* 直近の棚卸し履歴 */}
+          {inventoryChecks.length > 0 && (
+            <div className="mt-6">
+              <div className="text-muted text-xs font-bold uppercase tracking-wider mb-2">直近の棚卸し履歴</div>
+              <div className="space-y-1">
+                {inventoryChecks.slice(-10).reverse().map((ic, i) => (
+                  <div key={i} className="bg-surface border border-border rounded-lg p-2 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="text-text font-bold">{ic.prize_name}</span>
+                      <span className="text-muted ml-2">x{ic.warehouse_qty}</span>
+                    </div>
+                    <div className="text-muted">
+                      {ic.check_date} {ic.checked_by && `/ ${ic.checked_by}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ===== 車在庫 ===== */}
+      {tab === 'vehicle' && (
+        <>
+          <div className="flex gap-2 mb-4">
+            <select value={vehicleFilter} onChange={e => setVehicleFilter(e.target.value)}
+              className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text">
+              <option value="">全担当者</option>
+              {staffList.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={startAddVehicle} className="bg-accent text-black font-bold rounded-lg px-3 py-2 text-sm whitespace-nowrap">
+              + 追加
+            </button>
+          </div>
+
+          {/* 合計サマリ */}
+          <div className="bg-surface2 rounded-xl p-3 mb-4">
+            <div className="text-sm">
+              <span className="text-muted">合計品目: </span>
+              <span className="text-accent font-bold">{filteredVehicle.length}</span>
+              <span className="text-muted ml-3">合計数量: </span>
+              <span className="text-accent font-bold">
+                {filteredVehicle.reduce((sum, v) => sum + (parseInt(v.quantity)||0), 0)}
+              </span>
+            </div>
+          </div>
+
+          {/* 担当者別グループ表示 */}
+          {Object.keys(vehicleByStaff).length === 0 ? (
+            <div className="text-center text-muted py-8">車在庫がありません</div>
+          ) : (
+            Object.entries(vehicleByStaff).map(([staff, items]) => (
+              <div key={staff} className="mb-4">
+                <div className="text-xs text-muted font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <span>🚗</span>
+                  <span>{staff}</span>
+                  <span className="text-accent">({items.length}品目)</span>
+                </div>
+                <div className="space-y-1.5">
+                  {items.map(v => (
+                    <div key={v.stock_id} className="bg-surface border border-border rounded-xl p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <span className="text-text font-bold text-sm truncate block">{v.prize_name}</span>
+                          <div className="text-muted text-xs mt-0.5 flex gap-2">
+                            <span>数量: <span className="text-accent">{v.quantity}</span></span>
+                            {v.note && <span>{v.note}</span>}
+                            {v.updated_at && <span>{v.updated_at.slice(0,10)}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 ml-2">
+                          <button onClick={() => startEditVehicle(v)}
+                            className="text-xs px-2 py-1 rounded-lg bg-surface2 text-muted hover:text-accent transition-colors">
+                            編集
+                          </button>
+                          <button onClick={() => removeVehicleItem(v)}
+                            className="text-xs px-2 py-1 rounded-lg bg-surface2 text-muted hover:text-accent2 transition-colors">
+                            削除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, k, type='text', placeholder='', required, form, setForm }) {
+  return (
+    <div>
+      <label className="block text-muted text-sm mb-1">{label}{required && <span className="text-accent2 ml-1">*</span>}</label>
+      <input type={type} value={form[k]||''} onChange={e => setForm(p=>({...p, [k]:e.target.value}))}
+        placeholder={placeholder}
+        className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:border-accent" />
     </div>
   )
 }

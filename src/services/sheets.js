@@ -386,3 +386,92 @@ export async function getPrizeStocks() {
     quantity: r[5]||'0', last_updated_at: r[6]||'', last_updated_by: r[7]||'',
   }))
 }
+
+// ============================================
+// 車在庫管理 (vehicle_stocks)
+// ============================================
+// シート構成: stock_id / staff_name / prize_id / prize_name / quantity / note / created_at / updated_at
+export async function getVehicleStocks() {
+  if (getCache('vehicle_stocks')) return getCache('vehicle_stocks')
+  try {
+    const rows = await sheetsGet('vehicle_stocks!A2:H')
+    const result = rows.map((r, i) => ({
+      _row: i + 2,
+      stock_id: r[0]||'', staff_name: r[1]||'', prize_id: r[2]||'',
+      prize_name: r[3]||'', quantity: r[4]||'0', note: r[5]||'',
+      created_at: r[6]||'', updated_at: r[7]||'',
+    }))
+    setCache('vehicle_stocks', result)
+    return result
+  } catch (e) {
+    console.warn('vehicle_stocks sheet not found, returning empty:', e.message)
+    return []
+  }
+}
+
+export async function addVehicleStock(item) {
+  const now = new Date().toISOString()
+  const existing = await getVehicleStocks()
+  const nextId = existing.length > 0
+    ? Math.max(...existing.map(x => parseInt(x.stock_id)||0)) + 1
+    : 1
+  await sheetsAppend('vehicle_stocks!A:H', [[
+    nextId, item.staff_name||'', item.prize_id||'', item.prize_name||'',
+    item.quantity||'0', item.note||'', now, now
+  ]])
+  clearCache()
+  return nextId
+}
+
+export async function updateVehicleStock(rowNum, item) {
+  const now = new Date().toISOString()
+  await sheetsPut(`vehicle_stocks!B${rowNum}:H${rowNum}`, [[
+    item.staff_name||'', item.prize_id||'', item.prize_name||'',
+    item.quantity||'0', item.note||'', item.created_at||'', now
+  ]])
+  clearCache()
+}
+
+export async function deleteVehicleStock(rowNum) {
+  // 行クリアで論理削除（空行にする）
+  await sheetsPut(`vehicle_stocks!A${rowNum}:H${rowNum}`, [[
+    '', '', '', '', '', '', '', ''
+  ]])
+  clearCache()
+}
+
+// ============================================
+// 棚卸し記録 (inventory_checks)
+// ============================================
+// シート構成: check_id / check_date / prize_id / prize_name / warehouse_qty / checked_by / note / created_at
+export async function getInventoryChecks() {
+  if (getCache('inventory_checks')) return getCache('inventory_checks')
+  try {
+    const rows = await sheetsGet('inventory_checks!A2:H')
+    const result = rows.map((r, i) => ({
+      _row: i + 2,
+      check_id: r[0]||'', check_date: r[1]||'', prize_id: r[2]||'',
+      prize_name: r[3]||'', warehouse_qty: r[4]||'0', checked_by: r[5]||'',
+      note: r[6]||'', created_at: r[7]||'',
+    }))
+    setCache('inventory_checks', result)
+    return result
+  } catch (e) {
+    console.warn('inventory_checks sheet not found, returning empty:', e.message)
+    return []
+  }
+}
+
+export async function saveInventoryCheck(items) {
+  // items: [{prize_id, prize_name, warehouse_qty, checked_by, note}]
+  const now = new Date().toISOString()
+  const checkDate = now.slice(0, 10)
+  const rows = items.map((item, i) => [
+    'IC' + Date.now() + i, checkDate, item.prize_id||'', item.prize_name||'',
+    item.warehouse_qty||'0', item.checked_by||'', item.note||'', now
+  ])
+  for (const row of rows) {
+    await sheetsAppend('inventory_checks!A:H', [row])
+  }
+  clearCache()
+}
