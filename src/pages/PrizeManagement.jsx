@@ -27,6 +27,8 @@ export default function PrizeManagement() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [search, setSearch] = useState('')
+  const [sortKey, setSortKey] = useState('name') // name, cost, supplier, active, created
+  const [sortAsc, setSortAsc] = useState(true)
 
   // 棚卸し用state
   const [checkItems, setCheckItems] = useState({}) // { prize_id: { checked, qty, note } }
@@ -262,9 +264,35 @@ export default function PrizeManagement() {
     } catch (e) { setMsg('削除エラー: ' + e.message) }
   }
 
-  const filteredPrizes = prizes.filter(p =>
-    !search || p.prize_name?.includes(search) || p.supplier_name?.includes(search)
-  )
+  const SORT_OPTIONS = [
+    { key: 'name', label: '名前' },
+    { key: 'cost', label: '単価' },
+    { key: 'supplier', label: 'サプライヤー' },
+    { key: 'active', label: 'ステータス' },
+    { key: 'created', label: '登録日' },
+  ]
+
+  function toggleSort(key) {
+    if (sortKey === key) setSortAsc(!sortAsc)
+    else { setSortKey(key); setSortAsc(true) }
+  }
+
+  const filteredPrizes = prizes
+    .filter(p => !search || p.prize_name?.includes(search) || p.supplier_name?.includes(search))
+    .sort((a, b) => {
+      const dir = sortAsc ? 1 : -1
+      switch (sortKey) {
+        case 'cost': return ((parseInt(a.unit_cost)||0) - (parseInt(b.unit_cost)||0)) * dir
+        case 'supplier': return (a.supplier_name||'').localeCompare(b.supplier_name||'') * dir
+        case 'active': {
+          const av = a.is_active === 'TRUE' ? 0 : 1
+          const bv = b.is_active === 'TRUE' ? 0 : 1
+          return (av - bv) * dir
+        }
+        case 'created': return (a.created_at||'').localeCompare(b.created_at||'') * dir
+        default: return (a.prize_name||'').localeCompare(b.prize_name||'') * dir
+      }
+    })
 
   const activePrizes = prizes.filter(p => p.is_active === 'TRUE')
 
@@ -468,29 +496,58 @@ export default function PrizeManagement() {
       {/* ===== 景品マスタ ===== */}
       {tab === 'master' && (
         <>
-          <div className="flex gap-2 mb-4">
+          {/* 検索 + 新規 */}
+          <div className="flex gap-2 mb-2">
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="景品名・サプライヤー検索" className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
+              placeholder="検索..." className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
             <button onClick={startNewPrize} className="bg-accent text-black font-bold rounded-lg px-3 py-2 text-sm whitespace-nowrap">
               + 新規
             </button>
           </div>
-          <div className="space-y-2">
+
+          {/* 並び替えチップ */}
+          <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+            {SORT_OPTIONS.map(opt => (
+              <button key={opt.key} onClick={() => toggleSort(opt.key)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap border transition-all ${
+                  sortKey === opt.key
+                    ? 'bg-accent/20 border-accent/50 text-accent'
+                    : 'bg-surface border-border text-muted'
+                }`}>
+                {opt.label}
+                {sortKey === opt.key && <span className="ml-0.5">{sortAsc ? '↑' : '↓'}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* 件数 */}
+          <div className="text-muted text-[11px] mb-2">{filteredPrizes.length}件</div>
+
+          {/* カード一覧 */}
+          <div className="space-y-1.5">
             {filteredPrizes.map(p => (
               <div key={p.prize_id} onClick={() => startEditPrize(p)}
-                className="bg-surface border border-border rounded-xl p-3 active:bg-surface2 cursor-pointer">
-                <div className="flex items-center justify-between">
+                className="bg-surface border border-border rounded-xl px-3 py-2.5 active:bg-surface2 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  {/* ステータスドット */}
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    p.is_active === 'TRUE' ? 'bg-accent3' : 'bg-accent2/50'
+                  }`} />
+
+                  {/* メイン: サプライヤー + 単価を上、景品名を下（小さく） */}
                   <div className="flex-1 min-w-0">
-                    <span className="text-text font-bold truncate block">{p.prize_name}</span>
-                    <div className="text-muted text-xs mt-0.5 flex gap-2">
-                      <span>¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
-                      <span>{p.supplier_name}</span>
-                      {p.jan_code && <span className="font-mono">{p.jan_code}</span>}
+                    <div className="flex items-center gap-2">
+                      <span className="text-text font-bold text-sm truncate">{p.supplier_name || '—'}</span>
+                      <span className="text-accent text-xs font-bold">¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
                     </div>
+                    <div className="text-muted text-[11px] truncate">{p.prize_name}</div>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ml-2 ${
-                    p.is_active === 'TRUE' ? 'bg-accent3/20 text-accent3' : 'bg-accent2/20 text-accent2'
-                  }`}>{p.is_active === 'TRUE' ? '有効' : '無効'}</span>
+
+                  {/* 右側: JAN + 矢印 */}
+                  <div className="shrink-0 text-right">
+                    {p.jan_code && <div className="text-muted text-[10px] font-mono">{p.jan_code}</div>}
+                  </div>
+                  <span className="text-muted/30 text-sm">›</span>
                 </div>
               </div>
             ))}
