@@ -107,11 +107,30 @@ export default function StoreSelect() {
 
       {/* データ検索 */}
       <button onClick={() => navigate('/datasearch')}
-        className="w-full mb-6 py-3 px-2 rounded-xl border border-border bg-surface flex items-center justify-center gap-2 transition-all hover:border-accent4/30 active:scale-[0.98]"
+        className="w-full mb-3 py-3 px-2 rounded-xl border border-border bg-surface flex items-center justify-center gap-2 transition-all hover:border-accent4/30 active:scale-[0.98]"
       >
         <span className="text-lg">🔍</span>
         <span className="text-xs font-bold text-accent4">データ検索・修正</span>
       </button>
+
+      {/* 管理メニュー */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        <button onClick={() => navigate('/admin/stores')}
+          className="py-3 px-2 rounded-xl border border-border bg-surface text-center transition-all hover:border-accent/30 active:scale-[0.98]">
+          <span className="text-lg block">🏪</span>
+          <span className="text-[11px] font-bold text-muted">店舗管理</span>
+        </button>
+        <button onClick={() => navigate('/admin/machines')}
+          className="py-3 px-2 rounded-xl border border-border bg-surface text-center transition-all hover:border-accent/30 active:scale-[0.98]">
+          <span className="text-lg block">🎰</span>
+          <span className="text-[11px] font-bold text-muted">機械管理</span>
+        </button>
+        <button onClick={() => navigate('/admin/prizes')}
+          className="py-3 px-2 rounded-xl border border-border bg-surface text-center transition-all hover:border-accent/30 active:scale-[0.98]">
+          <span className="text-lg block">📦</span>
+          <span className="text-[11px] font-bold text-muted">景品管理</span>
+        </button>
+      </div>
 
       {/* 店舗選択 */}
       <div className="text-[11px] text-muted uppercase tracking-widest mb-2">店舗を選択</div>

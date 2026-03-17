@@ -11,6 +11,9 @@ import DraftList from './pages/DraftList'
 import DataSearch from './pages/DataSearch'
 import PatrolScan from './pages/PatrolScan'
 import PatrolInput from './pages/PatrolInput'
+import StoreForm from './pages/StoreForm'
+import MachineForm from './pages/MachineForm'
+import PrizeManagement from './pages/PrizeManagement'
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
@@ -30,6 +33,10 @@ export default function App() {
       <Route path="/edit/:boothId" element={<PrivateRoute><EditReading /></PrivateRoute>} />
       <Route path="/patrol" element={<PrivateRoute><PatrolScan /></PrivateRoute>} />
       <Route path="/patrol/input" element={<PrivateRoute><PatrolInput /></PrivateRoute>} />
+      <Route path="/admin/stores" element={<PrivateRoute><StoreForm /></PrivateRoute>} />
+      <Route path="/admin/machines" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
+      <Route path="/admin/machines/:storeId" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
+      <Route path="/admin/prizes" element={<PrivateRoute><PrizeManagement /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )

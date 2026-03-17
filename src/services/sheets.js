@@ -200,3 +200,189 @@ export async function updateReading(rowIndex, r) {
   )
   clearCache()
 }
+
+// --- Sheets PUT helper ---
+async function sheetsPut(range, values) {
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    { method: 'PUT', headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values }) }
+  )
+  if (!res.ok) throw new Error('Sheets PUT error: ' + res.status)
+  return res.json()
+}
+
+// ============================================
+// 店舗管理 CRUD
+// ============================================
+export async function getAllStoresRaw() {
+  const rows = await sheetsGet('stores!A2:N')
+  return rows.map((r, i) => ({
+    _row: i + 2,
+    store_id: r[0]||'', store_code: r[1]||'', store_name: r[2]||'',
+    store_address: r[3]||'', store_tel: r[4]||'',
+    accounting_contact_name: r[5]||'', accounting_contact_tel: r[6]||'',
+    settlement_cycle: r[7]||'',
+    contract_rate_store: r[8]||'', contract_rate_fc: r[9]||'',
+    active_flag: r[10]||'', note: r[11]||'',
+    created_at: r[12]||'', updated_at: r[13]||'',
+  }))
+}
+
+export async function addStore(s) {
+  const now = new Date().toISOString()
+  const id = 'S' + Date.now()
+  await sheetsAppend('stores!A:N', [[
+    id, s.store_code, s.store_name, s.store_address||'', s.store_tel||'',
+    s.accounting_contact_name||'', s.accounting_contact_tel||'',
+    s.settlement_cycle||'月次', s.contract_rate_store||'70', s.contract_rate_fc||'20',
+    '1', s.note||'', now, now
+  ]])
+  clearCache()
+  return id
+}
+
+export async function updateStore(rowNum, s) {
+  const now = new Date().toISOString()
+  await sheetsPut(`stores!B${rowNum}:N${rowNum}`, [[
+    s.store_code, s.store_name, s.store_address||'', s.store_tel||'',
+    s.accounting_contact_name||'', s.accounting_contact_tel||'',
+    s.settlement_cycle||'', s.contract_rate_store||'', s.contract_rate_fc||'',
+    s.active_flag||'1', s.note||'', s.created_at||'', now
+  ]])
+  clearCache()
+}
+
+// ============================================
+// 機械管理 CRUD
+// ============================================
+export async function getAllMachinesRaw(storeId) {
+  const rows = await sheetsGet('machines!A2:M')
+  return rows
+    .map((r, i) => ({
+      _row: i + 2,
+      machine_id: r[0]||'', store_id: r[1]||'', machine_code: r[2]||'',
+      machine_name: r[3]||'', machine_model: r[4]||'', machine_type: r[5]||'',
+      booth_count: r[6]||'', default_price: r[7]||'100',
+      meter_layout: r[8]||'', rental_code: r[9]||'',
+      monthly_advance: r[10]||'0', location_note: r[11]||'',
+      active_flag: r[12]||'',
+    }))
+    .filter(m => !storeId || String(m.store_id) === String(storeId))
+}
+
+export async function addMachine(m) {
+  const now = new Date().toISOString()
+  const id = 'M' + Date.now()
+  await sheetsAppend('machines!A:M', [[
+    id, m.store_id, m.machine_code, m.machine_name||'', m.machine_model||'',
+    m.machine_type||'', m.booth_count||'1', m.default_price||'100',
+    m.meter_layout||'', m.rental_code||'', m.monthly_advance||'0',
+    m.location_note||'', '1'
+  ]])
+  // 自動ブース生成
+  const count = parseInt(m.booth_count) || 1
+  for (let i = 1; i <= count; i++) {
+    const bc = `B${String(i).padStart(2,'0')}`
+    const storeCode = m.store_code || ''
+    const fullCode = `${storeCode}-${m.machine_code}-${bc}`
+    await sheetsAppend('booths!A:K', [[
+      'BT' + Date.now() + i, id, bc, String(i), '',
+      fullCode, '7', '7', '', m.default_price||'100', '1'
+    ]])
+  }
+  clearCache()
+  return id
+}
+
+export async function updateMachine(rowNum, m) {
+  await sheetsPut(`machines!B${rowNum}:M${rowNum}`, [[
+    m.store_id, m.machine_code, m.machine_name||'', m.machine_model||'',
+    m.machine_type||'', m.booth_count||'', m.default_price||'100',
+    m.meter_layout||'', m.rental_code||'', m.monthly_advance||'0',
+    m.location_note||'', m.active_flag||'1'
+  ]])
+  clearCache()
+}
+
+// ============================================
+// 景品管理 CRUD
+// ============================================
+export async function getPrizes() {
+  if (getCache('prizes')) return getCache('prizes')
+  const rows = await sheetsGet('prizes!A2:J')
+  const result = rows.map((r, i) => ({
+    _row: i + 2,
+    prize_id: r[0]||'', prize_name: r[1]||'', jan_code: r[2]||'',
+    barcode_value: r[3]||'', unit_cost: r[4]||'', supplier_name: r[5]||'',
+    supplier_contact: r[6]||'', is_active: r[7]||'TRUE',
+    created_at: r[8]||'', updated_at: r[9]||'',
+  }))
+  setCache('prizes', result)
+  return result
+}
+
+export async function addPrize(p) {
+  const now = new Date().toISOString()
+  // prize_idは自動連番
+  const existing = await getPrizes()
+  const nextId = existing.length > 0
+    ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
+    : 1
+  const barcode = p.jan_code || `PRZ-${nextId}`
+  await sheetsAppend('prizes!A:J', [[
+    nextId, p.prize_name, p.jan_code||'', barcode,
+    p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
+    'TRUE', now, now
+  ]])
+  clearCache()
+  return nextId
+}
+
+export async function updatePrize(rowNum, p) {
+  const now = new Date().toISOString()
+  await sheetsPut(`prizes!B${rowNum}:J${rowNum}`, [[
+    p.prize_name, p.jan_code||'', p.barcode_value||'',
+    p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
+    p.is_active||'TRUE', p.created_at||'', now
+  ]])
+  clearCache()
+}
+
+export async function getPrizeOrders() {
+  const rows = await sheetsGet('prize_orders!A2:K')
+  return rows.map((r, i) => ({
+    _row: i + 2,
+    order_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
+    ordered_at: r[3]||'', order_quantity: r[4]||'',
+    arrived_at: r[5]||'', arrival_quantity: r[6]||'',
+    unit_cost_at_order: r[7]||'', total_cost: r[8]||'',
+    note: r[9]||'', created_at: r[10]||'',
+  }))
+}
+
+export async function addPrizeOrder(o) {
+  const now = new Date().toISOString()
+  const existing = await getPrizeOrders()
+  const nextId = existing.length > 0
+    ? Math.max(...existing.map(x => parseInt(x.order_id)||0)) + 1
+    : 1
+  const total = (parseInt(o.order_quantity)||0) * (parseInt(o.unit_cost_at_order)||0)
+  await sheetsAppend('prize_orders!A:K', [[
+    nextId, o.prize_id, o.prize_name||'', o.ordered_at||'',
+    o.order_quantity||'', o.arrived_at||'', o.arrival_quantity||'',
+    o.unit_cost_at_order||'', total, o.note||'', now
+  ]])
+  clearCache()
+  return nextId
+}
+
+export async function getPrizeStocks() {
+  const rows = await sheetsGet('prize_stocks!A2:H')
+  return rows.map((r, i) => ({
+    _row: i + 2,
+    stock_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
+    booth_id: r[3]||'', booth_name: r[4]||'',
+    quantity: r[5]||'0', last_updated_at: r[6]||'', last_updated_by: r[7]||'',
+  }))
+}
