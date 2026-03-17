@@ -14,6 +14,7 @@ import PatrolInput from './pages/PatrolInput'
 import StoreForm from './pages/StoreForm'
 import MachineForm from './pages/MachineForm'
 import PrizeManagement from './pages/PrizeManagement'
+import ImportSlips from './pages/ImportSlips'
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
@@ -37,6 +38,7 @@ export default function App() {
       <Route path="/admin/machines" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
       <Route path="/admin/machines/:storeId" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
       <Route path="/admin/prizes" element={<PrivateRoute><PrizeManagement /></PrivateRoute>} />
+      <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   )
