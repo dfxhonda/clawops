@@ -311,6 +311,8 @@ export default function PrizeManagement() {
   // --- CSV取込 ---
   const CSV_FIELDS = [
     { key: 'prize_name', label: '商品名', required: true },
+    { key: 'short_name', label: '短縮名' },
+    { key: 'item_size', label: 'サイズ' },
     { key: 'unit_cost', label: '単価' },
     { key: 'supplier_name', label: 'サプライヤー' },
     { key: 'jan_code', label: 'JANコード' },
@@ -321,11 +323,14 @@ export default function PrizeManagement() {
     { key: 'pieces_per_case', label: '入数/ケース' },
     { key: 'restock_count', label: '後入り数' },
     { key: 'stock_count', label: '在庫数' },
+    { key: 'is_active', label: 'ステータス' },
   ]
 
   // CSV列名の自動マッチング
   const HEADER_ALIASES = {
     prize_name: ['商品名','品名','品目','アイテム名','prize_name','name','item'],
+    short_name: ['短縮名','short_name','short'],
+    item_size: ['サイズ','size','item_size'],
     unit_cost: ['単価','仕入単価','原価','コスト','price','cost','unit_cost'],
     supplier_name: ['サプライヤー','仕入先','メーカー','supplier','vendor'],
     jan_code: ['jan','janコード','jan_code','バーコード','barcode'],
@@ -336,6 +341,7 @@ export default function PrizeManagement() {
     pieces_per_case: ['入数','入数/ケース','pcs','pieces','pieces_per_case'],
     restock_count: ['後入り数','後入り','restock','restock_count'],
     stock_count: ['在庫数','在庫','stock','stock_count'],
+    is_active: ['ステータス','status','is_active','active'],
   }
 
   function autoMapHeaders(headers) {
@@ -408,13 +414,14 @@ export default function PrizeManagement() {
       for (const [field, csvCol] of Object.entries(csvMapping)) {
         if (csvCol) item[field] = row[csvCol] || ''
       }
-      // 商品名から short_name, item_size を自動抽出
+      // 商品名から short_name, item_size を自動抽出（CSVに値がなければ）
       if (item.prize_name) {
         const { short_name, item_size } = extractFromName(item.prize_name)
-        item.short_name = short_name
-        item.item_size = item_size
+        if (!item.short_name) item.short_name = short_name
+        if (!item.item_size) item.item_size = item_size
       }
-      item.is_active = 'TRUE'
+      // ステータス: CSVにあればそのまま、なければTRUE
+      if (!item.is_active) item.is_active = 'TRUE'
       return item
     }).filter(item => item.prize_name)
     setCsvPreview(preview)
