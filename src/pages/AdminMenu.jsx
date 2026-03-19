@@ -22,6 +22,7 @@ const SECTIONS = [
     items: [
       { icon: '📷', title: 'QRスキャン', desc: 'ブースQRで直接入力', path: '/patrol' },
       { icon: '🔧', title: 'シートセットアップ', desc: '新規シート作成・初期化', path: '/admin/setup-sheets' },
+      { icon: '📥', title: 'データ一括インポート', desc: 'CSV→Google Sheets取込', path: '/admin/import-data' },
     ]
   },
 ]

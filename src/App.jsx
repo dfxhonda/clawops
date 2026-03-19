@@ -16,6 +16,7 @@ import MachineForm from './pages/MachineForm'
 import PrizeManagement from './pages/PrizeManagement'
 import ImportSlips from './pages/ImportSlips'
 import SetupSheets from './pages/SetupSheets'
+import ImportData from './pages/ImportData'
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/admin/prizes" element={<PrivateRoute><PrizeManagement /></PrivateRoute>} />
       <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
       <Route path="/admin/setup-sheets" element={<PrivateRoute><SetupSheets /></PrivateRoute>} />
+      <Route path="/admin/import-data" element={<PrivateRoute><ImportData /></PrivateRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
