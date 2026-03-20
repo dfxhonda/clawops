@@ -16,7 +16,14 @@ import MachineForm from './pages/MachineForm'
 import PrizeManagement from './pages/PrizeManagement'
 import ImportSlips from './pages/ImportSlips'
 import SetupSheets from './pages/SetupSheets'
-import ImportData from './pages/ImportData'
+import TestDataImport from './pages/TestDataImport'
+
+// 棚卸しアプリ
+import InventoryDashboard from './pages/inventory/InventoryDashboard'
+import InventoryReceive from './pages/inventory/InventoryReceive'
+import InventoryTransfer from './pages/inventory/InventoryTransfer'
+import InventoryCount from './pages/inventory/InventoryCount'
+import InventoryMatch from './pages/inventory/InventoryMatch'
 
 function PrivateRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" />
@@ -52,7 +59,14 @@ export default function App() {
       <Route path="/admin/prizes" element={<PrivateRoute><PrizeManagement /></PrivateRoute>} />
       <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
       <Route path="/admin/setup-sheets" element={<PrivateRoute><SetupSheets /></PrivateRoute>} />
-      <Route path="/admin/import-data" element={<PrivateRoute><ImportData /></PrivateRoute>} />
+      <Route path="/admin/test-data" element={<PrivateRoute><TestDataImport /></PrivateRoute>} />
+
+      {/* 棚卸しアプリ */}
+      <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />
+      <Route path="/inventory/receive" element={<PrivateRoute><InventoryReceive /></PrivateRoute>} />
+      <Route path="/inventory/transfer" element={<PrivateRoute><InventoryTransfer /></PrivateRoute>} />
+      <Route path="/inventory/count" element={<PrivateRoute><InventoryCount /></PrivateRoute>} />
+      <Route path="/inventory/match" element={<PrivateRoute><InventoryMatch /></PrivateRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

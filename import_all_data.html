@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawOps 一括データインポート</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f0f23;color:#e0e0e0;padding:20px;max-width:900px;margin:0 auto}
+h1{color:#00d2ff;margin-bottom:8px;font-size:22px}
+.subtitle{color:#888;margin-bottom:20px;font-size:13px}
+.card{background:#1a1a2e;border-radius:12px;padding:16px;margin:10px 0;border:1px solid #333}
+.card h2{color:#00d2ff;font-size:16px;margin-bottom:8px}
+.card .desc{color:#999;font-size:12px;margin-bottom:8px}
+button{background:#e94560;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;margin:4px}
+button:hover{background:#c62a4a}
+button:disabled{background:#444;cursor:not-allowed;opacity:.6}
+button.success{background:#00b894}
+button.auth{background:#4285f4}
+button.auth:hover{background:#3367d6}
+.file-input{margin:8px 0}
+input[type="file"]{display:none}
+label.file-btn{display:inline-block;background:#16213e;border:1px dashed #00d2ff;color:#00d2ff;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:13px}
+label.file-btn:hover{background:#1a2a4e}
+.status{margin:6px 0;padding:8px 12px;border-radius:6px;font-size:13px}
+.status.ok{background:#00b89422;color:#55efc4;border:1px solid #00b89444}
+.status.warn{background:#fdcb6e22;color:#fdcb6e;border:1px solid #fdcb6e44}
+.status.error{background:#e9456022;color:#ff7675;border:1px solid #e9456044}
+.status.info{background:#00d2ff11;color:#74b9ff;border:1px solid #00d2ff33}
+.progress{width:100%;height:6px;background:#333;border-radius:3px;margin:8px 0;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,#00d2ff,#00b894);border-radius:3px;transition:width .3s}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+th{background:#16213e;color:#00d2ff;padding:6px 8px;text-align:left;border-bottom:1px solid #333}
+td{padding:6px 8px;border-bottom:1px solid #222}
+#log{background:#0a0a1a;border-radius:8px;padding:12px;margin:12px 0;max-height:300px;overflow-y:auto;font-family:monospace;font-size:12px;line-height:1.6}
+.log-line{margin:2px 0}.log-ok{color:#55efc4}.log-err{color:#ff7675}.log-info{color:#74b9ff}.log-warn{color:#fdcb6e}
+.flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-block;background:#333;color:#ccc;padding:2px 8px;border-radius:10px;font-size:11px;margin:2px}
+.badge.ready{background:#00b89433;color:#55efc4}
+.badge.loaded{background:#00d2ff22;color:#74b9ff}
+</style>
+</head>
+<body>
+
+<h1>ClawOps 一括データインポート</h1>
+<p class="subtitle">取込フォルダのCSVデータをGoogle Sheetsに取り込みます</p>
+
+<!-- Auth -->
+<div class="card">
+  <h2>1. Google認証</h2>
+  <div class="flex">
+    <button class="auth" onclick="doAuth()" id="authBtn">Googleログイン</button>
+    <span id="authStatus" class="badge">未認証</span>
+  </div>
+</div>
+
+<!-- File Selection -->
+<div class="card">
+  <h2>2. CSVファイル選択</h2>
+  <p class="desc">parse_all_data.py で生成した output/ フォルダのCSVを選択（複数可）</p>
+  <div class="file-input">
+    <label class="file-btn" for="csvFiles">CSVファイルを選択（複数可）</label>
+    <input type="file" id="csvFiles" multiple accept=".csv" onchange="handleFiles(this.files)">
+  </div>
+  <div id="fileList"></div>
+</div>
+
+<!-- Import targets -->
+<div class="card">
+  <h2>3. インポート設定</h2>
+  <table>
+    <thead><tr><th>ファイル</th><th>→ シート名</th><th>行数</th><th>状態</th></tr></thead>
+    <tbody id="importTable"></tbody>
+  </table>
+</div>
+
+<!-- Execute -->
+<div class="card">
+  <h2>4. 実行</h2>
+  <div class="flex">
+    <button onclick="runImport()" id="importBtn" disabled>全てインポート</button>
+    <button onclick="runImport('selected')" id="importSelBtn" disabled>選択のみインポート</button>
+  </div>
+  <div class="progress" style="display:none" id="progressWrap">
+    <div class="progress-bar" id="progressBar" style="width:0%"></div>
+  </div>
+  <div id="importStatus"></div>
+</div>
+
+<!-- Log -->
+<div id="log"></div>
+
+<script>
+const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA';
+const CLIENT_ID = '706491055274-g3ik8l1ao9is516d2gcta39fikr8lsgv.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+let TOKEN = null;
+
+// Sheet name mapping
+const SHEET_MAP = {
+  'gacha_readings.csv': 'gacha_readings',
+  'crane_readings.csv': 'crane_readings',
+  'collection_data.csv': 'collection_data',
+  'prize_orders_all.csv': 'prize_orders',
+  'machines_import.csv': 'machines',
+  'booths_import.csv': 'booths',
+  'prizes_import.csv': 'prizes',
+  'orders_all.csv': 'orders_history',
+};
+
+const loadedFiles = {};  // filename -> {header, rows, sheetName}
+
+// ============================================================
+// Auth
+// ============================================================
+function doAuth() {
+  // Check if token exists from hash
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    TOKEN = params.get('access_token');
+    authOk();
+    return;
+  }
+  const redir = window.location.href.split('#')[0];
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redir)}&response_type=token&scope=${encodeURIComponent(SCOPE)}`;
+  window.location.href = url;
+}
+
+function authOk() {
+  document.getElementById('authStatus').textContent = '認証済み';
+  document.getElementById('authStatus').className = 'badge ready';
+  document.getElementById('authBtn').textContent = '認証済み ✓';
+  document.getElementById('authBtn').className = 'success';
+  updateImportButtons();
+  log('認証成功', 'ok');
+}
+
+// On load, check hash for token
+window.addEventListener('load', () => {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    TOKEN = params.get('access_token');
+    authOk();
+    history.replaceState(null, '', window.location.pathname);
+  }
+  // Also check sessionStorage (ClawOps token)
+  const stored = sessionStorage.getItem('gapi_token');
+  if (stored && !TOKEN) {
+    TOKEN = stored;
+    authOk();
+  }
+});
+
+// ============================================================
+// File handling
+// ============================================================
+function handleFiles(files) {
+  const list = document.getElementById('fileList');
+  list.innerHTML = '';
+
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      // Remove BOM
+      const clean = text.replace(/^\uFEFF/, '');
+      const lines = clean.split('\n').filter(l => l.trim());
+      const header = parseCSVLine(lines[0]);
+      const rows = lines.slice(1).map(parseCSVLine);
+
+      const sheetName = SHEET_MAP[file.name] || file.name.replace('.csv', '');
+      loadedFiles[file.name] = { header, rows, sheetName, selected: true };
+
+      updateFileList();
+      updateImportTable();
+      updateImportButtons();
+      log(`${file.name} 読み込み完了: ${rows.length}行`, 'info');
+    };
+    reader.readAsText(file);
+  });
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function updateFileList() {
+  const html = Object.entries(loadedFiles).map(([name, data]) =>
+    `<span class="badge loaded">${name} (${data.rows.length}行)</span>`
+  ).join(' ');
+  document.getElementById('fileList').innerHTML = html;
+}
+
+function updateImportTable() {
+  const tbody = document.getElementById('importTable');
+  tbody.innerHTML = Object.entries(loadedFiles).map(([name, data]) =>
+    `<tr>
+      <td><label><input type="checkbox" checked onchange="loadedFiles['${name}'].selected=this.checked"> ${name}</label></td>
+      <td><input value="${data.sheetName}" onchange="loadedFiles['${name}'].sheetName=this.value" style="background:#0a0a1a;color:#eee;border:1px solid #444;padding:4px 8px;border-radius:4px;width:160px"></td>
+      <td>${data.rows.length}</td>
+      <td><span class="badge" id="st_${name.replace(/[^a-zA-Z0-9]/g,'_')}">待機</span></td>
+    </tr>`
+  ).join('');
+}
+
+function updateImportButtons() {
+  const hasFiles = Object.keys(loadedFiles).length > 0;
+  document.getElementById('importBtn').disabled = !TOKEN || !hasFiles;
+  document.getElementById('importSelBtn').disabled = !TOKEN || !hasFiles;
+}
+
+// ============================================================
+// Google Sheets API helpers
+// ============================================================
+async function sheetsAPI(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}${path}`, opts);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`API ${res.status}: ${err}`);
+  }
+  return res.json();
+}
+
+async function getExistingSheets() {
+  const data = await sheetsAPI('?fields=sheets.properties');
+  return data.sheets.map(s => ({
+    title: s.properties.title,
+    sheetId: s.properties.sheetId,
+    index: s.properties.index
+  }));
+}
+
+async function addSheet(title) {
+  const res = await sheetsAPI(':batchUpdate', 'POST', {
+    requests: [{ addSheet: { properties: { title } } }]
+  });
+  return res.replies[0].addSheet.properties.sheetId;
+}
+
+async function clearSheet(title) {
+  try {
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(title)}:clear`,
+      { method: 'POST', headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' } }
+    );
+  } catch(e) { /* ignore */ }
+}
+
+async function appendRows(sheetName, values) {
+  // Batch in chunks of 500 rows
+  const CHUNK = 500;
+  let written = 0;
+  for (let i = 0; i < values.length; i += CHUNK) {
+    const chunk = values.slice(i, i + CHUNK);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: chunk })
+      }
+    );
+    written += chunk.length;
+  }
+  return written;
+}
+
+// ============================================================
+// Import execution
+// ============================================================
+async function runImport(mode) {
+  const entries = Object.entries(loadedFiles).filter(([_, d]) =>
+    mode === 'selected' ? d.selected : true
+  );
+
+  if (entries.length === 0) { log('インポート対象がありません', 'warn'); return; }
+
+  const progressWrap = document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  progressWrap.style.display = 'block';
+
+  document.getElementById('importBtn').disabled = true;
+  document.getElementById('importSelBtn').disabled = true;
+
+  try {
+    // Get existing sheets
+    log('既存シート情報を取得中...', 'info');
+    const existing = await getExistingSheets();
+    const existingNames = existing.map(s => s.title);
+    log(`既存シート: ${existingNames.join(', ')}`, 'info');
+
+    for (let i = 0; i < entries.length; i++) {
+      const [filename, data] = entries[i];
+      const pct = ((i + 1) / entries.length * 100).toFixed(0);
+      progressBar.style.width = `${pct}%`;
+
+      const stId = `st_${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const badge = document.getElementById(stId);
+
+      try {
+        log(`[${i+1}/${entries.length}] ${filename} → ${data.sheetName}`, 'info');
+
+        // Create or clear sheet
+        if (existingNames.includes(data.sheetName)) {
+          log(`  シート "${data.sheetName}" をクリア中...`, 'info');
+          await clearSheet(data.sheetName);
+        } else {
+          log(`  シート "${data.sheetName}" を新規作成...`, 'info');
+          await addSheet(data.sheetName);
+          existingNames.push(data.sheetName);
+        }
+
+        // Write header + data
+        const allValues = [data.header, ...data.rows];
+        const written = await appendRows(data.sheetName, allValues);
+        log(`  ✓ ${written - 1}行 書き込み完了`, 'ok');
+
+        if (badge) { badge.textContent = '完了 ✓'; badge.className = 'badge ready'; }
+
+      } catch (err) {
+        log(`  ✗ ${filename} エラー: ${err.message}`, 'err');
+        if (badge) { badge.textContent = 'エラー'; badge.style.color = '#ff7675'; }
+      }
+
+      // Rate limit cooldown
+      await sleep(500);
+    }
+
+    log('=== 全てのインポートが完了しました ===', 'ok');
+    document.getElementById('importStatus').innerHTML =
+      '<div class="status ok">インポート完了！Google Sheetsを確認してください。</div>';
+
+  } catch (err) {
+    log(`致命的エラー: ${err.message}`, 'err');
+    document.getElementById('importStatus').innerHTML =
+      `<div class="status error">エラー: ${err.message}</div>`;
+  }
+
+  document.getElementById('importBtn').disabled = false;
+  document.getElementById('importSelBtn').disabled = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function log(msg, type = 'info') {
+  const div = document.getElementById('log');
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : type === 'warn' ? 'log-warn' : 'log-info';
+  const time = new Date().toLocaleTimeString('ja-JP');
+  div.innerHTML += `<div class="log-line ${cls}">[${time}] ${msg}</div>`;
+  div.scrollTop = div.scrollHeight;
+}
+</script>
+
+</body>
+</html>

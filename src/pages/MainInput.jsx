@@ -130,7 +130,7 @@ export default function MainInput() {
         set_o: inp.set_o || latest?.set_o || '',
       })
     }
-    if (toSave.length === 0) { showToast('INメーターが未入力です', 'error'); return }
+    if (toSave.length === 0) { showToast('まだINメーターが入力されていません。ブースのIN欄に売上メーター値を入力してください。', 'error'); return }
     setSaving(true)
     try {
       for (const r of toSave) await saveReading(r)
@@ -151,7 +151,7 @@ export default function MainInput() {
       const map = await getLastReadingsMap(booths.map(b => b.booth_id))
       setReadingsMap(map)
     } catch (e) {
-      showToast('保存エラー: ' + e.message, 'error')
+      showToast('保存に失敗しました。通信状態を確認してリトライしてください。(' + e.message + ')', 'error')
     }
     setSaving(false)
   }
@@ -288,7 +288,7 @@ export default function MainInput() {
                 {/* IN */}
                 <div>
                   <div className="flex justify-between px-0.5 mb-0.5">
-                    <span className="text-[9px] text-muted font-bold">IN</span>
+                    <span className="text-[9px] text-muted font-bold">IN（売上）</span>
                     <span className="text-[8px] text-muted/50">{s.prevIn !== null ? s.prevIn.toLocaleString() : ''}</span>
                   </div>
                   <input ref={getRef(booth.booth_id, 'in_meter')}
@@ -297,7 +297,7 @@ export default function MainInput() {
                       bg-bg text-text
                       ${hasInput ? 'border-green-700/60' : 'border-border'}
                       focus:border-blue-500`}
-                    placeholder={s.prevIn !== null ? String(s.prevIn) : ''}
+                    placeholder={s.prevIn !== null ? String(s.prevIn) : '売上メーター値'}
                     value={inp.in_meter || ''}
                     onChange={e => setInp(booth.booth_id, 'in_meter', e.target.value)}
                     onKeyDown={e => handleKeyDown(e, booth.booth_id, 'in_meter')}
@@ -313,7 +313,7 @@ export default function MainInput() {
                 {/* OUT */}
                 <div>
                   <div className="flex justify-between px-0.5 mb-0.5">
-                    <span className="text-[9px] text-muted font-bold">OUT</span>
+                    <span className="text-[9px] text-muted font-bold">OUT（払出）</span>
                     <span className="text-[8px] text-muted/50">{s.prevOut !== null ? s.prevOut.toLocaleString() : ''}</span>
                   </div>
                   <input ref={getRef(booth.booth_id, 'out_meter')}
@@ -321,7 +321,7 @@ export default function MainInput() {
                     className={`w-full p-2 text-[16px] font-semibold text-center rounded-md border outline-none transition-colors
                       bg-bg text-text border-border focus:border-blue-500
                       ${inp.out_meter ? 'border-green-700/60' : ''}`}
-                    placeholder={s.prevOut !== null ? String(s.prevOut) : ''}
+                    placeholder={s.prevOut !== null ? String(s.prevOut) : '払出メーター値'}
                     value={inp.out_meter || ''}
                     onChange={e => setInp(booth.booth_id, 'out_meter', e.target.value)}
                     onKeyDown={e => handleKeyDown(e, booth.booth_id, 'out_meter')}
@@ -336,11 +336,12 @@ export default function MainInput() {
 
                 {/* 残 */}
                 <div>
-                  <div className="text-[9px] text-muted font-bold text-center mb-0.5">残</div>
+                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残</div>
                   <input ref={getRef(booth.booth_id, 'prize_stock')}
                     type="number" inputMode="numeric"
                     className="w-full p-2 text-[14px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
                     placeholder={latest?.prize_stock_count || '0'}
+                    title="景品残数"
                     value={inp.prize_stock || ''}
                     onChange={e => setInp(booth.booth_id, 'prize_stock', e.target.value)}
                     onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_stock')}
@@ -349,11 +350,12 @@ export default function MainInput() {
 
                 {/* 補 */}
                 <div>
-                  <div className="text-[9px] text-muted font-bold text-center mb-0.5">補</div>
+                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補</div>
                   <input ref={getRef(booth.booth_id, 'prize_restock')}
                     type="number" inputMode="numeric"
                     className="w-full p-2 text-[14px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
                     placeholder="0"
+                    title="景品補充数"
                     value={inp.prize_restock || ''}
                     onChange={e => setInp(booth.booth_id, 'prize_restock', e.target.value)}
                     onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_restock')}
@@ -374,13 +376,14 @@ export default function MainInput() {
                     {s.payoutRate}%
                   </span>
                 )}
-                <div className="flex items-center gap-1 ml-1">
-                  <span className="text-purple-400 font-bold">A</span>
+                <div className="flex items-center gap-1 ml-1" title="アシスト回数（A設定）">
+                  <span className="text-purple-400 font-bold text-[10px]">A<span className="text-[7px] text-purple-400/60 ml-0.5">ｱｼｽﾄ</span></span>
                   <input
                     className="w-7 p-0.5 text-[10px] text-center rounded border border-border bg-bg text-purple-300 outline-none focus:border-purple-400"
                     placeholder={latest?.set_a || '-'}
                     value={inp.set_a || ''}
                     onChange={e => setInp(booth.booth_id, 'set_a', e.target.value)}
+                    title="アシスト回数"
                   />
                 </div>
                 <button onClick={() => setExpandedSettings(prev => ({...prev, [booth.booth_id]: !prev[booth.booth_id]}))}
@@ -393,13 +396,13 @@ export default function MainInput() {
               {expanded && (
                 <div className="flex gap-1.5 px-2 pb-1.5 items-end">
                   {[
-                    { key: 'set_c', label: 'C' },
-                    { key: 'set_l', label: 'L' },
-                    { key: 'set_r', label: 'R' },
-                    { key: 'set_o', label: 'O' },
+                    { key: 'set_c', label: 'C', fullName: 'ｷｬｯﾁ', title: 'キャッチ時パワー' },
+                    { key: 'set_l', label: 'L', fullName: 'ﾕﾙ', title: '緩和時パワー' },
+                    { key: 'set_r', label: 'R', fullName: 'ﾘﾀｰﾝ', title: '復帰時パワー' },
+                    { key: 'set_o', label: 'O', fullName: 'ｿﾉ他', title: '固有設定' },
                   ].map(s => (
-                    <div key={s.key} className="w-10 text-center">
-                      <div className="text-[8px] text-purple-400 font-bold">{s.label}</div>
+                    <div key={s.key} className="w-10 text-center" title={s.title}>
+                      <div className="text-[8px] text-purple-400 font-bold">{s.label}<span className="text-[6px] text-purple-400/60 block">{s.fullName}</span></div>
                       <input
                         className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
                         type={s.key === 'set_o' ? 'text' : 'number'}
@@ -434,29 +437,13 @@ export default function MainInput() {
             {currentMachine?.machine_code} {currentMachine?.machine_name} ({booths.length}ブース)
             <span className="flex-1 h-px bg-border" />
           </div>
-          <div className="grid grid-cols-5 gap-1.5">
-            <StatBox label="今回" value={machineSub.totalSales > 0 ? `¥${fmtK(machineSub.totalSales)}` : '---'}
-              sub={`${machineSub.count}ブース`} positive={machineSub.totalSales > 0} />
-            <StatBox label="前回差"
+          <div className="grid grid-cols-2 gap-1.5">
+            <StatBox label="今回売上" value={machineSub.totalSales > 0 ? `¥${fmtK(machineSub.totalSales)}` : '---'}
+              sub={`${machineSub.count}ブース入力済`} positive={machineSub.totalSales > 0} />
+            <StatBox label="前回比"
               value={machineSub.diff !== 0 && machineSub.prevTotalSales > 0 ? `${machineSub.diff > 0 ? '+' : ''}¥${fmtK(machineSub.diff)}` : '---'}
               sub={machineSub.prevTotalSales > 0 ? `${((machineSub.diff / machineSub.prevTotalSales) * 100).toFixed(0)}%` : ''}
               positive={machineSub.diff > 0} negative={machineSub.diff < 0} />
-            <StatBox label="集金後累計" value="---" sub="未実装" />
-            <StatBox label="月間予測" value="---" sub="未実装" />
-            <StatBox label="前月実績" value="---" sub="未実装" />
-          </div>
-
-          {/* 店舗合計（後で実装） */}
-          <div className="text-[10px] text-muted font-bold mt-3 mb-1.5 flex items-center gap-2">
-            {currentStore?.store_name} 全台合計
-            <span className="flex-1 h-px bg-border" />
-          </div>
-          <div className="grid grid-cols-5 gap-1.5">
-            <StatBox label="今回" value="---" sub="入力中" />
-            <StatBox label="前回差" value="---" sub="" />
-            <StatBox label="集金後累計" value="---" sub="" />
-            <StatBox label="月間予測" value="---" sub="" />
-            <StatBox label="前月実績" value="---" sub="" />
           </div>
         </div>
       )}
@@ -466,10 +453,15 @@ export default function MainInput() {
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-blue-400">{inputCount}/{booths.length}</span>
           <button onClick={handleSave} disabled={saving || inputCount === 0}
-            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all
-              disabled:opacity-40 disabled:cursor-not-allowed
-              bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white">
-            {saving ? '保存中...' : `${inputCount}件を保存`}
+            className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-all min-h-[48px]
+              disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] text-white
+              ${inputCount > 0 && inputCount >= booths.length
+                ? 'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/30 animate-pulse'
+                : 'bg-blue-600 hover:bg-blue-700'}`}>
+            {saving ? '保存中...'
+              : inputCount >= booths.length ? `全${inputCount}件を保存`
+              : inputCount > 0 ? `${inputCount}件を保存`
+              : '入力してください'}
           </button>
         </div>
       </div>

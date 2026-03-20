@@ -519,3 +519,251 @@ export async function saveInventoryCheck(items) {
   }
   clearCache()
 }
+
+export async function updateInventoryCheck(rowNum, data) {
+  await sheetsPut(`inventory_checks!E${rowNum}:G${rowNum}`, [[
+    data.warehouse_qty || '0', data.checked_by || '', data.note || ''
+  ]])
+  clearCache()
+}
+
+export async function deleteInventoryCheck(rowNum) {
+  await sheetsPut(`inventory_checks!A${rowNum}:H${rowNum}`, [['','','','','','','','']])
+  clearCache()
+}
+
+// ============================================
+// ロケーション管理 (locations) — 棚卸しアプリ用
+// ============================================
+// シート構成: location_id / name / parent_location_id / store_code / location_type / note / active_flag / created_at / updated_at
+export async function getLocations(forceRefresh = false) {
+  if (!forceRefresh && getCache('locations')) return getCache('locations')
+  try {
+    const rows = await sheetsGet('locations!A2:I')
+    const result = rows
+      .filter(r => r[0] && String(r[0]).trim() !== '')
+      .map((r, i) => ({
+        _row: i + 2,
+        location_id: r[0]||'', name: r[1]||'', parent_location_id: r[2]||'',
+        store_code: r[3]||'', location_type: r[4]||'', note: r[5]||'',
+        active_flag: r[6]||'1', created_at: r[7]||'', updated_at: r[8]||'',
+      }))
+    setCache('locations', result)
+    return result
+  } catch (e) {
+    console.warn('locations sheet not found:', e.message)
+    return []
+  }
+}
+
+// 階層取得: parentId配下のサブロケーションを全取得（再帰）
+export async function getLocationTree(parentId = null) {
+  const all = await getLocations()
+  if (!parentId) {
+    // ルートロケーション（parent_location_idが空のもの）
+    return all.filter(l => !l.parent_location_id)
+  }
+  // 指定parentId配下を取得
+  const children = all.filter(l => l.parent_location_id === parentId)
+  return children
+}
+
+// 指定ロケーション + その子孫のID一覧を取得
+export async function getLocationIdsIncludingChildren(locationId) {
+  const all = await getLocations()
+  const ids = [locationId]
+  function collectChildren(pid) {
+    all.filter(l => l.parent_location_id === pid).forEach(child => {
+      ids.push(child.location_id)
+      collectChildren(child.location_id)
+    })
+  }
+  collectChildren(locationId)
+  return ids
+}
+
+export async function addLocation(loc) {
+  const now = new Date().toISOString()
+  await sheetsAppend('locations!A:I', [[
+    loc.location_id, loc.name, loc.parent_location_id||'', loc.store_code||'',
+    loc.location_type||'warehouse', loc.note||'', '1', now, now
+  ]])
+  clearCache()
+}
+
+export async function updateLocation(rowNum, loc) {
+  const now = new Date().toISOString()
+  await sheetsPut(`locations!B${rowNum}:I${rowNum}`, [[
+    loc.name, loc.parent_location_id||'', loc.store_code||'',
+    loc.location_type||'', loc.note||'', loc.active_flag||'1',
+    loc.created_at||'', now
+  ]])
+  clearCache()
+}
+
+// ============================================
+// 在庫管理 prize_stocks 拡張 (owner_type/owner_id対応)
+// ============================================
+// シート構成: stock_id / prize_id / prize_name / booth_id / booth_name / quantity / last_updated_at / last_updated_by / owner_type / owner_id / tags / updated_at / updated_by
+export async function getPrizeStocksExtended(forceRefresh = false) {
+  if (!forceRefresh && getCache('prize_stocks_ext')) return getCache('prize_stocks_ext')
+  try {
+    const rows = await sheetsGet('prize_stocks!A2:M')
+    const result = rows
+      .filter(r => r[0] && String(r[0]).trim() !== '')
+      .map((r, i) => ({
+        _row: i + 2,
+        stock_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
+        booth_id: r[3]||'', booth_name: r[4]||'',
+        quantity: parseInt(r[5]) || 0,
+        last_updated_at: r[6]||'', last_updated_by: r[7]||'',
+        owner_type: r[8]||'', owner_id: r[9]||'',
+        tags: r[10]||'', updated_at: r[11]||'', updated_by: r[12]||'',
+      }))
+    setCache('prize_stocks_ext', result)
+    return result
+  } catch (e) {
+    console.warn('prize_stocks extended read failed:', e.message)
+    return []
+  }
+}
+
+// owner_type + owner_id で在庫をフィルタ
+export async function getStocksByOwner(ownerType, ownerId) {
+  const all = await getPrizeStocksExtended()
+  return all.filter(s => s.owner_type === ownerType && s.owner_id === ownerId)
+}
+
+// ロケーション配下（子孫含む）の全在庫取得
+export async function getStocksByLocationTree(locationId) {
+  const ids = await getLocationIdsIncludingChildren(locationId)
+  const all = await getPrizeStocksExtended()
+  return all.filter(s => s.owner_type === 'location' && ids.includes(s.owner_id))
+}
+
+export async function addPrizeStock(stock) {
+  const now = new Date().toISOString()
+  const id = 'PS' + Date.now()
+  await sheetsAppend('prize_stocks!A:M', [[
+    id, stock.prize_id, stock.prize_name||'', stock.booth_id||'', stock.booth_name||'',
+    stock.quantity||0, now, stock.updated_by||'',
+    stock.owner_type||'', stock.owner_id||'', stock.tags||'', now, stock.updated_by||''
+  ]])
+  clearCache()
+  return id
+}
+
+export async function updatePrizeStock(rowNum, stock) {
+  const now = new Date().toISOString()
+  await sheetsPut(`prize_stocks!B${rowNum}:M${rowNum}`, [[
+    stock.prize_id, stock.prize_name||'', stock.booth_id||'', stock.booth_name||'',
+    stock.quantity||0, stock.last_updated_at||now, stock.last_updated_by||'',
+    stock.owner_type||'', stock.owner_id||'', stock.tags||'', now, stock.updated_by||''
+  ]])
+  clearCache()
+}
+
+// 在庫数量を差分更新（+ or -）
+export async function adjustPrizeStockQuantity(stockId, delta, updatedBy = '') {
+  const all = await getPrizeStocksExtended(true)
+  const stock = all.find(s => s.stock_id === stockId)
+  if (!stock) throw new Error('Stock not found: ' + stockId)
+  const newQty = stock.quantity + delta
+  await updatePrizeStock(stock._row, { ...stock, quantity: newQty, updated_by: updatedBy })
+  return newQty
+}
+
+// ============================================
+// 在庫移動履歴 (stock_movements) — 棚卸しアプリ用
+// ============================================
+// シート構成: movement_id / prize_id / movement_type / from_owner_type / from_owner_id / to_owner_type / to_owner_id / quantity / note / created_at / created_by
+export async function getStockMovements(forceRefresh = false) {
+  if (!forceRefresh && getCache('stock_movements')) return getCache('stock_movements')
+  try {
+    const rows = await sheetsGet('stock_movements!A2:K')
+    const result = rows
+      .filter(r => r[0] && String(r[0]).trim() !== '')
+      .map((r, i) => ({
+        _row: i + 2,
+        movement_id: r[0]||'', prize_id: r[1]||'', movement_type: r[2]||'',
+        from_owner_type: r[3]||'', from_owner_id: r[4]||'',
+        to_owner_type: r[5]||'', to_owner_id: r[6]||'',
+        quantity: parseInt(r[7]) || 0, note: r[8]||'',
+        created_at: r[9]||'', created_by: r[10]||'',
+      }))
+    setCache('stock_movements', result)
+    return result
+  } catch (e) {
+    console.warn('stock_movements sheet not found:', e.message)
+    return []
+  }
+}
+
+export async function addStockMovement(mv) {
+  const now = new Date().toISOString()
+  const id = 'MV' + Date.now()
+  await sheetsAppend('stock_movements!A:K', [[
+    id, mv.prize_id, mv.movement_type,
+    mv.from_owner_type||'', mv.from_owner_id||'',
+    mv.to_owner_type||'', mv.to_owner_id||'',
+    mv.quantity||0, mv.note||'', now, mv.created_by||''
+  ]])
+  clearCache()
+  return id
+}
+
+// 在庫移管トランザクション: from → to に数量移動 + movement記録
+export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy }) {
+  const all = await getPrizeStocksExtended(true)
+
+  // 移動元の在庫を減算
+  if (fromOwnerType && fromOwnerId) {
+    const fromStock = all.find(s => s.prize_id === prizeId && s.owner_type === fromOwnerType && s.owner_id === fromOwnerId)
+    if (fromStock) {
+      await updatePrizeStock(fromStock._row, { ...fromStock, quantity: fromStock.quantity - quantity, updated_by: createdBy })
+    }
+  }
+
+  // 移動先の在庫を加算（なければ新規作成）
+  const toStock = all.find(s => s.prize_id === prizeId && s.owner_type === toOwnerType && s.owner_id === toOwnerId)
+  if (toStock) {
+    await updatePrizeStock(toStock._row, { ...toStock, quantity: toStock.quantity + quantity, updated_by: createdBy })
+  } else {
+    await addPrizeStock({ prize_id: prizeId, prize_name: prizeName, quantity, owner_type: toOwnerType, owner_id: toOwnerId, updated_by: createdBy })
+  }
+
+  // 移動履歴を記録
+  const movementType = fromOwnerType ? 'transfer' : 'arrival'
+  return addStockMovement({
+    prize_id: prizeId, movement_type: movementType,
+    from_owner_type: fromOwnerType||'', from_owner_id: fromOwnerId||'',
+    to_owner_type: toOwnerType, to_owner_id: toOwnerId,
+    quantity, note: note||'', created_by: createdBy||''
+  })
+}
+
+// 棚卸し実数確認: 実数をセット + 差異があればadjust movement記録
+export async function countStock({ prizeId, prizeName, ownerType, ownerId, actualQuantity, note, createdBy }) {
+  const all = await getPrizeStocksExtended(true)
+  const stock = all.find(s => s.prize_id === prizeId && s.owner_type === ownerType && s.owner_id === ownerId)
+
+  const currentQty = stock ? stock.quantity : 0
+  const diff = actualQuantity - currentQty
+
+  if (stock) {
+    await updatePrizeStock(stock._row, { ...stock, quantity: actualQuantity, updated_by: createdBy })
+  } else {
+    await addPrizeStock({ prize_id: prizeId, prize_name: prizeName, quantity: actualQuantity, owner_type: ownerType, owner_id: ownerId, updated_by: createdBy })
+  }
+
+  // count記録（差異がなくても記録）
+  await addStockMovement({
+    prize_id: prizeId, movement_type: diff !== 0 ? 'adjust' : 'count',
+    from_owner_type: ownerType, from_owner_id: ownerId,
+    to_owner_type: ownerType, to_owner_id: ownerId,
+    quantity: diff, note: note || (diff !== 0 ? `棚卸し差異: ${diff > 0 ? '+' : ''}${diff}` : '棚卸し一致'),
+    created_by: createdBy||''
+  })
+
+  return { previousQuantity: currentQty, actualQuantity, diff }
+}

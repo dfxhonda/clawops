@@ -4,7 +4,7 @@ import {
   getPrizes, addPrize, addPrizesBatch, updatePrize,
   getPrizeOrders, addPrizeOrder,
   getVehicleStocks, addVehicleStock, updateVehicleStock, deleteVehicleStock,
-  getInventoryChecks, saveInventoryCheck,
+  getInventoryChecks, saveInventoryCheck, updateInventoryCheck, deleteInventoryCheck,
 } from '../services/sheets'
 
 const TABS = [
@@ -80,6 +80,9 @@ export default function PrizeManagement() {
   const [csvStep, setCsvStep] = useState('upload')  // upload → map → preview → done
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState('')
+
+  // 棚卸し履歴編集
+  const [editingInventory, setEditingInventory] = useState(null) // { _row, warehouse_qty, checked_by, note }
 
   // 車在庫フィルタ
   const [vehicleFilter, setVehicleFilter] = useState('')
@@ -179,6 +182,9 @@ export default function PrizeManagement() {
   }
 
   function updateCheckQty(prizeId, qty) {
+    // マイナス値バリデーション
+    const numVal = Number(qty)
+    if (qty !== '' && (isNaN(numVal) || numVal < 0)) return
     setCheckItems(prev => ({
       ...prev,
       [prizeId]: { ...prev[prizeId], qty }
@@ -206,6 +212,10 @@ export default function PrizeManagement() {
         }
       })
     if (items.length === 0) { setMsg('チェック済みの景品がありません'); return }
+    if (!checkedBy.trim()) { setMsg('⚠️ 確認者名を入力してください'); return }
+    // マイナス値の最終チェック
+    const invalidItems = items.filter(it => Number(it.warehouse_qty) < 0)
+    if (invalidItems.length > 0) { setMsg('⚠️ 数量にマイナス値があります。0以上の値を入力してください。'); return }
     setSaving(true)
     try {
       await saveInventoryCheck(items)
@@ -328,7 +338,7 @@ export default function PrizeManagement() {
 
   // CSV列名の自動マッチング
   const HEADER_ALIASES = {
-    prize_name: ['商品名','品名','品目','アイテム名','prize_name','name','item'],
+    prize_name: ['商品名','品名','品目','アイテム名','名前','商品','prize_name','name','item','product'],
     short_name: ['短縮名','short_name','short'],
     item_size: ['サイズ','size','item_size'],
     unit_cost: ['単価','仕入単価','原価','コスト','price','cost','unit_cost'],
@@ -412,7 +422,20 @@ export default function PrizeManagement() {
     const preview = csvRows.map(row => {
       const item = {}
       for (const [field, csvCol] of Object.entries(csvMapping)) {
-        if (csvCol) item[field] = row[csvCol] || ''
+        // null/undefinedのみ空文字にする（"0"等のfalsyな値はそのまま保持）
+        if (csvCol) {
+          const val = row[csvCol]
+          item[field] = val != null ? String(val) : ''
+        }
+      }
+      // 商品名が数値のみ・空の場合はスキップ（列マッピング誤りの可能性）
+      if (!item.prize_name || /^\d+$/.test(item.prize_name.trim())) {
+        // 数値のみの商品名は明らかにマッピングミス → 空扱い
+        if (/^\d+$/.test((item.prize_name || '').trim())) {
+          console.warn('CSV取込: 商品名が数値のみです。列マッピングを確認してください:', item.prize_name)
+          return null
+        }
+        return null
       }
       // 商品名から short_name, item_size を自動抽出（CSVに値がなければ）
       if (item.prize_name) {
@@ -423,7 +446,10 @@ export default function PrizeManagement() {
       // ステータス: CSVにあればそのまま、なければTRUE
       if (!item.is_active) item.is_active = 'TRUE'
       return item
-    }).filter(item => item.prize_name)
+    }).filter(Boolean)
+    if (preview.length === 0 && csvRows.length > 0) {
+      setMsg('⚠️ 有効な行が0件です。「商品名」の列マッピングが正しいか確認してください。')
+    }
     setCsvPreview(preview)
     setCsvStep('preview')
   }
@@ -982,10 +1008,15 @@ export default function PrizeManagement() {
       {/* ===== 棚卸し ===== */}
       {tab === 'inventory' && (
         <>
-          {/* 担当者入力 */}
+          {/* 担当者入力（必須） */}
           <div className="flex gap-2 mb-4">
-            <input type="text" value={checkedBy} onChange={e => setCheckedBy(e.target.value)}
-              placeholder="確認者名" className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text" />
+            <div className="flex-1 relative">
+              <input type="text" value={checkedBy} onChange={e => setCheckedBy(e.target.value)}
+                placeholder="確認者名（必須）"
+                className={`w-full bg-surface border rounded-lg px-3 py-2 text-sm text-text ${
+                  !checkedBy.trim() ? 'border-accent2/50' : 'border-border'}`} />
+              {!checkedBy.trim() && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-accent2 text-xs">必須</span>}
+            </div>
           </div>
 
           {/* サマリー */}
@@ -1028,10 +1059,10 @@ export default function PrizeManagement() {
                   <div className="flex items-center gap-3">
                     {/* チェックボックス */}
                     <button onClick={() => toggleCheck(p.prize_id)}
-                      className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                      className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border-2 flex items-center justify-center shrink-0 transition-all ${
                         isChecked ? 'bg-accent border-accent text-black' : 'border-border'
                       }`}>
-                      {isChecked && <span className="text-sm font-bold">✓</span>}
+                      {isChecked && <span className="text-lg font-bold">✓</span>}
                     </button>
 
                     {/* 景品情報 */}
@@ -1059,7 +1090,7 @@ export default function PrizeManagement() {
                   {/* チェック済みの場合: 数量・メモ入力 */}
                   {isChecked && (
                     <div className="mt-2 pl-10 flex gap-2">
-                      <input type="number" value={ci.qty||''} onChange={e => updateCheckQty(p.prize_id, e.target.value)}
+                      <input type="number" min="0" value={ci.qty||''} onChange={e => updateCheckQty(p.prize_id, e.target.value)}
                         placeholder="倉庫数量" className="w-24 bg-surface2 border border-border rounded-lg px-2 py-1 text-sm text-text" />
                       <input type="text" value={ci.note||''} onChange={e => updateCheckNote(p.prize_id, e.target.value)}
                         placeholder="メモ" className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1 text-sm text-text" />
@@ -1078,18 +1109,74 @@ export default function PrizeManagement() {
           </button>
 
           {/* 直近の棚卸し履歴 */}
-          {inventoryChecks.length > 0 && (
+          {inventoryChecks.filter(ic => ic.check_id).length > 0 && (
             <div className="mt-6">
               <div className="text-muted text-xs font-bold uppercase tracking-wider mb-2">直近の棚卸し履歴</div>
-              <div className="space-y-1">
-                {inventoryChecks.slice(-10).reverse().map((ic, i) => (
-                  <div key={i} className="bg-surface border border-border rounded-lg p-2 flex justify-between items-center text-xs">
+
+              {/* 編集フォーム */}
+              {editingInventory && (
+                <div className="bg-surface border-2 border-blue-500 rounded-xl p-3 mb-3">
+                  <div className="font-bold text-sm mb-2">{editingInventory.prize_name} を編集</div>
+                  <div className="flex gap-2 mb-2">
                     <div>
+                      <div className="text-[10px] text-muted mb-0.5">数量</div>
+                      <input type="number" min="0" value={editingInventory.warehouse_qty}
+                        onChange={e => setEditingInventory(prev => ({...prev, warehouse_qty: e.target.value}))}
+                        className="w-20 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-sm text-text" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-muted mb-0.5">確認者</div>
+                      <input type="text" value={editingInventory.checked_by}
+                        onChange={e => setEditingInventory(prev => ({...prev, checked_by: e.target.value}))}
+                        className="w-24 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-sm text-text" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[10px] text-muted mb-0.5">メモ</div>
+                      <input type="text" value={editingInventory.note || ''}
+                        onChange={e => setEditingInventory(prev => ({...prev, note: e.target.value}))}
+                        className="w-full bg-surface2 border border-border rounded-lg px-2 py-1.5 text-sm text-text" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      setSaving(true)
+                      try {
+                        await updateInventoryCheck(editingInventory._row, editingInventory)
+                        setMsg('棚卸しデータを更新しました')
+                        setEditingInventory(null)
+                        await loadData()
+                      } catch (e) { setMsg('更新エラー: ' + e.message) }
+                      setSaving(false)
+                    }} className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm">保存</button>
+                    <button onClick={() => setEditingInventory(null)}
+                      className="flex-1 bg-surface2 border border-border text-text py-2 rounded-lg text-sm">キャンセル</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                {inventoryChecks.filter(ic => ic.check_id).slice(-10).reverse().map((ic, i) => (
+                  <div key={i} className="bg-surface border border-border rounded-lg p-2 flex justify-between items-center text-xs">
+                    <div className="flex-1 min-w-0">
                       <span className="text-text font-bold">{ic.prize_name}</span>
                       <span className="text-muted ml-2">x{ic.warehouse_qty}</span>
+                      <span className="text-muted ml-2">{ic.check_date} {ic.checked_by && `/ ${ic.checked_by}`}</span>
                     </div>
-                    <div className="text-muted">
-                      {ic.check_date} {ic.checked_by && `/ ${ic.checked_by}`}
+                    <div className="flex gap-1 shrink-0 ml-2">
+                      <button onClick={() => setEditingInventory({
+                        _row: ic._row, prize_name: ic.prize_name,
+                        warehouse_qty: ic.warehouse_qty, checked_by: ic.checked_by, note: ic.note
+                      })} className="text-blue-400 hover:text-blue-300 px-1">✏️</button>
+                      <button onClick={async () => {
+                        if (!confirm(`${ic.prize_name} の棚卸し記録を削除しますか？`)) return
+                        setSaving(true)
+                        try {
+                          await deleteInventoryCheck(ic._row)
+                          setMsg('棚卸しデータを削除しました')
+                          await loadData()
+                        } catch (e) { setMsg('削除エラー: ' + e.message) }
+                        setSaving(false)
+                      }} className="text-accent2 hover:text-red-400 px-1">🗑️</button>
                     </div>
                   </div>
                 ))}

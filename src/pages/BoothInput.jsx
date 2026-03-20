@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { getBooths, getMachines, getLastReadingsMap, parseNum } from '../services/sheets'
+import { getBooths, getMachines, getLastReadingsMap, parseNum, getStocksByOwner, addStockMovement, adjustPrizeStockQuantity, getPrizeStocksExtended } from '../services/sheets'
 
 const DRAFT_KEY = 'clawops_drafts'
 function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] } }
@@ -14,11 +14,11 @@ function saveDraftItem(draft) {
 
 // 設定値の定義（5種類）
 const SETTINGS = [
-  { key: 'set_a', label: 'A', title: 'アシスト回数' },
-  { key: 'set_c', label: 'C', title: 'キャッチ時パワー' },
-  { key: 'set_l', label: 'L', title: '緩和時パワー' },
-  { key: 'set_r', label: 'R', title: '復帰時パワー' },
-  { key: 'set_o', label: 'O', title: '固有設定' },
+  { key: 'set_a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数' },
+  { key: 'set_c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー' },
+  { key: 'set_l', label: 'L', shortName: 'ﾕﾙ', title: '緩和時パワー' },
+  { key: 'set_r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー' },
+  { key: 'set_o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定' },
 ]
 
 // Enter順序: IN → OUT → 残 → 補 → set_a → set_c → set_l → set_r → set_o → 景品名 → (次ブースIN)
@@ -34,6 +34,9 @@ export default function BoothInput() {
   const [inputs, setInputs] = useState({})
   const [loading, setLoading] = useState(true)
   const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0,10))
+  const [vehicleStocks, setVehicleStocks] = useState([])
+  const [showVehiclePanel, setShowVehiclePanel] = useState(false)
+  const [staffId, setStaffId] = useState(() => sessionStorage.getItem('clawops_staff_id') || '')
 
   // ref管理: refs[boothId][fieldName] = inputElement
   const refsMap = useRef({})
@@ -65,6 +68,14 @@ export default function BoothInput() {
         }
       }
       setInputs(restored)
+      // 車在庫を取得
+      const sid = sessionStorage.getItem('clawops_staff_id')
+      if (sid) {
+        try {
+          const vs = await getStocksByOwner('staff', sid)
+          setVehicleStocks(vs)
+        } catch(e) { console.warn('車在庫取得失敗:', e) }
+      }
       if (state?.storeId) {
         const machines = await getMachines(state.storeId)
         const m = machines.find(x => String(x.machine_id) === String(machineId))
@@ -100,8 +111,9 @@ export default function BoothInput() {
     }
   }
 
-  function handleSaveAll() {
+  async function handleSaveAll() {
     let count = 0
+    const replenishItems = [] // 補充による車在庫引き算用
     for (const booth of booths) {
       const inp = inputs[booth.booth_id] || {}
       const { latest } = readingsMap[booth.booth_id] || {}
@@ -110,13 +122,15 @@ export default function BoothInput() {
       const finalIn = inp.in_meter || (latestIn !== null ? String(latestIn) : '')
       if (!finalIn) continue
       const finalOut = inp.out_meter || (latestOut !== null ? String(latestOut) : '')
+      const restockCount = parseInt(inp.prize_restock) || 0
+      const prizeName = inp.prize_name || latest?.prize_name || ''
       saveDraftItem({
         read_date: readDate,
         booth_id: booth.booth_id, full_booth_code: booth.full_booth_code,
         in_meter: finalIn, out_meter: finalOut,
         prize_restock_count: inp.prize_restock || '',
         prize_stock_count: inp.prize_stock || '',
-        prize_name: inp.prize_name || latest?.prize_name || '',
+        prize_name: prizeName,
         note: inp.note || '',
         set_a: inp.set_a || latest?.set_a || '',
         set_c: inp.set_c || latest?.set_c || '',
@@ -125,8 +139,43 @@ export default function BoothInput() {
         set_o: inp.set_o || latest?.set_o || '',
       })
       count++
+      // 補充があれば車在庫引き算対象に追加
+      if (restockCount > 0 && staffId && prizeName) {
+        replenishItems.push({ boothCode: booth.full_booth_code, prizeName, quantity: restockCount })
+      }
     }
-    if (count === 0) { alert('INメーターが入力されていません'); return }
+    if (count === 0) { alert('まだINメーターが入力されていません。\nブースのIN欄に売上メーター値を入力してください。'); return }
+
+    // 補充分を車在庫から自動引き算（stock_movementsにreplenishレコード）
+    if (replenishItems.length > 0 && staffId) {
+      try {
+        const allStocks = await getPrizeStocksExtended(true)
+        for (const item of replenishItems) {
+          // 担当車在庫から景品名で検索
+          const stock = allStocks.find(s => s.owner_type === 'staff' && s.owner_id === staffId && s.prize_name === item.prizeName)
+          if (stock) {
+            const newQty = stock.quantity - item.quantity
+            if (newQty < 0) {
+              console.warn(`車在庫不足警告: ${item.prizeName} (残${stock.quantity} < 補充${item.quantity})`)
+            }
+            await adjustPrizeStockQuantity(stock.stock_id, -item.quantity, staffId)
+            await addStockMovement({
+              prize_id: stock.prize_id, movement_type: 'replenish',
+              from_owner_type: 'staff', from_owner_id: staffId,
+              to_owner_type: 'booth', to_owner_id: item.boothCode,
+              quantity: item.quantity, note: `巡回補充: ${item.prizeName} → ${item.boothCode}`,
+              created_by: staffId
+            })
+          }
+        }
+        // 車在庫リフレッシュ
+        const vs = await getStocksByOwner('staff', staffId)
+        setVehicleStocks(vs)
+      } catch (e) {
+        console.error('補充自動引き算エラー:', e)
+      }
+    }
+
     navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })
   }
 
@@ -165,6 +214,51 @@ export default function BoothInput() {
       {readDate !== new Date().toISOString().slice(0,10) &&
         <div className="text-[10px] text-accent2 font-bold text-center mb-1">⚠️ 過去日付で入力中</div>}
 
+      {/* 担当者 & 車在庫パネル */}
+      <div className="mb-2">
+        <div className="flex items-center gap-2">
+          {!staffId ? (
+            <div className="flex-1 flex items-center gap-2">
+              <input type="text" placeholder="担当者ID（例: テストA）" id="_staffInput"
+                className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text"
+                onKeyDown={e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) { setStaffId(v); sessionStorage.setItem('clawops_staff_id', v) } } }} />
+              <button onClick={() => { const v = document.getElementById('_staffInput')?.value?.trim(); if (v) { setStaffId(v); sessionStorage.setItem('clawops_staff_id', v) } }}
+                className="bg-accent/20 text-accent text-xs px-3 py-1.5 rounded-lg font-bold">設定</button>
+            </div>
+          ) : (
+            <button onClick={() => setShowVehiclePanel(p => !p)}
+              className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-xs ${showVehiclePanel ? 'bg-accent4/20 border border-accent4/40' : 'bg-surface2 border border-border'}`}>
+              <span className="font-bold text-accent4">🚗 {staffId}</span>
+              <span className="text-muted">{vehicleStocks.length}品 / {vehicleStocks.reduce((s,x) => s + x.quantity, 0)}個</span>
+              <span className="text-muted">{showVehiclePanel ? '▲' : '▼'}</span>
+            </button>
+          )}
+          {staffId && (
+            <button onClick={() => { setStaffId(''); sessionStorage.removeItem('clawops_staff_id'); setVehicleStocks([]) }}
+              className="text-[10px] text-muted hover:text-accent2">×</button>
+          )}
+        </div>
+
+        {showVehiclePanel && vehicleStocks.length > 0 && (
+          <div className="mt-1.5 bg-surface2 border border-border rounded-lg p-2 max-h-32 overflow-y-auto">
+            {vehicleStocks.filter(s => s.quantity > 0).map(s => (
+              <div key={s.stock_id} className="flex justify-between text-xs py-0.5">
+                <span className="truncate text-text">{s.prize_name || s.prize_id}</span>
+                <span className={`font-bold shrink-0 ml-2 ${s.quantity <= 3 ? 'text-accent2' : 'text-accent3'}`}>×{s.quantity}</span>
+              </div>
+            ))}
+            {vehicleStocks.filter(s => s.quantity > 0).length === 0 && (
+              <div className="text-xs text-muted text-center py-1">車在庫なし</div>
+            )}
+          </div>
+        )}
+        {showVehiclePanel && vehicleStocks.length === 0 && staffId && (
+          <div className="mt-1.5 text-xs text-muted text-center bg-surface2 border border-border rounded-lg p-2">
+            車在庫データなし（棚卸しアプリで在庫移管してください）
+          </div>
+        )}
+      </div>
+
       {/* 全ブース一覧 */}
       <div className="space-y-1.5">
         {booths.map((booth) => (
@@ -184,8 +278,14 @@ export default function BoothInput() {
       <div className="fixed bottom-0 left-0 right-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2.5 z-50">
         <div className="max-w-lg mx-auto">
           <button onClick={handleSaveAll}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors">
-            📝 {inputCount > 0 ? `${inputCount}件を下書き保存` : '下書き保存'} → 確認へ
+            className={`w-full text-white font-bold py-3.5 rounded-xl transition-all min-h-[48px] active:scale-[0.98]
+              ${inputCount > 0 && inputCount >= booths.length
+                ? 'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/30 animate-pulse'
+                : 'bg-blue-600 hover:bg-blue-700'}`}>
+            {inputCount >= booths.length
+              ? `全${inputCount}件を下書き保存 → 確認へ`
+              : inputCount > 0 ? `📝 ${inputCount}件を下書き保存 → 確認へ`
+              : '入力してください'}
           </button>
         </div>
       </div>
@@ -243,14 +343,14 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
         {/* IN */}
         <div className="flex-1">
           <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-[10px] text-muted">IN</span>
+            <span className="text-[10px] text-muted">IN（売上）</span>
             <span className="text-[10px] text-muted/60">{latestIn !== null ? latestIn.toLocaleString() : '-'}</span>
           </div>
           <input
             ref={getRef(booth.booth_id, 'in_meter')}
             className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : inp.in_meter ? 'border-accent/40' : 'border-border'}`}
             type="number" inputMode="numeric"
-            placeholder={latestIn !== null ? String(latestIn) : '0'}
+            placeholder={latestIn !== null ? String(latestIn) : '売上メーター値'}
             value={inp.in_meter || ''}
             onChange={e => setInp(booth.booth_id, 'in_meter', e.target.value)}
             onKeyDown={e => handleKeyDown(e, booth.booth_id, 'in_meter')}
@@ -265,14 +365,14 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
         {/* OUT */}
         <div className="flex-1">
           <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-[10px] text-muted">OUT</span>
+            <span className="text-[10px] text-muted">OUT（払出）</span>
             <span className="text-[10px] text-muted/60">{latestOut !== null ? latestOut.toLocaleString() : '-'}</span>
           </div>
           <input
             ref={getRef(booth.booth_id, 'out_meter')}
             className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : inp.out_meter ? 'border-accent/40' : 'border-border'}`}
             type="number" inputMode="numeric"
-            placeholder={latestOut !== null ? String(latestOut) : '0'}
+            placeholder={latestOut !== null ? String(latestOut) : '払出メーター値'}
             value={inp.out_meter || ''}
             onChange={e => setInp(booth.booth_id, 'out_meter', e.target.value)}
             onKeyDown={e => handleKeyDown(e, booth.booth_id, 'out_meter')}
@@ -318,8 +418,8 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
 
         {/* 設定値 A/C/L/R/O */}
         {SETTINGS.map(s => (
-          <div key={s.key} className="w-[36px]">
-            <div className="text-[9px] text-accent4 text-center font-bold">{s.label}</div>
+          <div key={s.key} className="w-[36px]" title={s.title}>
+            <div className="text-[9px] text-accent4 text-center font-bold leading-tight">{s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span></div>
             <input
               ref={getRef(booth.booth_id, s.key)}
               className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"

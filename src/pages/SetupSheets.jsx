@@ -13,7 +13,21 @@ const SHEETS_TO_CREATE = [
     name: 'inventory_checks',
     headers: ['check_id', 'check_date', 'prize_id', 'prize_name', 'warehouse_qty', 'checked_by', 'note', 'created_at'],
   },
+  {
+    name: 'locations',
+    headers: ['location_id', 'name', 'parent_location_id', 'store_code', 'location_type', 'note', 'active_flag', 'created_at', 'updated_at'],
+  },
+  {
+    name: 'stock_movements',
+    headers: ['movement_id', 'prize_id', 'movement_type', 'from_owner_type', 'from_owner_id', 'to_owner_type', 'to_owner_id', 'quantity', 'note', 'created_at', 'created_by'],
+  },
 ]
+
+// prize_stocks シートの拡張列 (I-M)
+const PRIZE_STOCKS_EXTRA_HEADERS = {
+  range: 'prize_stocks!I1:M1',
+  headers: ['owner_type', 'owner_id', 'tags', 'updated_at', 'updated_by'],
+}
 
 // 既存prizesシートに追加する列 (K1:S1)
 const PRIZES_EXTRA_HEADERS = {
@@ -130,6 +144,67 @@ export default function SetupSheets() {
       addLog('prizes列追加エラー: ' + e.message, 'error')
     }
 
+    // locationsシートに初期データ投入
+    addLog('拠点マスタデータを確認中...')
+    try {
+      const locCheck = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('locations!A2:A10')}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const locData = await locCheck.json()
+      const existingLocs = locData.values || []
+      if (existingLocs.length > 0) {
+        addLog(`拠点データ ${existingLocs.length}件あり → スキップ`, 'warn')
+      } else {
+        const now = new Date().toISOString()
+        const locationRows = [
+          ['KRM01', '久留米', '', 'KRM01', 'warehouse', '本拠点', '1', now, now],
+          ['KRM01-S01', 'カウンター裏倉庫', 'KRM01', 'KRM01', 'sub_warehouse', '', '1', now, now],
+          ['KRM01-S02', '卓球場倉庫', 'KRM01', 'KRM01', 'sub_warehouse', '', '1', now, now],
+          ['TNK01', '田隈', '', 'TNK01', 'warehouse', '', '1', now, now],
+          ['IZK01', '飯塚', '', 'IZK01', 'warehouse', '', '1', now, now],
+          ['KGS01', '鹿児島', '', 'KGS01', 'warehouse', '', '1', now, now],
+        ]
+        for (const row of locationRows) {
+          await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('locations!A:I')}:append?valueInputOption=USER_ENTERED`,
+            { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ values: [row] }) }
+          )
+        }
+        addLog(`拠点マスタ ${locationRows.length}件を投入しました（久留米+サブ2 / 田隈 / 飯塚 / 鹿児島） ✅`, 'success')
+      }
+    } catch (e) {
+      addLog('拠点マスタ投入エラー: ' + e.message, 'error')
+    }
+
+    // prize_stocksシートの拡張列を追加 (I-M: owner_type〜updated_by)
+    addLog('prize_stocksシートの拡張列を確認中...')
+    try {
+      const checkRes2 = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(PRIZE_STOCKS_EXTRA_HEADERS.range)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const checkData2 = await checkRes2.json()
+      const existingHeaders2 = checkData2.values?.[0] || []
+      if (existingHeaders2.length > 0 && existingHeaders2[0]) {
+        addLog('prize_stocks拡張列は既に設定済み → スキップ', 'warn')
+      } else {
+        const putRes2 = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(PRIZE_STOCKS_EXTRA_HEADERS.range)}?valueInputOption=USER_ENTERED`,
+          {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: [PRIZE_STOCKS_EXTRA_HEADERS.headers] })
+          }
+        )
+        if (!putRes2.ok) throw new Error('prize_stocks列追加エラー: ' + putRes2.status)
+        addLog('prize_stocks拡張列 (owner_type〜updated_by) を追加しました ✅', 'success')
+      }
+    } catch (e) {
+      addLog('prize_stocks列追加エラー: ' + e.message, 'error')
+    }
+
     addLog('セットアップ完了！', 'success')
     setDone(true)
     setRunning(false)
@@ -150,9 +225,17 @@ export default function SetupSheets() {
             <div className="text-muted text-xs font-mono">{s.headers.join(' / ')}</div>
           </div>
         ))}
-        <div className="mb-1">
+        <div className="mb-3">
           <div className="text-text font-bold text-sm">prizes列拡張 (K〜S)</div>
           <div className="text-muted text-xs font-mono">{PRIZES_EXTRA_HEADERS.headers.join(' / ')}</div>
+        </div>
+        <div className="mb-3">
+          <div className="text-text font-bold text-sm">prize_stocks列拡張 (I〜M)</div>
+          <div className="text-muted text-xs font-mono">{PRIZE_STOCKS_EXTRA_HEADERS.headers.join(' / ')}</div>
+        </div>
+        <div className="mb-1">
+          <div className="text-text font-bold text-sm">拠点マスタ初期データ</div>
+          <div className="text-muted text-xs">久留米(+サブ2) / 田隈 / 飯塚 / 鹿児島</div>
         </div>
       </div>
 

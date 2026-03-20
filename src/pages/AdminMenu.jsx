@@ -3,6 +3,12 @@ import { clearToken } from '../services/sheets'
 
 const SECTIONS = [
   {
+    title: '棚卸し・在庫',
+    items: [
+      { icon: '📦', title: '棚卸し管理', desc: '入庫・移管・棚卸し・マッチング', path: '/inventory', highlight: true },
+    ]
+  },
+  {
     title: 'マスタ管理',
     items: [
       { icon: '🏪', title: '店舗管理', desc: '店舗の追加・編集・契約率', path: '/admin/stores' },
@@ -22,7 +28,7 @@ const SECTIONS = [
     items: [
       { icon: '📷', title: 'QRスキャン', desc: 'ブースQRで直接入力', path: '/patrol' },
       { icon: '🔧', title: 'シートセットアップ', desc: '新規シート作成・初期化', path: '/admin/setup-sheets' },
-      { icon: '📥', title: 'データ一括インポート', desc: 'CSV→Google Sheets取込', path: '/admin/import-data' },
+      { icon: '🧪', title: 'テストデータ投入', desc: '3名×3ヶ月のシミュレーション', path: '/admin/test-data' },
     ]
   },
 ]
@@ -46,8 +52,9 @@ export default function AdminMenu() {
           <div className="px-3 space-y-1.5">
             {sec.items.map(item => (
               <button key={item.path} onClick={() => navigate(item.path)}
-                className="w-full flex items-center gap-3 p-3.5 bg-surface border border-border rounded-xl text-left
-                  hover:border-blue-600/30 active:scale-[0.98] transition-all">
+                className={`w-full flex items-center gap-3 p-3.5 rounded-xl text-left
+                  active:scale-[0.98] transition-all
+                  ${item.highlight ? 'bg-accent/10 border-2 border-accent' : 'bg-surface border border-border hover:border-blue-600/30'}`}>
                 <span className="text-2xl w-10 text-center">{item.icon}</span>
                 <div className="flex-1">
                   <div className="text-sm font-semibold">{item.title}</div>
