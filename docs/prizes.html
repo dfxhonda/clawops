@@ -19,6 +19,7 @@
   --yellow:#f39c12;
   --red:#e74c3c;
   --cyan:#00b4d8;
+  --orange:#e67e22;
   --radius:10px;
   --nav-h:58px;
 }
@@ -58,22 +59,28 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .card-photo.has-photo{border-color:var(--accent);color:var(--accent)}
 /* card body */
 .card-body{flex:1;min-width:0}
-.card-top{display:flex;align-items:flex-start;gap:6px;margin-bottom:6px}
-.prize-id{font-size:10px;color:var(--text2);font-family:monospace;white-space:nowrap;padding-top:2px;flex-shrink:0}
+.card-top{display:flex;align-items:flex-start;gap:6px;margin-bottom:4px}
 .prize-name{font-size:13px;font-weight:600;line-height:1.4;flex:1;word-break:break-all}
+.size-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:rgba(0,180,216,.15);color:var(--cyan);border:1px solid rgba(0,180,216,.3);white-space:nowrap;flex-shrink:0;align-self:flex-start;margin-top:1px}
 .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .badge-active{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-provisional{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
-.card-bottom{display:flex;align-items:center;gap:10px}
+/* card meta row */
+.card-meta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.order-date{font-size:10px;color:var(--text2)}
+.order-date span{color:var(--orange);font-weight:600}
+/* card bottom */
+.card-bottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cost-area{display:flex;align-items:baseline;gap:2px}
 .cost-label{font-size:10px;color:var(--text2)}
 .cost-value{font-size:14px;font-weight:700;color:var(--text)}
 .cost-yen{font-size:11px;margin-right:1px}
-.stock-area{margin-left:auto;display:flex;align-items:center;gap:4px}
-.stock-label{font-size:10px;color:var(--text2)}
-.stock-value{font-size:13px;font-weight:700;color:var(--cyan)}
+.stock-area{margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px}
+.stock-prev{color:var(--text2)}
+.stock-arrow{color:var(--text2);font-size:10px}
+.stock-now{font-weight:700;font-size:13px}
 .stock-unit{font-size:10px;color:var(--text2)}
-.loc-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:4px;white-space:nowrap}
+.loc-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap}
 /* empty */
 .empty{text-align:center;padding:60px 20px;color:var(--text2)}
 .empty-icon{font-size:40px;margin-bottom:12px}
@@ -94,6 +101,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:14px;outline:none}
 .modal-field input:focus,.modal-field select:focus{border-color:var(--accent)}
 .modal-field select option{background:var(--surface)}
+.modal-info{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text2);font-size:13px;line-height:1.5;word-break:break-all}
 .modal-actions{display:flex;gap:10px;margin-top:14px}
 .btn{flex:1;padding:12px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s}
 .btn-cancel{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
@@ -117,7 +125,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input type="search" id="searchInput" placeholder="景品名・IDで検索..." autocomplete="off" autocorrect="off">
+    <input type="search" id="searchInput" placeholder="景品名で検索..." autocomplete="off" autocorrect="off">
   </div>
   <div class="tabs" id="statusTabs">
     <div class="tab active" data-filter="all">すべて</div>
@@ -137,6 +145,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="sort-opt" data-sort="stock_asc">在庫少↑</div>
     <div class="sort-opt" data-sort="stock_desc">在庫多↓</div>
     <div class="sort-opt" data-sort="name">名前順</div>
+    <div class="sort-opt" data-sort="order_date">発注日順</div>
   </div>
 </header>
 
@@ -151,11 +160,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     </div>
     <div class="modal-title" id="modalTitle"></div>
     <div class="modal-field">
-      <label>景品ID</label>
-      <input type="text" id="editId" readonly style="opacity:.5">
+      <label>正式名称</label>
+      <div class="modal-info" id="editFullName"></div>
     </div>
     <div class="modal-field">
-      <label>景品名</label>
+      <label>景品名（短縮）</label>
       <input type="text" id="editName" placeholder="景品名を入力">
     </div>
     <div class="modal-row">
@@ -170,11 +179,26 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     </div>
     <div class="modal-row">
       <div class="modal-field">
-        <label>ステータス</label>
-        <select id="editStatus">
-          <option value="active">Active（運用中）</option>
-          <option value="provisional">仮登録</option>
+        <label>初期入り数</label>
+        <input type="number" id="editInitialQty" readonly style="opacity:.6">
+      </div>
+      <div class="modal-field">
+        <label>サイズ</label>
+        <select id="editSize">
+          <option value="SSS">SSS</option>
+          <option value="SS">SS</option>
+          <option value="S">S</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="LL">LL</option>
+          <option value="XL">XL</option>
         </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>発注日</label>
+        <input type="date" id="editOrderDate">
       </div>
       <div class="modal-field">
         <label>拠点</label>
@@ -184,6 +208,13 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
           <option value="北店">北店</option>
         </select>
       </div>
+    </div>
+    <div class="modal-field">
+      <label>ステータス</label>
+      <select id="editStatus">
+        <option value="active">Active（運用中）</option>
+        <option value="provisional">仮登録</option>
+      </select>
     </div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModalBtn()">キャンセル</button>
@@ -218,6 +249,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 
 <script>
 var LOCS=['本店','東店','北店'];
+var SIZES=['SSS','SS','S','M','L','LL','XL'];
+var MONTHS=['2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'];
 var RAW=[
 {"id":"PZ-00001","name":"液晶付きミニデジタルカメラ vogue","cost":977,"status":"active"},
 {"id":"PZ-00002","name":"プチプラ！カラフルブレスレット ポップ","cost":34,"status":"active"},
@@ -321,12 +354,21 @@ var RAW=[
 {"id":"PZ-00100","name":"立体パズルBCmini","cost":20,"status":"provisional"}
 ];
 
-// Augment with stock and location (deterministic from ID number)
+// Augment with stock, location and new v3 fields (deterministic from ID number)
 var D = RAW.map(function(p) {
   var n = parseInt(p.id.slice(-3));
   var stock = (n * 17 + 3) % 40 + 1;
   var loc = LOCS[(n + 1) % 3];
-  return Object.assign({}, p, {stock: stock, loc: loc});
+  var size = SIZES[n % SIZES.length];
+  var mon = MONTHS[(n * 3 + 1) % MONTHS.length];
+  var day = (n * 7 + 5) % 28 + 1;
+  var order_date = mon + '-' + String(day).padStart(2,'0');
+  var prevDiff = ((n * 11 + 7) % 21) - 8; // -8 to +12
+  var prev_stock = Math.max(0, stock + prevDiff);
+  var initial_qty = (((n * 3) % 5) + 1) * (((n * 7) % 4 + 1) * 6); // 6 to 120
+  var type = n % 3 === 0 ? '【限定品】' : n % 3 === 1 ? '【通常品】' : '【特価品】';
+  var full_name = p.name + ' ' + type + ' ' + size + 'サイズ対応';
+  return Object.assign({}, p, {stock:stock, loc:loc, size:size, order_date:order_date, prev_stock:prev_stock, initial_qty:initial_qty, full_name:full_name});
 });
 
 var curFilter = 'all';
@@ -345,7 +387,7 @@ function getFiltered() {
     var mf = curFilter==='all' || p.status===curFilter;
     var ml = curLoc==='all' || p.loc===curLoc;
     var q = curSearch.toLowerCase();
-    var ms = !q || p.name.toLowerCase().indexOf(q)>=0 || p.id.toLowerCase().indexOf(q)>=0;
+    var ms = !q || p.name.toLowerCase().indexOf(q)>=0 || p.full_name.toLowerCase().indexOf(q)>=0;
     return mf && ml && ms;
   });
   list = list.slice();
@@ -354,7 +396,12 @@ function getFiltered() {
   else if(curSort==='stock_asc') list.sort(function(a,b){return a.stock-b.stock});
   else if(curSort==='stock_desc') list.sort(function(a,b){return b.stock-a.stock});
   else if(curSort==='name') list.sort(function(a,b){return a.name.localeCompare(b.name,'ja')});
+  else if(curSort==='order_date') list.sort(function(a,b){return a.order_date.localeCompare(b.order_date)});
   return list;
+}
+
+function stockColor(stock) {
+  return stock<=5 ? 'color:var(--red)' : stock<=10 ? 'color:var(--yellow)' : 'color:var(--cyan)';
 }
 
 function render() {
@@ -367,18 +414,30 @@ function render() {
   }
   c.innerHTML = list.map(function(p) {
     var idx = D.indexOf(p);
-    var stockColor = p.stock<=5 ? 'color:var(--red)' : p.stock<=10 ? 'color:var(--yellow)' : '';
+    var sc = stockColor(p.stock);
+    var stockDiff = p.stock - p.prev_stock;
+    var diffStr = stockDiff > 0 ? '<span style="color:var(--red);font-size:10px">+'+stockDiff+'</span>' :
+                  stockDiff < 0 ? '<span style="color:var(--green);font-size:10px">'+stockDiff+'</span>' : '';
     return '<div class="prize-card" onclick="openModal('+idx+')">'
       +'<div class="card-photo" onclick="event.stopPropagation();alert(\'写真機能は実装予定です\')">📷</div>'
       +'<div class="card-body">'
       +'<div class="card-top">'
-      +'<span class="prize-id">'+p.id+'</span>'
       +'<span class="prize-name">'+esc(p.name)+'</span>'
+      +'<span class="size-badge">'+p.size+'</span>'
       +'<span class="badge '+statusClass(p.status)+'">'+statusLabel(p.status)+'</span>'
+      +'</div>'
+      +'<div class="card-meta">'
+      +'<span class="order-date">発注: <span>'+p.order_date+'</span></span>'
       +'</div>'
       +'<div class="card-bottom">'
       +'<span class="cost-area"><span class="cost-label">原価</span>&nbsp;<span class="cost-value"><span class="cost-yen">¥</span>'+fmt(p.cost)+'</span></span>'
-      +'<span class="stock-area"><span class="stock-label">在庫</span>&nbsp;<span class="stock-value" style="'+stockColor+'">'+p.stock+'</span><span class="stock-unit">個</span></span>'
+      +'<span class="stock-area">'
+      +'<span class="stock-prev">前回:'+p.prev_stock+'</span>'
+      +'<span class="stock-arrow">→</span>'
+      +'<span class="stock-now" style="'+sc+'">'+p.stock+'</span>'
+      +diffStr
+      +'<span class="stock-unit">個</span>'
+      +'</span>'
       +'<span class="loc-chip">'+p.loc+'</span>'
       +'</div>'
       +'</div>'
@@ -396,13 +455,16 @@ function toggleSort() {
 function openModal(idx) {
   editingIdx = idx;
   var p = D[idx];
-  document.getElementById('modalTitle').textContent = '✏️ '+p.id;
-  document.getElementById('editId').value = p.id;
+  document.getElementById('modalTitle').textContent = '✏️ '+p.name;
+  document.getElementById('editFullName').textContent = p.full_name;
   document.getElementById('editName').value = p.name;
   document.getElementById('editCost').value = p.cost;
   document.getElementById('editStock').value = p.stock;
   document.getElementById('editStatus').value = p.status;
   document.getElementById('editLoc').value = p.loc;
+  document.getElementById('editSize').value = p.size;
+  document.getElementById('editOrderDate').value = p.order_date;
+  document.getElementById('editInitialQty').value = p.initial_qty;
   document.getElementById('modalOverlay').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
@@ -424,6 +486,8 @@ function saveEdit() {
   p.stock = parseInt(document.getElementById('editStock').value) || 0;
   p.status = document.getElementById('editStatus').value;
   p.loc = document.getElementById('editLoc').value;
+  p.size = document.getElementById('editSize').value;
+  p.order_date = document.getElementById('editOrderDate').value || p.order_date;
   closeModalBtn();
   render();
 }
