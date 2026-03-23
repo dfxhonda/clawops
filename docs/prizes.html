@@ -19,75 +19,89 @@
   --yellow:#f39c12;
   --red:#e74c3c;
   --cyan:#00b4d8;
+  --orange:#e67e22;
   --radius:10px;
   --nav-h:58px;
 }
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
-/* ── Header ── */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px 10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
-.header-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
-.header-title{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
-.header-count{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;white-space:nowrap}
-.sort-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;padding:5px 10px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;transition:all .15s}
-.sort-btn.active{border-color:var(--accent);color:var(--accent)}
-/* search */
+
+/* Header */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.header-title{font-size:16px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.loc-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:5px 8px;outline:none;flex-shrink:0;cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:22px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239090a8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
+.loc-select:focus{border-color:var(--accent)}
+.header-count{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:auto}
+
+/* Search */
 .search-wrap{position:relative;margin-bottom:8px}
 .search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px 9px 34px;color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
 .search-wrap input:focus{border-color:var(--accent)}
 .search-wrap input::placeholder{color:var(--text2)}
 .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:15px;pointer-events:none}
-/* tabs */
-.tabs{display:flex;gap:5px;margin-bottom:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;text-align:center;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
-.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.tab-loc.active{background:var(--cyan);border-color:var(--cyan);color:#fff}
-/* sort dropdown */
-.sort-panel{display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:6px;margin-bottom:6px}
-.sort-panel.open{display:flex;gap:5px;flex-wrap:wrap}
-.sort-opt{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
-.sort-opt.active{background:var(--accent);border-color:var(--accent);color:#fff}
-/* ── Cards ── */
+
+/* Filter chips */
+.chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:3px;margin-bottom:7px;flex-wrap:nowrap;align-items:center}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;user-select:none}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.provisional-chip.on{background:var(--yellow);border-color:var(--yellow);color:#000}
+.chip-sep{width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 2px}
+
+/* Sort row */
+.sort-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;align-items:center}
+.sort-row::-webkit-scrollbar{display:none}
+.srt-btn{flex:0 0 auto;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;-webkit-tap-highlight-color:transparent}
+.srt-btn.active{border-color:var(--accent);color:var(--accent)}
+.srt-arrow{font-size:11px}
+
+/* Cards */
 .list-container{padding:10px 12px 16px}
-.prize-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;margin-bottom:7px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;display:flex;gap:10px;align-items:stretch}
+.prize-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;display:flex;gap:10px;align-items:flex-start}
 .prize-card:active{transform:scale(0.98);background:var(--surface2)}
-/* photo thumb */
-.card-photo{width:44px;min-width:44px;height:44px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text2);cursor:pointer;transition:background .15s;flex-shrink:0}
-.card-photo:hover{background:var(--border)}
-.card-photo.has-photo{border-color:var(--accent);color:var(--accent)}
-/* card body */
+
+/* Color icon */
+.card-icon{width:38px;min-width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+
+/* Card body */
 .card-body{flex:1;min-width:0}
-.card-top{display:flex;align-items:flex-start;gap:6px;margin-bottom:6px}
-.prize-id{font-size:10px;color:var(--text2);font-family:monospace;white-space:nowrap;padding-top:2px;flex-shrink:0}
-.prize-name{font-size:13px;font-weight:600;line-height:1.4;flex:1;word-break:break-all}
-.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.card-top{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px}
+.prize-name{font-size:13px;font-weight:600;line-height:1.35;flex:1;word-break:break-all}
+.size-badge{font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);white-space:nowrap;flex-shrink:0;margin-top:1px}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:1px}
 .badge-active{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-provisional{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
-.card-bottom{display:flex;align-items:center;gap:10px}
-.cost-area{display:flex;align-items:baseline;gap:2px}
-.cost-label{font-size:10px;color:var(--text2)}
-.cost-value{font-size:14px;font-weight:700;color:var(--text)}
+
+.card-mid{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.cost-val{font-size:14px;font-weight:700;white-space:nowrap}
 .cost-yen{font-size:11px;margin-right:1px}
-.stock-area{margin-left:auto;display:flex;align-items:center;gap:4px}
-.stock-label{font-size:10px;color:var(--text2)}
-.stock-value{font-size:13px;font-weight:700;color:var(--cyan)}
-.stock-unit{font-size:10px;color:var(--text2)}
-.loc-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;margin-left:4px;white-space:nowrap}
-/* empty */
+.stock-diff{font-size:11px;white-space:nowrap}
+.stock-up{color:var(--green)}
+.stock-down{color:var(--red)}
+.stock-same{color:var(--text2)}
+
+.card-bot{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.meta-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap}
+.meta-date{font-size:10px;color:var(--text2);white-space:nowrap}
+
+/* Empty */
 .empty{text-align:center;padding:60px 20px;color:var(--text2)}
 .empty-icon{font-size:40px;margin-bottom:12px}
-/* ── Modal ── */
+
+/* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;backdrop-filter:blur(4px)}
 .modal-overlay.show{display:flex;align-items:flex-end;justify-content:center}
 .modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:18px 18px calc(20px + env(safe-area-inset-bottom));animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
-.modal-photo-area{width:100%;height:120px;border-radius:var(--radius);background:var(--surface2);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;margin-bottom:14px;transition:border-color .2s}
+.modal-photo-area{width:100%;height:100px;border-radius:var(--radius);background:var(--surface2);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;margin-bottom:14px;transition:border-color .2s}
 .modal-photo-area:hover{border-color:var(--accent)}
-.modal-photo-icon{font-size:28px}
+.modal-photo-icon{font-size:24px}
 .modal-photo-hint{font-size:11px;color:var(--text2)}
-.modal-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent)}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--accent);word-break:break-all}
+.modal-fullname{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5;word-break:break-all}
+.modal-info{font-size:12px;color:var(--text2);background:var(--surface2);border-radius:6px;padding:8px 10px;margin-bottom:12px;line-height:1.7}
 .modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .modal-field{margin-bottom:12px}
 .modal-field label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;letter-spacing:.3px}
@@ -100,7 +114,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .btn-save{background:var(--accent);color:#fff}
 .btn-save:active{background:var(--accent2)}
 .note{font-size:11px;color:var(--text2);text-align:center;margin-top:12px;padding:9px;background:var(--surface2);border-radius:8px;line-height:1.6}
-/* ── Bottom Nav ── */
+
+/* Bottom Nav */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150;backdrop-filter:blur(10px)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;-webkit-tap-highlight-color:transparent}
 .nav-item.active{color:var(--accent)}
@@ -112,31 +127,36 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 <header>
   <div class="header-row">
     <span class="header-title">🏆 景品マスタ</span>
+    <select class="loc-select" id="locSelect">
+      <option value="久留米">久留米</option>
+      <option value="飯塚">飯塚</option>
+      <option value="田隈">田隈</option>
+      <option value="霧島">霧島</option>
+      <option value="all" selected>全店舗</option>
+    </select>
     <span class="header-count" id="countBadge">100件</span>
-    <button class="sort-btn" id="sortToggle" onclick="toggleSort()">⇅ ソート</button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input type="search" id="searchInput" placeholder="景品名・IDで検索..." autocomplete="off" autocorrect="off">
+    <input type="search" id="searchInput" placeholder="景品名で検索..." autocomplete="off" autocorrect="off">
   </div>
-  <div class="tabs" id="statusTabs">
-    <div class="tab active" data-filter="all">すべて</div>
-    <div class="tab" data-filter="active">Active</div>
-    <div class="tab" data-filter="provisional">仮登録</div>
+  <div class="chips" id="filterChips">
+    <div class="chip" data-type="status" data-val="active">Active</div>
+    <div class="chip provisional-chip" data-type="status" data-val="provisional">仮登録</div>
+    <div class="chip-sep"></div>
+    <div class="chip" data-type="cat" data-val="ぬいぐるみ">ぬいぐるみ</div>
+    <div class="chip" data-type="cat" data-val="ゲーム機">ゲーム機</div>
+    <div class="chip" data-type="cat" data-val="食品">食品</div>
+    <div class="chip" data-type="cat" data-val="シール">シール</div>
+    <div class="chip" data-type="cat" data-val="キーホルダー">キーホルダー</div>
+    <div class="chip" data-type="cat" data-val="雑貨">雑貨</div>
+    <div class="chip" data-type="cat" data-val="電子機器">電子機器</div>
   </div>
-  <div class="tabs" id="locTabs">
-    <div class="tab tab-loc active" data-loc="all">全拠点</div>
-    <div class="tab tab-loc" data-loc="本店">本店</div>
-    <div class="tab tab-loc" data-loc="東店">東店</div>
-    <div class="tab tab-loc" data-loc="北店">北店</div>
-  </div>
-  <div class="sort-panel" id="sortPanel">
-    <div class="sort-opt active" data-sort="id">ID順</div>
-    <div class="sort-opt" data-sort="cost_asc">原価↑</div>
-    <div class="sort-opt" data-sort="cost_desc">原価↓</div>
-    <div class="sort-opt" data-sort="stock_asc">在庫少↑</div>
-    <div class="sort-opt" data-sort="stock_desc">在庫多↓</div>
-    <div class="sort-opt" data-sort="name">名前順</div>
+  <div class="sort-row" id="sortRow">
+    <button class="srt-btn active" data-key="order_date">発注日 <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="expected_date">入庫予定 <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="stock">在庫 <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="cost">単価 <span class="srt-arrow">↓</span></button>
   </div>
 </header>
 
@@ -150,14 +170,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
       <div class="modal-photo-hint">タップして写真を追加</div>
     </div>
     <div class="modal-title" id="modalTitle"></div>
-    <div class="modal-field">
-      <label>景品ID</label>
-      <input type="text" id="editId" readonly style="opacity:.5">
-    </div>
-    <div class="modal-field">
-      <label>景品名</label>
-      <input type="text" id="editName" placeholder="景品名を入力">
-    </div>
+    <div class="modal-fullname" id="modalFullName"></div>
+    <div class="modal-info" id="modalInfo"></div>
     <div class="modal-row">
       <div class="modal-field">
         <label>原価（円）</label>
@@ -179,9 +193,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
       <div class="modal-field">
         <label>拠点</label>
         <select id="editLoc">
-          <option value="本店">本店</option>
-          <option value="東店">東店</option>
-          <option value="北店">北店</option>
+          <option value="久留米">久留米</option>
+          <option value="飯塚">飯塚</option>
+          <option value="田隈">田隈</option>
+          <option value="霧島">霧島</option>
         </select>
       </div>
     </div>
@@ -194,21 +209,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 </div>
 
 <nav class="bottom-nav">
-  <div class="nav-item" onclick="location.href='index.html'">
-    <div class="nav-icon">🏠</div>
-    <div>ホーム</div>
-  </div>
   <div class="nav-item active">
     <div class="nav-icon">🏆</div>
     <div>景品</div>
   </div>
-  <div class="nav-item" onclick="location.href='ranking.html'">
-    <div class="nav-icon">📊</div>
-    <div>ランキング</div>
+  <div class="nav-item" onclick="alert('店舗ページは準備中です')">
+    <div class="nav-icon">🏪</div>
+    <div>店舗</div>
   </div>
   <div class="nav-item" onclick="location.href='inventory.html'">
     <div class="nav-icon">📦</div>
-    <div>棚卸し</div>
+    <div>在庫</div>
   </div>
   <div class="nav-item" onclick="alert('設定ページは準備中です')">
     <div class="nav-icon">⚙️</div>
@@ -217,7 +228,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 </nav>
 
 <script>
-var LOCS=['本店','東店','北店'];
 var RAW=[
 {"id":"PZ-00001","name":"液晶付きミニデジタルカメラ vogue","cost":977,"status":"active"},
 {"id":"PZ-00002","name":"プチプラ！カラフルブレスレット ポップ","cost":34,"status":"active"},
@@ -321,149 +331,192 @@ var RAW=[
 {"id":"PZ-00100","name":"立体パズルBCmini","cost":20,"status":"provisional"}
 ];
 
-// Augment with stock and location (deterministic from ID number)
-var D = RAW.map(function(p) {
-  var n = parseInt(p.id.slice(-3));
-  var stock = (n * 17 + 3) % 40 + 1;
-  var loc = LOCS[(n + 1) % 3];
-  return Object.assign({}, p, {stock: stock, loc: loc});
+var SIZES=['SSS','SS','S','M','L','LL','XL'];
+var LOCS=['久留米','飯塚','田隈','霧島'];
+var CATS=['ぬいぐるみ','ゲーム機','食品','シール','キーホルダー','雑貨','電子機器'];
+var ICON_COLORS=['#7c6aff','#e74c3c','#2ecc71','#f39c12','#00b4d8','#e67e22','#9b59b6','#3498db'];
+
+function det(n,off){
+  var v=(n*6271+off*311+n*off*17)%65521;
+  return v<0?v+65521:v;
+}
+
+var D=RAW.map(function(p){
+  var n=parseInt(p.id.slice(-3));
+  // order_date: 2025-09-01 + 0..203 days
+  var od=new Date(2025,8,1);
+  od.setDate(od.getDate()+(det(n,1)%204));
+  var order_date=od.getFullYear()+'-'+String(od.getMonth()+1).padStart(2,'0')+'-'+String(od.getDate()).padStart(2,'0');
+  // expected_date: 7..30 days after
+  var ed=new Date(od.getTime());
+  ed.setDate(ed.getDate()+7+(det(n,2)%24));
+  var expected_date=ed.getFullYear()+'-'+String(ed.getMonth()+1).padStart(2,'0')+'-'+String(ed.getDate()).padStart(2,'0');
+  // stock: 30% chance 0, else 1-200
+  var sr=det(n,3);
+  var stock=(sr%10<3)?0:1+(sr%200);
+  // prev_stock: stock ± 20%
+  var pd=(det(n,4)%41)-20;
+  var prev_stock=Math.max(0,stock+Math.floor(stock*pd/100));
+  var size=SIZES[det(n,5)%SIZES.length];
+  var loc=LOCS[det(n,6)%LOCS.length];
+  var category=CATS[det(n,7)%CATS.length];
+  var initial_qty=50+(det(n,8)%451);
+  var full_name=p.name+'【'+size+'】入数'+initial_qty+'個';
+  var iconColor=ICON_COLORS[det(n,9)%ICON_COLORS.length];
+  var iconChar=p.name.replace(/[^\u3040-\u9FFF\uFF00-\uFFEFa-zA-Z]/,'').slice(0,1)||p.name.slice(0,1);
+  return Object.assign({},p,{order_date:order_date,expected_date:expected_date,stock:stock,prev_stock:prev_stock,size:size,loc:loc,category:category,initial_qty:initial_qty,full_name:full_name,iconColor:iconColor,iconChar:iconChar});
 });
 
-var curFilter = 'all';
-var curLoc = 'all';
-var curSearch = '';
-var curSort = 'id';
-var editingIdx = -1;
+var curLoc='all';
+var curSearch='';
+var curSortKey='order_date';
+var sortDirs={order_date:'desc',expected_date:'desc',stock:'desc',cost:'desc'};
+var selStatuses=[];
+var selCats=[];
+var editingIdx=-1;
 
 function fmt(n){return n.toLocaleString('ja-JP')}
-function statusLabel(s){return s==='active'?'Active':'仮登録'}
-function statusClass(s){return s==='active'?'badge-active':'badge-provisional'}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-function getFiltered() {
-  var list = D.filter(function(p) {
-    var mf = curFilter==='all' || p.status===curFilter;
-    var ml = curLoc==='all' || p.loc===curLoc;
-    var q = curSearch.toLowerCase();
-    var ms = !q || p.name.toLowerCase().indexOf(q)>=0 || p.id.toLowerCase().indexOf(q)>=0;
-    return mf && ml && ms;
+function getFiltered(){
+  var list=D.filter(function(p){
+    if(curLoc!=='all'&&p.loc!==curLoc)return false;
+    if(selStatuses.length>0&&selStatuses.indexOf(p.status)<0)return false;
+    if(selCats.length>0&&selCats.indexOf(p.category)<0)return false;
+    var q=curSearch.toLowerCase();
+    if(q&&p.name.toLowerCase().indexOf(q)<0)return false;
+    return true;
   });
-  list = list.slice();
-  if(curSort==='cost_asc') list.sort(function(a,b){return a.cost-b.cost});
-  else if(curSort==='cost_desc') list.sort(function(a,b){return b.cost-a.cost});
-  else if(curSort==='stock_asc') list.sort(function(a,b){return a.stock-b.stock});
-  else if(curSort==='stock_desc') list.sort(function(a,b){return b.stock-a.stock});
-  else if(curSort==='name') list.sort(function(a,b){return a.name.localeCompare(b.name,'ja')});
+  var key=curSortKey;
+  var dir=sortDirs[key]||'desc';
+  list=list.slice().sort(function(a,b){
+    var av=a[key],bv=b[key];
+    if(typeof av==='string')return dir==='asc'?av.localeCompare(bv,'ja'):bv.localeCompare(av,'ja');
+    return dir==='asc'?av-bv:bv-av;
+  });
   return list;
 }
 
-function render() {
-  var list = getFiltered();
-  document.getElementById('countBadge').textContent = list.length+'件';
-  var c = document.getElementById('listContainer');
-  if(!list.length) {
+function render(){
+  var list=getFiltered();
+  document.getElementById('countBadge').textContent=list.length+'件';
+  var c=document.getElementById('listContainer');
+  if(!list.length){
     c.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div>該当する景品がありません</div></div>';
     return;
   }
-  c.innerHTML = list.map(function(p) {
-    var idx = D.indexOf(p);
-    var stockColor = p.stock<=5 ? 'color:var(--red)' : p.stock<=10 ? 'color:var(--yellow)' : '';
+  c.innerHTML=list.map(function(p){
+    var idx=D.indexOf(p);
+    var diff=p.stock-p.prev_stock;
+    var dcls=diff>0?'stock-up':diff<0?'stock-down':'stock-same';
+    var dsign=diff>0?'+':'';
+    var scls=p.status==='active'?'badge-active':'badge-provisional';
+    var slbl=p.status==='active'?'Active':'仮登録';
     return '<div class="prize-card" onclick="openModal('+idx+')">'
-      +'<div class="card-photo" onclick="event.stopPropagation();alert(\'写真機能は実装予定です\')">📷</div>'
+      +'<div class="card-icon" style="background:'+p.iconColor+'">'+esc(p.iconChar)+'</div>'
       +'<div class="card-body">'
       +'<div class="card-top">'
-      +'<span class="prize-id">'+p.id+'</span>'
       +'<span class="prize-name">'+esc(p.name)+'</span>'
-      +'<span class="badge '+statusClass(p.status)+'">'+statusLabel(p.status)+'</span>'
+      +'<span class="size-badge">'+esc(p.size)+'</span>'
+      +'<span class="badge '+scls+'">'+slbl+'</span>'
       +'</div>'
-      +'<div class="card-bottom">'
-      +'<span class="cost-area"><span class="cost-label">原価</span>&nbsp;<span class="cost-value"><span class="cost-yen">¥</span>'+fmt(p.cost)+'</span></span>'
-      +'<span class="stock-area"><span class="stock-label">在庫</span>&nbsp;<span class="stock-value" style="'+stockColor+'">'+p.stock+'</span><span class="stock-unit">個</span></span>'
-      +'<span class="loc-chip">'+p.loc+'</span>'
+      +'<div class="card-mid">'
+      +'<span class="cost-val"><span class="cost-yen">¥</span>'+fmt(p.cost)+'</span>'
+      +'<span class="stock-diff '+dcls+'">前回:'+p.prev_stock+'→<b>'+p.stock+'</b>('+dsign+diff+')</span>'
+      +'</div>'
+      +'<div class="card-bot">'
+      +'<span class="meta-date">📅'+p.order_date+'</span>'
+      +'<span class="meta-chip">'+esc(p.loc)+'</span>'
+      +'<span class="meta-chip">'+esc(p.category)+'</span>'
       +'</div>'
       +'</div>'
       +'</div>';
   }).join('');
 }
 
-function toggleSort() {
-  var p = document.getElementById('sortPanel');
-  var b = document.getElementById('sortToggle');
-  var open = p.classList.toggle('open');
-  b.classList.toggle('active', open);
+// Chips
+document.querySelectorAll('#filterChips .chip').forEach(function(chip){
+  chip.addEventListener('click',function(){
+    var type=this.dataset.type;
+    var val=this.dataset.val;
+    var arr=type==='status'?selStatuses:selCats;
+    var i=arr.indexOf(val);
+    if(i>=0){arr.splice(i,1);this.classList.remove('on');}
+    else{arr.push(val);this.classList.add('on');}
+    render();
+  });
+});
+
+// Sort buttons
+document.querySelectorAll('#sortRow .srt-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var key=this.dataset.key;
+    if(curSortKey===key){
+      sortDirs[key]=sortDirs[key]==='desc'?'asc':'desc';
+    } else {
+      curSortKey=key;
+    }
+    updateSortUI();
+    render();
+  });
+});
+
+function updateSortUI(){
+  document.querySelectorAll('#sortRow .srt-btn').forEach(function(btn){
+    var key=btn.dataset.key;
+    btn.classList.toggle('active',key===curSortKey);
+    btn.querySelector('.srt-arrow').textContent=sortDirs[key]==='asc'?'↑':'↓';
+  });
 }
 
-function openModal(idx) {
-  editingIdx = idx;
-  var p = D[idx];
-  document.getElementById('modalTitle').textContent = '✏️ '+p.id;
-  document.getElementById('editId').value = p.id;
-  document.getElementById('editName').value = p.name;
-  document.getElementById('editCost').value = p.cost;
-  document.getElementById('editStock').value = p.stock;
-  document.getElementById('editStatus').value = p.status;
-  document.getElementById('editLoc').value = p.loc;
+document.getElementById('locSelect').addEventListener('change',function(){
+  curLoc=this.value;
+  render();
+});
+
+document.getElementById('searchInput').addEventListener('input',function(){
+  curSearch=this.value;
+  render();
+});
+
+function openModal(idx){
+  editingIdx=idx;
+  var p=D[idx];
+  document.getElementById('modalTitle').textContent='✏️ '+p.name;
+  document.getElementById('modalFullName').textContent='正式名称: '+p.full_name;
+  document.getElementById('modalInfo').innerHTML=
+    '初期入数: <b>'+p.initial_qty+'個</b>　サイズ: <b>'+p.size+'</b><br>'
+    +'発注日: '+p.order_date+'　入庫予定: '+p.expected_date+'<br>'
+    +'カテゴリ: '+p.category+'　拠点: '+p.loc;
+  document.getElementById('editCost').value=p.cost;
+  document.getElementById('editStock').value=p.stock;
+  document.getElementById('editStatus').value=p.status;
+  document.getElementById('editLoc').value=p.loc;
   document.getElementById('modalOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow='hidden';
 }
 
-function closeModalBtn() {
+function closeModalBtn(){
   document.getElementById('modalOverlay').classList.remove('show');
-  document.body.style.overflow = '';
+  document.body.style.overflow='';
 }
 
-function closeModal(e) {
-  if(e.target===document.getElementById('modalOverlay')) closeModalBtn();
+function closeModal(e){
+  if(e.target===document.getElementById('modalOverlay'))closeModalBtn();
 }
 
-function saveEdit() {
-  if(editingIdx<0) return;
-  var p = D[editingIdx];
-  p.name = document.getElementById('editName').value || p.name;
-  p.cost = parseInt(document.getElementById('editCost').value) || p.cost;
-  p.stock = parseInt(document.getElementById('editStock').value) || 0;
-  p.status = document.getElementById('editStatus').value;
-  p.loc = document.getElementById('editLoc').value;
+function saveEdit(){
+  if(editingIdx<0)return;
+  var p=D[editingIdx];
+  p.cost=parseInt(document.getElementById('editCost').value)||p.cost;
+  p.stock=parseInt(document.getElementById('editStock').value)||0;
+  p.status=document.getElementById('editStatus').value;
+  p.loc=document.getElementById('editLoc').value;
   closeModalBtn();
   render();
 }
 
-// Status tabs
-document.querySelectorAll('#statusTabs .tab').forEach(function(t) {
-  t.addEventListener('click', function() {
-    document.querySelectorAll('#statusTabs .tab').forEach(function(x){x.classList.remove('active')});
-    this.classList.add('active');
-    curFilter = this.dataset.filter;
-    render();
-  });
-});
-
-// Location tabs
-document.querySelectorAll('#locTabs .tab').forEach(function(t) {
-  t.addEventListener('click', function() {
-    document.querySelectorAll('#locTabs .tab').forEach(function(x){x.classList.remove('active')});
-    this.classList.add('active');
-    curLoc = this.dataset.loc;
-    render();
-  });
-});
-
-// Sort options
-document.querySelectorAll('.sort-opt').forEach(function(t) {
-  t.addEventListener('click', function() {
-    document.querySelectorAll('.sort-opt').forEach(function(x){x.classList.remove('active')});
-    this.classList.add('active');
-    curSort = this.dataset.sort;
-    render();
-  });
-});
-
-// Search
-document.getElementById('searchInput').addEventListener('input', function() {
-  curSearch = this.value;
-  render();
-});
-
+updateSortUI();
 render();
 </script>
 </body>
