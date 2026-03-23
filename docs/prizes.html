@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>景品マスタ | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;
+  --surface:#1a1a23;
+  --surface2:#22222e;
+  --border:#2e2e3e;
+  --text:#e8e8f0;
+  --text2:#9090a8;
+  --accent:#7c6aff;
+  --accent2:#5a4fcf;
+  --green:#2ecc71;
+  --yellow:#f39c12;
+  --red:#e74c3c;
+  --radius:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.header-row{display:flex;align-items:center;gap:10px}
+.header-title{font-size:17px;font-weight:700;letter-spacing:.5px;flex:1}
+.header-count{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 8px;border-radius:20px}
+.search-bar{margin-top:10px;position:relative}
+.search-bar input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px 10px 36px;color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
+.search-bar input:focus{border-color:var(--accent)}
+.search-bar input::placeholder{color:var(--text2)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:16px;pointer-events:none}
+.filter-tabs{display:flex;gap:6px;margin-top:10px}
+.filter-tab{flex:1;text-align:center;padding:7px 4px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s}
+.filter-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.list-container{padding:12px 12px 20px}
+.prize-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.prize-card:active{transform:scale(0.98);background:var(--surface2)}
+.card-top{display:flex;align-items:flex-start;gap:10px}
+.prize-id{font-size:11px;color:var(--text2);font-family:monospace;white-space:nowrap;padding-top:2px}
+.prize-name{font-size:14px;font-weight:600;line-height:1.4;flex:1}
+.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.badge-active{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.badge-provisional{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
+.card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.cost-label{font-size:11px;color:var(--text2)}
+.cost-value{font-size:15px;font-weight:700;color:var(--text)}
+.cost-yen{font-size:12px;margin-right:1px}
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 20px calc(20px + env(safe-area-inset-bottom));animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--accent)}
+.modal-field{margin-bottom:14px}
+.modal-field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:600;letter-spacing:.3px}
+.modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:15px;outline:none}
+.modal-field input:focus,.modal-field select:focus{border-color:var(--accent)}
+.modal-field select option{background:var(--surface)}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:13px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s}
+.btn-cancel{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-save{background:var(--accent);color:#fff}
+.btn-save:active{background:var(--accent2)}
+.note{font-size:11px;color:var(--text2);text-align:center;margin-top:16px;padding:10px;background:var(--surface2);border-radius:8px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <span class="header-title">🏆 景品マスタ</span>
+    <span class="header-count" id="countBadge">100件</span>
+  </div>
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="景品名・IDで検索..." autocomplete="off" autocorrect="off">
+  </div>
+  <div class="filter-tabs">
+    <div class="filter-tab active" data-filter="all">すべて</div>
+    <div class="filter-tab" data-filter="active">Active</div>
+    <div class="filter-tab" data-filter="provisional">仮登録</div>
+  </div>
+</header>
+
+<div class="list-container" id="listContainer"></div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-field">
+      <label>景品ID</label>
+      <input type="text" id="editId" readonly style="opacity:.5">
+    </div>
+    <div class="modal-field">
+      <label>景品名</label>
+      <input type="text" id="editName" placeholder="景品名を入力">
+    </div>
+    <div class="modal-field">
+      <label>原価（円）</label>
+      <input type="number" id="editCost" placeholder="0" min="0">
+    </div>
+    <div class="modal-field">
+      <label>ステータス</label>
+      <select id="editStatus">
+        <option value="active">Active（運用中）</option>
+        <option value="provisional">仮登録</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModalBtn()">キャンセル</button>
+      <button class="btn btn-save" onclick="saveEdit()">保存（デモ）</button>
+    </div>
+    <div class="note">※ これはデモ画面です。保存してもデータは変更されません。</div>
+  </div>
+</div>
+
+<script>
+var D=[
+{"id":"PZ-00001","name":"液晶付きミニデジタルカメラ vogue","cost":977,"status":"active"},
+{"id":"PZ-00002","name":"プチプラ！カラフルブレスレット ポップ","cost":34,"status":"active"},
+{"id":"PZ-00003","name":"忍者めし鋼２種セット","cost":128,"status":"active"},
+{"id":"PZ-00004","name":"ラブハートチャームブレスレット","cost":47,"status":"active"},
+{"id":"PZ-00005","name":"忍者めし食べ比べミニバケツ無双","cost":530,"status":"active"},
+{"id":"PZ-00006","name":"ミニプリンターSugar","cost":992,"status":"active"},
+{"id":"PZ-00007","name":"Switch2対応コントローラーチャージ","cost":1000,"status":"active"},
+{"id":"PZ-00008","name":"ﾌﾞﾙﾌﾞﾙ ﾘﾗｯｸｽｽﾃｨｯｸ","cost":265,"status":"active"},
+{"id":"PZ-00009","name":"Pro4コントロールワイヤレスイヤホン","cost":680,"status":"active"},
+{"id":"PZ-00010","name":"Pro4 レトロコントローラーワイヤレス","cost":700,"status":"active"},
+{"id":"PZ-00011","name":"クレーン用 丸ブリスター小","cost":8,"status":"active"},
+{"id":"PZ-00012","name":"ミニピストルライトキーホルダー","cost":33,"status":"active"},
+{"id":"PZ-00013","name":"押してくせになる呼び鈴","cost":85,"status":"active"},
+{"id":"PZ-00014","name":"液晶ミニゲーム機～オーバル～","cost":179,"status":"active"},
+{"id":"PZ-00015","name":"エコファーしっぽKH","cost":65,"status":"active"},
+{"id":"PZ-00016","name":"コンパクトボイスチェンジャー～クリア＆ラメ～","cost":235,"status":"active"},
+{"id":"PZ-00017","name":"ライティングEnterキー3","cost":138,"status":"active"},
+{"id":"PZ-00018","name":"押せ押せ！もぐらたたきゲーム","cost":138,"status":"active"},
+{"id":"PZ-00019","name":"ボイレコPlus＋～ラジカセ～","cost":185,"status":"active"},
+{"id":"PZ-00020","name":"モンチッチあったかミニニットキーホルダー","cost":240,"status":"active"},
+{"id":"PZ-00021","name":"マルカワガムミニチュアポット3種","cost":285,"status":"active"},
+{"id":"PZ-00022","name":"サンリオブレスレットラバーマスコット付","cost":360,"status":"active"},
+{"id":"PZ-00023","name":"サンリオ チャーム付きスイーツBC","cost":380,"status":"active"},
+{"id":"PZ-00024","name":"Tryme パステルケーキ","cost":170,"status":"active"},
+{"id":"PZ-00025","name":"おさるのジョージぷくぷくシール","cost":225,"status":"active"},
+{"id":"PZ-00026","name":"キャラクターぷくぷくシール","cost":158,"status":"active"},
+{"id":"PZ-00027","name":"ウサコレ一期一会ミニミニデニムポーチ","cost":415,"status":"active"},
+{"id":"PZ-00028","name":"キララメシールバインダー","cost":330,"status":"active"},
+{"id":"PZ-00029","name":"ダイヤカットクリアストーン クリア10kg","cost":9000,"status":"active"},
+{"id":"PZ-00030","name":"キャラクターぷくぷくシールAS","cost":190,"status":"active"},
+{"id":"PZ-00031","name":"ハイグレードゴールドメタルスピナー","cost":140,"status":"provisional"},
+{"id":"PZ-00032","name":"光る！麻雀牌 ～ＳＰ～","cost":97,"status":"provisional"},
+{"id":"PZ-00033","name":"コンパクトボイスチェンジャー～Metal 2～","cost":328,"status":"provisional"},
+{"id":"PZ-00034","name":"NEWクレーンアームチャーム","cost":145,"status":"provisional"},
+{"id":"PZ-00035","name":"ミニピストルライトストラップパステル","cost":32,"status":"provisional"},
+{"id":"PZ-00036","name":"キョロキョロアニマル柄しっぽキーホルダー","cost":95,"status":"provisional"},
+{"id":"PZ-00037","name":"スマートウォッチGT 2","cost":490,"status":"provisional"},
+{"id":"PZ-00038","name":"ミニデジタルカメラAntique","cost":738,"status":"provisional"},
+{"id":"PZ-00039","name":"忍者めし鋼六角BOX2種","cost":226,"status":"provisional"},
+{"id":"PZ-00040","name":"携帯ゲーム機 GAME Ark S mini5","cost":620,"status":"provisional"},
+{"id":"PZ-00041","name":"BE1968ぷくっとアングリーKH","cost":180,"status":"provisional"},
+{"id":"PZ-00042","name":"カラフルメタリックミニゲーム","cost":250,"status":"provisional"},
+{"id":"PZ-00043","name":"サンリオ 日焼けキティ キラキラマルチケース","cost":530,"status":"provisional"},
+{"id":"PZ-00044","name":"ピロー型クリアケースSS","cost":22,"status":"provisional"},
+{"id":"PZ-00045","name":"ワールドペガサス 元祖ワッペ ミニポーチ","cost":390,"status":"provisional"},
+{"id":"PZ-00046","name":"りるくまおしりキャンディシール","cost":198,"status":"provisional"},
+{"id":"PZ-00047","name":"トゥントゥントゥンサフール ボンボンシール","cost":115,"status":"provisional"},
+{"id":"PZ-00048","name":"売り上げ最高しばいぬｽｸｲｰｽﾞ","cost":75,"status":"provisional"},
+{"id":"PZ-00049","name":"カラフル カギ付き手錠","cost":90,"status":"provisional"},
+{"id":"PZ-00050","name":"GOLD メタリックミニゲーム","cost":250,"status":"provisional"},
+{"id":"PZ-00051","name":"ﾓﾝﾁｯﾁ ﾌﾙｰﾂﾏｽｺｯﾄ","cost":520,"status":"provisional"},
+{"id":"PZ-00052","name":"ﾓﾝﾁｯﾁ ﾌﾙｰﾂLｻｲｽﾞぬいぐるみ","cost":1000,"status":"provisional"},
+{"id":"PZ-00053","name":"キン肉マン キンケシ26","cost":120,"status":"provisional"},
+{"id":"PZ-00054","name":"アンパンマン あそびでビークル8","cost":180,"status":"provisional"},
+{"id":"PZ-00055","name":"ワンピの実 第十一海戦","cost":300,"status":"provisional"},
+{"id":"PZ-00056","name":"キャンメイク ミニチュアコレクション3","cost":180,"status":"provisional"},
+{"id":"PZ-00057","name":"押してくせになるプチ呼び鈴","cost":70,"status":"provisional"},
+{"id":"PZ-00058","name":"どうぶつのしっぽキーホルダー","cost":90,"status":"provisional"},
+{"id":"PZ-00059","name":"スクバ風みにぽーち","cost":169,"status":"provisional"},
+{"id":"PZ-00060","name":"ポケモンカラフルミニタオルBOXアソート","cost":430,"status":"provisional"},
+{"id":"PZ-00061","name":"特価ポケモンコードクリップ","cost":150,"status":"provisional"},
+{"id":"PZ-00062","name":"ポケットモンスターもっちり小銭入れ","cost":200,"status":"provisional"},
+{"id":"PZ-00063","name":"びりびりKH８種AS","cost":165,"status":"provisional"},
+{"id":"PZ-00064","name":"アミューズメント用袋（小）","cost":8500,"status":"provisional"},
+{"id":"PZ-00065","name":"アミューズメント用袋（大）","cost":4900,"status":"provisional"},
+{"id":"PZ-00066","name":"ダイヤカットスター パープル","cost":9000,"status":"provisional"},
+{"id":"PZ-00067","name":"サンリオ フェイスポーチ","cost":645,"status":"provisional"},
+{"id":"PZ-00068","name":"75パイ黒カプセル","cost":27,"status":"provisional"},
+{"id":"PZ-00069","name":"チョコビ いちご味","cost":118,"status":"provisional"},
+{"id":"PZ-00070","name":"サンリオ ハローキティトートバッグ","cost":300,"status":"provisional"},
+{"id":"PZ-00071","name":"なんちゃって うそ発見器 EX","cost":219,"status":"provisional"},
+{"id":"PZ-00072","name":"BE1813昭和レトロラジカセ録音KH","cost":222,"status":"provisional"},
+{"id":"PZ-00073","name":"早押しクイズボタン","cost":233,"status":"provisional"},
+{"id":"PZ-00074","name":"携帯ゲーム機 GAME Ark S mini4","cost":620,"status":"provisional"},
+{"id":"PZ-00075","name":"ボイレコmini～ラジカセレトロ～","cost":185,"status":"provisional"},
+{"id":"PZ-00076","name":"どこでも無限もぐらミニゲーム","cost":90,"status":"provisional"},
+{"id":"PZ-00077","name":"ミニ懐中電灯ライトキーホルダーⅡ","cost":39,"status":"provisional"},
+{"id":"PZ-00078","name":"AIモンスターズHQフィギュアKH","cost":180,"status":"provisional"},
+{"id":"PZ-00079","name":"AIモンスターぬいぐるみKC","cost":230,"status":"provisional"},
+{"id":"PZ-00080","name":"ぶるぶる電ブルBC Cute3","cost":222,"status":"provisional"},
+{"id":"PZ-00081","name":"ジャグラーダストBOX１０","cost":1000,"status":"provisional"},
+{"id":"PZ-00082","name":"スマスロ北斗の拳サウンドフラッシュボタン","cost":1000,"status":"provisional"},
+{"id":"PZ-00083","name":"SWITCH2対応ワイヤレスゲームコントローラー","cost":1000,"status":"provisional"},
+{"id":"PZ-00084","name":"アンパンマン プルバック6","cost":180,"status":"provisional"},
+{"id":"PZ-00085","name":"Maxell MD ミニチュアチャーム","cost":1000,"status":"provisional"},
+{"id":"PZ-00086","name":"ﾃﾞﾋﾞﾙ ﾜｲﾔﾚｽﾍｯﾄﾞﾌｫﾝ 2","cost":200,"status":"provisional"},
+{"id":"PZ-00087","name":"骨付き肉マスコット","cost":200,"status":"provisional"},
+{"id":"PZ-00088","name":"にゃとらしっぽぶるぶるMCBC","cost":46,"status":"provisional"},
+{"id":"PZ-00089","name":"スピニング ゴールドスピナー","cost":1000,"status":"provisional"},
+{"id":"PZ-00090","name":"Switch2対応 コントローラーチャージスタンド","cost":1000,"status":"provisional"},
+{"id":"PZ-00091","name":"CLASSICALゲームコンピューターFC 4","cost":1000,"status":"provisional"},
+{"id":"PZ-00092","name":"KITCHEN CHARM たこ焼きメーカー","cost":800,"status":"provisional"},
+{"id":"PZ-00093","name":"WOOD STYLEスピーカーHibiki","cost":879,"status":"provisional"},
+{"id":"PZ-00094","name":"9L自動開閉 センサーダストボックス6","cost":930,"status":"provisional"},
+{"id":"PZ-00095","name":"サンリオ 底マチボアトートバッグ","cost":780,"status":"provisional"},
+{"id":"PZ-00096","name":"サンリオ ねそべりクッションVer.６","cost":220,"status":"provisional"},
+{"id":"PZ-00097","name":"お菓子ソックスランダムアソート","cost":140,"status":"provisional"},
+{"id":"PZ-00098","name":"スーパーグレード ゴールデンメタルスピナー","cost":170,"status":"provisional"},
+{"id":"PZ-00099","name":"ぶるぶる！！ふわふわしっぽ ぷち。","cost":22,"status":"provisional"},
+{"id":"PZ-00100","name":"立体パズルBCmini","cost":20,"status":"provisional"}
+];
+
+var currentFilter='all';
+var currentSearch='';
+var editingIdx=-1;
+
+function fmt(n){return n.toLocaleString('ja-JP')}
+
+function statusLabel(s){return s==='active'?'Active':'仮登録'}
+function statusClass(s){return s==='active'?'badge-active':'badge-provisional'}
+
+function filtered(){
+  return D.filter(function(p){
+    var matchF = currentFilter==='all' || p.status===currentFilter;
+    var q=currentSearch.toLowerCase();
+    var matchS = !q || p.name.toLowerCase().indexOf(q)>=0 || p.id.toLowerCase().indexOf(q)>=0;
+    return matchF && matchS;
+  });
+}
+
+function render(){
+  var list=filtered();
+  var container=document.getElementById('listContainer');
+  document.getElementById('countBadge').textContent=list.length+'件';
+  if(list.length===0){
+    container.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div>該当する景品がありません</div></div>';
+    return;
+  }
+  container.innerHTML=list.map(function(p,i){
+    var idx=D.indexOf(p);
+    return '<div class="prize-card" onclick="openModal('+idx+')">'
+      +'<div class="card-top">'
+      +'<span class="prize-id">'+p.id+'</span>'
+      +'<span class="prize-name">'+escHtml(p.name)+'</span>'
+      +'<span class="badge '+statusClass(p.status)+'">'+statusLabel(p.status)+'</span>'
+      +'</div>'
+      +'<div class="card-bottom">'
+      +'<span class="cost-label">原価</span>'
+      +'<span class="cost-value"><span class="cost-yen">¥</span>'+fmt(p.cost)+'</span>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openModal(idx){
+  editingIdx=idx;
+  var p=D[idx];
+  document.getElementById('modalTitle').textContent='✏️ '+p.id;
+  document.getElementById('editId').value=p.id;
+  document.getElementById('editName').value=p.name;
+  document.getElementById('editCost').value=p.cost;
+  document.getElementById('editStatus').value=p.status;
+  document.getElementById('modalOverlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeModalBtn(){
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.body.style.overflow='';
+}
+
+function closeModal(e){
+  if(e.target===document.getElementById('modalOverlay')) closeModalBtn();
+}
+
+function saveEdit(){
+  if(editingIdx<0) return;
+  var p=D[editingIdx];
+  p.name=document.getElementById('editName').value||p.name;
+  p.cost=parseInt(document.getElementById('editCost').value)||p.cost;
+  p.status=document.getElementById('editStatus').value;
+  closeModalBtn();
+  render();
+}
+
+document.getElementById('searchInput').addEventListener('input',function(){
+  currentSearch=this.value;
+  render();
+});
+
+document.querySelectorAll('.filter-tab').forEach(function(tab){
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.filter-tab').forEach(function(t){t.classList.remove('active')});
+    this.classList.add('active');
+    currentFilter=this.dataset.filter;
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>
