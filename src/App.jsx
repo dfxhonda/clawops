@@ -18,6 +18,9 @@ import ImportSlips from './pages/ImportSlips'
 import SetupSheets from './pages/SetupSheets'
 import TestDataImport from './pages/TestDataImport'
 
+// Supabase版（認証不要・公開）
+import PrizeList from './pages/sb/PrizeList'
+
 // 棚卸しアプリ
 import InventoryDashboard from './pages/inventory/InventoryDashboard'
 import InventoryReceive from './pages/inventory/InventoryReceive'
@@ -67,6 +70,9 @@ export default function App() {
       <Route path="/inventory/transfer" element={<PrivateRoute><InventoryTransfer /></PrivateRoute>} />
       <Route path="/inventory/count" element={<PrivateRoute><InventoryCount /></PrivateRoute>} />
       <Route path="/inventory/match" element={<PrivateRoute><InventoryMatch /></PrivateRoute>} />
+
+      {/* Supabase版 公開ページ（認証不要） */}
+      <Route path="/sb/prizes" element={<PrizeList />} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
