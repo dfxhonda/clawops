@@ -49,10 +49,10 @@ main{padding:14px}
 .btn-add:hover{background:var(--accent2)}
 
 /* Table */
-.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
-table{width:100%;border-collapse:collapse;min-width:500px}
-th{background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.table-wrap{border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{background:var(--surface2);color:var(--text2);font-size:11px;font-weight:600;padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(124,106,255,.06)}
 
@@ -68,12 +68,11 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .badge-cyan{background:rgba(0,180,216,.15);color:var(--cyan)}
 
 /* Action buttons */
-.btn-row{display:flex;gap:6px}
-.btn-edit,.btn-del{border:1px solid var(--border);border-radius:6px;font-size:12px;padding:4px 10px;cursor:pointer;transition:all .15s}
-.btn-edit{background:var(--surface2);color:var(--text2)}
+.btn-edit{border:1px solid var(--border);border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer;transition:all .15s;background:var(--surface2);color:var(--text2);white-space:nowrap}
 .btn-edit:hover{border-color:var(--accent);color:var(--accent)}
-.btn-del{background:var(--surface2);color:var(--text2)}
-.btn-del:hover{border-color:var(--red);color:var(--red)}
+/* Delete button in modal */
+.btn-del-modal{width:100%;background:transparent;border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:13px;padding:9px;cursor:pointer;margin-top:8px;transition:all .15s}
+.btn-del-modal:hover{background:var(--red);color:#fff}
 
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -103,9 +102,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
 .nav-icon{font-size:20px}
 
 @media(min-width:768px){
-  main{max-width:900px;margin:0 auto}
+  main{max-width:960px;margin:0 auto}
   .modal{max-width:520px}
-  table{min-width:600px}
 }
 </style>
 </head>
@@ -344,7 +342,7 @@ function renderStores(){
   <td style="font-size:12px;color:var(--text2)">${esc(s.opened_at||'—')}</td>
   <td>${esc(s.manager||'—')}</td>
   <td>${machines.filter(m=>m.store_id===s.id).length}台</td>
-  <td><div class="btn-row"><button class="btn-edit" onclick="editStore('${s.id}')">編集</button><button class="btn-del" onclick="delStore('${s.id}')">削除</button></div></td>
+  <td><button class="btn-edit" onclick="editStore('${s.id}')">編集</button></td>
 </tr>`).join('');
   return `
 <div class="count-row">
@@ -353,6 +351,7 @@ function renderStores(){
 </div>
 <div class="table-wrap">
 <table>
+<colgroup><col style="width:22%"><col style="width:12%"><col style="width:12%"><col style="width:17%"><col style="width:12%"><col style="width:10%"><col style="width:15%"></colgroup>
 <thead><tr>
   ${th('stores','store_name','店舗名')}
   ${th('stores','region','地域')}
@@ -380,7 +379,7 @@ function renderMachines(){
   <td>${esc(storeName(m.store_id))}</td>
   <td><code style="font-size:11px;color:var(--text2)">${esc(m.rental_no||'—')}</code></td>
   <td>${booths.filter(b=>b.machine_id===m.id).length}台</td>
-  <td><div class="btn-row"><button class="btn-edit" onclick="editMachine('${m.id}')">編集</button><button class="btn-del" onclick="delMachine('${m.id}')">削除</button></div></td>
+  <td><button class="btn-edit" onclick="editMachine('${m.id}')">編集</button></td>
 </tr>`).join('');
   return `
 <div class="filter-row">
@@ -392,6 +391,7 @@ function renderMachines(){
 <div class="count-row"><span class="count-text">${list.length}台</span></div>
 <div class="table-wrap">
 <table>
+<colgroup><col style="width:10%"><col style="width:32%"><col style="width:20%"><col style="width:18%"><col style="width:10%"><col style="width:10%"></colgroup>
 <thead><tr>
   ${th('machines','billing_order','集金順')}
   ${th('machines','machine_name','機械名')}
@@ -420,7 +420,7 @@ function renderBooths(){
   <td>${esc(storeName(machineStore(b.machine_id)))}</td>
   <td>${esc(machineName(b.machine_id))}</td>
   <td><span class="badge badge-cyan">S${b.satellite_no}</span></td>
-  <td><div class="btn-row"><button class="btn-edit" onclick="editBooth('${b.id}')">編集</button><button class="btn-del" onclick="delBooth('${b.id}')">削除</button></div></td>
+  <td><button class="btn-edit" onclick="editBooth('${b.id}')">編集</button></td>
 </tr>`).join('');
   return `
 <div class="filter-row">
@@ -435,6 +435,7 @@ function renderBooths(){
 <div class="count-row"><span class="count-text">${list.length}ブース</span></div>
 <div class="table-wrap">
 <table>
+<colgroup><col style="width:14%"><col style="width:20%"><col style="width:36%"><col style="width:15%"><col style="width:15%"></colgroup>
 <thead><tr>
   ${th('booths','booth_code','コード')}
   ${th('booths','store_name','店舗')}
@@ -501,7 +502,8 @@ function editStore(id){
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveEditStore('${id}')">保存</button>
-</div>`);
+</div>
+<button class="btn-del-modal" onclick="delStore('${id}');closeModal()">削除</button>`);
 }
 function saveEditStore(id){
   const s=stores.find(x=>x.id===id); if(!s) return;
@@ -565,7 +567,8 @@ function editMachine(id){
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveEditMachine('${id}')">保存</button>
-</div>`);
+</div>
+<button class="btn-del-modal" onclick="delMachine('${id}');closeModal()">削除</button>`);
 }
 function saveEditMachine(id){
   const m=machines.find(x=>x.id===id); if(!m) return;
@@ -611,7 +614,8 @@ function editBooth(id){
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveEditBooth('${id}')">保存</button>
-</div>`);
+</div>
+<button class="btn-del-modal" onclick="delBooth('${id}');closeModal()">削除</button>`);
 }
 function saveEditBooth(id){
   const b=booths.find(x=>x.id===id); if(!b) return;
