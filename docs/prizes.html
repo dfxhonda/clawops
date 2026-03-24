@@ -137,6 +137,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <button class="srt-btn" data-key="original_cost">単価 <span class="srt-arrow">↓</span></button>
     <button class="srt-btn" data-key="size">サイズ <span class="srt-arrow">↓</span></button>
     <button class="srt-btn" data-key="phase">フェーズ <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="order_date">発注日 <span class="srt-arrow">↑</span></button>
+    <button class="srt-btn" data-key="expected_date">納期 <span class="srt-arrow">↑</span></button>
   </div>
 </header>
 
@@ -215,7 +217,7 @@ async function sbDelete(table,id,idCol){
 let DATA=[];
 let curSearch='';
 let curSortKey='prize_name';
-let sortDirs={prize_name:'asc',original_cost:'desc',size:'asc',phase:'asc'};
+let sortDirs={prize_name:'asc',original_cost:'desc',size:'asc',phase:'asc',order_date:'asc',expected_date:'asc'};
 let selStatuses=[];
 let selCats=[];
 let editingId=null;
@@ -263,7 +265,7 @@ function statusBadge(status){
 async function loadData(){
   showLoading();
   try{
-    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,notes,size,phase&order=prize_name.asc&limit=2000');
+    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000');
     DATA=data;
     buildCatChips();
     render();
@@ -328,9 +330,11 @@ function render(){
   }
   c.innerHTML=list.map(p=>{
     const catHtml=p.category?`<span class="meta-chip">${esc(p.category)}</span>`:'';
-    const sizeHtml=p.size?`<span class="meta-chip">${esc(p.size)}</span>`:'';
+    const sizeHtml=p.size?`<span class="meta-chip">📐${esc(p.size)}</span>`:'';
     const phaseHtml=p.phase?`<span class="meta-chip">${esc(p.phase)}</span>`:'';
     const notesHtml=p.notes?`<span class="meta-chip">📝</span>`:'';
+    const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
+    const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
     return`<div class="prize-card" onclick="openModal('${esc(p.prize_id)}')">
 <div class="card-icon" style="background:${iconColor(p)}">${esc(iconChar(p))}</div>
 <div class="card-body">
@@ -340,6 +344,7 @@ ${statusBadge(p.status)}
 </div>
 <div class="card-mid">
 <span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
+${orderHtml}${expectedHtml}
 </div>
 <div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${notesHtml}</div>
 </div>
@@ -374,6 +379,16 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
   <div class="modal-field">
     <label>サイズ</label>
     <input type="text" id="editSize" value="${esc(p.size||'')}">
+  </div>
+</div>
+<div class="modal-row">
+  <div class="modal-field">
+    <label>📋 発注日（締切日）</label>
+    <input type="date" id="editOrderDate" value="${p.order_date||''}">
+  </div>
+  <div class="modal-field">
+    <label>🚚 納期（発売日）</label>
+    <input type="date" id="editExpectedDate" value="${p.expected_date||''}">
   </div>
 </div>
 <div class="modal-row">
@@ -422,6 +437,8 @@ async function saveEdit(){
   const supplierCode=document.getElementById('editSupplierCode').value.trim();
   const aliases=document.getElementById('editAliases').value.trim();
   const notes=document.getElementById('editNotes').value.trim();
+  const orderDate=document.getElementById('editOrderDate').value;
+  const expectedDate=document.getElementById('editExpectedDate').value;
   const payload={
     status,
     category:cat||null,
@@ -429,7 +446,9 @@ async function saveEdit(){
     phase:phase||null,
     supplier_item_code:supplierCode||null,
     aliases:aliases||null,
-    notes:notes||null
+    notes:notes||null,
+    order_date:orderDate||null,
+    expected_date:expectedDate||null
   };
   if(cost!=='')payload.original_cost=parseInt(cost);
   closeModal();showLoading();
