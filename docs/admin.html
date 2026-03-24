@@ -56,8 +56,11 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertic
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(124,106,255,.06)}
 
-.sort-handle{cursor:grab;color:var(--text2);padding-right:4px;font-size:16px;user-select:none}
-.sort-handle:active{cursor:grabbing}
+/* Sortable header */
+.th-sort{cursor:pointer;user-select:none;transition:color .15s}
+.th-sort:hover{color:var(--text)}
+.sort-arrow{margin-left:4px;font-size:10px}
+
 .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
 .badge-green{background:rgba(46,204,113,.15);color:var(--green)}
 .badge-yellow{background:rgba(243,156,18,.15);color:var(--yellow)}
@@ -71,13 +74,6 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .btn-edit:hover{border-color:var(--accent);color:var(--accent)}
 .btn-del{background:var(--surface2);color:var(--text2)}
 .btn-del:hover{border-color:var(--red);color:var(--red)}
-
-/* Sort order */
-.sort-order{color:var(--text2);font-size:12px;min-width:28px;text-align:center}
-
-/* Drag states */
-.dragging{opacity:.4}
-.drag-over td{background:rgba(124,106,255,.12)!important}
 
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -143,85 +139,85 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
 <script>
 // ─── DATA ────────────────────────────────────────────────────────────────────
 let stores = [
-  {id:'S001',store_code:'S001',store_name:'合志',region:'熊本',sort_order:1},
-  {id:'S002',store_code:'S002',store_name:'菊陽',region:'熊本',sort_order:2},
-  {id:'S003',store_code:'S003',store_name:'鹿屋',region:'鹿児島',sort_order:3},
-  {id:'S004',store_code:'S004',store_name:'都城',region:'宮崎',sort_order:4},
-  {id:'S005',store_code:'S005',store_name:'霧島',region:'鹿児島',sort_order:5},
-  {id:'S006',store_code:'S006',store_name:'宇宿',region:'鹿児島',sort_order:6},
-  {id:'S007',store_code:'S007',store_name:'川内',region:'鹿児島',sort_order:7},
-  {id:'S008',store_code:'S008',store_name:'中央',region:'長崎',sort_order:8},
-  {id:'S009',store_code:'S009',store_name:'天文館',region:'鹿児島',sort_order:9},
-  {id:'S010',store_code:'S010',store_name:'浜町',region:'長崎',sort_order:10},
-  {id:'S011',store_code:'S011',store_name:'長崎',region:'長崎',sort_order:11},
+  {id:'S001',store_code:'S001',store_name:'合志',region:'熊本',sort_order:1,opened_at:'2021-04-15',manager:'坂本'},
+  {id:'S002',store_code:'S002',store_name:'菊陽',region:'熊本',sort_order:2,opened_at:'2020-09-01',manager:'本田'},
+  {id:'S003',store_code:'S003',store_name:'鹿屋',region:'鹿児島',sort_order:3,opened_at:'2022-03-20',manager:'武田'},
+  {id:'S004',store_code:'S004',store_name:'都城',region:'宮崎',sort_order:4,opened_at:'2020-11-10',manager:'中島'},
+  {id:'S005',store_code:'S005',store_name:'霧島',region:'鹿児島',sort_order:5,opened_at:'2023-01-08',manager:'堤'},
+  {id:'S006',store_code:'S006',store_name:'宇宿',region:'鹿児島',sort_order:6,opened_at:'2021-07-22',manager:'坂本'},
+  {id:'S007',store_code:'S007',store_name:'川内',region:'鹿児島',sort_order:7,opened_at:'2024-02-14',manager:'本田'},
+  {id:'S008',store_code:'S008',store_name:'中央',region:'長崎',sort_order:8,opened_at:'2022-08-30',manager:'武田'},
+  {id:'S009',store_code:'S009',store_name:'天文館',region:'鹿児島',sort_order:9,opened_at:'2020-05-18',manager:'中島'},
+  {id:'S010',store_code:'S010',store_name:'浜町',region:'長崎',sort_order:10,opened_at:'2023-10-05',manager:'堤'},
+  {id:'S011',store_code:'S011',store_name:'長崎',region:'長崎',sort_order:11,opened_at:'2024-06-12',manager:'坂本'},
 ];
 
 let machines = [
   // 合志
-  {id:'M001',machine_code:'M001',store_id:'S001',machine_name:'BUZZクレーン＃１',rental_no:'R2014',model:'BUZZクレーン'},
-  {id:'M002',machine_code:'M002',store_id:'S001',machine_name:'BUZZクレーン＃２',rental_no:'R2054',model:'BUZZクレーン'},
-  {id:'M003',machine_code:'M003',store_id:'S001',machine_name:'BUZZクレーンミニ＃１',rental_no:'R2055',model:'BUZZクレーンミニ'},
-  {id:'M004',machine_code:'M004',store_id:'S001',machine_name:'セサミｗ1',rental_no:'R1005',model:'セサミ'},
-  {id:'M005',machine_code:'M005',store_id:'S001',machine_name:'セサミｗ2',rental_no:'R1006',model:'セサミ'},
-  {id:'M006',machine_code:'M006',store_id:'S001',machine_name:'セサミｗ3',rental_no:'R1052',model:'セサミ'},
-  {id:'M007',machine_code:'M007',store_id:'S001',machine_name:'セサミｗ4',rental_no:'R1053',model:'セサミ'},
+  {id:'M001',machine_code:'M001',store_id:'S001',machine_name:'BUZZクレーン＃１',rental_no:'R2014',model:'BUZZクレーン',billing_order:1},
+  {id:'M002',machine_code:'M002',store_id:'S001',machine_name:'BUZZクレーン＃２',rental_no:'R2054',model:'BUZZクレーン',billing_order:2},
+  {id:'M003',machine_code:'M003',store_id:'S001',machine_name:'BUZZクレーンミニ＃１',rental_no:'R2055',model:'BUZZクレーンミニ',billing_order:3},
+  {id:'M004',machine_code:'M004',store_id:'S001',machine_name:'セサミｗ1',rental_no:'R1005',model:'セサミ',billing_order:4},
+  {id:'M005',machine_code:'M005',store_id:'S001',machine_name:'セサミｗ2',rental_no:'R1006',model:'セサミ',billing_order:5},
+  {id:'M006',machine_code:'M006',store_id:'S001',machine_name:'セサミｗ3',rental_no:'R1052',model:'セサミ',billing_order:6},
+  {id:'M007',machine_code:'M007',store_id:'S001',machine_name:'セサミｗ4',rental_no:'R1053',model:'セサミ',billing_order:7},
   // 菊陽
-  {id:'M008',machine_code:'M008',store_id:'S002',machine_name:'BUZZクレーン',rental_no:'R2058',model:'BUZZクレーン'},
-  {id:'M009',machine_code:'M009',store_id:'S002',machine_name:'BUZZクレーンスリム',rental_no:'R2062',model:'BUZZクレーンスリム'},
+  {id:'M008',machine_code:'M008',store_id:'S002',machine_name:'BUZZクレーン',rental_no:'R2058',model:'BUZZクレーン',billing_order:1},
+  {id:'M009',machine_code:'M009',store_id:'S002',machine_name:'BUZZクレーンスリム',rental_no:'R2062',model:'BUZZクレーンスリム',billing_order:2},
   // 鹿屋
-  {id:'M010',machine_code:'M010',store_id:'S003',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M011',machine_code:'M011',store_id:'S003',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
-  {id:'M012',machine_code:'M012',store_id:'S003',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
-  {id:'M013',machine_code:'M013',store_id:'S003',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
-  {id:'M014',machine_code:'M014',store_id:'S003',machine_name:'ジャリクレ＃１',rental_no:'',model:'ジャリクレーン'},
-  {id:'M015',machine_code:'M015',store_id:'S003',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M016',machine_code:'M016',store_id:'S003',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M010',machine_code:'M010',store_id:'S003',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M011',machine_code:'M011',store_id:'S003',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:2},
+  {id:'M012',machine_code:'M012',store_id:'S003',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン',billing_order:3},
+  {id:'M013',machine_code:'M013',store_id:'S003',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン',billing_order:4},
+  {id:'M014',machine_code:'M014',store_id:'S003',machine_name:'ジャリクレ＃１',rental_no:'',model:'ジャリクレーン',billing_order:5},
+  {id:'M015',machine_code:'M015',store_id:'S003',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ',billing_order:6},
+  {id:'M016',machine_code:'M016',store_id:'S003',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ',billing_order:7},
   // 都城
-  {id:'M017',machine_code:'M017',store_id:'S004',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M018',machine_code:'M018',store_id:'S004',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
-  {id:'M019',machine_code:'M019',store_id:'S004',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
-  {id:'M020',machine_code:'M020',store_id:'S004',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
-  {id:'M021',machine_code:'M021',store_id:'S004',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M022',machine_code:'M022',store_id:'S004',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M023',machine_code:'M023',store_id:'S004',machine_name:'BUZZミニ＃３',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M024',machine_code:'M024',store_id:'S004',machine_name:'BUZZミニ＃４',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M017',machine_code:'M017',store_id:'S004',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M018',machine_code:'M018',store_id:'S004',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:2},
+  {id:'M019',machine_code:'M019',store_id:'S004',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン',billing_order:3},
+  {id:'M020',machine_code:'M020',store_id:'S004',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン',billing_order:4},
+  {id:'M021',machine_code:'M021',store_id:'S004',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ',billing_order:5},
+  {id:'M022',machine_code:'M022',store_id:'S004',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ',billing_order:6},
+  {id:'M023',machine_code:'M023',store_id:'S004',machine_name:'BUZZミニ＃３',rental_no:'',model:'BUZZクレーンミニ',billing_order:7},
+  {id:'M024',machine_code:'M024',store_id:'S004',machine_name:'BUZZミニ＃４',rental_no:'',model:'BUZZクレーンミニ',billing_order:8},
   // 霧島
-  {id:'M025',machine_code:'M025',store_id:'S005',machine_name:'BUZZミニ',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M026',machine_code:'M026',store_id:'S005',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M027',machine_code:'M027',store_id:'S005',machine_name:'クリスタル',rental_no:'',model:'クリスタル'},
-  {id:'M028',machine_code:'M028',store_id:'S005',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M029',machine_code:'M029',store_id:'S005',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
-  {id:'M030',machine_code:'M030',store_id:'S005',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
-  {id:'M031',machine_code:'M031',store_id:'S005',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
+  {id:'M025',machine_code:'M025',store_id:'S005',machine_name:'BUZZミニ',rental_no:'',model:'BUZZクレーンミニ',billing_order:1},
+  {id:'M026',machine_code:'M026',store_id:'S005',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ',billing_order:2},
+  {id:'M027',machine_code:'M027',store_id:'S005',machine_name:'クリスタル',rental_no:'',model:'クリスタル',billing_order:3},
+  {id:'M028',machine_code:'M028',store_id:'S005',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:4},
+  {id:'M029',machine_code:'M029',store_id:'S005',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:5},
+  {id:'M030',machine_code:'M030',store_id:'S005',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン',billing_order:6},
+  {id:'M031',machine_code:'M031',store_id:'S005',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン',billing_order:7},
   // 宇宿
-  {id:'M032',machine_code:'M032',store_id:'S006',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M033',machine_code:'M033',store_id:'S006',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
-  {id:'M034',machine_code:'M034',store_id:'S006',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
-  {id:'M035',machine_code:'M035',store_id:'S006',machine_name:'クリスタル',rental_no:'',model:'クリスタル'},
-  {id:'M036',machine_code:'M036',store_id:'S006',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M037',machine_code:'M037',store_id:'S006',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
-  {id:'M038',machine_code:'M038',store_id:'S006',machine_name:'BUZZ＃６',rental_no:'',model:'BUZZクレーン'},
+  {id:'M032',machine_code:'M032',store_id:'S006',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M033',machine_code:'M033',store_id:'S006',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:2},
+  {id:'M034',machine_code:'M034',store_id:'S006',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン',billing_order:3},
+  {id:'M035',machine_code:'M035',store_id:'S006',machine_name:'クリスタル',rental_no:'',model:'クリスタル',billing_order:4},
+  {id:'M036',machine_code:'M036',store_id:'S006',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ',billing_order:5},
+  {id:'M037',machine_code:'M037',store_id:'S006',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン',billing_order:6},
+  {id:'M038',machine_code:'M038',store_id:'S006',machine_name:'BUZZ＃６',rental_no:'',model:'BUZZクレーン',billing_order:7},
   // 川内
-  {id:'M039',machine_code:'M039',store_id:'S007',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M040',machine_code:'M040',store_id:'S007',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
-  {id:'M041',machine_code:'M041',store_id:'S007',machine_name:'クリスタル',rental_no:'',model:'クリスタル'},
-  {id:'M042',machine_code:'M042',store_id:'S007',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M043',machine_code:'M043',store_id:'S007',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
-  {id:'M044',machine_code:'M044',store_id:'S007',machine_name:'ジャリクレ＃１',rental_no:'',model:'ジャリクレーン'},
-  {id:'M045',machine_code:'M045',store_id:'S007',machine_name:'ジャリクレ＃２',rental_no:'',model:'ジャリクレーン'},
+  {id:'M039',machine_code:'M039',store_id:'S007',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M040',machine_code:'M040',store_id:'S007',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:2},
+  {id:'M041',machine_code:'M041',store_id:'S007',machine_name:'クリスタル',rental_no:'',model:'クリスタル',billing_order:3},
+  {id:'M042',machine_code:'M042',store_id:'S007',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ',billing_order:4},
+  {id:'M043',machine_code:'M043',store_id:'S007',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ',billing_order:5},
+  {id:'M044',machine_code:'M044',store_id:'S007',machine_name:'ジャリクレ＃１',rental_no:'',model:'ジャリクレーン',billing_order:6},
+  {id:'M045',machine_code:'M045',store_id:'S007',machine_name:'ジャリクレ＃２',rental_no:'',model:'ジャリクレーン',billing_order:7},
   // 中央
-  {id:'M046',machine_code:'M046',store_id:'S008',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M047',machine_code:'M047',store_id:'S008',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
-  {id:'M048',machine_code:'M048',store_id:'S008',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M046',machine_code:'M046',store_id:'S008',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M047',machine_code:'M047',store_id:'S008',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:2},
+  {id:'M048',machine_code:'M048',store_id:'S008',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ',billing_order:3},
   // 天文館
-  {id:'M049',machine_code:'M049',store_id:'S009',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M050',machine_code:'M050',store_id:'S009',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M049',machine_code:'M049',store_id:'S009',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M050',machine_code:'M050',store_id:'S009',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン',billing_order:2},
   // 浜町
-  {id:'M051',machine_code:'M051',store_id:'S010',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M052',machine_code:'M052',store_id:'S010',machine_name:'セサミ',rental_no:'',model:'セサミ'},
+  {id:'M051',machine_code:'M051',store_id:'S010',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M052',machine_code:'M052',store_id:'S010',machine_name:'セサミ',rental_no:'',model:'セサミ',billing_order:2},
   // 長崎
-  {id:'M053',machine_code:'M053',store_id:'S011',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
-  {id:'M054',machine_code:'M054',store_id:'S011',machine_name:'セサミ',rental_no:'',model:'セサミ'},
+  {id:'M053',machine_code:'M053',store_id:'S011',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン',billing_order:1},
+  {id:'M054',machine_code:'M054',store_id:'S011',machine_name:'セサミ',rental_no:'',model:'セサミ',billing_order:2},
 ];
 
 // Generate booths from store list data
@@ -235,33 +231,22 @@ let booths = [];
     booth_number:num,
     satellite_no:num
   });
-  // 合志 machines with their booth counts
   const spec=[
     ['M001',4],['M002',4],['M003',1],
     ['M004',2],['M005',2],['M006',2],['M007',2],
-    // 菊陽
     ['M008',4],['M009',2],
-    // 鹿屋
     ['M010',4],['M011',4],['M012',4],['M013',4],['M014',4],['M015',1],['M016',1],
-    // 都城
     ['M017',4],['M018',4],['M019',4],['M020',4],
     ['M021',1],['M022',1],['M023',1],['M024',1],
-    // 霧島
     ['M025',1],['M026',1],['M027',1],
     ['M028',4],['M029',4],['M030',4],['M031',4],
-    // 宇宿
     ['M032',4],['M033',4],['M034',4],['M035',1],
     ['M036',1],['M037',4],['M038',4],
-    // 川内
     ['M039',4],['M040',4],['M041',1],['M042',1],['M043',1],
     ['M044',4],['M045',4],
-    // 中央
     ['M046',4],['M047',4],['M048',1],
-    // 天文館
     ['M049',4],['M050',4],
-    // 浜町
     ['M051',4],['M052',2],
-    // 長崎
     ['M053',4],['M054',2],
   ];
   spec.forEach(([mid,count])=>{
@@ -273,7 +258,9 @@ let booths = [];
 let currentTab = 'stores';
 let filterStore = '';
 let filterMachine = '';
-let dragSrc = null;
+let storeSort  = {col:null, dir:'desc'};
+let machineSort = {col:null, dir:'desc'};
+let boothSort  = {col:null, dir:'desc'};
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function storeName(id){ const s=stores.find(x=>x.id===id); return s?s.store_name:id; }
@@ -281,15 +268,57 @@ function machineName(id){ const m=machines.find(x=>x.id===id); return m?m.machin
 function machineStore(id){ const m=machines.find(x=>x.id===id); return m?m.store_id:''; }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function genId(prefix){ return prefix+Date.now().toString(36).toUpperCase(); }
-function modelBadge(m){
-  const map={'BUZZクレーン':'badge-blue','BUZZクレーンミニ':'badge-cyan','セサミ':'badge-green','ジャリクレーン':'badge-yellow','クリスタル':'badge-yellow','BUZZクレーンスリム':'badge-blue'};
-  const cls=map[m]||'badge-blue';
-  return `<span class="badge ${cls}">${esc(m||'—')}</span>`;
-}
 function regionBadge(r){
   const map={'熊本':'badge-green','鹿児島':'badge-blue','長崎':'badge-cyan','宮崎':'badge-yellow'};
   const cls=map[r]||'badge-blue';
   return `<span class="badge ${cls}">${esc(r||'—')}</span>`;
+}
+
+// ─── SORT HELPERS ─────────────────────────────────────────────────────────────
+function toggleSort(tab, col){
+  const s = tab==='stores'?storeSort:tab==='machines'?machineSort:boothSort;
+  if(s.col===col) s.dir=s.dir==='desc'?'asc':'desc';
+  else { s.col=col; s.dir='desc'; }
+  render();
+}
+function sortArrow(tab, col){
+  const s = tab==='stores'?storeSort:tab==='machines'?machineSort:boothSort;
+  if(s.col!==col) return `<span class="sort-arrow" style="opacity:.3">⇅</span>`;
+  return s.dir==='desc'
+    ? `<span class="sort-arrow" style="color:var(--accent)">↓</span>`
+    : `<span class="sort-arrow" style="color:var(--accent)">↑</span>`;
+}
+function cmp(av,bv,dir){
+  if(av==null) av='';
+  if(bv==null) bv='';
+  let r = (typeof av==='number'&&typeof bv==='number') ? av-bv : String(av).localeCompare(String(bv),'ja');
+  return dir==='desc'?-r:r;
+}
+function applySortStores(list){
+  const s=storeSort;
+  if(!s.col) return [...list].sort((a,b)=>a.sort_order-b.sort_order);
+  return [...list].sort((a,b)=>{
+    if(s.col==='machine_count') return cmp(machines.filter(m=>m.store_id===a.id).length, machines.filter(m=>m.store_id===b.id).length, s.dir);
+    return cmp(a[s.col],b[s.col],s.dir);
+  });
+}
+function applySortMachines(list){
+  const s=machineSort;
+  if(!s.col) return [...list].sort((a,b)=>a.machine_code.localeCompare(b.machine_code));
+  return [...list].sort((a,b)=>{
+    if(s.col==='booth_count') return cmp(booths.filter(x=>x.machine_id===a.id).length, booths.filter(x=>x.machine_id===b.id).length, s.dir);
+    if(s.col==='store_name') return cmp(storeName(a.store_id),storeName(b.store_id),s.dir);
+    return cmp(a[s.col],b[s.col],s.dir);
+  });
+}
+function applySortBooths(list){
+  const s=boothSort;
+  if(!s.col) return [...list].sort((a,b)=>a.booth_code.localeCompare(b.booth_code));
+  return [...list].sort((a,b)=>{
+    if(s.col==='store_name') return cmp(storeName(machineStore(a.machine_id)),storeName(machineStore(b.machine_id)),s.dir);
+    if(s.col==='machine_name') return cmp(machineName(a.machine_id),machineName(b.machine_id),s.dir);
+    return cmp(a[s.col],b[s.col],s.dir);
+  });
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
@@ -298,19 +327,22 @@ function render(){
   if(currentTab==='stores') el.innerHTML=renderStores();
   else if(currentTab==='machines') el.innerHTML=renderMachines();
   else el.innerHTML=renderBooths();
-  attachDrag();
+}
+
+function th(tab,col,label){
+  return `<th class="th-sort" onclick="toggleSort('${tab}','${col}')">${label}${sortArrow(tab,col)}</th>`;
 }
 
 function renderStores(){
-  const sorted=[...stores].sort((a,b)=>a.sort_order-b.sort_order);
+  const sorted=applySortStores(stores);
   document.getElementById('headerBadge').textContent=stores.length+'店舗';
-  let rows=sorted.map((s,i)=>`
-<tr draggable="true" data-id="${s.id}" data-idx="${i}">
-  <td><span class="sort-handle" title="ドラッグで並べ替え">⠿</span></td>
-  <td><span class="sort-order">${s.sort_order}</span></td>
+  let rows=sorted.map(s=>`
+<tr data-id="${s.id}">
   <td><strong>${esc(s.store_name)}</strong></td>
   <td>${regionBadge(s.region)}</td>
   <td><code style="font-size:11px;color:var(--text2)">${esc(s.store_code)}</code></td>
+  <td style="font-size:12px;color:var(--text2)">${esc(s.opened_at||'—')}</td>
+  <td>${esc(s.manager||'—')}</td>
   <td>${machines.filter(m=>m.store_id===s.id).length}台</td>
   <td><div class="btn-row"><button class="btn-edit" onclick="editStore('${s.id}')">編集</button><button class="btn-del" onclick="delStore('${s.id}')">削除</button></div></td>
 </tr>`).join('');
@@ -321,8 +353,16 @@ function renderStores(){
 </div>
 <div class="table-wrap">
 <table>
-<thead><tr><th></th><th>順</th><th>店舗名</th><th>地域</th><th>コード</th><th>機械数</th><th>操作</th></tr></thead>
-<tbody id="storesTbody">${rows||'<tr><td colspan="7"><div class="empty">店舗がありません</div></td></tr>'}</tbody>
+<thead><tr>
+  ${th('stores','store_name','店舗名')}
+  ${th('stores','region','地域')}
+  ${th('stores','store_code','コード')}
+  ${th('stores','opened_at','営業開始日')}
+  ${th('stores','manager','担当者')}
+  ${th('stores','machine_count','機械数')}
+  <th>操作</th>
+</tr></thead>
+<tbody>${rows||'<tr><td colspan="7"><div class="empty">店舗がありません</div></td></tr>'}</tbody>
 </table>
 </div>`;
 }
@@ -332,11 +372,12 @@ function renderMachines(){
   if(filterStore) list=list.filter(m=>m.store_id===filterStore);
   document.getElementById('headerBadge').textContent=list.length+'台';
   const storeOpts=stores.sort((a,b)=>a.sort_order-b.sort_order).map(s=>`<option value="${s.id}"${filterStore===s.id?'selected':''}>${esc(s.store_name)}</option>`).join('');
-  let rows=list.map(m=>`
+  const sorted=applySortMachines(list);
+  let rows=sorted.map(m=>`
 <tr data-id="${m.id}">
+  <td style="color:var(--text2);font-size:12px">${m.billing_order!=null?m.billing_order:'—'}</td>
   <td><strong>${esc(m.machine_name)}</strong></td>
   <td>${esc(storeName(m.store_id))}</td>
-  <td>${modelBadge(m.model)}</td>
   <td><code style="font-size:11px;color:var(--text2)">${esc(m.rental_no||'—')}</code></td>
   <td>${booths.filter(b=>b.machine_id===m.id).length}台</td>
   <td><div class="btn-row"><button class="btn-edit" onclick="editMachine('${m.id}')">編集</button><button class="btn-del" onclick="delMachine('${m.id}')">削除</button></div></td>
@@ -351,7 +392,14 @@ function renderMachines(){
 <div class="count-row"><span class="count-text">${list.length}台</span></div>
 <div class="table-wrap">
 <table>
-<thead><tr><th>機械名</th><th>店舗</th><th>モデル</th><th>レンタルNo.</th><th>ブース数</th><th>操作</th></tr></thead>
+<thead><tr>
+  ${th('machines','billing_order','集金順')}
+  ${th('machines','machine_name','機械名')}
+  ${th('machines','store_name','店舗')}
+  ${th('machines','rental_no','レンタルNo.')}
+  ${th('machines','booth_count','ブース数')}
+  <th>操作</th>
+</tr></thead>
 <tbody>${rows||'<tr><td colspan="6"><div class="empty">機械がありません</div></td></tr>'}</tbody>
 </table>
 </div>`;
@@ -365,7 +413,8 @@ function renderBooths(){
   document.getElementById('headerBadge').textContent=list.length+'ブース';
   const storeOpts=stores.sort((a,b)=>a.sort_order-b.sort_order).map(s=>`<option value="${s.id}"${filterStore===s.id?'selected':''}>${esc(s.store_name)}</option>`).join('');
   const machOpts=machList.sort((a,b)=>a.machine_code.localeCompare(b.machine_code)).map(m=>`<option value="${m.id}"${filterMachine===m.id?'selected':''}>${esc(m.machine_name)}</option>`).join('');
-  let rows=list.map(b=>`
+  const sorted=applySortBooths(list);
+  let rows=sorted.map(b=>`
 <tr data-id="${b.id}">
   <td><code style="font-size:11px;color:var(--text2)">${esc(b.booth_code)}</code></td>
   <td>${esc(storeName(machineStore(b.machine_id)))}</td>
@@ -386,41 +435,16 @@ function renderBooths(){
 <div class="count-row"><span class="count-text">${list.length}ブース</span></div>
 <div class="table-wrap">
 <table>
-<thead><tr><th>コード</th><th>店舗</th><th>機械</th><th>サテライト</th><th>操作</th></tr></thead>
+<thead><tr>
+  ${th('booths','booth_code','コード')}
+  ${th('booths','store_name','店舗')}
+  ${th('booths','machine_name','機械')}
+  ${th('booths','satellite_no','サテライト')}
+  <th>操作</th>
+</tr></thead>
 <tbody>${rows||'<tr><td colspan="5"><div class="empty">ブースがありません</div></td></tr>'}</tbody>
 </table>
 </div>`;
-}
-
-// ─── DRAG & DROP (stores) ────────────────────────────────────────────────────
-function attachDrag(){
-  if(currentTab!=='stores') return;
-  const tbody=document.getElementById('storesTbody');
-  if(!tbody) return;
-  tbody.querySelectorAll('tr').forEach(row=>{
-    row.addEventListener('dragstart',e=>{
-      dragSrc=row;
-      row.classList.add('dragging');
-      e.dataTransfer.effectAllowed='move';
-    });
-    row.addEventListener('dragend',()=>row.classList.remove('dragging'));
-    row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over')});
-    row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
-    row.addEventListener('drop',e=>{
-      e.preventDefault();
-      row.classList.remove('drag-over');
-      if(dragSrc===row) return;
-      const srcId=dragSrc.dataset.id;
-      const dstId=row.dataset.id;
-      const sorted=[...stores].sort((a,b)=>a.sort_order-b.sort_order);
-      const srcIdx=sorted.findIndex(s=>s.id===srcId);
-      const dstIdx=sorted.findIndex(s=>s.id===dstId);
-      const [moved]=sorted.splice(srcIdx,1);
-      sorted.splice(dstIdx,0,moved);
-      sorted.forEach((s,i)=>s.sort_order=i+1);
-      render();
-    });
-  });
 }
 
 // ─── TAB SWITCH ──────────────────────────────────────────────────────────────
@@ -444,6 +468,8 @@ function addStore(){
 <div class="form-group"><label>店舗名</label><input id="f_name" placeholder="例：合志" autofocus></div>
 <div class="form-group"><label>地域</label><select id="f_region"><option>熊本</option><option>鹿児島</option><option>長崎</option><option>宮崎</option><option>福岡</option></select></div>
 <div class="form-group"><label>店舗コード</label><input id="f_code" placeholder="例：S012"></div>
+<div class="form-group"><label>営業開始日</label><input id="f_opened" type="date"></div>
+<div class="form-group"><label>担当者</label><input id="f_manager" placeholder="例：坂本"></div>
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveNewStore()">追加</button>
@@ -454,7 +480,13 @@ function saveNewStore(){
   if(!name){ alert('店舗名を入力してください'); return; }
   const maxOrder=stores.length?Math.max(...stores.map(s=>s.sort_order)):0;
   const code=document.getElementById('f_code').value.trim()||genId('S');
-  stores.push({id:code,store_code:code,store_name:name,region:document.getElementById('f_region').value,sort_order:maxOrder+1});
+  stores.push({
+    id:code,store_code:code,store_name:name,
+    region:document.getElementById('f_region').value,
+    sort_order:maxOrder+1,
+    opened_at:document.getElementById('f_opened').value||'',
+    manager:document.getElementById('f_manager').value.trim()
+  });
   closeModal(); render();
 }
 function editStore(id){
@@ -463,7 +495,9 @@ function editStore(id){
   showModal(`<div class="modal-title">店舗編集</div>
 <div class="form-group"><label>店舗名</label><input id="f_name" value="${esc(s.store_name)}" autofocus></div>
 <div class="form-group"><label>地域</label><select id="f_region">${rOpts}</select></div>
-<div class="form-group"><label>集金順</label><input id="f_order" type="number" value="${s.sort_order}" min="1"></div>
+<div class="form-group"><label>店舗コード</label><input id="f_code" value="${esc(s.store_code)}"></div>
+<div class="form-group"><label>営業開始日</label><input id="f_opened" type="date" value="${esc(s.opened_at||'')}"></div>
+<div class="form-group"><label>担当者</label><input id="f_manager" value="${esc(s.manager||'')}"></div>
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveEditStore('${id}')">保存</button>
@@ -473,7 +507,9 @@ function saveEditStore(id){
   const s=stores.find(x=>x.id===id); if(!s) return;
   s.store_name=document.getElementById('f_name').value.trim()||s.store_name;
   s.region=document.getElementById('f_region').value;
-  s.sort_order=parseInt(document.getElementById('f_order').value)||s.sort_order;
+  s.store_code=document.getElementById('f_code').value.trim()||s.store_code;
+  s.opened_at=document.getElementById('f_opened').value||s.opened_at;
+  s.manager=document.getElementById('f_manager').value.trim();
   closeModal(); render();
 }
 function delStore(id){
@@ -495,6 +531,7 @@ function addMachine(){
 <div class="form-group"><label>機械名</label><input id="f_name" placeholder="例：BUZZ＃１" autofocus></div>
 <div class="form-group"><label>モデル</label><select id="f_model">${models.map(m=>`<option>${m}</option>`).join('')}</select></div>
 <div class="form-group"><label>レンタルNo.</label><input id="f_rental" placeholder="例：R2014"></div>
+<div class="form-group"><label>集金順番</label><input id="f_billing" type="number" min="1" placeholder="例：1"></div>
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveNewMachine()">追加</button>
@@ -504,7 +541,14 @@ function saveNewMachine(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){ alert('機械名を入力してください'); return; }
   const code=genId('M');
-  machines.push({id:code,machine_code:code,store_id:document.getElementById('f_store').value,machine_name:name,rental_no:document.getElementById('f_rental').value.trim(),model:document.getElementById('f_model').value});
+  machines.push({
+    id:code,machine_code:code,
+    store_id:document.getElementById('f_store').value,
+    machine_name:name,
+    rental_no:document.getElementById('f_rental').value.trim(),
+    model:document.getElementById('f_model').value,
+    billing_order:parseInt(document.getElementById('f_billing').value)||null
+  });
   closeModal(); render();
 }
 function editMachine(id){
@@ -517,6 +561,7 @@ function editMachine(id){
 <div class="form-group"><label>機械名</label><input id="f_name" value="${esc(m.machine_name)}" autofocus></div>
 <div class="form-group"><label>モデル</label><select id="f_model">${modelOpts}</select></div>
 <div class="form-group"><label>レンタルNo.</label><input id="f_rental" value="${esc(m.rental_no)}"></div>
+<div class="form-group"><label>集金順番</label><input id="f_billing" type="number" min="1" value="${m.billing_order!=null?m.billing_order:''}"></div>
 <div class="modal-actions">
   <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn-save" onclick="saveEditMachine('${id}')">保存</button>
@@ -528,6 +573,8 @@ function saveEditMachine(id){
   m.machine_name=document.getElementById('f_name').value.trim()||m.machine_name;
   m.model=document.getElementById('f_model').value;
   m.rental_no=document.getElementById('f_rental').value.trim();
+  const b=parseInt(document.getElementById('f_billing').value);
+  m.billing_order=isNaN(b)?null:b;
   closeModal(); render();
 }
 function delMachine(id){
