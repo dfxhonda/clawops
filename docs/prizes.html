@@ -66,8 +66,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .card-mid{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}
 .cost-val{font-size:14px;font-weight:700;white-space:nowrap}
 .cost-yen{font-size:11px;margin-right:1px}
-.stock-val{font-size:12px;color:var(--text2);white-space:nowrap}
-.stock-zero{color:var(--red)}
 
 .card-bot{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .meta-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap}
@@ -126,7 +124,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input type="search" id="searchInput" placeholder="景品名で検索..." autocomplete="off" autocorrect="off">
+    <input type="search" id="searchInput" placeholder="景品名・別名で検索..." autocomplete="off" autocorrect="off">
   </div>
   <div class="chips" id="filterChips">
     <div class="chip" data-type="status" data-val="active">Active</div>
@@ -135,9 +133,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div id="catChips"></div>
   </div>
   <div class="sort-row" id="sortRow">
-    <button class="srt-btn active" data-key="name">景品名 <span class="srt-arrow">↑</span></button>
-    <button class="srt-btn" data-key="cost">単価 <span class="srt-arrow">↓</span></button>
-    <button class="srt-btn" data-key="stock">在庫 <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn active" data-key="prize_name">景品名 <span class="srt-arrow">↑</span></button>
+    <button class="srt-btn" data-key="original_cost">単価 <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="size">サイズ <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="phase">フェーズ <span class="srt-arrow">↓</span></button>
   </div>
 </header>
 
@@ -215,8 +214,8 @@ async function sbDelete(table,id,idCol){
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA=[];
 let curSearch='';
-let curSortKey='name';
-let sortDirs={name:'asc',cost:'desc',stock:'desc'};
+let curSortKey='prize_name';
+let sortDirs={prize_name:'asc',original_cost:'desc',size:'asc',phase:'asc'};
 let selStatuses=[];
 let selCats=[];
 let editingId=null;
@@ -246,13 +245,12 @@ function showToast(msg,ok=true){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function fmt(n){return Number(n).toLocaleString('ja-JP')}
 function iconColor(p){
-  // hash from id or name
-  const str=String(p.id||p.name||'');
+  const str=String(p.prize_id||p.prize_name||'');
   let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))&0xffff;
   return ICON_COLORS[h%ICON_COLORS.length];
 }
 function iconChar(p){
-  const s=String(p.name||'');
+  const s=String(p.prize_name||'');
   return s.replace(/[^\u3040-\u9FFF\uFF00-\uFFEFa-zA-Z]/,'').slice(0,1)||s.slice(0,1)||'?';
 }
 function statusBadge(status){
@@ -265,7 +263,7 @@ function statusBadge(status){
 async function loadData(){
   showLoading();
   try{
-    const data=await sbGet('prizes','select=*&order=name.asc');
+    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,notes,size,phase&order=prize_name.asc&limit=2000');
     DATA=data;
     buildCatChips();
     render();
@@ -300,16 +298,20 @@ function getFiltered(){
     if(selStatuses.length>0&&!selStatuses.includes(p.status))return false;
     if(selCats.length>0&&!selCats.includes(p.category))return false;
     const q=curSearch.toLowerCase();
-    if(q&&!String(p.name||'').toLowerCase().includes(q))return false;
+    if(q){
+      const nameMatch=String(p.prize_name||'').toLowerCase().includes(q);
+      const aliasMatch=String(p.aliases||'').toLowerCase().includes(q);
+      if(!nameMatch&&!aliasMatch)return false;
+    }
     return true;
   });
   const key=curSortKey;
   const dir=sortDirs[key]||'asc';
   list=list.slice().sort((a,b)=>{
     let av=a[key],bv=b[key];
-    if(av==null)av=dir==='asc'?Infinity:-Infinity;
-    if(bv==null)bv=dir==='asc'?Infinity:-Infinity;
-    if(typeof av==='string')return dir==='asc'?av.localeCompare(bv,'ja'):bv.localeCompare(av,'ja');
+    if(av==null)av=dir==='asc'?'\uffff':'';
+    if(bv==null)bv=dir==='asc'?'\uffff':'';
+    if(typeof av==='string'||typeof bv==='string')return dir==='asc'?String(av).localeCompare(String(bv),'ja'):String(bv).localeCompare(String(av),'ja');
     return dir==='asc'?av-bv:bv-av;
   });
   return list;
@@ -325,24 +327,21 @@ function render(){
     return;
   }
   c.innerHTML=list.map(p=>{
-    const stock=p.stock!=null?p.stock:null;
-    const stockHtml=stock!=null
-      ?`<span class="stock-val${stock===0?' stock-zero':''}">在庫: <b>${stock}</b></span>`
-      :'';
     const catHtml=p.category?`<span class="meta-chip">${esc(p.category)}</span>`:'';
+    const sizeHtml=p.size?`<span class="meta-chip">${esc(p.size)}</span>`:'';
+    const phaseHtml=p.phase?`<span class="meta-chip">${esc(p.phase)}</span>`:'';
     const notesHtml=p.notes?`<span class="meta-chip">📝</span>`:'';
-    return`<div class="prize-card" onclick="openModal('${esc(p.id)}')">
+    return`<div class="prize-card" onclick="openModal('${esc(p.prize_id)}')">
 <div class="card-icon" style="background:${iconColor(p)}">${esc(iconChar(p))}</div>
 <div class="card-body">
 <div class="card-top">
-<span class="prize-name">${esc(p.name)}</span>
+<span class="prize-name">${esc(p.prize_name)}</span>
 ${statusBadge(p.status)}
 </div>
 <div class="card-mid">
-<span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.cost||0)}</span>
-${stockHtml}
+<span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
 </div>
-<div class="card-bot">${catHtml}${notesHtml}</div>
+<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${notesHtml}</div>
 </div>
 </div>`;
   }).join('');
@@ -350,32 +349,46 @@ ${stockHtml}
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 function openModal(id){
-  const p=DATA.find(x=>String(x.id)===String(id));if(!p)return;
+  const p=DATA.find(x=>String(x.prize_id)===String(id));if(!p)return;
   editingId=id;
   const statusOpts=['active','provisional','inactive'].map(v=>`<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'非アクティブ'}</option>`).join('');
   document.getElementById('modalContent').innerHTML=`
-<div class="modal-title">✏️ ${esc(p.name)}</div>
-<div class="modal-subtitle">ID: ${esc(p.id)}</div>
+<div class="modal-title">✏️ ${esc(p.prize_name)}</div>
+<div class="modal-subtitle">ID: ${esc(p.prize_id)}</div>
 ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
 <div class="modal-row">
   <div class="modal-field">
     <label>原価（円）</label>
-    <input type="number" id="editCost" value="${p.cost!=null?p.cost:''}" min="0">
+    <input type="number" id="editCost" value="${p.original_cost!=null?p.original_cost:''}" min="0">
   </div>
-  <div class="modal-field">
-    <label>在庫数</label>
-    <input type="number" id="editStock" value="${p.stock!=null?p.stock:''}" min="0">
-  </div>
-</div>
-<div class="modal-row">
   <div class="modal-field">
     <label>ステータス</label>
     <select id="editStatus">${statusOpts}</select>
   </div>
+</div>
+<div class="modal-row">
   <div class="modal-field">
     <label>カテゴリ</label>
     <input type="text" id="editCat" value="${esc(p.category||'')}">
   </div>
+  <div class="modal-field">
+    <label>サイズ</label>
+    <input type="text" id="editSize" value="${esc(p.size||'')}">
+  </div>
+</div>
+<div class="modal-row">
+  <div class="modal-field">
+    <label>フェーズ</label>
+    <input type="text" id="editPhase" value="${esc(p.phase||'')}">
+  </div>
+  <div class="modal-field">
+    <label>仕入先品番</label>
+    <input type="text" id="editSupplierCode" value="${esc(p.supplier_item_code||'')}">
+  </div>
+</div>
+<div class="modal-field">
+  <label>別名・読み仮名</label>
+  <input type="text" id="editAliases" value="${esc(p.aliases||'')}">
 </div>
 <div class="modal-field">
   <label>備考</label>
@@ -385,7 +398,7 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
   <button class="btn btn-cancel" onclick="closeModal()">キャンセル</button>
   <button class="btn btn-save" onclick="saveEdit()">保存</button>
 </div>
-<button class="btn-del" onclick="delPrize('${esc(p.id)}')">削除</button>`;
+<button class="btn-del" onclick="delPrize('${esc(p.prize_id)}')">削除</button>`;
   document.getElementById('modalOverlay').classList.add('show');
   document.body.style.overflow='hidden';
 }
@@ -402,20 +415,26 @@ function closeModalBg(e){
 async function saveEdit(){
   if(!editingId)return;
   const cost=document.getElementById('editCost').value;
-  const stock=document.getElementById('editStock').value;
   const status=document.getElementById('editStatus').value;
   const cat=document.getElementById('editCat').value.trim();
+  const size=document.getElementById('editSize').value.trim();
+  const phase=document.getElementById('editPhase').value.trim();
+  const supplierCode=document.getElementById('editSupplierCode').value.trim();
+  const aliases=document.getElementById('editAliases').value.trim();
   const notes=document.getElementById('editNotes').value.trim();
   const payload={
     status,
     category:cat||null,
+    size:size||null,
+    phase:phase||null,
+    supplier_item_code:supplierCode||null,
+    aliases:aliases||null,
     notes:notes||null
   };
-  if(cost!=='')payload.cost=parseInt(cost);
-  if(stock!=='')payload.stock=parseInt(stock);
+  if(cost!=='')payload.original_cost=parseInt(cost);
   closeModal();showLoading();
   try{
-    await sbPatch('prizes',editingId,'id',payload);
+    await sbPatch('prize_masters',editingId,'prize_id',payload);
     showToast('保存しました');
     await loadData();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -426,7 +445,7 @@ async function delPrize(id){
   if(!confirm('この景品を削除しますか？'))return;
   closeModal();showLoading();
   try{
-    await sbDelete('prizes',id,'id');
+    await sbDelete('prize_masters',id,'prize_id');
     showToast('削除しました');
     await loadData();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -447,22 +466,36 @@ function addPrize(){
     <input type="number" id="editCost" value="" min="0">
   </div>
   <div class="modal-field">
-    <label>在庫数</label>
-    <input type="number" id="editStock" value="0" min="0">
-  </div>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
     <label>ステータス</label>
     <select id="editStatus">
       <option value="provisional">仮登録</option>
       <option value="active">Active（運用中）</option>
     </select>
   </div>
+</div>
+<div class="modal-row">
   <div class="modal-field">
     <label>カテゴリ</label>
     <input type="text" id="editCat" placeholder="例：ぬいぐるみ">
   </div>
+  <div class="modal-field">
+    <label>サイズ</label>
+    <input type="text" id="editSize" placeholder="例：M">
+  </div>
+</div>
+<div class="modal-row">
+  <div class="modal-field">
+    <label>フェーズ</label>
+    <input type="text" id="editPhase" placeholder="例：2025Q1">
+  </div>
+  <div class="modal-field">
+    <label>仕入先品番</label>
+    <input type="text" id="editSupplierCode">
+  </div>
+</div>
+<div class="modal-field">
+  <label>別名・読み仮名</label>
+  <input type="text" id="editAliases">
 </div>
 <div class="modal-field">
   <label>備考</label>
@@ -480,18 +513,20 @@ async function saveNewPrize(){
   const name=document.getElementById('editName').value.trim();
   if(!name){alert('景品名を入力してください');return;}
   const cost=document.getElementById('editCost').value;
-  const stock=document.getElementById('editStock').value;
   const payload={
-    name,
+    prize_name:name,
     status:document.getElementById('editStatus').value,
     category:document.getElementById('editCat').value.trim()||null,
+    size:document.getElementById('editSize').value.trim()||null,
+    phase:document.getElementById('editPhase').value.trim()||null,
+    supplier_item_code:document.getElementById('editSupplierCode').value.trim()||null,
+    aliases:document.getElementById('editAliases').value.trim()||null,
     notes:document.getElementById('editNotes').value.trim()||null
   };
-  if(cost!=='')payload.cost=parseInt(cost);
-  if(stock!=='')payload.stock=parseInt(stock);
+  if(cost!=='')payload.original_cost=parseInt(cost);
   closeModal();showLoading();
   try{
-    await sbPost('prizes',payload);
+    await sbPost('prize_masters',payload);
     showToast('景品を追加しました');
     await loadData();
   }catch(e){showToast('エラー: '+e.message,false);}
