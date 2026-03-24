@@ -131,6 +131,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="chip provisional-chip" data-type="status" data-val="provisional">仮登録</div>
     <div class="chip-sep"></div>
     <div id="catChips"></div>
+    <div class="chip-sep"></div>
+    <select id="supplierFilter" style="flex:0 0 auto;padding:5px 8px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:20px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%228%22 height=%228%22 viewBox=%220 0 8 8%22><path fill=%22%239090a8%22 d=%22M0 2l4 4 4-4z%22/></svg>');background-repeat:no-repeat;background-position:right 6px center;white-space:nowrap">
+      <option value="">仕入先: 全て</option>
+      <option value="景品フォーム">景品フォーム</option>
+      <option value="インフィニティ">インフィニティ</option>
+      <option value="アクシズ">アクシズ</option>
+      <option value="エスディーワイ">エスディーワイ</option>
+      <option value="ピーチトイ">ピーチトイ</option>
+      <option value="achieve">achieve</option>
+    </select>
   </div>
   <div class="sort-row" id="sortRow">
     <button class="srt-btn active" data-key="prize_name">景品名 <span class="srt-arrow">↑</span></button>
@@ -220,6 +230,7 @@ let curSortKey='prize_name';
 let sortDirs={prize_name:'asc',original_cost:'desc',size:'asc',phase:'asc',order_date:'asc',expected_date:'asc'};
 let selStatuses=[];
 let selCats=[];
+let selSupplier='';
 let editingId=null;
 let _loadingCount=0;
 let _toastTimer=null;
@@ -265,7 +276,7 @@ function statusBadge(status){
 async function loadData(){
   showLoading();
   try{
-    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000');
+    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000');
     DATA=data;
     buildCatChips();
     render();
@@ -299,6 +310,7 @@ function getFiltered(){
   let list=DATA.filter(p=>{
     if(selStatuses.length>0&&!selStatuses.includes(p.status))return false;
     if(selCats.length>0&&!selCats.includes(p.category))return false;
+    if(selSupplier&&p.supplier_name!==selSupplier)return false;
     const q=curSearch.toLowerCase();
     if(q){
       const nameMatch=String(p.prize_name||'').toLowerCase().includes(q);
@@ -335,6 +347,7 @@ function render(){
     const notesHtml=p.notes?`<span class="meta-chip">📝</span>`:'';
     const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
     const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
+    const supplierHtml=p.supplier_name?`<span class="meta-chip" style="color:var(--orange)">🏪${esc(p.supplier_name)}</span>`:'';
     return`<div class="prize-card" onclick="openModal('${esc(p.prize_id)}')">
 <div class="card-icon" style="background:${iconColor(p)}">${esc(iconChar(p))}</div>
 <div class="card-body">
@@ -346,7 +359,7 @@ ${statusBadge(p.status)}
 <span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
 ${orderHtml}${expectedHtml}
 </div>
-<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${notesHtml}</div>
+<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${notesHtml}</div>
 </div>
 </div>`;
   }).join('');
@@ -402,6 +415,13 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
   </div>
 </div>
 <div class="modal-field">
+  <label>仕入先</label>
+  <select id="editSupplierName">
+    <option value="">未設定</option>
+    ${['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'].map(s=>`<option value="${s}"${p.supplier_name===s?' selected':''}>${s}</option>`).join('')}
+  </select>
+</div>
+<div class="modal-field">
   <label>別名・読み仮名</label>
   <input type="text" id="editAliases" value="${esc(p.aliases||'')}">
 </div>
@@ -435,6 +455,7 @@ async function saveEdit(){
   const size=document.getElementById('editSize').value.trim();
   const phase=document.getElementById('editPhase').value.trim();
   const supplierCode=document.getElementById('editSupplierCode').value.trim();
+  const supplierName=document.getElementById('editSupplierName').value;
   const aliases=document.getElementById('editAliases').value.trim();
   const notes=document.getElementById('editNotes').value.trim();
   const orderDate=document.getElementById('editOrderDate').value;
@@ -445,6 +466,7 @@ async function saveEdit(){
     size:size||null,
     phase:phase||null,
     supplier_item_code:supplierCode||null,
+    supplier_name:supplierName||null,
     aliases:aliases||null,
     notes:notes||null,
     order_date:orderDate||null,
@@ -513,6 +535,18 @@ function addPrize(){
   </div>
 </div>
 <div class="modal-field">
+  <label>仕入先</label>
+  <select id="editSupplierName">
+    <option value="">未設定</option>
+    <option value="景品フォーム">景品フォーム</option>
+    <option value="インフィニティ">インフィニティ</option>
+    <option value="アクシズ">アクシズ</option>
+    <option value="エスディーワイ">エスディーワイ</option>
+    <option value="ピーチトイ">ピーチトイ</option>
+    <option value="achieve">achieve</option>
+  </select>
+</div>
+<div class="modal-field">
   <label>別名・読み仮名</label>
   <input type="text" id="editAliases">
 </div>
@@ -539,6 +573,7 @@ async function saveNewPrize(){
     size:document.getElementById('editSize').value.trim()||null,
     phase:document.getElementById('editPhase').value.trim()||null,
     supplier_item_code:document.getElementById('editSupplierCode').value.trim()||null,
+    supplier_name:document.getElementById('editSupplierName').value||null,
     aliases:document.getElementById('editAliases').value.trim()||null,
     notes:document.getElementById('editNotes').value.trim()||null
   };
@@ -586,6 +621,11 @@ function updateSortUI(){
 
 document.getElementById('searchInput').addEventListener('input',function(){
   curSearch=this.value;
+  render();
+});
+
+document.getElementById('supplierFilter').addEventListener('change',function(){
+  selSupplier=this.value;
   render();
 });
 
