@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>マスタ管理 | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;
+  --surface:#1a1a23;
+  --surface2:#22222e;
+  --border:#2e2e3e;
+  --text:#e8e8f0;
+  --text2:#9090a8;
+  --accent:#7c6aff;
+  --accent2:#5a4fcf;
+  --green:#2ecc71;
+  --yellow:#f39c12;
+  --red:#e74c3c;
+  --cyan:#00b4d8;
+  --radius:10px;
+  --nav-h:58px;
+}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h)+env(safe-area-inset-bottom))}
+
+/* Header */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px 10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.header-title{font-size:18px;font-weight:700;letter-spacing:.5px;flex:1}
+.header-badge{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px}
+.tab-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;font-weight:600;padding:8px 4px;cursor:pointer;transition:all .15s;text-align:center}
+.tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Main content */
+main{padding:14px}
+
+/* Filter row */
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-row select{flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;outline:none;cursor:pointer}
+.filter-row select:focus{border-color:var(--accent)}
+
+/* Add button */
+.btn-add{background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s}
+.btn-add:hover{background:var(--accent2)}
+
+/* Table */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;min-width:500px}
+th{background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(124,106,255,.06)}
+
+.sort-handle{cursor:grab;color:var(--text2);padding-right:4px;font-size:16px;user-select:none}
+.sort-handle:active{cursor:grabbing}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
+.badge-green{background:rgba(46,204,113,.15);color:var(--green)}
+.badge-yellow{background:rgba(243,156,18,.15);color:var(--yellow)}
+.badge-blue{background:rgba(124,106,255,.15);color:var(--accent)}
+.badge-cyan{background:rgba(0,180,216,.15);color:var(--cyan)}
+
+/* Action buttons */
+.btn-row{display:flex;gap:6px}
+.btn-edit,.btn-del{border:1px solid var(--border);border-radius:6px;font-size:12px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.btn-edit{background:var(--surface2);color:var(--text2)}
+.btn-edit:hover{border-color:var(--accent);color:var(--accent)}
+.btn-del{background:var(--surface2);color:var(--text2)}
+.btn-del:hover{border-color:var(--red);color:var(--red)}
+
+/* Sort order */
+.sort-order{color:var(--text2);font-size:12px;min-width:28px;text-align:center}
+
+/* Drag states */
+.dragging{opacity:.4}
+.drag-over td{background:rgba(124,106,255,.12)!important}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:480px;padding:20px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600}
+.form-group input,.form-group select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:9px 12px;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.btn-save{flex:1;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;padding:11px;cursor:pointer;transition:background .15s}
+.btn-save:hover{background:var(--accent2)}
+.btn-cancel{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:14px;padding:11px;cursor:pointer}
+.btn-cancel:hover{border-color:var(--text);color:var(--text)}
+
+/* Count */
+.count-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.count-text{font-size:12px;color:var(--text2)}
+
+/* Empty state */
+.empty{text-align:center;padding:40px;color:var(--text2);font-size:14px}
+
+/* Bottom nav */
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);height:var(--nav-h);display:flex;align-items:center;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2);text-decoration:none;font-size:10px;padding:4px 8px;border-radius:8px;cursor:pointer;transition:color .15s;background:none;border:none}
+.nav-item.active,.nav-item:hover{color:var(--accent)}
+.nav-icon{font-size:20px}
+
+@media(min-width:768px){
+  main{max-width:900px;margin:0 auto}
+  .modal{max-width:520px}
+  table{min-width:600px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <span class="header-title">マスタ管理</span>
+    <span class="header-badge" id="headerBadge">0件</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('stores')">🏪 店舗</button>
+    <button class="tab-btn" onclick="switchTab('machines')">🎮 機械</button>
+    <button class="tab-btn" onclick="switchTab('booths')">🎯 ブース</button>
+  </div>
+</header>
+
+<main id="mainContent"></main>
+
+<nav>
+  <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span>ホーム</a>
+  <a class="nav-item" href="prizes.html"><span class="nav-icon">🎁</span>景品</a>
+  <button class="nav-item active"><span class="nav-icon">⚙️</span>管理</button>
+</nav>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg" style="display:none" onclick="closeModalBg(event)">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+let stores = [
+  {id:'S001',store_code:'S001',store_name:'合志',region:'熊本',sort_order:1},
+  {id:'S002',store_code:'S002',store_name:'菊陽',region:'熊本',sort_order:2},
+  {id:'S003',store_code:'S003',store_name:'鹿屋',region:'鹿児島',sort_order:3},
+  {id:'S004',store_code:'S004',store_name:'都城',region:'宮崎',sort_order:4},
+  {id:'S005',store_code:'S005',store_name:'霧島',region:'鹿児島',sort_order:5},
+  {id:'S006',store_code:'S006',store_name:'宇宿',region:'鹿児島',sort_order:6},
+  {id:'S007',store_code:'S007',store_name:'川内',region:'鹿児島',sort_order:7},
+  {id:'S008',store_code:'S008',store_name:'中央',region:'長崎',sort_order:8},
+  {id:'S009',store_code:'S009',store_name:'天文館',region:'鹿児島',sort_order:9},
+  {id:'S010',store_code:'S010',store_name:'浜町',region:'長崎',sort_order:10},
+  {id:'S011',store_code:'S011',store_name:'長崎',region:'長崎',sort_order:11},
+];
+
+let machines = [
+  // 合志
+  {id:'M001',machine_code:'M001',store_id:'S001',machine_name:'BUZZクレーン＃１',rental_no:'R2014',model:'BUZZクレーン'},
+  {id:'M002',machine_code:'M002',store_id:'S001',machine_name:'BUZZクレーン＃２',rental_no:'R2054',model:'BUZZクレーン'},
+  {id:'M003',machine_code:'M003',store_id:'S001',machine_name:'BUZZクレーンミニ＃１',rental_no:'R2055',model:'BUZZクレーンミニ'},
+  {id:'M004',machine_code:'M004',store_id:'S001',machine_name:'セサミｗ1',rental_no:'R1005',model:'セサミ'},
+  {id:'M005',machine_code:'M005',store_id:'S001',machine_name:'セサミｗ2',rental_no:'R1006',model:'セサミ'},
+  {id:'M006',machine_code:'M006',store_id:'S001',machine_name:'セサミｗ3',rental_no:'R1052',model:'セサミ'},
+  {id:'M007',machine_code:'M007',store_id:'S001',machine_name:'セサミｗ4',rental_no:'R1053',model:'セサミ'},
+  // 菊陽
+  {id:'M008',machine_code:'M008',store_id:'S002',machine_name:'BUZZクレーン',rental_no:'R2058',model:'BUZZクレーン'},
+  {id:'M009',machine_code:'M009',store_id:'S002',machine_name:'BUZZクレーンスリム',rental_no:'R2062',model:'BUZZクレーンスリム'},
+  // 鹿屋
+  {id:'M010',machine_code:'M010',store_id:'S003',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M011',machine_code:'M011',store_id:'S003',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M012',machine_code:'M012',store_id:'S003',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
+  {id:'M013',machine_code:'M013',store_id:'S003',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
+  {id:'M014',machine_code:'M014',store_id:'S003',machine_name:'ジャリクレ＃１',rental_no:'',model:'ジャリクレーン'},
+  {id:'M015',machine_code:'M015',store_id:'S003',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M016',machine_code:'M016',store_id:'S003',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
+  // 都城
+  {id:'M017',machine_code:'M017',store_id:'S004',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M018',machine_code:'M018',store_id:'S004',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M019',machine_code:'M019',store_id:'S004',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
+  {id:'M020',machine_code:'M020',store_id:'S004',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
+  {id:'M021',machine_code:'M021',store_id:'S004',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M022',machine_code:'M022',store_id:'S004',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M023',machine_code:'M023',store_id:'S004',machine_name:'BUZZミニ＃３',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M024',machine_code:'M024',store_id:'S004',machine_name:'BUZZミニ＃４',rental_no:'',model:'BUZZクレーンミニ'},
+  // 霧島
+  {id:'M025',machine_code:'M025',store_id:'S005',machine_name:'BUZZミニ',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M026',machine_code:'M026',store_id:'S005',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M027',machine_code:'M027',store_id:'S005',machine_name:'クリスタル',rental_no:'',model:'クリスタル'},
+  {id:'M028',machine_code:'M028',store_id:'S005',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M029',machine_code:'M029',store_id:'S005',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M030',machine_code:'M030',store_id:'S005',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
+  {id:'M031',machine_code:'M031',store_id:'S005',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
+  // 宇宿
+  {id:'M032',machine_code:'M032',store_id:'S006',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M033',machine_code:'M033',store_id:'S006',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M034',machine_code:'M034',store_id:'S006',machine_name:'BUZZ＃３',rental_no:'',model:'BUZZクレーン'},
+  {id:'M035',machine_code:'M035',store_id:'S006',machine_name:'クリスタル',rental_no:'',model:'クリスタル'},
+  {id:'M036',machine_code:'M036',store_id:'S006',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M037',machine_code:'M037',store_id:'S006',machine_name:'BUZZ＃４',rental_no:'',model:'BUZZクレーン'},
+  {id:'M038',machine_code:'M038',store_id:'S006',machine_name:'BUZZ＃６',rental_no:'',model:'BUZZクレーン'},
+  // 川内
+  {id:'M039',machine_code:'M039',store_id:'S007',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M040',machine_code:'M040',store_id:'S007',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M041',machine_code:'M041',store_id:'S007',machine_name:'クリスタル',rental_no:'',model:'クリスタル'},
+  {id:'M042',machine_code:'M042',store_id:'S007',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M043',machine_code:'M043',store_id:'S007',machine_name:'BUZZミニ＃２',rental_no:'',model:'BUZZクレーンミニ'},
+  {id:'M044',machine_code:'M044',store_id:'S007',machine_name:'ジャリクレ＃１',rental_no:'',model:'ジャリクレーン'},
+  {id:'M045',machine_code:'M045',store_id:'S007',machine_name:'ジャリクレ＃２',rental_no:'',model:'ジャリクレーン'},
+  // 中央
+  {id:'M046',machine_code:'M046',store_id:'S008',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M047',machine_code:'M047',store_id:'S008',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  {id:'M048',machine_code:'M048',store_id:'S008',machine_name:'BUZZミニ＃１',rental_no:'',model:'BUZZクレーンミニ'},
+  // 天文館
+  {id:'M049',machine_code:'M049',store_id:'S009',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M050',machine_code:'M050',store_id:'S009',machine_name:'BUZZ＃２',rental_no:'',model:'BUZZクレーン'},
+  // 浜町
+  {id:'M051',machine_code:'M051',store_id:'S010',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M052',machine_code:'M052',store_id:'S010',machine_name:'セサミ',rental_no:'',model:'セサミ'},
+  // 長崎
+  {id:'M053',machine_code:'M053',store_id:'S011',machine_name:'BUZZ＃１',rental_no:'',model:'BUZZクレーン'},
+  {id:'M054',machine_code:'M054',store_id:'S011',machine_name:'セサミ',rental_no:'',model:'セサミ'},
+];
+
+// Generate booths from store list data
+let booths = [];
+(function(){
+  let id=1;
+  const mk=(mid,num)=>({
+    id:'B'+String(id).padStart(3,'0'),
+    booth_code:'B'+String(id++).padStart(3,'0'),
+    machine_id:mid,
+    booth_number:num,
+    satellite_no:num
+  });
+  // 合志 machines with their booth counts
+  const spec=[
+    ['M001',4],['M002',4],['M003',1],
+    ['M004',2],['M005',2],['M006',2],['M007',2],
+    // 菊陽
+    ['M008',4],['M009',2],
+    // 鹿屋
+    ['M010',4],['M011',4],['M012',4],['M013',4],['M014',4],['M015',1],['M016',1],
+    // 都城
+    ['M017',4],['M018',4],['M019',4],['M020',4],
+    ['M021',1],['M022',1],['M023',1],['M024',1],
+    // 霧島
+    ['M025',1],['M026',1],['M027',1],
+    ['M028',4],['M029',4],['M030',4],['M031',4],
+    // 宇宿
+    ['M032',4],['M033',4],['M034',4],['M035',1],
+    ['M036',1],['M037',4],['M038',4],
+    // 川内
+    ['M039',4],['M040',4],['M041',1],['M042',1],['M043',1],
+    ['M044',4],['M045',4],
+    // 中央
+    ['M046',4],['M047',4],['M048',1],
+    // 天文館
+    ['M049',4],['M050',4],
+    // 浜町
+    ['M051',4],['M052',2],
+    // 長崎
+    ['M053',4],['M054',2],
+  ];
+  spec.forEach(([mid,count])=>{
+    for(let n=1;n<=count;n++) booths.push(mk(mid,n));
+  });
+})();
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentTab = 'stores';
+let filterStore = '';
+let filterMachine = '';
+let dragSrc = null;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function storeName(id){ const s=stores.find(x=>x.id===id); return s?s.store_name:id; }
+function machineName(id){ const m=machines.find(x=>x.id===id); return m?m.machine_name:id; }
+function machineStore(id){ const m=machines.find(x=>x.id===id); return m?m.store_id:''; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function genId(prefix){ return prefix+Date.now().toString(36).toUpperCase(); }
+function modelBadge(m){
+  const map={'BUZZクレーン':'badge-blue','BUZZクレーンミニ':'badge-cyan','セサミ':'badge-green','ジャリクレーン':'badge-yellow','クリスタル':'badge-yellow','BUZZクレーンスリム':'badge-blue'};
+  const cls=map[m]||'badge-blue';
+  return `<span class="badge ${cls}">${esc(m||'—')}</span>`;
+}
+function regionBadge(r){
+  const map={'熊本':'badge-green','鹿児島':'badge-blue','長崎':'badge-cyan','宮崎':'badge-yellow'};
+  const cls=map[r]||'badge-blue';
+  return `<span class="badge ${cls}">${esc(r||'—')}</span>`;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render(){
+  const el=document.getElementById('mainContent');
+  if(currentTab==='stores') el.innerHTML=renderStores();
+  else if(currentTab==='machines') el.innerHTML=renderMachines();
+  else el.innerHTML=renderBooths();
+  attachDrag();
+}
+
+function renderStores(){
+  const sorted=[...stores].sort((a,b)=>a.sort_order-b.sort_order);
+  document.getElementById('headerBadge').textContent=stores.length+'店舗';
+  let rows=sorted.map((s,i)=>`
+<tr draggable="true" data-id="${s.id}" data-idx="${i}">
+  <td><span class="sort-handle" title="ドラッグで並べ替え">⠿</span></td>
+  <td><span class="sort-order">${s.sort_order}</span></td>
+  <td><strong>${esc(s.store_name)}</strong></td>
+  <td>${regionBadge(s.region)}</td>
+  <td><code style="font-size:11px;color:var(--text2)">${esc(s.store_code)}</code></td>
+  <td>${machines.filter(m=>m.store_id===s.id).length}台</td>
+  <td><div class="btn-row"><button class="btn-edit" onclick="editStore('${s.id}')">編集</button><button class="btn-del" onclick="delStore('${s.id}')">削除</button></div></td>
+</tr>`).join('');
+  return `
+<div class="count-row">
+  <span class="count-text">${stores.length}店舗</span>
+  <button class="btn-add" onclick="addStore()">＋ 店舗追加</button>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th></th><th>順</th><th>店舗名</th><th>地域</th><th>コード</th><th>機械数</th><th>操作</th></tr></thead>
+<tbody id="storesTbody">${rows||'<tr><td colspan="7"><div class="empty">店舗がありません</div></td></tr>'}</tbody>
+</table>
+</div>`;
+}
+
+function renderMachines(){
+  let list=machines;
+  if(filterStore) list=list.filter(m=>m.store_id===filterStore);
+  document.getElementById('headerBadge').textContent=list.length+'台';
+  const storeOpts=stores.sort((a,b)=>a.sort_order-b.sort_order).map(s=>`<option value="${s.id}"${filterStore===s.id?'selected':''}>${esc(s.store_name)}</option>`).join('');
+  let rows=list.map(m=>`
+<tr data-id="${m.id}">
+  <td><strong>${esc(m.machine_name)}</strong></td>
+  <td>${esc(storeName(m.store_id))}</td>
+  <td>${modelBadge(m.model)}</td>
+  <td><code style="font-size:11px;color:var(--text2)">${esc(m.rental_no||'—')}</code></td>
+  <td>${booths.filter(b=>b.machine_id===m.id).length}台</td>
+  <td><div class="btn-row"><button class="btn-edit" onclick="editMachine('${m.id}')">編集</button><button class="btn-del" onclick="delMachine('${m.id}')">削除</button></div></td>
+</tr>`).join('');
+  return `
+<div class="filter-row">
+  <select onchange="filterStore=this.value;render()">
+    <option value="">全店舗</option>${storeOpts}
+  </select>
+  <button class="btn-add" onclick="addMachine()">＋ 機械追加</button>
+</div>
+<div class="count-row"><span class="count-text">${list.length}台</span></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>機械名</th><th>店舗</th><th>モデル</th><th>レンタルNo.</th><th>ブース数</th><th>操作</th></tr></thead>
+<tbody>${rows||'<tr><td colspan="6"><div class="empty">機械がありません</div></td></tr>'}</tbody>
+</table>
+</div>`;
+}
+
+function renderBooths(){
+  let list=booths;
+  const machList=filterStore?machines.filter(m=>m.store_id===filterStore):machines;
+  if(filterStore) list=list.filter(b=>machList.some(m=>m.id===b.machine_id));
+  if(filterMachine) list=list.filter(b=>b.machine_id===filterMachine);
+  document.getElementById('headerBadge').textContent=list.length+'ブース';
+  const storeOpts=stores.sort((a,b)=>a.sort_order-b.sort_order).map(s=>`<option value="${s.id}"${filterStore===s.id?'selected':''}>${esc(s.store_name)}</option>`).join('');
+  const machOpts=machList.sort((a,b)=>a.machine_code.localeCompare(b.machine_code)).map(m=>`<option value="${m.id}"${filterMachine===m.id?'selected':''}>${esc(m.machine_name)}</option>`).join('');
+  let rows=list.map(b=>`
+<tr data-id="${b.id}">
+  <td><code style="font-size:11px;color:var(--text2)">${esc(b.booth_code)}</code></td>
+  <td>${esc(storeName(machineStore(b.machine_id)))}</td>
+  <td>${esc(machineName(b.machine_id))}</td>
+  <td><span class="badge badge-cyan">S${b.satellite_no}</span></td>
+  <td><div class="btn-row"><button class="btn-edit" onclick="editBooth('${b.id}')">編集</button><button class="btn-del" onclick="delBooth('${b.id}')">削除</button></div></td>
+</tr>`).join('');
+  return `
+<div class="filter-row">
+  <select onchange="filterStore=this.value;filterMachine='';render()">
+    <option value="">全店舗</option>${storeOpts}
+  </select>
+  <select onchange="filterMachine=this.value;render()">
+    <option value="">全機械</option>${machOpts}
+  </select>
+  <button class="btn-add" onclick="addBooth()">＋ ブース追加</button>
+</div>
+<div class="count-row"><span class="count-text">${list.length}ブース</span></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>コード</th><th>店舗</th><th>機械</th><th>サテライト</th><th>操作</th></tr></thead>
+<tbody>${rows||'<tr><td colspan="5"><div class="empty">ブースがありません</div></td></tr>'}</tbody>
+</table>
+</div>`;
+}
+
+// ─── DRAG & DROP (stores) ────────────────────────────────────────────────────
+function attachDrag(){
+  if(currentTab!=='stores') return;
+  const tbody=document.getElementById('storesTbody');
+  if(!tbody) return;
+  tbody.querySelectorAll('tr').forEach(row=>{
+    row.addEventListener('dragstart',e=>{
+      dragSrc=row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragend',()=>row.classList.remove('dragging'));
+    row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over')});
+    row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+    row.addEventListener('drop',e=>{
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      if(dragSrc===row) return;
+      const srcId=dragSrc.dataset.id;
+      const dstId=row.dataset.id;
+      const sorted=[...stores].sort((a,b)=>a.sort_order-b.sort_order);
+      const srcIdx=sorted.findIndex(s=>s.id===srcId);
+      const dstIdx=sorted.findIndex(s=>s.id===dstId);
+      const [moved]=sorted.splice(srcIdx,1);
+      sorted.splice(dstIdx,0,moved);
+      sorted.forEach((s,i)=>s.sort_order=i+1);
+      render();
+    });
+  });
+}
+
+// ─── TAB SWITCH ──────────────────────────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  filterStore='';filterMachine='';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['stores','machines','booths'][i]===tab);
+  });
+  render();
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function showModal(html){ document.getElementById('modalBody').innerHTML=html; document.getElementById('modalBg').style.display='flex'; }
+function closeModal(){ document.getElementById('modalBg').style.display='none'; }
+function closeModalBg(e){ if(e.target===document.getElementById('modalBg')) closeModal(); }
+
+// ─── STORES CRUD ─────────────────────────────────────────────────────────────
+function addStore(){
+  showModal(`<div class="modal-title">店舗追加</div>
+<div class="form-group"><label>店舗名</label><input id="f_name" placeholder="例：合志" autofocus></div>
+<div class="form-group"><label>地域</label><select id="f_region"><option>熊本</option><option>鹿児島</option><option>長崎</option><option>宮崎</option><option>福岡</option></select></div>
+<div class="form-group"><label>店舗コード</label><input id="f_code" placeholder="例：S012"></div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+  <button class="btn-save" onclick="saveNewStore()">追加</button>
+</div>`);
+}
+function saveNewStore(){
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){ alert('店舗名を入力してください'); return; }
+  const maxOrder=stores.length?Math.max(...stores.map(s=>s.sort_order)):0;
+  const code=document.getElementById('f_code').value.trim()||genId('S');
+  stores.push({id:code,store_code:code,store_name:name,region:document.getElementById('f_region').value,sort_order:maxOrder+1});
+  closeModal(); render();
+}
+function editStore(id){
+  const s=stores.find(x=>x.id===id); if(!s) return;
+  const rOpts=['熊本','鹿児島','長崎','宮崎','福岡'].map(r=>`<option${r===s.region?' selected':''}>${r}</option>`).join('');
+  showModal(`<div class="modal-title">店舗編集</div>
+<div class="form-group"><label>店舗名</label><input id="f_name" value="${esc(s.store_name)}" autofocus></div>
+<div class="form-group"><label>地域</label><select id="f_region">${rOpts}</select></div>
+<div class="form-group"><label>集金順</label><input id="f_order" type="number" value="${s.sort_order}" min="1"></div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+  <button class="btn-save" onclick="saveEditStore('${id}')">保存</button>
+</div>`);
+}
+function saveEditStore(id){
+  const s=stores.find(x=>x.id===id); if(!s) return;
+  s.store_name=document.getElementById('f_name').value.trim()||s.store_name;
+  s.region=document.getElementById('f_region').value;
+  s.sort_order=parseInt(document.getElementById('f_order').value)||s.sort_order;
+  closeModal(); render();
+}
+function delStore(id){
+  if(!confirm('この店舗を削除しますか？\n関連する機械・ブースも削除されます。')) return;
+  const mids=machines.filter(m=>m.store_id===id).map(m=>m.id);
+  booths=booths.filter(b=>!mids.includes(b.machine_id));
+  machines=machines.filter(m=>m.store_id!==id);
+  stores=stores.filter(s=>s.id!==id);
+  stores.sort((a,b)=>a.sort_order-b.sort_order).forEach((s,i)=>s.sort_order=i+1);
+  render();
+}
+
+// ─── MACHINES CRUD ───────────────────────────────────────────────────────────
+function addMachine(){
+  const storeOpts=stores.sort((a,b)=>a.sort_order-b.sort_order).map(s=>`<option value="${s.id}"${filterStore===s.id?' selected':''}>${esc(s.store_name)}</option>`).join('');
+  const models=['BUZZクレーン','BUZZクレーンミニ','BUZZクレーンスリム','セサミ','ジャリクレーン','クリスタル','その他'];
+  showModal(`<div class="modal-title">機械追加</div>
+<div class="form-group"><label>店舗</label><select id="f_store">${storeOpts}</select></div>
+<div class="form-group"><label>機械名</label><input id="f_name" placeholder="例：BUZZ＃１" autofocus></div>
+<div class="form-group"><label>モデル</label><select id="f_model">${models.map(m=>`<option>${m}</option>`).join('')}</select></div>
+<div class="form-group"><label>レンタルNo.</label><input id="f_rental" placeholder="例：R2014"></div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+  <button class="btn-save" onclick="saveNewMachine()">追加</button>
+</div>`);
+}
+function saveNewMachine(){
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){ alert('機械名を入力してください'); return; }
+  const code=genId('M');
+  machines.push({id:code,machine_code:code,store_id:document.getElementById('f_store').value,machine_name:name,rental_no:document.getElementById('f_rental').value.trim(),model:document.getElementById('f_model').value});
+  closeModal(); render();
+}
+function editMachine(id){
+  const m=machines.find(x=>x.id===id); if(!m) return;
+  const storeOpts=stores.sort((a,b)=>a.sort_order-b.sort_order).map(s=>`<option value="${s.id}"${s.id===m.store_id?' selected':''}>${esc(s.store_name)}</option>`).join('');
+  const models=['BUZZクレーン','BUZZクレーンミニ','BUZZクレーンスリム','セサミ','ジャリクレーン','クリスタル','その他'];
+  const modelOpts=models.map(x=>`<option${x===m.model?' selected':''}>${x}</option>`).join('');
+  showModal(`<div class="modal-title">機械編集</div>
+<div class="form-group"><label>店舗</label><select id="f_store">${storeOpts}</select></div>
+<div class="form-group"><label>機械名</label><input id="f_name" value="${esc(m.machine_name)}" autofocus></div>
+<div class="form-group"><label>モデル</label><select id="f_model">${modelOpts}</select></div>
+<div class="form-group"><label>レンタルNo.</label><input id="f_rental" value="${esc(m.rental_no)}"></div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+  <button class="btn-save" onclick="saveEditMachine('${id}')">保存</button>
+</div>`);
+}
+function saveEditMachine(id){
+  const m=machines.find(x=>x.id===id); if(!m) return;
+  m.store_id=document.getElementById('f_store').value;
+  m.machine_name=document.getElementById('f_name').value.trim()||m.machine_name;
+  m.model=document.getElementById('f_model').value;
+  m.rental_no=document.getElementById('f_rental').value.trim();
+  closeModal(); render();
+}
+function delMachine(id){
+  if(!confirm('この機械を削除しますか？\n関連するブースも削除されます。')) return;
+  booths=booths.filter(b=>b.machine_id!==id);
+  machines=machines.filter(m=>m.id!==id);
+  render();
+}
+
+// ─── BOOTHS CRUD ─────────────────────────────────────────────────────────────
+function addBooth(){
+  const machOpts=machines.map(m=>`<option value="${m.id}">${esc(storeName(m.store_id))} - ${esc(m.machine_name)}</option>`).join('');
+  showModal(`<div class="modal-title">ブース追加</div>
+<div class="form-group"><label>機械</label><select id="f_machine">${machOpts}</select></div>
+<div class="form-group"><label>サテライトNo.</label><input id="f_sat" type="number" min="1" max="9" value="1" autofocus></div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+  <button class="btn-save" onclick="saveNewBooth()">追加</button>
+</div>`);
+}
+function saveNewBooth(){
+  const sat=parseInt(document.getElementById('f_sat').value)||1;
+  const mid=document.getElementById('f_machine').value;
+  const code=genId('B');
+  booths.push({id:code,booth_code:code,machine_id:mid,booth_number:sat,satellite_no:sat});
+  closeModal(); render();
+}
+function editBooth(id){
+  const b=booths.find(x=>x.id===id); if(!b) return;
+  const machOpts=machines.map(m=>`<option value="${m.id}"${m.id===b.machine_id?' selected':''}>${esc(storeName(m.store_id))} - ${esc(m.machine_name)}</option>`).join('');
+  showModal(`<div class="modal-title">ブース編集</div>
+<div class="form-group"><label>機械</label><select id="f_machine">${machOpts}</select></div>
+<div class="form-group"><label>サテライトNo.</label><input id="f_sat" type="number" min="1" max="9" value="${b.satellite_no}" autofocus></div>
+<div class="modal-actions">
+  <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+  <button class="btn-save" onclick="saveEditBooth('${id}')">保存</button>
+</div>`);
+}
+function saveEditBooth(id){
+  const b=booths.find(x=>x.id===id); if(!b) return;
+  b.machine_id=document.getElementById('f_machine').value;
+  b.satellite_no=parseInt(document.getElementById('f_sat').value)||b.satellite_no;
+  b.booth_number=b.satellite_no;
+  closeModal(); render();
+}
+function delBooth(id){
+  if(!confirm('このブースを削除しますか？')) return;
+  booths=booths.filter(b=>b.id!==id);
+  render();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
