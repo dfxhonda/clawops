@@ -20,6 +20,8 @@ import TestDataImport from './pages/TestDataImport'
 
 // Supabase版（認証不要・公開）
 import PrizeList from './pages/sb/PrizeList'
+// Supabase連携
+import PrizeMasterDB from './pages/db/PrizeMasterDB'
 
 // 棚卸しアプリ
 import InventoryDashboard from './pages/inventory/InventoryDashboard'
@@ -63,6 +65,9 @@ export default function App() {
       <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
       <Route path="/admin/setup-sheets" element={<PrivateRoute><SetupSheets /></PrivateRoute>} />
       <Route path="/admin/test-data" element={<PrivateRoute><TestDataImport /></PrivateRoute>} />
+
+      {/* Supabase DB */}
+      <Route path="/db/prizes" element={<PrizeMasterDB />} />
 
       {/* 棚卸しアプリ */}
       <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />

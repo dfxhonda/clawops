@@ -13,7 +13,8 @@ const SECTIONS = [
     items: [
       { icon: '🏪', title: '店舗管理', desc: '店舗の追加・編集・契約率', path: '/admin/stores' },
       { icon: '🎰', title: '機械管理', desc: '機械の追加・ブース生成', path: '/admin/machines' },
-      { icon: '🎁', title: '景品管理', desc: '景品マスタ・発注・在庫', path: '/admin/prizes' },
+      { icon: '🎁', title: '景品管理 (Sheets)', desc: '景品マスタ・発注・在庫', path: '/admin/prizes' },
+      { icon: '🗄️', title: '景品マスタ (Supabase)', desc: 'クラウドDB版・高速検索', path: '/db/prizes', highlight: true },
     ]
   },
   {
