@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ClawOps 店舗・機械・ブース管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0a0a;color:#e0e0e0}
+.hd{background:#1a1a2e;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.hd h1{font-size:16px;color:#00d4ff}
+.hd .cnt{font-size:11px;color:#888}
+.tabs{display:flex;background:#111;border-bottom:1px solid #333;position:sticky;top:48px;z-index:99}
+.tab{flex:1;padding:10px;text-align:center;color:#666;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:#00d4ff;border-bottom-color:#00d4ff}
+.sr{padding:8px 16px;background:#111}
+.sr input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#1a1a1a;color:#fff;font-size:14px}
+.ls{padding:0 12px 80px}
+.it{background:#1a1a1a;border-radius:10px;padding:10px 12px;margin-top:6px;border:1px solid #222;display:flex;align-items:center;gap:10px;cursor:pointer}
+.it:active{background:#252525}
+.ic{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.it .info{flex:1;min-width:0}
+.it .nm{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .sub{font-size:11px;color:#888;margin-top:2px}
+.it .badge{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;white-space:nowrap}
+.bg-blue{background:#1a2a4a;color:#4a9eff}
+.bg-green{background:#1a3a1a;color:#4caf50}
+.bg-orange{background:#3a2a1a;color:#ff9800}
+.bg-purple{background:#2a1a3a;color:#b388ff}
+.mb{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:200}
+.md{position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;border-radius:16px 16px 0 0;padding:16px;max-height:80vh;overflow-y:auto;z-index:201;display:none}
+.md h2{font-size:15px;color:#00d4ff;margin-bottom:10px}
+.md .f{margin-bottom:8px}
+.md label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.md input,.md select{width:100%;padding:7px;border-radius:6px;border:1px solid #333;background:#0a0a0a;color:#fff;font-size:13px}
+.md .ac{display:flex;gap:8px;margin-top:12px}
+.md .bt{flex:1;padding:10px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.bs{background:#00d4ff;color:#000}
+.bc{background:#333;color:#fff}
+.nv{position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;display:flex;border-top:1px solid #333;z-index:100}
+.nv a{flex:1;padding:8px 0;text-align:center;color:#666;font-size:10px;text-decoration:none}
+.nv a.on{color:#00d4ff}
+.nv a div{font-size:18px}
+.grp{padding:8px 16px 4px;font-size:11px;color:#00d4ff;font-weight:700;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="hd"><h1>🏗️ ClawOps 管理</h1><span class="cnt" id="cnt"></span></div>
+<div class="tabs">
+<div class="tab on" onclick="sw(0,this)">🏪 店舗(11)</div>
+<div class="tab" onclick="sw(1,this)">🎰 機械(68)</div>
+<div class="tab" onclick="sw(2,this)">🎯 ブース(82)</div>
+</div>
+<div class="sr"><input type="search" id="q" placeholder="🔍 検索" oninput="ren()" autocomplete="off"></div>
+<div class="ls" id="ls"></div>
+
+<div class="mb" id="mbg" onclick="cls()"></div>
+<div class="md" id="mdl"></div>
+
+<nav class="nv">
+<a href="prizes.html"><div>🏷️</div>景品</a>
+<a href="#" class="on"><div>🏗️</div>管理</a>
+<a href="#"><div>📦</div>在庫</a>
+<a href="#"><div>⚙️</div>設定</a>
+</nav>
+
+<script>
+var S=[{"store_code":"DNK001","store_name":"ドン・キホーテ合志店","store_short":"合志","area":"熊本"},{"store_code":"DNK002","store_name":"MEGAドン・キホーテ菊陽店","store_short":"菊陽","area":"熊本"},{"store_code":"DNK003","store_name":"ドン・キホーテ南熊本店","store_short":"南熊本","area":"熊本"},{"store_code":"DNK004","store_name":"ドン・キホーテ下通店","store_short":"下通り","area":"熊本"},{"store_code":"DNK005","store_name":"ドン・キホーテ鹿児島宇宿店","store_short":"宇宿","area":"鹿児島"},{"store_code":"DNK006","store_name":"ドン・キホーテ天文館店","store_short":"天文館","area":"鹿児島"},{"store_code":"DNK007","store_name":"ドン・キホーテ鹿児島中央一番街店","store_short":"中央","area":"鹿児島"},{"store_code":"DNK008","store_name":"ドン・キホーテ薩摩川内店","store_short":"川内","area":"鹿児島"},{"store_code":"DNK009","store_name":"MEGAドン・キホーテ霧島隼人店","store_short":"霧島","area":"鹿児島"},{"store_code":"DNK010","store_name":"MEGAドン・キホーテ鹿屋店","store_short":"鹿屋","area":"鹿児島"},{"store_code":"DNK011","store_name":"MEGAドン・キホーテ都城店","store_short":"都城","area":"宮崎"}];
+var M=[{"machine_code":"R2075","store_code":"DNK007","store_short":"中央","machine_name":"BUZZ1"},{"machine_code":"R2076","store_code":"DNK007","store_short":"中央","machine_name":"BUZZ2"},{"machine_code":"R2077","store_code":"DNK007","store_short":"中央","machine_name":"Buzzミニ"},{"machine_code":"R2068","store_code":"DNK003","store_short":"南熊本","machine_name":"BUZZ1"},{"machine_code":"R2069","store_code":"DNK003","store_short":"南熊本","machine_name":"BUZZ1"},{"machine_code":"R2078","store_code":"DNK003","store_short":"南熊本","machine_name":"Buzzミニ"},{"machine_code":"R2079","store_code":"DNK003","store_short":"南熊本","machine_name":"Buzzミニ"},{"machine_code":"R1005","store_code":"DNK001","store_short":"合志","machine_name":"セサミｗ1"},{"machine_code":"R1006","store_code":"DNK001","store_short":"合志","machine_name":"セサミｗ2"},{"machine_code":"R1052","store_code":"DNK001","store_short":"合志","machine_name":"セサミｗ3"},{"machine_code":"R1053","store_code":"DNK001","store_short":"合志","machine_name":"セサミｗ4"},{"machine_code":"R2014","store_code":"DNK001","store_short":"合志","machine_name":"BUZZクレーン＃１"},{"machine_code":"R2054","store_code":"DNK001","store_short":"合志","machine_name":"BUZZクレーン＃２"},{"machine_code":"R2055","store_code":"DNK001","store_short":"合志","machine_name":"BUZZクレーンミニ＃１"},{"machine_code":"R2072","store_code":"DNK006","store_short":"天文館","machine_name":"BUZZ1"},{"machine_code":"R2073","store_code":"DNK006","store_short":"天文館","machine_name":"BUZZ2"},{"machine_code":"R2013","store_code":"DNK005","store_short":"宇宿","machine_name":"クリスタル"},{"machine_code":"R2035","store_code":"DNK005","store_short":"宇宿","machine_name":"BUZZ1"},{"machine_code":"R2036","store_code":"DNK005","store_short":"宇宿","machine_name":"BUZZ２"},{"machine_code":"R2057","store_code":"DNK005","store_short":"宇宿","machine_name":"BUZZ3"},{"machine_code":"R2059","store_code":"DNK005","store_short":"宇宿","machine_name":"Buzzミニ"},{"machine_code":"R2070","store_code":"DNK005","store_short":"宇宿","machine_name":"BUZZ4"},{"machine_code":"R2071","store_code":"DNK005","store_short":"宇宿","machine_name":"BUZZ6"},{"machine_code":"R2031","store_code":"DNK008","store_short":"川内","machine_name":"BUZZ1"},{"machine_code":"R2034","store_code":"DNK008","store_short":"川内","machine_name":"クリスタル"},{"machine_code":"R2037","store_code":"DNK008","store_short":"川内","machine_name":"BUZZ２"},{"machine_code":"R2041","store_code":"DNK008","store_short":"川内","machine_name":"Buzzミニ"},{"machine_code":"R2042","store_code":"DNK008","store_short":"川内","machine_name":"Buzzミニ"},{"machine_code":"R2074","store_code":"DNK008","store_short":"川内","machine_name":"トライデッキ"},{"machine_code":"Ｒ2063","store_code":"DNK008","store_short":"川内","machine_name":"ジャリクレ＃1"},{"machine_code":"Ｒ2067","store_code":"DNK008","store_short":"川内","machine_name":"ジャリクレ＃2"},{"machine_code":"R2058","store_code":"DNK002","store_short":"菊陽","machine_name":"BUZZクレーン"},{"machine_code":"R2062","store_code":"DNK002","store_short":"菊陽","machine_name":"BUZZクレーンスリム"},{"machine_code":"70600816","store_code":"DNK011","store_short":"都城","machine_name":"ポケクレマルチ"},{"machine_code":"70600826","store_code":"DNK011","store_short":"都城","machine_name":"ポケクレマルチ"},{"machine_code":"70600827","store_code":"DNK011","store_short":"都城","machine_name":"ポケクレマルチ"},{"machine_code":"70600983","store_code":"DNK011","store_short":"都城","machine_name":"ポケクレマルチ"},{"machine_code":"71261231","store_code":"DNK011","store_short":"都城","machine_name":"トリプルクレーン"},{"machine_code":"71602154","store_code":"DNK011","store_short":"都城","machine_name":"ジャリクレ"},{"machine_code":"BP0318","store_code":"DNK011","store_short":"都城","machine_name":"物販ガチャ200"},{"machine_code":"BP0763","store_code":"DNK011","store_short":"都城","machine_name":"物販ガチャ200"},{"machine_code":"BP1025","store_code":"DNK011","store_short":"都城","machine_name":"物販ガチャ200"},{"machine_code":"GB0139","store_code":"DNK011","store_short":"都城","machine_name":"ガムガチャ100"},{"machine_code":"GB0303","store_code":"DNK011","store_short":"都城","machine_name":"ガムガチャ100"},{"machine_code":"GB0771","store_code":"DNK011","store_short":"都城","machine_name":"ガムガチャ100"},{"machine_code":"R6001","store_code":"DNK011","store_short":"都城","machine_name":"BUZZ1"},{"machine_code":"R6002","store_code":"DNK011","store_short":"都城","machine_name":"BUZZ2"},{"machine_code":"R6003","store_code":"DNK011","store_short":"都城","machine_name":"BUZZ3"},{"machine_code":"R6004","store_code":"DNK011","store_short":"都城","machine_name":"BUZZ4"},{"machine_code":"R6005","store_code":"DNK011","store_short":"都城","machine_name":"Buzzミニ1"},{"machine_code":"R6006","store_code":"DNK011","store_short":"都城","machine_name":"Buzzミニ2"},{"machine_code":"R6007","store_code":"DNK011","store_short":"都城","machine_name":"Buzzミニ3"},{"machine_code":"R6008","store_code":"DNK011","store_short":"都城","machine_name":"Buzzミニ4"},{"machine_code":"R2001","store_code":"DNK009","store_short":"霧島","machine_name":"クリスタル"},{"machine_code":"R2039","store_code":"DNK009","store_short":"霧島","machine_name":"Buzzミニ"},{"machine_code":"R2044","store_code":"DNK009","store_short":"霧島","machine_name":"Buzzミニ"},{"machine_code":"R2045","store_code":"DNK009","store_short":"霧島","machine_name":"BUZZ1"},{"machine_code":"R2046","store_code":"DNK009","store_short":"霧島","machine_name":"BUZZ2"},{"machine_code":"R2048","store_code":"DNK009","store_short":"霧島","machine_name":"BUZZ3"},{"machine_code":"R2049","store_code":"DNK009","store_short":"霧島","machine_name":"BUZZ4"},{"machine_code":"R2050","store_code":"DNK009","store_short":"霧島","machine_name":"バーバーカット"},{"machine_code":"R2040","store_code":"DNK010","store_short":"鹿屋","machine_name":"Buzzミニ"},{"machine_code":"R2060","store_code":"DNK010","store_short":"鹿屋","machine_name":"Buzzミニ"},{"machine_code":"Ｒ2038","store_code":"DNK010","store_short":"鹿屋","machine_name":"BUZZ2"},{"machine_code":"Ｒ2061","store_code":"DNK010","store_short":"鹿屋","machine_name":"ジャリクレ＃１"},{"machine_code":"Ｒ2064","store_code":"DNK010","store_short":"鹿屋","machine_name":"BUZZ1"},{"machine_code":"Ｒ2065","store_code":"DNK010","store_short":"鹿屋","machine_name":"BUZZ3"},{"machine_code":"Ｒ2066","store_code":"DNK010","store_short":"鹿屋","machine_name":"BUZZ4"}];
+var B=[{"booth_id":"109","store_code":"DNK001","store_short":"合志","machine_code":"R1005","machine_name":"セサミｗ1","satellite_no":"1"},{"booth_id":"110","store_code":"DNK001","store_short":"合志","machine_code":"R1005","machine_name":"セサミｗ1","satellite_no":"2"},{"booth_id":"111","store_code":"DNK001","store_short":"合志","machine_code":"R1006","machine_name":"セサミｗ2","satellite_no":"1"},{"booth_id":"112","store_code":"DNK001","store_short":"合志","machine_code":"R1006","machine_name":"セサミｗ2","satellite_no":"2"},{"booth_id":"113","store_code":"DNK001","store_short":"合志","machine_code":"R1052","machine_name":"セサミｗ3","satellite_no":"1"},{"booth_id":"114","store_code":"DNK001","store_short":"合志","machine_code":"R1052","machine_name":"セサミｗ3","satellite_no":"2"},{"booth_id":"115","store_code":"DNK001","store_short":"合志","machine_code":"R1053","machine_name":"セサミｗ4","satellite_no":"1"},{"booth_id":"116","store_code":"DNK001","store_short":"合志","machine_code":"R1053","machine_name":"セサミｗ4","satellite_no":"2"},{"booth_id":"100","store_code":"DNK001","store_short":"合志","machine_code":"R2014","machine_name":"BUZZクレーン＃１","satellite_no":"1"},{"booth_id":"101","store_code":"DNK001","store_short":"合志","machine_code":"R2014","machine_name":"BUZZクレーン＃１","satellite_no":"2"},{"booth_id":"102","store_code":"DNK001","store_short":"合志","machine_code":"R2014","machine_name":"BUZZクレーン＃１","satellite_no":"3"},{"booth_id":"103","store_code":"DNK001","store_short":"合志","machine_code":"R2014","machine_name":"BUZZクレーン＃１","satellite_no":"4"},{"booth_id":"104","store_code":"DNK001","store_short":"合志","machine_code":"R2054","machine_name":"BUZZクレーン＃２","satellite_no":"1"},{"booth_id":"105","store_code":"DNK001","store_short":"合志","machine_code":"R2054","machine_name":"BUZZクレーン＃２","satellite_no":"2"},{"booth_id":"106","store_code":"DNK001","store_short":"合志","machine_code":"R2054","machine_name":"BUZZクレーン＃２","satellite_no":"3"},{"booth_id":"107","store_code":"DNK001","store_short":"合志","machine_code":"R2054","machine_name":"BUZZクレーン＃２","satellite_no":"4"},{"booth_id":"108","store_code":"DNK001","store_short":"合志","machine_code":"R2055","machine_name":"BUZZクレーンミニ＃１","satellite_no":"1"},{"booth_id":"117","store_code":"DNK002","store_short":"菊陽","machine_code":"R2058","machine_name":"BUZZクレーン","satellite_no":"1"},{"booth_id":"118","store_code":"DNK002","store_short":"菊陽","machine_code":"R2058","machine_name":"BUZZクレーン","satellite_no":"2"},{"booth_id":"119","store_code":"DNK002","store_short":"菊陽","machine_code":"R2058","machine_name":"BUZZクレーン","satellite_no":"3"},{"booth_id":"120","store_code":"DNK002","store_short":"菊陽","machine_code":"R2058","machine_name":"BUZZクレーン","satellite_no":"4"},{"booth_id":"121","store_code":"DNK002","store_short":"菊陽","machine_code":"R2062","machine_name":"BUZZクレーンスリム","satellite_no":"1"},{"booth_id":"122","store_code":"DNK002","store_short":"菊陽","machine_code":"R2062","machine_name":"BUZZクレーンスリム","satellite_no":"2"},{"booth_id":"123","store_code":"DNK003","store_short":"南熊本","machine_code":"R2068","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"124","store_code":"DNK003","store_short":"南熊本","machine_code":"R2069","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"125","store_code":"DNK003","store_short":"南熊本","machine_code":"R2078","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"126","store_code":"DNK003","store_short":"南熊本","machine_code":"R2079","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"129","store_code":"DNK005","store_short":"宇宿","machine_code":"R2013","machine_name":"クリスタル","satellite_no":"1"},{"booth_id":"127","store_code":"DNK005","store_short":"宇宿","machine_code":"R2035","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"128","store_code":"DNK005","store_short":"宇宿","machine_code":"R2036","machine_name":"BUZZ２","satellite_no":"1"},{"booth_id":"130","store_code":"DNK005","store_short":"宇宿","machine_code":"R2057","machine_name":"BUZZ3","satellite_no":"1"},{"booth_id":"131","store_code":"DNK005","store_short":"宇宿","machine_code":"R2059","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"132","store_code":"DNK005","store_short":"宇宿","machine_code":"R2070","machine_name":"BUZZ4","satellite_no":"1"},{"booth_id":"133","store_code":"DNK005","store_short":"宇宿","machine_code":"R2071","machine_name":"BUZZ6","satellite_no":"1"},{"booth_id":"134","store_code":"DNK006","store_short":"天文館","machine_code":"R2072","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"135","store_code":"DNK006","store_short":"天文館","machine_code":"R2073","machine_name":"BUZZ2","satellite_no":"1"},{"booth_id":"136","store_code":"DNK007","store_short":"中央","machine_code":"R2075","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"137","store_code":"DNK007","store_short":"中央","machine_code":"R2076","machine_name":"BUZZ2","satellite_no":"1"},{"booth_id":"138","store_code":"DNK007","store_short":"中央","machine_code":"R2077","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"139","store_code":"DNK008","store_short":"川内","machine_code":"R2031","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"141","store_code":"DNK008","store_short":"川内","machine_code":"R2034","machine_name":"クリスタル","satellite_no":"1"},{"booth_id":"140","store_code":"DNK008","store_short":"川内","machine_code":"R2037","machine_name":"BUZZ２","satellite_no":"1"},{"booth_id":"142","store_code":"DNK008","store_short":"川内","machine_code":"R2041","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"143","store_code":"DNK008","store_short":"川内","machine_code":"R2042","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"146","store_code":"DNK008","store_short":"川内","machine_code":"R2074","machine_name":"トライデッキ","satellite_no":"1"},{"booth_id":"144","store_code":"DNK008","store_short":"川内","machine_code":"Ｒ2063","machine_name":"ジャリクレ＃1","satellite_no":"1"},{"booth_id":"145","store_code":"DNK008","store_short":"川内","machine_code":"Ｒ2067","machine_name":"ジャリクレ＃2","satellite_no":"1"},{"booth_id":"148","store_code":"DNK009","store_short":"霧島","machine_code":"R2001","machine_name":"クリスタル","satellite_no":"1"},{"booth_id":"154","store_code":"DNK009","store_short":"霧島","machine_code":"R2039","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"147","store_code":"DNK009","store_short":"霧島","machine_code":"R2044","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"149","store_code":"DNK009","store_short":"霧島","machine_code":"R2045","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"150","store_code":"DNK009","store_short":"霧島","machine_code":"R2046","machine_name":"BUZZ2","satellite_no":"1"},{"booth_id":"151","store_code":"DNK009","store_short":"霧島","machine_code":"R2048","machine_name":"BUZZ3","satellite_no":"1"},{"booth_id":"152","store_code":"DNK009","store_short":"霧島","machine_code":"R2049","machine_name":"BUZZ4","satellite_no":"1"},{"booth_id":"153","store_code":"DNK009","store_short":"霧島","machine_code":"R2050","machine_name":"バーバーカット","satellite_no":"1"},{"booth_id":"160","store_code":"DNK010","store_short":"鹿屋","machine_code":"R2040","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"161","store_code":"DNK010","store_short":"鹿屋","machine_code":"R2060","machine_name":"Buzzミニ","satellite_no":"1"},{"booth_id":"156","store_code":"DNK010","store_short":"鹿屋","machine_code":"Ｒ2038","machine_name":"BUZZ2","satellite_no":"1"},{"booth_id":"159","store_code":"DNK010","store_short":"鹿屋","machine_code":"Ｒ2061","machine_name":"ジャリクレ＃１","satellite_no":"1"},{"booth_id":"155","store_code":"DNK010","store_short":"鹿屋","machine_code":"Ｒ2064","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"157","store_code":"DNK010","store_short":"鹿屋","machine_code":"Ｒ2065","machine_name":"BUZZ3","satellite_no":"1"},{"booth_id":"158","store_code":"DNK010","store_short":"鹿屋","machine_code":"Ｒ2066","machine_name":"BUZZ4","satellite_no":"1"},{"booth_id":"181","store_code":"DNK011","store_short":"都城","machine_code":"70600816","machine_name":"ポケクレマルチ","satellite_no":"1"},{"booth_id":"175","store_code":"DNK011","store_short":"都城","machine_code":"70600826","machine_name":"ポケクレマルチ","satellite_no":"1"},{"booth_id":"170","store_code":"DNK011","store_short":"都城","machine_code":"70600827","machine_name":"ポケクレマルチ","satellite_no":"1"},{"booth_id":"178","store_code":"DNK011","store_short":"都城","machine_code":"70600983","machine_name":"ポケクレマルチ","satellite_no":"1"},{"booth_id":"171","store_code":"DNK011","store_short":"都城","machine_code":"71261231","machine_name":"トリプルクレーン","satellite_no":"1"},{"booth_id":"172","store_code":"DNK011","store_short":"都城","machine_code":"71602154","machine_name":"ジャリクレ","satellite_no":"1"},{"booth_id":"173","store_code":"DNK011","store_short":"都城","machine_code":"BP0318","machine_name":"物販ガチャ200","satellite_no":"1"},{"booth_id":"176","store_code":"DNK011","store_short":"都城","machine_code":"BP0763","machine_name":"物販ガチャ200","satellite_no":"1"},{"booth_id":"179","store_code":"DNK011","store_short":"都城","machine_code":"BP1025","machine_name":"物販ガチャ200","satellite_no":"1"},{"booth_id":"180","store_code":"DNK011","store_short":"都城","machine_code":"GB0139","machine_name":"ガムガチャ100","satellite_no":"1"},{"booth_id":"174","store_code":"DNK011","store_short":"都城","machine_code":"GB0303","machine_name":"ガムガチャ100","satellite_no":"1"},{"booth_id":"177","store_code":"DNK011","store_short":"都城","machine_code":"GB0771","machine_name":"ガムガチャ100","satellite_no":"1"},{"booth_id":"162","store_code":"DNK011","store_short":"都城","machine_code":"R6001","machine_name":"BUZZ1","satellite_no":"1"},{"booth_id":"163","store_code":"DNK011","store_short":"都城","machine_code":"R6002","machine_name":"BUZZ2","satellite_no":"1"},{"booth_id":"164","store_code":"DNK011","store_short":"都城","machine_code":"R6003","machine_name":"BUZZ3","satellite_no":"1"},{"booth_id":"165","store_code":"DNK011","store_short":"都城","machine_code":"R6004","machine_name":"BUZZ4","satellite_no":"1"},{"booth_id":"166","store_code":"DNK011","store_short":"都城","machine_code":"R6005","machine_name":"Buzzミニ1","satellite_no":"1"},{"booth_id":"167","store_code":"DNK011","store_short":"都城","machine_code":"R6006","machine_name":"Buzzミニ2","satellite_no":"1"},{"booth_id":"168","store_code":"DNK011","store_short":"都城","machine_code":"R6007","machine_name":"Buzzミニ3","satellite_no":"1"},{"booth_id":"169","store_code":"DNK011","store_short":"都城","machine_code":"R6008","machine_name":"Buzzミニ4","satellite_no":"1"}];
+var mode=0,st;
+var colors=['#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#009688','#4caf50','#ff9800','#ff5722','#795548','#607d8b'];
+function hc(s){var h=0;for(var i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);return colors[Math.abs(h)%colors.length]}
+
+function sw(m,el){mode=m;document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});el.classList.add('on');ren()}
+
+function ren(){
+var q=(document.getElementById('q').value||'').toLowerCase();
+var el=document.getElementById('ls');
+var h='';
+if(mode===0){
+  var d=S.filter(function(s){return !q||s.store_name.toLowerCase().indexOf(q)>=0||s.store_short.toLowerCase().indexOf(q)>=0});
+  var areas={};d.forEach(function(s){if(!areas[s.area])areas[s.area]=[];areas[s.area].push(s)});
+  for(var a in areas){
+    h+='<div class="grp">📍 '+a+' ('+areas[a].length+'店舗)</div>';
+    areas[a].forEach(function(s){
+      var mc=M.filter(function(m){return m.store_code===s.store_code}).length;
+      h+='<div class="it" onclick="opnS(\''+s.store_code+'\')"><div class="ic" style="background:'+hc(s.store_short)+'">'+s.store_short.charAt(0)+'</div><div class="info"><div class="nm">'+s.store_name+'</div><div class="sub">'+s.store_code+' | 機械'+mc+'台</div></div><span class="badge bg-blue">'+s.area+'</span></div>';
+    });
+  }
+  document.getElementById('cnt').textContent=d.length+'店舗';
+}else if(mode===1){
+  var d=M.filter(function(m){return !q||m.machine_name.toLowerCase().indexOf(q)>=0||m.machine_code.toLowerCase().indexOf(q)>=0||m.store_short.toLowerCase().indexOf(q)>=0});
+  var stores={};d.forEach(function(m){if(!stores[m.store_short])stores[m.store_short]=[];stores[m.store_short].push(m)});
+  for(var s in stores){
+    h+='<div class="grp">🏪 '+s+' ('+stores[s].length+'台)</div>';
+    stores[s].forEach(function(m){
+      var bc=B.filter(function(b){return b.machine_code===m.machine_code}).length;
+      h+='<div class="it" onclick="opnM(\''+m.machine_code+'\')"><div class="ic" style="background:'+hc(m.machine_name)+'">'+m.machine_name.charAt(0)+'</div><div class="info"><div class="nm">'+m.machine_name+'</div><div class="sub">'+m.machine_code+' | '+bc+'ブース</div></div><span class="badge bg-green">'+m.store_short+'</span></div>';
+    });
+  }
+  document.getElementById('cnt').textContent=d.length+'台';
+}else{
+  var d=B.filter(function(b){return !q||b.machine_name.toLowerCase().indexOf(q)>=0||b.machine_code.toLowerCase().indexOf(q)>=0||b.store_short.toLowerCase().indexOf(q)>=0});
+  var machines={};d.forEach(function(b){var k=b.store_short+' / '+b.machine_name;if(!machines[k])machines[k]=[];machines[k].push(b)});
+  for(var m in machines){
+    h+='<div class="grp">🎰 '+m+' ('+machines[m].length+'ブース)</div>';
+    machines[m].forEach(function(b){
+      h+='<div class="it"><div class="ic bg-purple">B'+b.satellite_no+'</div><div class="info"><div class="nm">ブース #'+b.satellite_no+'</div><div class="sub">ID:'+b.booth_id+' | '+b.machine_code+'</div></div><span class="badge bg-orange">'+b.store_short+'</span></div>';
+    });
+  }
+  document.getElementById('cnt').textContent=d.length+'ブース';
+}
+if(!h)h='<div style="text-align:center;padding:40px;color:#666">検索結果なし</div>';
+el.innerHTML=h;
+}
+
+function opnS(code){
+  var s=S.find(function(x){return x.store_code===code});if(!s)return;
+  var mc=M.filter(function(m){return m.store_code===code}).length;
+  document.getElementById('mdl').innerHTML='<h2>🏪 '+s.store_name+'</h2><div class="f"><label>店舗コード</label><input value="'+s.store_code+'" readonly></div><div class="f"><label>店舗名</label><input value="'+s.store_name+'"></div><div class="f"><label>略称</label><input value="'+s.store_short+'"></div><div class="f"><label>エリア</label><input value="'+s.area+'"></div><div class="f"><label>機械数</label><input value="'+mc+'台" readonly></div><div class="ac"><button class="bt bc" onclick="cls()">閉じる</button><button class="bt bs" onclick="cls();alert(\'✅ 保存（テスト）\')">💾 保存</button></div>';
+  document.getElementById('mbg').style.display='block';document.getElementById('mdl').style.display='block';
+}
+
+function opnM(code){
+  var m=M.find(function(x){return x.machine_code===code});if(!m)return;
+  var bc=B.filter(function(b){return b.machine_code===code}).length;
+  document.getElementById('mdl').innerHTML='<h2>🎰 '+m.machine_name+'</h2><div class="f"><label>機械コード (Rナンバー)</label><input value="'+m.machine_code+'" readonly></div><div class="f"><label>機械名</label><input value="'+m.machine_name+'"></div><div class="f"><label>設置店舗</label><input value="'+m.store_short+'" readonly></div><div class="f"><label>ブース数</label><input value="'+bc+'" readonly></div><div class="ac"><button class="bt bc" onclick="cls()">閉じる</button><button class="bt bs" onclick="cls();alert(\'✅ 保存（テスト）\')">💾 保存</button></div>';
+  document.getElementById('mbg').style.display='block';document.getElementById('mdl').style.display='block';
+}
+
+function cls(){document.getElementById('mbg').style.display='none';document.getElementById('mdl').style.display='none'}
+ren();
+</script>
+</body>
+</html>
