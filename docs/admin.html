@@ -24,38 +24,54 @@
 }
 html,body{height:100%;overflow-x:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h)+env(safe-area-inset-bottom))}
+
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px 10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
 .header-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .header-title{font-size:18px;font-weight:700;letter-spacing:.5px;flex:1}
 .header-badge{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px}
-.tabs{display:flex;gap:4px}
+
+.tabs{display:flex;gap:4px;margin-bottom:8px}
 .tab-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;font-weight:600;padding:8px 4px;cursor:pointer;transition:all .15s;text-align:center}
 .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.search-wrap{position:relative}
+.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px 8px 32px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--text2)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text2);pointer-events:none;font-size:14px}
+
 main{padding:14px}
+
 .filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .filter-row select{flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;outline:none;cursor:pointer}
 .filter-row select:focus{border-color:var(--accent)}
+
 .btn-add{background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s}
 .btn-add:hover{background:var(--accent2)}
+
 .table-wrap{border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 th{background:var(--surface2);color:var(--text2);font-size:11px;font-weight:600;padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(124,106,255,.06)}
+
 .th-sort{cursor:pointer;user-select:none;transition:color .15s}
 .th-sort:hover{color:var(--text)}
 .sort-arrow{margin-left:4px;font-size:10px}
+
 .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
 .badge-green{background:rgba(46,204,113,.15);color:var(--green)}
 .badge-yellow{background:rgba(243,156,18,.15);color:var(--yellow)}
 .badge-blue{background:rgba(124,106,255,.15);color:var(--accent)}
 .badge-cyan{background:rgba(0,180,216,.15);color:var(--cyan)}
 .badge-red{background:rgba(231,76,60,.15);color:var(--red)}
+
 .btn-edit{border:1px solid var(--border);border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer;transition:all .15s;background:var(--surface2);color:var(--text2);white-space:nowrap}
 .btn-edit:hover{border-color:var(--accent);color:var(--accent)}
 .btn-del-modal{width:100%;background:transparent;border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:13px;padding:9px;cursor:pointer;margin-top:8px;transition:all .15s}
 .btn-del-modal:hover{background:var(--red);color:#fff}
+
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:480px;padding:20px;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
@@ -68,14 +84,28 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .btn-save:hover{background:var(--accent2)}
 .btn-cancel{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:14px;padding:11px;cursor:pointer}
 .btn-cancel:hover{border-color:var(--text);color:var(--text)}
+
 .count-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .count-text{font-size:12px;color:var(--text2)}
 .empty{text-align:center;padding:40px;color:var(--text2);font-size:14px}
+
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);height:var(--nav-h);display:flex;align-items:center;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom);z-index:100}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2);text-decoration:none;font-size:10px;padding:4px 8px;border-radius:8px;cursor:pointer;transition:color .15s;background:none;border:none}
 .nav-item.active,.nav-item:hover{color:var(--accent)}
 .nav-icon{font-size:20px}
-@media(min-width:768px){main{max-width:960px;margin:0 auto}.modal{max-width:520px}}
+
+.spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;bottom:calc(var(--nav-h)+16px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;z-index:400;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+@media(min-width:768px){
+  main{max-width:960px;margin:0 auto}
+  .modal{max-width:520px}
+}
 </style>
 </head>
 <body>
@@ -90,9 +120,16 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
     <button class="tab-btn" onclick="switchTab('machines')">🎮 機械</button>
     <button class="tab-btn" onclick="switchTab('booths')">🎯 ブース</button>
   </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="検索..." autocomplete="off" oninput="searchQ=this.value;render()">
+  </div>
 </header>
 
 <main id="mainContent"><div class="empty">⏳ 読み込み中...</div></main>
+
+<div id="spinnerOverlay" style="display:none" class="spinner-overlay"><div class="spinner"></div></div>
+<div id="toastEl" style="display:none" class="toast"></div>
 
 <nav>
   <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span>ホーム</a>
@@ -107,24 +144,49 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
 <script>
 const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
-const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
 
 async function sbGet(table,params){
-  const r=await fetch(SB_URL+'/'+table+'?'+params,{headers:SB_H});
+  const r=await fetch(SB_URL+'/'+table+'?'+params,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
   if(!r.ok)throw new Error(await r.text());
   return r.json();
+}
+async function sbPost(table,body){
+  const r=await fetch(SB_URL+'/'+table,{method:'POST',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+}
+async function sbPatch(table,col,val,body){
+  const r=await fetch(SB_URL+'/'+table+'?'+col+'=eq.'+encodeURIComponent(val),{method:'PATCH',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+}
+async function sbDelete(table,col,val){
+  const r=await fetch(SB_URL+'/'+table+'?'+col+'=eq.'+encodeURIComponent(val),{method:'DELETE',headers:SB_H});
+  if(!r.ok)throw new Error(await r.text());
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let stores=[], machines=[], booths=[];
 let currentTab='stores';
 let filterStore='', filterMachine='';
+let searchQ='';
 let storeSort={col:null,dir:'desc'};
 let machineSort={col:null,dir:'desc'};
 let boothSort={col:null,dir:'desc'};
+let _loadingCount=0, _toastTimer=null;
+
+// ─── LOADING / TOAST ─────────────────────────────────────────────────────────
+function showLoading(){_loadingCount++;document.getElementById('spinnerOverlay').style.display='flex';}
+function hideLoading(){_loadingCount=Math.max(0,_loadingCount-1);if(!_loadingCount)document.getElementById('spinnerOverlay').style.display='none';}
+function showToast(msg,ok=true){
+  const el=document.getElementById('toastEl');
+  el.textContent=msg;el.className='toast '+(ok?'ok':'err');el.style.display='block';
+  if(_toastTimer)clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.style.display='none',3000);
+}
 
 // ─── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadAll(){
+  showLoading();
   document.getElementById('mainContent').innerHTML='<div class="empty">⏳ 読み込み中...</div>';
   try{
     const [s,m,b]=await Promise.all([
@@ -139,7 +201,7 @@ async function loadAll(){
       '<div class="empty">❌ 読み込みエラー<br><small style="word-break:break-all;font-size:10px">'+esc(e.message)+'</small></div>';
     document.getElementById('headerBadge').textContent='エラー';
     console.error(e);
-  }
+  }finally{hideLoading();}
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -156,6 +218,10 @@ function activeBadge(v){
   return(v===false||v==='false')
     ?'<span class="badge badge-red">停止</span>'
     :'<span class="badge badge-green">稼働</span>';
+}
+function matchSearch(text){
+  if(!searchQ)return true;
+  return String(text||'').toLowerCase().includes(searchQ.toLowerCase());
 }
 
 // ─── SORT ─────────────────────────────────────────────────────────────────────
@@ -179,7 +245,7 @@ function cmp(av,bv,dir){
 }
 function applySortStores(list){
   const s=storeSort;
-  if(!s.col)return list.slice().sort((a,b)=>a.store_code.localeCompare(b.store_code));
+  if(!s.col)return list.slice().sort((a,b)=>String(a.store_code||'').localeCompare(String(b.store_code||'')));
   return list.slice().sort((a,b)=>{
     if(s.col==='machine_count')return cmp(machines.filter(m=>m.store_code===a.store_code).length,machines.filter(m=>m.store_code===b.store_code).length,s.dir);
     return cmp(a[s.col],b[s.col],s.dir);
@@ -187,7 +253,7 @@ function applySortStores(list){
 }
 function applySortMachines(list){
   const s=machineSort;
-  if(!s.col)return list.slice().sort((a,b)=>a.machine_code.localeCompare(b.machine_code));
+  if(!s.col)return list.slice().sort((a,b)=>String(a.machine_code||'').localeCompare(String(b.machine_code||'')));
   return list.slice().sort((a,b)=>{
     if(s.col==='booth_count')return cmp(booths.filter(x=>x.machine_code===a.machine_code).length,booths.filter(x=>x.machine_code===b.machine_code).length,s.dir);
     if(s.col==='store_name')return cmp(storeName(a.store_code),storeName(b.store_code),s.dir);
@@ -196,7 +262,7 @@ function applySortMachines(list){
 }
 function applySortBooths(list){
   const s=boothSort;
-  if(!s.col)return list.slice().sort((a,b)=>a.booth_code.localeCompare(b.booth_code));
+  if(!s.col)return list.slice().sort((a,b)=>String(a.booth_code||'').localeCompare(String(b.booth_code||'')));
   return list.slice().sort((a,b)=>{
     if(s.col==='store_name')return cmp(storeName(a.store_code||machineStore(a.machine_code)),storeName(b.store_code||machineStore(b.machine_code)),s.dir);
     if(s.col==='machine_name')return cmp(machineName(a.machine_code),machineName(b.machine_code),s.dir);
@@ -216,7 +282,9 @@ function th(tab,col,label){
 }
 
 function renderStores(){
-  const sorted=applySortStores(stores);
+  let list=stores;
+  if(searchQ)list=list.filter(s=>matchSearch(s.store_name)||matchSearch(s.store_code)||matchSearch(s.region)||matchSearch(s.notes));
+  const sorted=applySortStores(list);
   document.getElementById('headerBadge').textContent=stores.length+'店舗';
   const rows=sorted.map(s=>{
     const mc=machines.filter(m=>m.store_code===s.store_code).length;
@@ -230,7 +298,7 @@ function renderStores(){
       +'<td><button class="btn-edit" onclick="editStore(\''+esc(s.store_code)+'\')">編集</button></td>'
       +'</tr>';
   }).join('');
-  return'<div class="count-row"><span class="count-text">'+stores.length+'店舗</span>'
+  return'<div class="count-row"><span class="count-text">'+sorted.length+'/'+stores.length+'店舗</span>'
     +'<button class="btn-add" onclick="addStore()">＋ 店舗追加</button></div>'
     +'<div class="table-wrap"><table>'
     +'<colgroup><col style="width:22%"><col style="width:12%"><col style="width:12%"><col style="width:17%"><col style="width:9%"><col style="width:9%"><col style="width:19%"></colgroup>'
@@ -242,8 +310,9 @@ function renderStores(){
 function renderMachines(){
   let list=machines;
   if(filterStore)list=list.filter(m=>m.store_code===filterStore);
+  if(searchQ)list=list.filter(m=>matchSearch(m.machine_name)||matchSearch(m.machine_code)||matchSearch(storeName(m.store_code))||matchSearch(m.notes));
   document.getElementById('headerBadge').textContent=list.length+'台';
-  const storeOpts=stores.slice().sort((a,b)=>a.store_code.localeCompare(b.store_code))
+  const storeOpts=stores.slice().sort((a,b)=>String(a.store_code||'').localeCompare(String(b.store_code||'')))
     .map(s=>'<option value="'+s.store_code+'"'+(filterStore===s.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
   const sorted=applySortMachines(list);
   const rows=sorted.map(m=>{
@@ -252,6 +321,7 @@ function renderMachines(){
       +'<td><strong>'+esc(m.machine_name)+'</strong></td>'
       +'<td>'+esc(storeName(m.store_code))+'</td>'
       +'<td><code style="font-size:11px;color:var(--text2)">'+esc(m.machine_code)+'</code></td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+esc(m.notes||'—')+'</td>'
       +'<td>'+activeBadge(m.is_active)+'</td>'
       +'<td>'+bc+'台</td>'
       +'<td><button class="btn-edit" onclick="editMachine(\''+esc(m.machine_code)+'\')">編集</button></td>'
@@ -260,11 +330,11 @@ function renderMachines(){
   return'<div class="filter-row">'
     +'<select onchange="filterStore=this.value;render()"><option value="">全店舗</option>'+storeOpts+'</select>'
     +'<button class="btn-add" onclick="addMachine()">＋ 機械追加</button></div>'
-    +'<div class="count-row"><span class="count-text">'+list.length+'台</span></div>'
+    +'<div class="count-row"><span class="count-text">'+sorted.length+'台</span></div>'
     +'<div class="table-wrap"><table>'
-    +'<colgroup><col style="width:32%"><col style="width:20%"><col style="width:18%"><col style="width:10%"><col style="width:10%"><col style="width:10%"></colgroup>'
-    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+'<th>状態</th>'+th('machines','booth_count','ブース数')+'<th>操作</th></tr></thead>'
-    +'<tbody>'+(rows||'<tr><td colspan="6"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
+    +'<colgroup><col style="width:28%"><col style="width:18%"><col style="width:14%"><col style="width:16%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>'
+    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+'<th>備考</th><th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
+    +'<tbody>'+(rows||'<tr><td colspan="7"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
     +'</table></div>';
 }
 
@@ -273,10 +343,11 @@ function renderBooths(){
   const machList=filterStore?machines.filter(m=>m.store_code===filterStore):machines;
   if(filterStore)list=list.filter(b=>machList.some(m=>m.machine_code===b.machine_code));
   if(filterMachine)list=list.filter(b=>b.machine_code===filterMachine);
+  if(searchQ)list=list.filter(b=>matchSearch(b.booth_code)||matchSearch(machineName(b.machine_code))||matchSearch(storeName(b.store_code||machineStore(b.machine_code))));
   document.getElementById('headerBadge').textContent=list.length+'ブース';
-  const storeOpts=stores.slice().sort((a,b)=>a.store_code.localeCompare(b.store_code))
+  const storeOpts=stores.slice().sort((a,b)=>String(a.store_code||'').localeCompare(String(b.store_code||'')))
     .map(s=>'<option value="'+s.store_code+'"'+(filterStore===s.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
-  const machOpts=machList.slice().sort((a,b)=>a.machine_code.localeCompare(b.machine_code))
+  const machOpts=machList.slice().sort((a,b)=>String(a.machine_code||'').localeCompare(String(b.machine_code||'')))
     .map(m=>'<option value="'+m.machine_code+'"'+(filterMachine===m.machine_code?' selected':'')+'>'+esc(m.machine_name)+'</option>').join('');
   const sorted=applySortBooths(list);
   const rows=sorted.map(b=>{
@@ -294,7 +365,7 @@ function renderBooths(){
     +'<select onchange="filterStore=this.value;filterMachine=\'\';render()"><option value="">全店舗</option>'+storeOpts+'</select>'
     +'<select onchange="filterMachine=this.value;render()"><option value="">全機械</option>'+machOpts+'</select>'
     +'<button class="btn-add" onclick="addBooth()">＋ ブース追加</button></div>'
-    +'<div class="count-row"><span class="count-text">'+list.length+'ブース</span></div>'
+    +'<div class="count-row"><span class="count-text">'+sorted.length+'ブース</span></div>'
     +'<div class="table-wrap"><table>'
     +'<colgroup><col style="width:14%"><col style="width:18%"><col style="width:30%"><col style="width:12%"><col style="width:10%"><col style="width:16%"></colgroup>'
     +'<thead><tr>'+th('booths','booth_code','コード')+th('booths','store_name','店舗')+th('booths','machine_name','機械')+th('booths','booth_number','番号')+'<th>状態</th>'+'<th>操作</th></tr></thead>'
@@ -304,7 +375,8 @@ function renderBooths(){
 
 // ─── TAB SWITCH ───────────────────────────────────────────────────────────────
 function switchTab(tab){
-  currentTab=tab;filterStore='';filterMachine='';
+  currentTab=tab;filterStore='';filterMachine='';searchQ='';
+  document.getElementById('searchInput').value='';
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
     b.classList.toggle('active',['stores','machines','booths'][i]===tab);
   });
@@ -326,12 +398,25 @@ function addStore(){
     +'<div class="form-group"><label>備考</label><input id="f_notes" placeholder="担当者など"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewStore()">追加</button></div>');
 }
-function saveNewStore(){
+async function saveNewStore(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){alert('店舗名を入力してください');return;}
   const code=document.getElementById('f_code').value.trim()||genId('S');
-  stores.push({store_code:code,store_name:name,region:document.getElementById('f_region').value,opened_at:document.getElementById('f_opened').value||'',is_active:true,notes:document.getElementById('f_notes').value.trim()});
-  closeModal();render();
+  const payload={
+    store_code:code,
+    store_name:name,
+    region:document.getElementById('f_region').value,
+    opened_at:document.getElementById('f_opened').value||null,
+    is_active:true,
+    notes:document.getElementById('f_notes').value.trim()||null
+  };
+  closeModal();showLoading();
+  try{
+    await sbPost('stores',payload);
+    showToast('店舗を追加しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 function editStore(code){
   const s=stores.find(x=>x.store_code===code);if(!s)return;
@@ -342,69 +427,104 @@ function editStore(code){
     +'<div class="form-group"><label>店舗コード</label><input id="f_code" value="'+esc(s.store_code)+'"></div>'
     +'<div class="form-group"><label>営業開始日</label><input id="f_opened" type="date" value="'+esc(s.opened_at||'')+'"></div>'
     +'<div class="form-group"><label>備考</label><input id="f_notes" value="'+esc(s.notes||'')+'"></div>'
-    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditStore(\''+code+'\')">保存</button></div>'
-    +'<button class="btn-del-modal" onclick="delStore(\''+code+'\');closeModal()">削除</button>');
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditStore(\''+esc(code)+'\')">保存</button></div>'
+    +'<button class="btn-del-modal" onclick="delStore(\''+esc(code)+'\')">削除</button>');
 }
-function saveEditStore(code){
-  const s=stores.find(x=>x.store_code===code);if(!s)return;
-  s.store_name=document.getElementById('f_name').value.trim()||s.store_name;
-  s.region=document.getElementById('f_region').value;
-  s.store_code=document.getElementById('f_code').value.trim()||s.store_code;
-  s.opened_at=document.getElementById('f_opened').value||s.opened_at;
-  s.notes=document.getElementById('f_notes').value.trim();
-  closeModal();render();
+async function saveEditStore(code){
+  const payload={
+    store_name:document.getElementById('f_name').value.trim()||undefined,
+    region:document.getElementById('f_region').value,
+    store_code:document.getElementById('f_code').value.trim()||undefined,
+    opened_at:document.getElementById('f_opened').value||null,
+    notes:document.getElementById('f_notes').value.trim()||null
+  };
+  closeModal();showLoading();
+  try{
+    await sbPatch('stores','store_code',code,payload);
+    showToast('保存しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
-function delStore(code){
-  if(!confirm('この店舗を削除しますか？\n関連する機械・ブースも削除されます。'))return;
-  const mCodes=machines.filter(m=>m.store_code===code).map(m=>m.machine_code);
-  booths=booths.filter(b=>!mCodes.includes(b.machine_code));
-  machines=machines.filter(m=>m.store_code!==code);
-  stores=stores.filter(s=>s.store_code!==code);
-  render();
+async function delStore(code){
+  if(!confirm('この店舗を削除しますか？'))return;
+  closeModal();showLoading();
+  try{
+    await sbDelete('stores','store_code',code);
+    showToast('削除しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 
 // ─── MACHINES CRUD ────────────────────────────────────────────────────────────
 function addMachine(){
-  const storeOpts=stores.slice().sort((a,b)=>a.store_code.localeCompare(b.store_code))
+  const storeOpts=stores.slice().sort((a,b)=>String(a.store_code||'').localeCompare(String(b.store_code||'')))
     .map(s=>'<option value="'+s.store_code+'"'+(filterStore===s.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
   showModal('<div class="modal-title">機械追加</div>'
     +'<div class="form-group"><label>店舗</label><select id="f_store">'+storeOpts+'</select></div>'
     +'<div class="form-group"><label>機械名</label><input id="f_name" placeholder="例：BUZZ＃１" autofocus></div>'
+    +'<div class="form-group"><label>機械コード</label><input id="f_code" placeholder="空白で自動生成"></div>'
     +'<div class="form-group"><label>フロア</label><input id="f_floor" placeholder="例：1F"></div>'
     +'<div class="form-group"><label>備考</label><input id="f_notes" placeholder="レンタルNoなど"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewMachine()">追加</button></div>');
 }
-function saveNewMachine(){
+async function saveNewMachine(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){alert('機械名を入力してください');return;}
-  machines.push({machine_code:genId('M'),store_code:document.getElementById('f_store').value,machine_name:name,floor:document.getElementById('f_floor').value.trim(),is_active:true,notes:document.getElementById('f_notes').value.trim()});
-  closeModal();render();
+  const code=document.getElementById('f_code').value.trim()||genId('M');
+  const payload={
+    machine_code:code,
+    store_code:document.getElementById('f_store').value,
+    machine_name:name,
+    floor:document.getElementById('f_floor').value.trim()||null,
+    is_active:true,
+    notes:document.getElementById('f_notes').value.trim()||null
+  };
+  closeModal();showLoading();
+  try{
+    await sbPost('machines',payload);
+    showToast('機械を追加しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 function editMachine(code){
   const m=machines.find(x=>x.machine_code===code);if(!m)return;
-  const storeOpts=stores.slice().sort((a,b)=>a.store_code.localeCompare(b.store_code))
+  const storeOpts=stores.slice().sort((a,b)=>String(a.store_code||'').localeCompare(String(b.store_code||'')))
     .map(s=>'<option value="'+s.store_code+'"'+(s.store_code===m.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
   showModal('<div class="modal-title">機械編集</div>'
     +'<div class="form-group"><label>店舗</label><select id="f_store">'+storeOpts+'</select></div>'
     +'<div class="form-group"><label>機械名</label><input id="f_name" value="'+esc(m.machine_name)+'" autofocus></div>'
     +'<div class="form-group"><label>フロア</label><input id="f_floor" value="'+esc(m.floor||'')+'"></div>'
     +'<div class="form-group"><label>備考</label><input id="f_notes" value="'+esc(m.notes||'')+'"></div>'
-    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditMachine(\''+code+'\')">保存</button></div>'
-    +'<button class="btn-del-modal" onclick="delMachine(\''+code+'\');closeModal()">削除</button>');
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditMachine(\''+esc(code)+'\')">保存</button></div>'
+    +'<button class="btn-del-modal" onclick="delMachine(\''+esc(code)+'\')">削除</button>');
 }
-function saveEditMachine(code){
-  const m=machines.find(x=>x.machine_code===code);if(!m)return;
-  m.store_code=document.getElementById('f_store').value;
-  m.machine_name=document.getElementById('f_name').value.trim()||m.machine_name;
-  m.floor=document.getElementById('f_floor').value.trim();
-  m.notes=document.getElementById('f_notes').value.trim();
-  closeModal();render();
+async function saveEditMachine(code){
+  const payload={
+    store_code:document.getElementById('f_store').value,
+    machine_name:document.getElementById('f_name').value.trim()||undefined,
+    floor:document.getElementById('f_floor').value.trim()||null,
+    notes:document.getElementById('f_notes').value.trim()||null
+  };
+  closeModal();showLoading();
+  try{
+    await sbPatch('machines','machine_code',code,payload);
+    showToast('保存しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
-function delMachine(code){
-  if(!confirm('この機械を削除しますか？\n関連するブースも削除されます。'))return;
-  booths=booths.filter(b=>b.machine_code!==code);
-  machines=machines.filter(m=>m.machine_code!==code);
-  render();
+async function delMachine(code){
+  if(!confirm('この機械を削除しますか？'))return;
+  closeModal();showLoading();
+  try{
+    await sbDelete('machines','machine_code',code);
+    showToast('削除しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 
 // ─── BOOTHS CRUD ──────────────────────────────────────────────────────────────
@@ -413,13 +533,27 @@ function addBooth(){
   showModal('<div class="modal-title">ブース追加</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
     +'<div class="form-group"><label>ブース番号</label><input id="f_num" type="number" min="1" max="9" value="1" autofocus></div>'
+    +'<div class="form-group"><label>ブースコード</label><input id="f_code" placeholder="空白で自動生成"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewBooth()">追加</button></div>');
 }
-function saveNewBooth(){
+async function saveNewBooth(){
   const mCode=document.getElementById('f_machine').value;
   const m=machines.find(x=>x.machine_code===mCode);
-  booths.push({booth_code:genId('B'),machine_code:mCode,store_code:m?m.store_code:'',booth_number:parseInt(document.getElementById('f_num').value)||1,is_active:true});
-  closeModal();render();
+  const code=document.getElementById('f_code').value.trim()||genId('B');
+  const payload={
+    booth_code:code,
+    machine_code:mCode,
+    store_code:m?m.store_code:null,
+    booth_number:parseInt(document.getElementById('f_num').value)||1,
+    is_active:true
+  };
+  closeModal();showLoading();
+  try{
+    await sbPost('booths',payload);
+    showToast('ブースを追加しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 function editBooth(code){
   const b=booths.find(x=>x.booth_code===code);if(!b)return;
@@ -427,22 +561,34 @@ function editBooth(code){
   showModal('<div class="modal-title">ブース編集</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
     +'<div class="form-group"><label>ブース番号</label><input id="f_num" type="number" min="1" max="9" value="'+esc(b.booth_number)+'" autofocus></div>'
-    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditBooth(\''+code+'\')">保存</button></div>'
-    +'<button class="btn-del-modal" onclick="delBooth(\''+code+'\');closeModal()">削除</button>');
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditBooth(\''+esc(code)+'\')">保存</button></div>'
+    +'<button class="btn-del-modal" onclick="delBooth(\''+esc(code)+'\')">削除</button>');
 }
-function saveEditBooth(code){
-  const b=booths.find(x=>x.booth_code===code);if(!b)return;
+async function saveEditBooth(code){
   const mCode=document.getElementById('f_machine').value;
   const m=machines.find(x=>x.machine_code===mCode);
-  b.machine_code=mCode;
-  b.store_code=m?m.store_code:b.store_code;
-  b.booth_number=parseInt(document.getElementById('f_num').value)||b.booth_number;
-  closeModal();render();
+  const payload={
+    machine_code:mCode,
+    store_code:m?m.store_code:null,
+    booth_number:parseInt(document.getElementById('f_num').value)||1
+  };
+  closeModal();showLoading();
+  try{
+    await sbPatch('booths','booth_code',code,payload);
+    showToast('保存しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
-function delBooth(code){
+async function delBooth(code){
   if(!confirm('このブースを削除しますか？'))return;
-  booths=booths.filter(b=>b.booth_code!==code);
-  render();
+  closeModal();showLoading();
+  try{
+    await sbDelete('booths','booth_code',code);
+    showToast('削除しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
