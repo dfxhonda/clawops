@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ClawOps Import Pipeline v8.2
+// ClawOps Import Pipeline v8.3
 // Usage: node scripts/import_pipeline.js [--dry-run] [--skip-delete]
 // Options:
 //   --dry-run     パースとExcel出力のみ。Supabase投入しない
@@ -93,14 +93,25 @@ function shortenPrizeName(raw) {
   if (br2.length > 0) s = br2;
   s = s.replace(/\((?:ハーフ|クォーター)[^)]*円\)/g, '');
   s = s.replace(/\(送料[^)]*\)/g, '');
-  s = s.replace(/アミューズ不可|即納|緊急入荷|発注|価格改定/g, '');
-  s = s.replace(/バンダイ|ピーナッツクラブ/g, '');
-  s = s.replace(/●\s*\d+\s*/g, '');
-  s = s.replace(/●\s*\d+\s*/g, '');
-  s = s.replace(/\d+\/\d+締切/g, '');
+  // --- Phase 1: ●+日付/数字パターン削除 ---
+  s = s.replace(/●[\d\/]+締切?\s*/g, '');  // ●8/22締切 etc
+  s = s.replace(/●\s*\d+\s*/g, '');          // ●300  ●500 etc
+  // --- Phase 2: /日付締切パターン削除 ---
+  s = s.replace(/\/?[\d\/]+締切/g, '');       // /11締切  /8/22締切  8/22締切
   s = s.replace(/〆切/g, '');
+  s = s.trim();
+  // --- Phase 3: 先頭の3-4桁数字+スペース(価格帯タグ)削除 ---
+  s = s.replace(/^\d{3,4}\s+/, '');           // 300 , 500 , 1000 etc
+  // --- Phase 4: 仕入先名・注意タグ削除 ---
+  s = s.replace(/アミューズ不可|即納|緊急入荷|発注|価格改定/g, '');
+  s = s.replace(/バンダイ|ピーナッツクラブ|ケーツー/g, '');
+  // --- Phase 5: 再販・再入荷削除 ---
+  s = s.replace(/再販|再入荷/g, '');
+  // --- Phase 6: おそらく〜 等の注意文句削除 ---
+  s = s.replace(/おそらく[^\s]*/g, '');
+  // --- Phase 7: 日付・発売・サイズ等 ---
   s = s.replace(/\d+月発売/g, '');
-  s = s.replace(/\d+月下旬再販/g, '');
+  s = s.replace(/\d+月下旬/g, '');
   s = s.replace(/商品サイズ.*$/, '');
   s = s.replace(/カラーBOX入り|ウィンドウBOX入|BOX入|箱入/g, '');
   s = s.replace(/約?\d+(\.\d+)?[cｃ][mｍ]/g, '');
@@ -114,9 +125,10 @@ function shortenPrizeName(raw) {
   s = s.replace(/\d+種(?!\s*AS)/g, '');
   s = s.replace(/\*.*$/, '');
   s = s.replace(/～/g, '');
-  s = s.replace(/^(?:500|1000|300|200)\s+/, '');
   s = s.replace(/品番\S*/g, '');
   s = s.replace(/CuriousGeorgeTOYSTYLE/g, 'ジョージ');
+  // --- Phase 8: 先頭の残りスラッシュ削除 ---
+  s = s.replace(/^\/+/, '');
   const abbrevs = [
     ['ぬいぐるみ','NG'],['マスコット','MC'],['ボールチェーン','BC'],['キーホルダー','KH'],
     ['キーケース','KC'],['スクイーズ','SQ'],['ワイヤレスイヤホン','TWS'],['ブレスレット','BLT'],
