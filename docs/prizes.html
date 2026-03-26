@@ -94,8 +94,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .btn-cancel{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
 .btn-save{background:var(--accent);color:#fff}
 .btn-save:active{background:var(--accent2)}
-.btn-del{width:100%;padding:10px;border-radius:10px;font-size:14px;font-weight:700;border:1px solid var(--red);background:transparent;color:var(--red);cursor:pointer;margin-top:8px;transition:all .15s}
-.btn-del:hover{background:var(--red);color:#fff}
+.btn-del{width:auto;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;margin-top:20px;transition:all .15s;opacity:0.5}
+.btn-del:hover{opacity:1;border-color:var(--red);color:var(--red)}
+.btn-save:disabled,.btn-save.loading{opacity:0.5;pointer-events:none}
+.filter-reset-btn{padding:5px 10px;border-radius:8px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.filter-reset-btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn-add-float{position:fixed;bottom:calc(var(--nav-h)+16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(124,106,255,.5);z-index:90;display:flex;align-items:center;justify-content:center;transition:background .15s}
 .btn-add-float:hover{background:var(--accent2)}
 
@@ -133,6 +136,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="chip-sep"></div>
     <div id="catChips"></div>
   </div>
+  <div class="chips" style="margin-bottom:5px"><button class="filter-reset-btn" onclick="resetAllFilters()">✕ フィルター解除</button></div>
   <div class="sort-row" id="sortRow">
     <button class="srt-btn active" data-key="prize_name">景品名 <span class="srt-arrow">↑</span></button>
     <button class="srt-btn" data-key="original_cost">単価 <span class="srt-arrow">↓</span></button>
@@ -370,6 +374,15 @@ ${firstOrderHtml}${orderHtml}${expectedHtml}
   }).join('');
 }
 
+
+// ─── DIRTY TRACKING ──────────────────────────────────────────────────────────
+let _origFormState='';
+function captureFormState(){
+  const fields=document.querySelectorAll('#modal input,#modal select,#modal textarea');
+  return Array.from(fields).map(f=>f.value).join('|');
+}
+function isFormDirty(){return _origFormState&&captureFormState()!==_origFormState;}
+
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 function openModal(id){
   const p=DATA.find(x=>String(x.prize_id)===String(id));if(!p)return;
@@ -446,12 +459,15 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
 <button class="btn-del" onclick="delPrize('${esc(p.prize_id)}')">削除</button>`;
   document.getElementById('modalOverlay').classList.add('show');
   document.body.style.overflow='hidden';
+  setTimeout(()=>{_origFormState=captureFormState();},50);
 }
 
-function closeModal(){
+function closeModal(force){
+  if(!force&&isFormDirty()&&!confirm('変更を破棄しますか？'))return;
   document.getElementById('modalOverlay').classList.remove('show');
   document.body.style.overflow='';
   editingId=null;
+  _origFormState='';
 }
 function closeModalBg(e){
   // Only close if clicking the overlay background itself, not the modal content
@@ -472,6 +488,12 @@ async function saveEdit(){
   const orderDate=document.getElementById('editOrderDate').value;
   const expectedDate=document.getElementById('editExpectedDate').value;
   const prizeName=document.getElementById('editPrizeName').value.trim();
+  if(!prizeName){showToast('景品名を入力してください',false);return;}
+  if(cost!==''&&(isNaN(parseInt(cost))||parseInt(cost)<0)){showToast('単価は0以上の数値を入力してください',false);return;}
+  if(cost!==''&&parseInt(cost)>=1000000){if(!confirm('単価が100万円以上です。箱単価ではありませんか？'))return;}
+  // Disable save button
+  const saveBtn=document.querySelector('.btn-save');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='保存中...';}
   const payload={
     status,
     category:cat||null,
@@ -487,7 +509,7 @@ async function saveEdit(){
   if(prizeName)payload.prize_name=prizeName;
   if(cost!=='')payload.original_cost=parseInt(cost);
   const saveId=editingId;
-  closeModal();showLoading();
+  closeModal(true);showLoading();
   try{
     await sbPatch('prize_masters',saveId,'prize_id',payload);
     showToast('保存しました');
@@ -497,8 +519,10 @@ async function saveEdit(){
 }
 
 async function delPrize(id){
-  if(!confirm('この景品を削除しますか？'))return;
-  closeModal();showLoading();
+  const target=DATA.find(x=>String(x.prize_id)===String(id));
+  if(!confirm('本当に削除しますか？'))return;
+  if(!confirm('景品名: '+(target?target.prize_name:'不明')+' を完全に削除します。元に戻せません。'))return;
+  closeModal(true);showLoading();
   try{
     await sbDelete('prize_masters',id,'prize_id');
     showToast('削除しました');
@@ -574,12 +598,17 @@ function addPrize(){
 </div>`;
   document.getElementById('modalOverlay').classList.add('show');
   document.body.style.overflow='hidden';
+  setTimeout(()=>{_origFormState=captureFormState();},50);
 }
 
 async function saveNewPrize(){
   const name=document.getElementById('editName').value.trim();
-  if(!name){alert('景品名を入力してください');return;}
+  if(!name){showToast('景品名を入力してください',false);return;}
   const cost=document.getElementById('editCost').value;
+  if(cost!==''&&(isNaN(parseInt(cost))||parseInt(cost)<0)){showToast('単価は0以上の数値を入力してください',false);return;}
+  if(cost!==''&&parseInt(cost)>=1000000){if(!confirm('単価が100万円以上です。箱単価ではありませんか？'))return;}
+  const saveBtn=document.querySelector('.btn-save');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='追加中...';}
   const payload={
     prize_name:name,
     status:document.getElementById('editStatus').value,
@@ -592,13 +621,22 @@ async function saveNewPrize(){
     notes:document.getElementById('editNotes').value.trim()||null
   };
   if(cost!=='')payload.original_cost=parseInt(cost);
-  closeModal();showLoading();
+  closeModal(true);showLoading();
   try{
     await sbPost('prize_masters',payload);
     showToast('景品を追加しました');
     await loadData();
   }catch(e){showToast('エラー: '+e.message,false);}
   finally{hideLoading();}
+}
+
+function resetAllFilters(){
+  curSearch='';
+  document.getElementById('searchInput').value='';
+  selStatuses=[];selCats=[];selSupplier='';
+  document.getElementById('supplierFilter').value='';
+  document.querySelectorAll('#filterChips .chip').forEach(ch=>ch.classList.remove('on'));
+  render();
 }
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
