@@ -26,7 +26,7 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
 
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:sticky;top:0;z-index:100;-webkit-transform:translateZ(0)}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:fixed;top:0;left:0;right:0;z-index:100}
 .header-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .header-title{font-size:16px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 .header-count{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:auto}
@@ -347,7 +347,7 @@ function getFiltered(){
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
-function render(){
+function render(){setTimeout(adjustPadding,0);
   const list=getFiltered();
   document.getElementById('countBadge').textContent=list.length+'件';
   const c=document.getElementById('listContainer');
