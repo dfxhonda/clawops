@@ -276,7 +276,7 @@ function statusBadge(status){
 async function loadData(){
   showLoading();
   try{
-    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000');
+    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date,source_file,order_date_source&order=prize_name.asc&limit=2000');
     DATA=data;
     buildCatChips();
     render();
@@ -348,6 +348,7 @@ function render(){
     const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
     const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
     const supplierHtml=p.supplier_name?`<span class="meta-chip" style="color:var(--orange)">🏪${esc(p.supplier_name)}</span>`:'';
+    const sourceFileHtml=p.source_file?`<span class="meta-chip">📄${esc(p.source_file)}</span>`:'';
     return`<div class="prize-card" onclick="openModal('${esc(p.prize_id)}')">
 <div class="card-icon" style="background:${iconColor(p)}">${esc(iconChar(p))}</div>
 <div class="card-body">
@@ -359,7 +360,7 @@ ${statusBadge(p.status)}
 <span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
 ${orderHtml}${expectedHtml}
 </div>
-<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${notesHtml}</div>
+<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${sourceFileHtml}${notesHtml}</div>
 </div>
 </div>`;
   }).join('');
@@ -421,6 +422,16 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
     ${['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'].map(s=>`<option value="${s}"${p.supplier_name===s?' selected':''}>${s}</option>`).join('')}
   </select>
 </div>
+<div class="modal-row">
+  <div class="modal-field">
+    <label>📄 ソースファイル</label>
+    <input type="text" id="editSourceFile" value="${esc(p.source_file||'')}">
+  </div>
+  <div class="modal-field">
+    <label>📋 発注日ソース</label>
+    <input type="text" id="editOrderDateSource" value="${esc(p.order_date_source||'')}" placeholder="備考">
+  </div>
+</div>
 <div class="modal-field">
   <label>別名・読み仮名</label>
   <input type="text" id="editAliases" value="${esc(p.aliases||'')}">
@@ -460,6 +471,8 @@ async function saveEdit(){
   const notes=document.getElementById('editNotes').value.trim();
   const orderDate=document.getElementById('editOrderDate').value;
   const expectedDate=document.getElementById('editExpectedDate').value;
+  const sourceFile=document.getElementById('editSourceFile').value.trim();
+  const orderDateSource=document.getElementById('editOrderDateSource').value.trim();
   const payload={
     status,
     category:cat||null,
@@ -470,7 +483,9 @@ async function saveEdit(){
     aliases:aliases||null,
     notes:notes||null,
     order_date:orderDate||null,
-    expected_date:expectedDate||null
+    expected_date:expectedDate||null,
+    source_file:sourceFile||null,
+    order_date_source:orderDateSource||null
   };
   if(cost!=='')payload.original_cost=parseInt(cost);
   closeModal();showLoading();
