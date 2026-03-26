@@ -96,6 +96,7 @@ function shortenPrizeName(raw) {
   s = s.replace(/アミューズ不可|即納|緊急入荷|発注|価格改定/g, '');
   s = s.replace(/バンダイ|ピーナッツクラブ/g, '');
   s = s.replace(/●\s*\d+\s*/g, '');
+  s = s.replace(/●\s*\d+\s*/g, '');
   s = s.replace(/\d+\/\d+締切/g, '');
   s = s.replace(/〆切/g, '');
   s = s.replace(/\d+月発売/g, '');
