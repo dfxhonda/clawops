@@ -54,7 +54,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .srt-btn.active{border-color:var(--accent);color:var(--accent)}
 .srt-arrow{font-size:11px}
 
-.total-bar{display:flex;align-items:center;justify-content:flex-end;padding:6px 14px;font-size:12px;color:var(--text2);background:var(--surface);border-bottom:1px solid var(--border)}
+.total-bar{display:flex;align-items:center;justify-content:flex-end;padding:6px 0 2px;font-size:12px;color:var(--text2)}
 .total-bar .total-amount{font-weight:700;color:var(--accent);margin-left:4px}
 
 .list-container{padding:10px 12px 16px}
@@ -139,11 +139,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <button class="srt-btn" data-key="expected_date">納期 <span class="srt-arrow">↑</span></button>
     <button class="srt-btn" data-key="case_cost">合計 <span class="srt-arrow">↓</span></button>
   </div>
+  <div class="total-bar">
+    <span id="totalDisplay">読込中...</span>
+  </div>
 </header>
-
-<div class="total-bar">
-  <span id="totalDisplay">読込中...</span>
-</div>
 
 <div class="readonly-notice">📋 発注履歴は参照専用です（編集にはmanager権限が必要です）</div>
 <div class="list-container" id="listContainer">
