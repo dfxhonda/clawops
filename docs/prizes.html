@@ -131,16 +131,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
     <div class="chip provisional-chip" data-type="status" data-val="provisional">仮登録</div>
     <div class="chip-sep"></div>
     <div id="catChips"></div>
-    <div class="chip-sep"></div>
-    <select id="supplierFilter" style="flex:0 0 auto;padding:5px 8px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding-right:20px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%228%22 height=%228%22 viewBox=%220 0 8 8%22><path fill=%22%239090a8%22 d=%22M0 2l4 4 4-4z%22/></svg>');background-repeat:no-repeat;background-position:right 6px center;white-space:nowrap">
-      <option value="">仕入先: 全て</option>
-      <option value="景品フォーム">景品フォーム</option>
-      <option value="インフィニティ">インフィニティ</option>
-      <option value="アクシズ">アクシズ</option>
-      <option value="エスディーワイ">エスディーワイ</option>
-      <option value="ピーチトイ">ピーチトイ</option>
-      <option value="achieve">achieve</option>
-    </select>
   </div>
   <div class="sort-row" id="sortRow">
     <button class="srt-btn active" data-key="prize_name">景品名 <span class="srt-arrow">↑</span></button>
@@ -344,7 +334,7 @@ function render(){
     const catHtml=p.category?`<span class="meta-chip">${esc(p.category)}</span>`:'';
     const sizeHtml=p.size?`<span class="meta-chip">📐${esc(p.size)}</span>`:'';
     const phaseHtml=p.phase?`<span class="meta-chip">${esc(p.phase)}</span>`:'';
-    const notesHtml=p.notes?`<span class="meta-chip">📝</span>`:'';
+    const notesHtml=p.notes?`<span class="meta-chip" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">📝${esc(p.notes)}</span>`:'';
     const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
     const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
     const supplierHtml=p.supplier_name?`<span class="meta-chip" style="color:var(--orange)">🏪${esc(p.supplier_name)}</span>`:'';
@@ -360,7 +350,7 @@ ${statusBadge(p.status)}
 <span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
 ${orderHtml}${expectedHtml}
 </div>
-<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${sourceFileHtml}${notesHtml}</div>
+<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${notesHtml}</div>
 </div>
 </div>`;
   }).join('');
@@ -422,16 +412,7 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
     ${['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'].map(s=>`<option value="${s}"${p.supplier_name===s?' selected':''}>${s}</option>`).join('')}
   </select>
 </div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>📄 ソースファイル</label>
-    <input type="text" id="editSourceFile" value="${esc((p.source_file||'')||'')}">
-  </div>
-  <div class="modal-field">
-    <label>📋 発注日ソース</label>
-    <input type="text" id="editOrderDateSource" value="${esc(p.order_date_source||'')}" placeholder="備考">
-  </div>
-</div>
+
 <div class="modal-field">
   <label>別名・読み仮名</label>
   <input type="text" id="editAliases" value="${esc(p.aliases||'')}">
