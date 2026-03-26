@@ -223,6 +223,7 @@ let selStatuses=[];
 let selCats=[];
 let selSupplier='';
 let editingId=null;
+let firstOrderMap={};
 let _loadingCount=0;
 let _toastTimer=null;
 const ICON_COLORS=['#7c6aff','#e74c3c','#2ecc71','#f39c12','#00b4d8','#e67e22','#9b59b6','#3498db'];
@@ -267,7 +268,12 @@ function statusBadge(status){
 async function loadData(){
   showLoading();
   try{
-    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000');
+    const [data, orders]=await Promise.all([
+      sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000'),
+      sbGet('prize_orders','select=prize_id,order_date&order=order_date.asc&limit=5000')
+    ]);
+    firstOrderMap={};
+    orders.forEach(o=>{if(o.order_date&&!firstOrderMap[o.prize_id])firstOrderMap[o.prize_id]=o.order_date;});
     DATA=data;
     buildCatChips();
     render();
@@ -336,6 +342,9 @@ function render(){
     const sizeHtml=p.size?`<span class="meta-chip">📐${esc(p.size)}</span>`:'';
     const phaseHtml=p.phase?`<span class="meta-chip">${esc(p.phase)}</span>`:'';
     const notesHtml=p.notes?`<span class="meta-chip" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">📝${esc(p.notes)}</span>`:'';
+    const fo=firstOrderMap[p.prize_id];
+    const foFmt=fo?fo.replace(/^(\d{2})(\d{2})-(\d{2})-(\d{2})$/,'$2.$3.$4').replace(/^(\d{4})-(\d{2})-(\d{2})$/,(m,y,mo,d)=>y.slice(2)+'.'+mo+'.'+d):'';
+    const firstOrderHtml=foFmt?`<span class="meta-chip" style="color:var(--green)">📋初回発注:${esc(foFmt)}</span>`:'';
     const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
     const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
     const supplierHtml=p.supplier_name?`<span class="meta-chip" style="color:var(--orange)">🏪${esc(p.supplier_name)}</span>`:'';
@@ -349,7 +358,7 @@ ${statusBadge(p.status)}
 </div>
 <div class="card-mid">
 <span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
-${orderHtml}${expectedHtml}
+${firstOrderHtml}${orderHtml}${expectedHtml}
 </div>
 <div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${notesHtml}</div>
 </div>
@@ -366,6 +375,10 @@ function openModal(id){
 <div class="modal-title">✏️ ${esc(p.prize_name)}</div>
 <div class="modal-subtitle">ID: ${esc(p.prize_id)}</div>
 ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
+<div class="modal-field">
+  <label>景品名（短縮名）</label>
+  <input type="text" id="editPrizeName" value="${esc(p.prize_name||'')}">
+</div>
 <div class="modal-row">
   <div class="modal-field">
     <label>原価（円）</label>
@@ -453,8 +466,7 @@ async function saveEdit(){
   const notes=document.getElementById('editNotes').value.trim();
   const orderDate=document.getElementById('editOrderDate').value;
   const expectedDate=document.getElementById('editExpectedDate').value;
-  const sourceFile=document.getElementById('editSourceFile').value.trim();
-  const orderDateSource=document.getElementById('editOrderDateSource').value.trim();
+  const prizeName=document.getElementById('editPrizeName').value.trim();
   const payload={
     status,
     category:cat||null,
@@ -465,10 +477,9 @@ async function saveEdit(){
     aliases:aliases||null,
     notes:notes||null,
     order_date:orderDate||null,
-    expected_date:expectedDate||null,
-    // source_file is in prize_orders, not prize_masters
-    order_date_source:orderDateSource||null
+    expected_date:expectedDate||null
   };
+  if(prizeName)payload.prize_name=prizeName;
   if(cost!=='')payload.original_cost=parseInt(cost);
   closeModal();showLoading();
   try{
