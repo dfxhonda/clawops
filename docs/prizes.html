@@ -276,7 +276,7 @@ function statusBadge(status){
 async function loadData(){
   showLoading();
   try{
-    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date,source_file,order_date_source&order=prize_name.asc&limit=2000');
+    const data=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000');
     DATA=data;
     buildCatChips();
     render();
@@ -348,7 +348,7 @@ function render(){
     const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
     const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
     const supplierHtml=p.supplier_name?`<span class="meta-chip" style="color:var(--orange)">🏪${esc(p.supplier_name)}</span>`:'';
-    const sourceFileHtml=p.source_file?`<span class="meta-chip">📄${esc(p.source_file)}</span>`:'';
+    const sourceFileHtml=(p.source_file||'')?`<span class="meta-chip">📄${esc((p.source_file||''))}</span>`:'';
     return`<div class="prize-card" onclick="openModal('${esc(p.prize_id)}')">
 <div class="card-icon" style="background:${iconColor(p)}">${esc(iconChar(p))}</div>
 <div class="card-body">
@@ -425,7 +425,7 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
 <div class="modal-row">
   <div class="modal-field">
     <label>📄 ソースファイル</label>
-    <input type="text" id="editSourceFile" value="${esc(p.source_file||'')}">
+    <input type="text" id="editSourceFile" value="${esc((p.source_file||'')||'')}">
   </div>
   <div class="modal-field">
     <label>📋 発注日ソース</label>
@@ -484,7 +484,7 @@ async function saveEdit(){
     notes:notes||null,
     order_date:orderDate||null,
     expected_date:expectedDate||null,
-    source_file:sourceFile||null,
+    // source_file is in prize_orders, not prize_masters
     order_date_source:orderDateSource||null
   };
   if(cost!=='')payload.original_cost=parseInt(cost);
