@@ -26,7 +26,7 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
 
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:sticky;top:0;z-index:100;-webkit-transform:translateZ(0)}
 .header-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .header-title{font-size:16px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 .header-count{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:auto}
@@ -272,6 +272,15 @@ function statusBadge(status){
   return'<span class="badge badge-inactive">'+esc(status||'—')+'</span>';
 }
 
+// ─── CATEGORY OPTIONS ─────────────────────────────────────────────────────────
+let categoryList=[];
+function buildCategoryList(){
+  categoryList=[...new Set(DATA.map(p=>p.category).filter(Boolean))].sort();
+}
+function getCategoryOptions(selected){
+  return categoryList.map(c=>`<option value="${esc(c)}"${c===selected?' selected':''}>${esc(c)}</option>`).join('');
+}
+
 // ─── LOAD ─────────────────────────────────────────────────────────────────────
 async function loadData(){
   showLoading();
@@ -283,6 +292,7 @@ async function loadData(){
     firstOrderMap={};
     orders.forEach(o=>{if(o.order_date&&!firstOrderMap[o.prize_id])firstOrderMap[o.prize_id]=o.order_date;});
     DATA=data;
+    buildCategoryList();
     buildCatChips();
     render();
   }catch(e){
@@ -409,7 +419,10 @@ ${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
 <div class="modal-row">
   <div class="modal-field">
     <label>カテゴリ</label>
-    <input type="text" id="editCat" value="${esc(p.category||'')}">
+    <select id="editCat">
+      <option value="">未設定</option>
+      ${getCategoryOptions(p.category)}
+    </select>
   </div>
   <div class="modal-field">
     <label>サイズ</label>
@@ -555,7 +568,10 @@ function addPrize(){
 <div class="modal-row">
   <div class="modal-field">
     <label>カテゴリ</label>
-    <input type="text" id="editCat" placeholder="例：ぬいぐるみ">
+    <select id="editCat">
+      <option value="">未設定</option>
+      ${getCategoryOptions('')}
+    </select>
   </div>
   <div class="modal-field">
     <label>サイズ</label>

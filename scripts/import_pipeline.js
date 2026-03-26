@@ -95,6 +95,7 @@ function shortenPrizeName(raw) {
   s = s.replace(/\(送料[^)]*\)/g, '');
   s = s.replace(/アミューズ不可|即納|緊急入荷|発注|価格改定/g, '');
   s = s.replace(/バンダイ|ピーナッツクラブ/g, '');
+  s = s.replace(/●\s*\d+\s*/g, '');
   s = s.replace(/\d+\/\d+締切/g, '');
   s = s.replace(/〆切/g, '');
   s = s.replace(/\d+月発売/g, '');
@@ -125,7 +126,7 @@ function shortenPrizeName(raw) {
   ];
   for (const [from, to] of abbrevs) s = s.replaceAll(from, to);
   s = s.replace(/\s+/g, ' ').trim();
-  if (s.length > 15) s = s.substring(0, 15);
+  if (s.length > 20) s = s.substring(0, 20);
   return s;
 }
 
