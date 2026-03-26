@@ -454,7 +454,8 @@ function closeModal(){
   editingId=null;
 }
 function closeModalBg(e){
-  if(e.target===document.getElementById('modalOverlay'))closeModal();
+  // Only close if clicking the overlay background itself, not the modal content
+  if(e.target===document.getElementById('modalOverlay')&&!editingId){closeModal();}
 }
 
 async function saveEdit(){
@@ -485,9 +486,10 @@ async function saveEdit(){
   };
   if(prizeName)payload.prize_name=prizeName;
   if(cost!=='')payload.original_cost=parseInt(cost);
+  const saveId=editingId;
   closeModal();showLoading();
   try{
-    await sbPatch('prize_masters',editingId,'prize_id',payload);
+    await sbPatch('prize_masters',saveId,'prize_id',payload);
     showToast('保存しました');
     await loadData();
   }catch(e){showToast('エラー: '+e.message,false);}
