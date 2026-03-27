@@ -347,6 +347,8 @@ function getFiltered(){
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
+function adjustPadding(){const h=document.querySelector('header');const lc=document.getElementById('listContainer');if(h&&lc)lc.style.paddingTop=(h.offsetHeight+10)+'px';}
+window.addEventListener('resize',adjustPadding);
 function render(){setTimeout(adjustPadding,0);
   const list=getFiltered();
   document.getElementById('countBadge').textContent=list.length+'件';
