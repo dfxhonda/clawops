@@ -99,6 +99,13 @@ export default function PrizeManagement() {
 
   useEffect(() => { loadData() }, [])
 
+  // コード→日本語名に変換するヘルパー
+  function resolveSupplierName(raw) {
+    if (!raw) return ''
+    const s = SUPPLIERS.find(x => x.id === raw || x.name === raw)
+    return s ? s.name : raw
+  }
+
   async function loadData() {
     setLoading(true)
     try {
@@ -106,6 +113,16 @@ export default function PrizeManagement() {
         getPrizes(), getPrizeOrders(),
         getVehicleStocks(), getInventoryChecks(),
       ])
+      // 仕入先名を読み込み時に正規化
+      p.forEach(item => { item.supplier_name = resolveSupplierName(item.supplier_name) })
+      o.forEach(item => {
+        if (!item.supplier_name) {
+          const prize = p.find(x => String(x.prize_id) === String(item.prize_id))
+          item.supplier_name = prize?.supplier_name || ''
+        } else {
+          item.supplier_name = resolveSupplierName(item.supplier_name)
+        }
+      })
       setPrizes(p)
       setOrders(o)
       setVehicleStocks(vs.filter(v => v.stock_id)) // 空行除外
@@ -123,9 +140,8 @@ export default function PrizeManagement() {
 
   function startEditPrize(p) {
     const f = { ...p }
-    // supplier_nameがコード(SGP等)の場合は日本語名に変換
-    const sup = SUPPLIERS.find(s => s.id === f.supplier_name)
-    if (sup) f.supplier_name = sup.name
+    // loadDataで変換済みだが念のため
+    f.supplier_name = resolveSupplierName(f.supplier_name)
     setForm(f)
     setEditing({ type: 'prize', mode: 'edit', data: p })
     setMsg('')
@@ -851,7 +867,7 @@ export default function PrizeManagement() {
                       </div>
                       <div className="text-muted text-[11px] truncate flex items-center gap-2">
                         {p.short_name && <span>{p.prize_name}</span>}
-                        <span>{(()=>{ const sn = p.supplier_name||''; return SUPPLIERS.find(s => s.id === sn || s.name === sn)?.name || sn || '—' })()}</span>
+                        <span>{p.supplier_name || '—'}</span>
                         <span className="text-accent font-bold">¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
                       </div>
                     </div>
@@ -1021,9 +1037,7 @@ export default function PrizeManagement() {
             {orders.map(o => {
               const status = !o.arrived_at ? '未入荷' : (parseInt(o.arrival_quantity||0) < parseInt(o.order_quantity||0) ? '一部入荷' : '入荷済')
               const statusColor = status === '未入荷' ? 'bg-accent2/20 text-accent2' : status === '入荷済' ? 'bg-accent3/20 text-accent3' : 'bg-accent/20 text-accent'
-              // 仕入先: 発注データ→景品マスタ→SUPPLIERSの順で取得
-              const rawSup = o.supplier_name || prizes.find(p => String(p.prize_id) === String(o.prize_id))?.supplier_name || ''
-              const supDisplay = SUPPLIERS.find(s => s.id === rawSup || s.name === rawSup)?.name || rawSup
+              const supDisplay = o.supplier_name || ''
               return (
                 <div key={o.order_id} className="bg-surface border border-border rounded-xl p-3">
                   <div className="flex items-center justify-between">
