@@ -412,7 +412,8 @@ async function sbPost(table, body) {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA = [];
 let PRIZES = [];    // {prize_id, prize_name} from prize_masters
-let SUPPLIERS = []; // distinct order_source values
+let PRIZE_MAP = {}; // prize_id -> prize_name
+let SUPPLIERS = []; // distinct supplier_id values
 
 let selOrderId = null;
 let isNewMode = false;
@@ -445,6 +446,11 @@ function statusLabel(s) {
   if (s === 'arrived')   return '入荷済み';
   if (s === 'cancelled') return '取消';
   return s || '—';
+}
+
+function prizeName(o) {
+  if (o.prize_id && PRIZE_MAP[String(o.prize_id)]) return PRIZE_MAP[String(o.prize_id)];
+  return o.prize_name_raw || '（景品名未設定）';
 }
 
 function statusBadge(s) {
@@ -483,6 +489,7 @@ async function loadAll() {
 
     DATA = orders;
     PRIZES = prizes || [];
+    PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.prize_name]));
 
     buildSupplierFilter();
     render();
@@ -499,7 +506,7 @@ async function loadAll() {
 function buildSupplierFilter() {
   const sel = document.getElementById('supplierFilter');
   while (sel.options.length > 1) sel.remove(1);
-  SUPPLIERS = [...new Set(DATA.map(o => o.order_source).filter(Boolean))].sort();
+  SUPPLIERS = [...new Set(DATA.map(o => o.supplier_id).filter(Boolean))].sort();
   SUPPLIERS.forEach(n => {
     const opt = document.createElement('option');
     opt.value = n;
@@ -513,7 +520,7 @@ function buildSupplierFilter() {
 function getFiltered() {
   let list = DATA.filter(o => {
     if (filterStatus && o.status !== filterStatus) return false;
-    if (filterSupplier && o.order_source !== filterSupplier) return false;
+    if (filterSupplier && o.supplier_id !== filterSupplier) return false;
     if (filterDateFrom && (o.order_date || '') < filterDateFrom) return false;
     if (filterDateTo   && (o.order_date || '') > filterDateTo)   return false;
     const q = curSearch.toLowerCase();
@@ -566,7 +573,7 @@ function render() {
 <thead><tr>
   <th ${th('order_date')} onclick="setSort('order_date')">発注日${sortKey==='order_date'?sortArrow(sortDir):''}</th>
   <th ${th('prize_name_raw')} onclick="setSort('prize_name_raw')">景品名${sortKey==='prize_name_raw'?sortArrow(sortDir):''}</th>
-  <th ${th('order_source')} onclick="setSort('order_source')">仕入先${sortKey==='order_source'?sortArrow(sortDir):''}</th>
+  <th ${th('supplier_id')} onclick="setSort('supplier_id')">仕入先${sortKey==='supplier_id'?sortArrow(sortDir):''}</th>
   <th style="text-align:right">数量</th>
   <th style="text-align:right">単価</th>
   <th style="text-align:right">ケース金額</th>
@@ -579,8 +586,11 @@ ${list.map(o => {
   const sel = String(selOrderId) === oid && !isNewMode;
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectOrder('${esc(oid)}')">
   <td style="font-size:12px;color:var(--text2)">${fmtDate(o.order_date)}</td>
-  <td class="td-name" title="${esc(o.prize_name_raw)}">${esc(o.prize_name_raw || '—')}</td>
-  <td class="td-src" title="${esc(o.order_source)}">${esc(o.order_source || '—')}</td>
+  <td class="td-name" style="white-space:normal" title="${esc(o.prize_name_raw)}">
+    <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prizeName(o))}</div>
+    ${o.prize_id && PRIZE_MAP[String(o.prize_id)] && o.prize_name_raw ? `<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.prize_name_raw)}</div>` : ''}
+  </td>
+  <td class="td-src" title="${esc(o.supplier_id)}">${esc(o.supplier_id || '—')}</td>
   <td class="td-qty">${o.case_quantity != null ? o.case_quantity : '—'}</td>
   <td class="td-num">${o.unit_cost != null ? '¥'+fmt(o.unit_cost) : '—'}</td>
   <td class="td-num">${o.case_cost != null ? '¥'+fmt(o.case_cost) : '—'}</td>
@@ -655,7 +665,7 @@ function renderDetail() {
     return;
   }
 
-  const empty = {prize_name_raw:'',prize_id:'',order_source:'',order_date:'',expected_date:'',case_quantity:'',case_count:'',unit_cost:'',case_cost:'',destination:'',status:'ordered',source_file:'',notes:''};
+  const empty = {prize_name_raw:'',prize_id:'',supplier_id:'',order_source:'',order_date:'',expected_date:'',case_quantity:'',case_count:'',unit_cost:'',case_cost:'',destination:'',status:'ordered',source_file:'',notes:''};
   const o = isNewMode ? empty : DATA.find(x => String(x.order_id) === String(selOrderId));
   if (!o) {
     pane.innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>`;
@@ -668,7 +678,7 @@ function renderDetail() {
   ).join('');
 
   const dirtyDot = isDirty ? '<span class="detail-dirty"></span>' : '';
-  const title = isNewMode ? '＋ 新しい発注' : esc(o.prize_name_raw || '（景品名未設定）');
+  const title = isNewMode ? '＋ 新しい発注' : esc(prizeName(o));
 
   pane.innerHTML = `
 <div class="detail-header">
@@ -687,11 +697,11 @@ function renderDetail() {
     </div>
   </div>
   <div class="field">
-    <label>仕入先（order_source）</label>
-    <input type="text" id="fOrderSource" value="${esc(o.order_source||'')}" placeholder="例：景品フォーム" oninput="markDirty()">
+    <label>仕入先</label>
+    <input type="text" id="fSupplierId" value="${esc(o.supplier_id||'')}" placeholder="例：アクシズ" oninput="markDirty()">
   </div>
   <div class="field">
-    <label>景品名<span class="req">*</span></label>
+    <label>景品名（正式名）<span class="req">*</span></label>
     <input type="text" id="fPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">
   </div>
   <div class="field">
@@ -729,6 +739,10 @@ function renderDetail() {
     </div>
   </div>
   ${!isNewMode ? `
+  <div class="field">
+    <label>元データ形式（order_source）</label>
+    <div class="field-readonly">${esc(o.order_source || '—')}</div>
+  </div>
   <div class="field">
     <label>元データ名（source_file）</label>
     <div class="field-readonly">${esc(o.source_file || '—')}</div>
@@ -768,8 +782,8 @@ function revertChanges() {
 
 // ─── SAVE ──────────────────────────────────────────────────────────────────────
 async function saveOrder() {
-  const prizeName  = (document.getElementById('fPrizeName').value || '').trim();
-  const orderSrc   = (document.getElementById('fOrderSource').value || '').trim();
+  const prizeNameVal = (document.getElementById('fPrizeName').value || '').trim();
+  const supplierId = (document.getElementById('fSupplierId').value || '').trim();
   const orderDate  = document.getElementById('fOrderDate').value || null;
   const expDate    = document.getElementById('fExpectedDate').value || null;
   const caseQtyStr = document.getElementById('fCaseQty').value;
@@ -780,7 +794,7 @@ async function saveOrder() {
   const notes      = (document.getElementById('fNotes').value || '').trim();
   const prizeId    = document.getElementById('fPrizeId').value || null;
 
-  if (!prizeName)    { showToast('景品名が空です', false); return; }
+  if (!prizeNameVal) { showToast('景品名が空です', false); return; }
   if (caseQtyStr === '') { showToast('数量が入っていません', false); return; }
   if (unitCostStr === '') { showToast('単価が入っていません', false); return; }
 
@@ -792,8 +806,8 @@ async function saveOrder() {
   const caseCost = caseQty * unitCost;
 
   const payload = {
-    prize_name_raw: prizeName,
-    order_source:   orderSrc || null,
+    prize_name_raw: prizeNameVal,
+    supplier_id:    supplierId || null,
     order_date:     orderDate,
     expected_date:  expDate,
     case_quantity:  caseQty,
@@ -888,9 +902,9 @@ function renderMobileList(list) {
     const oid = String(o.order_id);
     return `<div class="mc-item" onclick="openMobileDetail('${esc(oid)}')">
   <div class="mc-body">
-    <div class="mc-name">${esc(o.prize_name_raw || '（景品名未設定）')}</div>
+    <div class="mc-name">${esc(prizeName(o))}</div>
     <div class="mc-meta">
-      ${o.order_source ? `<span style="color:var(--orange)">${esc(o.order_source)}</span>` : ''}
+      ${o.supplier_id ? `<span style="color:var(--orange)">${esc(o.supplier_id)}</span>` : ''}
       ${o.unit_cost != null ? `<span style="color:var(--text);font-weight:700">¥${fmt(o.unit_cost)}</span>` : ''}
       ${o.case_cost != null ? `<span style="color:var(--cyan)">¥${fmt(o.case_cost)}</span>` : ''}
       ${o.case_quantity != null ? `<span style="color:var(--text2)">×${o.case_quantity}</span>` : ''}
@@ -936,7 +950,7 @@ function markDirtyMobile() {
 
 function renderMobileDetailContent() {
   const panel = document.getElementById('mobileDetail');
-  const empty = {prize_name_raw:'',prize_id:'',order_source:'',order_date:'',expected_date:'',case_quantity:'',case_count:'',unit_cost:'',case_cost:'',destination:'',status:'ordered',source_file:'',notes:''};
+  const empty = {prize_name_raw:'',prize_id:'',supplier_id:'',order_source:'',order_date:'',expected_date:'',case_quantity:'',case_count:'',unit_cost:'',case_cost:'',destination:'',status:'ordered',source_file:'',notes:''};
   const o = isNewMode ? empty : DATA.find(x => String(x.order_id) === String(selOrderId));
   if (!o) {
     panel.innerHTML = '<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>';
@@ -956,12 +970,12 @@ function renderMobileDetailContent() {
 </div>
 <div class="md-body">
   <div class="field">
-    <label>景品名<span class="req">*</span></label>
+    <label>景品名（正式名）<span class="req">*</span></label>
     <input type="text" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">
   </div>
   <div class="field">
-    <label>仕入先（order_source）</label>
-    <input type="text" id="mfOrderSource" value="${esc(o.order_source||'')}" placeholder="例：景品フォーム" oninput="markDirtyMobile()">
+    <label>仕入先</label>
+    <input type="text" id="mfSupplierId" value="${esc(o.supplier_id||'')}" placeholder="例：アクシズ" oninput="markDirtyMobile()">
   </div>
   <div class="field">
     <label>景品紐付け（prize_masters）</label>
@@ -1005,6 +1019,10 @@ function renderMobileDetailContent() {
     <div class="field-readonly">${o.case_cost != null ? '¥' + fmt(o.case_cost) : '—'}</div>
   </div>
   <div class="field">
+    <label>元データ形式（order_source）</label>
+    <div class="field-readonly">${esc(o.order_source || '—')}</div>
+  </div>
+  <div class="field">
     <label>元データ名（source_file）</label>
     <div class="field-readonly">${esc(o.source_file || '—')}</div>
   </div>` : ''}
@@ -1017,8 +1035,8 @@ function renderMobileDetailContent() {
 }
 
 async function saveOrderMobile() {
-  const prizeName  = (document.getElementById('mfPrizeName').value || '').trim();
-  const orderSrc   = (document.getElementById('mfOrderSource').value || '').trim();
+  const prizeNameVal = (document.getElementById('mfPrizeName').value || '').trim();
+  const supplierId = (document.getElementById('mfSupplierId').value || '').trim();
   const orderDate  = document.getElementById('mfOrderDate').value || null;
   const expDate    = document.getElementById('mfExpectedDate').value || null;
   const caseQtyStr = document.getElementById('mfCaseQty').value;
@@ -1029,7 +1047,7 @@ async function saveOrderMobile() {
   const notes      = (document.getElementById('mfNotes').value || '').trim();
   const prizeId    = document.getElementById('mfPrizeId').value || null;
 
-  if (!prizeName)    { showToast('景品名が空です', false); return; }
+  if (!prizeNameVal) { showToast('景品名が空です', false); return; }
   if (caseQtyStr === '') { showToast('数量が入っていません', false); return; }
   if (unitCostStr === '') { showToast('単価が入っていません', false); return; }
 
@@ -1041,8 +1059,8 @@ async function saveOrderMobile() {
   const caseCost = caseQty * unitCost;
 
   const payload = {
-    prize_name_raw: prizeName,
-    order_source:   orderSrc || null,
+    prize_name_raw: prizeNameVal,
+    supplier_id:    supplierId || null,
     order_date:     orderDate,
     expected_date:  expDate,
     case_quantity:  caseQty,
