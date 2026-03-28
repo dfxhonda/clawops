@@ -429,6 +429,8 @@ let DATA = [];
 let PRIZES = [];    // {prize_id, prize_name} from prize_masters
 let PRIZE_MAP = {}; // prize_id -> prize_name
 let SUPPLIERS = []; // distinct supplier_id values
+const SUP_NAME = {SGP:'景品フォーム',PCH:'ピーチトイ',SDY:'エスディーワイ',INF:'インフィニティ',AXS:'アクシズ',LNS:'LINE仕入先',MCR:'メルカリ'};
+function supName(id){ return SUP_NAME[id] || id || '—'; }
 
 let selOrderId = null;
 let isNewMode = false;
@@ -508,6 +510,11 @@ async function loadAll() {
     DATA = orders;
     PRIZES = prizes || [];
     PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.short_name || p.prize_name]));
+
+    // 仕入先フィルター選択肢を日本語名で生成
+    const supIds = [...new Set(DATA.map(o => o.supplier_id).filter(Boolean))].sort();
+    const sf = document.getElementById('supplierFilter');
+    sf.innerHTML = '<option value="">仕入先：全て</option>' + supIds.map(id => `<option value="${id}">${esc(supName(id))}</option>`).join('');
 
     render();
     if (selOrderId || isNewMode) renderDetail();
@@ -594,7 +601,7 @@ ${list.map(o => {
   <td class="td-name" title="${esc(prizeName(o))}">
     <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prizeName(o))}</div>
   </td>
-  <td class="td-src" title="${esc(o.supplier_id)}">${esc(o.supplier_id || '—')}</td>
+  <td class="td-src" title="${esc(o.supplier_id)}">${esc(supName(o.supplier_id))}</td>
   <td class="td-qty">${o.case_quantity != null ? o.case_quantity : '—'}</td>
   <td class="td-num">${o.unit_cost != null ? '¥'+fmt(o.unit_cost) : '—'}</td>
   <td class="td-num">${o.case_cost != null ? '¥'+fmt(o.case_cost) : '—'}</td>
@@ -705,7 +712,10 @@ function renderDetail() {
   </div>
   <div class="field">
     <label>仕入先</label>
-    <input type="text" id="fSupplierId" value="${esc(o.supplier_id||'')}" placeholder="例：アクシズ" oninput="markDirty()">
+    <select id="fSupplierId" onchange="markDirty()">
+      <option value="">選択してください</option>
+      ${Object.entries(SUP_NAME).map(([k,v])=>`<option value="${k}" ${o.supplier_id===k?'selected':''}>${v}</option>`).join('')}
+    </select>
   </div>
   <div class="field">
     <label>景品名（正式名）<span class="req">*</span></label>
@@ -914,7 +924,7 @@ function renderMobileList(list) {
   <div class="mc-body">
     <div class="mc-name">${esc(prizeName(o))}</div>
     <div class="mc-meta">
-      ${o.supplier_id ? `<span style="color:var(--orange)">${esc(o.supplier_id)}</span>` : ''}
+      ${o.supplier_id ? `<span style="color:var(--orange)">${esc(supName(o.supplier_id))}</span>` : ''}
       ${o.unit_cost != null ? `<span style="color:var(--text);font-weight:700">¥${fmt(o.unit_cost)}</span>` : ''}
       ${o.case_cost != null ? `<span style="color:var(--cyan)">¥${fmt(o.case_cost)}</span>` : ''}
       ${o.case_quantity != null ? `<span style="color:var(--text2)">×${o.case_quantity}</span>` : ''}
@@ -988,7 +998,10 @@ function renderMobileDetailContent() {
   </div>
   <div class="field">
     <label>仕入先</label>
-    <input type="text" id="mfSupplierId" value="${esc(o.supplier_id||'')}" placeholder="例：アクシズ" oninput="markDirtyMobile()">
+    <select id="mfSupplierId" onchange="markDirtyMobile()">
+      <option value="">選択してください</option>
+      ${Object.entries(SUP_NAME).map(([k,v])=>`<option value="${k}" ${o.supplier_id===k?'selected':''}>${v}</option>`).join('')}
+    </select>
   </div>
   <div class="field">
     <label>景品紐付け（prize_masters）</label>
