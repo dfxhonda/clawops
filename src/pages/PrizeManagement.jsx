@@ -644,11 +644,23 @@ export default function PrizeManagement() {
             <label className="block text-muted text-sm mb-1">景品 <span className="text-accent2">*</span></label>
             <select value={form.prize_id||''} onChange={e => {
               const p = prizes.find(x => String(x.prize_id) === e.target.value)
-              setForm(prev => ({...prev, prize_id: e.target.value, unit_cost_at_order: p?.unit_cost||'0'}))
+              const supName = p?.supplier_name || ''
+              const sup = SUPPLIERS.find(s => s.id === supName || s.name === supName)
+              setForm(prev => ({...prev, prize_id: e.target.value, unit_cost_at_order: p?.unit_cost||'0', supplier_name: sup?.name || supName}))
             }} className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
               <option value="">選択してください</option>
               {prizes.filter(p=>p.is_active==='TRUE').map(p => (
                 <option key={p.prize_id} value={p.prize_id}>{p.prize_name} (¥{p.unit_cost})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-muted text-sm mb-1">仕入先</label>
+            <select value={form.supplier_name||''} onChange={e => setForm(p=>({...p, supplier_name:e.target.value}))}
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
+              <option value="">選択してください</option>
+              {SUPPLIERS.map(s => (
+                <option key={s.id} value={s.name}>{s.name}</option>
               ))}
             </select>
           </div>
