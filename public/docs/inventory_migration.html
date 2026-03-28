@@ -80,7 +80,7 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
   </div>
 </header>
 <div class="filters">
-  <input type="text" id="searchInput" placeholder="景品名で検索..." oninput="renderList()">
+  <input type="text" id="searchInput" placeholder="景品名で検索..." oninput="debouncedRender()">
   <select id="filterDecision" onchange="renderList()"><option value="">状態：全て</option><option value="pending">未確定</option><option value="confirmed">確定済</option><option value="skipped">スキップ</option></select>
   <select id="filterSheet" onchange="renderList()"><option value="">拠点：全て</option></select>
   <select id="filterOrig" onchange="renderList()"><option value="">元状態：全て</option><option value="一致">一致</option><option value="要確認">要確認</option><option value="不明">不明</option></select>
@@ -158,7 +158,11 @@ function getFiltered(){
   return list;
 }
 
+let _debounceTimer;
+function debouncedRender(){clearTimeout(_debounceTimer);_debounceTimer=setTimeout(()=>{currentPage=0;renderList()},250)}
+
 function renderList(){
+  const scrollY=window.scrollY;
   const list=getFiltered();
   const start=currentPage*PAGE_SIZE;
   const page=list.slice(start,start+PAGE_SIZE);
@@ -203,6 +207,7 @@ function renderList(){
   if(totalPages>1){for(let i=0;i<totalPages;i++) nav+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i+1}</button>`}
   document.getElementById('pageNav').innerHTML=nav;
   renderProgress();
+  requestAnimationFrame(()=>window.scrollTo(0,scrollY));
 }
 
 function buildCandidates(it){
