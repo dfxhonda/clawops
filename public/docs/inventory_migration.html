@@ -82,7 +82,8 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 <div class="filters">
   <input type="text" id="searchInput" placeholder="景品名で検索..." oninput="debouncedRender()">
   <select id="filterDecision" onchange="renderList()"><option value="">状態：全て</option><option value="pending">未確定</option><option value="confirmed">確定済</option><option value="skipped">スキップ</option></select>
-  <select id="filterSheet" onchange="renderList()"><option value="">拠点：全て</option></select>
+  <select id="filterSheet" onchange="onSheetFilter();renderList()"><option value="">担当/拠点：全て</option></select>
+  <select id="filterStore" onchange="renderList()"><option value="">店舗：全て</option></select>
   <select id="filterOrig" onchange="renderList()"><option value="">元状態：全て</option><option value="一致">一致</option><option value="要確認">要確認</option><option value="不明">不明</option></select>
   <button class="btn-sm" onclick="clearFilters()">クリア</button>
 </div>
@@ -146,6 +147,7 @@ function getFiltered(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
   const fd=document.getElementById('filterDecision').value;
   const fs=document.getElementById('filterSheet').value;
+  const fst=document.getElementById('filterStore').value;
   const fo=document.getElementById('filterOrig').value;
   let list=ITEMS.map((it,i)=>({...it,idx:i}));
   if(q) list=list.filter(it=>it.name.toLowerCase().includes(q)||(it.c1n||'').toLowerCase().includes(q));
@@ -153,7 +155,8 @@ function getFiltered(){
     if(fd==='pending') list=list.filter(it=>!decisions[it.idx]||decisions[it.idx].status==='pending');
     else list=list.filter(it=>decisions[it.idx]&&decisions[it.idx].status===fd);
   }
-  if(fs) list=list.filter(it=>it.sh===fs);
+  if(fs) list=list.filter(it=>it.sh.trim()===fs.trim());
+  if(fst) list=list.filter(it=>it.st.trim()===fst.trim());
   if(fo) list=list.filter(it=>it.stat===fo);
   return list;
 }
@@ -331,11 +334,29 @@ function pickFromSearch(pid,pname){
 }
 
 function goPage(p){currentPage=p;renderList();window.scrollTo(0,0)}
-function clearFilters(){document.getElementById('searchInput').value='';document.getElementById('filterDecision').value='';document.getElementById('filterSheet').value='';document.getElementById('filterOrig').value='';currentPage=0;renderList()}
+function clearFilters(){document.getElementById('searchInput').value='';document.getElementById('filterDecision').value='';document.getElementById('filterSheet').value='';document.getElementById('filterStore').value='';document.getElementById('filterOrig').value='';currentPage=0;renderList()}
 
-const sheets=[...new Set(ITEMS.map(i=>i.sh))];
+// フィルター初期化: 担当/拠点
+const sheets=[...new Set(ITEMS.map(i=>i.sh.trim()))].sort();
 const sf=document.getElementById('filterSheet');
 sheets.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sf.appendChild(o)});
+
+// 店舗フィルター: 担当/拠点選択に連動
+function populateStoreFilter(sheetFilter){
+  const stf=document.getElementById('filterStore');
+  stf.innerHTML='<option value="">店舗：全て</option>';
+  let items=ITEMS;
+  if(sheetFilter) items=items.filter(it=>it.sh.trim()===sheetFilter.trim());
+  const stores=[...new Set(items.map(it=>it.st.trim()).filter(Boolean))].sort();
+  stores.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;stf.appendChild(o)});
+}
+function onSheetFilter(){
+  const v=document.getElementById('filterSheet').value;
+  document.getElementById('filterStore').value='';
+  populateStoreFilter(v);
+  currentPage=0;
+}
+populateStoreFilter('');
 
 loadDecisions();
 </script>
