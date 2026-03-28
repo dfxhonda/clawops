@@ -109,12 +109,13 @@ header{
 .prize-table thead th:hover{color:var(--text)}
 .prize-table thead th.sorted{color:var(--accent)}
 .prize-table thead th:last-child{cursor:default}
-.prize-table colgroup col.col-name{width:30%}
-.prize-table colgroup col.col-short{width:15%}
-.prize-table colgroup col.col-cost{width:11%}
-.prize-table colgroup col.col-sup{width:17%}
+.prize-table colgroup col.col-name{width:25%}
+.prize-table colgroup col.col-short{width:13%}
+.prize-table colgroup col.col-cost{width:9%}
+.prize-table colgroup col.col-case{width:10%}
+.prize-table colgroup col.col-sup{width:15%}
 .prize-table colgroup col.col-order{width:12%}
-.prize-table colgroup col.col-status{width:15%}
+.prize-table colgroup col.col-status{width:16%}
 .prize-table tbody tr{
   border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
 }
@@ -281,6 +282,10 @@ header{
 .mc-name{font-size:15px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mc-meta{font-size:12px;color:var(--text2);margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden}
 .mc-aliases{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-kv{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:5px}
+.mc-kv-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mc-kv-label{font-size:10px;color:var(--text2);font-weight:700;letter-spacing:.2px}
+.mc-kv-val{font-size:12px;color:var(--text);white-space:nowrap}
 .mc-arrow{color:var(--text2);font-size:22px;padding-left:8px;flex-shrink:0;line-height:1}
 .fab{
   position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);right:18px;
@@ -307,6 +312,7 @@ header{
 @media (max-width:768px){
   .main{display:none!important}
   .btn-add{display:none!important}
+  #mobileSortSelect{display:block!important}
   .mobile-list{
     display:block;position:fixed;
     top:calc(var(--header-h) + var(--toolbar-h));
@@ -343,6 +349,19 @@ header{
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
   </select>
+  <div class="tb-sep"></div>
+  <select class="filter-select" id="mobileSortSelect" onchange="setMobileSort(this.value)" style="display:none">
+    <option value="prize_name">景品名順</option>
+    <option value="original_cost">単価順</option>
+    <option value="supplier_name">仕入先順</option>
+    <option value="latest_order_date">最終発注日順</option>
+    <option value="status">状態順</option>
+  </select>
+  <div class="tb-sep"></div>
+  <span style="font-size:12px;color:var(--text2);white-space:nowrap;flex-shrink:0">発注日</span>
+  <input type="date" id="orderDateFrom" class="filter-select" style="width:130px;flex-shrink:0" onchange="setOrderDateFrom(this.value)">
+  <span style="color:var(--text2);font-size:12px;flex-shrink:0">〜</span>
+  <input type="date" id="orderDateTo" class="filter-select" style="width:130px;flex-shrink:0" onchange="setOrderDateTo(this.value)">
   <button class="btn-clear" onclick="clearFilters()">✕ 検索をクリア</button>
 </div>
 
@@ -396,8 +415,6 @@ header{
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 
-// Known supplier list (fallback if suppliers table unavailable)
-const KNOWN_SUPPLIERS = ['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'];
 
 // ─── SUPABASE REST ────────────────────────────────────────────────────────────
 async function sbGet(table, params='') {
@@ -429,9 +446,6 @@ async function sbPost(table, body) {
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA = [];
-let SUPPLIERS = [];   // {id, name} from suppliers table
-let supplierMap = {}; // id -> name
-let useSupplierFK = false; // true if suppliers table loaded successfully
 
 let selPrizeId = null;
 let isNewMode = false;
@@ -439,6 +453,8 @@ let isDirty = false;
 let curSearch = '';
 let filterStatus = '';
 let filterSupplier = '';
+let filterOrderDateFrom = '';
+let filterOrderDateTo = '';
 let sortKey = 'prize_name';
 let sortDir = 'asc';
 let _loadingCount = 0;
@@ -458,7 +474,6 @@ function esc(s) {
 function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
 
 function resolveSupplierDisplay(p) {
-  if (useSupplierFK && p.supplier_id != null) return supplierMap[p.supplier_id] || String(p.supplier_id);
   return p.supplier_name || '—';
 }
 
@@ -489,24 +504,9 @@ function showToast(msg, ok=true) {
 async function loadAll() {
   showLoading();
   try {
-    const [prizes, suppliers] = await Promise.all([
-      sbGet('prize_masters',
-        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
-        '&order=prize_name.asc&limit=2000'),
-      sbGet('suppliers', 'select=supplier_id,supplier_name&order=supplier_name.asc').catch(() => null)
-    ]);
-
-    DATA = prizes;
-
-    if (suppliers && suppliers.length > 0) {
-      SUPPLIERS = suppliers;
-      useSupplierFK = true;
-      supplierMap = {};
-      suppliers.forEach(s => supplierMap[s.supplier_id] = s.supplier_name);
-    } else {
-      SUPPLIERS = [];
-      useSupplierFK = false;
-    }
+    DATA = await sbGet('prize_masters',
+      'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
+      '&order=prize_name.asc&limit=2000');
 
     buildSupplierFilter();
     render();
@@ -524,36 +524,26 @@ function buildSupplierFilter() {
   const sel = document.getElementById('supplierFilter');
   while (sel.options.length > 1) sel.remove(1);
 
-  if (useSupplierFK) {
-    SUPPLIERS.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.supplier_id;
-      opt.textContent = s.supplier_name;
-      if (String(filterSupplier) === String(s.supplier_id)) opt.selected = true;
-      sel.appendChild(opt);
-    });
-  } else {
-    // Use unique supplier_name values from data
-    const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
-    names.forEach(n => {
-      const opt = document.createElement('option');
-      opt.value = n;
-      opt.textContent = n;
-      if (filterSupplier === n) opt.selected = true;
-      sel.appendChild(opt);
-    });
-  }
+  const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+  names.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    if (filterSupplier === n) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
 // ─── FILTER / SORT ────────────────────────────────────────────────────────────
 function getFiltered() {
   let list = DATA.filter(p => {
     if (filterStatus && p.status !== filterStatus) return false;
-    if (filterSupplier) {
-      const check = useSupplierFK
-        ? String(p.supplier_id) === String(filterSupplier)
-        : p.supplier_name === filterSupplier;
-      if (!check) return false;
+    if (filterSupplier && p.supplier_name !== filterSupplier) return false;
+    if (filterOrderDateFrom || filterOrderDateTo) {
+      if (!p.latest_order_date) return false;
+      const d = String(p.latest_order_date).slice(0, 10);
+      if (filterOrderDateFrom && d < filterOrderDateFrom) return false;
+      if (filterOrderDateTo && d > filterOrderDateTo) return false;
     }
     const q = curSearch.toLowerCase();
     if (q) {
@@ -600,13 +590,14 @@ function render() {
 <table class="prize-table">
 <colgroup>
   <col class="col-name"><col class="col-short">
-  <col class="col-cost"><col class="col-sup">
+  <col class="col-cost"><col class="col-case"><col class="col-sup">
   <col class="col-order"><col class="col-status">
 </colgroup>
 <thead><tr>
   <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
   <th ${th('category')} onclick="setSort('category')">カテゴリ${sortKey==='category'?sortArrow(sortDir):''}</th>
   <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
+  <th style="text-align:right;cursor:default">ケース金額</th>
   <th ${th('supplier_name')} onclick="setSort('supplier_name')">仕入先${sortKey==='supplier_name'?sortArrow(sortDir):''}</th>
   <th ${th('latest_order_date')} onclick="setSort('latest_order_date')">最終発注${sortKey==='latest_order_date'?sortArrow(sortDir):''}</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
@@ -616,11 +607,13 @@ ${list.map(p => {
   const sid = String(p.prize_id);
   const sel = String(selPrizeId) === sid && !isNewMode;
   const supDisp = esc(resolveSupplierDisplay(p));
-  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  const caseAmt = (p.default_case_quantity && p.original_cost != null)
+    ? '¥' + (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
   <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
   <td class="td-short" title="${esc(p.category)}">${esc(p.category || '—')}</td>
   <td class="td-cost">¥${fmt(p.original_cost)}</td>
+  <td class="td-cost" style="color:var(--text2)">${caseAmt}</td>
   <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
   <td style="font-size:12px;color:var(--text2)">${fmtDate(p.latest_order_date)}</td>
   <td>${statusBadge(p.status)}</td>
@@ -648,13 +641,21 @@ function setSupplierFilter(val) {
   render();
 }
 
+function setOrderDateFrom(val) { filterOrderDateFrom = val; render(); }
+function setOrderDateTo(val)   { filterOrderDateTo   = val; render(); }
+function setMobileSort(val)    { if (sortKey !== val) { sortKey = val; sortDir = 'asc'; render(); } }
+
 function clearFilters() {
   curSearch = '';
   filterStatus = '';
   filterSupplier = '';
+  filterOrderDateFrom = '';
+  filterOrderDateTo = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('supplierFilter').value = '';
+  document.getElementById('orderDateFrom').value = '';
+  document.getElementById('orderDateTo').value = '';
   render();
 }
 
@@ -676,20 +677,10 @@ function selectPrize(id) {
 // ─── RENDER DETAIL PANEL ──────────────────────────────────────────────────────
 function buildSupplierOptions(currentVal) {
   let opts = '<option value="">未設定</option>';
-  if (useSupplierFK) {
-    opts += SUPPLIERS.map(s =>
-      `<option value="${esc(s.supplier_id)}"${String(currentVal) === String(s.supplier_id) ? ' selected' : ''}>${esc(s.supplier_name)}</option>`
-    ).join('');
-  } else {
-    // supplier_name-based: merge known list with unique values in data
-    const all = [...new Set([
-      ...KNOWN_SUPPLIERS,
-      ...DATA.map(p => p.supplier_name).filter(Boolean)
-    ])].sort();
-    opts += all.map(n =>
-      `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`
-    ).join('');
-  }
+  const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+  opts += names.map(n =>
+    `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`
+  ).join('');
   return opts;
 }
 
@@ -708,8 +699,7 @@ function renderDetail() {
     return;
   }
 
-  const supplierCurrent = useSupplierFK ? p.supplier_id : p.supplier_name;
-  const suppOpts = buildSupplierOptions(supplierCurrent);
+  const suppOpts = buildSupplierOptions(p.supplier_name);
   const statusOpts = ['active','provisional','inactive'].map(v =>
     `<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'停止中'}</option>`
   ).join('');
@@ -810,8 +800,7 @@ async function savePrize() {
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
     updated_at: new Date().toISOString()
   };
-  if (useSupplierFK) payload.supplier_id = supVal;
-  else               payload.supplier_name = supVal;
+  payload.supplier_name = supVal;
 
   const saveBtn = document.getElementById('btnSave');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
@@ -861,7 +850,7 @@ function duplicatePrize() {
   document.getElementById('fAliases').value = src.aliases || '';
   document.getElementById('fCost').value    = src.original_cost != null ? src.original_cost : '';
   document.getElementById('fStatus').value  = 'provisional';
-  document.getElementById('fSupplier').value = (useSupplierFK ? src.supplier_id : src.supplier_name) || '';
+  document.getElementById('fSupplier').value = src.supplier_name || '';
   document.getElementById('fQty').value     = src.default_case_quantity != null ? src.default_case_quantity : '';
   markDirty();
 }
@@ -932,15 +921,24 @@ function renderMobileList(list) {
   el.innerHTML = list.map(p => {
     const sid = String(p.prize_id);
     const sup = resolveSupplierDisplay(p);
-    const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
-    const aliasLine = aliases.length
-      ? `<div class="mc-aliases">別名: ${esc(aliases.join(' / '))}</div>` : '';
+    const caseAmtVal = (p.default_case_quantity != null && p.original_cost != null)
+      ? p.original_cost * p.default_case_quantity : null;
+    const caseAmtHtml = caseAmtVal != null
+      ? `<span style="color:var(--cyan)">¥${fmt(caseAmtVal)}</span>`
+      : `<span style="color:var(--text2)">—</span>`;
+    const qtyHtml = p.default_case_quantity != null
+      ? `<span style="color:var(--text2)">×${p.default_case_quantity}</span>`
+      : `<span style="color:var(--text2)">—</span>`;
     return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
   <div class="mc-body">
     <div class="mc-name">${esc(p.prize_name || '')}</div>
-    <div class="mc-meta"><span>¥${fmt(p.original_cost)}</span><span>${esc(sup !== '—' ? sup : '仕入先未設定')}</span>${statusBadge(p.status)}</div>
-    <div class="mc-meta" style="margin-top:2px"><span style="color:var(--text2)">最終発注: ${fmtDate(p.latest_order_date)}</span></div>
-    ${aliasLine}
+    <div class="mc-meta">
+      <span style="color:var(--orange)">${esc(sup !== '—' ? sup : '仕入先未設定')}</span>
+      <span style="font-weight:700">¥${fmt(p.original_cost)}</span>
+      ${caseAmtHtml}${qtyHtml}
+      <span style="color:var(--text2)">${fmtDate(p.latest_order_date)}</span>
+      ${statusBadge(p.status)}
+    </div>
   </div>
   <div class="mc-arrow">›</div>
 </div>`;
@@ -987,8 +985,7 @@ function renderMobileDetailContent() {
     return;
   }
 
-  const supplierCurrent = useSupplierFK ? p.supplier_id : p.supplier_name;
-  const suppOpts = buildSupplierOptions(supplierCurrent);
+  const suppOpts = buildSupplierOptions(p.supplier_name);
   const statusOpts = ['active','provisional','inactive'].map(v =>
     `<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'停止中'}</option>`
   ).join('');
@@ -1055,8 +1052,7 @@ async function savePrizeMobile() {
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
     updated_at: new Date().toISOString()
   };
-  if (useSupplierFK) payload.supplier_id = supVal;
-  else               payload.supplier_name = supVal;
+  payload.supplier_name = supVal;
 
   const saveBtn = document.getElementById('mfBtnSave');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
@@ -1097,7 +1093,7 @@ function duplicatePrizeMobile() {
   document.getElementById('mfAliases').value = src.aliases || '';
   document.getElementById('mfCost').value    = src.original_cost != null ? src.original_cost : '';
   document.getElementById('mfStatus').value  = 'provisional';
-  document.getElementById('mfSupplier').value = (useSupplierFK ? src.supplier_id : src.supplier_name) || '';
+  document.getElementById('mfSupplier').value = src.supplier_name || '';
   document.getElementById('mfQty').value     = src.default_case_quantity != null ? src.default_case_quantity : '';
   markDirtyMobile();
 }
