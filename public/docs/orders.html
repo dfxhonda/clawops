@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>発注履歴 | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;
+  --surface:#1a1a23;
+  --surface2:#22222e;
+  --border:#2e2e3e;
+  --text:#e8e8f0;
+  --text2:#9090a8;
+  --accent:#7c6aff;
+  --accent2:#5a4fcf;
+  --green:#2ecc71;
+  --yellow:#f39c12;
+  --red:#e74c3c;
+  --cyan:#00b4d8;
+  --orange:#e67e22;
+  --radius:10px;
+  --nav-h:58px;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:fixed;top:0;left:0;right:0;z-index:100}
+.header-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.header-title{font-size:16px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.header-count{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:auto}
+
+.search-wrap{position:relative;margin-bottom:8px}
+.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px 9px 34px;color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--text2)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:15px;pointer-events:none}
+
+.filter-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:5px;margin-bottom:5px;flex-wrap:nowrap;align-items:center}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-row select,.filter-row input[type="date"]{
+  flex:0 0 auto;padding:5px 8px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;
+}
+.filter-row select:focus,.filter-row input[type="date"]:focus{border-color:var(--accent);color:var(--text)}
+.filter-row select option{background:var(--surface)}
+.filter-row label{font-size:10px;color:var(--text2);white-space:nowrap;flex-shrink:0}
+
+.sort-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;align-items:center}
+.sort-row::-webkit-scrollbar{display:none}
+.srt-btn{flex:0 0 auto;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;-webkit-tap-highlight-color:transparent}
+.srt-btn.active{border-color:var(--accent);color:var(--accent)}
+.srt-arrow{font-size:11px}
+
+.total-bar{display:flex;align-items:center;justify-content:flex-end;padding:6px 0 2px;font-size:12px;color:var(--text2)}
+.total-bar .total-amount{font-weight:700;color:var(--accent);margin-left:4px}
+
+.list-container{padding:10px 12px 16px}
+.order-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;transition:all .15s;-webkit-tap-highlight-color:transparent;display:flex;gap:10px;align-items:flex-start;cursor:default;user-select:text}
+
+.card-icon{width:38px;min-width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.card-body{flex:1;min-width:0}
+.card-top{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px}
+.prize-name{font-size:13px;font-weight:600;line-height:1.35;flex:1;word-break:break-all}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.badge-ordered{background:rgba(0,180,216,.15);color:var(--cyan);border:1px solid rgba(0,180,216,.3)}
+.badge-delivered{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.badge-cancelled{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.3)}
+.badge-pending{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
+.badge-default{background:rgba(144,144,168,.12);color:var(--text2);border:1px solid var(--border)}
+
+.card-mid{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.cost-val{font-size:14px;font-weight:700;white-space:nowrap}
+.cost-yen{font-size:11px;margin-right:1px}
+.cost-detail{font-size:11px;color:var(--text2);white-space:nowrap}
+
+.card-bot{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.meta-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+
+.spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;bottom:calc(var(--nav-h)+16px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;z-index:400;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150;backdrop-filter:blur(10px)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;-webkit-tap-highlight-color:transparent;text-decoration:none}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <span class="header-title">📦 発注履歴</span>
+    <span class="header-count" id="countBadge">読込中…</span>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="商品名で検索..." autocomplete="off" autocorrect="off">
+  </div>
+  <div class="filter-row">
+    <select id="supplierFilter">
+      <option value="">仕入先：全て</option>
+      <option value="景品フォーム">景品フォーム</option>
+      <option value="インフィニティ">インフィニティ</option>
+      <option value="アクシズ">アクシズ</option>
+      <option value="エスディーワイ">エスディーワイ</option>
+      <option value="ピーチトイ">ピーチトイ</option>
+    </select>
+    <select id="destFilter">
+      <option value="">配送先：全て</option>
+      <option value="久留米">久留米</option>
+      <option value="飯塚">飯塚</option>
+      <option value="田隈">田隈</option>
+      <option value="鹿児島">鹿児島</option>
+    </select>
+    <label>発注</label>
+    <input type="date" id="orderFrom">
+    <label>〜</label>
+    <input type="date" id="orderTo">
+    <label>納期</label>
+    <input type="date" id="expectFrom">
+    <label>〜</label>
+    <input type="date" id="expectTo">
+  </div>
+  <div class="sort-row" id="sortRow">
+    <button class="srt-btn active" data-key="prize_name_raw">商品名 <span class="srt-arrow">↑</span></button>
+    <button class="srt-btn" data-key="unit_cost">単価 <span class="srt-arrow">↓</span></button>
+    <button class="srt-btn" data-key="order_date">発注日 <span class="srt-arrow">↑</span></button>
+    <button class="srt-btn" data-key="expected_date">納期 <span class="srt-arrow">↑</span></button>
+    <button class="srt-btn" data-key="case_cost">合計 <span class="srt-arrow">↓</span></button>
+  </div>
+  <div class="total-bar">
+    <span id="totalDisplay">読込中...</span>
+  </div>
+</header>
+
+<div class="readonly-notice">📋 発注履歴は参照専用です（編集にはmanager権限が必要です）</div>
+<div class="list-container" id="listContainer">
+  <div class="empty"><div class="empty-icon">⏳</div><div>読み込み中...</div></div>
+</div>
+
+<div id="spinnerOverlay" style="display:none" class="spinner-overlay"><div class="spinner"></div></div>
+<div id="toastEl" style="display:none" class="toast"></div>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="prizes.html">
+    <div class="nav-icon">🏆</div>
+    <div>景品</div>
+  </a>
+  <a class="nav-item" href="admin.html">
+    <div class="nav-icon">⚙︎</div>
+    <div>管理</div>
+  </a>
+  <div class="nav-item" onclick="showToast('在庫ページは準備中です',false)">
+    <div class="nav-icon">📦</div>
+    <div>在庫</div>
+  </div>
+  <div class="nav-item active">
+    <div class="nav-icon">📋</div>
+    <div>発注</div>
+  </div>
+  <div class="nav-item" onclick="showToast('設定ページは準備中です',false)">
+    <div class="nav-icon">⚙︎</div>
+    <div>設定</div>
+  </div>
+</nav>
+
+<script>
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+
+async function sbGet(table,params=''){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}`,{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  });
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+
+let DATA=[];
+let curSearch='';
+let curSortKey='order_date';
+let sortDirs={prize_name_raw:'asc',unit_cost:'desc',order_date:'desc',expected_date:'asc',case_cost:'desc'};
+let _loadingCount=0;
+let _toastTimer=null;
+const ICON_COLORS=['#7c6aff','#e74c3c','#2ecc71','#f39c12','#00b4d8','#e67e22','#9b59b6','#3498db'];
+
+function showLoading(){_loadingCount++;document.getElementById('spinnerOverlay').style.display='flex';}
+function hideLoading(){_loadingCount=Math.max(0,_loadingCount-1);if(!_loadingCount)document.getElementById('spinnerOverlay').style.display='none';}
+function showToast(msg,ok=true){
+  const el=document.getElementById('toastEl');el.textContent=msg;
+  el.className='toast '+(ok?'ok':'err');el.style.display='block';
+  if(_toastTimer)clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>el.style.display='none',3000);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmt(n){return Number(n).toLocaleString('ja-JP')}
+function fmtDate(d){if(!d)return'\u2014';const m=d.match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[1].slice(2)+'.'+m[2]+'.'+m[3]:'\u2014';}
+function iconColor(o){
+  const str=String(o.order_id||o.prize_name_raw||'');
+  let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))&0xffff;
+  return ICON_COLORS[h%ICON_COLORS.length];
+}
+function iconChar(o){
+  const s=String(o.prize_name_raw||'');
+  return s.replace(/[^\u3040-\u9FFF\uFF00-\uFFEFa-zA-Z]/,'').slice(0,1)||s.slice(0,1)||'?';
+}
+function statusBadge(status){
+  if(!status)return'';
+  const s=String(status).toLowerCase();
+  if(s==='ordered'||s==='発注済')return'<span class="badge badge-ordered">発注済</span>';
+  if(s==='delivered'||s==='納品済')return'<span class="badge badge-delivered">納品済</span>';
+  if(s==='cancelled'||s==='キャンセル')return'<span class="badge badge-cancelled">キャンセル</span>';
+  if(s==='pending'||s==='保留')return'<span class="badge badge-pending">保留</span>';
+  return'<span class="badge badge-default">'+esc(status)+'</span>';
+}
+
+async function loadData(){
+  showLoading();
+  try{
+    const data=await sbGet('prize_orders','select=order_id,prize_id,prize_name_raw,supplier_id,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,destination,source_file,shipping_cost,notes,status&order=order_date.desc&limit=2000');
+    DATA=data;
+    render();
+  }catch(e){
+    document.getElementById('listContainer').innerHTML='<div class="empty"><div class="empty-icon">\u26A0\uFE0F</div><div>データ読み込みに失敗しました<br><small>'+esc(e.message)+'</small></div></div>';
+    document.getElementById('countBadge').textContent='エラー';
+    document.getElementById('totalDisplay').textContent='エラー';
+  }finally{hideLoading();}
+}
+
+function getFiltered(){
+  const q=curSearch.toLowerCase();
+  const supplier=document.getElementById('supplierFilter').value;
+  const dest=document.getElementById('destFilter').value;
+  const oFrom=document.getElementById('orderFrom').value;
+  const oTo=document.getElementById('orderTo').value;
+  const eFrom=document.getElementById('expectFrom').value;
+  const eTo=document.getElementById('expectTo').value;
+
+  let list=DATA.filter(o=>{
+    if(q&&!String(o.prize_name_raw||'').toLowerCase().includes(q))return false;
+    if(supplier&&o.supplier_id!==supplier)return false;
+    if(dest&&!String(o.destination||'').includes(dest))return false;
+    if(oFrom&&(!o.order_date||o.order_date<oFrom))return false;
+    if(oTo&&(!o.order_date||o.order_date>oTo))return false;
+    if(eFrom&&(!o.expected_date||o.expected_date<eFrom))return false;
+    if(eTo&&(!o.expected_date||o.expected_date>eTo))return false;
+    return true;
+  });
+
+  const key=curSortKey;
+  const dir=sortDirs[key]||'asc';
+  list=list.slice().sort((a,b)=>{
+    let av=a[key],bv=b[key];
+    if(av==null)av=dir==='asc'?'\uffff':'';
+    if(bv==null)bv=dir==='asc'?'\uffff':'';
+    if(typeof av==='string'||typeof bv==='string')return dir==='asc'?String(av).localeCompare(String(bv),'ja'):String(bv).localeCompare(String(av),'ja');
+    return dir==='asc'?av-bv:bv-av;
+  });
+  return list;
+}
+
+function render(){setTimeout(adjustPadding,0);
+  const list=getFiltered();
+  const total=list.reduce((s,o)=>s+(o.case_cost||0),0);
+  document.getElementById('countBadge').textContent=list.length+'件';
+  document.getElementById('totalDisplay').textContent=list.length+'件 / 合計: \u00A5'+fmt(total);
+
+  const c=document.getElementById('listContainer');
+  if(!list.length){
+    c.innerHTML='<div class="empty"><div class="empty-icon">\u{1F50D}</div><div>該当する発注がありません</div></div>';
+    return;
+  }
+  c.innerHTML=list.map(o=>{
+    const qty=o.case_quantity||0;
+    const cnt=o.case_count||0;
+    const unit=o.unit_cost||0;
+    const costDetail=unit>0?'\u00A5'+fmt(unit)+' \u00D7 '+qty+'個 \u00D7 '+cnt+'CS':'';
+    const supplierHtml=o.supplier_id?'<span class="meta-chip">\u{1F3EA}'+esc(o.supplier_id)+'</span>':'';
+    const destHtml=o.destination?'<span class="meta-chip">\u{1F4CD}'+esc(o.destination)+'</span>':'';
+    const orderHtml='<span class="meta-chip" style="color:var(--yellow)">\u{1F4CB}'+fmtDate(o.order_date)+'</span>';
+    const expectHtml=o.expected_date?'<span class="meta-chip" style="color:var(--cyan)">\u{1F69A}'+fmtDate(o.expected_date)+'</span>':'';
+    const srcHtml=o.source_file?'<span class="meta-chip">\u{1F4C4}'+esc(o.source_file)+'</span>':'';
+    const notesHtml=o.notes?'<span class="meta-chip">\u{1F4DD}'+esc(o.notes)+'</span>':'';
+    return '<div class="order-card">'+
+'<div class="card-icon" style="background:'+iconColor(o)+'">'+esc(iconChar(o))+'</div>'+
+'<div class="card-body">'+
+'<div class="card-top">'+
+'<span class="prize-name">'+esc(o.prize_name_raw)+'</span>'+
+statusBadge(o.status)+
+'</div>'+
+'<div class="card-mid">'+
+'<span class="cost-val"><span class="cost-yen">\u00A5</span>'+fmt(o.case_cost||0)+'</span>'+
+(costDetail?'<span class="cost-detail">'+costDetail+'</span>':'')+
+'</div>'+
+'<div class="card-bot">'+supplierHtml+destHtml+orderHtml+expectHtml+srcHtml+notesHtml+'</div>'+
+'</div>'+
+'</div>';
+  }).join('');
+}
+
+// Events
+document.getElementById('searchInput').addEventListener('input',function(){curSearch=this.value;render();});
+document.getElementById('supplierFilter').addEventListener('change',render);
+document.getElementById('destFilter').addEventListener('change',render);
+document.getElementById('orderFrom').addEventListener('change',render);
+document.getElementById('orderTo').addEventListener('change',render);
+document.getElementById('expectFrom').addEventListener('change',render);
+document.getElementById('expectTo').addEventListener('change',render);
+
+document.querySelectorAll('#sortRow .srt-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    const key=this.dataset.key;
+    if(curSortKey===key){sortDirs[key]=sortDirs[key]==='desc'?'asc':'desc';}
+    else{curSortKey=key;}
+    updateSortUI();render();
+  });
+});
+
+function updateSortUI(){
+  document.querySelectorAll('#sortRow .srt-btn').forEach(btn=>{
+    const key=btn.dataset.key;
+    btn.classList.toggle('active',key===curSortKey);
+    btn.querySelector('.srt-arrow').textContent=sortDirs[key]==='asc'?'\u2191':'\u2193';
+  });
+}
+
+updateSortUI();
+function adjustPadding(){const h=document.querySelector('header');const lc=document.getElementById('listContainer');if(h&&lc)lc.style.paddingTop=(h.offsetHeight+10)+'px';}
+window.addEventListener('resize',adjustPadding);
+loadData();
+</script>
+</body>
+</html>

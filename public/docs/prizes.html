@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>景品マスタ | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;
+  --surface:#1a1a23;
+  --surface2:#22222e;
+  --border:#2e2e3e;
+  --text:#e8e8f0;
+  --text2:#9090a8;
+  --accent:#7c6aff;
+  --accent2:#5a4fcf;
+  --green:#2ecc71;
+  --yellow:#f39c12;
+  --red:#e74c3c;
+  --cyan:#00b4d8;
+  --orange:#e67e22;
+  --radius:8px;
+  --nav-h:58px;
+  --header-h:56px;
+  --toolbar-h:52px;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
+
+/* ── Header ── */
+header{
+  position:fixed;top:0;left:0;right:0;height:var(--header-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100;
+}
+.header-title{font-size:17px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.header-count{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;white-space:nowrap}
+.header-spacer{flex:1}
+.btn-add{
+  padding:8px 16px;border-radius:var(--radius);
+  background:var(--accent);color:#fff;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:background .15s;
+}
+.btn-add:hover{background:var(--accent2)}
+
+/* ── Toolbar ── */
+.toolbar{
+  position:fixed;top:var(--header-h);left:0;right:0;height:var(--toolbar-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:8px;z-index:99;
+  overflow-x:auto;scrollbar-width:none;
+}
+.toolbar::-webkit-scrollbar{display:none}
+.search-wrap{position:relative;flex-shrink:0;width:240px}
+.search-wrap input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:7px 10px 7px 30px;
+  color:var(--text);font-size:13px;outline:none;transition:border-color .2s;
+}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--text2)}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:12px;pointer-events:none}
+.chip{
+  flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  cursor:pointer;transition:all .15s;white-space:nowrap;user-select:none;
+}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.provisional.on{background:var(--yellow);border-color:var(--yellow);color:#000}
+.chip.inactive.on{background:rgba(144,144,168,.2);border-color:var(--text2);color:var(--text)}
+.tb-sep{flex-shrink:0;width:1px;height:20px;background:var(--border)}
+.filter-select{
+  flex-shrink:0;padding:5px 8px;border-radius:var(--radius);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:12px;cursor:pointer;outline:none;
+}
+.filter-select option{background:var(--surface)}
+.btn-clear{
+  flex-shrink:0;padding:5px 11px;border-radius:var(--radius);font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.btn-clear:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Main layout ── */
+.main{
+  position:fixed;
+  top:calc(var(--header-h) + var(--toolbar-h));
+  left:0;right:0;
+  bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  display:flex;
+}
+
+/* ── List pane ── */
+.list-pane{
+  flex:3;min-width:300px;overflow-y:auto;
+  border-right:1px solid var(--border);
+}
+.prize-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.prize-table thead th{
+  position:sticky;top:0;background:var(--surface);
+  padding:9px 10px;text-align:left;
+  font-size:12px;font-weight:700;color:var(--text2);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+.prize-table thead th:hover{color:var(--text)}
+.prize-table thead th.sorted{color:var(--accent)}
+.prize-table thead th:last-child{cursor:default}
+.prize-table colgroup col.col-name{width:30%}
+.prize-table colgroup col.col-short{width:15%}
+.prize-table colgroup col.col-cost{width:11%}
+.prize-table colgroup col.col-sup{width:17%}
+.prize-table colgroup col.col-status{width:11%}
+.prize-table colgroup col.col-act{width:16%}
+.prize-table tbody tr{
+  border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
+}
+.prize-table tbody tr:hover{background:var(--surface2)}
+.prize-table tbody tr.selected{
+  background:rgba(124,106,255,.12);
+  border-left:3px solid var(--accent);
+}
+.prize-table tbody tr.selected td:first-child{padding-left:7px}
+.prize-table tbody td{
+  padding:8px 10px;font-size:13px;vertical-align:middle;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.td-name{font-weight:600}
+.td-short{color:var(--text2);font-size:12px}
+.td-cost{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.td-sup{color:var(--orange);font-size:12px}
+.td-actions{white-space:nowrap}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.badge-active{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.badge-provisional{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
+.badge-inactive{background:rgba(144,144,168,.1);color:var(--text2);border:1px solid var(--border)}
+.row-btn{
+  padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  cursor:pointer;transition:all .15s;
+}
+.row-btn:hover{border-color:var(--accent);color:var(--accent)}
+.empty-pane{text-align:center;padding:60px 20px;color:var(--text2);font-size:13px}
+.empty-pane .empty-icon{font-size:36px;margin-bottom:10px}
+
+/* ── Detail pane ── */
+.detail-pane{
+  flex:2;min-width:280px;overflow-y:auto;
+  background:var(--surface);
+}
+.detail-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;color:var(--text2);gap:12px;
+}
+.detail-empty-icon{font-size:40px}
+.detail-header{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.detail-title{
+  font-size:15px;font-weight:700;line-height:1.35;
+  word-break:break-all;color:var(--accent);
+}
+.detail-id{font-size:11px;color:var(--text2);margin-top:4px}
+.detail-dirty{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--yellow);margin-right:5px;
+  animation:pulse .9s ease-in-out infinite alternate;
+}
+@keyframes pulse{from{opacity:1}to{opacity:.25}}
+.detail-body{padding:14px 16px 0}
+.field{margin-bottom:13px}
+.field label{
+  display:block;font-size:11px;color:var(--text2);
+  font-weight:700;letter-spacing:.3px;margin-bottom:5px;
+}
+.field input,.field select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px 10px;
+  color:var(--text);font-size:14px;outline:none;
+  font-family:inherit;transition:border-color .2s;
+}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--surface)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.req{color:var(--red);margin-left:2px}
+.detail-actions{
+  padding:14px 16px 20px;
+  display:flex;flex-wrap:wrap;gap:8px;
+}
+.btn-save{
+  padding:9px 20px;border-radius:var(--radius);
+  background:var(--accent);color:#fff;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;
+  white-space:nowrap;
+}
+.btn-save:hover:not(:disabled){background:var(--accent2)}
+.btn-save:disabled{opacity:.45;pointer-events:none}
+.btn-dup,.btn-stop,.btn-revert{
+  padding:9px 14px;border-radius:var(--radius);
+  background:transparent;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-dup{color:var(--text2);border:1px solid var(--border)}
+.btn-dup:hover{border-color:var(--accent);color:var(--accent)}
+.btn-stop{color:var(--yellow);border:1px solid rgba(243,156,18,.4)}
+.btn-stop:hover{border-color:var(--yellow);background:rgba(243,156,18,.08)}
+.btn-revert{color:var(--text2);border:1px solid var(--border)}
+.btn-revert:hover{border-color:var(--text2);color:var(--text)}
+
+/* ── Aliases popup ── */
+.aliases-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;
+  display:flex;align-items:center;justify-content:center;
+}
+.aliases-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:20px;max-width:380px;width:90%;
+}
+.aliases-box h3{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent)}
+.aliases-list{color:var(--text2);font-size:13px;line-height:2}
+.aliases-close{
+  margin-top:14px;width:100%;padding:9px;border-radius:var(--radius);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:13px;font-weight:600;cursor:pointer;
+}
+.aliases-close:hover{border-color:var(--accent)}
+
+/* ── Bottom nav ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
+  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+
+/* ── Spinner ── */
+.spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h) + 12px);right:16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 20px;font-size:13px;font-weight:600;z-index:400;
+  white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);
+  animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="header-title">🏆 景品マスタ</span>
+  <span class="header-count" id="countBadge">読込中…</span>
+  <div class="header-spacer"></div>
+  <button class="btn-add" onclick="openNew()">＋ 新しい景品を追加</button>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="景品名・別名で検索..." autocomplete="off">
+  </div>
+  <div class="tb-sep"></div>
+  <div class="chip" id="chipActive" onclick="toggleChip('active')">Active</div>
+  <div class="chip provisional" id="chipProvisional" onclick="toggleChip('provisional')">仮登録</div>
+  <div class="chip inactive" id="chipInactive" onclick="toggleChip('inactive')">停止中</div>
+  <div class="tb-sep"></div>
+  <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
+    <option value="">仕入先：全て</option>
+  </select>
+  <button class="btn-clear" onclick="clearFilters()">✕ 検索をクリア</button>
+</div>
+
+<div class="main">
+  <div class="list-pane" id="listPane">
+    <div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div>
+  </div>
+  <div class="detail-pane" id="detailPane">
+    <div class="detail-empty">
+      <div class="detail-empty-icon">👈</div>
+      <div>景品を選択してください</div>
+    </div>
+  </div>
+</div>
+
+<div id="spinnerOverlay" style="display:none" class="spinner-overlay"><div class="spinner"></div></div>
+<div id="toastEl" style="display:none" class="toast"></div>
+
+<nav class="bottom-nav">
+  <div class="nav-item active">
+    <div class="nav-icon">🏆</div>
+    <div>景品</div>
+  </div>
+  <a class="nav-item" href="admin.html">
+    <div class="nav-icon">⚙️</div>
+    <div>管理</div>
+  </a>
+  <div class="nav-item" onclick="showToast('在庫ページは準備中です',false)">
+    <div class="nav-icon">📦</div>
+    <div>在庫</div>
+  </div>
+  <a class="nav-item" href="orders.html">
+    <div class="nav-icon">📋</div>
+    <div>発注</div>
+  </a>
+  <div class="nav-item" onclick="showToast('設定ページは準備中です',false)">
+    <div class="nav-icon">⚙️</div>
+    <div>設定</div>
+  </div>
+</nav>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+
+// Known supplier list (fallback if suppliers table unavailable)
+const KNOWN_SUPPLIERS = ['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'];
+
+// ─── SUPABASE REST ────────────────────────────────────────────────────────────
+async function sbGet(table, params='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbPatch(table, id, idCol, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+async function sbPost(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let DATA = [];
+let SUPPLIERS = [];   // {id, name} from suppliers table
+let supplierMap = {}; // id -> name
+let useSupplierFK = false; // true if suppliers table loaded successfully
+
+let selPrizeId = null;
+let isNewMode = false;
+let isDirty = false;
+let curSearch = '';
+let filterStatuses = [];
+let filterSupplier = '';
+let sortKey = 'prize_name';
+let sortDir = 'asc';
+let _loadingCount = 0;
+let _toastTimer = null;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
+
+function resolveSupplierDisplay(p) {
+  if (useSupplierFK && p.supplier_id != null) return supplierMap[p.supplier_id] || String(p.supplier_id);
+  return p.supplier_name || '—';
+}
+
+function statusBadge(s) {
+  if (s === 'active')      return '<span class="badge badge-active">Active</span>';
+  if (s === 'provisional') return '<span class="badge badge-provisional">仮登録</span>';
+  if (s === 'inactive')    return '<span class="badge badge-inactive">停止中</span>';
+  return '<span class="badge badge-inactive">' + esc(s || '—') + '</span>';
+}
+
+// ─── LOADING / TOAST ─────────────────────────────────────────────────────────
+function showLoading()  { _loadingCount++; document.getElementById('spinnerOverlay').style.display='flex'; }
+function hideLoading()  { _loadingCount=Math.max(0,_loadingCount-1); if(!_loadingCount) document.getElementById('spinnerOverlay').style.display='none'; }
+
+function showToast(msg, ok=true) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.className = 'toast ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.style.display='none', 3000);
+}
+
+// ─── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  showLoading();
+  try {
+    const [prizes, suppliers] = await Promise.all([
+      sbGet('prize_masters',
+        'select=prize_id,prize_name,short_name,aliases,original_cost,supplier_id,supplier_name,status,standard_quantity_per_case' +
+        '&order=prize_name.asc&limit=2000'),
+      sbGet('suppliers', 'select=id,name&order=name.asc').catch(() => null)
+    ]);
+
+    DATA = prizes;
+
+    if (suppliers && suppliers.length > 0) {
+      SUPPLIERS = suppliers;
+      useSupplierFK = true;
+      supplierMap = {};
+      suppliers.forEach(s => supplierMap[s.id] = s.name);
+    } else {
+      SUPPLIERS = [];
+      useSupplierFK = false;
+    }
+
+    buildSupplierFilter();
+    render();
+    if (selPrizeId || isNewMode) renderDetail();
+  } catch(e) {
+    document.getElementById('listPane').innerHTML =
+      `<div class="empty-pane">⚠️ データ読み込みに失敗しました<br><small>${esc(e.message)}</small></div>`;
+    document.getElementById('countBadge').textContent = 'エラー';
+  } finally {
+    hideLoading();
+  }
+}
+
+function buildSupplierFilter() {
+  const sel = document.getElementById('supplierFilter');
+  while (sel.options.length > 1) sel.remove(1);
+
+  if (useSupplierFK) {
+    SUPPLIERS.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (String(filterSupplier) === String(s.id)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } else {
+    // Use unique supplier_name values from data
+    const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n;
+      if (filterSupplier === n) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+// ─── FILTER / SORT ────────────────────────────────────────────────────────────
+function getFiltered() {
+  let list = DATA.filter(p => {
+    if (filterStatuses.length > 0 && !filterStatuses.includes(p.status)) return false;
+    if (filterSupplier) {
+      const check = useSupplierFK
+        ? String(p.supplier_id) === String(filterSupplier)
+        : p.supplier_name === filterSupplier;
+      if (!check) return false;
+    }
+    const q = curSearch.toLowerCase();
+    if (q) {
+      const nm = (p.prize_name  || '').toLowerCase();
+      const sn = (p.short_name  || '').toLowerCase();
+      const al = (p.aliases     || '').toLowerCase();
+      if (!nm.includes(q) && !sn.includes(q) && !al.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+  list = list.slice().sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    const nil = dir === 1 ? '\uffff' : '';
+    if (av == null) av = nil;
+    if (bv == null) bv = nil;
+    if (typeof av === 'string' || typeof bv === 'string')
+      return dir * String(av).localeCompare(String(bv), 'ja');
+    return dir * (av - bv);
+  });
+  return list;
+}
+
+// ─── RENDER LIST ──────────────────────────────────────────────────────────────
+function render() {
+  const list = getFiltered();
+  document.getElementById('countBadge').textContent = list.length + '件';
+  const pane = document.getElementById('listPane');
+
+  if (!list.length) {
+    pane.innerHTML = '<div class="empty-pane"><div class="empty-icon">🔍</div>該当する景品がありません</div>';
+    return;
+  }
+
+  const sortArrow = dir => dir === 'asc' ? ' ↑' : ' ↓';
+  const th = key => {
+    const active = sortKey === key;
+    return `class="${active ? 'sorted' : ''}"`;
+  };
+
+  pane.innerHTML = `
+<table class="prize-table">
+<colgroup>
+  <col class="col-name"><col class="col-short">
+  <col class="col-cost"><col class="col-sup">
+  <col class="col-status"><col class="col-act">
+</colgroup>
+<thead><tr>
+  <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
+  <th ${th('short_name')} onclick="setSort('short_name')">短縮名${sortKey==='short_name'?sortArrow(sortDir):''}</th>
+  <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
+  <th>仕入先</th>
+  <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
+  <th>操作</th>
+</tr></thead>
+<tbody>
+${list.map(p => {
+  const sid = String(p.prize_id);
+  const sel = String(selPrizeId) === sid && !isNewMode;
+  const supDisp = esc(resolveSupplierDisplay(p));
+  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
+  <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
+  <td class="td-short" title="${esc(p.short_name)}">${esc(p.short_name || '—')}</td>
+  <td class="td-cost">¥${fmt(p.original_cost)}</td>
+  <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
+  <td>${statusBadge(p.status)}</td>
+  <td class="td-actions">
+    <button class="row-btn" onclick="event.stopPropagation();selectPrize('${esc(sid)}')">編集</button>
+    ${aliases.length ? `<button class="row-btn" style="margin-left:4px" onclick="event.stopPropagation();showAliases('${esc(sid)}')">別名を見る</button>` : ''}
+  </td>
+</tr>`;
+}).join('')}
+</tbody>
+</table>`;
+}
+
+function setSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = 'asc'; }
+  render();
+}
+
+// ─── FILTER CONTROLS ─────────────────────────────────────────────────────────
+function toggleChip(status) {
+  const idx = filterStatuses.indexOf(status);
+  if (idx >= 0) filterStatuses.splice(idx, 1);
+  else filterStatuses.push(status);
+  const capId = 'chip' + status.charAt(0).toUpperCase() + status.slice(1);
+  document.getElementById(capId).classList.toggle('on', filterStatuses.includes(status));
+  render();
+}
+
+function setSupplierFilter(val) {
+  filterSupplier = val;
+  render();
+}
+
+function clearFilters() {
+  curSearch = '';
+  filterStatuses = [];
+  filterSupplier = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('supplierFilter').value = '';
+  document.getElementById('chipActive').classList.remove('on');
+  document.getElementById('chipProvisional').classList.remove('on');
+  document.getElementById('chipInactive').classList.remove('on');
+  render();
+}
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  curSearch = e.target.value.trim();
+  render();
+});
+
+// ─── SELECT PRIZE ─────────────────────────────────────────────────────────────
+function selectPrize(id) {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  isDirty = false;
+  isNewMode = false;
+  selPrizeId = id;
+  render();
+  renderDetail();
+}
+
+// ─── RENDER DETAIL PANEL ──────────────────────────────────────────────────────
+function buildSupplierOptions(currentVal) {
+  let opts = '<option value="">未設定</option>';
+  if (useSupplierFK) {
+    opts += SUPPLIERS.map(s =>
+      `<option value="${esc(s.id)}"${String(currentVal) === String(s.id) ? ' selected' : ''}>${esc(s.name)}</option>`
+    ).join('');
+  } else {
+    // supplier_name-based: merge known list with unique values in data
+    const all = [...new Set([
+      ...KNOWN_SUPPLIERS,
+      ...DATA.map(p => p.supplier_name).filter(Boolean)
+    ])].sort();
+    opts += all.map(n =>
+      `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`
+    ).join('');
+  }
+  return opts;
+}
+
+function renderDetail() {
+  const pane = document.getElementById('detailPane');
+
+  if (!selPrizeId && !isNewMode) {
+    pane.innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">👈</div><div>景品を選択してください</div></div>`;
+    return;
+  }
+
+  const empty = {prize_name:'',short_name:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',standard_quantity_per_case:''};
+  const p = isNewMode ? empty : DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!p) {
+    pane.innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>`;
+    return;
+  }
+
+  const supplierCurrent = useSupplierFK ? p.supplier_id : p.supplier_name;
+  const suppOpts = buildSupplierOptions(supplierCurrent);
+  const statusOpts = ['active','provisional','inactive'].map(v =>
+    `<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'停止中'}</option>`
+  ).join('');
+
+  const dirtyDot = isDirty ? '<span class="detail-dirty"></span>' : '';
+  const title = isNewMode ? '＋ 新しい景品' : esc(p.prize_name || '（名称未設定）');
+
+  pane.innerHTML = `
+<div class="detail-header">
+  <div class="detail-title">${dirtyDot}${title}</div>
+  ${!isNewMode ? `<div class="detail-id">ID: ${esc(p.prize_id)}</div>` : ''}
+</div>
+<div class="detail-body">
+  <div class="field">
+    <label>景品名<span class="req">*</span></label>
+    <input type="text" id="fName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">
+  </div>
+  <div class="field">
+    <label>別名（カンマ区切り）</label>
+    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirty()">
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>現在単価（円）<span class="req">*</span></label>
+      <input type="number" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirty()">
+    </div>
+    <div class="field">
+      <label>状態</label>
+      <select id="fStatus" onchange="markDirty()">${statusOpts}</select>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>仕入先</label>
+      <select id="fSupplier" onchange="markDirty()">${suppOpts}</select>
+    </div>
+    <div class="field">
+      <label>標準入り数</label>
+      <input type="number" id="fQty" value="${p.standard_quantity_per_case!=null?p.standard_quantity_per_case:''}" min="1" placeholder="例：12" oninput="markDirty()">
+    </div>
+  </div>
+</div>
+<div class="detail-actions">
+  <button class="btn-save" id="btnSave" onclick="savePrize()">保存</button>
+  ${!isNewMode ? `<button class="btn-dup" onclick="duplicatePrize()">この景品を複製</button>` : ''}
+  ${!isNewMode && p.status !== 'inactive' ? `<button class="btn-stop" onclick="deactivatePrize()">使用停止にする</button>` : ''}
+  <button class="btn-revert" onclick="revertChanges()">変更を取り消す</button>
+</div>`;
+}
+
+function markDirty() {
+  isDirty = true;
+  const btn = document.getElementById('btnSave');
+  if (btn) btn.textContent = '● 保存';
+  // Update dirty dot in title
+  const title = document.querySelector('.detail-title');
+  if (title && !title.querySelector('.detail-dirty')) {
+    title.insertAdjacentHTML('afterbegin', '<span class="detail-dirty"></span>');
+  }
+}
+
+function revertChanges() {
+  isDirty = false;
+  if (isNewMode) {
+    isNewMode = false;
+    selPrizeId = null;
+    render();
+  }
+  renderDetail();
+}
+
+// ─── SAVE ──────────────────────────────────────────────────────────────────────
+async function savePrize() {
+  const name      = (document.getElementById('fName').value || '').trim();
+  const aliases   = (document.getElementById('fAliases').value || '').trim();
+  const costStr   = document.getElementById('fCost').value;
+  const status    = document.getElementById('fStatus').value;
+  const supVal    = document.getElementById('fSupplier').value || null;
+  const qtyStr    = document.getElementById('fQty').value;
+
+  // ── Validation ──
+  if (!name) { showToast('景品名が空です', false); return; }
+  if (costStr === '') { showToast('単価が入っていません', false); return; }
+  const costNum = parseInt(costStr, 10);
+  if (isNaN(costNum) || costNum < 0) { showToast('単価は0以上の整数を入力してください', false); return; }
+
+  const dupeName = DATA.find(p => p.prize_name === name && String(p.prize_id) !== String(selPrizeId));
+  if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
+
+  if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
+
+  // ── Payload ──
+  const payload = {
+    prize_name: name,
+    aliases:    aliases || null,
+    original_cost: costNum,
+    status,
+    standard_quantity_per_case: qtyStr ? parseInt(qtyStr, 10) : null,
+    updated_at: new Date().toISOString()
+  };
+  if (useSupplierFK) payload.supplier_id = supVal;
+  else               payload.supplier_name = supVal;
+
+  const saveBtn = document.getElementById('btnSave');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
+  showLoading();
+
+  try {
+    if (isNewMode) {
+      const result = await sbPost('prize_masters', payload);
+      const newId = Array.isArray(result) ? result[0]?.prize_id : result?.prize_id;
+      showToast('保存しました');
+      isDirty = false;
+      isNewMode = false;
+      await loadAll();
+      if (newId) selPrizeId = newId;
+      render();
+      renderDetail();
+    } else {
+      await sbPatch('prize_masters', selPrizeId, 'prize_id', payload);
+      showToast('保存しました');
+      isDirty = false;
+      await loadAll();
+      render();
+      renderDetail();
+    }
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+  } finally {
+    hideLoading();
+  }
+}
+
+// ─── DUPLICATE ────────────────────────────────────────────────────────────────
+function duplicatePrize() {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  const src = DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!src) return;
+
+  isDirty = false;
+  isNewMode = true;
+  selPrizeId = null;
+  render();
+  renderDetail();
+
+  // Pre-fill from source
+  document.getElementById('fName').value    = src.prize_name + '（複製）';
+  document.getElementById('fAliases').value = src.aliases || '';
+  document.getElementById('fCost').value    = src.original_cost != null ? src.original_cost : '';
+  document.getElementById('fStatus').value  = 'provisional';
+  document.getElementById('fSupplier').value = (useSupplierFK ? src.supplier_id : src.supplier_name) || '';
+  document.getElementById('fQty').value     = src.standard_quantity_per_case != null ? src.standard_quantity_per_case : '';
+  markDirty();
+}
+
+// ─── DEACTIVATE ───────────────────────────────────────────────────────────────
+async function deactivatePrize() {
+  const p = DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!p) return;
+  if (!confirm(`「${p.prize_name}」を使用停止にします。よろしいですか？`)) return;
+  showLoading();
+  try {
+    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString()});
+    showToast('使用停止にしました');
+    isDirty = false;
+    await loadAll();
+    render();
+    renderDetail();
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ─── NEW PRIZE ────────────────────────────────────────────────────────────────
+function openNew() {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  isDirty = false;
+  isNewMode = true;
+  selPrizeId = null;
+  render();
+  renderDetail();
+  setTimeout(() => document.getElementById('fName')?.focus(), 50);
+}
+
+// ─── ALIASES POPUP ────────────────────────────────────────────────────────────
+function showAliases(id) {
+  const p = DATA.find(x => String(x.prize_id) === String(id));
+  if (!p) return;
+  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  const el = document.createElement('div');
+  el.className = 'aliases-modal';
+  el.innerHTML = `
+<div class="aliases-box">
+  <h3>🏷️ 別名一覧：${esc(p.prize_name)}</h3>
+  <div class="aliases-list">${aliases.length ? aliases.map(a => `・${esc(a)}`).join('<br>') : '（別名なし）'}</div>
+  <button class="aliases-close" onclick="this.closest('.aliases-modal').remove()">閉じる</button>
+</div>`;
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  document.body.appendChild(el);
+}
+
+// ─── NAVIGATION GUARD ─────────────────────────────────────────────────────────
+window.addEventListener('beforeunload', e => {
+  if (isDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadAll();
+</script>
+</body>
+</html>
