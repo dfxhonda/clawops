@@ -312,6 +312,7 @@ header{
 @media (max-width:768px){
   .main{display:none!important}
   .btn-add{display:none!important}
+  #mobileSortSelect{display:block!important}
   .mobile-list{
     display:block;position:fixed;
     top:calc(var(--header-h) + var(--toolbar-h));
@@ -348,6 +349,19 @@ header{
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
   </select>
+  <div class="tb-sep"></div>
+  <select class="filter-select" id="mobileSortSelect" onchange="setMobileSort(this.value)" style="display:none">
+    <option value="prize_name">景品名順</option>
+    <option value="original_cost">単価順</option>
+    <option value="supplier_name">仕入先順</option>
+    <option value="latest_order_date">最終発注日順</option>
+    <option value="status">状態順</option>
+  </select>
+  <div class="tb-sep"></div>
+  <span style="font-size:12px;color:var(--text2);white-space:nowrap;flex-shrink:0">発注日</span>
+  <input type="date" id="orderDateFrom" class="filter-select" style="width:130px;flex-shrink:0" onchange="setOrderDateFrom(this.value)">
+  <span style="color:var(--text2);font-size:12px;flex-shrink:0">〜</span>
+  <input type="date" id="orderDateTo" class="filter-select" style="width:130px;flex-shrink:0" onchange="setOrderDateTo(this.value)">
   <button class="btn-clear" onclick="clearFilters()">✕ 検索をクリア</button>
 </div>
 
@@ -444,6 +458,8 @@ let isDirty = false;
 let curSearch = '';
 let filterStatus = '';
 let filterSupplier = '';
+let filterOrderDateFrom = '';
+let filterOrderDateTo = '';
 let sortKey = 'prize_name';
 let sortDir = 'asc';
 let _loadingCount = 0;
@@ -560,6 +576,12 @@ function getFiltered() {
         : p.supplier_name === filterSupplier;
       if (!check) return false;
     }
+    if (filterOrderDateFrom || filterOrderDateTo) {
+      if (!p.latest_order_date) return false;
+      const d = String(p.latest_order_date).slice(0, 10);
+      if (filterOrderDateFrom && d < filterOrderDateFrom) return false;
+      if (filterOrderDateTo && d > filterOrderDateTo) return false;
+    }
     const q = curSearch.toLowerCase();
     if (q) {
       const nm = (p.prize_name  || '').toLowerCase();
@@ -656,13 +678,21 @@ function setSupplierFilter(val) {
   render();
 }
 
+function setOrderDateFrom(val) { filterOrderDateFrom = val; render(); }
+function setOrderDateTo(val)   { filterOrderDateTo   = val; render(); }
+function setMobileSort(val)    { if (sortKey !== val) { sortKey = val; sortDir = 'asc'; render(); } }
+
 function clearFilters() {
   curSearch = '';
   filterStatus = '';
   filterSupplier = '';
+  filterOrderDateFrom = '';
+  filterOrderDateTo = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('supplierFilter').value = '';
+  document.getElementById('orderDateFrom').value = '';
+  document.getElementById('orderDateTo').value = '';
   render();
 }
 
