@@ -261,6 +261,61 @@ header{
 @keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .toast.ok{border-color:var(--green);color:var(--green)}
 .toast.err{border-color:var(--red);color:var(--red)}
+
+/* ── Mobile UI ── */
+.mobile-list{display:none}
+.mobile-detail{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;
+  transform:translateX(100%);transition:transform .25s ease;
+}
+.mobile-detail.open{transform:translateX(0)}
+.mc-item{
+  display:flex;align-items:center;
+  padding:13px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mc-item:active{background:var(--surface2)}
+.mc-body{flex:1;min-width:0}
+.mc-name{font-size:15px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-meta{font-size:12px;color:var(--text2);margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden}
+.mc-aliases{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-arrow{color:var(--text2);font-size:22px;padding-left:8px;flex-shrink:0;line-height:1}
+.fab{
+  position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);right:18px;
+  width:52px;height:52px;border-radius:50%;background:var(--accent);
+  color:#fff;border:none;font-size:28px;cursor:pointer;z-index:160;
+  box-shadow:0 4px 16px rgba(124,106,255,.5);
+  display:none;align-items:center;justify-content:center;
+  transition:background .15s;-webkit-tap-highlight-color:transparent;
+}
+.fab:hover{background:var(--accent2)}
+.md-header{
+  position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 14px;height:52px;display:flex;align-items:center;gap:10px;z-index:10;
+}
+.md-back{
+  background:none;border:none;color:var(--accent);
+  font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+}
+.md-title{font-size:16px;font-weight:700;flex:1}
+.md-body{padding:14px 16px 0}
+.md-actions{padding:14px 16px 32px;display:flex;flex-direction:column;gap:10px}
+
+@media (max-width:768px){
+  .main{display:none!important}
+  .btn-add{display:none!important}
+  .mobile-list{
+    display:block;position:fixed;
+    top:calc(var(--header-h) + var(--toolbar-h));
+    left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
+  }
+  .mobile-detail{display:block}
+  .fab{display:flex}
+}
 </style>
 </head>
 <body>
@@ -325,6 +380,13 @@ header{
     <div>設定</div>
   </div>
 </nav>
+
+<!-- Mobile List -->
+<div class="mobile-list" id="mobileList"><div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div></div>
+<!-- Mobile Detail Panel -->
+<div class="mobile-detail" id="mobileDetail"></div>
+<!-- FAB -->
+<button class="fab" onclick="openMobileNew()" aria-label="景品を追加">＋</button>
 
 <script>
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -516,6 +578,7 @@ function render() {
 
   if (!list.length) {
     pane.innerHTML = '<div class="empty-pane"><div class="empty-icon">🔍</div>該当する景品がありません</div>';
+    renderMobileList(list);
     return;
   }
 
@@ -560,6 +623,7 @@ ${list.map(p => {
 }).join('')}
 </tbody>
 </table>`;
+  renderMobileList(list);
 }
 
 function setSort(key) {
@@ -825,6 +889,7 @@ async function deactivatePrize() {
 
 // ─── NEW PRIZE ────────────────────────────────────────────────────────────────
 function openNew() {
+  if (window.innerWidth <= 768) { openMobileNew(); return; }
   if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
   isDirty = false;
   isNewMode = true;
@@ -855,6 +920,206 @@ function showAliases(id) {
 window.addEventListener('beforeunload', e => {
   if (isDirty) { e.preventDefault(); e.returnValue = ''; }
 });
+
+// ─── MOBILE LIST ──────────────────────────────────────────────────────────────
+function renderMobileList(list) {
+  const el = document.getElementById('mobileList');
+  if (!el) return;
+  if (!list) list = getFiltered();
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-pane"><div class="empty-icon">🔍</div>該当する景品がありません</div>';
+    return;
+  }
+  el.innerHTML = list.map(p => {
+    const sid = String(p.prize_id);
+    const sup = resolveSupplierDisplay(p);
+    const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+    const aliasLine = aliases.length
+      ? `<div class="mc-aliases">別名: ${esc(aliases.join(' / '))}</div>` : '';
+    return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
+  <div class="mc-body">
+    <div class="mc-name">${esc(p.prize_name || '')}</div>
+    <div class="mc-meta"><span>¥${fmt(p.original_cost)}</span><span>${esc(sup !== '—' ? sup : '仕入先未設定')}</span>${statusBadge(p.status)}</div>
+    ${aliasLine}
+  </div>
+  <div class="mc-arrow">›</div>
+</div>`;
+  }).join('');
+}
+
+// ─── MOBILE DETAIL ────────────────────────────────────────────────────────────
+function openMobileDetail(id) {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  isDirty = false;
+  isNewMode = false;
+  selPrizeId = id;
+  renderMobileDetailContent();
+  document.getElementById('mobileDetail').classList.add('open');
+}
+
+function openMobileNew() {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  isDirty = false;
+  isNewMode = true;
+  selPrizeId = null;
+  renderMobileDetailContent();
+  document.getElementById('mobileDetail').classList.add('open');
+  setTimeout(() => document.getElementById('mfName')?.focus(), 50);
+}
+
+function closeMobileDetail() {
+  document.getElementById('mobileDetail').classList.remove('open');
+  isDirty = false;
+}
+
+function markDirtyMobile() {
+  isDirty = true;
+  const btn = document.getElementById('mfBtnSave');
+  if (btn) btn.textContent = '● 保存';
+}
+
+function renderMobileDetailContent() {
+  const panel = document.getElementById('mobileDetail');
+  const empty = {prize_name:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',default_case_quantity:''};
+  const p = isNewMode ? empty : DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!p) {
+    panel.innerHTML = '<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>';
+    return;
+  }
+
+  const supplierCurrent = useSupplierFK ? p.supplier_id : p.supplier_name;
+  const suppOpts = buildSupplierOptions(supplierCurrent);
+  const statusOpts = ['active','provisional','inactive'].map(v =>
+    `<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'停止中'}</option>`
+  ).join('');
+  const titleText = isNewMode ? '新しい景品' : '景品詳細';
+
+  panel.innerHTML = `
+<div class="md-header">
+  <button class="md-back" onclick="closeMobileDetail()">← 一覧に戻る</button>
+  <div class="md-title">${titleText}</div>
+</div>
+<div class="md-body">
+  <div class="field">
+    <label>景品名<span class="req">*</span></label>
+    <input type="text" id="mfName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">
+  </div>
+  <div class="field">
+    <label>別名（カンマ区切り）</label>
+    <input type="text" id="mfAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirtyMobile()">
+  </div>
+  <div class="field">
+    <label>現在単価（円）<span class="req">*</span></label>
+    <input type="number" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()">
+  </div>
+  <div class="field">
+    <label>仕入先</label>
+    <select id="mfSupplier" onchange="markDirtyMobile()">${suppOpts}</select>
+  </div>
+  <div class="field">
+    <label>状態</label>
+    <select id="mfStatus" onchange="markDirtyMobile()">${statusOpts}</select>
+  </div>
+  <div class="field">
+    <label>標準入り数</label>
+    <input type="number" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirtyMobile()">
+  </div>
+</div>
+<div class="md-actions">
+  <button class="btn-save" id="mfBtnSave" onclick="savePrizeMobile()" style="width:100%">保存</button>
+  ${!isNewMode ? `<button class="btn-dup" onclick="duplicatePrizeMobile()">この景品を複製</button>` : ''}
+  ${!isNewMode && p.status !== 'inactive' ? `<button class="btn-stop" onclick="deactivatePrizeMobile()">使用停止にする</button>` : ''}
+</div>`;
+}
+
+async function savePrizeMobile() {
+  const name    = (document.getElementById('mfName').value || '').trim();
+  const aliases = (document.getElementById('mfAliases').value || '').trim();
+  const costStr = document.getElementById('mfCost').value;
+  const status  = document.getElementById('mfStatus').value;
+  const supVal  = document.getElementById('mfSupplier').value || null;
+  const qtyStr  = document.getElementById('mfQty').value;
+
+  if (!name) { showToast('景品名が空です', false); return; }
+  if (costStr === '') { showToast('単価が入っていません', false); return; }
+  const costNum = parseInt(costStr, 10);
+  if (isNaN(costNum) || costNum < 0) { showToast('単価は0以上の整数を入力してください', false); return; }
+
+  const dupeName = DATA.find(p => p.prize_name === name && String(p.prize_id) !== String(selPrizeId));
+  if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
+  if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
+
+  const payload = {
+    prize_name: name, aliases: aliases || null,
+    original_cost: costNum, status,
+    default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
+    updated_at: new Date().toISOString()
+  };
+  if (useSupplierFK) payload.supplier_id = supVal;
+  else               payload.supplier_name = supVal;
+
+  const saveBtn = document.getElementById('mfBtnSave');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
+  showLoading();
+  try {
+    if (isNewMode) {
+      const result = await sbPost('prize_masters', payload);
+      const newId = Array.isArray(result) ? result[0]?.prize_id : result?.prize_id;
+      showToast('保存しました');
+      isDirty = false; isNewMode = false;
+      closeMobileDetail();
+      await loadAll();
+      if (newId) selPrizeId = newId;
+      render();
+    } else {
+      await sbPatch('prize_masters', selPrizeId, 'prize_id', payload);
+      showToast('保存しました');
+      isDirty = false;
+      closeMobileDetail();
+      await loadAll();
+      render();
+    }
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+  } finally {
+    hideLoading();
+  }
+}
+
+function duplicatePrizeMobile() {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  const src = DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!src) return;
+  isDirty = false; isNewMode = true; selPrizeId = null;
+  renderMobileDetailContent();
+  document.getElementById('mfName').value    = src.prize_name + '（複製）';
+  document.getElementById('mfAliases').value = src.aliases || '';
+  document.getElementById('mfCost').value    = src.original_cost != null ? src.original_cost : '';
+  document.getElementById('mfStatus').value  = 'provisional';
+  document.getElementById('mfSupplier').value = (useSupplierFK ? src.supplier_id : src.supplier_name) || '';
+  document.getElementById('mfQty').value     = src.default_case_quantity != null ? src.default_case_quantity : '';
+  markDirtyMobile();
+}
+
+async function deactivatePrizeMobile() {
+  const p = DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!p) return;
+  if (!confirm(`「${p.prize_name}」を使用停止にします。よろしいですか？`)) return;
+  showLoading();
+  try {
+    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString()});
+    showToast('使用停止にしました');
+    isDirty = false;
+    closeMobileDetail();
+    await loadAll();
+    render();
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+  } finally {
+    hideLoading();
+  }
+}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 loadAll();
