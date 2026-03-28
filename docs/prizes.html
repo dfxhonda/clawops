@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>景品マスタ | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -20,143 +20,283 @@
   --red:#e74c3c;
   --cyan:#00b4d8;
   --orange:#e67e22;
-  --radius:10px;
+  --radius:8px;
   --nav-h:58px;
+  --header-h:56px;
+  --toolbar-h:52px;
 }
-html,body{height:100%}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;min-height:100vh;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
 
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px 8px;position:fixed;top:0;left:0;right:0;z-index:100}
-.header-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.header-title{font-size:16px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
-.header-count{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px;white-space:nowrap;margin-left:auto}
+/* ── Header ── */
+header{
+  position:fixed;top:0;left:0;right:0;height:var(--header-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100;
+}
+.header-title{font-size:17px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.header-count{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;white-space:nowrap}
+.header-spacer{flex:1}
+.btn-add{
+  padding:8px 16px;border-radius:var(--radius);
+  background:var(--accent);color:#fff;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+  transition:background .15s;
+}
+.btn-add:hover{background:var(--accent2)}
 
-.search-wrap{position:relative;margin-bottom:8px}
-.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px 9px 34px;color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
+/* ── Toolbar ── */
+.toolbar{
+  position:fixed;top:var(--header-h);left:0;right:0;height:var(--toolbar-h);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:8px;z-index:99;
+  overflow-x:auto;scrollbar-width:none;
+}
+.toolbar::-webkit-scrollbar{display:none}
+.search-wrap{position:relative;flex-shrink:0;width:240px}
+.search-wrap input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:7px 10px 7px 30px;
+  color:var(--text);font-size:13px;outline:none;transition:border-color .2s;
+}
 .search-wrap input:focus{border-color:var(--accent)}
 .search-wrap input::placeholder{color:var(--text2)}
-.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:15px;pointer-events:none}
-
-.chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:3px;margin-bottom:7px;flex-wrap:nowrap;align-items:center}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;user-select:none}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:12px;pointer-events:none}
+.chip{
+  flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  cursor:pointer;transition:all .15s;white-space:nowrap;user-select:none;
+}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.chip.provisional-chip.on{background:var(--yellow);border-color:var(--yellow);color:#000}
-.chip-sep{width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 2px}
+.chip.provisional.on{background:var(--yellow);border-color:var(--yellow);color:#000}
+.chip.inactive.on{background:rgba(144,144,168,.2);border-color:var(--text2);color:var(--text)}
+.tb-sep{flex-shrink:0;width:1px;height:20px;background:var(--border)}
+.filter-select{
+  flex-shrink:0;padding:5px 8px;border-radius:var(--radius);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:12px;cursor:pointer;outline:none;
+}
+.filter-select option{background:var(--surface)}
+.btn-clear{
+  flex-shrink:0;padding:5px 11px;border-radius:var(--radius);font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.btn-clear:hover{border-color:var(--accent);color:var(--accent)}
 
-.sort-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;align-items:center}
-.sort-row::-webkit-scrollbar{display:none}
-.srt-btn{flex:0 0 auto;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;-webkit-tap-highlight-color:transparent}
-.srt-btn.active{border-color:var(--accent);color:var(--accent)}
-.srt-arrow{font-size:11px}
+/* ── Main layout ── */
+.main{
+  position:fixed;
+  top:calc(var(--header-h) + var(--toolbar-h));
+  left:0;right:0;
+  bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  display:flex;
+}
 
-.list-container{padding:10px 12px 16px}
-.prize-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;display:flex;gap:10px;align-items:flex-start}
-.prize-card:active{transform:scale(0.98);background:var(--surface2)}
-
-.card-icon{width:38px;min-width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
-.card-body{flex:1;min-width:0}
-.card-top{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px}
-.prize-name{font-size:13px;font-weight:600;line-height:1.35;flex:1;word-break:break-all}
-.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+/* ── List pane ── */
+.list-pane{
+  flex:3;min-width:300px;overflow-y:auto;
+  border-right:1px solid var(--border);
+}
+.prize-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.prize-table thead th{
+  position:sticky;top:0;background:var(--surface);
+  padding:9px 10px;text-align:left;
+  font-size:12px;font-weight:700;color:var(--text2);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+.prize-table thead th:hover{color:var(--text)}
+.prize-table thead th.sorted{color:var(--accent)}
+.prize-table thead th:last-child{cursor:default}
+.prize-table colgroup col.col-name{width:30%}
+.prize-table colgroup col.col-short{width:15%}
+.prize-table colgroup col.col-cost{width:11%}
+.prize-table colgroup col.col-sup{width:17%}
+.prize-table colgroup col.col-status{width:11%}
+.prize-table colgroup col.col-act{width:16%}
+.prize-table tbody tr{
+  border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
+}
+.prize-table tbody tr:hover{background:var(--surface2)}
+.prize-table tbody tr.selected{
+  background:rgba(124,106,255,.12);
+  border-left:3px solid var(--accent);
+}
+.prize-table tbody tr.selected td:first-child{padding-left:7px}
+.prize-table tbody td{
+  padding:8px 10px;font-size:13px;vertical-align:middle;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.td-name{font-weight:600}
+.td-short{color:var(--text2);font-size:12px}
+.td-cost{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.td-sup{color:var(--orange);font-size:12px}
+.td-actions{white-space:nowrap}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
 .badge-active{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-provisional{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
-.badge-inactive{background:rgba(144,144,168,.12);color:var(--text2);border:1px solid var(--border)}
+.badge-inactive{background:rgba(144,144,168,.1);color:var(--text2);border:1px solid var(--border)}
+.row-btn{
+  padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  cursor:pointer;transition:all .15s;
+}
+.row-btn:hover{border-color:var(--accent);color:var(--accent)}
+.empty-pane{text-align:center;padding:60px 20px;color:var(--text2);font-size:13px}
+.empty-pane .empty-icon{font-size:36px;margin-bottom:10px}
 
-.card-mid{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}
-.cost-val{font-size:14px;font-weight:700;white-space:nowrap}
-.cost-yen{font-size:11px;margin-right:1px}
+/* ── Detail pane ── */
+.detail-pane{
+  flex:2;min-width:280px;overflow-y:auto;
+  background:var(--surface);
+}
+.detail-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;color:var(--text2);gap:12px;
+}
+.detail-empty-icon{font-size:40px}
+.detail-header{
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.detail-title{
+  font-size:15px;font-weight:700;line-height:1.35;
+  word-break:break-all;color:var(--accent);
+}
+.detail-id{font-size:11px;color:var(--text2);margin-top:4px}
+.detail-dirty{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--yellow);margin-right:5px;
+  animation:pulse .9s ease-in-out infinite alternate;
+}
+@keyframes pulse{from{opacity:1}to{opacity:.25}}
+.detail-body{padding:14px 16px 0}
+.field{margin-bottom:13px}
+.field label{
+  display:block;font-size:11px;color:var(--text2);
+  font-weight:700;letter-spacing:.3px;margin-bottom:5px;
+}
+.field input,.field select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:8px 10px;
+  color:var(--text);font-size:14px;outline:none;
+  font-family:inherit;transition:border-color .2s;
+}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--surface)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.req{color:var(--red);margin-left:2px}
+.detail-actions{
+  padding:14px 16px 20px;
+  display:flex;flex-wrap:wrap;gap:8px;
+}
+.btn-save{
+  padding:9px 20px;border-radius:var(--radius);
+  background:var(--accent);color:#fff;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;
+  white-space:nowrap;
+}
+.btn-save:hover:not(:disabled){background:var(--accent2)}
+.btn-save:disabled{opacity:.45;pointer-events:none}
+.btn-dup,.btn-stop,.btn-revert{
+  padding:9px 14px;border-radius:var(--radius);
+  background:transparent;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-dup{color:var(--text2);border:1px solid var(--border)}
+.btn-dup:hover{border-color:var(--accent);color:var(--accent)}
+.btn-stop{color:var(--yellow);border:1px solid rgba(243,156,18,.4)}
+.btn-stop:hover{border-color:var(--yellow);background:rgba(243,156,18,.08)}
+.btn-revert{color:var(--text2);border:1px solid var(--border)}
+.btn-revert:hover{border-color:var(--text2);color:var(--text)}
 
-.card-bot{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.meta-chip{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap}
+/* ── Aliases popup ── */
+.aliases-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;
+  display:flex;align-items:center;justify-content:center;
+}
+.aliases-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:20px;max-width:380px;width:90%;
+}
+.aliases-box h3{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent)}
+.aliases-list{color:var(--text2);font-size:13px;line-height:2}
+.aliases-close{
+  margin-top:14px;width:100%;padding:9px;border-radius:var(--radius);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:13px;font-weight:600;cursor:pointer;
+}
+.aliases-close:hover{border-color:var(--accent)}
 
-.empty{text-align:center;padding:60px 20px;color:var(--text2)}
-.empty-icon{font-size:40px;margin-bottom:12px}
+/* ── Bottom nav ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
+  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
 
-/* Modal */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;backdrop-filter:blur(4px)}
-.modal-overlay.show{display:flex;align-items:flex-end;justify-content:center}
-.modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:18px 18px calc(20px + env(safe-area-inset-bottom));animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
-.modal-title{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--accent);word-break:break-all}
-.modal-subtitle{font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5}
-.modal-info{font-size:12px;color:var(--text2);background:var(--surface2);border-radius:6px;padding:8px 10px;margin-bottom:12px;line-height:1.7}
-.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.modal-field{margin-bottom:12px}
-.modal-field label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;letter-spacing:.3px}
-.modal-field input,.modal-field select,.modal-field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-size:14px;outline:none;font-family:inherit}
-.modal-field input:focus,.modal-field select:focus,.modal-field textarea:focus{border-color:var(--accent)}
-.modal-field select option{background:var(--surface)}
-.modal-field textarea{resize:vertical;min-height:60px}
-.modal-actions{display:flex;gap:10px;margin-top:14px}
-.btn{flex:1;padding:12px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s}
-.btn-cancel{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.btn-save{background:var(--accent);color:#fff}
-.btn-save:active{background:var(--accent2)}
-.btn-del{width:auto;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;margin-top:20px;transition:all .15s;opacity:0.5}
-.btn-del:hover{opacity:1;border-color:var(--red);color:var(--red)}
-.btn-save:disabled,.btn-save.loading{opacity:0.5;pointer-events:none}
-.filter-reset-btn{padding:5px 10px;border-radius:8px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0}
-.filter-reset-btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn-add-float{position:fixed;bottom:calc(var(--nav-h)+16px);right:16px;width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(124,106,255,.5);z-index:90;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.btn-add-float:hover{background:var(--accent2)}
-
-/* Spinner */
+/* ── Spinner ── */
 .spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
 .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Toast */
-.toast{position:fixed;bottom:calc(var(--nav-h)+16px);left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;z-index:400;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+/* ── Toast ── */
+.toast{
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h) + 12px);right:16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 20px;font-size:13px;font-weight:600;z-index:400;
+  white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);
+  animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .toast.ok{border-color:var(--green);color:var(--green)}
 .toast.err{border-color:var(--red);color:var(--red)}
-
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150;backdrop-filter:blur(10px)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;-webkit-tap-highlight-color:transparent;text-decoration:none}
-.nav-item.active{color:var(--accent)}
-.nav-icon{font-size:20px;line-height:1}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-row">
-    <span class="header-title">🏆 景品マスタ</span>
-    <span class="header-count" id="countBadge">読込中…</span>
-  </div>
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input type="search" id="searchInput" placeholder="景品名・別名で検索..." autocomplete="off" autocorrect="off">
-  </div>
-  <div class="chips" id="filterChips">
-    <select id="supplierFilter" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;font-size:13px;background:#fff;margin-right:8px"><option value="">仕入先：全て</option><option value="景品フォーム">景品フォーム</option><option value="インフィニティ">インフィニティ</option><option value="アクシズ">アクシズ</option><option value="エスディーワイ">エスディーワイ</option><option value="ピーチトイ">ピーチトイ</option></select>
-    <div class="chip" data-type="status" data-val="active">Active</div>
-    <div class="chip provisional-chip" data-type="status" data-val="provisional">仮登録</div>
-    <div class="chip-sep"></div>
-    <div id="catChips"></div>
-  </div>
-  <div class="chips" style="margin-bottom:5px"><button class="filter-reset-btn" onclick="resetAllFilters()">✕ フィルター解除</button></div>
-  <div class="sort-row" id="sortRow">
-    <button class="srt-btn active" data-key="prize_name">景品名 <span class="srt-arrow">↑</span></button>
-    <button class="srt-btn" data-key="original_cost">単価 <span class="srt-arrow">↓</span></button>
-    <button class="srt-btn" data-key="size">サイズ <span class="srt-arrow">↓</span></button>
-    <button class="srt-btn" data-key="phase">フェーズ <span class="srt-arrow">↓</span></button>
-    <button class="srt-btn" data-key="order_date">発注日 <span class="srt-arrow">↑</span></button>
-    <button class="srt-btn" data-key="expected_date">納期 <span class="srt-arrow">↑</span></button>
-  </div>
+  <span class="header-title">🏆 景品マスタ</span>
+  <span class="header-count" id="countBadge">読込中…</span>
+  <div class="header-spacer"></div>
+  <button class="btn-add" onclick="openNew()">＋ 新しい景品を追加</button>
 </header>
 
-<div class="list-container" id="listContainer">
-  <div class="empty"><div class="empty-icon">⏳</div><div>読み込み中...</div></div>
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="景品名・別名で検索..." autocomplete="off">
+  </div>
+  <div class="tb-sep"></div>
+  <div class="chip" id="chipActive" onclick="toggleChip('active')">Active</div>
+  <div class="chip provisional" id="chipProvisional" onclick="toggleChip('provisional')">仮登録</div>
+  <div class="chip inactive" id="chipInactive" onclick="toggleChip('inactive')">停止中</div>
+  <div class="tb-sep"></div>
+  <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
+    <option value="">仕入先：全て</option>
+  </select>
+  <button class="btn-clear" onclick="clearFilters()">✕ 検索をクリア</button>
 </div>
 
-<button class="btn-add-float" onclick="addPrize()" title="景品追加">＋</button>
-
-<div class="modal-overlay" id="modalOverlay" onclick="closeModalBg(event)">
-  <div class="modal" id="modal">
-    <div class="modal-handle"></div>
-    <div id="modalContent"></div>
+<div class="main">
+  <div class="list-pane" id="listPane">
+    <div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div>
+  </div>
+  <div class="detail-pane" id="detailPane">
+    <div class="detail-empty">
+      <div class="detail-empty-icon">👈</div>
+      <div>景品を選択してください</div>
+    </div>
   </div>
 </div>
 
@@ -187,521 +327,537 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 </nav>
 
 <script>
-const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 
-async function sbGet(table,params=''){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}`,{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+// Known supplier list (fallback if suppliers table unavailable)
+const KNOWN_SUPPLIERS = ['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'];
+
+// ─── SUPABASE REST ────────────────────────────────────────────────────────────
+async function sbGet(table, params='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
   });
-  if(!r.ok)throw new Error(await r.text());
+  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
-async function sbPatch(table,id,idCol,body){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
-    method:'PATCH',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify(body)
+
+async function sbPatch(table, id, idCol, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    body: JSON.stringify(body)
   });
-  if(!r.ok)throw new Error(await r.text());
+  if (!r.ok) throw new Error(await r.text());
 }
-async function sbPost(table,body){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}`,{
-    method:'POST',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
-    body:JSON.stringify(body)
+
+async function sbPost(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: JSON.stringify(body)
   });
-  if(!r.ok)throw new Error(await r.text());
+  if (!r.ok) throw new Error(await r.text());
   return r.json();
-}
-async function sbDelete(table,id,idCol){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
-    method:'DELETE',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-  });
-  if(!r.ok)throw new Error(await r.text());
 }
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
-let DATA=[];
-let curSearch='';
-let curSortKey='prize_name';
-let sortDirs={prize_name:'asc',original_cost:'desc',size:'asc',phase:'asc',order_date:'asc',expected_date:'asc'};
-let selStatuses=[];
-let selCats=[];
-let selSupplier='';
-let editingId=null;
-let firstOrderMap={};
-let _loadingCount=0;
-let _toastTimer=null;
-const ICON_COLORS=['#7c6aff','#e74c3c','#2ecc71','#f39c12','#00b4d8','#e67e22','#9b59b6','#3498db'];
+let DATA = [];
+let SUPPLIERS = [];   // {id, name} from suppliers table
+let supplierMap = {}; // id -> name
+let useSupplierFK = false; // true if suppliers table loaded successfully
 
-// ─── LOADING / TOAST ─────────────────────────────────────────────────────────
-function showLoading(){
-  _loadingCount++;
-  document.getElementById('spinnerOverlay').style.display='flex';
-}
-function hideLoading(){
-  _loadingCount=Math.max(0,_loadingCount-1);
-  if(!_loadingCount)document.getElementById('spinnerOverlay').style.display='none';
-}
-function showToast(msg,ok=true){
-  const el=document.getElementById('toastEl');
-  el.textContent=msg;
-  el.className='toast '+(ok?'ok':'err');
-  el.style.display='block';
-  if(_toastTimer)clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>el.style.display='none',3000);
-}
+let selPrizeId = null;
+let isNewMode = false;
+let isDirty = false;
+let curSearch = '';
+let filterStatuses = [];
+let filterSupplier = '';
+let sortKey = 'prize_name';
+let sortDir = 'asc';
+let _loadingCount = 0;
+let _toastTimer = null;
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function fmt(n){return Number(n).toLocaleString('ja-JP')}
-function iconColor(p){
-  const str=String(p.prize_id||p.prize_name||'');
-  let h=0;for(let i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))&0xffff;
-  return ICON_COLORS[h%ICON_COLORS.length];
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function iconChar(p){
-  const s=String(p.prize_name||'');
-  return s.replace(/[^\u3040-\u9FFF\uFF00-\uFFEFa-zA-Z]/,'').slice(0,1)||s.slice(0,1)||'?';
-}
-function statusBadge(status){
-  if(status==='active')return'<span class="badge badge-active">Active</span>';
-  if(status==='provisional')return'<span class="badge badge-provisional">仮登録</span>';
-  return'<span class="badge badge-inactive">'+esc(status||'—')+'</span>';
+function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
+
+function resolveSupplierDisplay(p) {
+  if (useSupplierFK && p.supplier_id != null) return supplierMap[p.supplier_id] || String(p.supplier_id);
+  return p.supplier_name || '—';
 }
 
-// ─── CATEGORY OPTIONS ─────────────────────────────────────────────────────────
-let categoryList=[];
-function buildCategoryList(){
-  categoryList=[...new Set(DATA.map(p=>p.category).filter(Boolean))].sort();
+function statusBadge(s) {
+  if (s === 'active')      return '<span class="badge badge-active">Active</span>';
+  if (s === 'provisional') return '<span class="badge badge-provisional">仮登録</span>';
+  if (s === 'inactive')    return '<span class="badge badge-inactive">停止中</span>';
+  return '<span class="badge badge-inactive">' + esc(s || '—') + '</span>';
 }
-function getCategoryOptions(selected){
-  return categoryList.map(c=>`<option value="${esc(c)}"${c===selected?' selected':''}>${esc(c)}</option>`).join('');
+
+// ─── LOADING / TOAST ─────────────────────────────────────────────────────────
+function showLoading()  { _loadingCount++; document.getElementById('spinnerOverlay').style.display='flex'; }
+function hideLoading()  { _loadingCount=Math.max(0,_loadingCount-1); if(!_loadingCount) document.getElementById('spinnerOverlay').style.display='none'; }
+
+function showToast(msg, ok=true) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.className = 'toast ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.style.display='none', 3000);
 }
 
 // ─── LOAD ─────────────────────────────────────────────────────────────────────
-async function loadData(){
+async function loadAll() {
   showLoading();
-  try{
-    const [data, orders]=await Promise.all([
-      sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,category,aliases,supplier_item_code,supplier_name,notes,size,phase,tags,order_date,expected_date&order=prize_name.asc&limit=2000'),
-      sbGet('prize_orders','select=prize_id,order_date&order=order_date.asc&limit=5000')
+  try {
+    const [prizes, suppliers] = await Promise.all([
+      sbGet('prize_masters',
+        'select=prize_id,prize_name,short_name,aliases,original_cost,supplier_id,supplier_name,status,standard_quantity_per_case' +
+        '&order=prize_name.asc&limit=2000'),
+      sbGet('suppliers', 'select=id,name&order=name.asc').catch(() => null)
     ]);
-    firstOrderMap={};
-    orders.forEach(o=>{if(o.order_date&&!firstOrderMap[o.prize_id])firstOrderMap[o.prize_id]=o.order_date;});
-    DATA=data;
-    buildCategoryList();
-    buildCatChips();
+
+    DATA = prizes;
+
+    if (suppliers && suppliers.length > 0) {
+      SUPPLIERS = suppliers;
+      useSupplierFK = true;
+      supplierMap = {};
+      suppliers.forEach(s => supplierMap[s.id] = s.name);
+    } else {
+      SUPPLIERS = [];
+      useSupplierFK = false;
+    }
+
+    buildSupplierFilter();
     render();
-  }catch(e){
-    document.getElementById('listContainer').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div>データ読み込みに失敗しました<br><small>${esc(e.message)}</small></div></div>`;
-    document.getElementById('countBadge').textContent='エラー';
-  }finally{
+    if (selPrizeId || isNewMode) renderDetail();
+  } catch(e) {
+    document.getElementById('listPane').innerHTML =
+      `<div class="empty-pane">⚠️ データ読み込みに失敗しました<br><small>${esc(e.message)}</small></div>`;
+    document.getElementById('countBadge').textContent = 'エラー';
+  } finally {
     hideLoading();
   }
 }
 
-function buildCatChips(){
-  const cats=[...new Set(DATA.map(p=>p.category).filter(Boolean))].sort();
-  const el=document.getElementById('catChips');
-  el.style.display='contents';
-  if(!cats.length){el.innerHTML='';return;}
-  el.innerHTML=cats.map(c=>`<div class="chip" data-type="cat" data-val="${esc(c)}">${esc(c)}</div>`).join('');
-  el.querySelectorAll('.chip').forEach(chip=>{
-    chip.addEventListener('click',function(){
-      const val=this.dataset.val;
-      const i=selCats.indexOf(val);
-      if(i>=0){selCats.splice(i,1);this.classList.remove('on');}
-      else{selCats.push(val);this.classList.add('on');}
-      render();
+function buildSupplierFilter() {
+  const sel = document.getElementById('supplierFilter');
+  while (sel.options.length > 1) sel.remove(1);
+
+  if (useSupplierFK) {
+    SUPPLIERS.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (String(filterSupplier) === String(s.id)) opt.selected = true;
+      sel.appendChild(opt);
     });
-  });
+  } else {
+    // Use unique supplier_name values from data
+    const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n;
+      if (filterSupplier === n) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
 }
 
 // ─── FILTER / SORT ────────────────────────────────────────────────────────────
-function getFiltered(){
-  let list=DATA.filter(p=>{
-    if(selStatuses.length>0&&!selStatuses.includes(p.status))return false;
-    if(selCats.length>0&&!selCats.includes(p.category))return false;
-    if(selSupplier&&p.supplier_name!==selSupplier)return false;
-    const q=curSearch.toLowerCase();
-    if(q){
-      const nameMatch=String(p.prize_name||'').toLowerCase().includes(q);
-      const aliasMatch=String(p.aliases||'').toLowerCase().includes(q);
-      if(!nameMatch&&!aliasMatch)return false;
+function getFiltered() {
+  let list = DATA.filter(p => {
+    if (filterStatuses.length > 0 && !filterStatuses.includes(p.status)) return false;
+    if (filterSupplier) {
+      const check = useSupplierFK
+        ? String(p.supplier_id) === String(filterSupplier)
+        : p.supplier_name === filterSupplier;
+      if (!check) return false;
+    }
+    const q = curSearch.toLowerCase();
+    if (q) {
+      const nm = (p.prize_name  || '').toLowerCase();
+      const sn = (p.short_name  || '').toLowerCase();
+      const al = (p.aliases     || '').toLowerCase();
+      if (!nm.includes(q) && !sn.includes(q) && !al.includes(q)) return false;
     }
     return true;
   });
-  const key=curSortKey;
-  const dir=sortDirs[key]||'asc';
-  list=list.slice().sort((a,b)=>{
-    let av=a[key],bv=b[key];
-    if(av==null)av=dir==='asc'?'\uffff':'';
-    if(bv==null)bv=dir==='asc'?'\uffff':'';
-    if(typeof av==='string'||typeof bv==='string')return dir==='asc'?String(av).localeCompare(String(bv),'ja'):String(bv).localeCompare(String(av),'ja');
-    return dir==='asc'?av-bv:bv-av;
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+  list = list.slice().sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    const nil = dir === 1 ? '\uffff' : '';
+    if (av == null) av = nil;
+    if (bv == null) bv = nil;
+    if (typeof av === 'string' || typeof bv === 'string')
+      return dir * String(av).localeCompare(String(bv), 'ja');
+    return dir * (av - bv);
   });
   return list;
 }
 
-// ─── RENDER ───────────────────────────────────────────────────────────────────
-function adjustPadding(){const h=document.querySelector('header');const lc=document.getElementById('listContainer');if(h&&lc)lc.style.paddingTop=(h.offsetHeight+10)+'px';}
-window.addEventListener('resize',adjustPadding);
-function render(){setTimeout(adjustPadding,0);
-  const list=getFiltered();
-  document.getElementById('countBadge').textContent=list.length+'件';
-  const c=document.getElementById('listContainer');
-  if(!list.length){
-    c.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div>該当する景品がありません</div></div>';
+// ─── RENDER LIST ──────────────────────────────────────────────────────────────
+function render() {
+  const list = getFiltered();
+  document.getElementById('countBadge').textContent = list.length + '件';
+  const pane = document.getElementById('listPane');
+
+  if (!list.length) {
+    pane.innerHTML = '<div class="empty-pane"><div class="empty-icon">🔍</div>該当する景品がありません</div>';
     return;
   }
-  c.innerHTML=list.map(p=>{
-    const catHtml=p.category?`<span class="meta-chip">${esc(p.category)}</span>`:'';
-    const sizeHtml=p.size?`<span class="meta-chip">📐${esc(p.size)}</span>`:'';
-    const phaseHtml=p.phase?`<span class="meta-chip">${esc(p.phase)}</span>`:'';
-    const notesHtml=p.notes?`<span class="meta-chip" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">📝${esc(p.notes)}</span>`:'';
-    const fo=firstOrderMap[p.prize_id];
-    const foFmt=fo?fo.replace(/^(\d{2})(\d{2})-(\d{2})-(\d{2})$/,'$2.$3.$4').replace(/^(\d{4})-(\d{2})-(\d{2})$/,(m,y,mo,d)=>y.slice(2)+'.'+mo+'.'+d):'';
-    const firstOrderHtml=foFmt?`<span class="meta-chip" style="color:var(--green)">📋初回発注:${esc(foFmt)}</span>`:'';
-    const orderHtml=p.order_date?`<span class="meta-chip" style="color:var(--yellow)">📋${esc(p.order_date)}</span>`:'';
-    const expectedHtml=p.expected_date?`<span class="meta-chip" style="color:var(--cyan)">🚚${esc(p.expected_date)}</span>`:'';
-    const supplierHtml=p.supplier_name?`<span class="meta-chip" style="color:var(--orange)">🏪${esc(p.supplier_name)}</span>`:'';
-    const sourceFileHtml=(p.source_file||'')?`<span class="meta-chip">📄${esc((p.source_file||''))}</span>`:'';
-    return`<div class="prize-card" onclick="openModal('${esc(p.prize_id)}')">
-<div class="card-icon" style="background:${iconColor(p)}">${esc(iconChar(p))}</div>
-<div class="card-body">
-<div class="card-top">
-<span class="prize-name">${esc(p.prize_name)}</span>
-${statusBadge(p.status)}
+
+  const sortArrow = dir => dir === 'asc' ? ' ↑' : ' ↓';
+  const th = key => {
+    const active = sortKey === key;
+    return `class="${active ? 'sorted' : ''}"`;
+  };
+
+  pane.innerHTML = `
+<table class="prize-table">
+<colgroup>
+  <col class="col-name"><col class="col-short">
+  <col class="col-cost"><col class="col-sup">
+  <col class="col-status"><col class="col-act">
+</colgroup>
+<thead><tr>
+  <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
+  <th ${th('short_name')} onclick="setSort('short_name')">短縮名${sortKey==='short_name'?sortArrow(sortDir):''}</th>
+  <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
+  <th>仕入先</th>
+  <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
+  <th>操作</th>
+</tr></thead>
+<tbody>
+${list.map(p => {
+  const sid = String(p.prize_id);
+  const sel = String(selPrizeId) === sid && !isNewMode;
+  const supDisp = esc(resolveSupplierDisplay(p));
+  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
+  <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
+  <td class="td-short" title="${esc(p.short_name)}">${esc(p.short_name || '—')}</td>
+  <td class="td-cost">¥${fmt(p.original_cost)}</td>
+  <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
+  <td>${statusBadge(p.status)}</td>
+  <td class="td-actions">
+    <button class="row-btn" onclick="event.stopPropagation();selectPrize('${esc(sid)}')">編集</button>
+    ${aliases.length ? `<button class="row-btn" style="margin-left:4px" onclick="event.stopPropagation();showAliases('${esc(sid)}')">別名を見る</button>` : ''}
+  </td>
+</tr>`;
+}).join('')}
+</tbody>
+</table>`;
+}
+
+function setSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = 'asc'; }
+  render();
+}
+
+// ─── FILTER CONTROLS ─────────────────────────────────────────────────────────
+function toggleChip(status) {
+  const idx = filterStatuses.indexOf(status);
+  if (idx >= 0) filterStatuses.splice(idx, 1);
+  else filterStatuses.push(status);
+  const capId = 'chip' + status.charAt(0).toUpperCase() + status.slice(1);
+  document.getElementById(capId).classList.toggle('on', filterStatuses.includes(status));
+  render();
+}
+
+function setSupplierFilter(val) {
+  filterSupplier = val;
+  render();
+}
+
+function clearFilters() {
+  curSearch = '';
+  filterStatuses = [];
+  filterSupplier = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('supplierFilter').value = '';
+  document.getElementById('chipActive').classList.remove('on');
+  document.getElementById('chipProvisional').classList.remove('on');
+  document.getElementById('chipInactive').classList.remove('on');
+  render();
+}
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  curSearch = e.target.value.trim();
+  render();
+});
+
+// ─── SELECT PRIZE ─────────────────────────────────────────────────────────────
+function selectPrize(id) {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  isDirty = false;
+  isNewMode = false;
+  selPrizeId = id;
+  render();
+  renderDetail();
+}
+
+// ─── RENDER DETAIL PANEL ──────────────────────────────────────────────────────
+function buildSupplierOptions(currentVal) {
+  let opts = '<option value="">未設定</option>';
+  if (useSupplierFK) {
+    opts += SUPPLIERS.map(s =>
+      `<option value="${esc(s.id)}"${String(currentVal) === String(s.id) ? ' selected' : ''}>${esc(s.name)}</option>`
+    ).join('');
+  } else {
+    // supplier_name-based: merge known list with unique values in data
+    const all = [...new Set([
+      ...KNOWN_SUPPLIERS,
+      ...DATA.map(p => p.supplier_name).filter(Boolean)
+    ])].sort();
+    opts += all.map(n =>
+      `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`
+    ).join('');
+  }
+  return opts;
+}
+
+function renderDetail() {
+  const pane = document.getElementById('detailPane');
+
+  if (!selPrizeId && !isNewMode) {
+    pane.innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">👈</div><div>景品を選択してください</div></div>`;
+    return;
+  }
+
+  const empty = {prize_name:'',short_name:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',standard_quantity_per_case:''};
+  const p = isNewMode ? empty : DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!p) {
+    pane.innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>`;
+    return;
+  }
+
+  const supplierCurrent = useSupplierFK ? p.supplier_id : p.supplier_name;
+  const suppOpts = buildSupplierOptions(supplierCurrent);
+  const statusOpts = ['active','provisional','inactive'].map(v =>
+    `<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'停止中'}</option>`
+  ).join('');
+
+  const dirtyDot = isDirty ? '<span class="detail-dirty"></span>' : '';
+  const title = isNewMode ? '＋ 新しい景品' : esc(p.prize_name || '（名称未設定）');
+
+  pane.innerHTML = `
+<div class="detail-header">
+  <div class="detail-title">${dirtyDot}${title}</div>
+  ${!isNewMode ? `<div class="detail-id">ID: ${esc(p.prize_id)}</div>` : ''}
 </div>
-<div class="card-mid">
-<span class="cost-val"><span class="cost-yen">¥</span>${fmt(p.original_cost||0)}</span>
-${firstOrderHtml}${orderHtml}${expectedHtml}
+<div class="detail-body">
+  <div class="field">
+    <label>景品名<span class="req">*</span></label>
+    <input type="text" id="fName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">
+  </div>
+  <div class="field">
+    <label>別名（カンマ区切り）</label>
+    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirty()">
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>現在単価（円）<span class="req">*</span></label>
+      <input type="number" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirty()">
+    </div>
+    <div class="field">
+      <label>状態</label>
+      <select id="fStatus" onchange="markDirty()">${statusOpts}</select>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>仕入先</label>
+      <select id="fSupplier" onchange="markDirty()">${suppOpts}</select>
+    </div>
+    <div class="field">
+      <label>標準入り数</label>
+      <input type="number" id="fQty" value="${p.standard_quantity_per_case!=null?p.standard_quantity_per_case:''}" min="1" placeholder="例：12" oninput="markDirty()">
+    </div>
+  </div>
 </div>
-<div class="card-bot">${catHtml}${sizeHtml}${phaseHtml}${supplierHtml}${notesHtml}</div>
-</div>
+<div class="detail-actions">
+  <button class="btn-save" id="btnSave" onclick="savePrize()">保存</button>
+  ${!isNewMode ? `<button class="btn-dup" onclick="duplicatePrize()">この景品を複製</button>` : ''}
+  ${!isNewMode && p.status !== 'inactive' ? `<button class="btn-stop" onclick="deactivatePrize()">使用停止にする</button>` : ''}
+  <button class="btn-revert" onclick="revertChanges()">変更を取り消す</button>
 </div>`;
-  }).join('');
 }
 
-
-// ─── DIRTY TRACKING ──────────────────────────────────────────────────────────
-let _origFormState='';
-function captureFormState(){
-  const fields=document.querySelectorAll('#modal input,#modal select,#modal textarea');
-  return Array.from(fields).map(f=>f.value).join('|');
-}
-function isFormDirty(){return _origFormState&&captureFormState()!==_origFormState;}
-
-// ─── MODAL ────────────────────────────────────────────────────────────────────
-function openModal(id){
-  const p=DATA.find(x=>String(x.prize_id)===String(id));if(!p)return;
-  editingId=id;
-  const statusOpts=['active','provisional','inactive'].map(v=>`<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'非アクティブ'}</option>`).join('');
-  document.getElementById('modalContent').innerHTML=`
-<div class="modal-title">✏️ ${esc(p.prize_name)}</div>
-<div class="modal-subtitle">ID: ${esc(p.prize_id)}</div>
-${p.notes?`<div class="modal-info">${esc(p.notes)}</div>`:''}
-<div class="modal-field">
-  <label>景品名（短縮名）</label>
-  <input type="text" id="editPrizeName" value="${esc(p.prize_name||'')}">
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>原価（円）</label>
-    <input type="number" id="editCost" value="${p.original_cost!=null?p.original_cost:''}" min="0">
-  </div>
-  <div class="modal-field">
-    <label>ステータス</label>
-    <select id="editStatus">${statusOpts}</select>
-  </div>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>カテゴリ</label>
-    <select id="editCat">
-      <option value="">未設定</option>
-      ${getCategoryOptions(p.category)}
-    </select>
-  </div>
-  <div class="modal-field">
-    <label>サイズ</label>
-    <input type="text" id="editSize" value="${esc(p.size||'')}">
-  </div>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>📋 発注日（締切日）</label>
-    <input type="date" id="editOrderDate" value="${p.order_date||''}">
-  </div>
-  <div class="modal-field">
-    <label>🚚 納期（発売日）</label>
-    <input type="date" id="editExpectedDate" value="${p.expected_date||''}">
-  </div>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>フェーズ</label>
-    <input type="text" id="editPhase" value="${esc(p.phase||'')}">
-  </div>
-  <div class="modal-field">
-    <label>仕入先品番</label>
-    <input type="text" id="editSupplierCode" value="${esc(p.supplier_item_code||'')}">
-  </div>
-</div>
-<div class="modal-field">
-  <label>仕入先</label>
-  <select id="editSupplierName">
-    <option value="">未設定</option>
-    ${['景品フォーム','インフィニティ','アクシズ','エスディーワイ','ピーチトイ','achieve'].map(s=>`<option value="${s}"${p.supplier_name===s?' selected':''}>${s}</option>`).join('')}
-  </select>
-</div>
-
-<div class="modal-field">
-  <label>別名・読み仮名</label>
-  <input type="text" id="editAliases" value="${esc(p.aliases||'')}">
-</div>
-<div class="modal-field">
-  <label>備考</label>
-  <textarea id="editNotes">${esc(p.notes||'')}</textarea>
-</div>
-<div class="modal-actions">
-  <button class="btn btn-cancel" onclick="closeModal()">キャンセル</button>
-  <button class="btn btn-save" onclick="saveEdit()">保存</button>
-</div>
-<button class="btn-del" onclick="delPrize('${esc(p.prize_id)}')">削除</button>`;
-  document.getElementById('modalOverlay').classList.add('show');
-  document.body.style.overflow='hidden';
-  setTimeout(()=>{_origFormState=captureFormState();},50);
+function markDirty() {
+  isDirty = true;
+  const btn = document.getElementById('btnSave');
+  if (btn) btn.textContent = '● 保存';
+  // Update dirty dot in title
+  const title = document.querySelector('.detail-title');
+  if (title && !title.querySelector('.detail-dirty')) {
+    title.insertAdjacentHTML('afterbegin', '<span class="detail-dirty"></span>');
+  }
 }
 
-function closeModal(force){
-  if(!force&&isFormDirty()&&!confirm('変更を破棄しますか？'))return;
-  document.getElementById('modalOverlay').classList.remove('show');
-  document.body.style.overflow='';
-  editingId=null;
-  _origFormState='';
-}
-function closeModalBg(e){
-  // Only close if clicking the overlay background itself, not the modal content
-  if(e.target===document.getElementById('modalOverlay')&&!editingId){closeModal();}
+function revertChanges() {
+  isDirty = false;
+  if (isNewMode) {
+    isNewMode = false;
+    selPrizeId = null;
+    render();
+  }
+  renderDetail();
 }
 
-async function saveEdit(){
-  if(!editingId)return;
-  const cost=document.getElementById('editCost').value;
-  const status=document.getElementById('editStatus').value;
-  const cat=document.getElementById('editCat').value.trim();
-  const size=document.getElementById('editSize').value.trim();
-  const phase=document.getElementById('editPhase').value.trim();
-  const supplierCode=document.getElementById('editSupplierCode').value.trim();
-  const supplierName=document.getElementById('editSupplierName').value;
-  const aliases=document.getElementById('editAliases').value.trim();
-  const notes=document.getElementById('editNotes').value.trim();
-  const orderDate=document.getElementById('editOrderDate').value;
-  const expectedDate=document.getElementById('editExpectedDate').value;
-  const prizeName=document.getElementById('editPrizeName').value.trim();
-  if(!prizeName){showToast('景品名を入力してください',false);return;}
-  if(cost!==''&&(isNaN(parseInt(cost))||parseInt(cost)<0)){showToast('単価は0以上の数値を入力してください',false);return;}
-  if(cost!==''&&parseInt(cost)>=1000000){if(!confirm('単価が100万円以上です。箱単価ではありませんか？'))return;}
-  // Disable save button
-  const saveBtn=document.querySelector('.btn-save');
-  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='保存中...';}
-  const payload={
+// ─── SAVE ──────────────────────────────────────────────────────────────────────
+async function savePrize() {
+  const name      = (document.getElementById('fName').value || '').trim();
+  const aliases   = (document.getElementById('fAliases').value || '').trim();
+  const costStr   = document.getElementById('fCost').value;
+  const status    = document.getElementById('fStatus').value;
+  const supVal    = document.getElementById('fSupplier').value || null;
+  const qtyStr    = document.getElementById('fQty').value;
+
+  // ── Validation ──
+  if (!name) { showToast('景品名が空です', false); return; }
+  if (costStr === '') { showToast('単価が入っていません', false); return; }
+  const costNum = parseInt(costStr, 10);
+  if (isNaN(costNum) || costNum < 0) { showToast('単価は0以上の整数を入力してください', false); return; }
+
+  const dupeName = DATA.find(p => p.prize_name === name && String(p.prize_id) !== String(selPrizeId));
+  if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
+
+  if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
+
+  // ── Payload ──
+  const payload = {
+    prize_name: name,
+    aliases:    aliases || null,
+    original_cost: costNum,
     status,
-    category:cat||null,
-    size:size||null,
-    phase:phase||null,
-    supplier_item_code:supplierCode||null,
-    supplier_name:supplierName||null,
-    aliases:aliases||null,
-    notes:notes||null,
-    order_date:orderDate||null,
-    expected_date:expectedDate||null
+    standard_quantity_per_case: qtyStr ? parseInt(qtyStr, 10) : null,
+    updated_at: new Date().toISOString()
   };
-  if(prizeName)payload.prize_name=prizeName;
-  if(cost!=='')payload.original_cost=parseInt(cost);
-  const saveId=editingId;
-  closeModal(true);showLoading();
-  try{
-    await sbPatch('prize_masters',saveId,'prize_id',payload);
-    showToast('保存しました');
-    await loadData();
-  }catch(e){showToast('エラー: '+e.message,false);}
-  finally{hideLoading();}
-}
+  if (useSupplierFK) payload.supplier_id = supVal;
+  else               payload.supplier_name = supVal;
 
-async function delPrize(id){
-  const target=DATA.find(x=>String(x.prize_id)===String(id));
-  if(!confirm('本当に削除しますか？'))return;
-  if(!confirm('景品名: '+(target?target.prize_name:'不明')+' を完全に削除します。元に戻せません。'))return;
-  closeModal(true);showLoading();
-  try{
-    await sbDelete('prize_masters',id,'prize_id');
-    showToast('削除しました');
-    await loadData();
-  }catch(e){showToast('エラー: '+e.message,false);}
-  finally{hideLoading();}
-}
+  const saveBtn = document.getElementById('btnSave');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
+  showLoading();
 
-function addPrize(){
-  editingId=null;
-  document.getElementById('modalContent').innerHTML=`
-<div class="modal-title">＋ 景品追加</div>
-<div class="modal-field">
-  <label>景品名</label>
-  <input type="text" id="editName" placeholder="例：ぬいぐるみ○○" autofocus>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>原価（円）</label>
-    <input type="number" id="editCost" value="" min="0">
-  </div>
-  <div class="modal-field">
-    <label>ステータス</label>
-    <select id="editStatus">
-      <option value="provisional">仮登録</option>
-      <option value="active">Active（運用中）</option>
-    </select>
-  </div>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>カテゴリ</label>
-    <select id="editCat">
-      <option value="">未設定</option>
-      ${getCategoryOptions('')}
-    </select>
-  </div>
-  <div class="modal-field">
-    <label>サイズ</label>
-    <input type="text" id="editSize" placeholder="例：M">
-  </div>
-</div>
-<div class="modal-row">
-  <div class="modal-field">
-    <label>フェーズ</label>
-    <input type="text" id="editPhase" placeholder="例：2025Q1">
-  </div>
-  <div class="modal-field">
-    <label>仕入先品番</label>
-    <input type="text" id="editSupplierCode">
-  </div>
-</div>
-<div class="modal-field">
-  <label>仕入先</label>
-  <select id="editSupplierName">
-    <option value="">未設定</option>
-    <option value="景品フォーム">景品フォーム</option>
-    <option value="インフィニティ">インフィニティ</option>
-    <option value="アクシズ">アクシズ</option>
-    <option value="エスディーワイ">エスディーワイ</option>
-    <option value="ピーチトイ">ピーチトイ</option>
-    <option value="achieve">achieve</option>
-  </select>
-</div>
-<div class="modal-field">
-  <label>別名・読み仮名</label>
-  <input type="text" id="editAliases">
-</div>
-<div class="modal-field">
-  <label>備考</label>
-  <textarea id="editNotes" placeholder="メモ等"></textarea>
-</div>
-<div class="modal-actions">
-  <button class="btn btn-cancel" onclick="closeModal()">キャンセル</button>
-  <button class="btn btn-save" onclick="saveNewPrize()">追加</button>
-</div>`;
-  document.getElementById('modalOverlay').classList.add('show');
-  document.body.style.overflow='hidden';
-  setTimeout(()=>{_origFormState=captureFormState();},50);
-}
-
-async function saveNewPrize(){
-  const name=document.getElementById('editName').value.trim();
-  if(!name){showToast('景品名を入力してください',false);return;}
-  const cost=document.getElementById('editCost').value;
-  if(cost!==''&&(isNaN(parseInt(cost))||parseInt(cost)<0)){showToast('単価は0以上の数値を入力してください',false);return;}
-  if(cost!==''&&parseInt(cost)>=1000000){if(!confirm('単価が100万円以上です。箱単価ではありませんか？'))return;}
-  const saveBtn=document.querySelector('.btn-save');
-  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='追加中...';}
-  const payload={
-    prize_name:name,
-    status:document.getElementById('editStatus').value,
-    category:document.getElementById('editCat').value.trim()||null,
-    size:document.getElementById('editSize').value.trim()||null,
-    phase:document.getElementById('editPhase').value.trim()||null,
-    supplier_item_code:document.getElementById('editSupplierCode').value.trim()||null,
-    supplier_name:document.getElementById('editSupplierName').value||null,
-    aliases:document.getElementById('editAliases').value.trim()||null,
-    notes:document.getElementById('editNotes').value.trim()||null
-  };
-  if(cost!=='')payload.original_cost=parseInt(cost);
-  closeModal(true);showLoading();
-  try{
-    await sbPost('prize_masters',payload);
-    showToast('景品を追加しました');
-    await loadData();
-  }catch(e){showToast('エラー: '+e.message,false);}
-  finally{hideLoading();}
-}
-
-function resetAllFilters(){
-  curSearch='';
-  document.getElementById('searchInput').value='';
-  selStatuses=[];selCats=[];selSupplier='';
-  document.getElementById('supplierFilter').value='';
-  document.querySelectorAll('#filterChips .chip').forEach(ch=>ch.classList.remove('on'));
-  render();
-}
-
-// ─── EVENTS ───────────────────────────────────────────────────────────────────
-document.querySelectorAll('#filterChips .chip[data-type="status"]').forEach(chip=>{
-  chip.addEventListener('click',function(){
-    const val=this.dataset.val;
-    const i=selStatuses.indexOf(val);
-    if(i>=0){selStatuses.splice(i,1);this.classList.remove('on');}
-    else{selStatuses.push(val);this.classList.add('on');}
-    render();
-  });
-});
-
-document.querySelectorAll('#sortRow .srt-btn').forEach(btn=>{
-  btn.addEventListener('click',function(){
-    const key=this.dataset.key;
-    if(curSortKey===key){
-      sortDirs[key]=sortDirs[key]==='desc'?'asc':'desc';
+  try {
+    if (isNewMode) {
+      const result = await sbPost('prize_masters', payload);
+      const newId = Array.isArray(result) ? result[0]?.prize_id : result?.prize_id;
+      showToast('保存しました');
+      isDirty = false;
+      isNewMode = false;
+      await loadAll();
+      if (newId) selPrizeId = newId;
+      render();
+      renderDetail();
     } else {
-      curSortKey=key;
+      await sbPatch('prize_masters', selPrizeId, 'prize_id', payload);
+      showToast('保存しました');
+      isDirty = false;
+      await loadAll();
+      render();
+      renderDetail();
     }
-    updateSortUI();
-    render();
-  });
-});
-
-function updateSortUI(){
-  document.querySelectorAll('#sortRow .srt-btn').forEach(btn=>{
-    const key=btn.dataset.key;
-    btn.classList.toggle('active',key===curSortKey);
-    btn.querySelector('.srt-arrow').textContent=sortDirs[key]==='asc'?'↑':'↓';
-  });
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+  } finally {
+    hideLoading();
+  }
 }
 
-document.getElementById('searchInput').addEventListener('input',function(){
-  curSearch=this.value;
-  render();
-});
+// ─── DUPLICATE ────────────────────────────────────────────────────────────────
+function duplicatePrize() {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  const src = DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!src) return;
 
-document.getElementById('supplierFilter').addEventListener('change',function(){
-  selSupplier=this.value;
+  isDirty = false;
+  isNewMode = true;
+  selPrizeId = null;
   render();
+  renderDetail();
+
+  // Pre-fill from source
+  document.getElementById('fName').value    = src.prize_name + '（複製）';
+  document.getElementById('fAliases').value = src.aliases || '';
+  document.getElementById('fCost').value    = src.original_cost != null ? src.original_cost : '';
+  document.getElementById('fStatus').value  = 'provisional';
+  document.getElementById('fSupplier').value = (useSupplierFK ? src.supplier_id : src.supplier_name) || '';
+  document.getElementById('fQty').value     = src.standard_quantity_per_case != null ? src.standard_quantity_per_case : '';
+  markDirty();
+}
+
+// ─── DEACTIVATE ───────────────────────────────────────────────────────────────
+async function deactivatePrize() {
+  const p = DATA.find(x => String(x.prize_id) === String(selPrizeId));
+  if (!p) return;
+  if (!confirm(`「${p.prize_name}」を使用停止にします。よろしいですか？`)) return;
+  showLoading();
+  try {
+    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString()});
+    showToast('使用停止にしました');
+    isDirty = false;
+    await loadAll();
+    render();
+    renderDetail();
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ─── NEW PRIZE ────────────────────────────────────────────────────────────────
+function openNew() {
+  if (isDirty && !confirm('未保存の変更があります。破棄しますか？')) return;
+  isDirty = false;
+  isNewMode = true;
+  selPrizeId = null;
+  render();
+  renderDetail();
+  setTimeout(() => document.getElementById('fName')?.focus(), 50);
+}
+
+// ─── ALIASES POPUP ────────────────────────────────────────────────────────────
+function showAliases(id) {
+  const p = DATA.find(x => String(x.prize_id) === String(id));
+  if (!p) return;
+  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  const el = document.createElement('div');
+  el.className = 'aliases-modal';
+  el.innerHTML = `
+<div class="aliases-box">
+  <h3>🏷️ 別名一覧：${esc(p.prize_name)}</h3>
+  <div class="aliases-list">${aliases.length ? aliases.map(a => `・${esc(a)}`).join('<br>') : '（別名なし）'}</div>
+  <button class="aliases-close" onclick="this.closest('.aliases-modal').remove()">閉じる</button>
+</div>`;
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  document.body.appendChild(el);
+}
+
+// ─── NAVIGATION GUARD ─────────────────────────────────────────────────────────
+window.addEventListener('beforeunload', e => {
+  if (isDirty) { e.preventDefault(); e.returnValue = ''; }
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-updateSortUI();
-loadData();
+loadAll();
 </script>
 </body>
 </html>
