@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getPrizes, addPrize, addPrizesBatch, updatePrize,
-  getPrizeOrders, addPrizeOrder,
+  getPrizeOrders, addPrizeOrder, getSuppliers,
   getVehicleStocks, addVehicleStock, updateVehicleStock, deleteVehicleStock,
   getInventoryChecks, saveInventoryCheck, updateInventoryCheck, deleteInventoryCheck,
 } from '../services/sheets'
@@ -101,13 +101,6 @@ export default function PrizeManagement() {
 
   useEffect(() => { loadData() }, [])
 
-  // コード→日本語名に変換するヘルパー
-  function resolveSupplierName(raw) {
-    if (!raw) return ''
-    const s = SUPPLIERS.find(x => x.id === raw || x.name === raw)
-    return s ? s.name : raw
-  }
-
   async function loadData() {
     setLoading(true)
     try {
@@ -115,14 +108,11 @@ export default function PrizeManagement() {
         getPrizes(), getPrizeOrders(),
         getVehicleStocks(), getInventoryChecks(),
       ])
-      // 仕入先名を読み込み時に正規化
-      p.forEach(item => { item.supplier_name = resolveSupplierName(item.supplier_name) })
+      // 発注にsupplier_nameが無い場合は景品マスタから補完
       o.forEach(item => {
         if (!item.supplier_name) {
           const prize = p.find(x => String(x.prize_id) === String(item.prize_id))
           item.supplier_name = prize?.supplier_name || ''
-        } else {
-          item.supplier_name = resolveSupplierName(item.supplier_name)
         }
       })
       setPrizes(p)
@@ -142,8 +132,6 @@ export default function PrizeManagement() {
 
   function startEditPrize(p) {
     const f = { ...p }
-    // loadDataで変換済みだが念のため
-    f.supplier_name = resolveSupplierName(f.supplier_name)
     setForm(f)
     setEditing({ type: 'prize', mode: 'edit', data: p })
     setMsg('')
@@ -157,7 +145,7 @@ export default function PrizeManagement() {
         await addPrize(form)
         setMsg('✅ 景品を登録しました')
       } else {
-        await updatePrize(editing.data._row, form)
+        await updatePrize(editing.data._id || editing.data._row, form)
         setMsg('✅ 景品を更新しました')
       }
       setEditing(null)

@@ -308,13 +308,157 @@ export async function updateMachine(rowNum, m) {
 // ============================================
 // 景品管理 CRUD
 // ============================================
+// Supabase接続（景品マスタ・発注履歴）
+// ============================================
+import { supabase } from '../lib/supabase'
+
+const SUPPLIER_MAP = {
+  SGP: '景品フォーム', PCH: 'ピーチトイ', SDY: 'エスディーワイ',
+  INF: 'インフィニティ', AXS: 'アクシズ', LNS: 'LINE仕入先', MCR: 'メルカリ',
+}
+
+function supName(id) { return SUPPLIER_MAP[id] || id || '' }
+
+// --- 仕入先 ---
+export async function getSuppliers() {
+  const { data, error } = await supabase.from('suppliers').select('supplier_id, supplier_name').order('supplier_name')
+  if (error) throw new Error('仕入先取得エラー: ' + error.message)
+  return data || []
+}
+
+// --- 景品マスタ (Supabase) ---
+export async function getPrizes() {
+  if (getCache('prizes')) return getCache('prizes')
+  const { data, error } = await supabase.from('prize_masters').select('*').order('prize_id')
+  if (error) throw new Error('景品取得エラー: ' + error.message)
+  const result = (data || []).map(r => ({
+    _id: r.prize_id,
+    prize_id: r.prize_id, prize_name: r.prize_name, jan_code: r.jan_code || '',
+    barcode_value: r.jan_code || '', unit_cost: String(r.original_cost || '0'),
+    supplier_name: supName(r.supplier_id), supplier_id: r.supplier_id || '',
+    supplier_contact: '', is_active: r.status === 'active' ? 'TRUE' : 'FALSE',
+    created_at: r.created_at || '', updated_at: r.updated_at || '',
+    short_name: r.prize_name || '', item_size: r.size || '', category: r.category || '',
+    order_at: r.order_date || '', arrival_at: r.expected_date || '',
+    restock_count: '', stock_count: '',
+    case_count: '', pieces_per_case: String(r.default_case_quantity || ''),
+    aliases: r.aliases || '', notes: r.notes || '',
+  }))
+  setCache('prizes', result)
+  return result
+}
+
+export async function addPrize(p) {
+  const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === p.supplier_name)
+  const supId = supEntry ? supEntry[0] : p.supplier_id || null
+  const { data, error } = await supabase.from('prize_masters').insert({
+    prize_id: p.prize_id || undefined,
+    prize_name: p.prize_name,
+    original_cost: parseInt(p.unit_cost) || 0,
+    supplier_id: supId,
+    supplier_name: p.supplier_name || null,
+    jan_code: p.jan_code || null,
+    category: p.category || null,
+    size: p.item_size || null,
+    default_case_quantity: parseInt(p.pieces_per_case) || null,
+    status: p.is_active === 'FALSE' ? 'inactive' : 'active',
+    notes: p.notes || null,
+  }).select().single()
+  if (error) throw new Error('景品登録エラー: ' + error.message)
+  clearCache()
+  return data.prize_id
+}
+
+export async function addPrizesBatch(items) {
+  const rows = items.map(p => {
+    const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === p.supplier_name)
+    return {
+      prize_name: p.prize_name,
+      original_cost: parseInt(p.unit_cost) || 0,
+      supplier_id: supEntry ? supEntry[0] : null,
+      supplier_name: p.supplier_name || null,
+      jan_code: p.jan_code || null,
+      category: p.category || null,
+      status: p.is_active === 'FALSE' ? 'inactive' : 'active',
+    }
+  })
+  const { error } = await supabase.from('prize_masters').insert(rows)
+  if (error) throw new Error('一括登録エラー: ' + error.message)
+  clearCache()
+  return rows.length
+}
+
+export async function updatePrize(prizeId, p) {
+  const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === p.supplier_name)
+  const supId = supEntry ? supEntry[0] : p.supplier_id || null
+  const { error } = await supabase.from('prize_masters').update({
+    prize_name: p.prize_name,
+    original_cost: parseInt(p.unit_cost) || 0,
+    supplier_id: supId,
+    supplier_name: p.supplier_name || null,
+    jan_code: p.jan_code || null,
+    category: p.category || null,
+    size: p.item_size || null,
+    default_case_quantity: parseInt(p.pieces_per_case) || null,
+    status: p.is_active === 'FALSE' ? 'inactive' : 'active',
+    notes: p.notes || null,
+    updated_at: new Date().toISOString(),
+  }).eq('prize_id', prizeId)
+  if (error) throw new Error('景品更新エラー: ' + error.message)
+  clearCache()
+}
+
+// --- 発注履歴 (Supabase) ---
+export async function getPrizeOrders() {
+  if (getCache('prize_orders')) return getCache('prize_orders')
+  const { data, error } = await supabase.from('prize_orders').select('*').order('order_date', { ascending: false })
+  if (error) throw new Error('発注取得エラー: ' + error.message)
+  const result = (data || []).map(r => ({
+    _id: r.order_id,
+    order_id: r.order_id, prize_id: r.prize_id || '', prize_name: r.prize_name_raw || '',
+    ordered_at: r.order_date || '', order_quantity: String(r.case_quantity || ''),
+    arrived_at: r.arrived_at || '', arrival_quantity: String(r.received_quantity || ''),
+    unit_cost_at_order: String(r.unit_cost || '0'),
+    total_cost: String((r.unit_cost || 0) * (r.case_quantity || 0)),
+    note: r.notes || '', created_at: r.created_at || '',
+    supplier_name: supName(r.supplier_id),
+    status: r.status || '',
+    case_count: String(r.case_count || ''),
+    case_cost: String(r.case_cost || ''),
+    expected_date: r.expected_date || '',
+    destination: r.destination || '',
+  }))
+  setCache('prize_orders', result)
+  return result
+}
+
+export async function addPrizeOrder(o) {
+  const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === o.supplier_name)
+  const prize = (getCache('prizes') || []).find(p => String(p.prize_id) === String(o.prize_id))
+  const { data, error } = await supabase.from('prize_orders').insert({
+    prize_id: o.prize_id || null,
+    prize_name_raw: o.prize_name || prize?.prize_name || '',
+    supplier_id: supEntry ? supEntry[0] : prize?.supplier_id || null,
+    order_date: o.ordered_at || null,
+    case_quantity: parseInt(o.order_quantity) || 0,
+    unit_cost: parseInt(o.unit_cost_at_order) || 0,
+    notes: o.note || null,
+    status: 'ordered',
+  }).select().single()
+  if (error) throw new Error('発注登録エラー: ' + error.message)
+  clearCache()
+  return data.order_id
+}
+
+// 旧Google Sheets版（参考用・他シートで引き続き使用）
+// ============================================
 // prizes シート列構成 (A-S):
 // A:prize_id B:prize_name C:jan_code D:barcode_value E:unit_cost
 // F:supplier_name G:supplier_contact H:is_active I:created_at J:updated_at
 // K:short_name L:item_size M:category N:order_at O:arrival_at
 // P:restock_count Q:stock_count R:case_count S:pieces_per_case
-export async function getPrizes() {
-  if (getCache('prizes')) return getCache('prizes')
+// 旧: Google Sheets版（使わないが参考用に残す）
+async function _sheets_getPrizes() {
   const rows = await sheetsGet('prizes!A2:S')
   const result = rows.map((r, i) => ({
     _row: i + 2,
@@ -331,9 +475,9 @@ export async function getPrizes() {
   return result
 }
 
-export async function addPrize(p) {
+async function _sheets_addPrize(p) {
   const now = new Date().toISOString()
-  const existing = await getPrizes()
+  const existing = await _sheets_getPrizes()
   const nextId = existing.length > 0
     ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
     : 1
@@ -351,10 +495,9 @@ export async function addPrize(p) {
   return nextId
 }
 
-export async function addPrizesBatch(items) {
-  // CSV一括インポート用
+async function _sheets_addPrizesBatch(items) {
   const now = new Date().toISOString()
-  const existing = await getPrizes()
+  const existing = await _sheets_getPrizes()
   let nextId = existing.length > 0
     ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
     : 1
@@ -379,7 +522,7 @@ export async function addPrizesBatch(items) {
   return rows.length
 }
 
-export async function updatePrize(rowNum, p) {
+async function _sheets_updatePrize(rowNum, p) {
   const now = new Date().toISOString()
   await sheetsPut(`prizes!B${rowNum}:S${rowNum}`, [[
     p.prize_name, p.jan_code||'', p.barcode_value||'',
@@ -393,7 +536,7 @@ export async function updatePrize(rowNum, p) {
   clearCache()
 }
 
-export async function getPrizeOrders() {
+async function _sheets_getPrizeOrders() {
   const rows = await sheetsGet('prize_orders!A2:L')
   return rows.map((r, i) => ({
     _row: i + 2,
@@ -405,9 +548,9 @@ export async function getPrizeOrders() {
   }))
 }
 
-export async function addPrizeOrder(o) {
+async function _sheets_addPrizeOrder(o) {
   const now = new Date().toISOString()
-  const existing = await getPrizeOrders()
+  const existing = await _sheets_getPrizeOrders()
   const nextId = existing.length > 0
     ? Math.max(...existing.map(x => parseInt(x.order_id)||0)) + 1
     : 1
