@@ -113,8 +113,8 @@ header{
 .prize-table colgroup col.col-short{width:15%}
 .prize-table colgroup col.col-cost{width:11%}
 .prize-table colgroup col.col-sup{width:17%}
-.prize-table colgroup col.col-status{width:11%}
-.prize-table colgroup col.col-act{width:16%}
+.prize-table colgroup col.col-order{width:12%}
+.prize-table colgroup col.col-status{width:15%}
 .prize-table tbody tr{
   border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
 }
@@ -333,9 +333,12 @@ header{
     <input type="search" id="searchInput" placeholder="景品名・別名で検索..." autocomplete="off">
   </div>
   <div class="tb-sep"></div>
-  <div class="chip" id="chipActive" onclick="toggleChip('active')">Active</div>
-  <div class="chip provisional" id="chipProvisional" onclick="toggleChip('provisional')">仮登録</div>
-  <div class="chip inactive" id="chipInactive" onclick="toggleChip('inactive')">停止中</div>
+  <select class="filter-select" id="statusFilter" onchange="setStatusFilter(this.value)">
+    <option value="">すべて</option>
+    <option value="active">Active</option>
+    <option value="provisional">仮登録</option>
+    <option value="inactive">停止中</option>
+  </select>
   <div class="tb-sep"></div>
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
@@ -434,7 +437,7 @@ let selPrizeId = null;
 let isNewMode = false;
 let isDirty = false;
 let curSearch = '';
-let filterStatuses = [];
+let filterStatus = '';
 let filterSupplier = '';
 let sortKey = 'prize_name';
 let sortDir = 'asc';
@@ -442,6 +445,11 @@ let _loadingCount = 0;
 let _toastTimer = null;
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '—';
+  const s = String(d).slice(0,10).split('-');
+  return s[0].slice(2) + '.' + s[1] + '.' + s[2];
+}
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -483,7 +491,7 @@ async function loadAll() {
   try {
     const [prizes, suppliers] = await Promise.all([
       sbGet('prize_masters',
-        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity' +
+        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
         '&order=prize_name.asc&limit=2000'),
       sbGet('suppliers', 'select=supplier_id,supplier_name&order=supplier_name.asc').catch(() => null)
     ]);
@@ -519,9 +527,9 @@ function buildSupplierFilter() {
   if (useSupplierFK) {
     SUPPLIERS.forEach(s => {
       const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = s.name;
-      if (String(filterSupplier) === String(s.id)) opt.selected = true;
+      opt.value = s.supplier_id;
+      opt.textContent = s.supplier_name;
+      if (String(filterSupplier) === String(s.supplier_id)) opt.selected = true;
       sel.appendChild(opt);
     });
   } else {
@@ -540,7 +548,7 @@ function buildSupplierFilter() {
 // ─── FILTER / SORT ────────────────────────────────────────────────────────────
 function getFiltered() {
   let list = DATA.filter(p => {
-    if (filterStatuses.length > 0 && !filterStatuses.includes(p.status)) return false;
+    if (filterStatus && p.status !== filterStatus) return false;
     if (filterSupplier) {
       const check = useSupplierFK
         ? String(p.supplier_id) === String(filterSupplier)
@@ -593,15 +601,15 @@ function render() {
 <colgroup>
   <col class="col-name"><col class="col-short">
   <col class="col-cost"><col class="col-sup">
-  <col class="col-status"><col class="col-act">
+  <col class="col-order"><col class="col-status">
 </colgroup>
 <thead><tr>
   <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
   <th ${th('category')} onclick="setSort('category')">カテゴリ${sortKey==='category'?sortArrow(sortDir):''}</th>
   <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
-  <th>仕入先</th>
+  <th ${th('supplier_name')} onclick="setSort('supplier_name')">仕入先${sortKey==='supplier_name'?sortArrow(sortDir):''}</th>
+  <th ${th('latest_order_date')} onclick="setSort('latest_order_date')">最終発注${sortKey==='latest_order_date'?sortArrow(sortDir):''}</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
-  <th>操作</th>
 </tr></thead>
 <tbody>
 ${list.map(p => {
@@ -614,11 +622,8 @@ ${list.map(p => {
   <td class="td-short" title="${esc(p.category)}">${esc(p.category || '—')}</td>
   <td class="td-cost">¥${fmt(p.original_cost)}</td>
   <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
+  <td style="font-size:12px;color:var(--text2)">${fmtDate(p.latest_order_date)}</td>
   <td>${statusBadge(p.status)}</td>
-  <td class="td-actions">
-    <button class="row-btn" onclick="event.stopPropagation();selectPrize('${esc(sid)}')">編集</button>
-    ${aliases.length ? `<button class="row-btn" style="margin-left:4px" onclick="event.stopPropagation();showAliases('${esc(sid)}')">別名を見る</button>` : ''}
-  </td>
 </tr>`;
 }).join('')}
 </tbody>
@@ -633,12 +638,8 @@ function setSort(key) {
 }
 
 // ─── FILTER CONTROLS ─────────────────────────────────────────────────────────
-function toggleChip(status) {
-  const idx = filterStatuses.indexOf(status);
-  if (idx >= 0) filterStatuses.splice(idx, 1);
-  else filterStatuses.push(status);
-  const capId = 'chip' + status.charAt(0).toUpperCase() + status.slice(1);
-  document.getElementById(capId).classList.toggle('on', filterStatuses.includes(status));
+function setStatusFilter(val) {
+  filterStatus = val;
   render();
 }
 
@@ -649,13 +650,11 @@ function setSupplierFilter(val) {
 
 function clearFilters() {
   curSearch = '';
-  filterStatuses = [];
+  filterStatus = '';
   filterSupplier = '';
   document.getElementById('searchInput').value = '';
+  document.getElementById('statusFilter').value = '';
   document.getElementById('supplierFilter').value = '';
-  document.getElementById('chipActive').classList.remove('on');
-  document.getElementById('chipProvisional').classList.remove('on');
-  document.getElementById('chipInactive').classList.remove('on');
   render();
 }
 
@@ -679,7 +678,7 @@ function buildSupplierOptions(currentVal) {
   let opts = '<option value="">未設定</option>';
   if (useSupplierFK) {
     opts += SUPPLIERS.map(s =>
-      `<option value="${esc(s.id)}"${String(currentVal) === String(s.id) ? ' selected' : ''}>${esc(s.name)}</option>`
+      `<option value="${esc(s.supplier_id)}"${String(currentVal) === String(s.supplier_id) ? ' selected' : ''}>${esc(s.supplier_name)}</option>`
     ).join('');
   } else {
     // supplier_name-based: merge known list with unique values in data
@@ -940,6 +939,7 @@ function renderMobileList(list) {
   <div class="mc-body">
     <div class="mc-name">${esc(p.prize_name || '')}</div>
     <div class="mc-meta"><span>¥${fmt(p.original_cost)}</span><span>${esc(sup !== '—' ? sup : '仕入先未設定')}</span>${statusBadge(p.status)}</div>
+    <div class="mc-meta" style="margin-top:2px"><span style="color:var(--text2)">最終発注: ${fmtDate(p.latest_order_date)}</span></div>
     ${aliasLine}
   </div>
   <div class="mc-arrow">›</div>
