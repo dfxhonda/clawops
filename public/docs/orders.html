@@ -138,6 +138,7 @@ header{
 .badge-ordered{background:rgba(0,180,216,.15);color:var(--cyan);border:1px solid rgba(0,180,216,.3)}
 .badge-arrived{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-cancelled{background:rgba(231,76,60,.12);color:var(--red);border:1px solid rgba(231,76,60,.3)}
+.badge-confirmed{background:rgba(124,106,255,.15);color:var(--accent);border:1px solid rgba(124,106,255,.3)}
 .empty-pane{text-align:center;padding:60px 20px;color:var(--text2);font-size:13px}
 .empty-pane .empty-icon{font-size:36px;margin-bottom:10px}
 
@@ -316,6 +317,20 @@ header{
   <div class="tb-sep"></div>
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
+    <option value="アクシズ">アクシズ</option>
+    <option value="インフィニティ">インフィニティ</option>
+    <option value="エスディーワイ">エスディーワイ</option>
+    <option value="ピーチトイ">ピーチトイ</option>
+    <option value="景品フォーム">景品フォーム</option>
+  </select>
+  <div class="tb-sep"></div>
+  <select class="filter-select" id="destFilter" onchange="setDestFilter(this.value)">
+    <option value="">入荷先：全て</option>
+    <option value="久留米">久留米</option>
+    <option value="田隈">田隈</option>
+    <option value="飯塚">飯塚</option>
+    <option value="鹿児島">鹿児島</option>
+    <option value="振り分け待ち">振り分け待ち</option>
   </select>
   <div class="tb-sep"></div>
   <select class="filter-select" id="statusFilter" onchange="setStatusFilter(this.value)">
@@ -325,9 +340,9 @@ header{
     <option value="cancelled">取消</option>
   </select>
   <div class="tb-sep"></div>
-  <input type="date" class="date-input" id="dateFrom" onchange="setDateFilter()">
+  <input type="date" class="date-input" id="dateFrom" onchange="setDateFilter()" title="入荷予定日（開始）">
   <span class="date-sep">〜</span>
-  <input type="date" class="date-input" id="dateTo" onchange="setDateFilter()">
+  <input type="date" class="date-input" id="dateTo" onchange="setDateFilter()" title="入荷予定日（終了）">
   <button class="btn-clear" onclick="clearFilters()">✕ クリア</button>
 </div>
 
@@ -423,7 +438,8 @@ let filterSupplier = '';
 let filterStatus = '';
 let filterDateFrom = '';
 let filterDateTo = '';
-let sortKey = 'order_date';
+let filterDest = '';
+let sortKey = 'expected_date';
 let sortDir = 'desc';
 let _loadingCount = 0;
 let _toastTimer = null;
@@ -445,6 +461,7 @@ function statusLabel(s) {
   if (s === 'ordered')   return '発注済み';
   if (s === 'arrived')   return '入荷済み';
   if (s === 'cancelled') return '取消';
+  if (s === 'confirmed') return '確定';
   return s || '—';
 }
 
@@ -457,6 +474,7 @@ function statusBadge(s) {
   if (s === 'ordered')   return '<span class="badge badge-ordered">発注済み</span>';
   if (s === 'arrived')   return '<span class="badge badge-arrived">入荷済み</span>';
   if (s === 'cancelled') return '<span class="badge badge-cancelled">取消</span>';
+  if (s === 'confirmed') return '<span class="badge badge-confirmed">確定</span>';
   return '<span class="badge badge-ordered">' + esc(s || '—') + '</span>';
 }
 
@@ -484,14 +502,13 @@ async function loadAll() {
       sbGet('prize_orders',
         'select=order_id,prize_id,prize_name_raw,supplier_id,order_source,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,destination,status,source_file,notes' +
         '&order=order_date.desc&limit=2000'),
-      sbGet('prize_masters', 'select=prize_id,prize_name&order=prize_name.asc&limit=2000').catch(() => [])
+      sbGet('prize_masters', 'select=prize_id,prize_name,short_name&order=prize_name.asc&limit=2000').catch(() => [])
     ]);
 
     DATA = orders;
     PRIZES = prizes || [];
-    PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.prize_name]));
+    PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.short_name || p.prize_name]));
 
-    buildSupplierFilter();
     render();
     if (selOrderId || isNewMode) renderDetail();
   } catch(e) {
@@ -503,29 +520,17 @@ async function loadAll() {
   }
 }
 
-function buildSupplierFilter() {
-  const sel = document.getElementById('supplierFilter');
-  while (sel.options.length > 1) sel.remove(1);
-  SUPPLIERS = [...new Set(DATA.map(o => o.supplier_id).filter(Boolean))].sort();
-  SUPPLIERS.forEach(n => {
-    const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
-    if (filterSupplier === n) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
-
 // ─── FILTER / SORT ────────────────────────────────────────────────────────────
 function getFiltered() {
   let list = DATA.filter(o => {
     if (filterStatus && o.status !== filterStatus) return false;
     if (filterSupplier && o.supplier_id !== filterSupplier) return false;
-    if (filterDateFrom && (o.order_date || '') < filterDateFrom) return false;
-    if (filterDateTo   && (o.order_date || '') > filterDateTo)   return false;
+    if (filterDest && o.destination !== filterDest) return false;
+    if (filterDateFrom && (o.expected_date || '') < filterDateFrom) return false;
+    if (filterDateTo   && (o.expected_date || '') > filterDateTo)   return false;
     const q = curSearch.toLowerCase();
     if (q) {
-      const nm = (o.prize_name_raw || '').toLowerCase();
+      const nm = prizeName(o).toLowerCase();
       if (!nm.includes(q)) return false;
     }
     return true;
@@ -568,34 +573,33 @@ function render() {
   <col class="col-date"><col class="col-name">
   <col class="col-src"><col class="col-qty">
   <col class="col-unit"><col class="col-case">
-  <col class="col-status"><col class="col-dest">
+  <col class="col-dest"><col class="col-status">
 </colgroup>
 <thead><tr>
-  <th ${th('order_date')} onclick="setSort('order_date')">発注日${sortKey==='order_date'?sortArrow(sortDir):''}</th>
+  <th ${th('expected_date')} onclick="setSort('expected_date')">入荷予定日${sortKey==='expected_date'?sortArrow(sortDir):''}</th>
   <th ${th('prize_name_raw')} onclick="setSort('prize_name_raw')">景品名${sortKey==='prize_name_raw'?sortArrow(sortDir):''}</th>
   <th ${th('supplier_id')} onclick="setSort('supplier_id')">仕入先${sortKey==='supplier_id'?sortArrow(sortDir):''}</th>
   <th style="text-align:right">数量</th>
   <th style="text-align:right">単価</th>
   <th style="text-align:right">ケース金額</th>
+  <th ${th('destination')} onclick="setSort('destination')">入荷先${sortKey==='destination'?sortArrow(sortDir):''}</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
-  <th>入荷先</th>
 </tr></thead>
 <tbody>
 ${list.map(o => {
   const oid = String(o.order_id);
   const sel = String(selOrderId) === oid && !isNewMode;
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectOrder('${esc(oid)}')">
-  <td style="font-size:12px;color:var(--text2)">${fmtDate(o.order_date)}</td>
-  <td class="td-name" style="white-space:normal" title="${esc(o.prize_name_raw)}">
+  <td style="font-size:12px;color:var(--text2)">${fmtDate(o.expected_date)}</td>
+  <td class="td-name" title="${esc(prizeName(o))}">
     <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prizeName(o))}</div>
-    ${o.prize_id && PRIZE_MAP[String(o.prize_id)] && o.prize_name_raw ? `<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.prize_name_raw)}</div>` : ''}
   </td>
   <td class="td-src" title="${esc(o.supplier_id)}">${esc(o.supplier_id || '—')}</td>
   <td class="td-qty">${o.case_quantity != null ? o.case_quantity : '—'}</td>
   <td class="td-num">${o.unit_cost != null ? '¥'+fmt(o.unit_cost) : '—'}</td>
   <td class="td-num">${o.case_cost != null ? '¥'+fmt(o.case_cost) : '—'}</td>
-  <td>${statusBadge(o.status)}</td>
   <td class="td-dest" title="${esc(o.destination)}">${esc(o.destination || '—')}</td>
+  <td>${statusBadge(o.status)}</td>
 </tr>`;
 }).join('')}
 </tbody>
@@ -612,6 +616,7 @@ function setSort(key) {
 // ─── FILTER CONTROLS ─────────────────────────────────────────────────────────
 function setStatusFilter(val) { filterStatus = val; render(); }
 function setSupplierFilter(val) { filterSupplier = val; render(); }
+function setDestFilter(val) { filterDest = val; render(); }
 function setDateFilter() {
   filterDateFrom = document.getElementById('dateFrom').value;
   filterDateTo   = document.getElementById('dateTo').value;
@@ -622,11 +627,13 @@ function clearFilters() {
   curSearch = '';
   filterStatus = '';
   filterSupplier = '';
+  filterDest = '';
   filterDateFrom = '';
   filterDateTo = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('supplierFilter').value = '';
+  document.getElementById('destFilter').value = '';
   document.getElementById('dateFrom').value = '';
   document.getElementById('dateTo').value = '';
   render();
@@ -735,7 +742,10 @@ function renderDetail() {
     </div>
     <div class="field">
       <label>入荷先（destination）</label>
-      <input type="text" id="fDestination" value="${esc(o.destination||'')}" placeholder="例：倉庫A" oninput="markDirty()">
+      <select id="fDestination" onchange="markDirty()">
+        <option value="">（未設定）</option>
+        ${['久留米','田隈','飯塚','鹿児島','振り分け待ち'].map(v=>`<option value="${v}"${o.destination===v?' selected':''}>${v}</option>`).join('')}
+      </select>
     </div>
   </div>
   ${!isNewMode ? `
@@ -908,9 +918,12 @@ function renderMobileList(list) {
       ${o.unit_cost != null ? `<span style="color:var(--text);font-weight:700">¥${fmt(o.unit_cost)}</span>` : ''}
       ${o.case_cost != null ? `<span style="color:var(--cyan)">¥${fmt(o.case_cost)}</span>` : ''}
       ${o.case_quantity != null ? `<span style="color:var(--text2)">×${o.case_quantity}</span>` : ''}
-      <span style="color:var(--text2)">${fmtDate(o.order_date)}</span>
+      ${o.expected_date ? `<span style="color:var(--text2)">${fmtDate(o.expected_date)}</span>` : ''}
     </div>
-    <div class="mc-meta" style="margin-top:2px">${statusBadge(o.status)}</div>
+    <div class="mc-meta" style="margin-top:4px;gap:6px">
+      ${o.destination ? `<span style="font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text2)">${esc(o.destination)}</span>` : ''}
+      ${statusBadge(o.status)}
+    </div>
   </div>
   <div class="mc-arrow">›</div>
 </div>`;
@@ -1007,7 +1020,10 @@ function renderMobileDetailContent() {
   </div>
   <div class="field">
     <label>入荷先（destination）</label>
-    <input type="text" id="mfDestination" value="${esc(o.destination||'')}" placeholder="例：倉庫A" oninput="markDirtyMobile()">
+    <select id="mfDestination" onchange="markDirtyMobile()">
+      <option value="">（未設定）</option>
+      ${['久留米','田隈','飯塚','鹿児島','振り分け待ち'].map(v=>`<option value="${v}"${o.destination===v?' selected':''}>${v}</option>`).join('')}
+    </select>
   </div>
   <div class="field">
     <label>メモ（notes）</label>
