@@ -384,6 +384,9 @@ header{
   </div>
 </nav>
 
+<!-- Mobile Sort -->
+<div class="mobile-list" id="mobileSortBar" style="display:none;padding:8px 12px;overflow-x:auto;white-space:nowrap;gap:6px;border-bottom:1px solid var(--border);background:var(--surface)">
+</div>
 <!-- Mobile List -->
 <div class="mobile-list" id="mobileList"><div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div></div>
 <!-- Mobile Detail Panel -->
@@ -544,8 +547,13 @@ function getFiltered() {
   });
 
   const dir = sortDir === 'asc' ? 1 : -1;
+  const numKeys = ['case_quantity','unit_cost','case_cost','case_count'];
   list = list.slice().sort((a, b) => {
     let av = a[sortKey], bv = b[sortKey];
+    if (numKeys.includes(sortKey)) {
+      av = Number(av) || 0; bv = Number(bv) || 0;
+      return dir * (av - bv);
+    }
     const nil = dir === 1 ? '\uffff' : '';
     if (av == null) av = nil;
     if (bv == null) bv = nil;
@@ -586,9 +594,9 @@ function render() {
   <th ${th('expected_date')} onclick="setSort('expected_date')">入荷予定日${sortKey==='expected_date'?sortArrow(sortDir):''}</th>
   <th ${th('prize_name_raw')} onclick="setSort('prize_name_raw')">景品名${sortKey==='prize_name_raw'?sortArrow(sortDir):''}</th>
   <th ${th('supplier_id')} onclick="setSort('supplier_id')">仕入先${sortKey==='supplier_id'?sortArrow(sortDir):''}</th>
-  <th style="text-align:right">数量</th>
-  <th style="text-align:right">単価</th>
-  <th style="text-align:right">ケース金額</th>
+  <th ${th('case_quantity')} onclick="setSort('case_quantity')" style="text-align:right;cursor:pointer">数量${sortKey==='case_quantity'?sortArrow(sortDir):''}</th>
+  <th ${th('unit_cost')} onclick="setSort('unit_cost')" style="text-align:right;cursor:pointer">単価${sortKey==='unit_cost'?sortArrow(sortDir):''}</th>
+  <th ${th('case_cost')} onclick="setSort('case_cost')" style="text-align:right;cursor:pointer">ケース金額${sortKey==='case_cost'?sortArrow(sortDir):''}</th>
   <th ${th('destination')} onclick="setSort('destination')">入荷先${sortKey==='destination'?sortArrow(sortDir):''}</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
 </tr></thead>
@@ -910,7 +918,28 @@ window.addEventListener('beforeunload', e => {
 });
 
 // ─── MOBILE LIST ──────────────────────────────────────────────────────────────
+function renderMobileSortBar() {
+  const bar = document.getElementById('mobileSortBar');
+  if (!bar) return;
+  bar.style.display = '';
+  const sorts = [
+    {key:'expected_date',label:'入荷予定'},
+    {key:'prize_name_raw',label:'景品名'},
+    {key:'supplier_id',label:'仕入先'},
+    {key:'case_quantity',label:'数量'},
+    {key:'unit_cost',label:'単価'},
+    {key:'case_cost',label:'ケース金額'},
+    {key:'status',label:'状態'},
+  ];
+  bar.innerHTML = sorts.map(s => {
+    const active = sortKey === s.key;
+    const arrow = active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+    return `<button onclick="setSort('${s.key}')" style="display:inline-block;padding:5px 10px;border-radius:6px;border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--text2)'};font-size:12px;cursor:pointer;white-space:nowrap">${s.label}${arrow}</button>`;
+  }).join(' ');
+}
+
 function renderMobileList(list) {
+  renderMobileSortBar();
   const el = document.getElementById('mobileList');
   if (!el) return;
   if (!list) list = getFiltered();
