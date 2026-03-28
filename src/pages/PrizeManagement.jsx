@@ -15,6 +15,16 @@ const TABS = [
   { key: 'vehicle', label: '車在庫' },
 ]
 
+const SUPPLIERS = [
+  { id: 'SGP', name: '景品フォーム' },
+  { id: 'PCH', name: 'ピーチトイ' },
+  { id: 'SDY', name: 'エスディーワイ' },
+  { id: 'INF', name: 'インフィニティ' },
+  { id: 'AXS', name: 'アクシズ' },
+  { id: 'LNS', name: 'LINE仕入先' },
+  { id: 'MCR', name: 'メルカリ' },
+]
+
 // 商品名から短縮名とサイズを自動抽出
 function extractFromName(name) {
   if (!name) return { short_name: '', item_size: '' }
@@ -583,7 +593,16 @@ export default function PrizeManagement() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="サプライヤー" k="supplier_name" form={form} setForm={setForm} />
+            <div>
+              <label className="block text-muted text-sm mb-1">仕入先</label>
+              <select value={form.supplier_name||''} onChange={e => setForm(p=>({...p, supplier_name:e.target.value}))}
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-text">
+                <option value="">選択してください</option>
+                {SUPPLIERS.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            </div>
             <Field label="連絡先" k="supplier_contact" form={form} setForm={setForm} />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -816,7 +835,7 @@ export default function PrizeManagement() {
                       </div>
                       <div className="text-muted text-[11px] truncate flex items-center gap-2">
                         {p.short_name && <span>{p.prize_name}</span>}
-                        <span>{p.supplier_name || '—'}</span>
+                        <span>{SUPPLIERS.find(s => s.id === p.supplier_name || s.name === p.supplier_name)?.name || p.supplier_name || '—'}</span>
                         <span className="text-accent font-bold">¥{parseInt(p.unit_cost||0).toLocaleString()}</span>
                       </div>
                     </div>
@@ -992,10 +1011,11 @@ export default function PrizeManagement() {
                     <span className="text-text font-bold">{o.prize_name}</span>
                     <span className={`text-xs px-2 py-1 rounded-full ${statusColor}`}>{status}</span>
                   </div>
-                  <div className="text-muted text-xs mt-1 flex gap-3">
+                  <div className="text-muted text-xs mt-1 flex gap-3 flex-wrap">
                     <span>{o.ordered_at}</span>
                     <span>x{o.order_quantity}</span>
                     <span>¥{parseInt(o.total_cost||0).toLocaleString()}</span>
+                    {o.supplier_name && <span>{SUPPLIERS.find(s => s.id === o.supplier_name || s.name === o.supplier_name)?.name || o.supplier_name}</span>}
                   </div>
                 </div>
               )

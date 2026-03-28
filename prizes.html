@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawOps - 景品マスタ</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,'Hiragino Sans',sans-serif; background:#1a1a2e; color:#eee; }
+/* Layout */
+.app { display:flex; flex-direction:column; height:100vh; }
+.header { background:#16213e; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #0f3460; }
+.header h1 { font-size:18px; color:#00d2ff; white-space:nowrap; }
+.header .count { font-size:13px; color:#aaa; }
+.main { display:flex; flex:1; overflow:hidden; }
+.list-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.detail-pane { width:380px; background:#16213e; border-left:1px solid #0f3460; overflow-y:auto; display:none; }
+.detail-pane.open { display:block; }
+/* Search bar */
+.search-bar { padding:10px 12px; background:#16213e; display:flex; gap:8px; flex-wrap:wrap; align-items:center; border-bottom:1px solid #0f3460; }
+.search-bar input[type=text] { flex:1; min-width:160px; padding:8px 12px; border-radius:6px; border:1px solid #333; background:#0a0a1a; color:#eee; font-size:14px; }
+.search-bar select { padding:8px 10px; border-radius:6px; border:1px solid #333; background:#0a0a1a; color:#eee; font-size:13px; }
+/* Buttons */
+.btn { border:none; padding:7px 14px; border-radius:6px; font-size:13px; cursor:pointer; white-space:nowrap; }
+.btn-primary { background:#e94560; color:#fff; }
+.btn-primary:hover { background:#c62a4a; }
+.btn-success { background:#00b894; color:#fff; }
+.btn-success:hover { background:#009b7d; }
+.btn-ghost { background:transparent; color:#aaa; border:1px solid #444; }
+.btn-ghost:hover { background:#333; color:#eee; }
+.btn-warn { background:#e17055; color:#fff; }
+.btn-warn:hover { background:#c0392b; }
+.btn:disabled { opacity:.4; cursor:not-allowed; }
+/* Table */
+.table-wrap { flex:1; overflow-y:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead { position:sticky; top:0; z-index:1; }
+th { background:#0f3460; padding:8px 10px; text-align:left; font-weight:600; cursor:pointer; user-select:none; }
+th:hover { background:#1a4a8a; }
+td { padding:6px 10px; border-bottom:1px solid #1e1e3a; }
+tr:hover { background:#1e1e3a; }
+tr.selected { background:#0f3460; }
+.cost { text-align:right; font-variant-numeric:tabular-nums; }
+.badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; }
+.badge-active { background:#00b89433; color:#00b894; }
+.badge-inactive { background:#e9456033; color:#e94560; }
+/* Detail panel */
+.detail-pane h2 { padding:14px 16px; font-size:16px; color:#00d2ff; border-bottom:1px solid #0f3460; display:flex; justify-content:space-between; align-items:center; }
+.detail-pane h2 .close-btn { cursor:pointer; font-size:20px; color:#aaa; background:none; border:none; }
+.detail-pane h2 .close-btn:hover { color:#fff; }
+.field { padding:8px 16px; }
+.field label { display:block; font-size:11px; color:#888; margin-bottom:3px; }
+.field input, .field select, .field textarea { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #333; background:#0a0a1a; color:#eee; font-size:14px; }
+.field textarea { min-height:60px; resize:vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color:#00d2ff; outline:none; }
+.field .hint { font-size:11px; color:#666; margin-top:2px; }
+.field .error { font-size:11px; color:#e94560; margin-top:2px; }
+.detail-actions { padding:12px 16px; display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid #0f3460; }
+.aliases-list { padding:4px 0; }
+.aliases-list .alias { background:#0f3460; padding:4px 8px; border-radius:4px; font-size:12px; margin:2px 0; display:flex; justify-content:space-between; align-items:center; }
+.aliases-list .alias .remove { cursor:pointer; color:#e94560; font-size:14px; margin-left:8px; }
+/* Toast */
+.toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:10px 24px; border-radius:8px; font-size:14px; z-index:100; opacity:0; transition:opacity .3s; pointer-events:none; }
+.toast.show { opacity:1; }
+.toast-ok { background:#00b894; color:#fff; }
+.toast-err { background:#e94560; color:#fff; }
+/* Dialog */
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; display:none; align-items:center; justify-content:center; }
+.modal-bg.open { display:flex; }
+.modal { background:#16213e; border-radius:12px; padding:20px; max-width:360px; width:90%; }
+.modal h3 { color:#00d2ff; margin-bottom:12px; }
+.modal p { font-size:14px; margin-bottom:16px; color:#ccc; }
+.modal .modal-btns { display:flex; gap:8px; justify-content:flex-end; }
+/* Mobile */
+@media(max-width:768px) {
+  .main { flex-direction:column; }
+  .detail-pane { width:100%; border-left:none; border-top:1px solid #0f3460; max-height:50vh; }
+  .header h1 { font-size:15px; }
+}
+/* Spinner */
+.spinner { display:inline-block; width:16px; height:16px; border:2px solid #333; border-top:2px solid #00d2ff; border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>景品マスタ</h1>
+    <span class="count" id="totalCount">読込中...</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-primary" onclick="startAdd()">+ 新しい景品を追加</button>
+  </div>
+
+  <div class="main">
+    <div class="list-pane">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="景品名・別名で検索..." oninput="doSearch()">
+        <select id="filterSupplier" onchange="doSearch()">
+          <option value="">全仕入先</option>
+        </select>
+        <select id="filterCategory" onchange="doSearch()">
+          <option value="">全カテゴリ</option>
+        </select>
+        <select id="filterStatus" onchange="doSearch()">
+          <option value="">全状態</option>
+          <option value="active">有効</option>
+          <option value="inactive">停止</option>
+        </select>
+        <button class="btn btn-ghost" onclick="clearSearch()">クリア</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('prize_id')" style="width:90px">ID</th>
+              <th onclick="sortBy('prize_name')">景品名</th>
+              <th onclick="sortBy('original_cost')" style="width:80px">単価</th>
+              <th onclick="sortBy('supplier_name')" style="width:100px">仕入先</th>
+              <th onclick="sortBy('category')" style="width:100px">カテゴリ</th>
+              <th style="width:50px">状態</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="detail-pane" id="detailPane">
+      <h2>
+        <span id="detailTitle">景品詳細</span>
+        <button class="close-btn" onclick="closeDetail()">&times;</button>
+      </h2>
+      <div class="field">
+        <label>景品ID</label>
+        <input type="text" id="fPrizeId" readonly style="color:#888">
+      </div>
+      <div class="field">
+        <label>景品名 <span style="color:#e94560">*</span></label>
+        <input type="text" id="fName" oninput="markDirty()">
+        <div class="error" id="errName"></div>
+      </div>
+      <div class="field">
+        <label>別名（エイリアス）</label>
+        <div class="aliases-list" id="aliasesList"></div>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <input type="text" id="newAlias" placeholder="別名を追加..." style="font-size:12px">
+          <button class="btn btn-ghost" onclick="addAlias()" style="padding:4px 10px;font-size:12px">追加</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>現在単価 <span style="color:#e94560">*</span></label>
+        <input type="number" id="fCost" min="0" oninput="markDirty()">
+        <div class="error" id="errCost"></div>
+      </div>
+      <div class="field">
+        <label>仕入先</label>
+        <select id="fSupplier" onchange="markDirty()"></select>
+      </div>
+      <div class="field">
+        <label>カテゴリ</label>
+        <input type="text" id="fCategory" oninput="markDirty()">
+      </div>
+      <div class="field">
+        <label>標準入り数</label>
+        <input type="number" id="fCaseQty" min="1" oninput="markDirty()">
+      </div>
+      <div class="field">
+        <label>状態</label>
+        <select id="fStatus" onchange="markDirty()">
+          <option value="active">有効</option>
+          <option value="inactive">停止</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>メモ</label>
+        <textarea id="fNotes" oninput="markDirty()"></textarea>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-success" id="btnSave" onclick="savePrize()" disabled>保存</button>
+        <button class="btn btn-ghost" id="btnDuplicate" onclick="duplicatePrize()">複製</button>
+        <button class="btn btn-warn" id="btnDeactivate" onclick="toggleActive()">使用停止</button>
+        <button class="btn btn-ghost" id="btnRevert" onclick="revertChanges()" disabled>取り消す</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <h3 id="modalTitle">確認</h3>
+    <p id="modalMsg"></p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" id="modalOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDgwNTgsImV4cCI6MjA4OTcyNDA1OH0.J2rH4L6zXStwdNikIUIzPRnyKTVPhy0J5lGtqN1QCHI';
+
+let allPrizes = [];
+let suppliers = [];
+let filtered = [];
+let selectedId = null;
+let original = null; // snapshot for revert
+let isDirty = false;
+let isNewMode = false;
+let sortCol = 'prize_id';
+let sortAsc = true;
+
+const SUPPLIER_NAMES = {
+  SGP: '景品フォーム', PCH: 'ピーチトイ', SDY: 'エスディーワイ',
+  INF: 'インフィニティ', AXS: 'アクシズ', LNS: 'LINE仕入先', MCR: 'メルカリ'
+};
+function supplierName(id, fallback) {
+  const s = suppliers.find(x => x.supplier_id === id);
+  return s ? s.supplier_name : (SUPPLIER_NAMES[id] || fallback || id || '');
+}
+
+// --- API ---
+async function api(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+    },
+    ...opts,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`API error ${res.status}: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// --- Init ---
+async function init() {
+  try {
+    const [prizes, sups] = await Promise.all([
+      api('prize_masters?select=*&order=prize_id'),
+      api('suppliers?select=supplier_id,supplier_name&order=supplier_name'),
+    ]);
+    allPrizes = prizes;
+    suppliers = sups;
+    populateFilters();
+    doSearch();
+    document.getElementById('totalCount').textContent = `${allPrizes.length}件`;
+  } catch (e) {
+    showToast('データ読込失敗: ' + e.message, true);
+  }
+}
+
+function populateFilters() {
+  // Supplier filter — APIデータ優先、なければフォールバック
+  const sf = document.getElementById('filterSupplier');
+  const fd = document.getElementById('fSupplier');
+  fd.innerHTML = '<option value="">未設定</option>';
+  const supList = suppliers.length > 0 ? suppliers
+    : Object.entries(SUPPLIER_NAMES).map(([id, name]) => ({ supplier_id: id, supplier_name: name }));
+  supList.forEach(s => {
+    sf.innerHTML += `<option value="${s.supplier_id}">${s.supplier_name}</option>`;
+    fd.innerHTML += `<option value="${s.supplier_id}">${s.supplier_name}</option>`;
+  });
+  // Category filter
+  const cats = [...new Set(allPrizes.map(p => p.category).filter(Boolean))].sort();
+  const cf = document.getElementById('filterCategory');
+  cats.forEach(c => {
+    cf.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+}
+
+// --- Search & Filter ---
+function doSearch() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const sup = document.getElementById('filterSupplier').value;
+  const cat = document.getElementById('filterCategory').value;
+  const st = document.getElementById('filterStatus').value;
+
+  filtered = allPrizes.filter(p => {
+    if (sup && p.supplier_id !== sup) return false;
+    if (cat && p.category !== cat) return false;
+    if (st && p.status !== st) return false;
+    if (q) {
+      const nameMatch = (p.prize_name || '').toLowerCase().includes(q);
+      const idMatch = (p.prize_id || '').toLowerCase().includes(q);
+      let aliasMatch = false;
+      try {
+        const aliases = typeof p.aliases === 'string' ? JSON.parse(p.aliases) : (p.aliases || []);
+        aliasMatch = aliases.some(a => a.toLowerCase().includes(q));
+      } catch {}
+      if (!nameMatch && !idMatch && !aliasMatch) return false;
+    }
+    return true;
+  });
+
+  sortList();
+  renderTable();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterSupplier').value = '';
+  document.getElementById('filterCategory').value = '';
+  document.getElementById('filterStatus').value = '';
+  doSearch();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  sortList();
+  renderTable();
+}
+
+function sortList() {
+  filtered.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (sortCol === 'original_cost') { va = Number(va) || 0; vb = Number(vb) || 0; }
+    else { va = (va || '').toString().toLowerCase(); vb = (vb || '').toString().toLowerCase(); }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+}
+
+// --- Render ---
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#666">該当する景品がありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(p => {
+    const isActive = p.status === 'active';
+    return `<tr class="${p.prize_id === selectedId ? 'selected' : ''}" onclick="selectPrize('${p.prize_id}')">
+      <td style="color:#888;font-size:12px">${p.prize_id}</td>
+      <td>${esc(p.prize_name)}</td>
+      <td class="cost">&yen;${Number(p.original_cost || 0).toLocaleString()}</td>
+      <td style="font-size:12px">${esc(supplierName(p.supplier_id, p.supplier_name))}</td>
+      <td style="font-size:12px">${esc(p.category || '')}</td>
+      <td><span class="badge ${isActive ? 'badge-active' : 'badge-inactive'}">${isActive ? '有効' : '停止'}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('totalCount').textContent = `${filtered.length} / ${allPrizes.length}件`;
+}
+
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// --- Select / Detail ---
+function selectPrize(id) {
+  if (isDirty && selectedId !== id) {
+    showConfirm('未保存の変更があります', '変更を破棄しますか？', () => {
+      isDirty = false;
+      doSelect(id);
+    });
+    return;
+  }
+  doSelect(id);
+}
+
+function doSelect(id) {
+  isNewMode = false;
+  selectedId = id;
+  const p = allPrizes.find(x => x.prize_id === id);
+  if (!p) return;
+  original = JSON.parse(JSON.stringify(p));
+  fillDetail(p);
+  document.getElementById('detailPane').classList.add('open');
+  document.getElementById('detailTitle').textContent = '景品詳細';
+  document.getElementById('btnDuplicate').style.display = '';
+  document.getElementById('btnDeactivate').style.display = '';
+  document.getElementById('btnDeactivate').textContent = p.status === 'active' ? '使用停止にする' : '有効に戻す';
+  isDirty = false;
+  updateSaveBtn();
+  renderTable();
+}
+
+function fillDetail(p) {
+  document.getElementById('fPrizeId').value = p.prize_id || '';
+  document.getElementById('fName').value = p.prize_name || '';
+  document.getElementById('fCost').value = p.original_cost || '';
+  document.getElementById('fSupplier').value = p.supplier_id || '';
+  document.getElementById('fCategory').value = p.category || '';
+  document.getElementById('fCaseQty').value = p.default_case_quantity || '';
+  document.getElementById('fStatus').value = p.status || 'active';
+  document.getElementById('fNotes').value = p.notes || '';
+  clearErrors();
+  renderAliases(p);
+}
+
+function renderAliases(p) {
+  let aliases = [];
+  try { aliases = typeof p.aliases === 'string' ? JSON.parse(p.aliases) : (p.aliases || []); } catch {}
+  const container = document.getElementById('aliasesList');
+  container.innerHTML = aliases.map((a, i) =>
+    `<div class="alias">${esc(a)}<span class="remove" onclick="removeAlias(${i})">&times;</span></div>`
+  ).join('');
+}
+
+function addAlias() {
+  const input = document.getElementById('newAlias');
+  const val = input.value.trim();
+  if (!val) return;
+  const p = getCurrentPrize();
+  let aliases = [];
+  try { aliases = typeof p.aliases === 'string' ? JSON.parse(p.aliases) : (p.aliases || []); } catch {}
+  aliases.push(val);
+  p.aliases = JSON.stringify(aliases);
+  renderAliases(p);
+  input.value = '';
+  markDirty();
+}
+
+function removeAlias(i) {
+  const p = getCurrentPrize();
+  let aliases = [];
+  try { aliases = typeof p.aliases === 'string' ? JSON.parse(p.aliases) : (p.aliases || []); } catch {}
+  aliases.splice(i, 1);
+  p.aliases = JSON.stringify(aliases);
+  renderAliases(p);
+  markDirty();
+}
+
+function getCurrentPrize() {
+  if (isNewMode) return allPrizes.find(x => x.prize_id === selectedId) || {};
+  return allPrizes.find(x => x.prize_id === selectedId) || {};
+}
+
+function closeDetail() {
+  if (isDirty) {
+    showConfirm('未保存の変更があります', '変更を破棄しますか？', () => {
+      isDirty = false;
+      doCloseDetail();
+    });
+    return;
+  }
+  doCloseDetail();
+}
+
+function doCloseDetail() {
+  document.getElementById('detailPane').classList.remove('open');
+  selectedId = null;
+  isNewMode = false;
+  isDirty = false;
+  renderTable();
+}
+
+// --- New / Duplicate ---
+async function startAdd() {
+  if (isDirty) {
+    showConfirm('未保存の変更があります', '変更を破棄して新規追加しますか？', () => {
+      isDirty = false;
+      doStartAdd();
+    });
+    return;
+  }
+  doStartAdd();
+}
+
+function doStartAdd() {
+  isNewMode = true;
+  const newId = generateNextId();
+  selectedId = newId;
+  const newPrize = {
+    prize_id: newId, prize_name: '', aliases: '[]', original_cost: null,
+    supplier_id: '', category: '', default_case_quantity: null,
+    status: 'active', notes: '', supplier_name: ''
+  };
+  allPrizes.push(newPrize);
+  original = JSON.parse(JSON.stringify(newPrize));
+  fillDetail(newPrize);
+  document.getElementById('detailPane').classList.add('open');
+  document.getElementById('detailTitle').textContent = '新しい景品を追加';
+  document.getElementById('btnDuplicate').style.display = 'none';
+  document.getElementById('btnDeactivate').style.display = 'none';
+  document.getElementById('fName').focus();
+  isDirty = true;
+  updateSaveBtn();
+}
+
+function generateNextId() {
+  const maxNum = allPrizes.reduce((max, p) => {
+    const n = parseInt(p.prize_id.replace('PZ-', ''), 10);
+    return n > max ? n : max;
+  }, 0);
+  return 'PZ-' + String(maxNum + 1).padStart(5, '0');
+}
+
+function duplicatePrize() {
+  const src = allPrizes.find(x => x.prize_id === selectedId);
+  if (!src) return;
+  isNewMode = true;
+  const newId = generateNextId();
+  const dup = { ...JSON.parse(JSON.stringify(src)), prize_id: newId };
+  dup.prize_name = dup.prize_name + '（コピー）';
+  selectedId = newId;
+  allPrizes.push(dup);
+  original = JSON.parse(JSON.stringify(dup));
+  fillDetail(dup);
+  document.getElementById('detailTitle').textContent = '景品を複製';
+  document.getElementById('btnDuplicate').style.display = 'none';
+  document.getElementById('btnDeactivate').style.display = 'none';
+  isDirty = true;
+  updateSaveBtn();
+}
+
+// --- Save ---
+async function savePrize() {
+  clearErrors();
+  const name = document.getElementById('fName').value.trim();
+  const cost = document.getElementById('fCost').value;
+  let valid = true;
+
+  if (!name) {
+    document.getElementById('errName').textContent = '景品名が空です';
+    valid = false;
+  } else {
+    // duplicate name check
+    const dup = allPrizes.find(p => p.prize_id !== selectedId && p.prize_name === name);
+    if (dup) {
+      document.getElementById('errName').textContent = `同じ名前の景品があります (${dup.prize_id})`;
+      valid = false;
+    }
+  }
+
+  if (!cost && cost !== 0) {
+    document.getElementById('errCost').textContent = '単価が入っていません';
+    valid = false;
+  } else if (Number(cost) > 100000) {
+    document.getElementById('errCost').textContent = '単価が極端です。確認してください';
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  const p = getCurrentPrize();
+  let aliases = '[]';
+  try { aliases = typeof p.aliases === 'string' ? p.aliases : JSON.stringify(p.aliases || []); } catch {}
+
+  const supId = document.getElementById('fSupplier').value || null;
+  const supName = supId ? (suppliers.find(s => s.supplier_id === supId)?.supplier_name || null) : null;
+
+  const body = {
+    prize_name: name,
+    aliases: aliases,
+    original_cost: Number(cost),
+    supplier_id: supId,
+    supplier_name: supName,
+    category: document.getElementById('fCategory').value.trim() || null,
+    default_case_quantity: Number(document.getElementById('fCaseQty').value) || null,
+    status: document.getElementById('fStatus').value,
+    notes: document.getElementById('fNotes').value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  document.getElementById('btnSave').disabled = true;
+  document.getElementById('btnSave').innerHTML = '<span class="spinner"></span>';
+
+  try {
+    if (isNewMode) {
+      body.prize_id = selectedId;
+      body.created_at = new Date().toISOString();
+      const [created] = await api('prize_masters', { method: 'POST', body: JSON.stringify(body) });
+      Object.assign(p, created);
+      showToast('景品を追加しました');
+    } else {
+      const [updated] = await api(`prize_masters?prize_id=eq.${selectedId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      Object.assign(p, updated);
+      showToast('保存しました');
+    }
+    isNewMode = false;
+    isDirty = false;
+    original = JSON.parse(JSON.stringify(p));
+    document.getElementById('detailTitle').textContent = '景品詳細';
+    document.getElementById('btnDuplicate').style.display = '';
+    document.getElementById('btnDeactivate').style.display = '';
+    document.getElementById('btnDeactivate').textContent = p.status === 'active' ? '使用停止にする' : '有効に戻す';
+    doSearch();
+    updateSaveBtn();
+  } catch (e) {
+    showToast('保存失敗: ' + e.message, true);
+  }
+  document.getElementById('btnSave').textContent = '保存';
+}
+
+// --- Toggle Active ---
+function toggleActive() {
+  const p = getCurrentPrize();
+  const newStatus = p.status === 'active' ? 'inactive' : 'active';
+  const msg = newStatus === 'inactive' ? 'この景品を使用停止にしますか？' : 'この景品を有効に戻しますか？';
+  showConfirm('確認', msg, async () => {
+    try {
+      await api(`prize_masters?prize_id=eq.${selectedId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() }),
+      });
+      p.status = newStatus;
+      original.status = newStatus;
+      document.getElementById('fStatus').value = newStatus;
+      document.getElementById('btnDeactivate').textContent = newStatus === 'active' ? '使用停止にする' : '有効に戻す';
+      doSearch();
+      showToast(newStatus === 'inactive' ? '使用停止にしました' : '有効に戻しました');
+    } catch (e) {
+      showToast('操作失敗: ' + e.message, true);
+    }
+  });
+}
+
+// --- Revert ---
+function revertChanges() {
+  if (!original) return;
+  if (isNewMode) {
+    allPrizes = allPrizes.filter(p => p.prize_id !== selectedId);
+    doCloseDetail();
+    doSearch();
+    return;
+  }
+  const p = getCurrentPrize();
+  Object.assign(p, JSON.parse(JSON.stringify(original)));
+  fillDetail(p);
+  isDirty = false;
+  updateSaveBtn();
+  renderTable();
+}
+
+// --- Dirty tracking ---
+function markDirty() {
+  isDirty = true;
+  updateSaveBtn();
+}
+
+function updateSaveBtn() {
+  document.getElementById('btnSave').disabled = !isDirty;
+  document.getElementById('btnRevert').disabled = !isDirty;
+}
+
+function clearErrors() {
+  document.getElementById('errName').textContent = '';
+  document.getElementById('errCost').textContent = '';
+}
+
+// --- Toast ---
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${isErr ? 'toast-err' : 'toast-ok'}`;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// --- Confirm dialog ---
+let modalCallback = null;
+function showConfirm(title, msg, cb) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalMsg').textContent = msg;
+  document.getElementById('confirmModal').classList.add('open');
+  modalCallback = cb;
+  document.getElementById('modalOk').onclick = () => { closeModal(); if (modalCallback) modalCallback(); };
+}
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('open');
+  modalCallback = null;
+}
+
+// --- Keyboard shortcuts ---
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('confirmModal').classList.contains('open')) closeModal();
+    else if (document.getElementById('detailPane').classList.contains('open')) closeDetail();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (isDirty) savePrize();
+  }
+});
+
+// --- Start ---
+init();
+</script>
+</body>
+</html>
