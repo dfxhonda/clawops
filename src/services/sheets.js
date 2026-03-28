@@ -394,14 +394,14 @@ export async function updatePrize(rowNum, p) {
 }
 
 export async function getPrizeOrders() {
-  const rows = await sheetsGet('prize_orders!A2:K')
+  const rows = await sheetsGet('prize_orders!A2:L')
   return rows.map((r, i) => ({
     _row: i + 2,
     order_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
     ordered_at: r[3]||'', order_quantity: r[4]||'',
     arrived_at: r[5]||'', arrival_quantity: r[6]||'',
     unit_cost_at_order: r[7]||'', total_cost: r[8]||'',
-    note: r[9]||'', created_at: r[10]||'',
+    note: r[9]||'', created_at: r[10]||'', supplier_name: r[11]||'',
   }))
 }
 
@@ -412,10 +412,10 @@ export async function addPrizeOrder(o) {
     ? Math.max(...existing.map(x => parseInt(x.order_id)||0)) + 1
     : 1
   const total = (parseInt(o.order_quantity)||0) * (parseInt(o.unit_cost_at_order)||0)
-  await sheetsAppend('prize_orders!A:K', [[
+  await sheetsAppend('prize_orders!A:L', [[
     nextId, o.prize_id, o.prize_name||'', o.ordered_at||'',
     o.order_quantity||'', o.arrived_at||'', o.arrival_quantity||'',
-    o.unit_cost_at_order||'', total, o.note||'', now
+    o.unit_cost_at_order||'', total, o.note||'', now, o.supplier_name||''
   ]])
   clearCache()
   return nextId
