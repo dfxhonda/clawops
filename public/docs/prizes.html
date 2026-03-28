@@ -421,9 +421,9 @@ async function loadAll() {
   try {
     const [prizes, suppliers] = await Promise.all([
       sbGet('prize_masters',
-        'select=prize_id,prize_name,short_name,aliases,original_cost,supplier_id,supplier_name,status,standard_quantity_per_case' +
+        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity' +
         '&order=prize_name.asc&limit=2000'),
-      sbGet('suppliers', 'select=id,name&order=name.asc').catch(() => null)
+      sbGet('suppliers', 'select=supplier_id,supplier_name&order=supplier_name.asc').catch(() => null)
     ]);
 
     DATA = prizes;
@@ -432,7 +432,7 @@ async function loadAll() {
       SUPPLIERS = suppliers;
       useSupplierFK = true;
       supplierMap = {};
-      suppliers.forEach(s => supplierMap[s.id] = s.name);
+      suppliers.forEach(s => supplierMap[s.supplier_id] = s.supplier_name);
     } else {
       SUPPLIERS = [];
       useSupplierFK = false;
@@ -488,7 +488,7 @@ function getFiltered() {
     const q = curSearch.toLowerCase();
     if (q) {
       const nm = (p.prize_name  || '').toLowerCase();
-      const sn = (p.short_name  || '').toLowerCase();
+      const sn = (p.category    || '').toLowerCase();
       const al = (p.aliases     || '').toLowerCase();
       if (!nm.includes(q) && !sn.includes(q) && !al.includes(q)) return false;
     }
@@ -534,7 +534,7 @@ function render() {
 </colgroup>
 <thead><tr>
   <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
-  <th ${th('short_name')} onclick="setSort('short_name')">短縮名${sortKey==='short_name'?sortArrow(sortDir):''}</th>
+  <th ${th('category')} onclick="setSort('category')">カテゴリ${sortKey==='category'?sortArrow(sortDir):''}</th>
   <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
   <th>仕入先</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
@@ -548,7 +548,7 @@ ${list.map(p => {
   const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
   <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
-  <td class="td-short" title="${esc(p.short_name)}">${esc(p.short_name || '—')}</td>
+  <td class="td-short" title="${esc(p.category)}">${esc(p.category || '—')}</td>
   <td class="td-cost">¥${fmt(p.original_cost)}</td>
   <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
   <td>${statusBadge(p.status)}</td>
@@ -638,7 +638,7 @@ function renderDetail() {
     return;
   }
 
-  const empty = {prize_name:'',short_name:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',standard_quantity_per_case:''};
+  const empty = {prize_name:'',category:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',default_case_quantity:''};
   const p = isNewMode ? empty : DATA.find(x => String(x.prize_id) === String(selPrizeId));
   if (!p) {
     pane.innerHTML = `<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>`;
@@ -685,7 +685,7 @@ function renderDetail() {
     </div>
     <div class="field">
       <label>標準入り数</label>
-      <input type="number" id="fQty" value="${p.standard_quantity_per_case!=null?p.standard_quantity_per_case:''}" min="1" placeholder="例：12" oninput="markDirty()">
+      <input type="number" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirty()">
     </div>
   </div>
 </div>
@@ -744,7 +744,7 @@ async function savePrize() {
     aliases:    aliases || null,
     original_cost: costNum,
     status,
-    standard_quantity_per_case: qtyStr ? parseInt(qtyStr, 10) : null,
+    default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
     updated_at: new Date().toISOString()
   };
   if (useSupplierFK) payload.supplier_id = supVal;
@@ -799,7 +799,7 @@ function duplicatePrize() {
   document.getElementById('fCost').value    = src.original_cost != null ? src.original_cost : '';
   document.getElementById('fStatus').value  = 'provisional';
   document.getElementById('fSupplier').value = (useSupplierFK ? src.supplier_id : src.supplier_name) || '';
-  document.getElementById('fQty').value     = src.standard_quantity_per_case != null ? src.standard_quantity_per_case : '';
+  document.getElementById('fQty').value     = src.default_case_quantity != null ? src.default_case_quantity : '';
   markDirty();
 }
 
