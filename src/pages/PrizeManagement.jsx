@@ -73,6 +73,8 @@ export default function PrizeManagement() {
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('name') // name, cost, supplier, active, created
   const [sortAsc, setSortAsc] = useState(true)
+  const [orderSort, setOrderSort] = useState('date') // date, name, qty, cost, supplier
+  const [orderSortAsc, setOrderSortAsc] = useState(false)
 
   // 棚卸し用state
   const [checkItems, setCheckItems] = useState({}) // { prize_id: { checked, qty, note } }
@@ -1028,27 +1030,56 @@ export default function PrizeManagement() {
       {/* ===== 発注履歴 ===== */}
       {tab === 'orders' && (
         <>
-          <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <button onClick={startNewOrder} className="bg-accent text-black font-bold rounded-lg px-4 py-2 text-sm">
               + 新規発注
             </button>
+            <span className="text-muted text-xs ml-auto">{orders.length}件</span>
+          </div>
+          {/* ソートボタン */}
+          <div className="flex gap-1 mb-3 flex-wrap">
+            {[
+              { key: 'date', label: '日付' },
+              { key: 'name', label: '景品名' },
+              { key: 'supplier', label: '仕入先' },
+              { key: 'qty', label: '数量' },
+              { key: 'cost', label: '単価' },
+              { key: 'total', label: '金額' },
+            ].map(s => (
+              <button key={s.key}
+                onClick={() => { if (orderSort === s.key) setOrderSortAsc(!orderSortAsc); else { setOrderSort(s.key); setOrderSortAsc(s.key === 'date' ? false : true) } }}
+                className={`text-xs px-2 py-1 rounded-lg border ${orderSort === s.key ? 'bg-accent/20 border-accent text-accent' : 'bg-surface border-border text-muted'}`}>
+                {s.label}{orderSort === s.key ? (orderSortAsc ? ' ↑' : ' ↓') : ''}
+              </button>
+            ))}
           </div>
           <div className="space-y-2">
-            {orders.map(o => {
+            {[...orders].sort((a, b) => {
+              const dir = orderSortAsc ? 1 : -1
+              switch (orderSort) {
+                case 'date': return ((a.ordered_at||'') > (b.ordered_at||'') ? 1 : -1) * dir
+                case 'name': return (a.prize_name||'').localeCompare(b.prize_name||'') * dir
+                case 'supplier': return (a.supplier_name||'').localeCompare(b.supplier_name||'') * dir
+                case 'qty': return ((parseInt(a.order_quantity)||0) - (parseInt(b.order_quantity)||0)) * dir
+                case 'cost': return ((parseInt(a.unit_cost_at_order)||0) - (parseInt(b.unit_cost_at_order)||0)) * dir
+                case 'total': return ((parseInt(a.total_cost)||0) - (parseInt(b.total_cost)||0)) * dir
+                default: return 0
+              }
+            }).map(o => {
               const status = !o.arrived_at ? '未入荷' : (parseInt(o.arrival_quantity||0) < parseInt(o.order_quantity||0) ? '一部入荷' : '入荷済')
               const statusColor = status === '未入荷' ? 'bg-accent2/20 text-accent2' : status === '入荷済' ? 'bg-accent3/20 text-accent3' : 'bg-accent/20 text-accent'
-              const supDisplay = o.supplier_name || ''
               return (
                 <div key={o.order_id} className="bg-surface border border-border rounded-xl p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-text font-bold">{o.prize_name}</span>
+                    <span className="text-text font-bold text-sm">{o.prize_name}</span>
                     <span className={`text-xs px-2 py-1 rounded-full ${statusColor}`}>{status}</span>
                   </div>
                   <div className="text-muted text-xs mt-1 flex gap-3 flex-wrap">
                     <span>{o.ordered_at}</span>
                     <span>x{o.order_quantity}</span>
-                    <span>¥{parseInt(o.total_cost||0).toLocaleString()}</span>
-                    {supDisplay && <span>{supDisplay}</span>}
+                    <span>@¥{parseInt(o.unit_cost_at_order||0).toLocaleString()}</span>
+                    <span className="text-accent font-bold">¥{parseInt(o.total_cost||0).toLocaleString()}</span>
+                    {o.supplier_name && <span className="text-accent4">{o.supplier_name}</span>}
                   </div>
                 </div>
               )
