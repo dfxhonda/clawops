@@ -109,12 +109,13 @@ header{
 .prize-table thead th:hover{color:var(--text)}
 .prize-table thead th.sorted{color:var(--accent)}
 .prize-table thead th:last-child{cursor:default}
-.prize-table colgroup col.col-name{width:30%}
-.prize-table colgroup col.col-short{width:15%}
-.prize-table colgroup col.col-cost{width:11%}
-.prize-table colgroup col.col-sup{width:17%}
+.prize-table colgroup col.col-name{width:25%}
+.prize-table colgroup col.col-short{width:13%}
+.prize-table colgroup col.col-cost{width:9%}
+.prize-table colgroup col.col-case{width:10%}
+.prize-table colgroup col.col-sup{width:15%}
 .prize-table colgroup col.col-order{width:12%}
-.prize-table colgroup col.col-status{width:15%}
+.prize-table colgroup col.col-status{width:16%}
 .prize-table tbody tr{
   border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;
 }
@@ -281,6 +282,10 @@ header{
 .mc-name{font-size:15px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mc-meta{font-size:12px;color:var(--text2);margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden}
 .mc-aliases{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-kv{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:5px}
+.mc-kv-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mc-kv-label{font-size:10px;color:var(--text2);font-weight:700;letter-spacing:.2px}
+.mc-kv-val{font-size:12px;color:var(--text);white-space:nowrap}
 .mc-arrow{color:var(--text2);font-size:22px;padding-left:8px;flex-shrink:0;line-height:1}
 .fab{
   position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);right:18px;
@@ -600,13 +605,14 @@ function render() {
 <table class="prize-table">
 <colgroup>
   <col class="col-name"><col class="col-short">
-  <col class="col-cost"><col class="col-sup">
+  <col class="col-cost"><col class="col-case"><col class="col-sup">
   <col class="col-order"><col class="col-status">
 </colgroup>
 <thead><tr>
   <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
   <th ${th('category')} onclick="setSort('category')">カテゴリ${sortKey==='category'?sortArrow(sortDir):''}</th>
   <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
+  <th style="text-align:right;cursor:default">ケース金額</th>
   <th ${th('supplier_name')} onclick="setSort('supplier_name')">仕入先${sortKey==='supplier_name'?sortArrow(sortDir):''}</th>
   <th ${th('latest_order_date')} onclick="setSort('latest_order_date')">最終発注${sortKey==='latest_order_date'?sortArrow(sortDir):''}</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
@@ -616,11 +622,13 @@ ${list.map(p => {
   const sid = String(p.prize_id);
   const sel = String(selPrizeId) === sid && !isNewMode;
   const supDisp = esc(resolveSupplierDisplay(p));
-  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  const caseAmt = (p.default_case_quantity && p.original_cost != null)
+    ? '¥' + (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
   <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
   <td class="td-short" title="${esc(p.category)}">${esc(p.category || '—')}</td>
   <td class="td-cost">¥${fmt(p.original_cost)}</td>
+  <td class="td-cost" style="color:var(--text2)">${caseAmt}</td>
   <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
   <td style="font-size:12px;color:var(--text2)">${fmtDate(p.latest_order_date)}</td>
   <td>${statusBadge(p.status)}</td>
@@ -932,15 +940,19 @@ function renderMobileList(list) {
   el.innerHTML = list.map(p => {
     const sid = String(p.prize_id);
     const sup = resolveSupplierDisplay(p);
-    const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
-    const aliasLine = aliases.length
-      ? `<div class="mc-aliases">別名: ${esc(aliases.join(' / '))}</div>` : '';
+    const caseAmt = (p.default_case_quantity && p.original_cost != null)
+      ? '¥' + (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
+    const qty = p.default_case_quantity != null ? p.default_case_quantity : '—';
     return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
   <div class="mc-body">
     <div class="mc-name">${esc(p.prize_name || '')}</div>
-    <div class="mc-meta"><span>¥${fmt(p.original_cost)}</span><span>${esc(sup !== '—' ? sup : '仕入先未設定')}</span>${statusBadge(p.status)}</div>
-    <div class="mc-meta" style="margin-top:2px"><span style="color:var(--text2)">最終発注: ${fmtDate(p.latest_order_date)}</span></div>
-    ${aliasLine}
+    <div class="mc-kv">
+      <div class="mc-kv-item"><div class="mc-kv-label">仕入先</div><div class="mc-kv-val">${esc(sup !== '—' ? sup : '—')}</div></div>
+      <div class="mc-kv-item"><div class="mc-kv-label">単価</div><div class="mc-kv-val">¥${fmt(p.original_cost)}</div></div>
+      <div class="mc-kv-item"><div class="mc-kv-label">ケース金額</div><div class="mc-kv-val">${caseAmt}</div></div>
+      <div class="mc-kv-item"><div class="mc-kv-label">入り数</div><div class="mc-kv-val">${qty}</div></div>
+      <div class="mc-kv-item"><div class="mc-kv-label">最終発注</div><div class="mc-kv-val">${fmtDate(p.latest_order_date)}</div></div>
+    </div>
   </div>
   <div class="mc-arrow">›</div>
 </div>`;
