@@ -52,10 +52,10 @@ header{
 .btn-clear{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
 
 .main-area{
-  position:fixed;top:calc(var(--header-h)+var(--toolbar-h));left:0;right:0;bottom:var(--nav-h);
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h));left:0;right:0;bottom:var(--nav-h);
   display:flex;overflow:hidden;
 }
-.list-pane{flex:1;overflow-y:auto;padding:0}
+.list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
 .detail-pane{width:380px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;display:none}
 .detail-pane.open{display:block}
 
@@ -126,7 +126,7 @@ tr.selected{background:var(--accent)20}
 .mc-arrow{color:var(--text2);font-size:18px}
 .fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 
-@media (max-width:1024px){
+@media (max-width:1366px){
   .main-area{display:none}
   .toolbar{display:none}
   /* header:56px filter:44px sort:44px nav:58px — 変数非使用でiPad Safari対応 */
