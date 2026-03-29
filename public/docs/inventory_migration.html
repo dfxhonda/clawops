@@ -147,6 +147,7 @@ const ITEMS = [{"sh": "本田", "st": "合志", "lt": "担当者車", "name": "�
 let decisions={};
 let openIdx=null;
 let allPrizes=null; // lazy loaded
+let allOrders=null; // prize_orders from DB
 let searchTargetIdx=null;
 const PAGE_SIZE=50;
 let currentPage=0;
@@ -233,40 +234,62 @@ function renderList(){
   requestAnimationFrame(()=>{const lc=document.querySelector('.list-col');if(lc)lc.scrollTop=scrollY;else window.scrollTo(0,scrollY)});
 }
 
+function scoreText(q, tokens, text){
+  if(!text) return 0;
+  const t=text.toLowerCase().replace(/[\s　]+/g,'');
+  if(t===q) return 100;
+  if(t.includes(q)) return 60;
+  if(q.includes(t)&&t.length>=3) return 40;
+  let hits=0;
+  tokens.forEach(tk=>{if(t.includes(tk))hits++});
+  if(tokens.length>0&&hits>0) return Math.round(35*(hits/tokens.length));
+  return 0;
+}
+
 function findCandidatesRT(itemName, itemPrice){
-  if(!allPrizes||!allPrizes.length) return [];
+  if((!allPrizes||!allPrizes.length)&&(!allOrders||!allOrders.length)) return [];
   const q=(itemName||'').toLowerCase().replace(/[\s　]+/g,'');
   if(q.length<1) return [];
   const origP=Number(itemPrice)||0;
-  // トークン分割（2文字以上の部分）
   const tokens=q.replace(/[()（）\[\]【】・、。,./\\-]/g,' ').split(/\s+/).filter(t=>t.length>=2);
-  const scored=allPrizes.map(p=>{
-    const nm=(p.prize_name||'').toLowerCase().replace(/[\s　]+/g,'');
-    let aliasStr='';
-    try{const al=JSON.parse(p.aliases||'[]');if(Array.isArray(al))aliasStr=al.join(' ').toLowerCase()}catch{}
-    const combined=nm+' '+aliasStr;
-    let score=0;
-    // 完全一致
-    if(nm===q) score+=100;
-    // 含む
-    else if(nm.includes(q)) score+=60;
-    else if(combined.includes(q)) score+=50;
-    // トークンマッチ
-    else{
-      let hits=0;
-      tokens.forEach(t=>{if(combined.includes(t))hits++});
-      if(tokens.length>0) score+=Math.round(40*(hits/tokens.length));
-    }
-    if(score===0) return null;
-    // 単価ボーナス
-    const cp=Number(p.original_cost)||0;
-    if(origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1) score+=20;
-    // active優先
-    if(p.status==='active') score+=5;
-    return{id:p.prize_id,name:p.prize_name,price:p.original_cost,alias:aliasStr.slice(0,80),score,status:p.status};
-  }).filter(Boolean);
-  scored.sort((a,b)=>b.score-a.score);
-  return scored.slice(0,3);
+  const seen=new Set();
+  const results=[];
+
+  // prize_masters候補
+  if(allPrizes){
+    allPrizes.forEach(p=>{
+      const nm=(p.prize_name||'');
+      let aliasStr='';
+      try{const al=JSON.parse(p.aliases||'[]');if(Array.isArray(al))aliasStr=al.join(' ')}catch{}
+      let score=Math.max(scoreText(q,tokens,nm),scoreText(q,tokens,aliasStr));
+      if(score===0) return;
+      const cp=Number(p.original_cost)||0;
+      if(origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.15) score+=20;
+      if(p.status==='active') score+=5;
+      seen.add(p.prize_id);
+      results.push({id:p.prize_id,name:p.prize_name,price:p.original_cost,alias:aliasStr.slice(0,80),score,status:p.status,src:'master'});
+    });
+  }
+
+  // prize_orders候補（マスタ未登録の発注も拾う）
+  if(allOrders){
+    allOrders.forEach(o=>{
+      if(o.prize_id&&seen.has(o.prize_id)) return;
+      const nm=(o.original_name||'');
+      let score=scoreText(q,tokens,nm);
+      if(score===0) return;
+      const cp=Number(o.unit_cost)||0;
+      if(origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.15) score+=20;
+      score+=2;
+      const key=o.prize_id||('ord:'+o.order_id);
+      if(seen.has(key)) return;
+      seen.add(key);
+      results.push({id:o.prize_id||o.order_id,name:nm||('発注#'+o.order_id),price:o.unit_cost,alias:'発注履歴 ('+o.order_id+')',score,status:o.status,src:'order'});
+    });
+  }
+
+  results.sort((a,b)=>b.score-a.score);
+  return results.slice(0,3);
 }
 
 function buildCandidates(it){
@@ -282,7 +305,7 @@ function buildCandidates(it){
     return`<div class="cand${sel?' selected':''}" onclick="selectCand(${it.idx},'${esc(c.id)}','${esc(c.name)}')">
       <div class="cand-name">${esc(c.name)}</div>
       ${c.alias?`<div style="font-size:11px;color:var(--text2);margin:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.alias)}</div>`:''}
-      <div class="cand-meta">${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">¥${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸¥'+fmt(origPrice)+')'):''}${c.status==='active'?'':'<span style="color:var(--red)"> 停止</span>'}</div>
+      <div class="cand-meta">${c.src==='order'?'<span style="color:var(--cyan)">📋発注</span> ':''}${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">¥${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸¥'+fmt(origPrice)+')'):''}${c.src==='master'&&c.status!=='active'?'<span style="color:var(--red)"> 停止</span>':''}</div>
     </div>`;
   }).join('');
 }
@@ -387,7 +410,12 @@ async function saveToDB(idx,status,pid,pname,note){
 // ─── Prize Search ───
 async function loadAllPrizes(){
   if(allPrizes) return allPrizes;
-  allPrizes=await sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,aliases&order=prize_name&limit=5000');
+  const [prizes, orders] = await Promise.all([
+    sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,aliases&order=prize_name&limit=5000'),
+    sbGet('prize_orders','select=order_id,prize_id,original_name,unit_cost,supplier_id,status&order=order_date.desc&limit=5000'),
+  ]);
+  allPrizes=prizes;
+  allOrders=orders;
   return allPrizes;
 }
 
@@ -408,15 +436,24 @@ async function doModalSearch(){
   el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">検索中...</div>';
   try{
     const prizes=await loadAllPrizes();
+    // prize_masters検索
     const hits=prizes.filter(p=>{
       const nm=(p.prize_name||'').toLowerCase();
       const al=(p.aliases||'').toLowerCase();
       const id=(p.prize_id||'').toLowerCase();
       return nm.includes(q)||al.includes(q)||id.includes(q);
-    }).slice(0,30);
-    if(!hits.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">見つかりませんでした</div>';return}
+    }).slice(0,20);
+    // prize_orders検索（マスタにない発注も）
+    const seenIds=new Set(hits.map(p=>p.prize_id));
+    const orderHits=(allOrders||[]).filter(o=>{
+      if(o.prize_id&&seenIds.has(o.prize_id)) return false;
+      const nm=(o.original_name||'').toLowerCase();
+      const oid=(o.order_id||'').toLowerCase();
+      return nm.includes(q)||oid.includes(q);
+    }).slice(0,10);
+    if(!hits.length&&!orderHits.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">見つかりませんでした</div>';return}
     const origP=searchTargetIdx!==null?Number(ITEMS[searchTargetIdx].price)||0:0;
-    el.innerHTML=hits.map(p=>{
+    const masterHtml=hits.map(p=>{
       const cp=Number(p.original_cost)||0;
       const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
       let firstAlias='';
@@ -426,6 +463,16 @@ async function doModalSearch(){
       ${firstAlias?`<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(firstAlias)}</div>`:''}
       <div class="si-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(p.original_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸¥'+fmt(origP)+')'):''} | ${p.status==='active'?'有効':'停止'}</div>
     </div>`}).join('');
+    const orderHtml=orderHits.length?('<div style="padding:8px 12px;font-size:11px;color:var(--cyan);border-top:1px solid var(--border);margin-top:4px">📋 発注履歴から</div>'+orderHits.map(o=>{
+      const cp=Number(o.unit_cost)||0;
+      const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+      const pickId=o.prize_id||o.order_id;
+      const pickName=o.original_name||o.order_id;
+      return`<div class="search-item" onclick="pickFromSearch('${esc(pickId)}','${esc(pickName)}')">
+      <div class="si-name">${esc(o.original_name||o.order_id)}</div>
+      <div class="si-meta"><span style="color:var(--cyan)">📋${esc(o.order_id)}</span> | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(o.unit_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸¥'+fmt(origP)+')'):''}${o.supplier_id?' | '+esc(o.supplier_id):''}</div>
+    </div>`}).join('')):'';
+    el.innerHTML=masterHtml+orderHtml;
   }catch(e){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--red)">エラー: '+esc(e.message)+'</div>'}
 }
 
