@@ -129,15 +129,16 @@ tr.selected{background:var(--accent)20}
 @media(max-width:768px){
   .main-area{display:none}
   .toolbar{display:none}
-  .mobile-filter{display:flex;position:fixed;top:var(--header-h);left:0;right:0;height:var(--filter-h);padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:99;scrollbar-width:none}
+  /* header:56px filter:44px sort:44px nav:58px — 変数非使用でiPad Safari対応 */
+  .mobile-filter{display:flex;position:fixed;top:56px;left:0;right:0;height:44px;padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:99;scrollbar-width:none}
   .mobile-filter::-webkit-scrollbar{display:none}
-  .mobile-sort{display:flex;position:fixed;top:calc(var(--header-h) + var(--filter-h));left:0;right:0;height:var(--sort-h);padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:98;scrollbar-width:none}
+  .mobile-sort{display:flex;position:fixed;top:100px;left:0;right:0;height:44px;padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:98;scrollbar-width:none}
   .mobile-sort::-webkit-scrollbar{display:none}
   .mobile-list{
     display:block;position:fixed;
-    top:calc(var(--header-h) + var(--filter-h) + var(--sort-h));
+    top:144px;
     left:0;right:0;
-    bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+    bottom:58px;
     overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
     touch-action:pan-y;
   }
