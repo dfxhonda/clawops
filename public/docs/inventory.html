@@ -24,8 +24,6 @@
   --nav-h:58px;
   --header-h:56px;
   --toolbar-h:52px;
-  --filter-h:44px;
-  --sort-h:44px;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
@@ -46,35 +44,42 @@ header{
   background:var(--surface);border-bottom:1px solid var(--border);
   display:flex;align-items:center;padding:0 12px;gap:8px;z-index:99;overflow-x:auto;
 }
+.tb-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
 .filter-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px}
 .search-input{flex:1;min-width:100px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px}
 .search-input::placeholder{color:var(--text2)}
 .btn-clear{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+#mobileSortSelect{display:none}
 
-.main-area{
+.main{
   position:fixed;top:calc(var(--header-h) + var(--toolbar-h));left:0;right:0;bottom:var(--nav-h);
   display:flex;overflow:hidden;
 }
-.list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
-.detail-pane{width:380px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;display:none}
-.detail-pane.open{display:block}
+.list-pane{flex:3;min-width:300px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
+.detail-pane{flex:2;min-width:280px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto}
 
+/* Table */
 table{width:100%;border-collapse:collapse;font-size:13px}
+colgroup col.c-name{width:30%}
+colgroup col.c-place{width:20%}
+colgroup col.c-qty{width:12%}
+colgroup col.c-cost{width:12%}
+colgroup col.c-value{width:14%}
+colgroup col.c-date{width:12%}
 thead{position:sticky;top:0;z-index:1}
 th{background:var(--surface);padding:8px;text-align:left;font-weight:600;color:var(--text2);cursor:pointer;user-select:none;font-size:12px;border-bottom:1px solid var(--border)}
 th:hover{color:var(--text)}
 th.sorted{color:var(--accent)}
 td{padding:6px 8px;border-bottom:1px solid var(--border)}
 tr:hover{background:var(--surface2)}
-tr.selected{background:var(--accent)20}
-.td-qty{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
+.td-r{text-align:right;font-variant-numeric:tabular-nums}
 .empty-pane{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--text2)}
 .empty-icon{font-size:48px;margin-bottom:12px}
 
 /* Detail */
-.detail-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.detail-header{padding:14px 16px;border-bottom:1px solid var(--border)}
 .detail-header h3{font-size:15px;color:var(--accent)}
-.detail-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer}
 .field{padding:8px 16px}
 .field label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px}
 .field input,.field select,.field textarea{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px}
@@ -88,14 +93,8 @@ tr.selected{background:var(--accent)20}
 .btn-warn{background:var(--red);color:#fff}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
 
-/* Summary cards */
-.summary{display:flex;gap:8px;padding:12px;flex-wrap:wrap}
-.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;flex:1;min-width:100px;text-align:center}
-.summary-card .num{font-size:22px;font-weight:700;color:var(--accent)}
-.summary-card .label{font-size:11px;color:var(--text2)}
-
 /* Toast */
-.toast{position:fixed;bottom:calc(var(--nav-h)+12px);left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:8px;font-size:14px;z-index:200;display:none;white-space:nowrap}
+.toast{position:fixed;top:calc(var(--header-h)+var(--toolbar-h)+8px);right:16px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:200;display:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)}
 .toast-ok{background:var(--green);color:#fff}
 .toast-err{background:var(--red);color:#fff}
 
@@ -105,49 +104,47 @@ tr.selected{background:var(--accent)20}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top:3px solid var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Bottom nav */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;z-index:100}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--text2);text-decoration:none;cursor:pointer}
-.nav-item.active{color:var(--accent)}
-.nav-icon{font-size:20px;line-height:1}
-
-/* Mobile */
-.mobile-filter{display:none}
-.mobile-sort{display:none}
-.mobile-list{display:none}
-.mobile-detail{display:none;position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:scroll;-webkit-overflow-scrolling:touch;padding-bottom:80px}
-.chip{display:inline-block;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap;user-select:none}
-.chip.active{border-color:var(--accent);background:var(--accent);color:#fff}
-.mc-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px}
-.mc-item:active{background:var(--surface2)}
-.mc-body{flex:1;min-width:0}
-.mc-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mc-meta{display:flex;gap:8px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-top:2px}
-.mc-arrow{color:var(--text2);font-size:18px}
-.fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
-
-@media (max-width:1366px){
-  .main-area{display:none}
-  .toolbar{display:none}
-  /* header:56px filter:44px sort:44px nav:58px — 変数非使用でiPad Safari対応 */
-  .mobile-filter{display:flex;position:fixed;top:56px;left:0;right:0;height:44px;padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:99;scrollbar-width:none}
-  .mobile-filter::-webkit-scrollbar{display:none}
-  .mobile-sort{display:flex;position:fixed;top:100px;left:0;right:0;height:44px;padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:98;scrollbar-width:none}
-  .mobile-sort::-webkit-scrollbar{display:none}
-  .mobile-list{
-    display:block;position:fixed;
-    top:144px;
-    left:0;right:0;
-    bottom:calc(58px + env(safe-area-inset-bottom));
-    overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
-  }
-  .fab{display:block}
-}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
 .modal{background:var(--surface);border-radius:12px;padding:20px;max-width:400px;width:90%;max-height:80vh;overflow-y:auto}
 .modal h3{color:var(--accent);margin-bottom:12px}
+
+/* Bottom nav */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
+  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+
+/* Mobile */
+.mobile-list{display:none;position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
+.mobile-detail{position:fixed;top:0;bottom:0;left:0;right:0;z-index:160;background:var(--bg);transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mobile-detail.open{transform:translateX(0)}
+.mc-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px}
+.mc-item:active{background:var(--surface2)}
+.mc-body{flex:1;min-width:0}
+.mc-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-meta{display:flex;gap:8px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-top:2px}
+.fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+
+@media(max-width:768px){
+  .main{display:none}
+  .toolbar{display:none}
+  .btn-add{display:none!important}
+  .mobile-list{display:block;top:calc(var(--header-h) + var(--toolbar-h))}
+  .toolbar{display:flex}
+  .fab{display:block}
+  #mobileSortSelect{display:block}
+}
 </style>
 </head>
 <body>
@@ -161,6 +158,7 @@ tr.selected{background:var(--accent)20}
 
 <div class="toolbar">
   <input type="text" class="search-input" id="searchInput" placeholder="景品名で検索...">
+  <div class="tb-sep"></div>
   <select class="filter-select" id="ownerFilter" onchange="applyFilters()">
     <option value="">場所：全て</option>
   </select>
@@ -170,28 +168,30 @@ tr.selected{background:var(--accent)20}
     <option value="low">10個以下</option>
     <option value="has">1個以上</option>
   </select>
+  <div class="tb-sep"></div>
+  <select class="filter-select" id="mobileSortSelect" onchange="setSort(this.value)">
+    <option value="prize_name">名前順</option>
+    <option value="owner">場所順</option>
+    <option value="quantity">数量順</option>
+    <option value="original_cost">単価順</option>
+    <option value="updated_at">更新日順</option>
+  </select>
   <button class="btn-clear" onclick="clearFilters()">クリア</button>
 </div>
 
-<div class="main-area">
+<div class="main">
   <div class="list-pane" id="listPane">
     <div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div>
   </div>
   <div class="detail-pane" id="detailPane">
-    <div class="detail-header">
-      <h3 id="detailTitle">在庫詳細</h3>
-      <button class="detail-close" onclick="closeDetail()">&times;</button>
-    </div>
-    <div id="detailBody"></div>
+    <div class="empty-pane" id="detailEmpty"><div class="empty-icon">👈</div>左のリストから選択</div>
   </div>
 </div>
 
 <!-- Mobile -->
-<div class="mobile-filter" id="mobileFilterBar"></div>
-<div class="mobile-sort" id="mobileSortBar"></div>
-<div class="mobile-list" id="mobileList"><div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div></div>
+<div class="mobile-list" id="mobileList"></div>
 <div class="mobile-detail" id="mobileDetail"></div>
-<button class="fab" onclick="openMobileMovement()" aria-label="在庫を動かす">＋</button>
+<button class="fab" onclick="openMovement()" aria-label="在庫を動かす">＋</button>
 
 <!-- Movement Modal -->
 <div class="modal-bg" id="movementModal">
@@ -202,47 +202,26 @@ tr.selected{background:var(--accent)20}
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 
 <nav class="bottom-nav">
-  <a class="nav-item" href="prizes.html"><div class="nav-icon">🎁</div><div>景品</div></a>
-  <a class="nav-item" href="admin.html"><div class="nav-icon">📊</div><div>管理</div></a>
-  <a class="nav-item active" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
-  <a class="nav-item" href="orders.html"><div class="nav-icon">🛒</div><div>発注</div></a>
-  <a class="nav-item" href="inventory_migration.html"><div class="nav-icon">📋</div><div>移行</div></a>
+  <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
+  <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
+  <a class="nav-item active"><div class="nav-icon">📦</div><div>在庫</div></a>
   <a class="nav-item" href="announcements.html"><div class="nav-icon">📬</div><div>案内</div></a>
+  <a class="nav-item" href="admin.html"><div class="nav-icon">⚙️</div><div>管理</div></a>
 </nav>
 
 <script>
-const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 
-async function sbGet(table, params='') {
-  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-async function sbPost(table, body) {
-  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(body)});
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-async function sbPatch(table, id, idCol, body) {
-  const r = await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`, {method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(body)});
-  if (!r.ok) throw new Error(await r.text());
-}
+async function sbGet(t,p=''){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());return r.json()}
+async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json()}
+async function sbPatch(t,id,idCol,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?${idCol}=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
 
 // ─── STATE ───
-let STOCKS = [];
-let MOVEMENTS = [];
-let PRIZES = {};  // prize_id -> {prize_name, original_cost}
-let LOCATIONS = []; // {location_id, location_name}
-let STAFF = [];     // {staff_id, name}
-let OWNERS = [];    // [{type,id,label}] combined locations + staff
-let sortKey = 'prize_name';
-let sortDir = 'asc';
-let curSearch = '';
-let filterOwner = '';
-let filterQty = '';
-let filterDate = '';
-let selStockId = null;
+let STOCKS=[],MOVEMENTS=[],PRIZES={},LOCATIONS=[],STAFF=[],OWNERS=[];
+let sortKey='prize_name',sortDir='asc';
+let curSearch='',filterOwner='',filterQty='';
+let selStockId=null;
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function ownerLabel(type,id){
@@ -252,10 +231,10 @@ function ownerLabel(type,id){
 }
 function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
 function fmtDate(d){if(!d)return'—';const p=d.split('T')[0].split('-');return p[0].slice(2)+'.'+p[1]+'.'+p[2]}
+function qtyColor(q){return q<=0?'var(--red)':q<=10?'var(--yellow)':'var(--green)'}
 
-// ─── TOAST / LOADING ───
-let _toastTimer;
-function showToast(msg,ok=true){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+(ok?'toast-ok':'toast-err');el.style.display='block';if(_toastTimer)clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>el.style.display='none',3000)}
+let _tt;
+function showToast(msg,ok=true){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+(ok?'toast-ok':'toast-err');el.style.display='block';if(_tt)clearTimeout(_tt);_tt=setTimeout(()=>el.style.display='none',3000)}
 function showLoading(){document.getElementById('loadingOverlay').classList.add('show')}
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show')}
 
@@ -263,33 +242,31 @@ function hideLoading(){document.getElementById('loadingOverlay').classList.remov
 async function loadAll(){
   showLoading();
   try{
-    const [stocks, movements, prizes, locations, staff] = await Promise.all([
+    const[stocks,movements,prizes,locations,staff]=await Promise.all([
       sbGet('prize_stocks','select=*&order=updated_at.desc&limit=5000'),
       sbGet('stock_movements','select=*&order=created_at.desc&limit=500'),
       sbGet('prize_masters','select=prize_id,prize_name,original_cost,status&order=prize_name&limit=5000'),
       sbGet('locations','select=location_id,location_name,location_type&is_active=eq.true&order=location_name'),
       sbGet('staff','select=staff_id,name,has_vehicle_stock&is_active=eq.true&order=name'),
     ]);
-    STOCKS = stocks;
-    MOVEMENTS = movements;
-    PRIZES = Object.fromEntries(prizes.map(p=>[p.prize_id,p]));
-    LOCATIONS = locations;
-    STAFF = staff.filter(s=>s.has_vehicle_stock);
-    OWNERS = [
-      ...LOCATIONS.map(l=>({type:'location',id:l.location_id,label:l.location_name})),
-      ...STAFF.map(s=>({type:'staff',id:s.staff_id,label:s.name+'の車'})),
-    ];
+    STOCKS=stocks;MOVEMENTS=movements;
+    PRIZES=Object.fromEntries(prizes.map(p=>[p.prize_id,p]));
+    LOCATIONS=locations;
+    STAFF=staff.filter(s=>s.has_vehicle_stock);
+    OWNERS=[...LOCATIONS.map(l=>({type:'location',id:l.location_id,label:l.location_name})),...STAFF.map(s=>({type:'staff',id:s.staff_id,label:s.name+'の車'}))];
     populateFilters();
     render();
+    if(selStockId)renderDetail();
   }catch(e){
-    document.getElementById('listPane').innerHTML=`<div class="empty-pane">⚠️ 読み込みエラー<br><small>${esc(e.message)}</small></div>`;
-    document.getElementById('countBadge').textContent='エラー';
+    document.getElementById('listPane').innerHTML=`<div class="empty-pane">⚠️ ${esc(e.message)}</div>`;
   }finally{hideLoading()}
 }
 
 function populateFilters(){
   const sel=document.getElementById('ownerFilter');
+  const cur=sel.value;
   sel.innerHTML='<option value="">場所：全て</option>'+OWNERS.map(o=>`<option value="${o.type}:${o.id}">${esc(o.label)}</option>`).join('');
+  sel.value=cur;
 }
 
 // ─── FILTER / SORT ───
@@ -300,15 +277,8 @@ function getFiltered(){
     if(filterQty==='low'&&(s.quantity<0||s.quantity>10))return false;
     if(filterQty==='has'&&s.quantity<1)return false;
     if(curSearch){const pz=PRIZES[s.prize_id];const nm=(pz?pz.prize_name:'').toLowerCase();if(!nm.includes(curSearch))return false}
-    if(filterDate){
-      const now=new Date();const upd=new Date(s.updated_at);
-      if(filterDate==='today'){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate());if(upd<d)return false}
-      if(filterDate==='week'){const d=new Date(now-7*86400000);if(upd<d)return false}
-      if(filterDate==='month'){const d=new Date(now-30*86400000);if(upd<d)return false}
-    }
     return true;
   });
-  const numKeys=['quantity','original_cost'];
   const dir=sortDir==='asc'?1:-1;
   list.sort((a,b)=>{
     let av,bv;
@@ -316,6 +286,7 @@ function getFiltered(){
     else if(sortKey==='owner'){av=ownerLabel(a.owner_type,a.owner_id);bv=ownerLabel(b.owner_type,b.owner_id)}
     else if(sortKey==='quantity'){av=a.quantity||0;bv=b.quantity||0;return dir*(av-bv)}
     else if(sortKey==='original_cost'){const pa=PRIZES[a.prize_id],pb=PRIZES[b.prize_id];av=pa?Number(pa.original_cost)||0:0;bv=pb?Number(pb.original_cost)||0:0;return dir*(av-bv)}
+    else if(sortKey==='updated_at'){av=a.updated_at||'';bv=b.updated_at||'';return dir*av.localeCompare(bv)}
     else{av=a[sortKey]||'';bv=b[sortKey]||''}
     return dir*String(av).localeCompare(String(bv),'ja');
   });
@@ -328,81 +299,106 @@ function applyFilters(){
   render();
 }
 function clearFilters(){
-  curSearch='';filterOwner='';filterQty='';filterDate='';
+  curSearch='';filterOwner='';filterQty='';
   document.getElementById('searchInput').value='';
   document.getElementById('ownerFilter').value='';
   document.getElementById('qtyFilter').value='';
   render();
 }
-function setMobileOwner(v){filterOwner=v;render()}
-function setMobileDate(v){filterDate=v;render()}
-function setMobileQty(v){filterQty=v;render()}
 document.getElementById('searchInput').addEventListener('input',e=>{curSearch=e.target.value.toLowerCase().trim();render()});
-
 function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=key;sortDir='asc'}render()}
 
 // ─── RENDER ───
 function render(){
   const list=getFiltered();
   document.getElementById('countBadge').textContent=list.length+'件';
+  renderTable(list);
+  renderMobileList(list);
+}
+
+function renderTable(list){
   const pane=document.getElementById('listPane');
-  if(!list.length){pane.innerHTML='<div class="empty-pane"><div class="empty-icon">📦</div>在庫データがありません</div>';renderMobile(list);return}
-  const sortArrow=dir=>dir==='asc'?' ↑':' ↓';
-  const th=key=>`class="${sortKey===key?'sorted':''}"`;
+  if(!list.length){pane.innerHTML='<div class="empty-pane"><div class="empty-icon">📦</div>在庫データがありません</div>';return}
+  const sa=dir=>dir==='asc'?' ↑':' ↓';
+  const sc=key=>sortKey===key?'sorted':'';
   pane.innerHTML=`
 <table>
+<colgroup><col class="c-name"><col class="c-place"><col class="c-qty"><col class="c-cost"><col class="c-value"><col class="c-date"></colgroup>
 <thead><tr>
-  <th ${th('prize_name')} onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sortArrow(sortDir):''}</th>
-  <th ${th('owner')} onclick="setSort('owner')">場所${sortKey==='owner'?sortArrow(sortDir):''}</th>
-  <th ${th('quantity')} onclick="setSort('quantity')" style="text-align:right">数量${sortKey==='quantity'?sortArrow(sortDir):''}</th>
-  <th ${th('original_cost')} onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sortArrow(sortDir):''}</th>
-  <th>更新日</th>
+  <th class="${sc('prize_name')}" onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?sa(sortDir):''}</th>
+  <th class="${sc('owner')}" onclick="setSort('owner')">場所${sortKey==='owner'?sa(sortDir):''}</th>
+  <th class="${sc('quantity')}" onclick="setSort('quantity')" style="text-align:right">数量${sortKey==='quantity'?sa(sortDir):''}</th>
+  <th class="${sc('original_cost')}" onclick="setSort('original_cost')" style="text-align:right">単価${sortKey==='original_cost'?sa(sortDir):''}</th>
+  <th style="text-align:right">在庫金額</th>
+  <th class="${sc('updated_at')}" onclick="setSort('updated_at')">更新日${sortKey==='updated_at'?sa(sortDir):''}</th>
 </tr></thead>
 <tbody>
 ${list.map(s=>{
   const pz=PRIZES[s.prize_id]||{};
   const sel=s.stock_id===selStockId;
-  return`<tr class="${sel?'selected':''}" onclick="selectStock('${esc(s.stock_id)}')">
-  <td>${esc(pz.prize_name||s.prize_id)}</td>
-  <td style="font-size:12px">${esc(ownerLabel(s.owner_type,s.owner_id))}</td>
-  <td class="td-qty" style="color:${s.quantity<=0?'var(--red)':s.quantity<=10?'var(--yellow)':'var(--green)'}">${s.quantity}</td>
-  <td style="text-align:right;font-size:12px;color:var(--text2)">¥${fmt(pz.original_cost)}</td>
+  const val=(s.quantity||0)*(Number(pz.original_cost)||0);
+  return`<tr class="${sel?'sel':''}" onclick="selectStock('${esc(s.stock_id)}')">
+  <td style="font-weight:600">${esc(pz.prize_name||s.prize_id)}</td>
+  <td style="font-size:12px;color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</td>
+  <td class="td-r" style="font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}</td>
+  <td class="td-r" style="font-size:12px;color:var(--text2)">¥${fmt(pz.original_cost)}</td>
+  <td class="td-r" style="font-size:12px;color:var(--cyan);font-weight:600">¥${fmt(val)}</td>
   <td style="font-size:11px;color:var(--text2)">${fmtDate(s.updated_at)}</td>
 </tr>`}).join('')}
 </tbody></table>`;
-  renderMobile(list);
 }
 
-// ─── MOBILE ───
-function renderMobile(list){
-  // Filter tag bar
-  const fb=document.getElementById('mobileFilterBar');
-  if(fb){
-    // 拠点タグ
-    const ownerTags=[{v:'',label:'📦 全拠点'},...OWNERS.map(o=>({v:o.type+':'+o.id,label:o.label}))];
-    // 日付タグ
-    const dateTags=[{v:'',label:'📅 全期間'},{v:'today',label:'今日'},{v:'week',label:'今週'},{v:'month',label:'今月'}];
-    // 数量タグ
-    const qtyTags=[{v:'',label:'全数量'},{v:'zero',label:'0個'},{v:'low',label:'少ない'},{v:'has',label:'あり'}];
-    const sep='<span style="color:var(--border);margin:0 2px">｜</span>';
-    fb.innerHTML=
-      ownerTags.map(t=>`<span class="chip${filterOwner===t.v?' active':''}" onclick="setMobileOwner('${t.v}')">${esc(t.label)}</span>`).join('')+sep+
-      dateTags.map(t=>`<span class="chip${filterDate===t.v?' active':''}" onclick="setMobileDate('${t.v}')">${esc(t.label)}</span>`).join('')+sep+
-      qtyTags.map(t=>`<span class="chip${filterQty===t.v?' active':''}" onclick="setMobileQty('${t.v}')">${esc(t.label)}</span>`).join('');
-  }
-  // Sort bar
-  const bar=document.getElementById('mobileSortBar');
-  if(bar){
-    const sorts=[{key:'prize_name',label:'景品名'},{key:'owner',label:'場所'},{key:'quantity',label:'数量'},{key:'original_cost',label:'単価'}];
-    bar.innerHTML=sorts.map(s=>{
-      const active=sortKey===s.key;
-      return`<button onclick="setSort('${s.key}')" style="display:inline-block;padding:5px 10px;border-radius:6px;border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--text2)'};font-size:12px;cursor:pointer;white-space:nowrap">${s.label}${active?(sortDir==='asc'?' ↑':' ↓'):''}</button>`;
-    }).join(' ');
-  }
-  // List
+// ─── DETAIL (右パネル常時表示) ───
+function selectStock(id){
+  selStockId=id;
+  renderDetail();
+  render();
+}
+
+function renderDetail(){
+  const pane=document.getElementById('detailPane');
+  const s=STOCKS.find(x=>x.stock_id===selStockId);
+  if(!s){pane.innerHTML='<div class="empty-pane" id="detailEmpty"><div class="empty-icon">👈</div>左のリストから選択</div>';return}
+  const pz=PRIZES[s.prize_id]||{};
+  const val=(s.quantity||0)*(Number(pz.original_cost)||0);
+  const mvs=MOVEMENTS.filter(m=>m.prize_id===s.prize_id&&((m.from_owner_type===s.owner_type&&m.from_owner_id===s.owner_id)||(m.to_owner_type===s.owner_type&&m.to_owner_id===s.owner_id)));
+
+  pane.innerHTML=`
+  <div class="detail-header"><h3>${esc(pz.prize_name||s.prize_id)}</h3></div>
+  <div style="padding:16px">
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="flex:1;background:var(--surface2);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}</div>
+        <div style="font-size:11px;color:var(--text2)">個</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:18px;font-weight:700;color:var(--cyan)">¥${fmt(val)}</div>
+        <div style="font-size:11px;color:var(--text2)">在庫金額</div>
+      </div>
+    </div>
+    <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
+    <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">単価:</span> ¥${fmt(pz.original_cost)}</div>
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text2)">更新: ${fmtDate(s.updated_at)}</div>
+  </div>
+  <div class="detail-actions">
+    <button class="btn btn-primary" style="flex:1" onclick="openMovement('${esc(s.stock_id)}')">移動</button>
+    <button class="btn btn-green" style="flex:1" onclick="openAdjust('${esc(s.stock_id)}')">数量修正</button>
+  </div>
+  <div style="padding:12px 16px">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">最近の移動履歴</div>
+    ${mvs.length?mvs.slice(0,10).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div><span style="color:var(--cyan);font-weight:600">${esc(m.movement_type)}</span> <strong>${m.quantity}個</strong></div>
+      <div style="color:var(--text2)">${ownerLabel(m.from_owner_type,m.from_owner_id)} → ${ownerLabel(m.to_owner_type,m.to_owner_id)}</div>
+      ${m.note?`<div style="color:var(--text2);font-size:11px;margin-top:2px">${esc(m.note)}</div>`:''}
+      <div style="color:var(--text2);font-size:11px;text-align:right">${fmtDate(m.created_at)}</div>
+    </div>`).join(''):'<div style="padding:16px 0;color:var(--text2);text-align:center">履歴なし</div>'}
+  </div>`;
+}
+
+// ─── MOBILE LIST ───
+function renderMobileList(list){
   const el=document.getElementById('mobileList');
   if(!el)return;
-  if(!list)list=getFiltered();
   if(!list.length){el.innerHTML='<div class="empty-pane"><div class="empty-icon">📦</div>在庫データがありません</div>';return}
   el.innerHTML=list.map(s=>{
     const pz=PRIZES[s.prize_id]||{};
@@ -411,103 +407,64 @@ function renderMobile(list){
     <div class="mc-name">${esc(pz.prize_name||s.prize_id)}</div>
     <div class="mc-meta">
       <span style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</span>
-      <span style="font-weight:700;color:${s.quantity<=0?'var(--red)':s.quantity<=10?'var(--yellow)':'var(--green)'}">${s.quantity}個</span>
+      <span style="font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}個</span>
       <span>¥${fmt(pz.original_cost)}</span>
       <span style="color:var(--text2)">${fmtDate(s.updated_at)}</span>
     </div>
   </div>
-  <div class="mc-arrow">›</div>
+  <div style="color:var(--text2);font-size:18px">›</div>
 </div>`}).join('');
 }
 
-// ─── DETAIL (PC) ───
-function selectStock(id){
-  selStockId=id;
-  const s=STOCKS.find(x=>x.stock_id===id);
-  if(!s)return;
-  const pz=PRIZES[s.prize_id]||{};
-  const pane=document.getElementById('detailPane');
-  pane.classList.add('open');
-  document.getElementById('detailTitle').textContent=pz.prize_name||s.prize_id;
-  // Recent movements for this stock
-  const mvs=MOVEMENTS.filter(m=>m.prize_id===s.prize_id&&((m.from_owner_type===s.owner_type&&m.from_owner_id===s.owner_id)||(m.to_owner_type===s.owner_type&&m.to_owner_id===s.owner_id)));
-  document.getElementById('detailBody').innerHTML=`
-    <div class="field"><label>場所</label><div style="padding:8px 0;font-size:15px;font-weight:700">${esc(ownerLabel(s.owner_type,s.owner_id))}</div></div>
-    <div class="field"><label>現在数量</label><div style="padding:8px 0;font-size:24px;font-weight:700;color:${s.quantity<=0?'var(--red)':s.quantity<=10?'var(--yellow)':'var(--green)'}">${s.quantity}個</div></div>
-    <div class="field"><label>単価</label><div style="padding:8px 0">¥${fmt(pz.original_cost)}</div></div>
-    <div class="field"><label>在庫金額</label><div style="padding:8px 0;color:var(--cyan);font-weight:700">¥${fmt((s.quantity||0)*(Number(pz.original_cost)||0))}</div></div>
-    <div class="field"><label>最終更新</label><div style="padding:8px 0;font-size:12px;color:var(--text2)">${fmtDate(s.updated_at)}</div></div>
-    <div class="detail-actions">
-      <button class="btn btn-primary" onclick="openMovement('${esc(s.stock_id)}')">移動</button>
-      <button class="btn btn-green" onclick="openAdjust('${esc(s.stock_id)}')">数量修正</button>
-    </div>
-    <div style="padding:12px 16px"><label style="font-size:11px;color:var(--text2)">最近の移動履歴</label>
-    ${mvs.length?mvs.slice(0,10).map(m=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-      <span style="color:var(--cyan)">${m.movement_type}</span>
-      <span>${m.quantity}個</span>
-      <span style="color:var(--text2)">${ownerLabel(m.from_owner_type,m.from_owner_id)} → ${ownerLabel(m.to_owner_type,m.to_owner_id)}</span>
-      <span style="color:var(--text2);float:right">${fmtDate(m.created_at)}</span>
-    </div>`).join(''):'<div style="padding:12px 0;color:var(--text2)">履歴なし</div>'}
-    </div>`;
-  render();
-}
-function closeDetail(){document.getElementById('detailPane').classList.remove('open');selStockId=null;render()}
-
-// ─── MOBILE DETAIL ───
+// ─── MOBILE DETAIL (スライドイン) ───
 function openMobileDetail(id){
   const s=STOCKS.find(x=>x.stock_id===id);if(!s)return;
   selStockId=id;
   const pz=PRIZES[s.prize_id]||{};
+  const val=(s.quantity||0)*(Number(pz.original_cost)||0);
   const mvs=MOVEMENTS.filter(m=>m.prize_id===s.prize_id&&((m.from_owner_type===s.owner_type&&m.from_owner_id===s.owner_id)||(m.to_owner_type===s.owner_type&&m.to_owner_id===s.owner_id)));
   const el=document.getElementById('mobileDetail');
-  el.style.display='block';
   el.innerHTML=`
-  <header style="position:sticky;top:0;background:var(--surface);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+  <header style="position:sticky;top:0;background:var(--surface);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:1">
     <button onclick="closeMobileDetail()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer">←</button>
-    <h3 style="font-size:16px;font-weight:700">${esc(pz.prize_name||s.prize_id)}</h3>
+    <h3 style="font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pz.prize_name||s.prize_id)}</h3>
   </header>
   <div style="padding:16px">
     <div style="display:flex;gap:12px;margin-bottom:16px">
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:28px;font-weight:700;color:${s.quantity<=0?'var(--red)':s.quantity<=10?'var(--yellow)':'var(--green)'}">${s.quantity}</div>
+        <div style="font-size:28px;font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}</div>
         <div style="font-size:11px;color:var(--text2)">個</div>
       </div>
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:18px;font-weight:700;color:var(--cyan)">¥${fmt((s.quantity||0)*(Number(pz.original_cost)||0))}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--cyan)">¥${fmt(val)}</div>
         <div style="font-size:11px;color:var(--text2)">在庫金額</div>
       </div>
     </div>
-    <div style="margin-bottom:8px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong>${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
+    <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
     <div style="margin-bottom:16px;font-size:13px"><span style="color:var(--text2)">単価:</span> ¥${fmt(pz.original_cost)}</div>
     <div style="display:flex;gap:8px;margin-bottom:20px">
-      <button class="btn btn-primary" style="flex:1" onclick="openMobileMovement('${esc(s.stock_id)}')">移動</button>
-      <button class="btn btn-green" style="flex:1" onclick="openMobileAdjust('${esc(s.stock_id)}')">数量修正</button>
+      <button class="btn btn-primary" style="flex:1" onclick="openMovement('${esc(s.stock_id)}')">移動</button>
+      <button class="btn btn-green" style="flex:1" onclick="openAdjust('${esc(s.stock_id)}')">数量修正</button>
     </div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">最近の移動履歴</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">最近の移動履歴</div>
     ${mvs.length?mvs.slice(0,10).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
-      <div><span style="color:var(--cyan)">${m.movement_type}</span> <strong>${m.quantity}個</strong></div>
+      <div><span style="color:var(--cyan);font-weight:600">${esc(m.movement_type)}</span> <strong>${m.quantity}個</strong></div>
       <div style="color:var(--text2)">${ownerLabel(m.from_owner_type,m.from_owner_id)} → ${ownerLabel(m.to_owner_type,m.to_owner_id)} | ${fmtDate(m.created_at)}</div>
       ${m.note?`<div style="color:var(--text2);font-size:11px">${esc(m.note)}</div>`:''}
     </div>`).join(''):'<div style="padding:16px 0;color:var(--text2);text-align:center">履歴なし</div>'}
   </div>`;
+  requestAnimationFrame(()=>el.classList.add('open'));
 }
-function closeMobileDetail(){document.getElementById('mobileDetail').style.display='none';selStockId=null}
+function closeMobileDetail(){document.getElementById('mobileDetail').classList.remove('open');selStockId=null}
 
 // ─── MOVEMENT MODAL ───
 function openMovement(stockId){
   const s=stockId?STOCKS.find(x=>x.stock_id===stockId):null;
-  const modal=document.getElementById('movementModal');
-  modal.classList.add('open');
-  document.getElementById('movementContent').innerHTML=buildMovementForm(s,'pc');
-}
-function openMobileMovement(stockId){
-  const s=stockId?STOCKS.find(x=>x.stock_id===stockId):null;
-  const modal=document.getElementById('movementModal');
-  modal.classList.add('open');
-  document.getElementById('movementContent').innerHTML=buildMovementForm(s,'mobile');
+  document.getElementById('movementContent').innerHTML=buildMovementForm(s);
+  document.getElementById('movementModal').classList.add('open');
 }
 
-function buildMovementForm(stock,mode){
+function buildMovementForm(stock){
   const types=[{v:'arrival',l:'入荷'},{v:'transfer',l:'移動'},{v:'replenish',l:'補充'},{v:'adjust',l:'修正'}];
   const prizeOpts=Object.entries(PRIZES).filter(([,p])=>p.status==='active').map(([id,p])=>`<option value="${id}" ${stock&&stock.prize_id===id?'selected':''}>${esc(p.prize_name)}</option>`).join('');
   const ownerOpts=OWNERS.map(o=>`<option value="${o.type}:${o.id}" ${stock&&stock.owner_type===o.type&&stock.owner_id===o.id?'selected':''}>${esc(o.label)}</option>`).join('');
@@ -536,49 +493,24 @@ async function submitMovement(){
   const note=document.getElementById('mvNote').value.trim();
   const errEl=document.getElementById('mvErr');
   errEl.textContent='';
-
   if(!prizeId){errEl.textContent='景品を選択してください';return}
   if(!toVal&&type!=='adjust'){errEl.textContent='先の場所を選択してください';return}
   if(!qty||qty<1){errEl.textContent='数量を入力してください';return}
   if(fromVal&&fromVal===toVal){errEl.textContent='同じ場所への移動はできません';return}
-
   const[fromType,fromId]=fromVal?fromVal.split(':'):['',''];
   const[toType,toId]=toVal?toVal.split(':'):['',''];
-
   showLoading();
   try{
-    // 1. Insert movement
-    await sbPost('stock_movements',{
-      prize_id:prizeId,
-      movement_type:type,
-      from_owner_type:fromType||null,
-      from_owner_id:fromId||null,
-      to_owner_type:toType||null,
-      to_owner_id:toId||null,
-      quantity:qty,
-      note:note||null,
-      created_at:new Date().toISOString(),
-    });
-
-    // 2. Update prize_stocks (from: decrease, to: increase)
-    if(fromType&&fromId){
-      await upsertStock(prizeId,fromType,fromId,-qty);
-    }
-    if(toType&&toId){
-      await upsertStock(prizeId,toType,toId,qty);
-    }
-
-    closeMovement();
-    closeMobileDetail();
+    await sbPost('stock_movements',{prize_id:prizeId,movement_type:type,from_owner_type:fromType||null,from_owner_id:fromId||null,to_owner_type:toType||null,to_owner_id:toId||null,quantity:qty,note:note||null,created_at:new Date().toISOString()});
+    if(fromType&&fromId) await upsertStock(prizeId,fromType,fromId,-qty);
+    if(toType&&toId) await upsertStock(prizeId,toType,toId,qty);
+    closeMovement();closeMobileDetail();
     showToast('登録しました');
     await loadAll();
-  }catch(e){
-    errEl.textContent='エラー: '+e.message;
-  }finally{hideLoading()}
+  }catch(e){errEl.textContent='エラー: '+e.message}finally{hideLoading()}
 }
 
 async function upsertStock(prizeId,ownerType,ownerId,delta){
-  // Find existing stock
   const existing=STOCKS.find(s=>s.prize_id===prizeId&&s.owner_type===ownerType&&s.owner_id===ownerId);
   if(existing){
     const newQty=Math.max(0,(existing.quantity||0)+delta);
@@ -593,8 +525,6 @@ async function upsertStock(prizeId,ownerType,ownerId,delta){
 function openAdjust(stockId){
   const s=STOCKS.find(x=>x.stock_id===stockId);if(!s)return;
   const pz=PRIZES[s.prize_id]||{};
-  const modal=document.getElementById('movementModal');
-  modal.classList.add('open');
   document.getElementById('movementContent').innerHTML=`
   <h3>数量修正: ${esc(pz.prize_name||s.prize_id)}</h3>
   <div class="field"><label>現在数量</label><div style="padding:8px 0;font-size:18px;font-weight:700">${s.quantity}個</div></div>
@@ -604,8 +534,8 @@ function openAdjust(stockId){
     <button class="btn btn-ghost" onclick="closeMovement()" style="flex:1">キャンセル</button>
     <button class="btn btn-green" onclick="submitAdjust('${esc(s.stock_id)}')" style="flex:1">修正を登録</button>
   </div>`;
+  document.getElementById('movementModal').classList.add('open');
 }
-function openMobileAdjust(stockId){openAdjust(stockId)}
 
 async function submitAdjust(stockId){
   const s=STOCKS.find(x=>x.stock_id===stockId);if(!s)return;
@@ -615,20 +545,10 @@ async function submitAdjust(stockId){
   errEl.textContent='';
   if(isNaN(newQty)||newQty<0){errEl.textContent='正しい数量を入力してください';return}
   if(!reason){errEl.textContent='修正理由を入力してください';return}
-
   const delta=newQty-s.quantity;
   showLoading();
   try{
-    await sbPost('stock_movements',{
-      prize_id:s.prize_id,
-      movement_type:'adjust',
-      from_owner_type:s.owner_type,from_owner_id:s.owner_id,
-      to_owner_type:s.owner_type,to_owner_id:s.owner_id,
-      quantity:Math.abs(delta),
-      note:reason,
-      adjustment_reason:reason,
-      created_at:new Date().toISOString(),
-    });
+    await sbPost('stock_movements',{prize_id:s.prize_id,movement_type:'adjust',from_owner_type:s.owner_type,from_owner_id:s.owner_id,to_owner_type:s.owner_type,to_owner_id:s.owner_id,quantity:Math.abs(delta),note:reason,adjustment_reason:reason,created_at:new Date().toISOString()});
     await sbPatch('prize_stocks',stockId,'stock_id',{quantity:newQty,updated_at:new Date().toISOString()});
     closeMovement();closeMobileDetail();
     showToast('数量を修正しました');
