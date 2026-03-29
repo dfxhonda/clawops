@@ -129,12 +129,17 @@ tr.selected{background:var(--accent)20}
 @media(max-width:768px){
   .main-area{display:none}
   .toolbar{display:none}
-  .mobile-filter{display:flex;position:fixed;top:var(--header-h);left:0;right:0;height:var(--filter-h);padding:0 12px;overflow-x:auto;white-space:nowrap;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:99;scrollbar-width:none}
+  .mobile-filter{display:flex;position:fixed;top:var(--header-h);left:0;right:0;height:var(--filter-h);padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:99;scrollbar-width:none}
   .mobile-filter::-webkit-scrollbar{display:none}
-  .mobile-sort{display:flex;position:fixed;top:calc(var(--header-h)+var(--filter-h));left:0;right:0;height:var(--sort-h);padding:0 12px;overflow-x:auto;white-space:nowrap;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:98;scrollbar-width:none}
+  .mobile-sort{display:flex;position:fixed;top:calc(var(--header-h)+var(--filter-h));left:0;right:0;height:var(--sort-h);padding:0 12px;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);z-index:98;scrollbar-width:none}
   .mobile-sort::-webkit-scrollbar{display:none}
-  .mobile-scroll-wrap{display:block;position:fixed;top:calc(var(--header-h)+var(--filter-h)+var(--sort-h));left:0;right:0;bottom:var(--nav-h);overflow:hidden}
-  .mobile-list{display:block;height:100%;overflow-y:scroll;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
+  .mobile-list{
+    display:block;position:fixed;
+    top:calc(var(--header-h)+var(--filter-h)+var(--sort-h));
+    left:0;right:0;
+    bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
+  }
   .fab{display:block}
 }
 /* Modal */
@@ -183,7 +188,7 @@ tr.selected{background:var(--accent)20}
 <!-- Mobile -->
 <div class="mobile-filter" id="mobileFilterBar"></div>
 <div class="mobile-sort" id="mobileSortBar"></div>
-<div class="mobile-scroll-wrap"><div class="mobile-list" id="mobileList"><div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div></div></div>
+<div class="mobile-list" id="mobileList"><div class="empty-pane"><div class="empty-icon">⏳</div>読み込み中...</div></div>
 <div class="mobile-detail" id="mobileDetail"></div>
 <button class="fab" onclick="openMobileMovement()" aria-label="在庫を動かす">＋</button>
 
