@@ -159,11 +159,11 @@ function showToast(msg,ok=true){const t=document.getElementById('toast');t.textC
 async function loadDecisions(){
   try{
     const rows=await sbGet('inventory_migration_decisions','select=*&order=id&limit=5000');
-    // 既にマッチ済みのidxを追跡して同名景品の重複マッチを防ぐ
-    const matched=new Set();
     rows.forEach(r=>{
-      const idx=ITEMS.findIndex((it,i)=>!matched.has(i)&&it.sh===r.sheet_name&&it.name===r.prize_name_orig&&it.st===r.store&&it.mc===r.machine_name&&Number(it.price||0)===Number(r.price||0)&&Number(it.qty||0)===Number(r.quantity||0));
-      if(idx>=0){matched.add(idx);decisions[idx]={status:r.status,selectedId:r.selected_prize_id||'',selectedName:r.selected_prize_name||'',dbId:r.id,note:r.note||''};}
+      // item_indexがあればそれで直接マッチ（確実）
+      const idx=r.item_index!=null?r.item_index:
+        ITEMS.findIndex(it=>it.sh===r.sheet_name&&it.name===r.prize_name_orig&&it.st===r.store&&it.mc===r.machine_name);
+      if(idx>=0&&idx<ITEMS.length) decisions[idx]={status:r.status,selectedId:r.selected_prize_id||'',selectedName:r.selected_prize_name||'',dbId:r.id,note:r.note||''};
     });
     renderProgress();renderList();
   }catch(e){console.error(e);showToast('読込エラー',false)}
@@ -415,15 +415,14 @@ async function doUndo(idx){
 async function saveToDB(idx,status,pid,pname,note){
   const it=ITEMS[idx];
   const d=decisions[idx]||{};
-  const body={sheet_name:it.sh,store:it.st,location_type:it.lt,prize_name_orig:it.name,machine_name:it.mc,price:it.price,quantity:it.qty,selected_prize_id:pid||null,selected_prize_name:pname||null,status:status,note:note||null,decided_at:new Date().toISOString()};
+  const body={item_index:idx,sheet_name:it.sh,store:it.st,location_type:it.lt,prize_name_orig:it.name,machine_name:it.mc,price:it.price,quantity:it.qty,selected_prize_id:pid||null,selected_prize_name:pname||null,status:status,note:note||null,decided_at:new Date().toISOString()};
   try{
     if(d.dbId){
       await sbPatch('inventory_migration_decisions',d.dbId,body);
       decisions[idx]={...d,...body,selectedId:pid,selectedName:pname,dbId:d.dbId};
     }else{
-      // dbIdがない場合、まずDBに同キーのレコードがないか確認（ページ再訪問時対策）
-      const existing=await sbGet('inventory_migration_decisions',
-        `select=id&sheet_name=eq.${encodeURIComponent(it.sh)}&prize_name_orig=eq.${encodeURIComponent(it.name)}&store=eq.${encodeURIComponent(it.st)}&machine_name=eq.${encodeURIComponent(it.mc)}&price=eq.${it.price||0}&quantity=eq.${it.qty||0}&limit=1`);
+      // item_indexで既存レコードを検索（ページ再訪問時対策）
+      const existing=await sbGet('inventory_migration_decisions',`select=id&item_index=eq.${idx}&limit=1`);
       if(existing.length){
         await sbPatch('inventory_migration_decisions',existing[0].id,body);
         decisions[idx]={...d,...body,selectedId:pid,selectedName:pname,dbId:existing[0].id};
