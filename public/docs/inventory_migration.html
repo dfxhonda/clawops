@@ -326,35 +326,44 @@ function renderDetail(idx){
   const it={...ITEMS[idx],idx};
   const d=decisions[it.idx];
   const isDone=d&&(d.status==='confirmed'||d.status==='skipped');
-  const body=`<div style="margin-bottom:12px">
-    <div style="font-size:11px;color:var(--text2);margin-bottom:4px">担当 / 店舗 / 機械</div>
-    <div style="font-size:13px">${esc(it.sh)} / ${esc(it.st)} / ${esc(it.mc)}</div>
+  // 上部固定エリア
+  const topFixed=`
+  <div style="display:flex;gap:12px;margin-bottom:8px;font-size:12px;color:var(--text2)">
+    <span>${esc(it.sh)} / ${esc(it.st)} / ${esc(it.mc)}</span>
+    <span style="font-weight:700;color:var(--text)">¥${fmt(it.price)}</span>
+    <span style="font-weight:700;color:var(--text)">${it.qty||0}個</span>
   </div>
-  <div style="display:flex;gap:16px;margin-bottom:12px">
-    <div><div style="font-size:11px;color:var(--text2)">棚卸単価</div><div style="font-size:15px;font-weight:700">¥${fmt(it.price)}</div></div>
-    <div><div style="font-size:11px;color:var(--text2)">数量</div><div style="font-size:15px;font-weight:700">${it.qty||0}個</div></div>
-  </div>
-  ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:10px;padding:8px;background:rgba(230,126,34,.1);border-radius:6px">💡 ${esc(it.note)}</div>`:''}
-  ${d&&d.selectedName?`<div style="font-size:13px;color:var(--green);margin-bottom:10px">✓ 紐付け: ${esc(d.selectedName)}</div>`:''}
-  <div style="margin-bottom:6px;font-size:12px;color:var(--text2);font-weight:600">候補（自動）</div>
-  <div>${buildCandidates(it)}</div>
-  <div style="margin-top:10px">
-    <input type="text" id="inlineSearch-${it.idx}" value="${esc(it.name)}" placeholder="追加検索..." style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px" oninput="doInlineSearch(${it.idx},this.value)">
-    <div id="inlineResults-${it.idx}" style="margin-top:6px"></div>
-  </div>
-  <div class="card-actions" style="margin-top:14px">
+  ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:8px;padding:6px 8px;background:rgba(230,126,34,.1);border-radius:6px">💡 ${esc(it.note)}</div>`:''}
+  ${d&&d.selectedName?`<div style="font-size:13px;color:var(--green);margin-bottom:8px;font-weight:700">✓ ${esc(d.selectedName)}</div>`:''}
+  <input type="text" id="inlineSearch-${it.idx}" value="${esc(it.name)}" placeholder="景品名で検索..." style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;margin-bottom:8px" oninput="doInlineSearch(${it.idx},this.value)">
+  <div class="card-actions" style="margin-bottom:0;border:none;padding:0">
     ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
     <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
-    <button class="btn" style="background:var(--orange);color:#fff;flex:1" onclick="doConfirmAsIs(${it.idx})">そのまま確定</button>
+    <button class="btn" style="background:var(--orange);color:#fff;flex:1" onclick="doConfirmAsIs(${it.idx})">そのまま</button>
     <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
     <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
   </div>`;
+
+  // PC: 上部固定 + 下部スクロール
   const col=document.getElementById('detailCol');
-  col.innerHTML=`<div class="detail-header"><h3>${esc(it.name)}</h3></div><div class="detail-body">${body}</div>`;
+  col.innerHTML=`
+  <div class="detail-header"><h3>${esc(it.name)}</h3></div>
+  <div style="padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">${topFixed}</div>
+  <div style="padding:8px 16px">
+    <div style="margin-bottom:6px;font-size:11px;color:var(--text2);font-weight:600">自動候補</div>
+    ${buildCandidates(it)}
+    <div id="inlineResults-${it.idx}" style="margin-top:8px"></div>
+  </div>`;
 
   // mobile
   document.getElementById('mobileDetailTitle').textContent=it.name;
-  document.getElementById('mobileDetailBody').innerHTML=body;
+  document.getElementById('mobileDetailBody').innerHTML=`
+  <div style="padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:50px;background:var(--bg);z-index:2">${topFixed}</div>
+  <div style="padding:8px 16px">
+    <div style="margin-bottom:6px;font-size:11px;color:var(--text2);font-weight:600">自動候補</div>
+    ${buildCandidates(it)}
+    <div id="inlineResults-m-${it.idx}" style="margin-top:8px"></div>
+  </div>`;
   if(window.innerWidth<=768){
     document.getElementById('mobileDetail').style.display='block';
     window.scrollTo(0,0);
@@ -430,8 +439,9 @@ function doInlineSearch(idx, val){
 function _runInlineSearch(idx, val){
   const q=(val||'').toLowerCase().trim();
   const el=document.getElementById('inlineResults-'+idx);
-  if(!el) return;
-  if(q.length<2){el.innerHTML='';return}
+  const elM=document.getElementById('inlineResults-m-'+idx);
+  if(!el&&!elM) return;
+  if(q.length<2){if(el)el.innerHTML='';if(elM)elM.innerHTML='';return}
   const origP=Number(ITEMS[idx].price)||0;
   const d=decisions[idx]||{};
   // prize_masters検索
@@ -448,7 +458,7 @@ function _runInlineSearch(idx, val){
     const nm=(o.prize_name_raw||'').toLowerCase();
     return nm.includes(q);
   }).slice(0,5);
-  if(!hits.length&&!orderHits.length){el.innerHTML='<div style="padding:8px;color:var(--text2);font-size:12px">該当なし</div>';return}
+  if(!hits.length&&!orderHits.length){const nh='<div style="padding:8px;color:var(--text2);font-size:12px">該当なし</div>';if(el)el.innerHTML=nh;if(elM)elM.innerHTML=nh;return}
   let html=hits.map(p=>{
     const cp=Number(p.original_cost)||0;
     const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
@@ -470,7 +480,8 @@ function _runInlineSearch(idx, val){
         <div class="cand-meta"><span style="color:var(--cyan)">📋</span> ${esc(o.order_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(o.unit_cost)}</span></div>
       </div>`}).join('');
   }
-  el.innerHTML=html;
+  if(el)el.innerHTML=html;
+  if(elM)elM.innerHTML=html;
 }
 
 function openSearch(idx){
