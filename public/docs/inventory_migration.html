@@ -25,8 +25,7 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 .tabs-bar::-webkit-scrollbar{display:none}
 .split-area{position:fixed;top:calc(var(--hh) + var(--fh) + var(--th));left:0;right:0;bottom:0;display:flex;overflow:hidden}
 .list-col{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px}
-.detail-col{width:380px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
-.detail-col.open{display:block}
+.detail-col{width:380px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);flex-direction:column;gap:12px;font-size:13px}
 .detail-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
 .detail-header h3{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -264,7 +263,6 @@ function selectItem(idx){
     if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
   }else{
     document.getElementById('detailCol').innerHTML='<div class="detail-empty"><span style="font-size:32px">👈</span>左のリストから選択してください</div>';
-    document.getElementById('detailCol').classList.remove('open');
   }
 }
 function renderDetail(idx){
@@ -294,7 +292,7 @@ function renderDetail(idx){
   </div>`;
   const col=document.getElementById('detailCol');
   col.innerHTML=`<div class="detail-header"><h3>${esc(it.name)}</h3></div><div class="detail-body">${body}</div>`;
-  col.classList.add('open');
+
   // mobile
   document.getElementById('mobileDetailTitle').textContent=it.name;
   document.getElementById('mobileDetailBody').innerHTML=body;
