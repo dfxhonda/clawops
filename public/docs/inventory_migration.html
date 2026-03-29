@@ -275,7 +275,7 @@ function findCandidatesRT(itemName, itemPrice){
   if(allOrders){
     allOrders.forEach(o=>{
       if(o.prize_id&&seen.has(o.prize_id)) return;
-      const nm=(o.original_name||'');
+      const nm=(o.prize_name_raw||'');
       let score=scoreText(q,tokens,nm);
       if(score===0) return;
       const cp=Number(o.unit_cost)||0;
@@ -412,7 +412,7 @@ async function loadAllPrizes(){
   if(allPrizes) return allPrizes;
   const [prizes, orders] = await Promise.all([
     sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,aliases&order=prize_name&limit=5000'),
-    sbGet('prize_orders','select=order_id,prize_id,original_name,unit_cost,supplier_id,status&order=order_date.desc&limit=5000'),
+    sbGet('prize_orders','select=order_id,prize_id,prize_name_raw,unit_cost,supplier_id,status&order=order_date.desc&limit=5000'),
   ]);
   allPrizes=prizes;
   allOrders=orders;
@@ -447,7 +447,7 @@ async function doModalSearch(){
     const seenIds=new Set(hits.map(p=>p.prize_id));
     const orderHits=(allOrders||[]).filter(o=>{
       if(o.prize_id&&seenIds.has(o.prize_id)) return false;
-      const nm=(o.original_name||'').toLowerCase();
+      const nm=(o.prize_name_raw||'').toLowerCase();
       const oid=(o.order_id||'').toLowerCase();
       return nm.includes(q)||oid.includes(q);
     }).slice(0,10);
@@ -467,9 +467,9 @@ async function doModalSearch(){
       const cp=Number(o.unit_cost)||0;
       const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
       const pickId=o.prize_id||o.order_id;
-      const pickName=o.original_name||o.order_id;
+      const pickName=o.prize_name_raw||o.order_id;
       return`<div class="search-item" onclick="pickFromSearch('${esc(pickId)}','${esc(pickName)}')">
-      <div class="si-name">${esc(o.original_name||o.order_id)}</div>
+      <div class="si-name">${esc(o.prize_name_raw||o.order_id)}</div>
       <div class="si-meta"><span style="color:var(--cyan)">📋${esc(o.order_id)}</span> | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(o.unit_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸¥'+fmt(origP)+')'):''}${o.supplier_id?' | '+esc(o.supplier_id):''}</div>
     </div>`}).join('')):'';
     el.innerHTML=masterHtml+orderHtml;
