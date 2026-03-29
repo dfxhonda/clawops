@@ -240,6 +240,8 @@ async function sbDelete(t,id){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq.
 let ITEMS=[];
 let selId=null;
 let editId=null;
+let sortKey='created_at';
+let sortDir='desc';
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
@@ -276,14 +278,27 @@ function getFiltered(){
   const q=(document.getElementById('searchInput')?.value||'').toLowerCase().trim();
   const sup=document.getElementById('supplierFilter')?.value||'';
   const stat=document.getElementById('statusFilter')?.value||'';
-  return ITEMS.filter(it=>{
+  let list=ITEMS.filter(it=>{
     if(sup&&it.supplier_id!==sup)return false;
     if(stat&&it.status!==stat)return false;
     if(q&&!(it.prize_name||'').toLowerCase().includes(q))return false;
     if((it.status==='read'||it.status==='skipped')&&it.expires_at&&new Date(it.expires_at)<new Date())return false;
     return true;
   });
+  const dir=sortDir==='asc'?1:-1;
+  list.sort((a,b)=>{
+    let av,bv;
+    if(sortKey==='prize_name'){av=a.prize_name||'';bv=b.prize_name||'';return dir*av.localeCompare(bv,'ja')}
+    if(sortKey==='unit_cost'){av=Number(a.unit_cost)||0;bv=Number(b.unit_cost)||0;return dir*(av-bv)}
+    if(sortKey==='case_quantity'){av=Number(a.case_quantity)||0;bv=Number(b.case_quantity)||0;return dir*(av-bv)}
+    if(sortKey==='supplier_id'){av=supName(a.supplier_id);bv=supName(b.supplier_id);return dir*av.localeCompare(bv,'ja')}
+    if(sortKey==='status'){av=a.status||'';bv=b.status||'';return dir*av.localeCompare(bv)}
+    if(sortKey==='created_at'){av=a.created_at||'';bv=b.created_at||'';return dir*av.localeCompare(bv)}
+    return 0;
+  });
+  return list;
 }
+function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=key;sortDir=key==='created_at'?'desc':'asc'}render()}
 function clearFilters(){
   document.getElementById('searchInput').value='';
   document.getElementById('supplierFilter').value='';
@@ -307,12 +322,12 @@ function renderTable(list){
 <table>
 <thead><tr>
   <th style="width:5%"></th>
-  <th style="width:30%">景品名</th>
-  <th style="width:12%">仕入先</th>
-  <th style="width:10%;text-align:right">単価</th>
-  <th style="width:8%;text-align:right">入り数</th>
-  <th style="width:12%">状態</th>
-  <th style="width:10%">登録日</th>
+  <th style="width:30%" class="${sortKey==='prize_name'?'sorted':''}" onclick="setSort('prize_name')">景品名${sortKey==='prize_name'?(sortDir==='asc'?' ↑':' ↓'):''}</th>
+  <th style="width:12%" class="${sortKey==='supplier_id'?'sorted':''}" onclick="setSort('supplier_id')">仕入先${sortKey==='supplier_id'?(sortDir==='asc'?' ↑':' ↓'):''}</th>
+  <th style="width:10%;text-align:right" class="${sortKey==='unit_cost'?'sorted':''}" onclick="setSort('unit_cost')">単価${sortKey==='unit_cost'?(sortDir==='asc'?' ↑':' ↓'):''}</th>
+  <th style="width:8%;text-align:right" class="${sortKey==='case_quantity'?'sorted':''}" onclick="setSort('case_quantity')">入り数${sortKey==='case_quantity'?(sortDir==='asc'?' ↑':' ↓'):''}</th>
+  <th style="width:12%" class="${sortKey==='status'?'sorted':''}" onclick="setSort('status')">状態${sortKey==='status'?(sortDir==='asc'?' ↑':' ↓'):''}</th>
+  <th style="width:10%" class="${sortKey==='created_at'?'sorted':''}" onclick="setSort('created_at')">登録日${sortKey==='created_at'?(sortDir==='asc'?' ↑':' ↓'):''}</th>
 </tr></thead>
 <tbody>
 ${list.map(it=>{
