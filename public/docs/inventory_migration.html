@@ -319,6 +319,7 @@ function renderDetail(idx){
     ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
     <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
     <button class="btn btn-search" onclick="openSearch(${it.idx})">🔍 検索</button>
+    <button class="btn" style="background:var(--orange);color:#fff;flex:1" onclick="doConfirmAsIs(${it.idx})">そのまま確定</button>
     <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
     <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
   </div>`;
@@ -349,6 +350,11 @@ async function doConfirm(idx){
   if(!d.selectedId){showToast('候補を選んでください',false);return}
   await saveToDB(idx,'confirmed',d.selectedId,d.selectedName);
   openIdx=null;showToast('✓ 確定: '+d.selectedName);renderList();
+}
+async function doConfirmAsIs(idx){
+  const it=ITEMS[idx];
+  await saveToDB(idx,'confirmed','__as_is__',it.name+' (そのまま確定)');
+  openIdx=null;showToast('✓ そのまま確定: '+it.name);renderList();
 }
 async function doSkip(idx){await saveToDB(idx,'skipped','','');openIdx=null;showToast('スキップしました');renderList()}
 async function doDecide(idx,status,note){await saveToDB(idx,status,'','',note);openIdx=null;showToast(note+'にしました');renderList()}
