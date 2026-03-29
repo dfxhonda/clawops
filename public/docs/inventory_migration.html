@@ -336,12 +336,15 @@ function renderDetail(idx){
   </div>
   ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:10px;padding:8px;background:rgba(230,126,34,.1);border-radius:6px">💡 ${esc(it.note)}</div>`:''}
   ${d&&d.selectedName?`<div style="font-size:13px;color:var(--green);margin-bottom:10px">✓ 紐付け: ${esc(d.selectedName)}</div>`:''}
-  <div style="margin-bottom:8px;font-size:12px;color:var(--text2);font-weight:600">候補</div>
+  <div style="margin-bottom:6px;font-size:12px;color:var(--text2);font-weight:600">候補（自動）</div>
   <div>${buildCandidates(it)}</div>
+  <div style="margin-top:10px">
+    <input type="text" id="inlineSearch-${it.idx}" value="${esc(it.name)}" placeholder="追加検索..." style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px" oninput="doInlineSearch(${it.idx},this.value)">
+    <div id="inlineResults-${it.idx}" style="margin-top:6px"></div>
+  </div>
   <div class="card-actions" style="margin-top:14px">
     ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
     <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
-    <button class="btn btn-search" onclick="openSearch(${it.idx})">🔍 検索</button>
     <button class="btn" style="background:var(--orange);color:#fff;flex:1" onclick="doConfirmAsIs(${it.idx})">そのまま確定</button>
     <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
     <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
@@ -417,6 +420,57 @@ async function loadAllPrizes(){
   allPrizes=prizes;
   allOrders=orders;
   return allPrizes;
+}
+
+let _inlineTimer=null;
+function doInlineSearch(idx, val){
+  clearTimeout(_inlineTimer);
+  _inlineTimer=setTimeout(()=>_runInlineSearch(idx, val), 200);
+}
+function _runInlineSearch(idx, val){
+  const q=(val||'').toLowerCase().trim();
+  const el=document.getElementById('inlineResults-'+idx);
+  if(!el) return;
+  if(q.length<2){el.innerHTML='';return}
+  const origP=Number(ITEMS[idx].price)||0;
+  const d=decisions[idx]||{};
+  // prize_masters検索
+  const hits=(allPrizes||[]).filter(p=>{
+    const nm=(p.prize_name||'').toLowerCase();
+    const al=(p.aliases||'').toLowerCase();
+    const id=(p.prize_id||'').toLowerCase();
+    return nm.includes(q)||al.includes(q)||id.includes(q);
+  }).slice(0,8);
+  // prize_orders検索
+  const seenIds=new Set(hits.map(p=>p.prize_id));
+  const orderHits=(allOrders||[]).filter(o=>{
+    if(o.prize_id&&seenIds.has(o.prize_id)) return false;
+    const nm=(o.prize_name_raw||'').toLowerCase();
+    return nm.includes(q);
+  }).slice(0,5);
+  if(!hits.length&&!orderHits.length){el.innerHTML='<div style="padding:8px;color:var(--text2);font-size:12px">該当なし</div>';return}
+  let html=hits.map(p=>{
+    const cp=Number(p.original_cost)||0;
+    const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+    const sel=d.selectedId===p.prize_id;
+    return`<div class="cand${sel?' selected':''}" onclick="selectCand(${idx},'${esc(p.prize_id)}','${esc(p.prize_name)}')">
+      <div class="cand-name">${esc(p.prize_name)}</div>
+      <div class="cand-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(p.original_cost)}</span>${origP&&cp?(match?' ✓':' (棚卸¥'+fmt(origP)+')'):''}${p.status==='active'?'':'<span style="color:var(--red)"> 停止</span>'}</div>
+    </div>`}).join('');
+  if(orderHits.length){
+    html+='<div style="padding:4px 0;font-size:11px;color:var(--cyan);border-top:1px solid var(--border);margin-top:4px">📋 発注履歴</div>';
+    html+=orderHits.map(o=>{
+      const cp=Number(o.unit_cost)||0;
+      const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+      const pickId=o.prize_id||o.order_id;
+      const pickName=o.prize_name_raw||o.order_id;
+      const sel=d.selectedId===pickId;
+      return`<div class="cand${sel?' selected':''}" onclick="selectCand(${idx},'${esc(pickId)}','${esc(pickName)}')">
+        <div class="cand-name">${esc(pickName)}</div>
+        <div class="cand-meta"><span style="color:var(--cyan)">📋</span> ${esc(o.order_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(o.unit_cost)}</span></div>
+      </div>`}).join('');
+  }
+  el.innerHTML=html;
 }
 
 function openSearch(idx){
