@@ -1,29 +1,347 @@
 /**
- * ClawOps 景品案内メール画像取込 (Google Apps Script)
+ * ClawOps メール自動取込 (Google Apps Script)
  *
- * changegame.jp の Google Workspace にデプロイ。
- * SDY/INFからの新商品案内メールの添付画像を
- * Supabase Storageにアップロードし、prize_announcementsのimage_urlを更新。
+ * 機能:
+ * 1. SDY/INF/AXSメールから景品案内をパース → prize_announcements登録
+ * 2. 添付画像をSupabase Storageにアップ → image_url紐付け
+ * 3. 発注書/請書メール → prize_orders直接登録
+ * 4. prize_mastersに未登録なら自動追加（短縮名生成）
  *
  * セットアップ:
- * 1. https://script.google.com/ で新規プロジェクト作成
- * 2. このコードを貼り付け
- * 3. 手動で一度 processNewEmails() を実行（権限承認）
- * 4. トリガー設定: processNewEmails を 15分おきに実行
+ * 1. script.google.com にchangegame.jpでログイン
+ * 2. 新規プロジェクト作成 → このコードを貼り付け
+ * 3. dailyProcess() を手動実行（権限承認）
+ * 4. トリガー: dailyProcess を毎日1回 + processImages を15分おき
+ *
+ * clasp連携（将来）:
+ * npm install -g @google/clasp && clasp login && clasp push
  */
 
+// ─── 設定 ───
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 const BUCKET = 'announcements';
+const PROP_KEY = 'processed_ids';
+const PROP_KEY_IMG = 'processed_img_ids';
 
-// 処理済みメールIDを記録するプロパティキー
-const PROP_KEY = 'processed_message_ids';
+// 仕入先判定
+const SUPPLIER_MAP = {
+  'info@sdy-co.com': 'SDY',
+  'achieve.sakamoto@gmail.com': 'AXS',
+};
 
-/**
- * メイン: 新着メールを処理
- */
-function processNewEmails() {
-  const processed = getProcessedIds();
+// 短縮名: 略語マップ
+const ABBREV = [
+  [/マスコット/g, 'MC'], [/スクイーズ/g, 'SQ'], [/ぬいぐるみ/g, 'ヌイ'],
+  [/キーホルダー/g, 'KH'], [/キーチェーン/g, 'KC'], [/ワンポイントチャーム/g, 'WPチャーム'],
+  [/ブラインドボックス/g, 'BB'], [/ヘアクリップ/g, 'Hクリップ'], [/ヘアアイロン/g, 'Hアイロン'],
+  [/ステンレスタンブラー/g, 'SSタンブラー'], [/オイルマスコット/g, 'オイルMC'],
+  [/ぷっくりネイルチップ/g, 'ネイルチップ'], [/ぷくぷくキャンディシール/g, 'キャンディシール'],
+  [/ぷくぷくキャンディーシール/g, 'キャンディシール'],
+  [/シリコンスクイーズ/g, 'シリコンSQ'],
+];
+// 短縮名: 削除語
+const REMOVE_WORDS = [
+  /まるで本物[？?]?/g, /新商品\s*/g, /超超?BIG\s*/g, /DX\s*/g,
+  /\s*品番[：:]?\s*\S+/g, /\s*入数[：:]?\s*\S+/g,
+  /（[^）]*）/g, /\([^)]*\)/g,  // 括弧内削除
+];
+
+// ─── Supabase ヘルパー ───
+function sbGet(table, params) {
+  const r = UrlFetchApp.fetch(SB_URL + '/rest/v1/' + table + '?' + (params || ''), {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+    muteHttpExceptions: true,
+  });
+  return r.getResponseCode() === 200 ? JSON.parse(r.getContentText()) : [];
+}
+
+function sbPost(table, body) {
+  const r = UrlFetchApp.fetch(SB_URL + '/rest/v1/' + table, {
+    method: 'post',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true,
+  });
+  if (r.getResponseCode() >= 300) {
+    Logger.log('sbPost error: ' + r.getContentText());
+    return null;
+  }
+  return JSON.parse(r.getContentText());
+}
+
+function sbPatch(table, id, body) {
+  UrlFetchApp.fetch(SB_URL + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'patch',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true,
+  });
+}
+
+// ─── 短縮名生成 ───
+function generateShortName(rawName) {
+  let name = rawName.trim();
+  // 削除語
+  for (const re of REMOVE_WORDS) name = name.replace(re, '');
+  // 略語置換
+  for (const [re, abbr] of ABBREV) name = name.replace(re, abbr);
+  // 空白正規化
+  name = name.replace(/[\s　]+/g, ' ').trim();
+  // 20文字以内に
+  if (name.length > 20) {
+    // スペースで分割して後ろから削る
+    const parts = name.split(' ');
+    name = '';
+    for (const p of parts) {
+      if ((name + ' ' + p).trim().length <= 20) name = (name + ' ' + p).trim();
+      else break;
+    }
+    if (!name) name = rawName.slice(0, 20);
+  }
+  return name || rawName.slice(0, 20);
+}
+
+// ─── メールパース: SDY ───
+function parseSDYEmail(body, subject) {
+  const items = [];
+  // パターン1: 「商品名 入数 @単価 納期」
+  // パターン2: 「商品名\n入数 XX入\n価格 ＠XXX\n納期 XX」
+  // パターン3: 「商品名 XX個 XXX円 納期」
+
+  const lines = body.replace(/\r/g, '').split('\n').map(l => l.replace(/\*/g, '').trim()).filter(Boolean);
+
+  let currentItem = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // 署名開始で終了
+    if (line.includes('◇◆◇◆') || line.includes('エスディーワイ') || line.includes('TEL：')) break;
+    if (line.includes('お世話になっ') || line.includes('よろしくお願い') || line.includes('新商品のご案内')) continue;
+    if (line.includes('※') || line.includes('ハーフ') && !currentItem) continue;
+    if (line.includes('送料') && !currentItem) continue;
+
+    // 「入数」「価格」「納期」「単価」「品番」「種類」「サイズ」「アイテム」行
+    const isMetaLine = /^(入数|価格|納期|単価|品番|種類|サイズ|アイテム)[：:\s]/.test(line);
+
+    if (isMetaLine && currentItem) {
+      // メタ情報を現在のアイテムに追加
+      const qtyMatch = line.match(/(\d+)\s*入/);
+      const priceMatch = line.match(/[＠@][\s]*(\d[\d,]*)/);
+      const dateMatch = line.match(/([\d]+月[上中下旬]*|即納|\d+日)/);
+
+      if (qtyMatch) currentItem.case_quantity = parseInt(qtyMatch[1].replace(/,/g, ''));
+      if (priceMatch) currentItem.unit_cost = parseInt(priceMatch[1].replace(/[,，]/g, ''));
+      if (dateMatch) currentItem.notes = (currentItem.notes || '') + ' 納期' + dateMatch[1];
+      continue;
+    }
+
+    // ワンライン: 「商品名 XX個 XXX円 納期」
+    const oneLineMatch = line.match(/^(.+?)\s+(\d+)個\s+(\d[\d,]*)円\s+(.+)$/);
+    if (oneLineMatch) {
+      if (currentItem && currentItem.prize_name) items.push(currentItem);
+      currentItem = {
+        prize_name: oneLineMatch[1].trim(),
+        case_quantity: parseInt(oneLineMatch[2]),
+        unit_cost: parseInt(oneLineMatch[3].replace(/,/g, '')),
+        notes: '納期' + oneLineMatch[4].trim(),
+      };
+      continue;
+    }
+
+    // ワンライン: 「商品名 単位XX個 ＠XXX 納期」
+    const oneLine2 = line.match(/^(.+?)\s+(?:単位)?(\d[\d,]*)個?\s+.*?[＠@][\s]*(\d[\d,]*)/);
+    if (oneLine2) {
+      if (currentItem && currentItem.prize_name) items.push(currentItem);
+      const dateMatch = line.match(/([\d]+月[上中下旬]*|即納)/);
+      currentItem = {
+        prize_name: oneLine2[1].trim(),
+        case_quantity: parseInt(oneLine2[2].replace(/,/g, '')),
+        unit_cost: parseInt(oneLine2[3].replace(/,/g, '')),
+        notes: dateMatch ? '納期' + dateMatch[1] : '',
+      };
+      continue;
+    }
+
+    // ＠付き行: 「＠XXX XX入」
+    const priceQtyLine = line.match(/[＠@][\s]*([\d,]+)\s+.*?(\d+)入/);
+    if (priceQtyLine && currentItem) {
+      currentItem.unit_cost = parseInt(priceQtyLine[1].replace(/,/g, ''));
+      currentItem.case_quantity = parseInt(priceQtyLine[2]);
+      continue;
+    }
+    const qtyPriceLine = line.match(/(\d+)入\s+.*?[＠@][\s]*([\d,]+)/);
+    if (qtyPriceLine && currentItem) {
+      currentItem.case_quantity = parseInt(qtyPriceLine[1]);
+      currentItem.unit_cost = parseInt(qtyPriceLine[2].replace(/,/g, ''));
+      continue;
+    }
+
+    // 単独＠行
+    if (/^[＠@]/.test(line) && currentItem) {
+      const pm = line.match(/[＠@][\s]*([\d,]+)/);
+      const qm = line.match(/(\d+)入/);
+      if (pm) currentItem.unit_cost = parseInt(pm[1].replace(/,/g, ''));
+      if (qm) currentItem.case_quantity = parseInt(qm[1]);
+      continue;
+    }
+
+    // 新しい商品名行（メタ行でも価格行でもない、ある程度の長さがある行）
+    if (line.length >= 3 && !isMetaLine && !/^[＠@\d※【送]/.test(line) && !/^(ハーフ|納期)/.test(line)) {
+      if (currentItem && currentItem.prize_name) items.push(currentItem);
+      currentItem = { prize_name: line, notes: '' };
+    }
+  }
+
+  if (currentItem && currentItem.prize_name) items.push(currentItem);
+
+  // 単価がないアイテムは除外
+  return items.filter(it => it.prize_name && it.unit_cost);
+}
+
+// ─── 次のprize_id取得 ───
+function getNextPrizeId() {
+  const rows = sbGet('prize_masters', 'select=prize_id&order=prize_id.desc&limit=1');
+  if (rows.length) {
+    const num = parseInt(rows[0].prize_id.replace('PZ-', ''));
+    return 'PZ-' + String(num + 1).padStart(5, '0');
+  }
+  return 'PZ-01044';
+}
+
+// ─── prize_mastersに登録（未登録なら） ───
+function ensurePrizeMaster(prizeName, unitCost, supplierId) {
+  // 同名チェック
+  const existing = sbGet('prize_masters', 'select=prize_id&prize_name=eq.' + encodeURIComponent(prizeName) + '&limit=1');
+  if (existing.length) return existing[0].prize_id;
+
+  const prizeId = getNextPrizeId();
+  const shortName = generateShortName(prizeName);
+
+  const result = sbPost('prize_masters', {
+    prize_id: prizeId,
+    prize_name: prizeName,
+    original_cost: unitCost,
+    supplier_id: supplierId,
+    status: 'active',
+    aliases: JSON.stringify([shortName]),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  if (result) {
+    Logger.log('New master: ' + prizeId + ' = ' + prizeName + ' (短縮: ' + shortName + ')');
+    return prizeId;
+  }
+  return null;
+}
+
+// ─── 発注登録 ───
+function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeId) {
+  const orderId = 'ORD-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyMMdd') + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
+
+  const result = sbPost('prize_orders', {
+    order_id: orderId,
+    prize_id: prizeId || null,
+    prize_name_raw: prizeName,
+    supplier_id: supplierId,
+    order_date: orderDate,
+    quantity: caseQty || null,
+    unit_cost: unitCost || null,
+    case_quantity: caseQty || null,
+    status: 'ordered',
+    order_source: 'email_auto',
+    created_at: new Date().toISOString(),
+  });
+
+  if (result) Logger.log('New order: ' + orderId + ' = ' + prizeName);
+  return orderId;
+}
+
+// ─── メイン: メール取込（毎日実行） ───
+function dailyProcess() {
+  const processed = getProcessedSet(PROP_KEY);
+  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com newer_than:7d', 0, 50);
+
+  let announcementCount = 0;
+  let orderCount = 0;
+  let masterCount = 0;
+
+  for (const thread of threads) {
+    for (const msg of thread.getMessages()) {
+      const msgId = msg.getId();
+      if (processed.has(msgId)) continue;
+
+      const from = msg.getFrom();
+      const subject = msg.getSubject();
+      const body = msg.getPlainBody();
+      const date = Utilities.formatDate(msg.getDate(), 'Asia/Tokyo', 'yyyy-MM-dd');
+
+      // 仕入先判定
+      let supplierId = null;
+      for (const [email, sid] of Object.entries(SUPPLIER_MAP)) {
+        if (from.includes(email)) { supplierId = sid; break; }
+      }
+      if (!supplierId) { processed.add(msgId); continue; }
+
+      // 発注書/請書判定
+      const isOrder = /発注|注文|請書|確認書/.test(subject);
+
+      // メール本文パース
+      let items = [];
+      if (supplierId === 'SDY') {
+        items = parseSDYEmail(body, subject);
+      }
+      // TODO: INF, AXS, PCH パーサー追加
+
+      if (items.length === 0) {
+        processed.add(msgId);
+        continue;
+      }
+
+      for (const item of items) {
+        // 1. prize_announcements に登録（重複チェック）
+        const dupCheck = sbGet('prize_announcements',
+          'select=id&source_ref=eq.' + msgId + '&prize_name=eq.' + encodeURIComponent(item.prize_name) + '&limit=1');
+
+        if (dupCheck.length === 0) {
+          sbPost('prize_announcements', {
+            supplier_id: supplierId,
+            prize_name: item.prize_name,
+            unit_cost: item.unit_cost || null,
+            case_quantity: item.case_quantity || null,
+            source_type: 'email',
+            source_ref: msgId,
+            status: isOrder ? 'ordered' : 'unread',
+            notes: (item.notes || '').trim() || null,
+            created_at: new Date().toISOString(),
+          });
+          announcementCount++;
+        }
+
+        // 2. 発注書なら prize_orders + prize_masters にも登録
+        if (isOrder) {
+          const prizeId = ensurePrizeMaster(item.prize_name, item.unit_cost, supplierId);
+          if (prizeId) {
+            masterCount++;
+            createOrder(item.prize_name, item.unit_cost, item.case_quantity, supplierId, date, prizeId);
+            orderCount++;
+          }
+        }
+      }
+
+      processed.add(msgId);
+    }
+  }
+
+  saveProcessedSet(PROP_KEY, processed);
+  Logger.log('Daily done: ' + announcementCount + ' announcements, ' + orderCount + ' orders, ' + masterCount + ' masters');
+}
+
+// ─── 画像処理（15分おき） ───
+function processImages() {
+  const processed = getProcessedSet(PROP_KEY_IMG);
   const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com has:attachment newer_than:7d', 0, 30);
 
   let count = 0;
@@ -33,17 +351,11 @@ function processNewEmails() {
       if (processed.has(msgId)) continue;
 
       const attachments = msg.getAttachments();
-      const imageAttachments = attachments.filter(a =>
-        a.getContentType().startsWith('image/')
-      );
+      const images = attachments.filter(a => a.getContentType().startsWith('image/'));
 
-      if (imageAttachments.length === 0) {
-        processed.add(msgId);
-        continue;
-      }
+      if (images.length === 0) { processed.add(msgId); continue; }
 
-      // 添付画像をアップロード
-      for (const att of imageAttachments) {
+      for (const att of images) {
         try {
           const fileName = sanitizeFilename(att.getName());
           const storagePath = msgId + '/' + fileName;
@@ -51,208 +363,102 @@ function processNewEmails() {
           const imageUrl = uploadToStorage(blob, storagePath, att.getContentType());
 
           if (imageUrl) {
-            // source_refが一致するannouncementのimage_urlを更新
             updateAnnouncementImage(msgId, att.getName(), imageUrl);
             count++;
           }
         } catch (e) {
-          Logger.log('Error uploading ' + att.getName() + ': ' + e.message);
+          Logger.log('Image error: ' + att.getName() + ': ' + e.message);
         }
       }
-
       processed.add(msgId);
     }
   }
 
-  saveProcessedIds(processed);
-  Logger.log('Processed ' + count + ' images');
+  saveProcessedSet(PROP_KEY_IMG, processed);
+  Logger.log('Images done: ' + count + ' uploaded');
 }
 
-/**
- * Supabase Storageに画像をアップロード
- */
+// ─── Supabase Storage アップロード ───
 function uploadToStorage(blob, path, contentType) {
   const url = SB_URL + '/storage/v1/object/' + BUCKET + '/' + encodeURIComponent(path);
-
-  const options = {
+  const r = UrlFetchApp.fetch(url, {
     method: 'post',
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
-      'Content-Type': contentType,
-      'x-upsert': 'true',
-    },
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': contentType, 'x-upsert': 'true' },
     payload: blob.getBytes(),
     muteHttpExceptions: true,
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  const code = response.getResponseCode();
-
-  if (code === 200 || code === 201) {
-    // 公開URL
+  });
+  if (r.getResponseCode() === 200 || r.getResponseCode() === 201) {
     return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + encodeURIComponent(path);
-  } else {
-    Logger.log('Storage upload failed (' + code + '): ' + response.getContentText());
-    return null;
   }
+  Logger.log('Storage error (' + r.getResponseCode() + '): ' + r.getContentText());
+  return null;
 }
 
-/**
- * prize_announcementsのimage_urlを更新
- * source_refでメールIDが一致 + ファイル名で景品名に部分一致するレコードを探す
- */
+// ─── 画像→案内紐付け ───
 function updateAnnouncementImage(messageId, fileName, imageUrl) {
-  // まずsource_refで一致するレコードを取得
-  const url = SB_URL + '/rest/v1/prize_announcements?source_ref=eq.' + messageId + '&image_url=is.null&select=id,prize_name';
-  const options = {
-    method: 'get',
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
-    },
-    muteHttpExceptions: true,
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  if (response.getResponseCode() !== 200) return;
-
-  const records = JSON.parse(response.getContentText());
+  const records = sbGet('prize_announcements', 'source_ref=eq.' + messageId + '&image_url=is.null&select=id,prize_name');
   if (records.length === 0) return;
 
-  // ファイル名から景品名の一部を抽出してマッチ
   const cleanName = fileName.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '')
-    .replace(/[_\-]/g, '')
-    .replace(/案内画像.*$/i, '')
-    .replace(/ol.*min$/i, '')
-    .trim();
+    .replace(/[_\-]/g, ' ').replace(/案内画像.*/i, '').replace(/ol.*min$/i, '').replace(/\(.*\)/g, '').trim();
 
-  // ベストマッチを探す
-  let bestMatch = null;
-  let bestScore = 0;
-
+  let bestMatch = null, bestScore = 0;
   for (const rec of records) {
-    const prizeName = (rec.prize_name || '').replace(/[\s　]/g, '');
-    const score = calcMatchScore(cleanName, prizeName);
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = rec;
-    }
+    const score = calcMatchScore(cleanName, rec.prize_name || '');
+    if (score > bestScore) { bestScore = score; bestMatch = rec; }
   }
 
-  // スコアが低くても1件しかなければそれに紐付け
-  if (!bestMatch && records.length === 1) {
-    bestMatch = records[0];
-  }
-
-  if (bestMatch && bestScore > 0) {
-    // image_urlを更新
-    const patchUrl = SB_URL + '/rest/v1/prize_announcements?id=eq.' + bestMatch.id;
-    UrlFetchApp.fetch(patchUrl, {
-      method: 'patch',
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      payload: JSON.stringify({ image_url: imageUrl }),
-      muteHttpExceptions: true,
-    });
-    Logger.log('Updated announcement #' + bestMatch.id + ' with image: ' + fileName);
-  } else if (records.length === 1) {
-    // 1件しかないならスコア関係なく紐付け
-    const patchUrl = SB_URL + '/rest/v1/prize_announcements?id=eq.' + records[0].id;
-    UrlFetchApp.fetch(patchUrl, {
-      method: 'patch',
-      headers: {
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      payload: JSON.stringify({ image_url: imageUrl }),
-      muteHttpExceptions: true,
-    });
-    Logger.log('Updated announcement #' + records[0].id + ' (only match) with image: ' + fileName);
+  const target = bestMatch || (records.length === 1 ? records[0] : null);
+  if (target) {
+    sbPatch('prize_announcements', target.id, { image_url: imageUrl });
+    Logger.log('Image linked: #' + target.id + ' ← ' + fileName);
   }
 }
 
-/**
- * 文字列の一致スコア計算
- */
 function calcMatchScore(a, b) {
-  a = a.toLowerCase();
-  b = b.toLowerCase();
+  a = a.toLowerCase(); b = b.toLowerCase();
   if (a === b) return 100;
   if (b.includes(a) || a.includes(b)) return 80;
-  // トークン一致
-  const tokensA = a.replace(/[()（）\[\]【】]/g, ' ').split(/\s+/).filter(t => t.length >= 2);
+  const tokens = a.split(/\s+/).filter(t => t.length >= 2);
   let hits = 0;
-  for (const t of tokensA) {
-    if (b.includes(t)) hits++;
-  }
-  return tokensA.length > 0 ? Math.round(60 * hits / tokensA.length) : 0;
+  for (const t of tokens) { if (b.includes(t)) hits++; }
+  return tokens.length > 0 ? Math.round(60 * hits / tokens.length) : 0;
 }
 
-/**
- * ファイル名をサニタイズ
- */
 function sanitizeFilename(name) {
   return name.replace(/[^a-zA-Z0-9\u3000-\u9FFF\u30A0-\u30FF\u3040-\u309F._-]/g, '_');
 }
 
-/**
- * 処理済みメールIDの読み込み
- */
-function getProcessedIds() {
-  const props = PropertiesService.getScriptProperties();
-  const json = props.getProperty(PROP_KEY);
+// ─── プロパティ管理 ───
+function getProcessedSet(key) {
+  const json = PropertiesService.getScriptProperties().getProperty(key);
   return new Set(json ? JSON.parse(json) : []);
 }
-
-/**
- * 処理済みメールIDの保存（最新500件を保持）
- */
-function saveProcessedIds(idSet) {
+function saveProcessedSet(key, idSet) {
   const arr = Array.from(idSet).slice(-500);
-  PropertiesService.getScriptProperties().setProperty(PROP_KEY, JSON.stringify(arr));
+  PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(arr));
 }
 
-/**
- * 手動実行: 全メールの画像を再処理（リセット用）
- */
-function resetAndReprocess() {
+// ─── 手動実行用 ───
+function resetAndReprocessAll() {
   PropertiesService.getScriptProperties().deleteProperty(PROP_KEY);
-  processNewEmails();
+  PropertiesService.getScriptProperties().deleteProperty(PROP_KEY_IMG);
+  dailyProcess();
+  processImages();
 }
 
-/**
- * 手動実行: 特定メールの画像を処理
- */
-function processSpecificEmail(messageId) {
-  const msg = GmailApp.getMessageById(messageId);
-  if (!msg) {
-    Logger.log('Message not found: ' + messageId);
-    return;
+function testShortName() {
+  const tests = [
+    'ぷかぷかくまさんオイルマスコット',
+    'マグネット付まるで本物フルーツパンスクイーズ',
+    'BT01233 ベイビースリーびりおねあきゃっとブラインドボックス 96入',
+    'りるくまぷっくりヘアクリップ',
+    'ズートピア極厚EVAサンダル',
+    'むにゅいーずぱすてるべあー',
+    'ストレートヘアアイロン',
+    'PAWフレンズオイルマスコット',
+  ];
+  for (const t of tests) {
+    Logger.log(t + ' → ' + generateShortName(t));
   }
-
-  const attachments = msg.getAttachments();
-  let count = 0;
-
-  for (const att of attachments) {
-    if (!att.getContentType().startsWith('image/')) continue;
-
-    const fileName = sanitizeFilename(att.getName());
-    const storagePath = messageId + '/' + fileName;
-    const imageUrl = uploadToStorage(att.getBlob(), storagePath, att.getContentType());
-
-    if (imageUrl) {
-      updateAnnouncementImage(messageId, att.getName(), imageUrl);
-      count++;
-      Logger.log('Uploaded: ' + fileName + ' -> ' + imageUrl);
-    }
-  }
-
-  Logger.log('Done. Processed ' + count + ' images from message ' + messageId);
 }
