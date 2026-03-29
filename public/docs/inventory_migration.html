@@ -233,11 +233,44 @@ function renderList(){
   requestAnimationFrame(()=>{const lc=document.querySelector('.list-col');if(lc)lc.scrollTop=scrollY;else window.scrollTo(0,scrollY)});
 }
 
+function findCandidatesRT(itemName, itemPrice){
+  if(!allPrizes||!allPrizes.length) return [];
+  const q=(itemName||'').toLowerCase().replace(/[\s　]+/g,'');
+  if(q.length<1) return [];
+  const origP=Number(itemPrice)||0;
+  // トークン分割（2文字以上の部分）
+  const tokens=q.replace(/[()（）\[\]【】・、。,./\\-]/g,' ').split(/\s+/).filter(t=>t.length>=2);
+  const scored=allPrizes.map(p=>{
+    const nm=(p.prize_name||'').toLowerCase().replace(/[\s　]+/g,'');
+    let aliasStr='';
+    try{const al=JSON.parse(p.aliases||'[]');if(Array.isArray(al))aliasStr=al.join(' ').toLowerCase()}catch{}
+    const combined=nm+' '+aliasStr;
+    let score=0;
+    // 完全一致
+    if(nm===q) score+=100;
+    // 含む
+    else if(nm.includes(q)) score+=60;
+    else if(combined.includes(q)) score+=50;
+    // トークンマッチ
+    else{
+      let hits=0;
+      tokens.forEach(t=>{if(combined.includes(t))hits++});
+      if(tokens.length>0) score+=Math.round(40*(hits/tokens.length));
+    }
+    if(score===0) return null;
+    // 単価ボーナス
+    const cp=Number(p.original_cost)||0;
+    if(origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1) score+=20;
+    // active優先
+    if(p.status==='active') score+=5;
+    return{id:p.prize_id,name:p.prize_name,price:p.original_cost,alias:aliasStr.slice(0,80),score,status:p.status};
+  }).filter(Boolean);
+  scored.sort((a,b)=>b.score-a.score);
+  return scored.slice(0,3);
+}
+
 function buildCandidates(it){
-  const cands=[];
-  if(it.c1id) cands.push({id:it.c1id,name:it.c1n,price:it.c1p,alias:it.c1a||'',i:0});
-  if(it.c2id) cands.push({id:it.c2id,name:it.c2n,price:it.c2p,alias:it.c2a||'',i:1});
-  if(it.c3id) cands.push({id:it.c3id,name:it.c3n,price:it.c3p,alias:it.c3a||'',i:2});
+  const cands=findCandidatesRT(it.name, it.price);
   if(!cands.length) return '<div class="cand-none">候補なし（🔍検索で探せます）</div>';
   const d=decisions[it.idx];
   const origPrice=Number(it.price)||0;
@@ -249,7 +282,7 @@ function buildCandidates(it){
     return`<div class="cand${sel?' selected':''}" onclick="selectCand(${it.idx},'${esc(c.id)}','${esc(c.name)}')">
       <div class="cand-name">${esc(c.name)}</div>
       ${c.alias?`<div style="font-size:11px;color:var(--text2);margin:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.alias)}</div>`:''}
-      <div class="cand-meta">${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">¥${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸¥'+fmt(origPrice)+')'):''}${c.i===0&&it.lv?' | '+it.lv:''}</div>
+      <div class="cand-meta">${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">¥${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸¥'+fmt(origPrice)+')'):''}${c.status==='active'?'':'<span style="color:var(--red)"> 停止</span>'}</div>
     </div>`;
   }).join('');
 }
@@ -424,7 +457,8 @@ function onSheetFilter(){
 }
 populateStoreFilter('');
 
-loadDecisions();
+// 初期化: まず全景品ロード → 候補リアルタイム化
+loadAllPrizes().then(()=>loadDecisions()).catch(()=>loadDecisions());
 </script>
 </body>
 </html>
