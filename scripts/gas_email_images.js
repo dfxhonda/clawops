@@ -380,7 +380,7 @@ function processImages() {
 
 // ─── Supabase Storage アップロード ───
 function uploadToStorage(blob, path, contentType) {
-  const url = SB_URL + '/storage/v1/object/' + BUCKET + '/' + encodeURIComponent(path);
+  const url = SB_URL + '/storage/v1/object/' + BUCKET + '/' + path;
   const r = UrlFetchApp.fetch(url, {
     method: 'post',
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': contentType, 'x-upsert': 'true' },
@@ -388,7 +388,7 @@ function uploadToStorage(blob, path, contentType) {
     muteHttpExceptions: true,
   });
   if (r.getResponseCode() === 200 || r.getResponseCode() === 201) {
-    return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + encodeURIComponent(path);
+    return SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
   }
   Logger.log('Storage error (' + r.getResponseCode() + '): ' + r.getContentText());
   return null;
@@ -426,7 +426,11 @@ function calcMatchScore(a, b) {
 }
 
 function sanitizeFilename(name) {
-  return name.replace(/[^a-zA-Z0-9\u3000-\u9FFF\u30A0-\u30FF\u3040-\u309F._-]/g, '_');
+  // Supabase Storageは日本語キー不可。ハッシュ化してASCIIのみに
+  const ext = (name.match(/\.[a-zA-Z]+$/) || ['.jpg'])[0];
+  const hash = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, name)
+    .map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+  return hash + ext;
 }
 
 // ─── プロパティ管理 ───
