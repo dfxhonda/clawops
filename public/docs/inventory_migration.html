@@ -354,6 +354,7 @@ function renderDetail(idx){
   <div class="card-actions" style="margin-bottom:0;border:none;padding:0">
     ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
     <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
+    <button class="btn" style="background:var(--cyan);color:#fff;flex:1" onclick="openRegisterForm(${it.idx})">マスタ登録</button>
     <button class="btn" style="background:var(--orange);color:#fff;flex:1" onclick="doConfirmAsIs(${it.idx})">そのまま</button>
     <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
     <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
@@ -412,6 +413,95 @@ async function doConfirmAsIs(idx){
   await saveToDB(idx,'confirmed','__as_is__',it.name+' (そのまま確定)');
   openIdx=null;showToast('✓ そのまま確定: '+it.name);renderList();
 }
+
+// ─── マスタ登録フォーム ───
+const PURCHASE_SOURCES=[
+  {v:'',l:'選択してください'},
+  {v:'shop',l:'ショップ購入'},
+  {v:'amazon',l:'Amazon'},
+  {v:'mercari',l:'メルカリ'},
+  {v:'snkrdunk',l:'スニダン'},
+  {v:'aliexpress',l:'アリエク'},
+  {v:'shein',l:'SHEIN'},
+  {v:'other',l:'その他'},
+];
+
+function openRegisterForm(idx){
+  const it=ITEMS[idx];
+  const detailCol=document.getElementById('detailCol');
+  const mobileBody=document.getElementById('mobileDetailBody');
+  const html=`
+  <div style="padding:12px 16px">
+    <div style="font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:12px">景品マスタに登録</div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">景品名</label>
+      <input id="regName" value="${esc(it.name)}" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">単価</label>
+      <input id="regCost" type="number" value="${it.price||''}" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">仕入先</label>
+      <select id="regSupplier" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+        ${PURCHASE_SOURCES.map(s=>'<option value="'+s.v+'">'+s.l+'</option>').join('')}
+      </select>
+    </div>
+    <div id="regErr" style="font-size:12px;color:var(--red);margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="renderDetail(${idx})">キャンセル</button>
+      <button class="btn" style="background:var(--cyan);color:#fff;flex:1" onclick="doRegisterMaster(${idx})">保存してマスタ登録</button>
+    </div>
+  </div>`;
+  // PC
+  detailCol.innerHTML='<div class="detail-header"><h3>マスタ登録: '+esc(it.name)+'</h3></div>'+html;
+  // Mobile
+  if(mobileBody) mobileBody.innerHTML=html;
+}
+
+async function doRegisterMaster(idx){
+  const name=document.getElementById('regName').value.trim();
+  const cost=Number(document.getElementById('regCost').value);
+  const supplier=document.getElementById('regSupplier').value;
+  const errEl=document.getElementById('regErr');
+  errEl.textContent='';
+
+  if(!name){errEl.textContent='景品名を入力してください';return}
+  if(!cost||cost<=0){errEl.textContent='単価を入力してください';return}
+
+  // 次のprize_id取得
+  showToast('登録中...');
+  try{
+    const maxRows=await sbGet('prize_masters','select=prize_id&order=prize_id.desc&limit=1');
+    const maxNum=maxRows.length?parseInt(maxRows[0].prize_id.replace('PZ-',''),10):0;
+    const newId='PZ-'+String(maxNum+1).padStart(5,'0');
+
+    // マスタ登録
+    await sbPost('prize_masters',{
+      prize_id:newId,
+      prize_name:name,
+      original_cost:cost,
+      supplier_id:supplier||null,
+      status:'active',
+      aliases:JSON.stringify([ITEMS[idx].name]),
+      created_at:new Date().toISOString(),
+      updated_at:new Date().toISOString(),
+    });
+
+    // 確定として保存
+    await saveToDB(idx,'confirmed',newId,name);
+
+    // allPrizesキャッシュ更新
+    if(allPrizes) allPrizes.push({prize_id:newId,prize_name:name,original_cost:cost,status:'active',aliases:JSON.stringify([ITEMS[idx].name])});
+
+    openIdx=null;
+    showToast('✓ マスタ登録+確定: '+name+' ('+newId+')');
+    renderList();
+  }catch(e){
+    errEl.textContent='エラー: '+e.message;
+  }
+}
+
 async function doSkip(idx){await saveToDB(idx,'skipped','','');openIdx=null;showToast('スキップしました');renderList()}
 async function doDecide(idx,status,note){await saveToDB(idx,status,'','',note);openIdx=null;showToast(note+'にしました');renderList()}
 
