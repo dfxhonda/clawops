@@ -266,9 +266,8 @@ function selectItem(idx){
   }
 }
 function renderDetail(idx){
-  const ITEMS_=typeof ITEMS!=='undefined'?ITEMS:[];
-  const it=ITEMS_.find(x=>x.idx===idx);
-  if(!it)return;
+  if(idx==null||idx<0||idx>=ITEMS.length)return;
+  const it={...ITEMS[idx],idx};
   const d=decisions[it.idx];
   const isDone=d&&(d.status==='confirmed'||d.status==='skipped');
   const body=`<div style="margin-bottom:12px">
