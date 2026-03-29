@@ -196,8 +196,10 @@ function parseSDYEmail(body, subject) {
 
   if (currentItem && currentItem.prize_name) items.push(currentItem);
 
-  // 単価がないアイテムは除外
-  return items.filter(it => it.prize_name && it.unit_cost);
+  // 単価がないアイテム、ゴミデータを除外
+  return items.filter(it => it.prize_name && it.unit_cost
+    && it.prize_name.length >= 3
+    && !/^(お世話|いつも|よろしく|新商品の)/.test(it.prize_name));
 }
 
 // ─── 次のprize_id取得 ───
@@ -355,21 +357,25 @@ function processImages() {
 
       if (images.length === 0) { processed.add(msgId); continue; }
 
+      // まず全画像をアップロード
+      const uploaded = [];
       for (const att of images) {
         try {
-          const fileName = sanitizeFilename(att.getName());
+          const origName = att.getName();
+          const fileName = sanitizeFilename(origName);
           const storagePath = msgId + '/' + fileName;
           const blob = att.copyBlob();
           const imageUrl = uploadToStorage(blob, storagePath, att.getContentType());
-
           if (imageUrl) {
-            updateAnnouncementImage(msgId, att.getName(), imageUrl);
+            uploaded.push({ origName, imageUrl });
             count++;
           }
         } catch (e) {
           Logger.log('Image error: ' + att.getName() + ': ' + e.message);
         }
       }
+      // まとめて紐付け
+      if (uploaded.length) linkImagesToAnnouncements(msgId, uploaded);
       processed.add(msgId);
     }
   }
@@ -394,24 +400,41 @@ function uploadToStorage(blob, path, contentType) {
   return null;
 }
 
-// ─── 画像→案内紐付け ───
-function updateAnnouncementImage(messageId, fileName, imageUrl) {
+// ─── 画像→案内紐付け（まとめて処理） ───
+function linkImagesToAnnouncements(messageId, uploadedImages) {
   const records = sbGet('prize_announcements', 'source_ref=eq.' + messageId + '&image_url=is.null&select=id,prize_name');
   if (records.length === 0) return;
 
-  const cleanName = fileName.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '')
-    .replace(/[_\-]/g, ' ').replace(/案内画像.*/i, '').replace(/ol.*min$/i, '').replace(/\(.*\)/g, '').trim();
+  const linked = new Set();
 
-  let bestMatch = null, bestScore = 0;
-  for (const rec of records) {
-    const score = calcMatchScore(cleanName, rec.prize_name || '');
-    if (score > bestScore) { bestScore = score; bestMatch = rec; }
+  // Pass 1: ファイル名と景品名のベストマッチで紐付け
+  for (const img of uploadedImages) {
+    const cleanName = img.origName.replace(/\.(jpg|jpeg|png|gif|webp)$/i, '')
+      .replace(/[_\-]/g, ' ').replace(/案内画像.*/i, '').replace(/ol.*min$/i, '')
+      .replace(/\(.*\)/g, '').replace(/\d+$/,'').trim();
+
+    let bestMatch = null, bestScore = 0;
+    for (const rec of records) {
+      if (linked.has(rec.id)) continue;
+      const score = calcMatchScore(cleanName, rec.prize_name || '');
+      if (score > bestScore) { bestScore = score; bestMatch = rec; }
+    }
+
+    if (bestMatch && bestScore >= 30) {
+      sbPatch('prize_announcements', bestMatch.id, { image_url: img.imageUrl });
+      linked.add(bestMatch.id);
+      img.linked = true;
+      Logger.log('Image matched: #' + bestMatch.id + ' (' + bestMatch.prize_name + ') ← ' + img.origName);
+    }
   }
 
-  const target = bestMatch || (records.length === 1 ? records[0] : null);
-  if (target) {
-    sbPatch('prize_announcements', target.id, { image_url: imageUrl });
-    Logger.log('Image linked: #' + target.id + ' ← ' + fileName);
+  // Pass 2: マッチしなかった画像を未紐付け案内に順番で割り当て
+  const unlinkedImages = uploadedImages.filter(img => !img.linked);
+  const unlinkedRecords = records.filter(rec => !linked.has(rec.id));
+
+  for (let i = 0; i < Math.min(unlinkedImages.length, unlinkedRecords.length); i++) {
+    sbPatch('prize_announcements', unlinkedRecords[i].id, { image_url: unlinkedImages[i].imageUrl });
+    Logger.log('Image fallback: #' + unlinkedRecords[i].id + ' (' + unlinkedRecords[i].prize_name + ') ← ' + unlinkedImages[i].origName);
   }
 }
 
