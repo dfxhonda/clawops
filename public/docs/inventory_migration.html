@@ -7,22 +7,39 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;--orange:#e67e22;--radius:8px}
+:root{--hh:53px;--fh:52px;--th:40px}
+html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;font-size:14px}
-header{background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px}
+header{background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--border);position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:20;display:flex;align-items:center;gap:12px}
 header h1{font-size:16px;font-weight:700;white-space:nowrap}
 .hcount{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px}
 .spacer{flex:1}
 .progress{display:flex;gap:6px;align-items:center;font-size:12px}
 .progress .bar{width:120px;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
 .progress .fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
-.filters{padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:53px;z-index:19}
+.filters{padding:0 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);position:fixed;top:var(--hh);left:0;right:0;height:var(--fh);z-index:19;overflow-x:auto}
 .filters input,.filters select{padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px}
 .filters input{flex:1;min-width:100px}
 .btn-sm{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer}
-.list{padding:8px}
+.tabs-bar{position:fixed;top:calc(var(--hh) + var(--fh));left:0;right:0;height:var(--th);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;gap:4px;overflow-x:auto;z-index:18;scrollbar-width:none}
+.tabs-bar::-webkit-scrollbar{display:none}
+.split-area{position:fixed;top:calc(var(--hh) + var(--fh) + var(--th));left:0;right:0;bottom:0;display:flex;overflow:hidden}
+.list-col{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px}
+.detail-col{width:380px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+.detail-col.open{display:block}
+.detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);flex-direction:column;gap:12px;font-size:13px}
+.detail-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.detail-header h3{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail-back{background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;display:none}
+.detail-body{padding:12px 16px}
+.mobile-detail{display:none;position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mobile-detail-header{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:8px;z-index:10}
+@media (max-width:768px){.detail-col{display:none!important}.detail-back{display:block}}
+.list{padding:0}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
 .card.done{border-color:var(--green);opacity:.7}
 .card.skipped{border-color:var(--text2);opacity:.5}
+.card.selected{border-color:var(--accent);background:rgba(124,106,255,.05)}
 .card-header{padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer}
 .card-header:active{background:var(--surface2)}
 .card-name{font-weight:700;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -33,8 +50,7 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 .b-unknown{background:rgba(231,76,60,.15);color:var(--red)}
 .b-done{background:rgba(46,204,113,.15);color:var(--green)}
 .b-pending{background:rgba(124,106,255,.15);color:var(--accent)}
-.card-body{display:none;padding:0 12px 12px;border-top:1px solid var(--border)}
-.card-body.open{display:block}
+.card-body{display:none}
 .candidates{margin-top:8px}
 .cand{padding:10px;border:2px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;transition:border-color .15s}
 .cand:active,.cand.selected{border-color:var(--accent);background:rgba(124,106,255,.1)}
@@ -50,7 +66,7 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 .btn-search{background:var(--cyan);color:#fff;flex:1}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:8px;font-size:14px;z-index:300;display:none;background:var(--green);color:#fff}
-.page-nav{padding:12px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.page-nav{display:contents}
 .page-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer}
 .page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 /* Search Modal */
@@ -88,8 +104,22 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
   <select id="filterOrig" onchange="renderList()"><option value="">元状態：全て</option><option value="一致">一致</option><option value="要確認">要確認</option><option value="不明">不明</option></select>
   <button class="btn-sm" onclick="clearFilters()">クリア</button>
 </div>
-<div class="list" id="listEl"></div>
-<div class="page-nav" id="pageNav"></div>
+<div class="tabs-bar" id="pageNav"></div>
+<div class="split-area">
+  <div class="list-col">
+    <div class="list" id="listEl"></div>
+  </div>
+  <div class="detail-col" id="detailCol">
+    <div class="detail-empty"><span style="font-size:32px">👈</span>左のリストから選択してください</div>
+  </div>
+</div>
+<div class="mobile-detail" id="mobileDetail">
+  <div class="mobile-detail-header">
+    <button class="detail-back" onclick="closeMobileDetail()">‹ 戻る</button>
+    <span id="mobileDetailTitle" style="flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  </div>
+  <div id="mobileDetailBody" style="padding:12px 16px"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- Prize Search Modal -->
@@ -166,7 +196,7 @@ let _debounceTimer;
 function debouncedRender(){clearTimeout(_debounceTimer);_debounceTimer=setTimeout(()=>{currentPage=0;renderList()},250)}
 
 function renderList(){
-  const scrollY=window.scrollY;
+  const lc=document.querySelector('.list-col');const scrollY=lc?lc.scrollTop:window.scrollY;
   const list=getFiltered();
   const start=currentPage*PAGE_SIZE;
   const page=list.slice(start,start+PAGE_SIZE);
@@ -180,8 +210,9 @@ function renderList(){
     const statBadge=it.stat==='一致'?'b-match':it.stat==='要確認'?'b-review':'b-unknown';
     const decBadge=d&&d.status==='confirmed'?'<span class="badge b-done">✓確定</span>':d&&d.status==='skipped'?'<span class="badge" style="background:var(--surface2);color:var(--text2)">スキップ</span>':d&&d.status==='unknown'?'<span class="badge" style="background:rgba(231,76,60,.15);color:var(--red)">不明</span>':'<span class="badge b-pending">未確定</span>';
 
-    html+=`<div class="card ${cls}" id="card-${it.idx}">
-  <div class="card-header" onclick="toggleCard(${it.idx})">
+    const isSel=openIdx===it.idx;
+    html+=`<div class="card ${cls}${isSel?' selected':''}" id="card-${it.idx}" onclick="selectItem(${it.idx})">
+  <div class="card-header">
     <div class="card-name">${esc(it.name)}</div>
     ${decBadge}
     <span class="badge ${statBadge}">${esc(it.stat)}</span>
@@ -191,27 +222,16 @@ function renderList(){
     <span>¥${fmt(it.price)}</span><span style="font-weight:700">${it.qty||0}個</span>
     ${d&&d.selectedName?`<span style="color:var(--green)">→ ${esc(d.selectedName)}</span>`:''}
   </div>
-  <div class="card-body${openIdx===it.idx?' open':''}" id="body-${it.idx}">
-    ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:8px">💡 ${esc(it.note)}</div>`:''}
-    <div class="candidates" id="cands-${it.idx}">${buildCandidates(it)}</div>
-    <div class="card-actions">
-      ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
-      <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
-      <button class="btn btn-search" onclick="openSearch(${it.idx})">🔍 検索</button>
-      <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
-      <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
-    </div>
-  </div>
 </div>`;
   });
 
   document.getElementById('listEl').innerHTML=html||'<div style="padding:40px;text-align:center;color:var(--text2)">該当なし</div>';
   const totalPages=Math.ceil(list.length/PAGE_SIZE);
   let nav='';
-  if(totalPages>1){for(let i=0;i<totalPages;i++) nav+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i+1}</button>`}
-  document.getElementById('pageNav').innerHTML=nav;
+  for(let i=0;i<totalPages;i++) nav+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid ${i===currentPage?'var(--accent)':'var(--border)'};background:${i===currentPage?'var(--accent)':'var(--surface2)'};color:${i===currentPage?'#fff':'var(--text2)'};font-size:12px;cursor:pointer;white-space:nowrap">${i+1}</button>`;
+  document.getElementById('pageNav').innerHTML=nav||'<span style="font-size:12px;color:var(--text2);padding:0 8px">'+list.length+'件</span>';
   renderProgress();
-  requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+  requestAnimationFrame(()=>{const lc=document.querySelector('.list-col');if(lc)lc.scrollTop=scrollY;else window.scrollTo(0,scrollY)});
 }
 
 function buildCandidates(it){
@@ -235,7 +255,55 @@ function buildCandidates(it){
   }).join('');
 }
 
-function toggleCard(idx){openIdx=openIdx===idx?null:idx;renderList();if(openIdx!==null)setTimeout(()=>{const el=document.getElementById('card-'+idx);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'})},50)}
+function selectItem(idx){
+  openIdx=openIdx===idx?null:idx;
+  renderList();
+  if(openIdx!==null){
+    renderDetail(openIdx);
+    const el=document.getElementById('card-'+idx);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }else{
+    document.getElementById('detailCol').innerHTML='<div class="detail-empty"><span style="font-size:32px">👈</span>左のリストから選択してください</div>';
+    document.getElementById('detailCol').classList.remove('open');
+  }
+}
+function renderDetail(idx){
+  const ITEMS_=typeof ITEMS!=='undefined'?ITEMS:[];
+  const it=ITEMS_.find(x=>x.idx===idx);
+  if(!it)return;
+  const d=decisions[it.idx];
+  const isDone=d&&(d.status==='confirmed'||d.status==='skipped');
+  const body=`<div style="margin-bottom:12px">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px">担当 / 店舗 / 機械</div>
+    <div style="font-size:13px">${esc(it.sh)} / ${esc(it.st)} / ${esc(it.mc)}</div>
+  </div>
+  <div style="display:flex;gap:16px;margin-bottom:12px">
+    <div><div style="font-size:11px;color:var(--text2)">棚卸単価</div><div style="font-size:15px;font-weight:700">¥${fmt(it.price)}</div></div>
+    <div><div style="font-size:11px;color:var(--text2)">数量</div><div style="font-size:15px;font-weight:700">${it.qty||0}個</div></div>
+  </div>
+  ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:10px;padding:8px;background:rgba(230,126,34,.1);border-radius:6px">💡 ${esc(it.note)}</div>`:''}
+  ${d&&d.selectedName?`<div style="font-size:13px;color:var(--green);margin-bottom:10px">✓ 紐付け: ${esc(d.selectedName)}</div>`:''}
+  <div style="margin-bottom:8px;font-size:12px;color:var(--text2);font-weight:600">候補</div>
+  <div>${buildCandidates(it)}</div>
+  <div class="card-actions" style="margin-top:14px">
+    ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
+    <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
+    <button class="btn btn-search" onclick="openSearch(${it.idx})">🔍 検索</button>
+    <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
+    <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
+  </div>`;
+  const col=document.getElementById('detailCol');
+  col.innerHTML=`<div class="detail-header"><h3>${esc(it.name)}</h3></div><div class="detail-body">${body}</div>`;
+  col.classList.add('open');
+  // mobile
+  document.getElementById('mobileDetailTitle').textContent=it.name;
+  document.getElementById('mobileDetailBody').innerHTML=body;
+  if(window.innerWidth<=768){
+    document.getElementById('mobileDetail').style.display='block';
+    window.scrollTo(0,0);
+  }
+}
+function closeMobileDetail(){document.getElementById('mobileDetail').style.display='none'}
 
 function selectCand(itemIdx,pid,pname){
   // 中間保存: 選択状態をdecisionsに一時記録（pending状態）
@@ -334,7 +402,7 @@ function pickFromSearch(pid,pname){
   renderList();
 }
 
-function goPage(p){currentPage=p;renderList();window.scrollTo(0,0)}
+function goPage(p){currentPage=p;openIdx=null;renderList();const lc=document.querySelector('.list-col');if(lc)lc.scrollTop=0;else window.scrollTo(0,0)}
 function clearFilters(){document.getElementById('searchInput').value='';document.getElementById('filterDecision').value='';document.getElementById('filterSheet').value='';document.getElementById('filterStore').value='';document.getElementById('filterOrig').value='';currentPage=0;renderList()}
 
 // フィルター初期化: 担当/拠点
