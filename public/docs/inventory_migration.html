@@ -372,12 +372,9 @@ function renderDetail(idx){
 function closeMobileDetail(){document.getElementById('mobileDetail').style.display='none'}
 
 function selectCand(itemIdx,pid,pname){
-  // 中間保存: 選択状態をdecisionsに一時記録（pending状態）
   const d=decisions[itemIdx]||{};
   decisions[itemIdx]={...d,selectedId:pid,selectedName:pname,status:d.status||'pending'};
-  // UIだけ更新
-  const el=document.getElementById('cands-'+itemIdx);
-  if(el){const it={...ITEMS[itemIdx],idx:itemIdx};el.innerHTML=buildCandidates(it)}
+  renderDetail(itemIdx);
 }
 
 async function doConfirm(idx){
