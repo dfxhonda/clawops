@@ -89,10 +89,19 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .count-text{font-size:12px;color:var(--text2)}
 .empty{text-align:center;padding:40px;color:var(--text2);font-size:14px}
 
-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);height:var(--nav-h);display:flex;align-items:center;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom);z-index:100}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2);text-decoration:none;font-size:10px;padding:4px 8px;border-radius:8px;cursor:pointer;transition:color .15s;background:none;border:none}
-.nav-item.active,.nav-item:hover{color:var(--accent)}
-.nav-icon{font-size:20px}
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
+  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
 
 .spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
 .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -131,11 +140,12 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
 <div id="spinnerOverlay" style="display:none" class="spinner-overlay"><div class="spinner"></div></div>
 <div id="toastEl" style="display:none" class="toast"></div>
 
-<nav>
-  <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span>ホーム</a>
-  <a class="nav-item" href="prizes.html"><span class="nav-icon">🎁</span>景品</a>
-  <button class="nav-item active"><span class="nav-icon">⚙️</span>管理</button>
-  <a class="nav-item" href="announcements.html"><span class="nav-icon">📬</span>案内</a>
+<nav class="bottom-nav">
+  <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
+  <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
+  <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
+  <a class="nav-item" href="announcements.html"><div class="nav-icon">📬</div><div>案内</div></a>
+  <a class="nav-item active"><div class="nav-icon">⚙️</div><div>管理</div></a>
 </nav>
 
 <div class="modal-bg" id="modalBg" style="display:none" onclick="closeModalBg(event)">

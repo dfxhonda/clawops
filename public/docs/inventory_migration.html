@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;--orange:#e67e22;--radius:8px}
-:root{--hh:53px;--fh:52px;--th:40px}
+:root{--hh:53px;--fh:52px;--th:40px;--nav-h:56px}
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;font-size:14px}
 header{background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--border);position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:20;display:flex;align-items:center;gap:12px}
@@ -82,6 +82,19 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 .search-item:active{background:var(--surface2)}
 .search-item .si-name{font-weight:700;font-size:13px}
 .search-item .si-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
+  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
 </style>
 </head>
 <body>
@@ -593,5 +606,13 @@ populateStoreFilter('');
 // 初期化: まず全景品ロード → 候補リアルタイム化
 loadAllPrizes().then(()=>loadDecisions()).catch(()=>loadDecisions());
 </script>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
+  <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
+  <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
+  <a class="nav-item" href="announcements.html"><div class="nav-icon">📬</div><div>案内</div></a>
+  <a class="nav-item" href="admin.html"><div class="nav-icon">⚙️</div><div>管理</div></a>
+</nav>
 </body>
 </html>
