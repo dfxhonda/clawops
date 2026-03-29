@@ -152,6 +152,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <header>
   <div class="header-title">📦 在庫管理</div>
   <div class="header-count" id="countBadge">読込中...</div>
+  <div class="header-count" id="totalBadge" style="color:var(--cyan)"></div>
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openMovement()">+ 在庫を動かす</button>
 </header>
@@ -312,6 +313,8 @@ function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else
 function render(){
   const list=getFiltered();
   document.getElementById('countBadge').textContent=list.length+'件';
+  const totalVal=list.reduce((sum,s)=>{const pz=PRIZES[s.prize_id];return sum+(s.quantity||0)*(Number(pz?.original_cost)||0)},0);
+  document.getElementById('totalBadge').textContent='¥'+totalVal.toLocaleString();
   renderTable(list);
   renderMobileList(list);
 }
