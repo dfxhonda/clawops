@@ -138,9 +138,8 @@ tr.selected{background:var(--accent)20}
     display:block;position:fixed;
     top:144px;
     left:0;right:0;
-    bottom:58px;
+    bottom:calc(58px + env(safe-area-inset-bottom));
     overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
-    touch-action:pan-y;
   }
   .fab{display:block}
 }
