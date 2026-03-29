@@ -47,7 +47,8 @@ function processNewEmails() {
         try {
           const fileName = sanitizeFilename(att.getName());
           const storagePath = msgId + '/' + fileName;
-          const imageUrl = uploadToStorage(att.getBlob(), storagePath, att.getContentType());
+          const blob = att.copyBlob();
+          const imageUrl = uploadToStorage(blob, storagePath, att.getContentType());
 
           if (imageUrl) {
             // source_refが一致するannouncementのimage_urlを更新
