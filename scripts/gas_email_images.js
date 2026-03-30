@@ -28,6 +28,7 @@ const PROP_KEY_IMG = 'processed_img_ids';
 const SUPPLIER_MAP = {
   'info@sdy-co.com': 'SDY',
   'achieve.sakamoto@gmail.com': 'AXS',
+  'infinity': 'INF',  // 転送メール: 件名に「請書」+添付xlsx
 };
 
 // 短縮名: 略語マップ
@@ -293,6 +294,47 @@ function ensurePrizeMaster(prizeName, unitCost, supplierId) {
   return null;
 }
 
+// ─── インフィニティ請書 Excel パーサー（GAS版） ───
+function parseInfinityAttachment(attachment, orderDate) {
+  const items = [];
+  try {
+    // ExcelをGoogleスプレッドシートに変換して読む
+    const blob = attachment.copyBlob();
+    const tempFile = Drive.Files.insert(
+      { title: 'temp_inf_' + Date.now(), mimeType: 'application/vnd.google-apps.spreadsheet' },
+      blob, { convert: true }
+    );
+    const ss = SpreadsheetApp.openById(tempFile.id);
+    const sheet = ss.getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+
+    // 16行目(index 15)から2行おき: B=商品名, F=入数, G=数量, H=単価, I=金額, J=入荷予定, K=行先
+    for (let r = 15; r < data.length; r += 2) {
+      const name = String(data[r][1] || '').trim();   // B列
+      const caseSize = Number(data[r][5]) || 1;       // F列
+      const qty = Number(data[r][6]) || 0;            // G列
+      const unitPrice = Number(data[r][7]) || 0;      // H列
+      const dest = String(data[r][10] || '').trim();   // K列
+
+      if (!name || qty === 0 || unitPrice === 0) continue;
+
+      items.push({
+        prize_name: name,
+        unit_cost: unitPrice,
+        case_quantity: caseSize,
+        case_cost: unitPrice * caseSize,
+        notes: dest ? '行先:' + dest : '',
+      });
+    }
+
+    // 一時ファイル削除
+    DriveApp.getFileById(tempFile.id).setTrashed(true);
+  } catch (e) {
+    Logger.log('INF Excel parse error: ' + e.message);
+  }
+  return items;
+}
+
 // ─── 発注登録 ───
 function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeId) {
   const orderId = 'ORD-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyMMdd') + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -318,7 +360,7 @@ function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeI
 // ─── メイン: メール取込（毎日実行） ───
 function dailyProcess() {
   const processed = getProcessedSet(PROP_KEY);
-  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR (subject:メルカリ ご購入) newer_than:7d', 0, 50);
+  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR (subject:メルカリ ご購入) OR (subject:請書 has:attachment) newer_than:7d', 0, 50);
 
   let announcementCount = 0;
   let orderCount = 0;
@@ -339,26 +381,39 @@ function dailyProcess() {
       for (const [email, sid] of Object.entries(SUPPLIER_MAP)) {
         if (from.includes(email)) { supplierId = sid; break; }
       }
+      // メルカリ（転送メール）
+      if (!supplierId && /mercari|メルカリ/.test(body)) {
+        supplierId = 'MCR';
+      }
+      // インフィニティ（転送メール: 請書xlsx添付）
+      if (!supplierId && /請書/.test(subject)) {
+        const atts = msg.getAttachments();
+        if (atts.some(a => a.getName().includes('請書') && a.getName().endsWith('.xlsx'))) {
+          supplierId = 'INF';
+        }
+      }
       if (!supplierId) { processed.add(msgId); continue; }
 
-      // 発注書/請書判定（メルカリは常に購入済み）
-      const isOrder = supplierId === 'MCR' || /発注|注文|請書|確認書/.test(subject);
+      // 発注書/請書判定（メルカリ・INFは常に発注扱い）
+      const isOrder = supplierId === 'MCR' || supplierId === 'INF' || /発注|注文|請書|確認書/.test(subject);
 
       // メール本文パース
       let items = [];
       if (supplierId === 'SDY') {
         items = parseSDYEmail(body, subject);
       }
-      // メルカリ（転送メール）
-      if (!supplierId && /mercari|メルカリ/.test(body)) {
-        supplierId = 'MCR';
-      }
 
       if (supplierId === 'MCR') {
         items = parseMercariEmail(body);
         supplierId = getMercariSupplierId(items); // アカウントで MCR or MC2 に分岐
       }
-      // TODO: INF, AXS, PCH パーサー追加
+
+      if (supplierId === 'INF') {
+        const atts = msg.getAttachments();
+        const xlsx = atts.find(a => a.getName().includes('請書') && a.getName().endsWith('.xlsx'));
+        if (xlsx) items = parseInfinityAttachment(xlsx, date);
+      }
+      // TODO: PCH パーサー追加
 
       if (items.length === 0) {
         processed.add(msgId);
