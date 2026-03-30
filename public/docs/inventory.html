@@ -136,12 +136,40 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .mc-meta{display:flex;gap:8px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-top:2px}
 .fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 
+/* ── Header search ── */
+.header-search{
+  display:none;flex-shrink:1;min-width:0;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 10px;color:var(--text);font-size:13px;outline:none;width:140px;
+}
+.header-search:focus{border-color:var(--accent)}
+.header-search::placeholder{color:var(--text2)}
+
+/* ── Sort bar ── */
+.sort-bar{
+  display:none;
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h));left:0;right:0;
+  height:36px;background:var(--surface);border-bottom:1px solid var(--border);
+  align-items:center;padding:0 12px;gap:4px;overflow-x:auto;z-index:98;
+  scrollbar-width:none;
+}
+.sort-bar::-webkit-scrollbar{display:none}
+.sort-btn{
+  flex-shrink:0;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.sort-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(124,106,255,.1)}
+
 @media(max-width:768px){
   .main{display:none}
   .toolbar{display:none}
   .btn-add{display:none!important}
-  .mobile-list{display:block;top:calc(var(--header-h) + var(--toolbar-h))}
   .toolbar{display:flex}
+  .header-search{display:block}
+  .search-input{display:none}
+  .sort-bar{display:flex}
+  .mobile-list{display:block;top:calc(var(--header-h) + var(--toolbar-h) + 36px)}
   .fab{display:block}
   #mobileSortSelect{display:block}
 }
@@ -153,6 +181,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   <div class="header-title">📦 在庫管理</div>
   <div class="header-count" id="countBadge">読込中...</div>
   <div class="header-count" id="totalBadge" style="color:var(--cyan)"></div>
+  <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openMovement()">+ 在庫を動かす</button>
 </header>
@@ -179,6 +208,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   </select>
   <button class="btn-clear" onclick="clearFilters()">クリア</button>
 </div>
+<div class="sort-bar" id="sortBar"></div>
 
 <div class="main">
   <div class="list-pane" id="listPane">
@@ -223,7 +253,7 @@ function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_sta
 
 // ─── STATE ───
 let STOCKS=[],MOVEMENTS=[],PRIZES={},LOCATIONS=[],STAFF=[],OWNERS=[];
-let sortKey='prize_name',sortDir='asc';
+let sortKey='updated_at',sortDir='desc';
 let curSearch='',filterOwner='',filterQty='';
 let selStockId=null;
 
@@ -305,12 +335,45 @@ function applyFilters(){
 function clearFilters(){
   curSearch='';filterOwner='';filterQty='';
   document.getElementById('searchInput').value='';
+  document.getElementById('headerSearch').value='';
   document.getElementById('ownerFilter').value='';
   document.getElementById('qtyFilter').value='';
   render();
 }
-document.getElementById('searchInput').addEventListener('input',e=>{curSearch=e.target.value.toLowerCase().trim();render()});
+document.getElementById('searchInput').addEventListener('input',e=>{
+  curSearch=e.target.value.toLowerCase().trim();
+  const hs=document.getElementById('headerSearch');
+  if(hs&&hs.value!==e.target.value)hs.value=e.target.value;
+  render();
+});
+document.getElementById('headerSearch').addEventListener('input',function(){
+  document.getElementById('searchInput').value=this.value;
+  curSearch=this.value.toLowerCase().trim();
+  render();
+});
 function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=key;sortDir='asc'}render()}
+
+function buildSortBar(){
+  const cols=[
+    {key:'prize_name',label:'景品名'},
+    {key:'owner',label:'場所'},
+    {key:'quantity',label:'数量'},
+    {key:'original_cost',label:'単価'},
+    {key:'updated_at',label:'更新日'}
+  ];
+  const bar=document.getElementById('sortBar');
+  if(!bar)return;
+  bar.innerHTML=cols.map(c=>{
+    const active=sortKey===c.key;
+    const arrow=active?(sortDir==='asc'?' ↑':' ↓'):'';
+    return`<button class="sort-btn${active?' active':''}" onclick="toggleSort('${c.key}')">${c.label}${arrow}</button>`;
+  }).join('');
+}
+function toggleSort(key){
+  if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';
+  else{sortKey=key;sortDir=key==='prize_name'?'asc':'desc';}
+  render();
+}
 
 // ─── RENDER ───
 function render(){
@@ -320,6 +383,7 @@ function render(){
   document.getElementById('totalBadge').textContent=totalVal.toLocaleString();
   renderTable(list);
   renderMobileList(list);
+  buildSortBar();
 }
 
 function renderTable(list){

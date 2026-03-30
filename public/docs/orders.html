@@ -286,12 +286,40 @@ header{
 .md-body{padding:14px 16px 0}
 .md-actions{padding:14px 16px 32px;display:flex;flex-direction:column;gap:10px}
 
+/* ── Header search ── */
+.header-search{
+  display:none;flex-shrink:1;min-width:0;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 10px;color:var(--text);font-size:13px;outline:none;width:140px;
+}
+.header-search:focus{border-color:var(--accent)}
+.header-search::placeholder{color:var(--text2)}
+
+/* ── Sort bar ── */
+.sort-bar{
+  display:none;
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h));left:0;right:0;
+  height:36px;background:var(--surface);border-bottom:1px solid var(--border);
+  align-items:center;padding:0 12px;gap:4px;overflow-x:auto;z-index:98;
+  scrollbar-width:none;
+}
+.sort-bar::-webkit-scrollbar{display:none}
+.sort-btn{
+  flex-shrink:0;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.sort-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(124,106,255,.1)}
+
 @media (max-width:768px){
   .main{display:none!important}
   .btn-add{display:none!important}
+  .header-search{display:block}
+  .search-wrap{display:none}
+  .sort-bar{display:flex}
   .mobile-list{
     display:block;position:fixed;
-    top:calc(var(--header-h) + var(--toolbar-h));
+    top:calc(var(--header-h) + var(--toolbar-h) + 36px);
     left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
     overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
   }
@@ -306,6 +334,7 @@ header{
   <span class="header-title">📋 発注管理</span>
   <span class="header-count" id="countBadge">読込中…</span>
   <span class="header-count" id="totalBadge" style="background:var(--cyan);color:#000"></span>
+  <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 発注を追加</button>
 </header>
@@ -346,6 +375,7 @@ header{
   <input type="date" class="date-input" id="dateTo" onchange="setDateFilter()" title="入荷予定日（終了）">
   <button class="btn-clear" onclick="clearFilters()">✕ クリア</button>
 </div>
+<div class="sort-bar" id="sortBar"></div>
 
 <div class="main">
   <div class="list-pane" id="listPane">
@@ -568,6 +598,7 @@ function render() {
   if (!list.length) {
     pane.innerHTML = '<div class="empty-pane"><div class="empty-icon">🔍</div>該当する発注がありません</div>';
     renderMobileList(list);
+    buildSortBar();
     return;
   }
 
@@ -615,6 +646,7 @@ ${list.map(o => {
 </tbody>
 </table>`;
   renderMobileList(list);
+  buildSortBar();
 }
 
 function setSort(key) {
@@ -641,6 +673,7 @@ function clearFilters() {
   filterDateFrom = '';
   filterDateTo = '';
   document.getElementById('searchInput').value = '';
+  document.getElementById('headerSearch').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('supplierFilter').value = '';
   document.getElementById('destFilter').value = '';
@@ -651,8 +684,40 @@ function clearFilters() {
 
 document.getElementById('searchInput').addEventListener('input', e => {
   curSearch = e.target.value.trim();
+  const hs = document.getElementById('headerSearch');
+  if (hs && hs.value !== e.target.value) hs.value = e.target.value;
   render();
 });
+document.getElementById('headerSearch').addEventListener('input', function() {
+  document.getElementById('searchInput').value = this.value;
+  curSearch = this.value.trim();
+  render();
+});
+
+function buildSortBar() {
+  const cols = [
+    {key:'expected_date',label:'入荷予定日'},
+    {key:'prize_name_raw',label:'景品名'},
+    {key:'supplier_id',label:'仕入先'},
+    {key:'case_quantity',label:'数量'},
+    {key:'unit_cost',label:'単価'},
+    {key:'case_cost',label:'ケース金額'},
+    {key:'destination',label:'入荷先'},
+    {key:'status',label:'状態'}
+  ];
+  const bar = document.getElementById('sortBar');
+  if (!bar) return;
+  bar.innerHTML = cols.map(c => {
+    const active = sortKey === c.key;
+    const arrow = active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+    return `<button class="sort-btn${active?' active':''}" onclick="toggleSort('${c.key}')">${c.label}${arrow}</button>`;
+  }).join('');
+}
+function toggleSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = key === 'expected_date' ? 'desc' : 'asc'; }
+  render();
+}
 
 // ─── SELECT ORDER ─────────────────────────────────────────────────────────────
 function selectOrder(id) {

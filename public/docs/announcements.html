@@ -148,10 +148,38 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 /* Image */
 .detail-img{width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius);background:var(--surface2);margin-bottom:12px}
 
+/* ── Header search ── */
+.header-search{
+  display:none;flex-shrink:1;min-width:0;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 10px;color:var(--text);font-size:13px;outline:none;width:140px;
+}
+.header-search:focus{border-color:var(--accent)}
+.header-search::placeholder{color:var(--text2)}
+
+/* ── Sort bar ── */
+.sort-bar{
+  display:none;
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h));left:0;right:0;
+  height:36px;background:var(--surface);border-bottom:1px solid var(--border);
+  align-items:center;padding:0 12px;gap:4px;overflow-x:auto;z-index:98;
+  scrollbar-width:none;
+}
+.sort-bar::-webkit-scrollbar{display:none}
+.sort-btn{
+  flex-shrink:0;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2);color:var(--text2);
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.sort-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(124,106,255,.1)}
+
 @media(max-width:768px){
   .main{display:none}
   .btn-add{display:none!important}
-  .mobile-list{display:block;top:calc(var(--header-h) + var(--toolbar-h))}
+  .header-search{display:block}
+  .search-input{display:none}
+  .sort-bar{display:flex}
+  .mobile-list{display:block;top:calc(var(--header-h) + var(--toolbar-h) + 36px)}
   .fab{display:block}
 }
 </style>
@@ -161,6 +189,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <header>
   <div class="header-title">📬 景品案内</div>
   <div class="header-count" id="countBadge">読込中...</div>
+  <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openAddModal()">+ 案内を追加</button>
 </header>
@@ -180,6 +209,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   </select>
   <button class="btn-clear" onclick="clearFilters()">クリア</button>
 </div>
+<div class="sort-bar" id="sortBar"></div>
 
 <div class="main">
   <div class="list-pane" id="listPane">
@@ -303,11 +333,43 @@ function getFiltered(){
 function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=key;sortDir=key==='created_at'?'desc':'asc'}render()}
 function clearFilters(){
   document.getElementById('searchInput').value='';
+  document.getElementById('headerSearch').value='';
   document.getElementById('supplierFilter').value='';
   document.getElementById('statusFilter').value='';
   render();
 }
-document.getElementById('searchInput')?.addEventListener('input',()=>render());
+document.getElementById('searchInput')?.addEventListener('input',function(){
+  const hs=document.getElementById('headerSearch');
+  if(hs&&hs.value!==this.value)hs.value=this.value;
+  render();
+});
+document.getElementById('headerSearch').addEventListener('input',function(){
+  document.getElementById('searchInput').value=this.value;
+  render();
+});
+
+function buildSortBar(){
+  const cols=[
+    {key:'prize_name',label:'景品名'},
+    {key:'supplier_id',label:'仕入先'},
+    {key:'unit_cost',label:'単価'},
+    {key:'case_quantity',label:'入り数'},
+    {key:'status',label:'状態'},
+    {key:'created_at',label:'登録日'}
+  ];
+  const bar=document.getElementById('sortBar');
+  if(!bar)return;
+  bar.innerHTML=cols.map(c=>{
+    const active=sortKey===c.key;
+    const arrow=active?(sortDir==='asc'?' ↑':' ↓'):'';
+    return`<button class="sort-btn${active?' active':''}" onclick="toggleSort('${c.key}')">${c.label}${arrow}</button>`;
+  }).join('');
+}
+function toggleSort(key){
+  if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';
+  else{sortKey=key;sortDir=key==='created_at'?'desc':'asc';}
+  render();
+}
 
 // ─── RENDER TABLE ───
 function render(){
@@ -315,6 +377,7 @@ function render(){
   document.getElementById('countBadge').textContent=list.length+'件';
   renderTable(list);
   renderMobileList(list);
+  buildSortBar();
 }
 
 function renderTable(list){
