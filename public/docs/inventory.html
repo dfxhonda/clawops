@@ -448,11 +448,13 @@ function renderDetail(){
     </div>
     <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
     <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">単価:</span> ${fmt(pz.original_cost)}</div>
-    <div style="margin-bottom:16px;font-size:12px;color:var(--text2)">更新: ${fmtDate(s.updated_at)}</div>
+    <div style="margin-bottom:6px;font-size:12px;color:var(--text2)">更新: ${fmtDate(s.updated_at)}</div>
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text2)">棚卸し: ${s.last_counted_at ? '<span style="color:var(--green);font-weight:600">'+fmtDate(s.last_counted_at)+'確定</span>' : '<span style="color:var(--yellow)">未実施</span>'}</div>
   </div>
   <div class="detail-actions">
     <button class="btn btn-primary" style="flex:1" onclick="openMovement('${esc(s.stock_id)}')">移動</button>
     <button class="btn btn-green" style="flex:1" onclick="openAdjust('${esc(s.stock_id)}')">数量修正</button>
+    <button class="btn" style="flex:1;background:var(--yellow);color:#000;font-weight:700;border:none;padding:9px;border-radius:var(--radius);cursor:pointer" onclick="confirmCount('${esc(s.stock_id)}')">棚卸し確定</button>
   </div>
   <div style="padding:12px 16px">
     <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">最近の移動履歴</div>
@@ -511,10 +513,14 @@ function openMobileDetail(id){
       </div>
     </div>
     <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
-    <div style="margin-bottom:16px;font-size:13px"><span style="color:var(--text2)">単価:</span> ${fmt(pz.original_cost)}</div>
-    <div style="display:flex;gap:8px;margin-bottom:20px">
+    <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">単価:</span> ${fmt(pz.original_cost)}</div>
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text2)">棚卸し: ${s.last_counted_at ? '<span style="color:var(--green);font-weight:600">'+fmtDate(s.last_counted_at)+'確定</span>' : '<span style="color:var(--yellow)">未実施</span>'}</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="btn btn-primary" style="flex:1" onclick="openMovement('${esc(s.stock_id)}')">移動</button>
       <button class="btn btn-green" style="flex:1" onclick="openAdjust('${esc(s.stock_id)}')">数量修正</button>
+    </div>
+    <div style="margin-bottom:20px">
+      <button class="btn" style="width:100%;background:var(--yellow);color:#000;font-weight:700;border:none;padding:10px;border-radius:var(--radius);cursor:pointer" onclick="confirmCount('${esc(s.stock_id)}')">棚卸し確定（数量変化なし）</button>
     </div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">最近の移動履歴</div>
     ${mvs.length?mvs.slice(0,10).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
@@ -526,6 +532,21 @@ function openMobileDetail(id){
   requestAnimationFrame(()=>el.classList.add('open'));
 }
 function closeMobileDetail(){document.getElementById('mobileDetail').classList.remove('open');selStockId=null}
+
+// ─── 棚卸し確定 ───
+async function confirmCount(stockId){
+  if(!confirm('この在庫の棚卸しを確定しますか？\n（現在の数量で計数済みとして記録します）')) return;
+  showLoading();
+  try{
+    const now=new Date().toISOString();
+    await sbPatch('prize_stocks',stockId,'stock_id',{last_counted_at:now,last_counted_by:getStaffId(),updated_at:now,updated_by:getStaffId()});
+    const s=STOCKS.find(x=>x.stock_id===stockId);
+    if(s){s.last_counted_at=now;s.last_counted_by=getStaffId();}
+    showToast('棚卸し確定しました');
+    renderDetail();
+    if(document.getElementById('mobileDetail').classList.contains('open')) openMobileDetail(stockId);
+  }catch(e){showToast('エラー: '+e.message,false)}finally{hideLoading()}
+}
 
 // ─── MOVEMENT MODAL ───
 function openMovement(stockId){
