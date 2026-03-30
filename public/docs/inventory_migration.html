@@ -552,6 +552,7 @@ async function saveToDB(idx,status,pid,pname,note){
 async function loadAllPrizes(){
   if(allPrizes) return allPrizes;
   const [prizes, orders] = await Promise.all([
+  loadItems(),
     sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,aliases&order=prize_name&limit=5000'),
     sbGet('prize_orders','select=order_id,prize_id,prize_name_raw,unit_cost,supplier_id,status&order=order_date.desc&limit=5000'),
   ]);
@@ -706,6 +707,7 @@ populateStoreFilter('');
 
 // 初期化: まずサプライヤー+全景品ロード → 候補リアルタイム化
 Promise.all([
+  loadItems(),
   sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').then(rows => { SUPPLIERS_LIST = rows; }),
   loadAllPrizes()
 ]).then(()=>loadDecisions()).catch(()=>loadDecisions());
