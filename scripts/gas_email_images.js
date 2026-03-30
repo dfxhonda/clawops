@@ -202,6 +202,43 @@ function parseSDYEmail(body, subject) {
     && !/^(お世話|いつも|よろしく|新商品の)/.test(it.prize_name));
 }
 
+// ─── メルカリ購入メール パーサー ───
+function parseMercariEmail(body) {
+  const items = [];
+
+  // 商品名
+  const nameMatch = body.match(/商品名\s*[:：]\s*(.+)/);
+  if (!nameMatch) return items;
+  const prizeName = nameMatch[1].trim();
+
+  // 商品代金（ケース金額として使う）
+  const priceMatch = body.match(/商品代金\s*[:：]\s*[￥¥]?([\d,]+)/);
+  const totalPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : null;
+  if (!totalPrice) return items;
+
+  // 数量: 商品名から「X種」「X個」「Xセット」「X入」を抽出
+  let qty = 1;
+  const qtyMatch = prizeName.match(/(\d+)\s*[種個セット入枚箱]/);
+  if (qtyMatch) qty = parseInt(qtyMatch[1]);
+
+  // 単価 = 商品代金 ÷ 数量
+  const unitCost = Math.round(totalPrice / qty);
+
+  // 商品ID（メモ用）
+  const idMatch = body.match(/商品ID\s*[:：]\s*(\S+)/);
+  const mercariId = idMatch ? idMatch[1].trim() : '';
+
+  items.push({
+    prize_name: prizeName,
+    unit_cost: unitCost,
+    case_quantity: qty,
+    case_cost: totalPrice,
+    notes: 'メルカリ購入' + (mercariId ? ' ' + mercariId : ''),
+  });
+
+  return items;
+}
+
 // ─── 次のprize_id取得 ───
 function getNextPrizeId() {
   const rows = sbGet('prize_masters', 'select=prize_id&order=prize_id.desc&limit=1');
@@ -264,7 +301,7 @@ function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeI
 // ─── メイン: メール取込（毎日実行） ───
 function dailyProcess() {
   const processed = getProcessedSet(PROP_KEY);
-  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com newer_than:7d', 0, 50);
+  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR (subject:メルカリ ご購入) newer_than:7d', 0, 50);
 
   let announcementCount = 0;
   let orderCount = 0;
@@ -287,13 +324,21 @@ function dailyProcess() {
       }
       if (!supplierId) { processed.add(msgId); continue; }
 
-      // 発注書/請書判定
-      const isOrder = /発注|注文|請書|確認書/.test(subject);
+      // 発注書/請書判定（メルカリは常に購入済み）
+      const isOrder = supplierId === 'MCR' || /発注|注文|請書|確認書/.test(subject);
 
       // メール本文パース
       let items = [];
       if (supplierId === 'SDY') {
         items = parseSDYEmail(body, subject);
+      }
+      // メルカリ（転送メール）
+      if (!supplierId && /mercari|メルカリ/.test(body)) {
+        supplierId = 'MCR';
+      }
+
+      if (supplierId === 'MCR') {
+        items = parseMercariEmail(body);
       }
       // TODO: INF, AXS, PCH パーサー追加
 
