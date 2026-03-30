@@ -357,7 +357,7 @@ async function parseKeihinFormCSVs() {
         case_quantity: bp.caseSize || caseSize || 1,
         case_count: Math.max(1, Math.round(qty)),
         unit_cost: bp.realUnitPrice, case_cost: bp.realUnitPrice * (bp.caseSize || caseSize || 1),
-        notes: noteParts.join('; ') || null, status: 'confirmed',
+        notes: noteParts.join('; ') || null, status: 'ordered',
         order_source: 'csv_import', source_file: file.name,
         order_date_source: 'csv_order_datetime',
         shipping_cost: shipping, shipping_allocation_method: qty > 0 ? 'per_order' : null,
@@ -440,7 +440,7 @@ async function parseInfinityXlsx() {
           supplier_id: 'インフィニティ', order_date: orderDate, expected_date: item.expectedDate,
           case_quantity: item.caseSize, case_count: Math.max(1, Math.round(item.qty)),
           unit_cost: item.unitPrice, case_cost: item.unitPrice * item.caseSize,
-          notes: null, status: 'confirmed', order_source: 'xlsx_import',
+          notes: null, status: 'ordered', order_source: 'xlsx_import',
           source_file: file.name, order_date_source: 'filename',
           shipping_cost: shipAlloc, shipping_allocation_method: 'proportional',
           destination: mappedDest, category: 'クレーン景品'
@@ -502,7 +502,7 @@ async function parseAxisXlsx() {
           supplier_id: 'アクシズ', order_date: orderDate, expected_date: expectedDate,
           case_quantity: caseSize, case_count: 1,
           unit_cost: unitPrice, case_cost: unitPrice * caseSize,
-          notes: null, status: 'confirmed', order_source: 'xlsx_import',
+          notes: null, status: 'ordered', order_source: 'xlsx_import',
           source_file: file.name, order_date_source: 'excel_cell',
           shipping_cost: shippingPerItem, shipping_allocation_method: 'per_item',
           destination: destination, category: 'クレーン景品'
@@ -578,7 +578,7 @@ async function parsePeachToyXlsx() {
               supplier_id: 'ピーチトイ', order_date: orderDate, expected_date: expectedDate,
               case_quantity: caseSize, case_count: 1,
               unit_cost: unitPrice, case_cost: unitPrice * caseSize,
-              notes: remarks || null, status: 'confirmed', order_source: 'xlsx_import',
+              notes: remarks || null, status: 'ordered', order_source: 'xlsx_import',
               source_file: file.name, order_date_source: excelModDate ? 'excel_modified' : 'fs_mtime',
               shipping_cost: 0, shipping_allocation_method: 'proportional',
               destination: '', category: 'クレーン景品'
@@ -598,7 +598,7 @@ async function parsePeachToyXlsx() {
                 case_quantity: caseSize, case_count: caseCount,
                 unit_cost: unitPrice, case_cost: unitPrice * caseSize,
                 notes: [remarks, halfNote].filter(Boolean).join('; ') || null,
-                status: 'confirmed', order_source: 'xlsx_import',
+                status: 'ordered', order_source: 'xlsx_import',
                 source_file: file.name, order_date_source: excelModDate ? 'excel_modified' : 'fs_mtime',
                 shipping_cost: 0, shipping_allocation_method: 'proportional',
                 destination: dest, category: 'クレーン景品'
@@ -677,7 +677,7 @@ async function parseSDYXlsx() {
           supplier_id: 'エスディーワイ', order_date: orderDate, expected_date: expectedDate,
           case_quantity: caseSize, case_count: 1,
           unit_cost: unitPrice, case_cost: unitPrice * caseSize,
-          notes: remarks || null, status: 'confirmed', order_source: 'xlsx_import',
+          notes: remarks || null, status: 'ordered', order_source: 'xlsx_import',
           source_file: file.name, order_date_source: orderDateSource,
           shipping_cost: 0, shipping_allocation_method: null,
           destination: dest, category: 'クレーン景品'
