@@ -317,7 +317,7 @@ function render(){
   const list=getFiltered();
   document.getElementById('countBadge').textContent=list.length+'件';
   const totalVal=list.reduce((sum,s)=>{const pz=PRIZES[s.prize_id];return sum+(s.quantity||0)*(Number(pz?.original_cost)||0)},0);
-  document.getElementById('totalBadge').textContent='¥'+totalVal.toLocaleString();
+  document.getElementById('totalBadge').textContent=totalVal.toLocaleString();
   renderTable(list);
   renderMobileList(list);
 }
@@ -347,8 +347,8 @@ ${list.map(s=>{
   <td style="font-weight:600">${esc(pz.prize_name||s.prize_id)}</td>
   <td style="font-size:12px;color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</td>
   <td class="td-r" style="font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}</td>
-  <td class="td-r" style="font-size:12px;color:var(--text2)">¥${fmt(pz.original_cost)}</td>
-  <td class="td-r" style="font-size:12px;color:var(--cyan);font-weight:600">¥${fmt(val)}</td>
+  <td class="td-r" style="font-size:12px;color:var(--text2)">${fmt(pz.original_cost)}</td>
+  <td class="td-r" style="font-size:12px;color:var(--cyan);font-weight:600">${fmt(val)}</td>
   <td style="font-size:11px;color:var(--text2)">${fmtDate(s.updated_at)}</td>
 </tr>`}).join('')}
 </tbody></table>`;
@@ -378,12 +378,12 @@ function renderDetail(){
         <div style="font-size:11px;color:var(--text2)">個</div>
       </div>
       <div style="flex:1;background:var(--surface2);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:18px;font-weight:700;color:var(--cyan)">¥${fmt(val)}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--cyan)">${fmt(val)}</div>
         <div style="font-size:11px;color:var(--text2)">在庫金額</div>
       </div>
     </div>
     <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
-    <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">単価:</span> ¥${fmt(pz.original_cost)}</div>
+    <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">単価:</span> ${fmt(pz.original_cost)}</div>
     <div style="margin-bottom:16px;font-size:12px;color:var(--text2)">更新: ${fmtDate(s.updated_at)}</div>
   </div>
   <div class="detail-actions">
@@ -414,7 +414,7 @@ function renderMobileList(list){
     <div class="mc-meta">
       <span style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</span>
       <span style="font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}個</span>
-      <span>¥${fmt(pz.original_cost)}</span>
+      <span>${fmt(pz.original_cost)}</span>
       <span style="color:var(--text2)">${fmtDate(s.updated_at)}</span>
     </div>
   </div>
@@ -442,12 +442,12 @@ function openMobileDetail(id){
         <div style="font-size:11px;color:var(--text2)">個</div>
       </div>
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:18px;font-weight:700;color:var(--cyan)">¥${fmt(val)}</div>
+        <div style="font-size:18px;font-weight:700;color:var(--cyan)">${fmt(val)}</div>
         <div style="font-size:11px;color:var(--text2)">在庫金額</div>
       </div>
     </div>
     <div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">場所:</span> <strong style="color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</strong></div>
-    <div style="margin-bottom:16px;font-size:13px"><span style="color:var(--text2)">単価:</span> ¥${fmt(pz.original_cost)}</div>
+    <div style="margin-bottom:16px;font-size:13px"><span style="color:var(--text2)">単価:</span> ${fmt(pz.original_cost)}</div>
     <div style="display:flex;gap:8px;margin-bottom:20px">
       <button class="btn btn-primary" style="flex:1" onclick="openMovement('${esc(s.stock_id)}')">移動</button>
       <button class="btn btn-green" style="flex:1" onclick="openAdjust('${esc(s.stock_id)}')">数量修正</button>

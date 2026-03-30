@@ -239,7 +239,7 @@ function renderList(){
   </div>
   <div class="card-meta">
     <span>${esc(it.sh)}</span><span>${esc(it.st)}</span><span>${esc(it.mc)}</span>
-    <span>¥${fmt(it.price)}</span><span style="font-weight:700">${it.qty||0}個</span>
+    <span>${fmt(it.price)}</span><span style="font-weight:700">${it.qty||0}個</span>
     ${d&&d.selectedName?`<span style="color:var(--green)">→ ${esc(d.selectedName)}</span>`:''}
   </div>
 </div>`;
@@ -325,7 +325,7 @@ function buildCandidates(it){
     return`<div class="cand${sel?' selected':''}" onclick="selectCand(${it.idx},'${esc(c.id)}','${esc(c.name)}')">
       <div class="cand-name">${esc(c.name)}</div>
       ${c.alias?`<div style="font-size:11px;color:var(--text2);margin:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.alias)}</div>`:''}
-      <div class="cand-meta">${c.src==='order'?'<span style="color:var(--cyan)">📋発注</span> ':''}${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">¥${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸¥'+fmt(origPrice)+')'):''}${c.src==='master'&&c.status!=='active'?'<span style="color:var(--red)"> 停止</span>':''}</div>
+      <div class="cand-meta">${c.src==='order'?'<span style="color:var(--cyan)">📋発注</span> ':''}${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸'+fmt(origPrice)+')'):''}${c.src==='master'&&c.status!=='active'?'<span style="color:var(--red)"> 停止</span>':''}</div>
     </div>`;
   }).join('');
 }
@@ -350,7 +350,7 @@ function renderDetail(idx){
   const topFixed=`
   <div style="display:flex;gap:12px;margin-bottom:8px;font-size:12px;color:var(--text2)">
     <span>${esc(it.sh)} / ${esc(it.st)} / ${esc(it.mc)}</span>
-    <span style="font-weight:700;color:var(--text)">¥${fmt(it.price)}</span>
+    <span style="font-weight:700;color:var(--text)">${fmt(it.price)}</span>
     <span style="font-weight:700;color:var(--text)">${it.qty||0}個</span>
   </div>
   ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:8px;padding:6px 8px;background:rgba(230,126,34,.1);border-radius:6px">💡 ${esc(it.note)}</div>`:''}
@@ -588,7 +588,7 @@ function _runInlineSearch(idx, val){
     const sel=d.selectedId===p.prize_id;
     return`<div class="cand${sel?' selected':''}" onclick="selectCand(${idx},'${esc(p.prize_id)}','${esc(p.prize_name)}')">
       <div class="cand-name">${esc(p.prize_name)}</div>
-      <div class="cand-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(p.original_cost)}</span>${origP&&cp?(match?' ✓':' (棚卸¥'+fmt(origP)+')'):''}${p.status==='active'?'':'<span style="color:var(--red)"> 停止</span>'}</div>
+      <div class="cand-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(p.original_cost)}</span>${origP&&cp?(match?' ✓':' (棚卸'+fmt(origP)+')'):''}${p.status==='active'?'':'<span style="color:var(--red)"> 停止</span>'}</div>
     </div>`}).join('');
   if(orderHits.length){
     html+='<div style="padding:4px 0;font-size:11px;color:var(--cyan);border-top:1px solid var(--border);margin-top:4px">📋 発注履歴</div>';
@@ -600,7 +600,7 @@ function _runInlineSearch(idx, val){
       const sel=d.selectedId===pickId;
       return`<div class="cand${sel?' selected':''}" onclick="selectCand(${idx},'${esc(pickId)}','${esc(pickName)}')">
         <div class="cand-name">${esc(pickName)}</div>
-        <div class="cand-meta"><span style="color:var(--cyan)">📋</span> ${esc(o.order_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(o.unit_cost)}</span></div>
+        <div class="cand-meta"><span style="color:var(--cyan)">📋</span> ${esc(o.order_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(o.unit_cost)}</span></div>
       </div>`}).join('');
   }
   if(el)el.innerHTML=html;
@@ -649,7 +649,7 @@ async function doModalSearch(){
       return`<div class="search-item" onclick="pickFromSearch('${esc(p.prize_id)}','${esc(p.prize_name)}')">
       <div class="si-name">${esc(p.prize_name)}</div>
       ${firstAlias?`<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(firstAlias)}</div>`:''}
-      <div class="si-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(p.original_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸¥'+fmt(origP)+')'):''} | ${p.status==='active'?'有効':'停止'}</div>
+      <div class="si-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(p.original_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸'+fmt(origP)+')'):''} | ${p.status==='active'?'有効':'停止'}</div>
     </div>`}).join('');
     const orderHtml=orderHits.length?('<div style="padding:8px 12px;font-size:11px;color:var(--cyan);border-top:1px solid var(--border);margin-top:4px">📋 発注履歴から</div>'+orderHits.map(o=>{
       const cp=Number(o.unit_cost)||0;
@@ -658,7 +658,7 @@ async function doModalSearch(){
       const pickName=o.prize_name_raw||o.order_id;
       return`<div class="search-item" onclick="pickFromSearch('${esc(pickId)}','${esc(pickName)}')">
       <div class="si-name">${esc(o.prize_name_raw||o.order_id)}</div>
-      <div class="si-meta"><span style="color:var(--cyan)">📋${esc(o.order_id)}</span> | <span style="color:${match?'var(--green)':'var(--text)'}">¥${fmt(o.unit_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸¥'+fmt(origP)+')'):''}${o.supplier_id?' | '+esc(o.supplier_id):''}</div>
+      <div class="si-meta"><span style="color:var(--cyan)">📋${esc(o.order_id)}</span> | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(o.unit_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸'+fmt(origP)+')'):''}${o.supplier_id?' | '+esc(o.supplier_id):''}</div>
     </div>`}).join('')):'';
     el.innerHTML=masterHtml+orderHtml;
   }catch(e){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--red)">エラー: '+esc(e.message)+'</div>'}

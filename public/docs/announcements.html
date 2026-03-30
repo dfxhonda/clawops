@@ -339,7 +339,7 @@ ${list.map(it=>{
   <td>${hasImg?`<img src="${esc(it.image_url)}" style="width:32px;height:32px;border-radius:4px;object-fit:cover">`:'<div style="width:32px;height:32px;border-radius:4px;background:var(--surface2)"></div>'}</td>
   <td style="font-weight:600">${esc(it.prize_name)}</td>
   <td><span class="supplier-tag sup-${it.supplier_id||''}">${supName(it.supplier_id)}</span></td>
-  <td class="td-r">${it.unit_cost?'¥'+fmt(it.unit_cost):'—'}</td>
+  <td class="td-r">${it.unit_cost?fmt(it.unit_cost):'—'}</td>
   <td class="td-r">${it.case_quantity||'—'}</td>
   <td><span class="badge b-${it.status}">${STATUS_LABEL[it.status]||it.status}</span></td>
   <td style="font-size:11px;color:var(--text2)">${fmtDate(it.created_at)}</td>
@@ -368,9 +368,9 @@ function renderDetail(){
       <span class="badge b-${it.status}">${STATUS_LABEL[it.status]||it.status}</span>
     </div>
     <div style="display:flex;gap:20px;margin-bottom:16px">
-      <div><div style="font-size:11px;color:var(--text2)">単価</div><div style="font-size:18px;font-weight:700">${it.unit_cost?'¥'+fmt(it.unit_cost):'—'}</div></div>
+      <div><div style="font-size:11px;color:var(--text2)">単価</div><div style="font-size:18px;font-weight:700">${it.unit_cost?fmt(it.unit_cost):'—'}</div></div>
       <div><div style="font-size:11px;color:var(--text2)">入り数</div><div style="font-size:18px;font-weight:700">${it.case_quantity||'—'}</div></div>
-      <div><div style="font-size:11px;color:var(--text2)">箱単価</div><div style="font-size:18px;font-weight:700">${it.case_cost?'¥'+fmt(it.case_cost):'—'}</div></div>
+      <div><div style="font-size:11px;color:var(--text2)">箱単価</div><div style="font-size:18px;font-weight:700">${it.case_cost?fmt(it.case_cost):'—'}</div></div>
     </div>
     ${it.release_date?`<div style="margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">発売日:</span> ${fmtDate(it.release_date)}</div>`:''}
     ${it.notes?`<div style="margin-bottom:12px;font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">${esc(it.notes)}</div>`:''}
@@ -397,7 +397,7 @@ function renderMobileList(list){
     <div class="mc-name">${esc(it.prize_name)}</div>
     <div class="mc-meta">
       <span class="supplier-tag sup-${it.supplier_id||''}" style="font-size:10px">${supName(it.supplier_id)}</span>
-      ${it.unit_cost?`<span>¥${fmt(it.unit_cost)}</span>`:''}
+      ${it.unit_cost?`<span>${fmt(it.unit_cost)}</span>`:''}
       ${it.case_quantity?`<span>${it.case_quantity}入</span>`:''}
       <span class="badge b-${it.status}" style="font-size:10px">${STATUS_LABEL[it.status]||it.status}</span>
     </div>
@@ -424,7 +424,7 @@ function openMobileDetail(id){
     </div>
     <div style="display:flex;gap:12px;margin-bottom:16px">
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:20px;font-weight:700">${it.unit_cost?'¥'+fmt(it.unit_cost):'—'}</div>
+        <div style="font-size:20px;font-weight:700">${it.unit_cost?fmt(it.unit_cost):'—'}</div>
         <div style="font-size:11px;color:var(--text2)">単価</div>
       </div>
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
@@ -432,7 +432,7 @@ function openMobileDetail(id){
         <div style="font-size:11px;color:var(--text2)">入り数</div>
       </div>
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-        <div style="font-size:20px;font-weight:700">${it.case_cost?'¥'+fmt(it.case_cost):'—'}</div>
+        <div style="font-size:20px;font-weight:700">${it.case_cost?fmt(it.case_cost):'—'}</div>
         <div style="font-size:11px;color:var(--text2)">箱単価</div>
       </div>
     </div>
@@ -547,7 +547,7 @@ function openOrderModal(id){
     <div style="font-size:15px;font-weight:700;margin-bottom:12px">${esc(it.prize_name)}</div>
     <div style="display:flex;gap:12px;margin-bottom:16px;font-size:13px;color:var(--text2)">
       <span>${supName(it.supplier_id)}</span>
-      ${it.unit_cost?`<span>¥${fmt(it.unit_cost)}</span>`:''}
+      ${it.unit_cost?`<span>${fmt(it.unit_cost)}</span>`:''}
     </div>
     <div class="field"><label>発注数量 <span style="color:var(--red)">*</span></label><input type="number" id="ordQty" min="1" value="${it.case_quantity||''}" placeholder="個数"></div>
     <div class="field"><label>発注日</label><input type="date" id="ordDate" value="${today}"></div>

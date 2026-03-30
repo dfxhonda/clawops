@@ -305,6 +305,7 @@ header{
 <header>
   <span class="header-title">📋 発注管理</span>
   <span class="header-count" id="countBadge">読込中…</span>
+  <span class="header-count" id="totalBadge" style="background:var(--cyan);color:#000"></span>
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 発注を追加</button>
 </header>
@@ -560,6 +561,8 @@ function getFiltered() {
 function render() {
   const list = getFiltered();
   document.getElementById('countBadge').textContent = list.length + '件';
+  const totalCaseCost = list.reduce((sum, o) => sum + (Number(o.case_cost) || 0), 0);
+  document.getElementById('totalBadge').textContent = totalCaseCost ? totalCaseCost.toLocaleString('ja-JP') : '';
   const pane = document.getElementById('listPane');
 
   if (!list.length) {
@@ -742,7 +745,7 @@ function renderDetail() {
     </div>
     <div class="field">
       <label>ケース金額（case_cost）</label>
-      <div class="field-readonly">${o.case_cost != null ? '¥' + fmt(o.case_cost) : '—'}</div>
+      <div class="field-readonly">${o.case_cost != null ? fmt(o.case_cost) : '—'}</div>
     </div>
   </div>
   <div class="field-row">
@@ -947,8 +950,8 @@ function renderMobileList(list) {
     <div class="mc-name">${esc(prizeName(o))}</div>
     <div class="mc-meta">
       ${o.supplier_id ? `<span style="color:var(--orange)">${esc(supName(o.supplier_id))}</span>` : ''}
-      ${o.unit_cost != null ? `<span style="color:var(--text);font-weight:700">¥${fmt(o.unit_cost)}</span>` : ''}
-      ${o.case_cost != null ? `<span style="color:var(--cyan)">¥${fmt(o.case_cost)}</span>` : ''}
+      ${o.unit_cost != null ? `<span style="color:var(--text);font-weight:700">${fmt(o.unit_cost)}</span>` : ''}
+      ${o.case_cost != null ? `<span style="color:var(--cyan)">${fmt(o.case_cost)}</span>` : ''}
       ${o.case_quantity != null ? `<span style="color:var(--text2)">×${o.case_quantity}</span>` : ''}
       ${o.expected_date ? `<span style="color:var(--text2)">${fmtDate(o.expected_date)}</span>` : ''}
     </div>
@@ -1067,7 +1070,7 @@ function renderMobileDetailContent() {
   ${!isNewMode ? `
   <div class="field">
     <label>ケース金額</label>
-    <div class="field-readonly">${o.case_cost != null ? '¥' + fmt(o.case_cost) : '—'}</div>
+    <div class="field-readonly">${o.case_cost != null ? fmt(o.case_cost) : '—'}</div>
   </div>
   <div class="field">
     <label>元データ形式（order_source）</label>
