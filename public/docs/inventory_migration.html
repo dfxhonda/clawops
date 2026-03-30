@@ -420,16 +420,22 @@ async function doConfirmAsIs(idx){
 }
 
 // ─── マスタ登録フォーム ───
-const PURCHASE_SOURCES=[
-  {v:'',l:'選択してください'},
-  {v:'shop',l:'ショップ購入'},
-  {v:'amazon',l:'Amazon'},
-  {v:'mercari',l:'メルカリ'},
-  {v:'snkrdunk',l:'スニダン'},
-  {v:'aliexpress',l:'アリエク'},
-  {v:'shein',l:'SHEIN'},
-  {v:'other',l:'その他'},
-];
+let SUPPLIERS_LIST=[];
+
+async function ensureSupplier(name) {
+  if (!name) return null;
+  const existing = SUPPLIERS_LIST.find(s => s.supplier_name === name);
+  if (existing) return existing.supplier_id;
+  const newId = name.slice(0,3).toUpperCase().replace(/[^A-Z0-9]/g,'X') + String(Date.now()).slice(-2);
+  await sbPost('suppliers', {supplier_id: newId, supplier_name: name, is_active: true});
+  SUPPLIERS_LIST.push({supplier_id: newId, supplier_name: name});
+  return newId;
+}
+
+function buildSupplierOptionsIM(currentVal) {
+  return '<option value="">選択してください</option>' +
+    SUPPLIERS_LIST.map(s => `<option value="${s.supplier_id}" ${currentVal===s.supplier_id?'selected':''}>${esc(s.supplier_name)}</option>`).join('');
+}
 
 function openRegisterForm(idx){
   const it=ITEMS[idx];
@@ -449,7 +455,7 @@ function openRegisterForm(idx){
     <div style="margin-bottom:10px">
       <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">仕入先</label>
       <select id="regSupplier" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
-        ${PURCHASE_SOURCES.map(s=>'<option value="'+s.v+'">'+s.l+'</option>').join('')}
+        ${buildSupplierOptionsIM('')}
       </select>
     </div>
     <div id="regErr" style="font-size:12px;color:var(--red);margin-bottom:8px"></div>
@@ -698,8 +704,11 @@ function onSheetFilter(){
 }
 populateStoreFilter('');
 
-// 初期化: まず全景品ロード → 候補リアルタイム化
-loadAllPrizes().then(()=>loadDecisions()).catch(()=>loadDecisions());
+// 初期化: まずサプライヤー+全景品ロード → 候補リアルタイム化
+Promise.all([
+  sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').then(rows => { SUPPLIERS_LIST = rows; }),
+  loadAllPrizes()
+]).then(()=>loadDecisions()).catch(()=>loadDecisions());
 </script>
 
 <nav class="bottom-nav">

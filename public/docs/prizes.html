@@ -466,6 +466,19 @@ async function sbPost(table, body) {
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}
 
+// ─── SUPPLIERS (from DB) ──────────────────────────────────────────────────
+let SUPPLIERS_LIST = [];
+
+async function ensureSupplier(name) {
+  if (!name) return null;
+  const existing = SUPPLIERS_LIST.find(s => s.supplier_name === name);
+  if (existing) return existing.supplier_id;
+  const newId = name.slice(0,3).toUpperCase().replace(/[^A-Z0-9]/g,'X') + String(Date.now()).slice(-2);
+  await sbPost('suppliers', {supplier_id: newId, supplier_name: name, is_active: true});
+  SUPPLIERS_LIST.push({supplier_id: newId, supplier_name: name});
+  return newId;
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA = [];
 
@@ -526,9 +539,14 @@ function showToast(msg, ok=true) {
 async function loadAll() {
   showLoading();
   try {
-    DATA = await sbGet('prize_masters',
-      'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
-      '&order=prize_name.asc&limit=2000');
+    const [prizes, suppRows] = await Promise.all([
+      sbGet('prize_masters',
+        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
+        '&order=prize_name.asc&limit=2000'),
+      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name')
+    ]);
+    DATA = prizes;
+    SUPPLIERS_LIST = suppRows;
 
     buildSupplierFilter();
     render();
@@ -546,7 +564,9 @@ function buildSupplierFilter() {
   const sel = document.getElementById('supplierFilter');
   while (sel.options.length > 1) sel.remove(1);
 
-  const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+  const fromData = DATA.map(p => p.supplier_name).filter(Boolean);
+  const dbNames = SUPPLIERS_LIST.map(s => s.supplier_name);
+  const names = [...new Set([...dbNames, ...fromData])].sort();
   names.forEach(n => {
     const opt = document.createElement('option');
     opt.value = n;
@@ -729,11 +749,11 @@ function selectPrize(id) {
 }
 
 // ─── RENDER DETAIL PANEL ──────────────────────────────────────────────────────
-const ALL_SUPPLIERS = ['景品フォーム','ピーチトイ','エスディーワイ','インフィニティ','アクシズ','LINE仕入先','メルカリ(本田)','メルカリ(坂本)'];
 function buildSupplierOptions(currentVal) {
   let opts = '<option value="">未設定</option>';
   const fromData = DATA.map(p => p.supplier_name).filter(Boolean);
-  const names = [...new Set([...ALL_SUPPLIERS, ...fromData])].sort();
+  const dbNames = SUPPLIERS_LIST.map(s => s.supplier_name);
+  const names = [...new Set([...dbNames, ...fromData])].sort();
   opts += names.map(n =>
     `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`
   ).join('');
@@ -846,6 +866,9 @@ async function savePrize() {
   if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
 
   if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
+
+  // ── Auto-register new supplier ──
+  if (supVal) await ensureSupplier(supVal);
 
   // ── Payload ──
   const payload = {
@@ -1102,6 +1125,9 @@ async function savePrizeMobile() {
   const dupeName = DATA.find(p => p.prize_name === name && String(p.prize_id) !== String(selPrizeId));
   if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
   if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
+
+  // ── Auto-register new supplier ──
+  if (supVal) await ensureSupplier(supVal);
 
   const payload = {
     prize_name: name, aliases: aliases || null,

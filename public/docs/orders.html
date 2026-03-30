@@ -455,8 +455,20 @@ let DATA = [];
 let PRIZES = [];    // {prize_id, prize_name} from prize_masters
 let PRIZE_MAP = {}; // prize_id -> prize_name
 let SUPPLIERS = []; // distinct supplier_id values
-const SUP_NAME = {SGP:'景品フォーム',PCH:'ピーチトイ',SDY:'エスディーワイ',INF:'インフィニティ',AXS:'アクシズ',LNS:'LINE仕入先',MCR:'メルカリ(本田)',MC2:'メルカリ(坂本)'};
+let SUPPLIERS_LIST = [];
+let SUP_NAME = {};
 function supName(id){ return SUP_NAME[id] || id || '—'; }
+
+async function ensureSupplier(name) {
+  if (!name) return null;
+  const existing = SUPPLIERS_LIST.find(s => s.supplier_name === name);
+  if (existing) return existing.supplier_id;
+  const newId = name.slice(0,3).toUpperCase().replace(/[^A-Z0-9]/g,'X') + String(Date.now()).slice(-2);
+  await sbPost('suppliers', {supplier_id: newId, supplier_name: name, is_active: true});
+  SUPPLIERS_LIST.push({supplier_id: newId, supplier_name: name});
+  SUP_NAME[newId] = name;
+  return newId;
+}
 
 let selOrderId = null;
 let isNewMode = false;
@@ -526,19 +538,22 @@ function showToast(msg, ok=true) {
 async function loadAll() {
   showLoading();
   try {
-    const [orders, prizes] = await Promise.all([
+    const [orders, prizes, suppRows] = await Promise.all([
       sbGet('prize_orders',
         'select=order_id,prize_id,prize_name_raw,supplier_id,order_source,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,destination,status,source_file,notes' +
         '&order=order_date.desc&limit=2000'),
-      sbGet('prize_masters', 'select=prize_id,prize_name,short_name&order=prize_name.asc&limit=2000').catch(() => [])
+      sbGet('prize_masters', 'select=prize_id,prize_name,short_name&order=prize_name.asc&limit=2000').catch(() => []),
+      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name')
     ]);
 
     DATA = orders;
     PRIZES = prizes || [];
     PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.short_name || p.prize_name]));
+    SUPPLIERS_LIST = suppRows;
+    SUP_NAME = Object.fromEntries(SUPPLIERS_LIST.map(s => [s.supplier_id, s.supplier_name]));
 
     // 仕入先フィルター選択肢を日本語名で生成
-    const supIds = [...new Set(DATA.map(o => o.supplier_id).filter(Boolean))].sort();
+    const supIds = [...new Set([...SUPPLIERS_LIST.map(s => s.supplier_id), ...DATA.map(o => o.supplier_id).filter(Boolean)])].sort();
     const sf = document.getElementById('supplierFilter');
     sf.innerHTML = '<option value="">仕入先：全て</option>' + supIds.map(id => `<option value="${id}">${esc(supName(id))}</option>`).join('');
 
@@ -782,7 +797,7 @@ function renderDetail() {
     <label>仕入先</label>
     <select id="fSupplierId" onchange="markDirty()">
       <option value="">選択してください</option>
-      ${Object.entries(SUP_NAME).map(([k,v])=>`<option value="${k}" ${o.supplier_id===k?'selected':''}>${v}</option>`).join('')}
+      ${SUPPLIERS_LIST.map(s=>`<option value="${s.supplier_id}" ${o.supplier_id===s.supplier_id?'selected':''}>${esc(s.supplier_name)}</option>`).join('')}
     </select>
   </div>
   <div class="field">
@@ -1090,7 +1105,7 @@ function renderMobileDetailContent() {
     <label>仕入先</label>
     <select id="mfSupplierId" onchange="markDirtyMobile()">
       <option value="">選択してください</option>
-      ${Object.entries(SUP_NAME).map(([k,v])=>`<option value="${k}" ${o.supplier_id===k?'selected':''}>${v}</option>`).join('')}
+      ${SUPPLIERS_LIST.map(s=>`<option value="${s.supplier_id}" ${o.supplier_id===s.supplier_id?'selected':''}>${esc(s.supplier_name)}</option>`).join('')}
     </select>
   </div>
   <div class="field-row">
