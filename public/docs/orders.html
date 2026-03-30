@@ -108,9 +108,9 @@ header{
 }
 .order-table thead th:hover{color:var(--text)}
 .order-table thead th.sorted{color:var(--accent)}
-.order-table colgroup col.col-date{width:10%}
-.order-table colgroup col.col-name{width:26%}
-.order-table colgroup col.col-src{width:14%}
+.order-table colgroup col.col-date{width:13%}
+.order-table colgroup col.col-name{width:25%}
+.order-table colgroup col.col-src{width:8%}
 .order-table colgroup col.col-qty{width:7%}
 .order-table colgroup col.col-unit{width:10%}
 .order-table colgroup col.col-case{width:11%}
@@ -594,10 +594,10 @@ ${list.map(o => {
   <td class="td-name" title="${esc(prizeName(o))}">
     <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prizeName(o))}</div>
   </td>
-  <td class="td-src" title="${esc(o.supplier_id)}">${esc(supName(o.supplier_id))}</td>
+  <td class="td-src" title="${esc(supName(o.supplier_id))}">${esc(o.supplier_id || '—')}</td>
   <td class="td-qty">${o.case_quantity != null ? o.case_quantity : '—'}</td>
-  <td class="td-num">${o.unit_cost != null ? '¥'+fmt(o.unit_cost) : '—'}</td>
-  <td class="td-num">${o.case_cost != null ? '¥'+fmt(o.case_cost) : '—'}</td>
+  <td class="td-num">${o.unit_cost != null ? fmt(o.unit_cost) : '—'}</td>
+  <td class="td-num">${o.case_cost != null ? fmt(o.case_cost) : '—'}</td>
   <td class="td-dest" title="${esc(o.destination)}">${esc(o.destination || '—')}</td>
   <td>${statusBadge(o.status)}</td>
 </tr>`;
