@@ -202,6 +202,12 @@ function parseSDYEmail(body, subject) {
     && !/^(お世話|いつも|よろしく|新商品の)/.test(it.prize_name));
 }
 
+// ─── メルカリ アカウント→仕入先マップ ───
+const MERCARI_ACCOUNTS = {
+  'merukarider': 'MCR',   // 本田
+  'k&a':        'MC2',   // 坂本
+};
+
 // ─── メルカリ購入メール パーサー ───
 function parseMercariEmail(body) {
   const items = [];
@@ -228,15 +234,26 @@ function parseMercariEmail(body) {
   const idMatch = body.match(/商品ID\s*[:：]\s*(\S+)/);
   const mercariId = idMatch ? idMatch[1].trim() : '';
 
+  // アカウント判定（「XXXさん」の部分）
+  const accountMatch = body.match(/^>?\s*(\S+?)さん/m);
+  const accountName = accountMatch ? accountMatch[1].toLowerCase() : '';
+  const supplierId = MERCARI_ACCOUNTS[accountName] || 'MCR';
+
   items.push({
     prize_name: prizeName,
     unit_cost: unitCost,
     case_quantity: qty,
     case_cost: totalPrice,
     notes: 'メルカリ購入' + (mercariId ? ' ' + mercariId : ''),
+    _supplierId: supplierId,
   });
 
   return items;
+}
+
+// メルカリのsupplierIdを取得
+function getMercariSupplierId(items) {
+  return (items.length > 0 && items[0]._supplierId) ? items[0]._supplierId : 'MCR';
 }
 
 // ─── 次のprize_id取得 ───
@@ -339,6 +356,7 @@ function dailyProcess() {
 
       if (supplierId === 'MCR') {
         items = parseMercariEmail(body);
+        supplierId = getMercariSupplierId(items); // アカウントで MCR or MC2 に分岐
       }
       // TODO: INF, AXS, PCH パーサー追加
 
