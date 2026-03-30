@@ -40,7 +40,7 @@ export default function InventoryMatch() {
         const [p, l] = await Promise.all([getPrizes(), getLocations()])
         setPrizes(p)
         setLocations(l.filter(x => x.active_flag === '1'))
-      } catch (e) { console.error(e) }
+      } catch {}
       setLoading(false)
     }
     load()

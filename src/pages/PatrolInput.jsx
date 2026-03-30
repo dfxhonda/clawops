@@ -117,9 +117,6 @@ export default function PatrolInput() {
           <h2 className="text-lg font-bold text-accent">{booth.full_booth_code}</h2>
           <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName || booth.booth_code}</p>
         </div>
-        {draftCount > 0 && (
-          <span className="text-xs text-accent font-bold cursor-pointer" onClick={() => navigate('/drafts')}>📝 {draftCount}件</span>
-        )}
       </div>
 
       {/* 保存完了 */}
@@ -132,9 +129,9 @@ export default function PatrolInput() {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors mb-2">
             📷 次のブースをスキャン
           </button>
-          <button onClick={() => navigate('/drafts')}
+          <button onClick={() => navigate('/')}
             className="w-full bg-surface2 border border-border text-text font-medium py-3 rounded-xl">
-            📝 下書き一覧へ ({getDrafts().length}件)
+            ホームに戻る
           </button>
         </div>
       ) : (

@@ -45,9 +45,7 @@ export default function InventoryTransfer() {
         const staffIds = [...new Set(s.filter(x => x.owner_type === 'staff').map(x => x.owner_id))].filter(Boolean)
         setStaffList(staffIds)
         setRecentTransfers(mv.filter(m => m.movement_type === 'transfer').slice(-10).reverse())
-      } catch (e) {
-        console.error(e)
-      }
+      } catch {}
       setLoading(false)
     }
     load()

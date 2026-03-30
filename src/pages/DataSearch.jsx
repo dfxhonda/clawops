@@ -1,8 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllMeterReadings, getStores, parseNum, getToken, clearCache } from '../services/sheets'
-
-const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+import { getAllMeterReadings, getStores, parseNum, sheetsPut, sheetsBatchUpdate, clearCache } from '../services/sheets'
 
 export default function DataSearch() {
   const navigate = useNavigate()
@@ -23,7 +21,7 @@ export default function DataSearch() {
   useEffect(() => {
     Promise.all([getAllMeterReadings(true), getStores()]).then(([readings, storeList]) => {
       setAllReadings(readings); setStores(storeList); setLoading(false)
-    }).catch(e => { console.error(e); setLoading(false) })
+    }).catch(() => { setLoading(false) })
   }, [])
 
   const boothOptions = useMemo(() => {
@@ -81,29 +79,20 @@ export default function DataSearch() {
     try {
       const deleteRows = deleteEntries.map(idx => idx + 2).sort((a,b) => b - a)
       for (const rowIndex of deleteRows) {
-        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`, {
-          method:'POST', headers:{ Authorization:`Bearer ${getToken()}`, 'Content-Type':'application/json' },
-          body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: 0, dimension: 'ROWS', startIndex: rowIndex - 1, endIndex: rowIndex }}}]})
-        })
+        await sheetsBatchUpdate([{ deleteDimension: { range: { sheetId: 0, dimension: 'ROWS', startIndex: rowIndex - 1, endIndex: rowIndex }}}])
       }
       for (const [idxStr, edit] of editEntries) {
         const idx = Number(idxStr); const orig = edit._original; const rowIndex = idx + 2
         if (edit.read_time && edit.read_time !== orig.read_time?.slice(0,10)) {
-          await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`meter_readings!D${rowIndex}`)}?valueInputOption=USER_ENTERED`, {
-            method:'PUT', headers:{ Authorization:`Bearer ${getToken()}`, 'Content-Type':'application/json' },
-            body: JSON.stringify({ values: [[edit.read_time]] })
-          })
+          await sheetsPut(`meter_readings!D${rowIndex}`, [[edit.read_time]])
         }
         const range = `meter_readings!E${rowIndex}:I${rowIndex}`
-        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`, {
-          method:'PUT', headers:{ Authorization:`Bearer ${getToken()}`, 'Content-Type':'application/json' },
-          body: JSON.stringify({ values: [[
-            edit.in_meter!==''?edit.in_meter:orig.in_meter, edit.out_meter!==''?edit.out_meter:orig.out_meter,
-            edit.prize_restock_count!==''?edit.prize_restock_count:orig.prize_restock_count,
-            edit.prize_stock_count!==''?edit.prize_stock_count:orig.prize_stock_count,
-            edit.prize_name!==''?edit.prize_name:orig.prize_name,
-          ]]})
-        })
+        await sheetsPut(range, [[
+          edit.in_meter!==''?edit.in_meter:orig.in_meter, edit.out_meter!==''?edit.out_meter:orig.out_meter,
+          edit.prize_restock_count!==''?edit.prize_restock_count:orig.prize_restock_count,
+          edit.prize_stock_count!==''?edit.prize_stock_count:orig.prize_stock_count,
+          edit.prize_name!==''?edit.prize_name:orig.prize_name,
+        ]])
       }
       clearCache()
       const fresh = await getAllMeterReadings(true)

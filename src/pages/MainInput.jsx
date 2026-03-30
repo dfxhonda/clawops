@@ -40,7 +40,7 @@ export default function MainInput() {
       setStores(s)
       if (s.length > 0) setStoreId(s[0].store_id)
       setLoading(false)
-    }).catch(e => { console.error(e); setLoading(false) })
+    }).catch(() => { setLoading(false) })
   }, [])
 
   // 店舗変更時: 機械一覧取得

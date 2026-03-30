@@ -34,7 +34,7 @@ export default function InventoryCount() {
         const staffIds = [...new Set(s.filter(x => x.owner_type === 'staff').map(x => x.owner_id))].filter(Boolean)
         setStaffList(staffIds)
         setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
-      } catch (e) { console.error(e) }
+      } catch {}
       setLoading(false)
     }
     load()

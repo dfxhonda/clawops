@@ -450,11 +450,6 @@ export default function PrizeManagement() {
       }
       // 商品名が数値のみ・空の場合はスキップ（列マッピング誤りの可能性）
       if (!item.prize_name || /^\d+$/.test(item.prize_name.trim())) {
-        // 数値のみの商品名は明らかにマッピングミス → 空扱い
-        if (/^\d+$/.test((item.prize_name || '').trim())) {
-          console.warn('CSV取込: 商品名が数値のみです。列マッピングを確認してください:', item.prize_name)
-          return null
-        }
         return null
       }
       // 商品名から short_name, item_size を自動抽出（CSVに値がなければ）

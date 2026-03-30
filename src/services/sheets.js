@@ -1,4 +1,4 @@
-const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+export const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 const TOKEN_KEY = 'gapi_token'
 
 export function getToken() { return sessionStorage.getItem(TOKEN_KEY) }
@@ -22,7 +22,7 @@ function isOldEnough(readTime) {
   return d < new Date(Date.now() - 24 * 60 * 60 * 1000)
 }
 
-async function sheetsGet(range) {
+export async function sheetsGet(range) {
   const token = getToken()
   if (!token) {
     window.location.href = '/login'
@@ -58,6 +58,46 @@ async function sheetsAppend(range, values) {
     throw new Error('認証が切れました。再ログインしてください')
   }
   if (!res.ok) throw new Error('Sheets append error: ' + res.status)
+  return res.json()
+}
+
+export async function sheetsPut(range, values) {
+  const token = getToken()
+  if (!token) {
+    window.location.href = '/login'
+    throw new Error('認証トークンがありません')
+  }
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values }) }
+  )
+  if (res.status === 401) {
+    clearToken()
+    window.location.href = '/login'
+    throw new Error('認証が切れました。再ログインしてください')
+  }
+  if (!res.ok) throw new Error('Sheets PUT error: ' + res.status)
+  return res.json()
+}
+
+export async function sheetsBatchUpdate(requests) {
+  const token = getToken()
+  if (!token) {
+    window.location.href = '/login'
+    throw new Error('認証トークンがありません')
+  }
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
+    { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }) }
+  )
+  if (res.status === 401) {
+    clearToken()
+    window.location.href = '/login'
+    throw new Error('認証が切れました。再ログインしてください')
+  }
+  if (!res.ok) throw new Error('Sheets batchUpdate error: ' + res.status)
   return res.json()
 }
 
@@ -219,17 +259,6 @@ export async function updateReading(rowIndex, r) {
       body: JSON.stringify({ values: [[r.in_meter, r.out_meter, r.prize_restock_count, r.prize_stock_count, r.prize_name]] }) }
   )
   clearCache()
-}
-
-// --- Sheets PUT helper ---
-async function sheetsPut(range, values) {
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-    { method: 'PUT', headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values }) }
-  )
-  if (!res.ok) throw new Error('Sheets PUT error: ' + res.status)
-  return res.json()
 }
 
 // ============================================
@@ -611,7 +640,7 @@ export async function getVehicleStocks() {
     setCache('vehicle_stocks', result)
     return result
   } catch (e) {
-    console.warn('vehicle_stocks sheet not found, returning empty:', e.message)
+    // vehicle_stocks sheet not found, returning empty
     return []
   }
 }
@@ -664,7 +693,7 @@ export async function getInventoryChecks() {
     setCache('inventory_checks', result)
     return result
   } catch (e) {
-    console.warn('inventory_checks sheet not found, returning empty:', e.message)
+    // inventory_checks sheet not found, returning empty
     return []
   }
 }
@@ -714,7 +743,7 @@ export async function getLocations(forceRefresh = false) {
     setCache('locations', result)
     return result
   } catch (e) {
-    console.warn('locations sheet not found:', e.message)
+    // locations sheet not found, returning empty
     return []
   }
 }
@@ -786,7 +815,7 @@ export async function getPrizeStocksExtended(forceRefresh = false) {
     setCache('prize_stocks_ext', result)
     return result
   } catch (e) {
-    console.warn('prize_stocks extended read failed:', e.message)
+    // prize_stocks extended read failed, returning empty
     return []
   }
 }
@@ -857,7 +886,7 @@ export async function getStockMovements(forceRefresh = false) {
     setCache('stock_movements', result)
     return result
   } catch (e) {
-    console.warn('stock_movements sheet not found:', e.message)
+    // stock_movements sheet not found, returning empty
     return []
   }
 }

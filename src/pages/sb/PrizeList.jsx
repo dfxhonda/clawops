@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { fetchAllPrizeMasters } from '../../services/supabase'
+import { fetchAllPrizeMasters } from '../../lib/supabase'
 
 const STATUS_LABEL = {
   active: '運用中',
@@ -7,9 +7,9 @@ const STATUS_LABEL = {
   provisional: '仮登録',
 }
 const STATUS_COLOR = {
-  active: '#4ade80',
-  inactive: '#f87171',
-  provisional: '#facc15',
+  active: 'text-accent3 bg-accent3/20 border-accent3/40',
+  inactive: 'text-accent2 bg-accent2/20 border-accent2/40',
+  provisional: 'text-accent bg-accent/20 border-accent/40',
 }
 
 export default function PrizeList() {
@@ -45,165 +45,29 @@ export default function PrizeList() {
     })
   }, [prizes, search, categoryFilter])
 
-  const styles = {
-    container: {
-      minHeight: '100dvh',
-      background: '#111827',
-      color: '#f9fafb',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      paddingBottom: 24,
-    },
-    header: {
-      background: '#1e293b',
-      padding: '16px 16px 12px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 10,
-      borderBottom: '1px solid #334155',
-    },
-    title: {
-      fontSize: 18,
-      fontWeight: 700,
-      margin: '0 0 4px',
-      color: '#f1f5f9',
-    },
-    count: {
-      fontSize: 12,
-      color: '#94a3b8',
-      margin: '0 0 12px',
-    },
-    searchInput: {
-      width: '100%',
-      padding: '10px 12px',
-      borderRadius: 8,
-      border: '1px solid #334155',
-      background: '#0f172a',
-      color: '#f1f5f9',
-      fontSize: 14,
-      boxSizing: 'border-box',
-      outline: 'none',
-      marginBottom: 8,
-    },
-    categoryRow: {
-      display: 'flex',
-      gap: 6,
-      overflowX: 'auto',
-      paddingBottom: 4,
-      scrollbarWidth: 'none',
-    },
-    catBtn: (active) => ({
-      flexShrink: 0,
-      padding: '4px 10px',
-      borderRadius: 20,
-      border: '1px solid #334155',
-      background: active ? '#3b82f6' : '#1e293b',
-      color: active ? '#fff' : '#94a3b8',
-      fontSize: 12,
-      cursor: 'pointer',
-    }),
-    list: {
-      padding: '12px 12px 0',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-    },
-    card: {
-      background: '#1e293b',
-      borderRadius: 10,
-      padding: '12px 14px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-    },
-    cardTop: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      gap: 8,
-    },
-    prizeName: {
-      fontSize: 14,
-      fontWeight: 600,
-      color: '#f1f5f9',
-      lineHeight: 1.4,
-      flex: 1,
-    },
-    statusBadge: (status) => ({
-      flexShrink: 0,
-      fontSize: 11,
-      padding: '2px 8px',
-      borderRadius: 12,
-      background: (STATUS_COLOR[status] || '#64748b') + '33',
-      color: STATUS_COLOR[status] || '#94a3b8',
-      border: `1px solid ${STATUS_COLOR[status] || '#64748b'}66`,
-    }),
-    meta: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '4px 12px',
-    },
-    metaItem: {
-      fontSize: 12,
-      color: '#94a3b8',
-    },
-    metaVal: {
-      color: '#cbd5e1',
-    },
-    loadingBox: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-      gap: 12,
-      color: '#94a3b8',
-    },
-    spinner: {
-      width: 40,
-      height: 40,
-      border: '3px solid #334155',
-      borderTop: '3px solid #3b82f6',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite',
-    },
-    errorBox: {
-      margin: 24,
-      padding: 16,
-      background: '#450a0a',
-      border: '1px solid #dc2626',
-      borderRadius: 10,
-      color: '#fca5a5',
-      fontSize: 14,
-    },
-    emptyBox: {
-      textAlign: 'center',
-      padding: '40px 16px',
-      color: '#475569',
-      fontSize: 14,
-    },
-  }
-
   return (
-    <div style={styles.container}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      <div style={styles.header}>
-        <p style={styles.title}>景品マスタ</p>
-        <p style={styles.count}>
+    <div className="min-h-dvh bg-bg text-text pb-6">
+      {/* ヘッダー */}
+      <div className="bg-surface sticky top-0 z-10 border-b border-border px-4 pt-4 pb-3">
+        <p className="text-lg font-bold mb-1">景品マスタ</p>
+        <p className="text-xs text-muted mb-3">
           {loading ? '読み込み中...' : `全 ${prizes.length} 件 / 表示 ${filtered.length} 件`}
         </p>
         <input
-          style={styles.searchInput}
+          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2.5 text-text text-sm outline-none focus:border-accent mb-2"
           type="search"
           placeholder="景品名・ID・JANコードで検索"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <div style={styles.categoryRow}>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {categories.map(cat => (
             <button
               key={cat}
-              style={styles.catBtn(categoryFilter === cat)}
+              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs border transition-colors
+                ${categoryFilter === cat
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-surface border-border text-muted'}`}
               onClick={() => setCategoryFilter(cat)}
             >
               {cat === 'all' ? 'すべて' : cat}
@@ -213,48 +77,48 @@ export default function PrizeList() {
       </div>
 
       {loading && (
-        <div style={styles.loadingBox}>
-          <div style={styles.spinner} />
-          <span>景品データ取得中...</span>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted">
+          <div className="animate-spin w-10 h-10 border-2 border-border border-t-accent rounded-full" />
+          <span className="text-sm">景品データ取得中...</span>
         </div>
       )}
 
       {error && (
-        <div style={styles.errorBox}>
+        <div className="m-6 p-4 bg-accent2/15 border border-accent2 rounded-xl text-accent2 text-sm">
           <b>エラー:</b> {error}
         </div>
       )}
 
       {!loading && !error && (
-        <div style={styles.list}>
+        <div className="px-3 pt-3 flex flex-col gap-2">
           {filtered.length === 0 ? (
-            <div style={styles.emptyBox}>該当する景品がありません</div>
+            <div className="text-center py-10 text-muted text-sm">該当する景品がありません</div>
           ) : (
             filtered.map(p => (
-              <div key={p.prize_id} style={styles.card}>
-                <div style={styles.cardTop}>
-                  <span style={styles.prizeName}>{p.prize_name}</span>
-                  <span style={styles.statusBadge(p.status)}>
+              <div key={p.prize_id} className="bg-surface border border-border rounded-xl px-3.5 py-3 flex flex-col gap-1">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-sm font-semibold leading-snug flex-1">{p.prize_name}</span>
+                  <span className={`flex-shrink-0 text-[11px] px-2 py-0.5 rounded-full border ${STATUS_COLOR[p.status] || 'text-muted bg-surface2 border-border'}`}>
                     {STATUS_LABEL[p.status] || p.status}
                   </span>
                 </div>
-                <div style={styles.meta}>
-                  <span style={styles.metaItem}>
-                    ID: <span style={styles.metaVal}>{p.prize_id}</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  <span className="text-xs text-muted">
+                    ID: <span className="text-text">{p.prize_id}</span>
                   </span>
                   {p.category && (
-                    <span style={styles.metaItem}>
-                      カテゴリ: <span style={styles.metaVal}>{p.category}</span>
+                    <span className="text-xs text-muted">
+                      カテゴリ: <span className="text-text">{p.category}</span>
                     </span>
                   )}
                   {p.size && (
-                    <span style={styles.metaItem}>
-                      サイズ: <span style={styles.metaVal}>{p.size}</span>
+                    <span className="text-xs text-muted">
+                      サイズ: <span className="text-text">{p.size}</span>
                     </span>
                   )}
                   {p.original_cost && (
-                    <span style={styles.metaItem}>
-                      原価: <span style={styles.metaVal}>¥{p.original_cost.toLocaleString()}</span>
+                    <span className="text-xs text-muted">
+                      原価: <span className="text-text">¥{p.original_cost.toLocaleString()}</span>
                     </span>
                   )}
                 </div>

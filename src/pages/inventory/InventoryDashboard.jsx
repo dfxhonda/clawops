@@ -33,8 +33,7 @@ export default function InventoryDashboard() {
           todayMovements: todayMovements.length,
           totalMovements: movements.length,
         })
-      } catch (e) {
-        console.error('Dashboard load error:', e)
+      } catch {
         setStats(null)
       }
       setLoading(false)

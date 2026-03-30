@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getToken, parseNum } from '../services/sheets'
-
-const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+import { sheetsGet, sheetsPut, parseNum } from '../services/sheets'
 
 export default function EditReading() {
   const { boothId } = useParams()
@@ -19,13 +17,7 @@ export default function EditReading() {
   async function loadReadings() {
     setLoading(true)
     try {
-      const res = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('meter_readings!A1:P')}`,
-        { headers: { Authorization: `Bearer ${getToken()}` } }
-      )
-      if (!res.ok) throw new Error('API error: ' + res.status)
-      const data = await res.json()
-      const allRows = data.values || []
+      const allRows = await sheetsGet('meter_readings!A1:P')
       if (!allRows.length) { setLoading(false); return }
       const header = allRows[0].map(h => String(h).trim().toLowerCase())
       const idx = name => header.indexOf(name)
@@ -42,7 +34,6 @@ export default function EditReading() {
       })).filter(r => String(r.booth_id) === String(boothId)).reverse()
       setReadings(rows)
     } catch (e) {
-      console.error('loadReadings error:', e)
       setError(e.message)
     }
     setLoading(false)
@@ -55,12 +46,7 @@ export default function EditReading() {
     try {
       const val = (key) => editing[key] !== '' ? editing[key] : original[key]
       const range = `meter_readings!E${editing.rowIndex}:I${editing.rowIndex}`
-      const res = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-        { method:'PUT', headers:{ Authorization:`Bearer ${getToken()}`, 'Content-Type':'application/json' },
-          body: JSON.stringify({ values:[[ val('in_meter'), val('out_meter'), val('prize_restock_count'), val('prize_stock_count'), val('prize_name') ]]}) }
-      )
-      if (!res.ok) throw new Error('保存失敗: ' + res.status)
+      await sheetsPut(range, [[ val('in_meter'), val('out_meter'), val('prize_restock_count'), val('prize_stock_count'), val('prize_name') ]])
       setEditing(null); setOriginal(null)
       await loadReadings()
     } catch (e) {

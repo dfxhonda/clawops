@@ -32,9 +32,7 @@ export default function InventoryReceive() {
         // 未入荷 = arrived_atが空 or arrival_quantityが空
         const pending = orders.filter(o => !o.arrived_at || o.arrived_at === '')
         setPendingOrders(pending)
-      } catch (e) {
-        console.error('load error:', e)
-      }
+      } catch {}
       setLoading(false)
     }
     load()

@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 import { findBoothByCode } from '../services/sheets'
 
-const DRAFT_KEY = 'clawops_drafts'
-function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] } }
 
 export default function PatrolScan() {
   const navigate = useNavigate()
@@ -31,7 +29,6 @@ export default function PatrolScan() {
       )
       setScanning(true)
     } catch (err) {
-      console.error('QR scanner error:', err)
       setError('カメラを起動できません。カメラの権限を確認してください。')
     }
   }
@@ -69,8 +66,6 @@ export default function PatrolScan() {
     await startScanner()
   }
 
-  const draftCount = getDrafts().length
-
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
       {/* ヘッダー */}
@@ -80,11 +75,6 @@ export default function PatrolScan() {
           <h2 className="text-lg font-bold">巡回スキャン</h2>
           <p className="text-xs text-muted">ブースQRコードを読み取り</p>
         </div>
-        {draftCount > 0 && (
-          <span className="text-xs text-accent font-bold cursor-pointer" onClick={() => navigate('/drafts')}>
-            📝 下書き{draftCount}件
-          </span>
-        )}
       </div>
 
       {/* QRスキャナー */}
@@ -126,12 +116,6 @@ export default function PatrolScan() {
         </form>
       </div>
 
-      {draftCount > 0 && (
-        <button onClick={() => navigate('/drafts')}
-          className="w-full mt-3 bg-surface2 border border-border text-text font-medium py-2.5 rounded-xl">
-          📝 下書き一覧を確認 ({draftCount}件)
-        </button>
-      )}
     </div>
   )
 }

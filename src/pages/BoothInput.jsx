@@ -74,7 +74,7 @@ export default function BoothInput() {
         try {
           const vs = await getStocksByOwner('staff', sid)
           setVehicleStocks(vs)
-        } catch(e) { console.warn('車在庫取得失敗:', e) }
+        } catch {}
       }
       if (state?.storeId) {
         const machines = await getMachines(state.storeId)
@@ -155,9 +155,6 @@ export default function BoothInput() {
           const stock = allStocks.find(s => s.owner_type === 'staff' && s.owner_id === staffId && s.prize_name === item.prizeName)
           if (stock) {
             const newQty = stock.quantity - item.quantity
-            if (newQty < 0) {
-              console.warn(`車在庫不足警告: ${item.prizeName} (残${stock.quantity} < 補充${item.quantity})`)
-            }
             await adjustPrizeStockQuantity(stock.stock_id, -item.quantity, staffId)
             await addStockMovement({
               prize_id: stock.prize_id, movement_type: 'replenish',
@@ -171,9 +168,7 @@ export default function BoothInput() {
         // 車在庫リフレッシュ
         const vs = await getStocksByOwner('staff', staffId)
         setVehicleStocks(vs)
-      } catch (e) {
-        console.error('補充自動引き算エラー:', e)
-      }
+      } catch {}
     }
 
     navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })
