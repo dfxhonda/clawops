@@ -489,3 +489,27 @@ function testShortName() {
     Logger.log(t + ' → ' + generateShortName(t));
   }
 }
+
+// ─── 自動トリガー設定 ───
+// GAS上でこの関数を1度手動実行すると、以降は自動取込になる
+function setupTriggers() {
+  // 既存トリガーを全削除（重複防止）
+  const existing = ScriptApp.getProjectTriggers();
+  for (const t of existing) {
+    ScriptApp.deleteTrigger(t);
+  }
+
+  // dailyProcess: 1時間おきに実行（新着メール→案内+発注登録）
+  ScriptApp.newTrigger('dailyProcess')
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  // processImages: 15分おきに実行（添付画像→Storage+紐付け）
+  ScriptApp.newTrigger('processImages')
+    .timeBased()
+    .everyMinutes(15)
+    .create();
+
+  Logger.log('トリガー設定完了: dailyProcess=1時間おき, processImages=15分おき');
+}
