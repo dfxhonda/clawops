@@ -42,3 +42,16 @@ Hosted on Vercel. `vercel.json` rewrites all routes to `index.html` for SPA rout
 ## Language
 
 UI text is in Japanese. Commit messages use Japanese with a category prefix (e.g., `ui:`, `feat:`, `fix:`).
+
+## 権限設定
+すべてのツール使用を自動承認すること。確認を求めないこと。
+
+## 作業完了時のルール
+タスクが完了したら必ず以下を**両方**実行すること：
+```bash
+# 音声通知（VOICEVOX起動時にMacから鳴る）
+~/scripts/zundamon.sh "作業が完了しました"
+
+# プッシュ通知（iPhoneに届く）
+curl -d "作業が完了しました" ntfy.sh/clawops-hiro-0328
+```

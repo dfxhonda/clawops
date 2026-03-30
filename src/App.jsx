@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { getToken } from './services/sheets'
+import ErrorBoundary from './components/ErrorBoundary'
 import Login from './pages/Login'
 import MainInput from './pages/MainInput'
 import Dashboard from './pages/Dashboard'
@@ -45,6 +46,7 @@ function WithTabs({ children }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <Routes>
       <Route path="/login" element={<Login />} />
 
@@ -81,5 +83,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </ErrorBoundary>
   )
 }

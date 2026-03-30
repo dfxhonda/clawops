@@ -12,32 +12,39 @@ export default function EditReading() {
   const [original, setOriginal] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => { loadReadings() }, [])
 
   async function loadReadings() {
     setLoading(true)
-    const res = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('meter_readings!A1:P')}`,
-      { headers: { Authorization: `Bearer ${getToken()}` } }
-    )
-    const data = await res.json()
-    const allRows = data.values || []
-    if (!allRows.length) { setLoading(false); return }
-    const header = allRows[0].map(h => String(h).trim().toLowerCase())
-    const idx = name => header.indexOf(name)
-    const rows = allRows.slice(1).map((r,i) => ({
-      rowIndex: i+2,
-      booth_id: r[idx('booth_id')]||'',
-      full_booth_code: r[idx('full_booth_code')]||'',
-      read_time: (r[idx('read_time')]||'').slice(0,10),
-      in_meter: r[idx('in_meter')]||'',
-      out_meter: r[idx('out_meter')]||'',
-      prize_restock_count: r[idx('prize_restock_count')]||'',
-      prize_stock_count: r[idx('prize_stock_count')]||'',
-      prize_name: r[idx('prize_name')]||''
-    })).filter(r => String(r.booth_id) === String(boothId)).reverse()
-    setReadings(rows)
+    try {
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('meter_readings!A1:P')}`,
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      )
+      if (!res.ok) throw new Error('API error: ' + res.status)
+      const data = await res.json()
+      const allRows = data.values || []
+      if (!allRows.length) { setLoading(false); return }
+      const header = allRows[0].map(h => String(h).trim().toLowerCase())
+      const idx = name => header.indexOf(name)
+      const rows = allRows.slice(1).map((r,i) => ({
+        rowIndex: i+2,
+        booth_id: r[idx('booth_id')]||'',
+        full_booth_code: r[idx('full_booth_code')]||'',
+        read_time: (r[idx('read_time')]||'').slice(0,10),
+        in_meter: r[idx('in_meter')]||'',
+        out_meter: r[idx('out_meter')]||'',
+        prize_restock_count: r[idx('prize_restock_count')]||'',
+        prize_stock_count: r[idx('prize_stock_count')]||'',
+        prize_name: r[idx('prize_name')]||''
+      })).filter(r => String(r.booth_id) === String(boothId)).reverse()
+      setReadings(rows)
+    } catch (e) {
+      console.error('loadReadings error:', e)
+      setError(e.message)
+    }
     setLoading(false)
   }
 
@@ -45,15 +52,20 @@ export default function EditReading() {
 
   async function handleSave() {
     setSaving(true)
-    const val = (key) => editing[key] !== '' ? editing[key] : original[key]
-    const range = `meter_readings!E${editing.rowIndex}:I${editing.rowIndex}`
-    await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-      { method:'PUT', headers:{ Authorization:`Bearer ${getToken()}`, 'Content-Type':'application/json' },
-        body: JSON.stringify({ values:[[ val('in_meter'), val('out_meter'), val('prize_restock_count'), val('prize_stock_count'), val('prize_name') ]]}) }
-    )
-    setEditing(null); setOriginal(null)
-    await loadReadings()
+    try {
+      const val = (key) => editing[key] !== '' ? editing[key] : original[key]
+      const range = `meter_readings!E${editing.rowIndex}:I${editing.rowIndex}`
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+        { method:'PUT', headers:{ Authorization:`Bearer ${getToken()}`, 'Content-Type':'application/json' },
+          body: JSON.stringify({ values:[[ val('in_meter'), val('out_meter'), val('prize_restock_count'), val('prize_stock_count'), val('prize_name') ]]}) }
+      )
+      if (!res.ok) throw new Error('保存失敗: ' + res.status)
+      setEditing(null); setOriginal(null)
+      await loadReadings()
+    } catch (e) {
+      setError('保存エラー: ' + e.message)
+    }
     setSaving(false)
   }
 
@@ -73,7 +85,15 @@ export default function EditReading() {
         </div>
       </div>
 
-      {readings.length===0 && (
+      {error && (
+        <div className="bg-accent2/15 border border-accent2 rounded-xl p-3.5 mb-3">
+          <p className="text-accent2 text-sm">{error}</p>
+          <button onClick={() => { setError(null); loadReadings() }}
+            className="mt-2 bg-surface2 border border-border text-text text-sm py-1.5 px-4 rounded-lg">再試行</button>
+        </div>
+      )}
+
+      {readings.length===0 && !error && (
         <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">データがありません</div>
       )}
 

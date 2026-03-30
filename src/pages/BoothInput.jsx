@@ -388,7 +388,7 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
       {/* R3: 残 / 補 / 設定値5種 / 出率 */}
       <div className="flex items-center gap-1 px-2.5 pb-2">
         {/* 残（景品投入残） */}
-        <div className="w-[48px]">
+        <div className="w-[48px] md:w-[56px]">
           <div className="text-[9px] text-muted text-center">残</div>
           <input
             ref={getRef(booth.booth_id, 'prize_stock')}
@@ -402,7 +402,7 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
         </div>
 
         {/* 補（景品補充数） */}
-        <div className="w-[48px]">
+        <div className="w-[48px] md:w-[56px]">
           <div className="text-[9px] text-muted text-center">補</div>
           <input
             ref={getRef(booth.booth_id, 'prize_restock')}
@@ -418,7 +418,7 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
 
         {/* 設定値 A/C/L/R/O */}
         {SETTINGS.map(s => (
-          <div key={s.key} className="w-[36px]" title={s.title}>
+          <div key={s.key} className="w-[36px] md:w-[44px]" title={s.title}>
             <div className="text-[9px] text-accent4 text-center font-bold leading-tight">{s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span></div>
             <input
               ref={getRef(booth.booth_id, s.key)}

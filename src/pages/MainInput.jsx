@@ -276,7 +276,7 @@ export default function MainInput() {
           return (
             <div key={booth.booth_id} className="mb-1.5">
               {/* メイン入力行: コード | IN | OUT | 残 | 補 */}
-              <div className={`grid grid-cols-[38px_1fr_1fr_56px_56px] gap-1 items-end p-1.5 rounded-lg border
+              <div className={`grid grid-cols-[42px_1fr_1fr_60px_60px] gap-1.5 items-end p-1.5 rounded-lg border
                 ${hasInput ? 'bg-surface border-green-800/50' : 'bg-surface border-border'}`}>
 
                 {/* ブースコード */}

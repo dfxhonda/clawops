@@ -23,20 +23,40 @@ function isOldEnough(readTime) {
 }
 
 async function sheetsGet(range) {
+  const token = getToken()
+  if (!token) {
+    window.location.href = '/login'
+    throw new Error('認証トークンがありません')
+  }
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,
-    { headers: { Authorization: `Bearer ${getToken()}` } }
+    { headers: { Authorization: `Bearer ${token}` } }
   )
+  if (res.status === 401) {
+    clearToken()
+    window.location.href = '/login'
+    throw new Error('認証が切れました。再ログインしてください')
+  }
   if (!res.ok) throw new Error('Sheets API error: ' + res.status)
   return (await res.json()).values || []
 }
 
 async function sheetsAppend(range, values) {
+  const token = getToken()
+  if (!token) {
+    window.location.href = '/login'
+    throw new Error('認証トークンがありません')
+  }
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`,
-    { method: 'POST', headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+    { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values }) }
   )
+  if (res.status === 401) {
+    clearToken()
+    window.location.href = '/login'
+    throw new Error('認証が切れました。再ログインしてください')
+  }
   if (!res.ok) throw new Error('Sheets append error: ' + res.status)
   return res.json()
 }
@@ -114,7 +134,7 @@ export async function getLastReadingsMap(boothIds) {
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
   const rows = await sheetsGet('stores!A2:N')
-  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows
+  const result = rows
     .map(r => ({ store_id:r[0], store_code:r[1], store_name:r[2], active_flag:r[10] }))
     .filter(s => s.active_flag == 1 && s.store_code !== 'SIM01')
   setCache('stores', result)
@@ -125,7 +145,7 @@ export async function getMachines(storeId) {
   const ckey = `machines_${storeId}`
   if (getCache(ckey)) return getCache(ckey)
   const rows = await sheetsGet('machines!A2:M')
-  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows
+  const result = rows
     .filter(r => String(r[1]) === String(storeId) && String(r[12]) === '1')
     .map(r => ({
       machine_id:      r[0],
@@ -142,7 +162,7 @@ export async function getMachines(storeId) {
       location_note:   r[11],
       active_flag:     r[12],
     }))
-
+  setCache(ckey, result)
   return result
 }
 
@@ -150,11 +170,11 @@ export async function getBooths(machineId) {
   const ckey = `booths_${machineId}`
   if (getCache(ckey)) return getCache(ckey)
   const rows = await sheetsGet('booths!A2:K')
-  console.log("rows total:", rows.length, "first row:", JSON.stringify(rows[0])); const result = rows
+  const result = rows
     .filter(r => String(r[1]) === String(machineId) && String(r[10]) === '1')
     .map(r => ({ booth_id:r[0], machine_id:r[1], booth_code:r[2], booth_number:r[3],
       full_booth_code:r[5], meter_in_digit:r[6], meter_out_digit:r[7], play_price:r[9] }))
-
+  setCache(ckey, result)
   return result
 }
 
