@@ -729,9 +729,11 @@ function selectPrize(id) {
 }
 
 // ─── RENDER DETAIL PANEL ──────────────────────────────────────────────────────
+const ALL_SUPPLIERS = ['景品フォーム','ピーチトイ','エスディーワイ','インフィニティ','アクシズ','LINE仕入先','メルカリ(本田)','メルカリ(坂本)'];
 function buildSupplierOptions(currentVal) {
   let opts = '<option value="">未設定</option>';
-  const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+  const fromData = DATA.map(p => p.supplier_name).filter(Boolean);
+  const names = [...new Set([...ALL_SUPPLIERS, ...fromData])].sort();
   opts += names.map(n =>
     `<option value="${esc(n)}"${currentVal === n ? ' selected' : ''}>${esc(n)}</option>`
   ).join('');
