@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;
+  --surface:#1a1a23;
+  --surface2:#22222e;
+  --border:#2e2e3e;
+  --text:#e8e8f0;
+  --text2:#9090a8;
+  --accent:#7c6aff;
+  --accent2:#5a4fcf;
+  --radius:10px;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+.logo{font-size:48px;margin-bottom:6px}
+h1{font-size:22px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
+.sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+.grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  width:100%;max-width:360px;
+}
+.card{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:24px 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  text-decoration:none;color:var(--text);
+  transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.card:hover,.card:active{
+  background:var(--surface2);border-color:var(--accent);
+  transform:translateY(-2px);
+}
+.card-icon{font-size:36px;line-height:1}
+.card-label{font-size:14px;font-weight:700}
+.card-desc{font-size:11px;color:var(--text2);text-align:center;line-height:1.4}
+.footer{margin-top:40px;font-size:11px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div class="logo">🎮</div>
+<h1>ClawOps</h1>
+<p class="sub">クレーンゲーム運営管理</p>
+
+<div class="grid">
+  <a class="card" href="prizes.html">
+    <div class="card-icon">🏆</div>
+    <div class="card-label">景品マスタ</div>
+    <div class="card-desc">景品の登録・検索</div>
+  </a>
+  <a class="card" href="orders.html">
+    <div class="card-icon">📋</div>
+    <div class="card-label">発注管理</div>
+    <div class="card-desc">発注・入荷チェック</div>
+  </a>
+  <a class="card" href="inventory.html">
+    <div class="card-icon">📦</div>
+    <div class="card-label">在庫管理</div>
+    <div class="card-desc">在庫確認・移動</div>
+  </a>
+  <a class="card" href="announcements.html">
+    <div class="card-icon">📬</div>
+    <div class="card-label">景品案内</div>
+    <div class="card-desc">仕入先からの新商品</div>
+  </a>
+  <a class="card" href="inventory_migration.html">
+    <div class="card-icon">🔄</div>
+    <div class="card-label">棚卸し移行</div>
+    <div class="card-desc">旧データの移行作業</div>
+  </a>
+  <a class="card" href="admin.html">
+    <div class="card-icon">⚙️</div>
+    <div class="card-label">管理</div>
+    <div class="card-desc">設定・ツール</div>
+  </a>
+</div>
+
+<div class="footer">ClawOps v1.0</div>
+
+</body>
+</html>
