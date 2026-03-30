@@ -429,6 +429,9 @@ async function sbPost(table, body) {
   return r.json();
 }
 
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA = [];
 
@@ -783,7 +786,8 @@ async function savePrize() {
     original_cost: costNum,
     status,
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    updated_by: getStaffId()
   };
   payload.supplier_name = supVal;
 
@@ -847,7 +851,7 @@ async function deactivatePrize() {
   if (!confirm(`「${p.prize_name}」を使用停止にします。よろしいですか？`)) return;
   showLoading();
   try {
-    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString()});
+    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString(), updated_by: getStaffId()});
     showToast('使用停止にしました');
     isDirty = false;
     await loadAll();
@@ -1035,7 +1039,8 @@ async function savePrizeMobile() {
     prize_name: name, aliases: aliases || null,
     original_cost: costNum, status,
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    updated_by: getStaffId()
   };
   payload.supplier_name = supVal;
 
@@ -1089,7 +1094,7 @@ async function deactivatePrizeMobile() {
   if (!confirm(`「${p.prize_name}」を使用停止にします。よろしいですか？`)) return;
   showLoading();
   try {
-    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString()});
+    await sbPatch('prize_masters', selPrizeId, 'prize_id', {status: 'inactive', updated_at: new Date().toISOString(), updated_by: getStaffId()});
     showToast('使用停止にしました');
     isDirty = false;
     closeMobileDetail();

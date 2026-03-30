@@ -218,6 +218,9 @@ async function sbGet(t,p=''){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}`,{
 async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json()}
 async function sbPatch(t,id,idCol,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?${idCol}=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
 
+// ─── AUTH ───
+function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}
+
 // ─── STATE ───
 let STOCKS=[],MOVEMENTS=[],PRIZES={},LOCATIONS=[],STAFF=[],OWNERS=[];
 let sortKey='prize_name',sortDir='asc';
@@ -504,7 +507,7 @@ async function submitMovement(){
   const[toType,toId]=toVal?toVal.split(':'):['',''];
   showLoading();
   try{
-    await sbPost('stock_movements',{prize_id:prizeId,movement_type:type,from_owner_type:fromType||null,from_owner_id:fromId||null,to_owner_type:toType||null,to_owner_id:toId||null,quantity:qty,note:note||null,created_at:new Date().toISOString()});
+    await sbPost('stock_movements',{prize_id:prizeId,movement_type:type,from_owner_type:fromType||null,from_owner_id:fromId||null,to_owner_type:toType||null,to_owner_id:toId||null,quantity:qty,note:note||null,created_by:getStaffId(),created_at:new Date().toISOString()});
     if(fromType&&fromId) await upsertStock(prizeId,fromType,fromId,-qty);
     if(toType&&toId) await upsertStock(prizeId,toType,toId,qty);
     closeMovement();closeMobileDetail();
@@ -517,10 +520,10 @@ async function upsertStock(prizeId,ownerType,ownerId,delta){
   const existing=STOCKS.find(s=>s.prize_id===prizeId&&s.owner_type===ownerType&&s.owner_id===ownerId);
   if(existing){
     const newQty=Math.max(0,(existing.quantity||0)+delta);
-    await sbPatch('prize_stocks',existing.stock_id,'stock_id',{quantity:newQty,updated_at:new Date().toISOString()});
+    await sbPatch('prize_stocks',existing.stock_id,'stock_id',{quantity:newQty,updated_at:new Date().toISOString(),updated_by:getStaffId()});
   }else if(delta>0){
     const stockId='STK-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
-    await sbPost('prize_stocks',{stock_id:stockId,prize_id:prizeId,owner_type:ownerType,owner_id:ownerId,quantity:delta,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+    await sbPost('prize_stocks',{stock_id:stockId,prize_id:prizeId,owner_type:ownerType,owner_id:ownerId,quantity:delta,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),updated_by:getStaffId()});
   }
 }
 
@@ -551,8 +554,8 @@ async function submitAdjust(stockId){
   const delta=newQty-s.quantity;
   showLoading();
   try{
-    await sbPost('stock_movements',{prize_id:s.prize_id,movement_type:'adjust',from_owner_type:s.owner_type,from_owner_id:s.owner_id,to_owner_type:s.owner_type,to_owner_id:s.owner_id,quantity:Math.abs(delta),note:reason,adjustment_reason:reason,created_at:new Date().toISOString()});
-    await sbPatch('prize_stocks',stockId,'stock_id',{quantity:newQty,updated_at:new Date().toISOString()});
+    await sbPost('stock_movements',{prize_id:s.prize_id,movement_type:'adjust',from_owner_type:s.owner_type,from_owner_id:s.owner_id,to_owner_type:s.owner_type,to_owner_id:s.owner_id,quantity:Math.abs(delta),note:reason,adjustment_reason:reason,created_by:getStaffId(),created_at:new Date().toISOString()});
+    await sbPatch('prize_stocks',stockId,'stock_id',{quantity:newQty,updated_at:new Date().toISOString(),updated_by:getStaffId()});
     closeMovement();closeMobileDetail();
     showToast('数量を修正しました');
     await loadAll();

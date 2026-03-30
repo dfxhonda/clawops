@@ -237,6 +237,8 @@ async function sbPatch(t,id,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq
 async function sbDelete(t,id){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq.${id}`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text())}
 
 // ─── STATE ───
+function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}
+
 let ITEMS=[];
 let selId=null;
 let editId=null;
@@ -496,6 +498,7 @@ async function saveForm(){
     image_url:document.getElementById('fImage').value.trim()||null,
     notes:document.getElementById('fNotes').value.trim()||null,
     source_type:'manual',
+    updated_by:getStaffId(),
   };
   showLoading();
   try{
@@ -516,7 +519,7 @@ async function saveForm(){
 async function setStatus(id,status){
   showLoading();
   try{
-    await sbPatch('prize_announcements',id,{status});
+    await sbPatch('prize_announcements',id,{status,updated_by:getStaffId()});
     const it=ITEMS.find(x=>x.id===id);if(it)it.status=status;
     showToast(STATUS_LABEL[status]+'にしました');
     render();renderDetail();
@@ -574,9 +577,9 @@ async function submitOrder(annId){
       quantity:qty,unit_cost:it.unit_cost||null,
       case_quantity:it.case_quantity||null,case_cost:it.case_cost||null,
       status:'ordered',prize_name_raw:it.prize_name,
-      destination:dest||null,created_at:new Date().toISOString(),
+      destination:dest||null,created_at:new Date().toISOString(),updated_by:getStaffId(),
     });
-    await sbPatch('prize_announcements',annId,{status:'ordered',ordered_at:new Date().toISOString(),order_id:orderId});
+    await sbPatch('prize_announcements',annId,{status:'ordered',ordered_at:new Date().toISOString(),order_id:orderId,updated_by:getStaffId()});
     closeOrderModal();closeMobileDetail();
     showToast('発注に登録しました: '+orderId);
     await loadAll();

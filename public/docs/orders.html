@@ -412,6 +412,9 @@ async function sbPost(table, body) {
   return r.json();
 }
 
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA = [];
 let PRIZES = [];    // {prize_id, prize_name} from prize_masters
@@ -830,7 +833,8 @@ async function saveOrder() {
     destination:    destination || null,
     status,
     notes:          notes || null,
-    prize_id:       prizeId
+    prize_id:       prizeId,
+    updated_by:     getStaffId()
   };
 
   const saveBtn = document.getElementById('btnSave');
@@ -872,7 +876,7 @@ async function setOrderStatus(newStatus) {
   if (!confirm(`この発注を「${label}」にします。よろしいですか？`)) return;
   showLoading();
   try {
-    await sbPatch('prize_orders', selOrderId, 'order_id', {status: newStatus});
+    await sbPatch('prize_orders', selOrderId, 'order_id', {status: newStatus, updated_by: getStaffId()});
     showToast(`${label}にしました`);
     isDirty = false;
     await loadAll();
@@ -1113,7 +1117,8 @@ async function saveOrderMobile() {
     destination:    destination || null,
     status,
     notes:          notes || null,
-    prize_id:       prizeId
+    prize_id:       prizeId,
+    updated_by:     getStaffId()
   };
 
   const saveBtn = document.getElementById('mfBtnSave');
@@ -1152,7 +1157,7 @@ async function setOrderStatusMobile(newStatus) {
   if (!confirm(`この発注を「${label}」にします。よろしいですか？`)) return;
   showLoading();
   try {
-    await sbPatch('prize_orders', selOrderId, 'order_id', {status: newStatus});
+    await sbPatch('prize_orders', selOrderId, 'order_id', {status: newStatus, updated_by: getStaffId()});
     showToast(`${label}にしました`);
     isDirty = false;
     closeMobileDetail();
