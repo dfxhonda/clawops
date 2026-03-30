@@ -1083,7 +1083,7 @@ function renderMobileDetailContent() {
 </div>
 <div class="md-body">
   <div class="field">
-    <label>景品名（正式名）<span class="req">*</span></label>
+    <label>景品名<span class="req">*</span></label>
     <input type="text" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">
   </div>
   <div class="field">
@@ -1093,58 +1093,61 @@ function renderMobileDetailContent() {
       ${Object.entries(SUP_NAME).map(([k,v])=>`<option value="${k}" ${o.supplier_id===k?'selected':''}>${v}</option>`).join('')}
     </select>
   </div>
-  <div class="field">
-    <label>景品紐付け（prize_masters）</label>
-    <select id="mfPrizeId" onchange="markDirtyMobile()">${prizeOpts}</select>
+  <div class="field-row">
+    <div class="field">
+      <label>発注日</label>
+      <input type="date" id="mfOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}" oninput="markDirtyMobile()">
+    </div>
+    <div class="field">
+      <label>入荷予定日</label>
+      <input type="date" id="mfExpectedDate" value="${esc(o.expected_date ? String(o.expected_date).slice(0,10) : '')}" oninput="markDirtyMobile()">
+    </div>
   </div>
-  <div class="field">
-    <label>発注日</label>
-    <input type="date" id="mfOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}" oninput="markDirtyMobile()">
+  <div class="field-row">
+    <div class="field">
+      <label>数量<span class="req">*</span></label>
+      <input type="number" id="mfCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}" min="0" placeholder="12" oninput="markDirtyMobile()">
+    </div>
+    <div class="field">
+      <label>ケース数</label>
+      <input type="number" id="mfCaseCount" value="${o.case_count!=null?o.case_count:''}" min="0" placeholder="1" oninput="markDirtyMobile()">
+    </div>
   </div>
-  <div class="field">
-    <label>入荷予定日</label>
-    <input type="date" id="mfExpectedDate" value="${esc(o.expected_date ? String(o.expected_date).slice(0,10) : '')}" oninput="markDirtyMobile()">
+  <div class="field-row">
+    <div class="field">
+      <label>単価<span class="req">*</span></label>
+      <input type="number" id="mfUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}" min="0" placeholder="800" oninput="markDirtyMobile()">
+    </div>
+    <div class="field">
+      <label>状態</label>
+      <select id="mfStatus" onchange="markDirtyMobile()">${statusOpts}</select>
+    </div>
   </div>
-  <div class="field">
-    <label>数量（case_quantity）<span class="req">*</span></label>
-    <input type="number" id="mfCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}" min="0" placeholder="例：12" oninput="markDirtyMobile()">
-  </div>
-  <div class="field">
-    <label>ケース数（case_count）</label>
-    <input type="number" id="mfCaseCount" value="${o.case_count!=null?o.case_count:''}" min="0" placeholder="例：1" oninput="markDirtyMobile()">
-  </div>
-  <div class="field">
-    <label>単価（unit_cost）<span class="req">*</span></label>
-    <input type="number" id="mfUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()">
-  </div>
-  <div class="field">
-    <label>状態</label>
-    <select id="mfStatus" onchange="markDirtyMobile()">${statusOpts}</select>
-  </div>
-  <div class="field">
-    <label>入荷先（destination）</label>
-    <select id="mfDestination" onchange="markDirtyMobile()">
-      <option value="">（未設定）</option>
-      ${['久留米','田隈','飯塚','鹿児島','振り分け待ち'].map(v=>`<option value="${v}"${o.destination===v?' selected':''}>${v}</option>`).join('')}
-    </select>
-  </div>
-  <div class="field">
-    <label>メモ（notes）</label>
-    <input type="text" id="mfNotes" value="${esc(o.notes||'')}" placeholder="備考など" oninput="markDirtyMobile()">
+  <div class="field-row">
+    <div class="field">
+      <label>入荷先</label>
+      <select id="mfDestination" onchange="markDirtyMobile()">
+        <option value="">（未設定）</option>
+        ${['久留米','田隈','飯塚','鹿児島','振り分け待ち'].map(v=>`<option value="${v}"${o.destination===v?' selected':''}>${v}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label>メモ</label>
+      <input type="text" id="mfNotes" value="${esc(o.notes||'')}" placeholder="備考" oninput="markDirtyMobile()">
+    </div>
   </div>
   ${!isNewMode ? `
-  <div class="field">
-    <label>ケース金額</label>
-    <div class="field-readonly">${o.case_cost != null ? fmt(o.case_cost) : '—'}</div>
-  </div>
-  <div class="field">
-    <label>元データ形式（order_source）</label>
-    <div class="field-readonly">${esc(o.order_source || '—')}</div>
-  </div>
-  <div class="field">
-    <label>元データ名（source_file）</label>
-    <div class="field-readonly">${esc(o.source_file || '—')}</div>
+  <div class="field-row">
+    <div class="field">
+      <label>元データ形式</label>
+      <div class="field-readonly">${esc(o.order_source || '—')}</div>
+    </div>
+    <div class="field">
+      <label>元データ名</label>
+      <div class="field-readonly">${esc(o.source_file || '—')}</div>
+    </div>
   </div>` : ''}
+  <select id="mfPrizeId" style="display:none">${prizeOpts}</select>
 </div>
 <div class="md-actions">
   <button class="btn-save" id="mfBtnSave" onclick="saveOrderMobile()" style="width:100%">保存</button>
