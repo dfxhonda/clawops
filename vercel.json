@@ -1,9 +1,8 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/docs/", "permanent": false }
+    { "source": "/", "destination": "/docs/index.html", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/docs/:path*", "destination": "/docs/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/docs/:path*", "destination": "/docs/:path*" }
   ]
 }
