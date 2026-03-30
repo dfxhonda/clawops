@@ -153,13 +153,11 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 
 async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json()}
 async function sbPatch(t,id,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq.${id}`,{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
-async function sbGet(t,p=''){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());return r.json()}
+async function sbGet(t,p=''){let all=[],offset=0;const PAGE=1000;while(true){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}&limit=${PAGE}&offset=${offset}`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());const d=await r.json();all=all.concat(d);if(d.length<PAGE)break;offset+=PAGE;}return all;}
 
 let ITEMS=[];
 async function loadItems(){
-  const r=await fetch(`${SB_URL}/rest/v1/inventory_migration_decisions?select=item_index,sheet_name,store,location_type,prize_name_orig,machine_name,price,quantity,selected_prize_id,selected_prize_name,status,note&order=item_index`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-  if(!r.ok){console.error('Failed to load items');return;}
-  const rows=await r.json();
+  const rows=await sbGet('inventory_migration_decisions','select=item_index,sheet_name,store,location_type,prize_name_orig,machine_name,price,quantity,selected_prize_id,selected_prize_name,status,note&order=item_index');
   ITEMS=rows.map(r=>({_itemIndex:r.item_index,_dbStatus:r.status,sh:r.sheet_name,st:r.store,lt:r.location_type,name:r.prize_name_orig,mc:r.machine_name||'',price:r.price,qty:r.quantity,c1n:r.selected_prize_name||'',c2n:'',c3n:'',c1id:r.selected_prize_id||'',c2id:'',c3id:'',lv:'',stat:r.status==='confirmed'?'確定':r.status==='skipped'?'スキップ':'要確認',note:r.note||''}));
   // Build decisions from loaded items
   ITEMS.forEach((it,i)=>{if(it._dbStatus==='confirmed'||it._dbStatus==='skipped'||it._dbStatus==='unknown'){decisions[i]={status:it._dbStatus,selectedId:it.c1id,selectedName:it.c1n,dbId:null,note:it.note};}});
