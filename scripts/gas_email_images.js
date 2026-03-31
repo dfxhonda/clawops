@@ -337,12 +337,7 @@ function parseInfinityAttachment(attachment, orderDate) {
 }
 
 // ─── ピーチトイ PDF請求書パーサー ───
-// OCRフォーマット例:
-//   品名（日本語テキスト）
-//   数量
-//   単価.00 10%
-//   金額（カンマ区切り）
-// 複数商品が連続し、伝票日付・伝票No行が挟まる
+// 2パス方式: (1)全行を分類 (2)単価行ごとに直前の品名・数量を紐付け
 function parsePCHPdfAttachment(attachment, orderDate) {
   const items = [];
   try {
@@ -356,98 +351,113 @@ function parsePCHPdfAttachment(attachment, orderDate) {
     const text = doc.getBody().getText();
     DriveApp.getFileById(tempFile.id).setTrashed(true);
 
-    const lines = text.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+    const rawLines = text.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
 
-    // ヘッダー・フッター・定型文をスキップするパターン
+    // スキップパターン
     const SKIP = /^(814|546|福岡|大阪|株式会社|ピーチトイ|樣|毎度|下記|登録番号|TEL|FAX|三菱|普通|前回|御入金|縑越|今回|消費税|御買|伝票日付|品\s*番|品\s*名|数\s*量|単\s*位|単\s*価|金\s*額|年|月|日\s*締|ZIU)/;
-    const DATE_LINE = /^\d{4}\/\d{2}\/\d{2}$/;
-    const SLIP_NO = /^\d{6}$/;
+    const IS_JP = /[ぁ-ヿ㐀-䶵一-鿋豈-頻々〇〻\u3400-\u9FFF\uF900-\uFAFFａ-ｚＡ-Ｚ]/;
 
-    // 「単価.00 10%」パターン: 数量と単価と金額を一気に拾う
-    // OCRでは「80\n700.00 10%\n56,000」や「80 700.00 10% 56,000」等
-    // 戦略: 全行をスキャンし、「XXX.00 10%」を含む行を単価行として検出、
-    //        前の行から数量、後の行から金額、さらに前から品名を取る
+    // Pass 1: 各行を分類してタグ付け
+    // type: 'price'(単価行), 'qty'(数量), 'amount'(金額), 'name'(品名), 'skip'
+    const tagged = [];
+    for (const line of rawLines) {
+      if (SKIP.test(line)) { tagged.push({ type: 'skip', line }); continue; }
+      if (/^\d{4}\/\d{2}\/\d{2}$/.test(line)) { tagged.push({ type: 'skip', line }); continue; }
+      if (/^\d{6}$/.test(line)) { tagged.push({ type: 'skip', line }); continue; }
 
-    let i = 0;
-    while (i < lines.length) {
-      const line = lines[i];
-
-      // 「XXX.00 10%」パターンを探す（単価行）
-      // 同一行に「数量 単価.00 10% 金額」が全部ある場合もある
-      const fullMatch = line.match(/^(\d[\d,]*)\s+([\d,]+)\.00\s+10%\s+([\d,\s]+)$/);
-      if (fullMatch) {
-        const qty = parseInt(fullMatch[1].replace(/,/g, ''));
-        const unitCost = parseInt(fullMatch[2].replace(/,/g, ''));
-        const totalCost = parseInt(fullMatch[3].replace(/[,\s]/g, ''));
-        // 品名を遡って探す
-        const name = findPrizeName(lines, i);
-        if (name && unitCost > 0) {
-          items.push({ prize_name: name, unit_cost: unitCost, case_quantity: qty || 1, case_cost: totalCost || (qty * unitCost), notes: '' });
-        }
-        i++;
-        continue;
-      }
-
-      // 「単価.00 10%」が行に含まれる
+      // 単価行: 「XXX.00 10%」を含む
       const priceMatch = line.match(/([\d,]+)\.00\s+10%/);
       if (priceMatch) {
         const unitCost = parseInt(priceMatch[1].replace(/,/g, ''));
-
-        // 同じ行の先頭に数量がある場合: 「80 700.00 10%」
-        const qtyInLine = line.match(/^(\d[\d,]*)\s/);
-        let qty = qtyInLine ? parseInt(qtyInLine[1].replace(/,/g, '')) : null;
-
-        // 数量が同一行にない場合: 前の行を見る
-        if (!qty && i > 0) {
-          const prevNum = lines[i - 1].match(/^(\d[\d,]*)\.?$/);
-          if (prevNum) qty = parseInt(prevNum[1].replace(/,/g, ''));
-        }
-
-        // 金額: 同一行の10%の後、またはの次行
-        let totalCost = null;
-        const afterPct = line.match(/10%\s+([\d,\s]+)$/);
-        if (afterPct) {
-          totalCost = parseInt(afterPct[1].replace(/[,\s]/g, ''));
-        } else if (i + 1 < lines.length) {
-          const nextNum = lines[i + 1].match(/^([\d,\s]+)$/);
-          if (nextNum) {
-            totalCost = parseInt(nextNum[1].replace(/[,\s]/g, ''));
-            i++; // 金額行を消費
-          }
-        }
-
-        // 品名を遡って探す
-        const name = findPrizeName(lines, qty ? i : i - 1);
-        if (name && unitCost > 0) {
-          items.push({ prize_name: name, unit_cost: unitCost, case_quantity: qty || 1, case_cost: totalCost || ((qty || 1) * unitCost), notes: '' });
-        }
-        i++;
+        // 同一行に数量がある場合
+        const qtyMatch = line.match(/^(\d[\d,]*)\s/);
+        const qty = qtyMatch ? parseInt(qtyMatch[1].replace(/,/g, '')) : null;
+        // 同一行に金額がある場合
+        const amtMatch = line.match(/10%\s+([\d,\s]+)$/);
+        const amt = amtMatch ? parseInt(amtMatch[1].replace(/[,\s]/g, '')) : null;
+        tagged.push({ type: 'price', unitCost, qty, amt, line });
         continue;
       }
 
-      i++;
+      // 数値のみ行（数量 or 金額）
+      if (/^[\d,\s]+\.?$/.test(line)) {
+        const val = parseInt(line.replace(/[,\s\.]/g, ''));
+        tagged.push({ type: 'num', val, line });
+        continue;
+      }
+
+      // 日本語を含む = 品名候補
+      if (IS_JP.test(line) && line.length >= 2) {
+        tagged.push({ type: 'name', line: line.replace(/\s+\/\s*$/, '').replace(/\s*-\s*$/, '').trim() });
+        continue;
+      }
+
+      // 英数字の品名候補 (Pro4等)
+      if (/^[A-Za-z]/.test(line) && line.length >= 3 && !/^[A-Z]{3,}$/.test(line)) {
+        tagged.push({ type: 'name', line: line.trim() });
+        continue;
+      }
+
+      tagged.push({ type: 'skip', line });
     }
 
-    // 品名探索: 指定位置から上方向に日本語テキスト行を探す
-    function findPrizeName(lines, idx) {
-      for (let j = idx - 1; j >= Math.max(0, idx - 5); j--) {
-        const l = lines[j];
-        if (SKIP.test(l)) continue;
-        if (DATE_LINE.test(l)) continue;
-        if (SLIP_NO.test(l)) continue;
-        if (/^\d[\d,]*\.?$/.test(l)) continue; // 数値のみ行
-        if (/\.00\s+10%/.test(l)) continue;     // 別の単価行
-        if (/^[\d,\s]+$/.test(l)) continue;     // 金額のみ行
-        // 日本語を含む行 = 品名候補
-        const cleaned = l.replace(/\s+\/\s*$/, '').replace(/\s*-\s*$/, '').trim();
-        if (cleaned.length >= 2 && /[ぁ-ヿ㐀-䶵一-鿋豈-頻々〇〻\u3400-\u9FFF\uF900-\uFAFFa-zA-Zａ-ｚＡ-Ｚ]/.test(cleaned)) {
-          return cleaned;
+    // Pass 2: 単価行(price)ごとに品名・数量・金額を紐付け
+    // 戦略: 各price行から上に遡り、最も近い未使用のname行を品名とする
+    const usedNames = new Set();
+
+    for (let i = 0; i < tagged.length; i++) {
+      if (tagged[i].type !== 'price') continue;
+
+      const p = tagged[i];
+      let qty = p.qty;
+      let totalCost = p.amt;
+
+      // 数量が単価行にない場合: 直前のnum行を探す
+      if (!qty) {
+        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+          if (tagged[j].type === 'num' && tagged[j].val < 10000) {
+            qty = tagged[j].val;
+            break;
+          }
+          if (tagged[j].type === 'price') break; // 前の単価行に到達したら止める
         }
       }
-      return null;
+
+      // 金額が単価行にない場合: 直後のnum行を探す
+      if (!totalCost) {
+        for (let j = i + 1; j <= Math.min(tagged.length - 1, i + 2); j++) {
+          if (tagged[j].type === 'num') {
+            totalCost = tagged[j].val;
+            break;
+          }
+          if (tagged[j].type === 'price' || tagged[j].type === 'name') break;
+        }
+      }
+
+      // 品名: 直前の未使用name行を探す
+      let name = null;
+      for (let j = i - 1; j >= Math.max(0, i - 6); j--) {
+        if (tagged[j].type === 'name' && !usedNames.has(j)) {
+          name = tagged[j].line;
+          usedNames.add(j);
+          break;
+        }
+        if (tagged[j].type === 'price') break; // 前の単価行に到達したら止める
+      }
+
+      if (!name || p.unitCost <= 0) continue;
+      if (!qty || qty <= 0) qty = 1;
+
+      items.push({
+        prize_name: name,
+        unit_cost: p.unitCost,
+        case_quantity: qty,
+        case_cost: totalCost || (qty * p.unitCost),
+        notes: '',
+      });
     }
 
-    // 重複除去: 同じ品名+数量+単価の組み合わせ
+    // 重複除去
     const seen = new Set();
     const unique = [];
     for (const it of items) {
