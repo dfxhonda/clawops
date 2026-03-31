@@ -2,15 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
-const CATEGORIES = [
-  { value: 'crane', label: 'クレーン' },
-  { value: 'gacha', label: 'ガチャ' },
-  { value: 'other', label: 'その他' },
-]
-
 export default function MachineTypeDB() {
   const navigate = useNavigate()
   const [types, setTypes] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({})
@@ -28,7 +23,12 @@ export default function MachineTypeDB() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { loadTypes() }, [loadTypes])
+  useEffect(() => { loadTypes(); loadCategories() }, [loadTypes])
+
+  async function loadCategories() {
+    const { data } = await supabase.from('machine_categories').select('category_id, category_name').order('sort_order')
+    setCategories(data || [])
+  }
 
   function startNew() {
     setForm({ type_id: '', type_name: '', category: 'crane', notes: '' })
@@ -130,7 +130,7 @@ export default function MachineTypeDB() {
             <select value={form.category || 'crane'}
               onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
               style={inputStyle}>
-              {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
             </select>
           </div>
 
@@ -193,7 +193,7 @@ export default function MachineTypeDB() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <span style={{ fontSize: 11, color: '#4a9eff', fontFamily: 'monospace' }}>{t.type_id}</span>
                 <span style={{ fontSize: 11, background: '#252525', padding: '1px 6px', borderRadius: 4, color: '#aaa' }}>
-                  {CATEGORIES.find(c => c.value === t.category)?.label || t.category}
+                  {categories.find(c => c.category_id === t.category)?.category_name || t.category}
                 </span>
               </div>
             </div>

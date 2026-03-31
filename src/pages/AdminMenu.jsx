@@ -16,7 +16,17 @@ const SECTIONS = [
       { icon: '🎁', title: '景品管理 (Sheets)', desc: '景品マスタ・発注・在庫', path: '/admin/prizes' },
       { icon: '🗄️', title: '景品マスタ (Supabase)', desc: 'クラウドDB版・高速検索', path: '/db/prizes', highlight: true },
       { icon: '🎰', title: '機械管理 (Supabase)', desc: '機械登録・ブース自動生成', path: '/db/machines', highlight: true },
-      { icon: '🏷️', title: 'マシンタイプ管理', desc: 'タイプの追加・編集', path: '/db/machine-types', highlight: true },
+    ]
+  },
+  {
+    title: 'マスタ設定 (Supabase)',
+    items: [
+      { icon: '🏷️', title: 'マシンタイプ', desc: 'クレーン機種の種類管理', path: '/db/machine-types', highlight: true },
+      { icon: '📂', title: 'マシンカテゴリ', desc: 'クレーン・ガチャ等の分類', path: '/db/machine-categories', highlight: true },
+      { icon: '📋', title: '所有形態', desc: '購入・リース・レンタル', path: '/db/ownership-types', highlight: true },
+      { icon: '🚚', title: '仕入先', desc: '景品の仕入先マスタ', path: '/db/suppliers', highlight: true },
+      { icon: '🔄', title: '移管タイプ', desc: '在庫移管の種類管理', path: '/db/transfer-types', highlight: true },
+      { icon: '🔍', title: '巡回ステータス', desc: '巡回時の状態選択肢', path: '/db/patrol-statuses', highlight: true },
     ]
   },
   {

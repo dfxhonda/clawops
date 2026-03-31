@@ -2,12 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
-const OWNERSHIP_TYPES = [
-  { value: 'purchased', label: '購入' },
-  { value: 'leased', label: 'リース' },
-  { value: 'rental', label: 'レンタル' },
-]
-
 export default function MachineFormDB() {
   const navigate = useNavigate()
   const { storeCode } = useParams()
@@ -15,18 +9,24 @@ export default function MachineFormDB() {
   const [stores, setStores] = useState([])
   const [selStore, setSelStore] = useState(storeCode || '')
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(null) // null | 'new' | machine object
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [boothCount, setBoothCount] = useState('4')
   const [machineTypes, setMachineTypes] = useState([])
+  const [ownershipTypes, setOwnershipTypes] = useState([])
 
-  useEffect(() => { loadStores(); loadMachineTypes() }, [])
+  useEffect(() => { loadStores(); loadMachineTypes(); loadOwnershipTypes() }, [])
 
   async function loadMachineTypes() {
     const { data } = await supabase.from('machine_types').select('type_id, type_name').order('type_id')
     setMachineTypes(data || [])
+  }
+
+  async function loadOwnershipTypes() {
+    const { data } = await supabase.from('ownership_types').select('type_id, type_name').order('sort_order')
+    setOwnershipTypes(data || [])
   }
 
   const loadMachines = useCallback(async () => {
@@ -224,7 +224,7 @@ export default function MachineFormDB() {
             <label style={labelStyle}>所有形態</label>
             <select value={form.ownership_type || 'purchased'} onChange={e => setForm(p => ({ ...p, ownership_type: e.target.value }))}
               style={inputStyle}>
-              {OWNERSHIP_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {ownershipTypes.map(t => <option key={t.type_id} value={t.type_id}>{t.type_name}</option>)}
             </select>
           </div>
 
@@ -319,7 +319,7 @@ export default function MachineFormDB() {
                   {m.floor && <span style={{ fontSize: 11, background: '#252525', padding: '1px 6px', borderRadius: 4, color: '#aaa' }}>{m.floor}</span>}
                   {m.ownership_type && m.ownership_type !== 'purchased' && (
                     <span style={{ fontSize: 11, background: '#2a2525', padding: '1px 6px', borderRadius: 4, color: '#cc8844' }}>
-                      {OWNERSHIP_TYPES.find(t => t.value === m.ownership_type)?.label || m.ownership_type}
+                      {ownershipTypes.find(t => t.type_id === m.ownership_type)?.type_name || m.ownership_type}
                     </span>
                   )}
                 </div>

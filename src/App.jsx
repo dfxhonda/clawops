@@ -26,6 +26,11 @@ import PrizeMasterDB from './pages/db/PrizeMasterDB'
 import MachineFormDB from './pages/db/MachineFormDB'
 import MachineTypeDB from './pages/db/MachineTypeDB'
 import BoothFormDB from './pages/db/BoothFormDB'
+import SupplierDB from './pages/db/SupplierDB'
+import OwnershipTypeDB from './pages/db/OwnershipTypeDB'
+import TransferTypeDB from './pages/db/TransferTypeDB'
+import PatrolStatusDB from './pages/db/PatrolStatusDB'
+import MachineCategoryDB from './pages/db/MachineCategoryDB'
 
 // 棚卸しアプリ
 import InventoryDashboard from './pages/inventory/InventoryDashboard'
@@ -77,6 +82,11 @@ export default function App() {
       <Route path="/db/machines/:storeCode" element={<MachineFormDB />} />
       <Route path="/db/machines/:storeCode/:machineCode/booths" element={<BoothFormDB />} />
       <Route path="/db/machine-types" element={<MachineTypeDB />} />
+      <Route path="/db/suppliers" element={<SupplierDB />} />
+      <Route path="/db/ownership-types" element={<OwnershipTypeDB />} />
+      <Route path="/db/transfer-types" element={<TransferTypeDB />} />
+      <Route path="/db/patrol-statuses" element={<PatrolStatusDB />} />
+      <Route path="/db/machine-categories" element={<MachineCategoryDB />} />
 
       {/* 棚卸しアプリ */}
       <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />
