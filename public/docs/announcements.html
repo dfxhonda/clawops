@@ -304,7 +304,7 @@ async function loadAll(){
   try{
     const [items, suppRows] = await Promise.all([
       sbGet('prize_announcements','select=*&order=created_at.desc&limit=2000'),
-      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name')
+      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
     ]);
     ITEMS=items;
     SUPPLIERS_LIST=suppRows;

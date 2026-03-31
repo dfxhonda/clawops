@@ -543,7 +543,7 @@ async function loadAll() {
       sbGet('prize_masters',
         'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
         '&order=prize_name.asc&limit=2000'),
-      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name')
+      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
     ]);
     DATA = prizes;
     SUPPLIERS_LIST = suppRows;
