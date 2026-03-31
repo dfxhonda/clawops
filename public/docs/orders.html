@@ -785,9 +785,11 @@ function renderDetail() {
   const dirtyDot = isDirty ? '<span class="detail-dirty"></span>' : '';
   const title = isNewMode ? '＋ 新しい発注' : esc(prizeName(o));
 
+  const rawName = !isNewMode && o.prize_name_raw && prizeName(o) !== o.prize_name_raw ? o.prize_name_raw : '';
   pane.innerHTML = `
 <div class="detail-header">
   <div class="detail-title">${dirtyDot}${title}</div>
+  ${rawName ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;word-break:break-all">${esc(rawName)}</div>` : ''}
   ${!isNewMode ? `<div class="detail-id">ID: ${esc(o.order_id)}</div>` : ''}
 </div>
 <div class="detail-body">
@@ -1103,6 +1105,8 @@ function renderMobileDetailContent() {
 <div class="md-header">
   <button class="md-back" onclick="closeMobileDetail()">← 一覧に戻る</button>
   <div class="md-title">${titleText}</div>
+  ${!isNewMode ? `<div style="font-size:13px;font-weight:700;color:var(--text);padding:0 16px">${esc(prizeName(o))}</div>` : ''}
+  ${!isNewMode && o.prize_name_raw && prizeName(o) !== o.prize_name_raw ? `<div style="font-size:11px;color:var(--text2);padding:0 16px;word-break:break-all">${esc(o.prize_name_raw)}</div>` : ''}
 </div>
 <div class="md-body">
   <div class="field">
