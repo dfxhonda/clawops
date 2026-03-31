@@ -118,7 +118,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
   <div class="header-row">
     <span class="header-title">マスタ管理</span>
     <span class="header-badge" id="headerBadge">読込中…</span>
-    <button onclick="sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
+    <button onclick="doLogout()" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('stores')">🏪 店舗</button>
@@ -148,6 +148,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
 
 <script>
 function stepNum(id,dir){const el=document.getElementById(id);let v=parseInt(el.value)||0;v+=dir;if(v<0)v=0;el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
+function doLogout(){if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'}
 
 const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';

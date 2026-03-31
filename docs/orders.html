@@ -24,6 +24,7 @@
   --nav-h:58px;
   --header-h:56px;
   --toolbar-h:52px;
+  --toolbar2-h:30px;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
@@ -53,7 +54,7 @@ header{
   overflow-x:auto;scrollbar-width:none;
 }
 .toolbar::-webkit-scrollbar{display:none}
-.search-wrap{position:relative;flex-shrink:0;width:220px}
+.search-wrap{position:relative;flex-shrink:0}
 .search-wrap input{
   width:100%;background:var(--surface2);border:1px solid var(--border);
   border-radius:var(--radius);padding:7px 10px 7px 30px;
@@ -83,11 +84,16 @@ header{
   cursor:pointer;white-space:nowrap;transition:all .15s;
 }
 .btn-clear:hover{border-color:var(--accent);color:var(--accent)}
+.sort-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap}
+.sort-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent)}
+.sort-btn::after{content:'';margin-left:2px}
+.sort-btn.asc::after{content:' ↑'}
+.sort-btn.desc::after{content:' ↓'}
 
 /* ── Main layout ── */
 .main{
   position:fixed;
-  top:calc(var(--header-h) + var(--toolbar-h));
+  top:calc(var(--header-h) + var(--toolbar-h) + var(--toolbar2-h));
   left:0;right:0;
   bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
   display:flex;
@@ -235,7 +241,7 @@ header{
 
 /* ── Toast ── */
 .toast{
-  position:fixed;top:calc(var(--header-h) + var(--toolbar-h) + 12px);right:16px;
+  position:fixed;top:calc(var(--header-h) + var(--toolbar-h) + var(--toolbar2-h) + 12px);right:16px;
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
   padding:10px 20px;font-size:13px;font-weight:600;z-index:400;
   white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);
@@ -295,7 +301,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
   .btn-add{display:none!important}
   .mobile-list{
     display:block;position:fixed;
-    top:calc(var(--header-h) + var(--toolbar-h));
+    top:calc(var(--header-h) + var(--toolbar-h) + var(--toolbar2-h));
     left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
     overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);
   }
@@ -307,19 +313,19 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
 <body>
 
 <header>
-  <span class="header-title">📋 発注管理</span>
-  <span class="header-count" id="countBadge">読込中…</span>
-  <div class="header-spacer"></div>
-  <button class="btn-add" onclick="openNew()">＋ 発注を追加</button>
-  <button onclick="sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:6px">ログアウト</button>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+    <span class="header-title">📋 発注管理</span>
+    <span class="header-count" id="countBadge">読込中…</span>
+    <div class="search-wrap" style="flex:1;min-width:120px">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="searchInput" placeholder="景品名で検索..." autocomplete="off">
+    </div>
+    <button class="btn-add" onclick="openNew()">＋ 追加</button>
+    <button onclick="doLogout()" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
+  </div>
 </header>
 
-<div class="toolbar">
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input type="search" id="searchInput" placeholder="景品名で検索..." autocomplete="off">
-  </div>
-  <div class="tb-sep"></div>
+<div class="toolbar toolbar-row1" style="flex-wrap:wrap;gap:6px;padding:6px 10px;height:auto;top:var(--header-h)">
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
     <option value="アクシズ">アクシズ</option>
@@ -328,7 +334,6 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <option value="ピーチトイ">ピーチトイ</option>
     <option value="景品フォーム">景品フォーム</option>
   </select>
-  <div class="tb-sep"></div>
   <select class="filter-select" id="destFilter" onchange="setDestFilter(this.value)">
     <option value="">入荷先：全て</option>
     <option value="久留米">久留米</option>
@@ -337,18 +342,25 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <option value="鹿児島">鹿児島</option>
     <option value="振り分け待ち">振り分け待ち</option>
   </select>
-  <div class="tb-sep"></div>
   <select class="filter-select" id="statusFilter" onchange="setStatusFilter(this.value)">
     <option value="">すべて</option>
     <option value="ordered">発注済み</option>
     <option value="arrived">入荷済み</option>
     <option value="cancelled">取消</option>
   </select>
-  <div class="tb-sep"></div>
   <input type="date" class="date-input" id="dateFrom" onchange="setDateFilter()" title="入荷予定日（開始）">
   <span class="date-sep">〜</span>
   <input type="date" class="date-input" id="dateTo" onchange="setDateFilter()" title="入荷予定日（終了）">
   <button class="btn-clear" onclick="clearFilters()">✕ クリア</button>
+</div>
+
+<div class="toolbar toolbar-row2" style="gap:4px;padding:4px 10px;border-top:none;height:auto;top:calc(var(--header-h) + var(--toolbar-h))">
+  <span style="font-size:11px;color:var(--text2);margin-right:4px">並替:</span>
+  <button class="sort-btn" data-key="expected_date" onclick="toggleSort('expected_date')">入荷予定日</button>
+  <button class="sort-btn" data-key="prize_name_raw" onclick="toggleSort('prize_name_raw')">景品名</button>
+  <button class="sort-btn" data-key="supplier_id" onclick="toggleSort('supplier_id')">仕入先</button>
+  <button class="sort-btn" data-key="destination" onclick="toggleSort('destination')">入荷先</button>
+  <button class="sort-btn" data-key="status" onclick="toggleSort('status')">状態</button>
 </div>
 
 <div class="main">
@@ -398,6 +410,8 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
 
 <script>
 function stepNum(id,dir){const el=document.getElementById(id);let v=parseInt(el.value)||0;v+=dir;if(v<0)v=0;el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
+function doLogout(){if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'}
+function toggleSort(key){if(sortKey===key){sortDir=sortDir==='asc'?'desc':'asc'}else{sortKey=key;sortDir='asc'}document.querySelectorAll('.sort-btn').forEach(b=>{b.classList.remove('active','asc','desc');if(b.dataset.key===sortKey){b.classList.add('active',sortDir==='asc'?'asc':'desc')}});render()}
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
@@ -617,6 +631,7 @@ ${list.map(o => {
 function setSort(key) {
   if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
   else { sortKey = key; sortDir = 'asc'; }
+  document.querySelectorAll('.sort-btn').forEach(b=>{b.classList.remove('active','asc','desc');if(b.dataset.key===sortKey){b.classList.add('active',sortDir==='asc'?'asc':'desc')}});
   render();
 }
 
