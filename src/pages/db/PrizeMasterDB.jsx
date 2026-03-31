@@ -22,7 +22,7 @@ export default function PrizeMasterDB() {
       let query = supabase
         .from('prize_masters')
         .select('*', { count: 'exact' })
-        .order('id', { ascending: true })
+        .order('latest_order_date', { ascending: false, nullsFirst: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
       if (search.trim()) {
