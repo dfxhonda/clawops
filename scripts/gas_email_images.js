@@ -277,11 +277,16 @@ function ensurePrizeMaster(prizeName, unitCost, supplierId) {
   const prizeId = getNextPrizeId();
   const shortName = generateShortName(prizeName);
 
+  // supplier_nameをsuppliersテーブルから取得
+  const supRows = sbGet('suppliers', 'select=supplier_name&supplier_id=eq.' + encodeURIComponent(supplierId) + '&limit=1');
+  const supplierName = (supRows.length && supRows[0].supplier_name) || null;
+
   const result = sbPost('prize_masters', {
     prize_id: prizeId,
     prize_name: prizeName,
     original_cost: unitCost,
     supplier_id: supplierId,
+    supplier_name: supplierName,
     status: 'active',
     aliases: JSON.stringify([shortName]),
     created_at: new Date().toISOString(),
