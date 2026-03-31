@@ -663,24 +663,29 @@ function dailyProcess() {
         continue;
       }
 
-      for (const item of items) {
-        // 1. prize_announcements に登録（重複チェック）
-        const dupCheck = sbGet('prize_announcements',
-          'select=id&source_ref=eq.' + msgId + '&prize_name=eq.' + encodeURIComponent(item.prize_name) + '&limit=1');
+      // PCH・メルカリは景品案内不要（発注のみ）
+      const skipAnnouncement = supplierId === 'PCH' || supplierId === 'MCR' || supplierId === 'MC2';
 
-        if (dupCheck.length === 0) {
-          sbPost('prize_announcements', {
-            supplier_id: supplierId,
-            prize_name: item.prize_name,
-            unit_cost: item.unit_cost || null,
-            case_quantity: item.case_quantity || null,
-            source_type: 'email',
-            source_ref: msgId,
-            status: isOrder ? 'ordered' : 'unread',
-            notes: (item.notes || '').trim() || null,
-            created_at: new Date().toISOString(),
-          });
-          announcementCount++;
+      for (const item of items) {
+        // 1. prize_announcements に登録（PCH・メルカリ以外、重複チェック）
+        if (!skipAnnouncement) {
+          const dupCheck = sbGet('prize_announcements',
+            'select=id&source_ref=eq.' + msgId + '&prize_name=eq.' + encodeURIComponent(item.prize_name) + '&limit=1');
+
+          if (dupCheck.length === 0) {
+            sbPost('prize_announcements', {
+              supplier_id: supplierId,
+              prize_name: item.prize_name,
+              unit_cost: item.unit_cost || null,
+              case_quantity: item.case_quantity || null,
+              source_type: 'email',
+              source_ref: msgId,
+              status: isOrder ? 'ordered' : 'unread',
+              notes: (item.notes || '').trim() || null,
+              created_at: new Date().toISOString(),
+            });
+            announcementCount++;
+          }
         }
 
         // 2. 発注書なら prize_orders + prize_masters にも登録
