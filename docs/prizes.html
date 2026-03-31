@@ -444,6 +444,7 @@ async function sbPost(table, body) {
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let DATA = [];
+let SUPPLIERS = [];
 
 let selPrizeId = null;
 let isNewMode = false;
@@ -502,9 +503,14 @@ function showToast(msg, ok=true) {
 async function loadAll() {
   showLoading();
   try {
-    DATA = await sbGet('prize_masters',
-      'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
-      '&order=prize_name.asc&limit=2000');
+    const [prizes, sups] = await Promise.all([
+      sbGet('prize_masters',
+        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
+        '&order=prize_name.asc&limit=2000'),
+      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name.asc').catch(() => [])
+    ]);
+    DATA = prizes;
+    SUPPLIERS = sups;
 
     buildSupplierFilter();
     render();
@@ -522,7 +528,10 @@ function buildSupplierFilter() {
   const sel = document.getElementById('supplierFilter');
   while (sel.options.length > 1) sel.remove(1);
 
-  const names = [...new Set(DATA.map(p => p.supplier_name).filter(Boolean))].sort();
+  // suppliersテーブル + データ内の仕入先名をマージ
+  const fromDB = SUPPLIERS.map(s => s.supplier_name).filter(Boolean);
+  const fromData = DATA.map(p => p.supplier_name).filter(Boolean);
+  const names = [...new Set([...fromDB, ...fromData])].sort();
   names.forEach(n => {
     const opt = document.createElement('option');
     opt.value = n;

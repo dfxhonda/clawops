@@ -30,7 +30,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .header-title{font-size:18px;font-weight:700;letter-spacing:.5px;flex:1}
 .header-badge{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px}
 
-.tabs{display:flex;gap:4px;margin-bottom:8px}
+.tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
 .tab-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;font-weight:600;padding:8px 4px;cursor:pointer;transition:all .15s;text-align:center}
 .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
@@ -124,6 +124,12 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <button class="tab-btn active" onclick="switchTab('stores')">🏪 店舗</button>
     <button class="tab-btn" onclick="switchTab('machines')">🎮 機械</button>
     <button class="tab-btn" onclick="switchTab('booths')">🎯 ブース</button>
+    <button class="tab-btn" onclick="switchTab('machine_types')">🏷️ タイプ</button>
+    <button class="tab-btn" onclick="switchTab('categories')">📂 カテゴリ</button>
+    <button class="tab-btn" onclick="switchTab('suppliers')">🚚 仕入先</button>
+    <button class="tab-btn" onclick="switchTab('ownership')">📋 所有</button>
+    <button class="tab-btn" onclick="switchTab('transfers')">🔄 移管</button>
+    <button class="tab-btn" onclick="switchTab('patrols')">🔍 巡回</button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -176,6 +182,7 @@ async function sbDelete(table,col,val){
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let stores=[], machines=[], booths=[];
+let machineTypes=[], machineCategories=[], suppliers=[], ownershipTypes=[], transferTypes=[], patrolStatuses=[];
 let currentTab='stores';
 let filterStore='', filterMachine='';
 let searchQ='';
@@ -199,12 +206,19 @@ async function loadAll(){
   showLoading();
   document.getElementById('mainContent').innerHTML='<div class="empty">⏳ 読み込み中...</div>';
   try{
-    const [s,m,b]=await Promise.all([
+    const [s,m,b,mt,mc,sup,ot,tt,ps]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&order=store_code.asc'),
       sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&order=machine_code.asc'),
-      sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&order=booth_code.asc')
+      sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&order=booth_code.asc'),
+      sbGet('machine_types','select=*&order=type_id.asc'),
+      sbGet('machine_categories','select=*&order=sort_order.asc'),
+      sbGet('suppliers','select=*&order=supplier_id.asc'),
+      sbGet('ownership_types','select=*&order=sort_order.asc'),
+      sbGet('transfer_types','select=*&order=sort_order.asc'),
+      sbGet('patrol_statuses','select=*&order=sort_order.asc')
     ]);
     stores=s; machines=m; booths=b;
+    machineTypes=mt; machineCategories=mc; suppliers=sup; ownershipTypes=ot; transferTypes=tt; patrolStatuses=ps;
     render();
   }catch(e){
     document.getElementById('mainContent').innerHTML=
@@ -285,7 +299,13 @@ function render(){
   const el=document.getElementById('mainContent');
   if(currentTab==='stores')el.innerHTML=renderStores();
   else if(currentTab==='machines')el.innerHTML=renderMachines();
-  else el.innerHTML=renderBooths();
+  else if(currentTab==='booths')el.innerHTML=renderBooths();
+  else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category'],'machine_types','type_id');
+  else if(currentTab==='categories')el.innerHTML=renderSimpleList('カテゴリ',machineCategories,'category_id',['category_id','category_name','sort_order'],'machine_categories','category_id');
+  else if(currentTab==='suppliers')el.innerHTML=renderSimpleList('仕入先',suppliers,'supplier_id',['supplier_id','supplier_name','supplier_type','is_active'],'suppliers','supplier_id');
+  else if(currentTab==='ownership')el.innerHTML=renderSimpleList('所有形態',ownershipTypes,'type_id',['type_id','type_name','sort_order'],'ownership_types','type_id');
+  else if(currentTab==='transfers')el.innerHTML=renderSimpleList('移管タイプ',transferTypes,'type_id',['type_id','type_name','sort_order'],'transfer_types','type_id');
+  else if(currentTab==='patrols')el.innerHTML=renderSimpleList('巡回ステータス',patrolStatuses,'status_id',['status_id','status_name','color','sort_order'],'patrol_statuses','status_id');
 }
 function th(tab,col,label){
   return'<th class="th-sort" onclick="toggleSort(\''+tab+'\',\''+col+'\')">'+label+sortArrow(tab,col)+'</th>';
@@ -383,12 +403,124 @@ function renderBooths(){
     +'</table></div>';
 }
 
+// ─── SIMPLE LIST (MASTER DATA) ───────────────────────────────────────────────
+function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
+  let list = data;
+  if (searchQ) list = list.filter(item => columns.some(c => matchSearch(item[c])));
+  document.getElementById('headerBadge').textContent = list.length + '件';
+
+  const colLabels = {
+    type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', category_id:'カテゴリID', category_name:'カテゴリ名',
+    sort_order:'表示順', supplier_id:'仕入先ID', supplier_name:'仕入先名', supplier_type:'タイプ', is_active:'有効',
+    status_id:'ステータスID', status_name:'ステータス名', color:'色'
+  };
+
+  const headerCols = columns.map(c => '<th>' + (colLabels[c] || c) + '</th>').join('') + '<th>操作</th>';
+
+  const rows = list.map(item => {
+    const cells = columns.map(c => {
+      let v = item[c];
+      if (c === 'is_active') return '<td>' + activeBadge(v) + '</td>';
+      if (c === 'color' && v) return '<td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:' + esc(v) + ';vertical-align:middle"></span> <code style="font-size:11px;color:var(--text2)">' + esc(v) + '</code></td>';
+      return '<td>' + esc(v != null ? v : '—') + '</td>';
+    }).join('');
+    return '<tr>' + cells + '<td><button class="btn-edit" onclick="editSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',\'' + esc(item[pkField]) + '\')">編集</button></td></tr>';
+  }).join('');
+
+  return '<div class="count-row"><span class="count-text">' + list.length + '/' + data.length + '件</span>'
+    + '<button class="btn-add" onclick="addSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\')">＋ 追加</button></div>'
+    + '<div class="table-wrap"><table>'
+    + '<thead><tr>' + headerCols + '</tr></thead>'
+    + '<tbody>' + (rows || '<tr><td colspan="' + (columns.length + 1) + '"><div class="empty">データがありません</div></td></tr>') + '</tbody>'
+    + '</table></div>';
+}
+
+function getSimpleData(tableName) {
+  const map = {machine_types:machineTypes, machine_categories:machineCategories, suppliers:suppliers, ownership_types:ownershipTypes, transfer_types:transferTypes, patrol_statuses:patrolStatuses};
+  return map[tableName] || [];
+}
+
+function getSimpleFields(tableName) {
+  const map = {
+    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ'}],
+    machine_categories: [{key:'category_id',label:'カテゴリID',required:true},{key:'category_name',label:'カテゴリ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
+    suppliers: [{key:'supplier_id',label:'仕入先ID',required:true},{key:'supplier_name',label:'仕入先名',required:true},{key:'supplier_type',label:'タイプ'},{key:'is_active',label:'有効',type:'bool'}],
+    ownership_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
+    transfer_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
+    patrol_statuses: [{key:'status_id',label:'ステータスID',required:true},{key:'status_name',label:'ステータス名',required:true},{key:'color',label:'色コード'},{key:'sort_order',label:'表示順',type:'number'}]
+  };
+  return map[tableName] || [];
+}
+
+function addSimple(tableName, pkCol) {
+  const fields = getSimpleFields(tableName);
+  const formHtml = fields.map(f => {
+    if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true">はい</option><option value="false">いいえ</option></select></div>';
+    return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '"' + (f.type === 'number' ? ' type="number"' : '') + '></div>';
+  }).join('');
+  showModal('<div class="modal-title">追加</div>' + formHtml
+    + '<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',true)">追加</button></div>');
+}
+
+function editSimple(tableName, pkCol, pkVal) {
+  const data = getSimpleData(tableName);
+  const item = data.find(x => String(x[pkCol]) === String(pkVal));
+  if (!item) return;
+  const fields = getSimpleFields(tableName);
+  const formHtml = fields.map(f => {
+    const val = item[f.key];
+    if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true"' + (val !== false ? ' selected' : '') + '>はい</option><option value="false"' + (val === false ? ' selected' : '') + '>いいえ</option></select></div>';
+    return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '" value="' + esc(val != null ? val : '') + '"' + (f.type === 'number' ? ' type="number"' : '') + (f.key === pkCol ? ' disabled style="opacity:.5"' : '') + '></div>';
+  }).join('');
+  showModal('<div class="modal-title">編集</div>' + formHtml
+    + '<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',false,\'' + esc(pkVal) + '\')">保存</button></div>'
+    + '<button class="btn-del-modal" onclick="delSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',\'' + esc(pkVal) + '\')">削除</button>');
+}
+
+async function saveSimple(tableName, pkCol, isNew, pkVal) {
+  const fields = getSimpleFields(tableName);
+  const payload = {};
+  for (const f of fields) {
+    const el = document.getElementById('sf_' + f.key);
+    if (!el) continue;
+    if (!isNew && f.key === pkCol) continue;
+    let v = el.value;
+    if (f.type === 'number') { payload[f.key] = v !== '' ? Number(v) : null; }
+    else if (f.type === 'bool') { payload[f.key] = v === 'true'; }
+    else { payload[f.key] = v.trim() || null; }
+  }
+  if (isNew) {
+    const pkEl = document.getElementById('sf_' + pkCol);
+    if (pkEl) payload[pkCol] = pkEl.value.trim();
+    if (!payload[pkCol]) { alert('IDは必須です'); return; }
+  }
+  closeModal(); showLoading();
+  try {
+    if (isNew) { await sbPost(tableName, payload); showToast('追加しました'); }
+    else { await sbPatch(tableName, pkCol, pkVal, payload); showToast('保存しました'); }
+    await loadAll();
+  } catch(e) { showToast('エラー: ' + e.message, false); }
+  finally { hideLoading(); }
+}
+
+async function delSimple(tableName, pkCol, pkVal) {
+  if (!confirm('削除しますか？')) return;
+  closeModal(); showLoading();
+  try {
+    await sbDelete(tableName, pkCol, pkVal);
+    showToast('削除しました');
+    await loadAll();
+  } catch(e) { showToast('エラー: ' + e.message, false); }
+  finally { hideLoading(); }
+}
+
 // ─── TAB SWITCH ───────────────────────────────────────────────────────────────
 function switchTab(tab){
   currentTab=tab;filterStore='';filterMachine='';searchQ='';
   document.getElementById('searchInput').value='';
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active',['stores','machines','booths'][i]===tab);
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const tabName = b.getAttribute('onclick').match(/switchTab\('(.+?)'\)/)?.[1];
+    b.classList.toggle('active', tabName === tab);
   });
   render();
 }
