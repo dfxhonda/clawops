@@ -199,6 +199,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openAddModal()">+ 案内を追加</button>
+  <button onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
 </header>
 
 <div class="toolbar">

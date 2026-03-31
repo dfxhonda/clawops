@@ -110,6 +110,7 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
   <h1>📋 棚卸し確定</h1>
   <div class="hcount" id="countBadge">-</div>
   <div class="spacer"></div>
+  <button onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-right:8px">ログアウト</button>
   <div class="progress">
     <span id="progressText">0/0</span>
     <div class="bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
