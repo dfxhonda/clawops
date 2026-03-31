@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>マスタ管理 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -30,7 +30,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .header-title{font-size:18px;font-weight:700;letter-spacing:.5px;flex:1}
 .header-badge{font-size:11px;color:var(--text2);background:var(--surface2);padding:2px 8px;border-radius:20px}
 
-.tabs{display:flex;gap:4px;margin-bottom:8px}
+.tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
 .tab-btn{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;font-weight:600;padding:8px 4px;cursor:pointer;transition:all .15s;text-align:center}
 .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
@@ -89,19 +89,10 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .count-text{font-size:12px;color:var(--text2)}
 .empty{text-align:center;padding:40px;color:var(--text2);font-size:14px}
 
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
-  background:var(--surface);border-top:1px solid var(--border);
-  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
-}
-.nav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
-  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
-}
-.nav-item.active{color:var(--accent)}
-.nav-icon{font-size:20px;line-height:1}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);height:var(--nav-h);display:flex;align-items:center;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text2);text-decoration:none;font-size:10px;padding:4px 8px;border-radius:8px;cursor:pointer;transition:color .15s;background:none;border:none}
+.nav-item.active,.nav-item:hover{color:var(--accent)}
+.nav-icon{font-size:20px}
 
 .spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
 .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -111,10 +102,7 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .toast.ok{border-color:var(--green);color:var(--green)}
 .toast.err{border-color:var(--red);color:var(--red)}
 
-@media(min-width:768px){
-  main{max-width:960px;margin:0 auto}
-  .modal{max-width:520px}
-}
+input[type="number"],input[type="text"],input[type="tel"],input[type="date"],select,textarea{font-size:16px!important}
 .stepper{display:flex;align-items:center;gap:0}
 .stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -122,6 +110,11 @@ tr:hover td{background:rgba(124,106,255,.06)}
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
+
+@media(min-width:768px){
+  main{max-width:960px;margin:0 auto}
+  .modal{max-width:520px}
+}
 </style>
 </head>
 <body>
@@ -130,12 +123,18 @@ tr:hover td{background:rgba(124,106,255,.06)}
   <div class="header-row">
     <span class="header-title">マスタ管理</span>
     <span class="header-badge" id="headerBadge">読込中…</span>
+    <button onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('stores')">🏪 店舗</button>
     <button class="tab-btn" onclick="switchTab('machines')">🎮 機械</button>
     <button class="tab-btn" onclick="switchTab('booths')">🎯 ブース</button>
-    <button class="tab-btn" onclick="switchTab('tools')">🔧 ツール</button>
+    <button class="tab-btn" onclick="switchTab('machine_types')">🏷️ タイプ</button>
+    <button class="tab-btn" onclick="switchTab('categories')">📂 カテゴリ</button>
+    <button class="tab-btn" onclick="switchTab('suppliers')">🚚 仕入先</button>
+    <button class="tab-btn" onclick="switchTab('ownership')">📋 所有</button>
+    <button class="tab-btn" onclick="switchTab('transfers')">🔄 移管</button>
+    <button class="tab-btn" onclick="switchTab('patrols')">🔍 巡回</button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -161,6 +160,18 @@ tr:hover td{background:rgba(124,106,255,.06)}
 </div>
 
 <script>
+function stepVal(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
+  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
+  const cur = parseInt(el.value) || 0;
+  const next = Math.min(max, Math.max(min, cur + delta));
+  el.value = next;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+}
+function doLogout(){if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'}
+
 const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
@@ -185,6 +196,7 @@ async function sbDelete(table,col,val){
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let stores=[], machines=[], booths=[];
+let machineTypes=[], machineCategories=[], suppliers=[], ownershipTypes=[], transferTypes=[], patrolStatuses=[];
 let currentTab='stores';
 let filterStore='', filterMachine='';
 let searchQ='';
@@ -208,12 +220,19 @@ async function loadAll(){
   showLoading();
   document.getElementById('mainContent').innerHTML='<div class="empty">⏳ 読み込み中...</div>';
   try{
-    const [s,m,b]=await Promise.all([
+    const [s,m,b,mt,mc,sup,ot,tt,ps]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&order=store_code.asc'),
       sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&order=machine_code.asc'),
-      sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&order=booth_code.asc')
+      sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&order=booth_code.asc'),
+      sbGet('machine_types','select=*&order=type_id.asc'),
+      sbGet('machine_categories','select=*&order=sort_order.asc'),
+      sbGet('suppliers','select=*&order=supplier_id.asc'),
+      sbGet('ownership_types','select=*&order=sort_order.asc'),
+      sbGet('transfer_types','select=*&order=sort_order.asc'),
+      sbGet('patrol_statuses','select=*&order=sort_order.asc')
     ]);
     stores=s; machines=m; booths=b;
+    machineTypes=mt; machineCategories=mc; suppliers=sup; ownershipTypes=ot; transferTypes=tt; patrolStatuses=ps;
     render();
   }catch(e){
     document.getElementById('mainContent').innerHTML=
@@ -294,7 +313,13 @@ function render(){
   const el=document.getElementById('mainContent');
   if(currentTab==='stores')el.innerHTML=renderStores();
   else if(currentTab==='machines')el.innerHTML=renderMachines();
-  else el.innerHTML=renderBooths();
+  else if(currentTab==='booths')el.innerHTML=renderBooths();
+  else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category'],'machine_types','type_id');
+  else if(currentTab==='categories')el.innerHTML=renderSimpleList('カテゴリ',machineCategories,'category_id',['category_id','category_name','sort_order'],'machine_categories','category_id');
+  else if(currentTab==='suppliers')el.innerHTML=renderSimpleList('仕入先',suppliers,'supplier_id',['supplier_id','supplier_name','supplier_type','is_active'],'suppliers','supplier_id');
+  else if(currentTab==='ownership')el.innerHTML=renderSimpleList('所有形態',ownershipTypes,'type_id',['type_id','type_name','sort_order'],'ownership_types','type_id');
+  else if(currentTab==='transfers')el.innerHTML=renderSimpleList('移管タイプ',transferTypes,'type_id',['type_id','type_name','sort_order'],'transfer_types','type_id');
+  else if(currentTab==='patrols')el.innerHTML=renderSimpleList('巡回ステータス',patrolStatuses,'status_id',['status_id','status_name','color','sort_order'],'patrol_statuses','status_id');
 }
 function th(tab,col,label){
   return'<th class="th-sort" onclick="toggleSort(\''+tab+'\',\''+col+'\')">'+label+sortArrow(tab,col)+'</th>';
@@ -392,28 +417,126 @@ function renderBooths(){
     +'</table></div>';
 }
 
+// ─── SIMPLE LIST (MASTER DATA) ───────────────────────────────────────────────
+function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
+  let list = data;
+  if (searchQ) list = list.filter(item => columns.some(c => matchSearch(item[c])));
+  document.getElementById('headerBadge').textContent = list.length + '件';
+
+  const colLabels = {
+    type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', category_id:'カテゴリID', category_name:'カテゴリ名',
+    sort_order:'表示順', supplier_id:'仕入先ID', supplier_name:'仕入先名', supplier_type:'タイプ', is_active:'有効',
+    status_id:'ステータスID', status_name:'ステータス名', color:'色'
+  };
+
+  const headerCols = columns.map(c => '<th>' + (colLabels[c] || c) + '</th>').join('') + '<th>操作</th>';
+
+  const rows = list.map(item => {
+    const cells = columns.map(c => {
+      let v = item[c];
+      if (c === 'is_active') return '<td>' + activeBadge(v) + '</td>';
+      if (c === 'color' && v) return '<td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:' + esc(v) + ';vertical-align:middle"></span> <code style="font-size:11px;color:var(--text2)">' + esc(v) + '</code></td>';
+      return '<td>' + esc(v != null ? v : '—') + '</td>';
+    }).join('');
+    return '<tr>' + cells + '<td><button class="btn-edit" onclick="editSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',\'' + esc(item[pkField]) + '\')">編集</button></td></tr>';
+  }).join('');
+
+  return '<div class="count-row"><span class="count-text">' + list.length + '/' + data.length + '件</span>'
+    + '<button class="btn-add" onclick="addSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\')">＋ 追加</button></div>'
+    + '<div class="table-wrap"><table>'
+    + '<thead><tr>' + headerCols + '</tr></thead>'
+    + '<tbody>' + (rows || '<tr><td colspan="' + (columns.length + 1) + '"><div class="empty">データがありません</div></td></tr>') + '</tbody>'
+    + '</table></div>';
+}
+
+function getSimpleData(tableName) {
+  const map = {machine_types:machineTypes, machine_categories:machineCategories, suppliers:suppliers, ownership_types:ownershipTypes, transfer_types:transferTypes, patrol_statuses:patrolStatuses};
+  return map[tableName] || [];
+}
+
+function getSimpleFields(tableName) {
+  const map = {
+    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ'}],
+    machine_categories: [{key:'category_id',label:'カテゴリID',required:true},{key:'category_name',label:'カテゴリ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
+    suppliers: [{key:'supplier_id',label:'仕入先ID',required:true},{key:'supplier_name',label:'仕入先名',required:true},{key:'supplier_type',label:'タイプ'},{key:'is_active',label:'有効',type:'bool'}],
+    ownership_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
+    transfer_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
+    patrol_statuses: [{key:'status_id',label:'ステータスID',required:true},{key:'status_name',label:'ステータス名',required:true},{key:'color',label:'色コード'},{key:'sort_order',label:'表示順',type:'number'}]
+  };
+  return map[tableName] || [];
+}
+
+function addSimple(tableName, pkCol) {
+  const fields = getSimpleFields(tableName);
+  const formHtml = fields.map(f => {
+    if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true">はい</option><option value="false">いいえ</option></select></div>';
+    return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '"' + (f.type === 'number' ? ' type="number"' : '') + '></div>';
+  }).join('');
+  showModal('<div class="modal-title">追加</div>' + formHtml
+    + '<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',true)">追加</button></div>');
+}
+
+function editSimple(tableName, pkCol, pkVal) {
+  const data = getSimpleData(tableName);
+  const item = data.find(x => String(x[pkCol]) === String(pkVal));
+  if (!item) return;
+  const fields = getSimpleFields(tableName);
+  const formHtml = fields.map(f => {
+    const val = item[f.key];
+    if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true"' + (val !== false ? ' selected' : '') + '>はい</option><option value="false"' + (val === false ? ' selected' : '') + '>いいえ</option></select></div>';
+    return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '" value="' + esc(val != null ? val : '') + '"' + (f.type === 'number' ? ' type="number"' : '') + (f.key === pkCol ? ' disabled style="opacity:.5"' : '') + '></div>';
+  }).join('');
+  showModal('<div class="modal-title">編集</div>' + formHtml
+    + '<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',false,\'' + esc(pkVal) + '\')">保存</button></div>'
+    + '<button class="btn-del-modal" onclick="delSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',\'' + esc(pkVal) + '\')">削除</button>');
+}
+
+async function saveSimple(tableName, pkCol, isNew, pkVal) {
+  const fields = getSimpleFields(tableName);
+  const payload = {};
+  for (const f of fields) {
+    const el = document.getElementById('sf_' + f.key);
+    if (!el) continue;
+    if (!isNew && f.key === pkCol) continue;
+    let v = el.value;
+    if (f.type === 'number') { payload[f.key] = v !== '' ? Number(v) : null; }
+    else if (f.type === 'bool') { payload[f.key] = v === 'true'; }
+    else { payload[f.key] = v.trim() || null; }
+  }
+  if (isNew) {
+    const pkEl = document.getElementById('sf_' + pkCol);
+    if (pkEl) payload[pkCol] = pkEl.value.trim();
+    if (!payload[pkCol]) { alert('IDは必須です'); return; }
+  }
+  closeModal(); showLoading();
+  try {
+    if (isNew) { await sbPost(tableName, payload); showToast('追加しました'); }
+    else { await sbPatch(tableName, pkCol, pkVal, payload); showToast('保存しました'); }
+    await loadAll();
+  } catch(e) { showToast('エラー: ' + e.message, false); }
+  finally { hideLoading(); }
+}
+
+async function delSimple(tableName, pkCol, pkVal) {
+  if (!confirm('削除しますか？')) return;
+  closeModal(); showLoading();
+  try {
+    await sbDelete(tableName, pkCol, pkVal);
+    showToast('削除しました');
+    await loadAll();
+  } catch(e) { showToast('エラー: ' + e.message, false); }
+  finally { hideLoading(); }
+}
+
 // ─── TAB SWITCH ───────────────────────────────────────────────────────────────
 function switchTab(tab){
   currentTab=tab;filterStore='';filterMachine='';searchQ='';
   document.getElementById('searchInput').value='';
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active',['stores','machines','booths','tools'][i]===tab);
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const tabName = b.getAttribute('onclick').match(/switchTab\('(.+?)'\)/)?.[1];
+    b.classList.toggle('active', tabName === tab);
   });
-  if(tab==='tools'){renderTools();return}
   render();
-}
-function renderTools(){
-  document.getElementById('mainContent').innerHTML=`
-  <div style="padding:16px;display:flex;flex-direction:column;gap:12px;max-width:500px">
-    <a href="inventory_migration.html" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
-      <span style="font-size:28px">📋</span>
-      <div><div style="font-weight:700;font-size:15px">棚卸し移行</div><div style="font-size:12px;color:var(--text2)">棚卸しデータの景品マスタ紐付け作業</div></div>
-    </a>
-    <a href="inventory.html" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
-      <span style="font-size:28px">📦</span>
-      <div><div style="font-weight:700;font-size:15px">在庫管理</div><div style="font-size:12px;color:var(--text2)">在庫移動・数量修正</div></div>
-    </a>
-  </div>`;
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
@@ -565,7 +688,7 @@ function addBooth(){
   const machOpts=machines.map(m=>'<option value="'+m.machine_code+'">'+esc(storeName(m.store_code))+' - '+esc(m.machine_name)+'</option>').join('');
   showModal('<div class="modal-title">ブース追加</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
-    +'<div class="form-group"><label>ブース番号</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal(\'f_num\',-1)">−</button><input id="f_num" type="tel" min="1" max="9" value="1" autofocus inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal(\'f_num\',1)">＋</button></div></div>'
+    +'<div class="form-group"><label>ブース番号</label><div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepVal(\'f_num\',-1)">−</button><input type="tel" id="f_num" value="1" placeholder="1" style="text-align:center" autofocus><button type="button" class="stepper-btn" onclick="stepVal(\'f_num\',1)">+</button></div></div>'
     +'<div class="form-group"><label>ブースコード</label><input id="f_code" placeholder="空白で自動生成"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewBooth()">追加</button></div>');
 }
@@ -593,7 +716,7 @@ function editBooth(code){
   const machOpts=machines.map(m=>'<option value="'+m.machine_code+'"'+(m.machine_code===b.machine_code?' selected':'')+'>'+esc(storeName(m.store_code))+' - '+esc(m.machine_name)+'</option>').join('');
   showModal('<div class="modal-title">ブース編集</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
-    +'<div class="form-group"><label>ブース番号</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal(\'f_num\',-1)">−</button><input id="f_num" type="tel" min="1" max="9" value="'+esc(b.booth_number)+'" autofocus inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal(\'f_num\',1)">＋</button></div></div>'
+    +'<div class="form-group"><label>ブース番号</label><div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepVal(\'f_num\',-1)">−</button><input type="tel" id="f_num" value="'+esc(b.booth_number)+'" placeholder="1" style="text-align:center" autofocus><button type="button" class="stepper-btn" onclick="stepVal(\'f_num\',1)">+</button></div></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditBooth(\''+esc(code)+'\')">保存</button></div>'
     +'<button class="btn-del-modal" onclick="delBooth(\''+esc(code)+'\')">削除</button>');
 }
@@ -622,18 +745,6 @@ async function delBooth(code){
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
   finally{hideLoading();}
-}
-
-// ─── STEPPER ──────────────────────────────────────────────────────────────────
-function stepVal(inputId, delta) {
-  const el = document.getElementById(inputId);
-  if (!el) return;
-  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
-  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
-  const cur = parseInt(el.value) || 0;
-  const next = Math.min(max, Math.max(min, cur + delta));
-  el.value = next;
-  el.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
