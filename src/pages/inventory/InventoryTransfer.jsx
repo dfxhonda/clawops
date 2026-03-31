@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLocations, getPrizeStocksExtended, transferStock, getStockMovements, getStores, getMachines, getBooths } from '../../services/sheets'
+import NumberInput from '../../components/NumberInput'
 
 const TRANSFER_TYPES = [
   { key: 'loc2loc',   label: '拠点間移管',     icon: '🏢→🏢',  desc: '拠点から別の拠点へ' },
@@ -267,10 +268,9 @@ export default function InventoryTransfer() {
                         <option value="">担当者</option>
                         {staffList.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <input type="number" inputMode="numeric" value={alloc.quantity}
-                        onChange={e => updateAssortRow(idx, 'quantity', e.target.value)}
-                        placeholder="数量"
-                        className="w-20 bg-surface2 border border-border rounded-lg px-2 py-2 text-center text-sm font-bold text-text" />
+                      <NumberInput value={alloc.quantity}
+                        onChange={v => updateAssortRow(idx, 'quantity', v)}
+                        min={0} placeholder="数量" style={{ width: 120 }} />
                       <button onClick={() => removeAssortRow(idx)}
                         className="text-accent2 text-lg px-1">×</button>
                     </div>
@@ -341,10 +341,8 @@ export default function InventoryTransfer() {
                 <div className="bg-surface border border-border rounded-xl p-4 mb-4 flex gap-3">
                   <div className="flex-1">
                     <label className="text-xs text-muted block mb-2">移管数量（最大{selectedStock.quantity}）</label>
-                    <input type="number" inputMode="numeric" value={quantity}
-                      onChange={e => setQuantity(e.target.value)}
-                      max={selectedStock.quantity} min="1"
-                      className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text text-center text-lg font-bold" />
+                    <NumberInput value={quantity} onChange={setQuantity}
+                      min={1} max={selectedStock.quantity} />
                   </div>
                   <div className="flex-1">
                     <label className="text-xs text-muted block mb-2">メモ</label>

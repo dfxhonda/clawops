@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLocations, getPrizeStocksExtended, countStock, getStockMovements, transferStock } from '../../services/sheets'
+import NumberInput from '../../components/NumberInput'
 
 export default function InventoryCount() {
   const navigate = useNavigate()
@@ -298,11 +299,11 @@ export default function InventoryCount() {
                     className={`text-xs px-2 py-1 rounded shrink-0 ${hasInput && diff === 0 ? 'bg-accent3/30 text-accent3' : 'bg-surface2 text-muted'}`}>
                     ={s.quantity}
                   </button>
-                  <input type="number" inputMode="numeric"
+                  <NumberInput
                     value={countInputs[s.stock_id] ?? ''}
-                    onChange={e => handleCountChange(s.stock_id, e.target.value)}
-                    placeholder={String(s.quantity)}
-                    className="w-20 bg-surface2 border border-border rounded-lg px-2 py-2 text-center text-sm font-bold text-text" />
+                    onChange={v => handleCountChange(s.stock_id, v)}
+                    min={0} placeholder={String(s.quantity)}
+                    style={{ width: 140 }} />
                   {diff !== null && (
                     <span className={`text-xs font-bold w-10 text-right shrink-0 ${diff === 0 ? 'text-accent3' : diff > 0 ? 'text-accent' : 'text-accent2'}`}>
                       {diff === 0 ? '✓' : (diff > 0 ? `+${diff}` : diff)}
@@ -431,10 +432,8 @@ export default function InventoryCount() {
             {/* 数量 */}
             <div className="mb-3">
               <label className="text-xs text-muted block mb-1">数量（最大 {moveTarget.quantity}）</label>
-              <input type="number" inputMode="numeric" value={moveQty}
-                onChange={e => setMoveQty(e.target.value)}
-                max={moveTarget.quantity} min="1"
-                className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text text-center text-lg font-bold" />
+              <NumberInput value={moveQty} onChange={setMoveQty}
+                min={1} max={moveTarget.quantity} />
             </div>
 
             {/* メモ */}

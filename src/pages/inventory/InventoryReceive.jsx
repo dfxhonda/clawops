@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getPrizes, getLocations, transferStock, getStockMovements, getPrizeOrders } from '../../services/sheets'
+import NumberInput from '../../components/NumberInput'
 
 export default function InventoryReceive() {
   const navigate = useNavigate()
@@ -200,9 +201,7 @@ export default function InventoryReceive() {
           <div className="bg-surface border border-border rounded-xl p-4 mb-4 flex gap-3">
             <div className="flex-1">
               <label className="text-xs text-muted block mb-2">数量</label>
-              <input type="number" inputMode="numeric" value={quantity}
-                onChange={e => setQuantity(e.target.value)}
-                className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text text-center text-lg font-bold" />
+              <NumberInput value={quantity} onChange={setQuantity} min={1} />
             </div>
             <div className="flex-1">
               <label className="text-xs text-muted block mb-2">メモ</label>
