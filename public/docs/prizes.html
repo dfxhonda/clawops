@@ -804,17 +804,17 @@ function renderDetail() {
   pane.innerHTML = `
 <div class="detail-header">
   <div class="detail-title">${dirtyDot}${title}</div>
-  ${fullName ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;word-break:break-all">${esc(fullName)}</div>` : ''}
+  ${fullName ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;word-break:break-all"><span style="font-weight:600">正式名称:</span> ${esc(fullName)}</div>` : ''}
   ${!isNewMode ? `<div class="detail-id">ID: ${esc(p.prize_id)}</div>` : ''}
 </div>
 <div class="detail-body">
   <div class="field">
-    <label>景品名<span class="req">*</span></label>
-    <input type="text" id="fName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">
+    <label>正式名称<span class="req">*</span></label>
+    <input type="text" id="fName" value="${esc(p.prize_name||'')}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirty()">
   </div>
   <div class="field">
-    <label>別名（カンマ区切り）</label>
-    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirty()">
+    <label>短縮名（カンマ区切りで複数可）</label>
+    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：おぱんちゅBIG, おぱんちゅ" oninput="markDirty()">
   </div>
   <div class="field-row">
     <div class="field">
@@ -1095,18 +1095,17 @@ function renderMobileDetailContent() {
   panel.innerHTML = `
 <div class="md-header">
   <button class="md-back" onclick="closeMobileDetail()">← 一覧に戻る</button>
-  <div class="md-title">${titleText}</div>
-  ${!isNewMode ? `<div style="font-size:13px;font-weight:700;color:var(--text);padding:0 16px">${esc(mSn || p.prize_name)}</div>` : ''}
-  ${mFullName ? `<div style="font-size:11px;color:var(--text2);padding:0 16px;word-break:break-all">${esc(mFullName)}</div>` : ''}
+  <div class="md-title">${!isNewMode ? esc(mSn || p.prize_name) : '新しい景品'}</div>
 </div>
+${mFullName ? `<div style="padding:4px 16px 8px;font-size:12px;color:var(--text2);word-break:break-all;border-bottom:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">正式名称:</span> ${esc(mFullName)}</div>` : ''}
 <div class="md-body">
   <div class="field">
-    <label>景品名<span class="req">*</span></label>
-    <input type="text" id="mfName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">
+    <label>正式名称<span class="req">*</span></label>
+    <input type="text" id="mfName" value="${esc(p.prize_name||'')}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirtyMobile()">
   </div>
   <div class="field">
-    <label>別名（カンマ区切り）</label>
-    <input type="text" id="mfAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirtyMobile()">
+    <label>短縮名（カンマ区切りで複数可）</label>
+    <input type="text" id="mfAliases" value="${esc(p.aliases||'')}" placeholder="例：おぱんちゅBIG, おぱんちゅ" oninput="markDirtyMobile()">
   </div>
   <div class="field">
     <label>現在単価（円）<span class="req">*</span></label>
