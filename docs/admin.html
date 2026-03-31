@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>マスタ管理 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -102,6 +102,10 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
 .toast.ok{border-color:var(--green);color:var(--green)}
 .toast.err{border-color:var(--red);color:var(--red)}
 
+input[type="number"],input[type="text"],input[type="tel"],input[type="date"],select,textarea{font-size:16px!important}
+.stepper-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text2);font-size:18px;font-weight:bold;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
+.stepper-btn:active{background:var(--accent2);color:#fff}
+
 @media(min-width:768px){
   main{max-width:960px;margin:0 auto}
   .modal{max-width:520px}
@@ -135,6 +139,7 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
   <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span>ホーム</a>
   <a class="nav-item" href="prizes.html"><span class="nav-icon">🎁</span>景品</a>
   <button class="nav-item active"><span class="nav-icon">⚙️</span>管理</button>
+  <div class="nav-item" onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="color:var(--red,#e74c3c)">🚪 ログアウト</div>
 </nav>
 
 <div class="modal-bg" id="modalBg" style="display:none" onclick="closeModalBg(event)">
@@ -142,6 +147,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:
 </div>
 
 <script>
+function stepNum(id,dir){const el=document.getElementById(id);let v=parseInt(el.value)||0;v+=dir;if(v<0)v=0;el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
+
 const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
@@ -532,7 +539,7 @@ function addBooth(){
   const machOpts=machines.map(m=>'<option value="'+m.machine_code+'">'+esc(storeName(m.store_code))+' - '+esc(m.machine_name)+'</option>').join('');
   showModal('<div class="modal-title">ブース追加</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
-    +'<div class="form-group"><label>ブース番号</label><input id="f_num" type="number" min="1" max="9" value="1" autofocus></div>'
+    +'<div class="form-group"><label>ブース番号</label><div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepNum(\'f_num\',-1)">−</button><input type="tel" id="f_num" value="1" placeholder="1" style="text-align:center" autofocus><button type="button" class="stepper-btn" onclick="stepNum(\'f_num\',1)">+</button></div></div>'
     +'<div class="form-group"><label>ブースコード</label><input id="f_code" placeholder="空白で自動生成"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewBooth()">追加</button></div>');
 }
@@ -560,7 +567,7 @@ function editBooth(code){
   const machOpts=machines.map(m=>'<option value="'+m.machine_code+'"'+(m.machine_code===b.machine_code?' selected':'')+'>'+esc(storeName(m.store_code))+' - '+esc(m.machine_name)+'</option>').join('');
   showModal('<div class="modal-title">ブース編集</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
-    +'<div class="form-group"><label>ブース番号</label><input id="f_num" type="number" min="1" max="9" value="'+esc(b.booth_number)+'" autofocus></div>'
+    +'<div class="form-group"><label>ブース番号</label><div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepNum(\'f_num\',-1)">−</button><input type="tel" id="f_num" value="'+esc(b.booth_number)+'" placeholder="1" style="text-align:center" autofocus><button type="button" class="stepper-btn" onclick="stepNum(\'f_num\',1)">+</button></div></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditBooth(\''+esc(code)+'\')">保存</button></div>'
     +'<button class="btn-del-modal" onclick="delBooth(\''+esc(code)+'\')">削除</button>');
 }

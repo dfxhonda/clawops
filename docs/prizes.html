@@ -309,6 +309,10 @@ header{
 .md-body{padding:14px 16px 0}
 .md-actions{padding:14px 16px 32px;display:flex;flex-direction:column;gap:10px}
 
+input[type="number"],input[type="text"],input[type="tel"],input[type="date"],select,textarea{font-size:16px!important}
+.stepper-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text2);font-size:18px;font-weight:bold;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
+.stepper-btn:active{background:var(--accent2);color:#fff}
+
 @media (max-width:768px){
   .main{display:none!important}
   .btn-add{display:none!important}
@@ -401,6 +405,7 @@ header{
     <div class="nav-icon">⚙️</div>
     <div>設定</div>
   </div>
+  <div class="nav-item" onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="color:var(--red,#e74c3c)">🚪 ログアウト</div>
 </nav>
 
 <!-- Mobile List -->
@@ -411,6 +416,8 @@ header{
 <button class="fab" onclick="openMobileNew()" aria-label="景品を追加">＋</button>
 
 <script>
+function stepNum(id,dir){const el=document.getElementById(id);let v=parseInt(el.value)||0;v+=dir;if(v<0)v=0;el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))}
+
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
@@ -724,7 +731,7 @@ function renderDetail() {
   <div class="field-row">
     <div class="field">
       <label>現在単価（円）<span class="req">*</span></label>
-      <input type="number" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirty()">
+      <div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepNum('fCost',-1)">−</button><input type="tel" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" placeholder="例：800" oninput="markDirty()" style="text-align:center"><button type="button" class="stepper-btn" onclick="stepNum('fCost',1)">+</button></div>
     </div>
     <div class="field">
       <label>状態</label>
@@ -738,7 +745,7 @@ function renderDetail() {
     </div>
     <div class="field">
       <label>標準入り数</label>
-      <input type="number" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirty()">
+      <div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepNum('fQty',-1)">−</button><input type="tel" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" placeholder="例：12" oninput="markDirty()" style="text-align:center"><button type="button" class="stepper-btn" onclick="stepNum('fQty',1)">+</button></div>
     </div>
   </div>
 </div>
@@ -1007,7 +1014,7 @@ function renderMobileDetailContent() {
   </div>
   <div class="field">
     <label>現在単価（円）<span class="req">*</span></label>
-    <input type="number" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()">
+    <div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepNum('mfCost',-1)">−</button><input type="tel" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" placeholder="例：800" oninput="markDirtyMobile()" style="text-align:center"><button type="button" class="stepper-btn" onclick="stepNum('mfCost',1)">+</button></div>
   </div>
   <div class="field">
     <label>仕入先</label>
@@ -1019,7 +1026,7 @@ function renderMobileDetailContent() {
   </div>
   <div class="field">
     <label>標準入り数</label>
-    <input type="number" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirtyMobile()">
+    <div style="display:flex;align-items:center;gap:4px"><button type="button" class="stepper-btn" onclick="stepNum('mfQty',-1)">−</button><input type="tel" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" placeholder="例：12" oninput="markDirtyMobile()" style="text-align:center"><button type="button" class="stepper-btn" onclick="stepNum('mfQty',1)">+</button></div>
   </div>
 </div>
 <div class="md-actions">
