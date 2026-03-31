@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import DBHeader from '../../components/DBHeader'
 
 export default function MachineFormDB() {
   const navigate = useNavigate()
@@ -273,17 +274,12 @@ export default function MachineFormDB() {
   // 一覧
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f0f', color: '#e0e0e0', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: '#0f0f0f', borderBottom: '1px solid #2a2a2a', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 20, cursor: 'pointer', padding: '0 4px' }}>‹</button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 'bold', fontSize: 15 }}>機械管理 <span style={{ fontSize: 11, color: '#4a9eff', fontWeight: 'normal', marginLeft: 6 }}>Supabase</span></div>
-          <div style={{ fontSize: 11, color: '#666' }}>{machines.length} 台</div>
-        </div>
+      <DBHeader title="機械管理" subtitle={`${machines.length} 台`}>
         <button onClick={startNew}
           style={{ background: '#4a9eff', border: 'none', color: '#fff', fontWeight: 'bold', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
           + 新規登録
         </button>
-      </div>
+      </DBHeader>
 
       {/* 店舗セレクタ */}
       <div style={{ padding: '12px 16px' }}>

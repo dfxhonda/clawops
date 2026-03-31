@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import DBHeader from '../../components/DBHeader'
 
 /**
  * 汎用マスタ管理コンポーネント
@@ -168,17 +169,12 @@ export default function MasterListDB({ table, title, pkField = 'type_id', fields
   const nameField = fields.find(f => f.key !== pkField && f.type !== 'number' && f.type !== 'boolean')
   return (
     <div style={{ minHeight: '100vh', background: '#0f0f0f', color: '#e0e0e0', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: '#0f0f0f', borderBottom: '1px solid #2a2a2a', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 20, cursor: 'pointer', padding: '0 4px' }}>‹</button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 'bold', fontSize: 15 }}>{title}管理 <span style={{ fontSize: 11, color: '#4a9eff', fontWeight: 'normal', marginLeft: 6 }}>Supabase</span></div>
-          <div style={{ fontSize: 11, color: '#666' }}>{rows.length} 件</div>
-        </div>
+      <DBHeader title={`${title}管理`} subtitle={`${rows.length} 件`}>
         <button onClick={startNew}
           style={{ background: '#4a9eff', border: 'none', color: '#fff', fontWeight: 'bold', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
           + 追加
         </button>
-      </div>
+      </DBHeader>
 
       {msg && (
         <div style={{ margin: '12px 16px 0', padding: '10px 14px', background: msg.includes('エラー') ? '#3a1a1a' : '#1a2a1a', border: `1px solid ${msg.includes('エラー') ? '#ff4444' : '#44aa44'}`, borderRadius: 10, fontSize: 13, color: msg.includes('エラー') ? '#ff8888' : '#88cc88' }}>
