@@ -579,7 +579,6 @@ function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeI
     prize_name_raw: prizeName,
     supplier_id: supplierId,
     order_date: orderDate,
-    quantity: caseQty || null,
     unit_cost: unitCost || null,
     case_quantity: caseQty || null,
     status: 'ordered',
