@@ -581,6 +581,7 @@ function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeI
     order_date: orderDate,
     unit_cost: unitCost || null,
     case_quantity: caseQty || null,
+    case_cost: (unitCost && caseQty) ? unitCost * caseQty : null,
     status: 'ordered',
     order_source: 'email_auto',
     created_at: new Date().toISOString(),
