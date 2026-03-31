@@ -311,6 +311,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
   <span class="header-count" id="countBadge">読込中…</span>
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 発注を追加</button>
+  <button onclick="sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:6px">ログアウト</button>
 </header>
 
 <div class="toolbar">
@@ -386,7 +387,6 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <div class="nav-icon">⚙️</div>
     <div>設定</div>
   </div>
-  <div class="nav-item" onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="color:var(--red,#e74c3c)">🚪 ログアウト</div>
 </nav>
 
 <!-- Mobile List -->

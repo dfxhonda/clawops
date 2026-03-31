@@ -118,6 +118,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
   <div class="header-row">
     <span class="header-title">マスタ管理</span>
     <span class="header-badge" id="headerBadge">読込中…</span>
+    <button onclick="sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
   </div>
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('stores')">🏪 店舗</button>
@@ -139,7 +140,6 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
   <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span>ホーム</a>
   <a class="nav-item" href="prizes.html"><span class="nav-icon">🎁</span>景品</a>
   <button class="nav-item active"><span class="nav-icon">⚙️</span>管理</button>
-  <div class="nav-item" onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="color:var(--red,#e74c3c)">🚪 ログアウト</div>
 </nav>
 
 <div class="modal-bg" id="modalBg" style="display:none" onclick="closeModalBg(event)">
