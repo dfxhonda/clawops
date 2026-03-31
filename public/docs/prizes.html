@@ -516,14 +516,6 @@ function esc(s) {
 }
 function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
 
-function shortName(p) {
-  try {
-    const al = JSON.parse(p.aliases || '[]');
-    if (Array.isArray(al) && al.length && al[0]) return al[0];
-  } catch {}
-  return p.prize_name || '';
-}
-
 function resolveSupplierDisplay(p) {
   return p.supplier_name || '—';
 }
@@ -669,7 +661,7 @@ ${list.map(p => {
   const caseAmt = (p.default_case_quantity && p.original_cost != null)
     ? (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
-  <td class="td-name" title="${esc(p.prize_name)}">${esc(shortName(p))}</td>
+  <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
   <td class="td-short" title="${esc(p.category)}">${esc(p.category || '—')}</td>
   <td class="td-cost">${fmt(p.original_cost)}</td>
   <td class="td-cost" style="color:var(--text2)">${caseAmt}</td>
@@ -797,24 +789,21 @@ function renderDetail() {
   ).join('');
 
   const dirtyDot = isDirty ? '<span class="detail-dirty"></span>' : '';
-  const sn = isNewMode ? '' : shortName(p);
-  const title = isNewMode ? '＋ 新しい景品' : esc(sn || p.prize_name || '（名称未設定）');
-  const fullName = !isNewMode && sn && sn !== p.prize_name ? p.prize_name : '';
+  const title = isNewMode ? '＋ 新しい景品' : esc(p.prize_name || '（名称未設定）');
 
   pane.innerHTML = `
 <div class="detail-header">
   <div class="detail-title">${dirtyDot}${title}</div>
-  ${fullName ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;word-break:break-all"><span style="font-weight:600">正式名称:</span> ${esc(fullName)}</div>` : ''}
   ${!isNewMode ? `<div class="detail-id">ID: ${esc(p.prize_id)}</div>` : ''}
 </div>
 <div class="detail-body">
   <div class="field">
-    <label>正式名称<span class="req">*</span></label>
-    <input type="text" id="fName" value="${esc(p.prize_name||'')}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirty()">
+    <label>景品名<span class="req">*</span></label>
+    <input type="text" id="fName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">
   </div>
   <div class="field">
-    <label>短縮名（カンマ区切りで複数可）</label>
-    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：おぱんちゅBIG, おぱんちゅ" oninput="markDirty()">
+    <label>別名（カンマ区切り）</label>
+    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirty()">
   </div>
   <div class="field-row">
     <div class="field">
@@ -1030,7 +1019,7 @@ function renderMobileList(list) {
       : `<span style="color:var(--text2)">—</span>`;
     return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
   <div class="mc-body">
-    <div class="mc-name">${esc(shortName(p))}</div>
+    <div class="mc-name">${esc(p.prize_name || '')}</div>
     <div class="mc-meta">
       <span style="color:var(--orange)">${esc(sup !== '—' ? sup : '仕入先未設定')}</span>
       <span style="font-weight:700">${fmt(p.original_cost)}</span>
@@ -1089,23 +1078,20 @@ function renderMobileDetailContent() {
     `<option value="${v}"${p.status===v?' selected':''}>${v==='active'?'Active（運用中）':v==='provisional'?'仮登録':'停止中'}</option>`
   ).join('');
   const titleText = isNewMode ? '新しい景品' : '景品詳細';
-  const mSn = isNewMode ? '' : shortName(p);
-  const mFullName = !isNewMode && mSn && mSn !== p.prize_name ? p.prize_name : '';
 
   panel.innerHTML = `
 <div class="md-header">
   <button class="md-back" onclick="closeMobileDetail()">← 一覧に戻る</button>
-  <div class="md-title">${!isNewMode ? esc(mSn || p.prize_name) : '新しい景品'}</div>
+  <div class="md-title">${titleText}</div>
 </div>
-${mFullName ? `<div style="padding:4px 16px 8px;font-size:12px;color:var(--text2);word-break:break-all;border-bottom:1px solid var(--border)"><span style="color:var(--text2);font-weight:600">正式名称:</span> ${esc(mFullName)}</div>` : ''}
 <div class="md-body">
   <div class="field">
-    <label>正式名称<span class="req">*</span></label>
-    <input type="text" id="mfName" value="${esc(p.prize_name||'')}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirtyMobile()">
+    <label>景品名<span class="req">*</span></label>
+    <input type="text" id="mfName" value="${esc(p.prize_name||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">
   </div>
   <div class="field">
-    <label>短縮名（カンマ区切りで複数可）</label>
-    <input type="text" id="mfAliases" value="${esc(p.aliases||'')}" placeholder="例：おぱんちゅBIG, おぱんちゅ" oninput="markDirtyMobile()">
+    <label>別名（カンマ区切り）</label>
+    <input type="text" id="mfAliases" value="${esc(p.aliases||'')}" placeholder="例：ぬいぐるみA, ぬいA" oninput="markDirtyMobile()">
   </div>
   <div class="field">
     <label>現在単価（円）<span class="req">*</span></label>
