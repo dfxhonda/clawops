@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLocations, getPrizeStocksExtended, countStock, getStockMovements } from '../../services/sheets'
+import { getLocations, getPrizeStocksExtended, countStock, getStockMovements, transferStock } from '../../services/sheets'
 
 export default function InventoryCount() {
   const navigate = useNavigate()
@@ -24,6 +24,14 @@ export default function InventoryCount() {
 
   // 最近の棚卸し履歴
   const [recentCounts, setRecentCounts] = useState([])
+
+  // 在庫移動モーダル
+  const [moveTarget, setMoveTarget] = useState(null) // 選択した在庫アイテム
+  const [moveType, setMoveType] = useState('loc2loc')
+  const [moveToId, setMoveToId] = useState('')
+  const [moveQty, setMoveQty] = useState('')
+  const [moveNote, setMoveNote] = useState('')
+  const [moveSaving, setMoveSaving] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -132,6 +140,52 @@ export default function InventoryCount() {
     setSaving(false)
   }
 
+  function openMoveModal(stock) {
+    setMoveTarget(stock)
+    setMoveType(ownerType === 'location' ? 'loc2loc' : 'staff2loc')
+    setMoveToId('')
+    setMoveQty(String(stock.quantity))
+    setMoveNote('')
+  }
+
+  async function handleMove() {
+    if (!moveTarget || !moveToId || !moveQty) {
+      setMessage({ type: 'error', text: '移動先と数量を入力してください' }); return
+    }
+    const qty = parseInt(moveQty)
+    if (qty <= 0 || qty > moveTarget.quantity) {
+      setMessage({ type: 'error', text: `数量は1〜${moveTarget.quantity}の範囲で入力` }); return
+    }
+    const toOwner = moveType.endsWith('staff') ? 'staff' : 'location'
+    setMoveSaving(true)
+    try {
+      await transferStock({
+        prizeId: moveTarget.prize_id,
+        prizeName: moveTarget.prize_name,
+        fromOwnerType: ownerType, fromOwnerId: ownerId,
+        toOwnerType: toOwner, toOwnerId: moveToId,
+        quantity: qty, note: moveNote || '', createdBy: ''
+      })
+      setMessage({ type: 'success', text: `${moveTarget.prize_name} x${qty} を移動しました` })
+      setMoveTarget(null)
+      const [s, mv] = await Promise.all([getPrizeStocksExtended(true), getStockMovements(true)])
+      setStocks(s)
+      const sIds = [...new Set(s.filter(x => x.owner_type === 'staff').map(x => x.owner_id))].filter(Boolean)
+      setStaffList(sIds)
+      setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
+    } catch (e) {
+      setMessage({ type: 'error', text: '移動失敗: ' + e.message })
+    }
+    setMoveSaving(false)
+  }
+
+  const moveToOptions = useMemo(() => {
+    if (!moveType) return []
+    const toOwner = moveType.endsWith('staff') ? 'staff' : 'location'
+    if (toOwner === 'location') return locations.filter(l => l.location_id !== ownerId)
+    return staffList.filter(s => s !== ownerId)
+  }, [moveType, locations, staffList, ownerId])
+
   if (loading) return <div className="min-h-screen bg-bg text-muted flex items-center justify-center">読み込み中...</div>
 
   return (
@@ -235,8 +289,8 @@ export default function InventoryCount() {
               const diff = hasInput ? (parseInt(inputVal) || 0) - s.quantity : null
               return (
                 <div key={s.stock_id} className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{s.prize_name || s.prize_id}</div>
+                  <div className="flex-1 min-w-0" onClick={() => openMoveModal(s)} role="button">
+                    <div className="text-sm font-medium truncate text-accent underline decoration-dotted">{s.prize_name || s.prize_id}</div>
                     <div className="text-xs text-muted">理論: {s.quantity}個</div>
                   </div>
                   {/* クイック同値ボタン */}
@@ -308,6 +362,99 @@ export default function InventoryCount() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 在庫移動モーダル */}
+      {moveTarget && (
+        <div className="fixed inset-0 bg-black/80 z-[200] flex items-end justify-center"
+          onClick={e => e.target === e.currentTarget && setMoveTarget(null)}>
+          <div className="bg-surface w-full max-w-lg rounded-t-2xl p-5 pb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-bold">在庫を動かす</h2>
+              <button onClick={() => setMoveTarget(null)} className="text-muted text-xl">×</button>
+            </div>
+
+            {/* 景品名（固定表示） */}
+            <div className="mb-3">
+              <label className="text-xs text-muted block mb-1">景品</label>
+              <div className="bg-surface2 border border-border rounded-lg px-3 py-2.5 text-sm font-bold text-accent">
+                {moveTarget.prize_name || moveTarget.prize_id}
+                <span className="text-xs text-muted font-normal ml-2">（在庫: {moveTarget.quantity}個）</span>
+              </div>
+            </div>
+
+            {/* 動きの種類 */}
+            <div className="mb-3">
+              <label className="text-xs text-muted block mb-1">動きの種類</label>
+              <div className="grid grid-cols-2 gap-2">
+                {ownerType === 'location' ? (
+                  <>
+                    <button onClick={() => { setMoveType('loc2loc'); setMoveToId('') }}
+                      className={`py-2 rounded-lg text-xs font-bold ${moveType === 'loc2loc' ? 'bg-accent/20 text-accent border border-accent' : 'bg-surface2 text-muted border border-border'}`}>
+                      🏢→🏢 拠点間
+                    </button>
+                    <button onClick={() => { setMoveType('loc2staff'); setMoveToId('') }}
+                      className={`py-2 rounded-lg text-xs font-bold ${moveType === 'loc2staff' ? 'bg-accent/20 text-accent border border-accent' : 'bg-surface2 text-muted border border-border'}`}>
+                      🏢→🚗 担当車へ
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setMoveType('staff2loc'); setMoveToId('') }}
+                      className={`py-2 rounded-lg text-xs font-bold ${moveType === 'staff2loc' ? 'bg-accent/20 text-accent border border-accent' : 'bg-surface2 text-muted border border-border'}`}>
+                      🚗→🏢 拠点へ
+                    </button>
+                    <button onClick={() => { setMoveType('staff2staff'); setMoveToId('') }}
+                      className={`py-2 rounded-lg text-xs font-bold ${moveType === 'staff2staff' ? 'bg-accent/20 text-accent border border-accent' : 'bg-surface2 text-muted border border-border'}`}>
+                      🚗→🚗 担当車間
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 移動先 */}
+            <div className="mb-3">
+              <label className="text-xs text-muted block mb-1">移動先</label>
+              <select value={moveToId} onChange={e => setMoveToId(e.target.value)}
+                className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text">
+                <option value="">選択してください</option>
+                {moveType.endsWith('staff')
+                  ? moveToOptions.map(s => <option key={s} value={s}>{s}</option>)
+                  : moveToOptions.map(l => <option key={l.location_id} value={l.location_id}>{l.parent_location_id ? '└ ' : ''}{l.name}</option>)
+                }
+              </select>
+            </div>
+
+            {/* 数量 */}
+            <div className="mb-3">
+              <label className="text-xs text-muted block mb-1">数量（最大 {moveTarget.quantity}）</label>
+              <input type="number" inputMode="numeric" value={moveQty}
+                onChange={e => setMoveQty(e.target.value)}
+                max={moveTarget.quantity} min="1"
+                className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text text-center text-lg font-bold" />
+            </div>
+
+            {/* メモ */}
+            <div className="mb-4">
+              <label className="text-xs text-muted block mb-1">理由メモ</label>
+              <input type="text" value={moveNote} onChange={e => setMoveNote(e.target.value)}
+                placeholder="任意"
+                className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setMoveTarget(null)}
+                className="flex-1 bg-surface2 text-muted rounded-xl py-3 text-sm font-bold">
+                キャンセル
+              </button>
+              <button onClick={handleMove} disabled={moveSaving || !moveToId || !moveQty}
+                className="flex-1 bg-accent text-black rounded-xl py-3 text-sm font-bold disabled:opacity-50">
+                {moveSaving ? '移動中...' : '移動する'}
+              </button>
+            </div>
           </div>
         </div>
       )}
