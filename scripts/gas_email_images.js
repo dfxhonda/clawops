@@ -337,7 +337,7 @@ function parseInfinityAttachment(attachment, orderDate) {
 }
 
 // ─── ピーチトイ PDF請求書パーサー ───
-// 2パス方式: (1)全行を分類 (2)単価行ごとに直前の品名・数量を紐付け
+// 3パス方式: (1)前処理 (2)全行を分類 (3)単価行ごとに直前の品名・数量を紐付け
 function parsePCHPdfAttachment(attachment, orderDate) {
   const items = [];
   try {
@@ -354,25 +354,77 @@ function parsePCHPdfAttachment(attachment, orderDate) {
     const rawLines = text.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
 
     // スキップパターン
-    const SKIP = /^(814|546|福岡|大阪|株式会社|ピーチトイ|樣|毎度|下記|登録番号|TEL|FAX|三菱|普通|前回|御入金|縑越|今回|消費税|御買|伝票日付|品\s*番|品\s*名|数\s*量|単\s*位|単\s*価|金\s*額|年|月|日\s*締|ZIU)/;
+    const SKIP = /^(814|546|福岡|大阪|株式会社|ピーチトイ|ビーチトイ|樣|橼|毎度|下記|登録番号|TEL|FAX|三菱|普通|前回|御入金|縑越|繰越|纖越|今回|消費税|消费|御買|御寶|伝票日付|伝票No|品\s*番|品\s*名|数\s*量|単\s*位|単\s*価|金\s*額|年|月|日\s*締|ZIU|TU|\d+\s*個)/;
+    const SKIP_CONTENT = /振込|入金|送料|:$/;
     const IS_JP = /[ぁ-ヿ㐀-䶵一-鿋豈-頻々〇〻\u3400-\u9FFF\uF900-\uFAFFａ-ｚＡ-Ｚ]/;
 
+    // Pass 0: 前処理 — 行を正規化
+    const lines = [];
+    for (let line of rawLines) {
+      // 先頭の伝票番号(6桁)を除去: 「213343 Pro4ワイヤレス...」→「Pro4ワイヤレス...」
+      line = line.replace(/^\d{6}\s+/, '');
+      // 末尾のゴミ除去
+      line = line.replace(/\s*[✓\/\-]\s*$/, '').trim();
+      // 「660.00 10 10%」→「660.00 10%」（OCR重複）
+      line = line.replace(/(\d+\.00)\s+10\s+10%/, '$1 10%');
+      // 「660.00 10\n10%」対応は後述
+      if (line) lines.push(line);
+    }
+
+    // Pass 0.5: 連結品名を分割
+    // 「ミニポーチ巻き寿司キティ ミニポーチ巻き寿司マイメロディ」→ 2行に
+    const expanded = [];
+    for (const line of lines) {
+      // 単価行やスキップ行はそのまま
+      if (/\.00\s+10%/.test(line) || SKIP.test(line) || /^\d{4}\/\d{2}\/\d{2}$/.test(line)) {
+        expanded.push(line);
+        continue;
+      }
+      // 日本語品名行で、スペース区切りで複数の品名がありそうな場合
+      if (IS_JP.test(line) && !SKIP_CONTENT.test(line)) {
+        const parts = splitConcatenatedNames(line);
+        for (const p of parts) expanded.push(p);
+      } else {
+        expanded.push(line);
+      }
+    }
+
+    // 品名分割ヘルパー: スペースで区切って、各パーツが独立した品名かどうか判定
+    function splitConcatenatedNames(line) {
+      const parts = line.split(/\s+/);
+      if (parts.length <= 1) return [line];
+
+      // 各パーツが3文字以上で日本語を含むかチェック
+      const names = [];
+      let current = parts[0];
+      for (let k = 1; k < parts.length; k++) {
+        const part = parts[k];
+        // 次のパーツが独立した品名っぽい（3文字以上かつ日本語/英字で始まる）
+        if (part.length >= 3 && IS_JP.test(part) && current.length >= 3) {
+          names.push(current);
+          current = part;
+        } else {
+          current += ' ' + part;
+        }
+      }
+      names.push(current);
+      return names;
+    }
+
     // Pass 1: 各行を分類してタグ付け
-    // type: 'price'(単価行), 'qty'(数量), 'amount'(金額), 'name'(品名), 'skip'
     const tagged = [];
-    for (const line of rawLines) {
+    for (const line of expanded) {
       if (SKIP.test(line)) { tagged.push({ type: 'skip', line }); continue; }
+      if (SKIP_CONTENT.test(line)) { tagged.push({ type: 'skip', line }); continue; }
       if (/^\d{4}\/\d{2}\/\d{2}$/.test(line)) { tagged.push({ type: 'skip', line }); continue; }
       if (/^\d{6}$/.test(line)) { tagged.push({ type: 'skip', line }); continue; }
 
       // 単価行: 「XXX.00 10%」を含む
-      const priceMatch = line.match(/([\d,]+)\.00\s+10%/);
+      const priceMatch = line.match(/([\d,]+)\.\d{2}\s+10%/);
       if (priceMatch) {
         const unitCost = parseInt(priceMatch[1].replace(/,/g, ''));
-        // 同一行に数量がある場合
         const qtyMatch = line.match(/^(\d[\d,]*)\s/);
         const qty = qtyMatch ? parseInt(qtyMatch[1].replace(/,/g, '')) : null;
-        // 同一行に金額がある場合
         const amtMatch = line.match(/10%\s+([\d,\s]+)$/);
         const amt = amtMatch ? parseInt(amtMatch[1].replace(/[,\s]/g, '')) : null;
         tagged.push({ type: 'price', unitCost, qty, amt, line });
@@ -387,13 +439,14 @@ function parsePCHPdfAttachment(attachment, orderDate) {
       }
 
       // 日本語を含む = 品名候補
-      if (IS_JP.test(line) && line.length >= 2) {
-        tagged.push({ type: 'name', line: line.replace(/\s+\/\s*$/, '').replace(/\s*-\s*$/, '').trim() });
+      if (IS_JP.test(line) && line.length >= 3) {
+        const cleaned = line.replace(/\s+\/\s*$/, '').replace(/\s*-\s*$/, '').trim();
+        tagged.push({ type: 'name', line: cleaned });
         continue;
       }
 
       // 英数字の品名候補 (Pro4等)
-      if (/^[A-Za-z]/.test(line) && line.length >= 3 && !/^[A-Z]{3,}$/.test(line)) {
+      if (/^[A-Za-z0-9]/.test(line) && line.length >= 3 && IS_JP.test(line)) {
         tagged.push({ type: 'name', line: line.trim() });
         continue;
       }
@@ -402,7 +455,6 @@ function parsePCHPdfAttachment(attachment, orderDate) {
     }
 
     // Pass 2: 単価行(price)ごとに品名・数量・金額を紐付け
-    // 戦略: 各price行から上に遡り、最も近い未使用のname行を品名とする
     const usedNames = new Set();
 
     for (let i = 0; i < tagged.length; i++) {
@@ -419,7 +471,7 @@ function parsePCHPdfAttachment(attachment, orderDate) {
             qty = tagged[j].val;
             break;
           }
-          if (tagged[j].type === 'price') break; // 前の単価行に到達したら止める
+          if (tagged[j].type === 'price') break;
         }
       }
 
@@ -442,7 +494,7 @@ function parsePCHPdfAttachment(attachment, orderDate) {
           usedNames.add(j);
           break;
         }
-        if (tagged[j].type === 'price') break; // 前の単価行に到達したら止める
+        if (tagged[j].type === 'price') break;
       }
 
       if (!name || p.unitCost <= 0) continue;
