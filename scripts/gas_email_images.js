@@ -29,6 +29,7 @@ const SUPPLIER_MAP = {
   'info@sdy-co.com': 'SDY',
   'achieve.sakamoto@gmail.com': 'AXS',
   'infinity': 'INF',  // 転送メール: 件名に「請書」+添付xlsx
+  'peach_to_y@rj8.so-net.ne.jp': 'PCH',
 };
 
 // 短縮名: 略語マップ
@@ -335,6 +336,143 @@ function parseInfinityAttachment(attachment, orderDate) {
   return items;
 }
 
+// ─── ピーチトイ PDF請求書パーサー ───
+function parsePCHPdfAttachment(attachment, orderDate) {
+  const items = [];
+  try {
+    const blob = attachment.copyBlob();
+    blob.setContentType('application/pdf');
+    // PDF→Googleドキュメント（OCR変換）
+    const tempFile = Drive.Files.insert(
+      { title: 'temp_pch_' + Date.now(), mimeType: 'application/vnd.google-apps.document' },
+      blob, { convert: true, ocr: true }
+    );
+    const doc = DocumentApp.openById(tempFile.id);
+    const text = doc.getBody().getText();
+    DriveApp.getFileById(tempFile.id).setTrashed(true);
+
+    // テキストを行に分割
+    const lines = text.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+
+    // 請求書の各行をパース
+    // 典型的な請求書フォーマット: 商品名 | 数量 | 単価 | 金額
+    // OCR結果のフォーマットは実データで調整が必要
+    let headerFound = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // ヘッダー行を検出（「品名」「商品名」「数量」「単価」等を含む行）
+      if (/品名|商品名/.test(line) && /数量|単価|金額/.test(line)) {
+        headerFound = true;
+        continue;
+      }
+
+      // 小計・合計行でスキップ
+      if (/^(小計|合計|消費税|税込|振込|お支払|備考)/.test(line)) continue;
+      if (/^\d{4}[\/\-]/.test(line) && !/\S+\s+\d/.test(line)) continue; // 日付のみ行
+
+      if (!headerFound) continue;
+
+      // 数値を含む行を商品行として解析
+      // パターン: 商品名 数量 単価 金額 (数値はカンマ区切りの場合あり)
+      const nums = line.match(/[\d,]+/g);
+      if (!nums || nums.length < 2) continue;
+
+      // 最後の数値群から金額・単価・数量を逆順に取得
+      const numVals = nums.map(n => parseInt(n.replace(/,/g, '')));
+
+      // 商品名 = 行の先頭から最初の数値の前まで
+      const firstNumIdx = line.search(/\d/);
+      const name = line.slice(0, firstNumIdx).replace(/[\s　]+$/g, '').trim();
+
+      if (!name || name.length < 2) continue;
+
+      // 数値の解釈: [数量, 単価, 金額] or [数量, 単価] 等
+      let qty = null, unitCost = null, totalCost = null;
+
+      if (numVals.length >= 3) {
+        // 数量, 単価, 金額
+        qty = numVals[0];
+        unitCost = numVals[1];
+        totalCost = numVals[2];
+        // 金額 ≈ 数量×単価 の検証
+        if (qty > 0 && unitCost > 0 && Math.abs(totalCost - qty * unitCost) > unitCost) {
+          // 合わない場合: 最後が金額、その前が単価、さらに前が数量として再解釈
+          const last = numVals.length;
+          totalCost = numVals[last - 1];
+          unitCost = numVals[last - 2];
+          qty = numVals[last - 3] || 1;
+        }
+      } else if (numVals.length === 2) {
+        qty = numVals[0];
+        unitCost = numVals[1];
+        totalCost = qty * unitCost;
+      }
+
+      if (!unitCost || unitCost <= 0) continue;
+      if (!qty || qty <= 0) qty = 1;
+
+      items.push({
+        prize_name: name,
+        unit_cost: unitCost,
+        case_quantity: qty,
+        case_cost: totalCost || qty * unitCost,
+        notes: '',
+      });
+    }
+  } catch (e) {
+    Logger.log('PCH PDF parse error: ' + e.message);
+  }
+  return items;
+}
+
+// PCH診断用: メールを探してOCR結果をログに出力
+function testPCHEmail() {
+  const threads = GmailApp.search('from:peach_to_y@rj8.so-net.ne.jp has:attachment newer_than:30d', 0, 5);
+  Logger.log('PCH threads found: ' + threads.length);
+
+  for (const thread of threads) {
+    for (const msg of thread.getMessages()) {
+      Logger.log('--- Subject: ' + msg.getSubject() + ' Date: ' + msg.getDate());
+      const atts = msg.getAttachments();
+      Logger.log('Attachments: ' + atts.length);
+
+      for (const att of atts) {
+        Logger.log('  File: ' + att.getName() + ' (' + att.getContentType() + ', ' + att.getSize() + ' bytes)');
+
+        if (att.getContentType() === 'application/pdf' || att.getName().endsWith('.pdf')) {
+          // OCR変換してテキスト出力
+          try {
+            const blob = att.copyBlob();
+            blob.setContentType('application/pdf');
+            const tempFile = Drive.Files.insert(
+              { title: 'test_pch_' + Date.now(), mimeType: 'application/vnd.google-apps.document' },
+              blob, { convert: true, ocr: true }
+            );
+            const doc = DocumentApp.openById(tempFile.id);
+            const text = doc.getBody().getText();
+            DriveApp.getFileById(tempFile.id).setTrashed(true);
+
+            Logger.log('=== OCR TEXT (first 3000 chars) ===');
+            Logger.log(text.slice(0, 3000));
+            Logger.log('=== END OCR TEXT ===');
+
+            // パーサーも試す
+            const items = parsePCHPdfAttachment(att, '2026-03-31');
+            Logger.log('Parsed items: ' + items.length);
+            for (const it of items) {
+              Logger.log('  ' + it.prize_name + ' x' + it.case_quantity + ' @' + it.unit_cost + ' =' + it.case_cost);
+            }
+          } catch (e) {
+            Logger.log('OCR error: ' + e.message);
+          }
+        }
+      }
+    }
+  }
+}
+
 // ─── 発注登録 ───
 function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeId) {
   const orderId = 'ORD-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyMMdd') + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -360,7 +498,7 @@ function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeI
 // ─── メイン: メール取込（毎日実行） ───
 function dailyProcess() {
   const processed = getProcessedSet(PROP_KEY);
-  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR (subject:メルカリ ご購入) OR (subject:請書 has:attachment) newer_than:7d', 0, 50);
+  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR from:peach_to_y@rj8.so-net.ne.jp OR (subject:メルカリ ご購入) OR (subject:請書 has:attachment) newer_than:7d', 0, 50);
 
   let announcementCount = 0;
   let orderCount = 0;
@@ -394,8 +532,8 @@ function dailyProcess() {
       }
       if (!supplierId) { processed.add(msgId); continue; }
 
-      // 発注書/請書判定（メルカリ・INFは常に発注扱い）
-      const isOrder = supplierId === 'MCR' || supplierId === 'INF' || /発注|注文|請書|確認書/.test(subject);
+      // 発注書/請書判定（メルカリ・INF・PCHは常に発注扱い）
+      const isOrder = supplierId === 'MCR' || supplierId === 'INF' || supplierId === 'PCH' || /発注|注文|請書|確認書|請求/.test(subject);
 
       // メール本文パース
       let items = [];
@@ -413,7 +551,16 @@ function dailyProcess() {
         const xlsx = atts.find(a => a.getName().includes('請書') && a.getName().endsWith('.xlsx'));
         if (xlsx) items = parseInfinityAttachment(xlsx, date);
       }
-      // TODO: PCH パーサー追加
+
+      if (supplierId === 'PCH') {
+        const atts = msg.getAttachments();
+        for (const att of atts) {
+          if (att.getContentType() === 'application/pdf' || att.getName().endsWith('.pdf')) {
+            const pchItems = parsePCHPdfAttachment(att, date);
+            items = items.concat(pchItems);
+          }
+        }
+      }
 
       if (items.length === 0) {
         processed.add(msgId);
