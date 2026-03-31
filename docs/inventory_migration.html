@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>棚卸し移行 確定作業 | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;--orange:#e67e22;--radius:8px}
+:root{--hh:53px;--fh:52px;--th:40px;--nav-h:56px}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;font-size:14px}
+header{background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--border);position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:20;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;font-weight:700;white-space:nowrap}
+.hcount{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px}
+.spacer{flex:1}
+.progress{display:flex;gap:6px;align-items:center;font-size:12px}
+.progress .bar{width:120px;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.progress .fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
+.filters{padding:0 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);position:fixed;top:var(--hh);left:0;right:0;height:var(--fh);z-index:19;overflow-x:auto}
+.filters input,.filters select{padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px}
+.filters input{flex:1;min-width:100px}
+.btn-sm{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer}
+.tabs-bar{position:fixed;top:calc(var(--hh) + var(--fh));left:0;right:0;height:var(--th);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;gap:4px;overflow-x:auto;z-index:18;scrollbar-width:none}
+.tabs-bar::-webkit-scrollbar{display:none}
+.split-area{position:fixed;top:calc(var(--hh) + var(--fh) + var(--th));left:0;right:0;bottom:0;display:flex;overflow:hidden}
+.list-col{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px}
+.detail-col{width:380px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);flex-direction:column;gap:12px;font-size:13px}
+.detail-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.detail-header h3{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.detail-back{background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;display:none}
+.detail-body{padding:12px 16px}
+.mobile-detail{display:none;position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mobile-detail-header{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:8px;z-index:10}
+@media (max-width:768px){.detail-col{display:none!important}.detail-back{display:block}}
+.list{padding:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
+.card.done{border-color:var(--green);opacity:.7}
+.card.skipped{border-color:var(--text2);opacity:.5}
+.card.selected{border-color:var(--accent);background:rgba(124,106,255,.05)}
+.card-header{padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.card-header:active{background:var(--surface2)}
+.card-name{font-weight:700;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-meta{display:flex;gap:6px;font-size:11px;color:var(--text2);flex-wrap:wrap;padding:0 12px 8px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.b-match{background:rgba(46,204,113,.15);color:var(--green)}
+.b-review{background:rgba(243,156,18,.15);color:var(--yellow)}
+.b-unknown{background:rgba(231,76,60,.15);color:var(--red)}
+.b-done{background:rgba(46,204,113,.15);color:var(--green)}
+.b-pending{background:rgba(124,106,255,.15);color:var(--accent)}
+.card-body{display:none}
+.candidates{margin-top:8px}
+.cand{padding:10px;border:2px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.cand:active,.cand.selected{border-color:var(--accent);background:rgba(124,106,255,.1)}
+.cand-name{font-weight:700;font-size:13px}
+.cand-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.cand-none{padding:10px;color:var(--text2);text-align:center;font-size:13px}
+.card-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{border:none;padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;text-align:center}
+.btn-confirm{background:var(--green);color:#fff;flex:2}
+.btn-skip{background:var(--surface2);color:var(--text2);border:1px solid var(--border);flex:1}
+.btn-unknown{background:var(--red);color:#fff;flex:1}
+.btn-undo{background:var(--orange);color:#fff;flex:1}
+.btn-search{background:var(--cyan);color:#fff;flex:1}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 24px;border-radius:8px;font-size:14px;z-index:300;display:none;background:var(--green);color:#fff}
+.page-nav{display:contents}
+.page-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Search Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.modal-header h3{flex:1;font-size:15px;color:var(--accent)}
+.modal-close{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer}
+.modal-search{padding:10px 16px;border-bottom:1px solid var(--border)}
+.modal-search input{width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px}
+.modal-results{flex:1;overflow-y:auto;padding:8px}
+.search-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer}
+.search-item:active{background:var(--surface2)}
+.search-item .si-name{font-weight:700;font-size:13px}
+.search-item .si-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding-top:6px;z-index:150;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
+  transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+<header>
+  <a href="inventory.html" style="color:var(--text2);font-size:20px;text-decoration:none;line-height:1">‹</a>
+  <h1>📋 棚卸し確定</h1>
+  <div class="hcount" id="countBadge">-</div>
+  <div class="spacer"></div>
+  <div class="progress">
+    <span id="progressText">0/0</span>
+    <div class="bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+</header>
+<div class="filters">
+  <input type="text" id="searchInput" placeholder="景品名で検索..." oninput="debouncedRender()">
+  <select id="filterDecision" onchange="renderList()"><option value="">状態：全て</option><option value="pending">未確定</option><option value="confirmed">確定済</option><option value="skipped">スキップ</option></select>
+  <select id="filterSheet" onchange="onSheetFilter();renderList()"><option value="">担当/拠点：全て</option></select>
+  <select id="filterStore" onchange="renderList()"><option value="">店舗：全て</option></select>
+  <select id="filterOrig" onchange="renderList()"><option value="">元状態：全て</option><option value="一致">一致</option><option value="要確認">要確認</option><option value="不明">不明</option></select>
+  <button class="btn-sm" onclick="clearFilters()">クリア</button>
+</div>
+<div class="tabs-bar" id="pageNav"></div>
+<div class="split-area">
+  <div class="list-col">
+    <div class="list" id="listEl"></div>
+  </div>
+  <div class="detail-col" id="detailCol">
+    <div class="detail-empty"><span style="font-size:32px">👈</span>左のリストから選択してください</div>
+  </div>
+</div>
+<div class="mobile-detail" id="mobileDetail">
+  <div class="mobile-detail-header">
+    <button class="detail-back" onclick="closeMobileDetail()">‹ 戻る</button>
+    <span id="mobileDetailTitle" style="flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+  </div>
+  <div id="mobileDetailBody" style="padding:12px 16px"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Prize Search Modal -->
+<div class="modal-bg" id="searchModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔍 景品を検索</h3>
+      <div id="searchForName" style="font-size:12px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <button class="modal-close" onclick="closeSearch()">&times;</button>
+    </div>
+    <div class="modal-search"><input type="text" id="modalSearchInput" placeholder="景品名・IDで検索..." oninput="doModalSearch()"></div>
+    <div class="modal-results" id="modalResults"><div style="padding:20px;text-align:center;color:var(--text2)">2文字以上入力してください</div></div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+
+async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json()}
+async function sbPatch(t,id,b){const r=await fetch(`${SB_URL}/rest/v1/${t}?id=eq.${id}`,{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
+async function sbGet(t,p=''){let all=[],offset=0;const PAGE=1000;while(true){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}&limit=${PAGE}&offset=${offset}`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());const d=await r.json();all=all.concat(d);if(d.length<PAGE)break;offset+=PAGE;}return all;}
+
+let ITEMS=[];
+async function loadItems(){
+  const rows=await sbGet('inventory_migration_decisions','select=item_index,sheet_name,store,location_type,prize_name_orig,machine_name,price,quantity,selected_prize_id,selected_prize_name,status,note&order=item_index');
+  ITEMS=rows.map(r=>({_itemIndex:r.item_index,_dbStatus:r.status,sh:r.sheet_name,st:r.store,lt:r.location_type,name:r.prize_name_orig,mc:r.machine_name||'',price:r.price,qty:r.quantity,c1n:r.selected_prize_name||'',c2n:'',c3n:'',c1id:r.selected_prize_id||'',c2id:'',c3id:'',lv:'',stat:r.status==='confirmed'?'確定':r.status==='skipped'?'スキップ':'要確認',note:r.note||''}));
+  // Build decisions from loaded items
+  ITEMS.forEach((it,i)=>{if(it._dbStatus==='confirmed'||it._dbStatus==='skipped'||it._dbStatus==='unknown'){decisions[i]={status:it._dbStatus,selectedId:it.c1id,selectedName:it.c1n,dbId:null,note:it.note};}});
+}
+
+function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}
+let decisions={};
+let openIdx=null;
+let allPrizes=null; // lazy loaded
+let allOrders=null; // prize_orders from DB
+let searchTargetIdx=null;
+const PAGE_SIZE=50;
+let currentPage=0;
+
+function esc(s){return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
+function showToast(msg,ok=true){const t=document.getElementById('toast');t.textContent=msg;t.style.background=ok?'var(--green)':'var(--red)';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+
+async function loadDecisions(){
+  try{
+    const rows=await sbGet('inventory_migration_decisions','select=*&order=id&limit=5000');
+    rows.forEach(r=>{
+      const idx=ITEMS.findIndex(it=>it._itemIndex===r.item_index);
+      if(idx>=0) decisions[idx]={status:r.status,selectedId:r.selected_prize_id||'',selectedName:r.selected_prize_name||'',dbId:r.id,note:r.note||''};
+    });
+    renderProgress();renderList();
+  }catch(e){console.error(e);showToast('読込エラー',false)}
+}
+
+function renderProgress(){
+  const total=ITEMS.length;
+  const done=Object.values(decisions).filter(d=>d.status==='confirmed'||d.status==='skipped').length;
+  document.getElementById('progressText').textContent=`${done}/${total}`;
+  document.getElementById('progressFill').style.width=(total>0?Math.round(done/total*100):0)+'%';
+}
+
+function getFiltered(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  const fd=document.getElementById('filterDecision').value;
+  const fs=document.getElementById('filterSheet').value;
+  const fst=document.getElementById('filterStore').value;
+  const fo=document.getElementById('filterOrig').value;
+  let list=ITEMS.map((it,i)=>({...it,idx:i}));
+  if(q) list=list.filter(it=>it.name.toLowerCase().includes(q)||(it.c1n||'').toLowerCase().includes(q));
+  if(fd){
+    if(fd==='pending') list=list.filter(it=>!decisions[it.idx]||decisions[it.idx].status==='pending');
+    else list=list.filter(it=>decisions[it.idx]&&decisions[it.idx].status===fd);
+  }
+  if(fs) list=list.filter(it=>it.sh.trim()===fs.trim());
+  if(fst) list=list.filter(it=>it.st.trim()===fst.trim());
+  if(fo) list=list.filter(it=>it.stat===fo);
+  return list;
+}
+
+let _debounceTimer;
+function debouncedRender(){clearTimeout(_debounceTimer);_debounceTimer=setTimeout(()=>{currentPage=0;renderList()},250)}
+
+function renderList(){
+  const lc=document.querySelector('.list-col');const scrollY=lc?lc.scrollTop:window.scrollY;
+  const list=getFiltered();
+  const start=currentPage*PAGE_SIZE;
+  const page=list.slice(start,start+PAGE_SIZE);
+  document.getElementById('countBadge').textContent=list.length+'件';
+
+  let html='';
+  page.forEach(it=>{
+    const d=decisions[it.idx];
+    const isDone=d&&(d.status==='confirmed'||d.status==='skipped');
+    const cls=d&&d.status==='confirmed'?'done':d&&d.status==='skipped'?'skipped':'';
+    const statBadge=it.stat==='一致'?'b-match':it.stat==='要確認'?'b-review':'b-unknown';
+    const decBadge=d&&d.status==='confirmed'?'<span class="badge b-done">✓確定</span>':d&&d.status==='skipped'?'<span class="badge" style="background:var(--surface2);color:var(--text2)">スキップ</span>':d&&d.status==='unknown'?'<span class="badge" style="background:rgba(231,76,60,.15);color:var(--red)">不明</span>':'<span class="badge b-pending">未確定</span>';
+
+    const isSel=openIdx===it.idx;
+    html+=`<div class="card ${cls}${isSel?' selected':''}" id="card-${it.idx}" onclick="selectItem(${it.idx})">
+  <div class="card-header">
+    <div class="card-name">${esc(it.name)}</div>
+    ${decBadge}
+    <span class="badge ${statBadge}">${esc(it.stat)}</span>
+  </div>
+  <div class="card-meta">
+    <span>${esc(it.sh)}</span><span>${esc(it.st)}</span><span>${esc(it.mc)}</span>
+    <span>${fmt(it.price)}</span><span style="font-weight:700">${it.qty||0}個</span>
+    ${d&&d.selectedName?`<span style="color:var(--green)">→ ${esc(d.selectedName)}</span>`:''}
+  </div>
+</div>`;
+  });
+
+  document.getElementById('listEl').innerHTML=html||'<div style="padding:40px;text-align:center;color:var(--text2)">該当なし</div>';
+  const totalPages=Math.ceil(list.length/PAGE_SIZE);
+  let nav='';
+  for(let i=0;i<totalPages;i++) nav+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid ${i===currentPage?'var(--accent)':'var(--border)'};background:${i===currentPage?'var(--accent)':'var(--surface2)'};color:${i===currentPage?'#fff':'var(--text2)'};font-size:12px;cursor:pointer;white-space:nowrap">${i+1}</button>`;
+  document.getElementById('pageNav').innerHTML=nav||'<span style="font-size:12px;color:var(--text2);padding:0 8px">'+list.length+'件</span>';
+  renderProgress();
+  requestAnimationFrame(()=>{const lc=document.querySelector('.list-col');if(lc)lc.scrollTop=scrollY;else window.scrollTo(0,scrollY)});
+}
+
+function scoreText(q, tokens, text){
+  if(!text) return 0;
+  const t=text.toLowerCase().replace(/[\s　]+/g,'');
+  if(t===q) return 100;
+  if(t.includes(q)) return 60;
+  if(q.includes(t)&&t.length>=3) return 40;
+  let hits=0;
+  tokens.forEach(tk=>{if(t.includes(tk))hits++});
+  if(tokens.length>0&&hits>0) return Math.round(35*(hits/tokens.length));
+  return 0;
+}
+
+function findCandidatesRT(itemName, itemPrice){
+  if((!allPrizes||!allPrizes.length)&&(!allOrders||!allOrders.length)) return [];
+  const q=(itemName||'').toLowerCase().replace(/[\s　]+/g,'');
+  if(q.length<1) return [];
+  const origP=Number(itemPrice)||0;
+  const tokens=q.replace(/[()（）\[\]【】・、。,./\\-]/g,' ').split(/\s+/).filter(t=>t.length>=2);
+  const seen=new Set();
+  const results=[];
+
+  // prize_masters候補
+  if(allPrizes){
+    allPrizes.forEach(p=>{
+      const nm=(p.prize_name||'');
+      let aliasStr='';
+      try{const al=JSON.parse(p.aliases||'[]');if(Array.isArray(al))aliasStr=al.join(' ')}catch{}
+      let score=Math.max(scoreText(q,tokens,nm),scoreText(q,tokens,aliasStr));
+      if(score===0) return;
+      const cp=Number(p.original_cost)||0;
+      if(origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.15) score+=20;
+      if(p.status==='active') score+=5;
+      seen.add(p.prize_id);
+      results.push({id:p.prize_id,name:p.prize_name,price:p.original_cost,alias:aliasStr.slice(0,80),score,status:p.status,src:'master'});
+    });
+  }
+
+  // prize_orders候補（マスタ未登録の発注も拾う）
+  if(allOrders){
+    allOrders.forEach(o=>{
+      if(o.prize_id&&seen.has(o.prize_id)) return;
+      const nm=(o.prize_name_raw||'');
+      let score=scoreText(q,tokens,nm);
+      if(score===0) return;
+      const cp=Number(o.unit_cost)||0;
+      if(origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.15) score+=20;
+      score+=2;
+      const key=o.prize_id||('ord:'+o.order_id);
+      if(seen.has(key)) return;
+      seen.add(key);
+      results.push({id:o.prize_id||o.order_id,name:nm||('発注#'+o.order_id),price:o.unit_cost,alias:'発注履歴 ('+o.order_id+')',score,status:o.status,src:'order'});
+    });
+  }
+
+  results.sort((a,b)=>b.score-a.score);
+  return results.slice(0,3);
+}
+
+function buildCandidates(it){
+  const cands=findCandidatesRT(it.name, it.price);
+  if(!cands.length) return '<div class="cand-none">候補なし（🔍検索で探せます）</div>';
+  const d=decisions[it.idx];
+  const origPrice=Number(it.price)||0;
+  return cands.map(c=>{
+    const sel=d&&d.selectedId===c.id;
+    const cp=Number(c.price)||0;
+    const priceDiff=origPrice&&cp?Math.abs(origPrice-cp):null;
+    const priceMatch=origPrice&&cp&&priceDiff/Math.max(origPrice,cp)<0.1;
+    return`<div class="cand${sel?' selected':''}" onclick="selectCand(${it.idx},'${esc(c.id)}','${esc(c.name)}')">
+      <div class="cand-name">${esc(c.name)}</div>
+      ${c.alias?`<div style="font-size:11px;color:var(--text2);margin:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.alias)}</div>`:''}
+      <div class="cand-meta">${c.src==='order'?'<span style="color:var(--cyan)">📋発注</span> ':''}${esc(c.id)} | <span style="color:${priceMatch?'var(--green)':cp?'var(--text)':'var(--text2)'}">${fmt(c.price)}</span>${origPrice&&cp?(priceMatch?' ✓単価一致':' (棚卸'+fmt(origPrice)+')'):''}${c.src==='master'&&c.status!=='active'?'<span style="color:var(--red)"> 停止</span>':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectItem(idx){
+  openIdx=openIdx===idx?null:idx;
+  renderList();
+  if(openIdx!==null){
+    renderDetail(openIdx);
+    const el=document.getElementById('card-'+idx);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }else{
+    document.getElementById('detailCol').innerHTML='<div class="detail-empty"><span style="font-size:32px">👈</span>左のリストから選択してください</div>';
+  }
+}
+function renderDetail(idx){
+  if(idx==null||idx<0||idx>=ITEMS.length)return;
+  const it={...ITEMS[idx],idx};
+  const d=decisions[it.idx];
+  const isDone=d&&(d.status==='confirmed'||d.status==='skipped');
+  // 上部固定エリア
+  const topFixed=`
+  <div style="display:flex;gap:12px;margin-bottom:8px;font-size:12px;color:var(--text2)">
+    <span>${esc(it.sh)} / ${esc(it.st)} / ${esc(it.mc)}</span>
+    <span style="font-weight:700;color:var(--text)">${fmt(it.price)}</span>
+    <span style="font-weight:700;color:var(--text)">${it.qty||0}個</span>
+  </div>
+  ${it.note?`<div style="font-size:12px;color:var(--orange);margin-bottom:8px;padding:6px 8px;background:rgba(230,126,34,.1);border-radius:6px">💡 ${esc(it.note)}</div>`:''}
+  <div class="sel-label" data-idx="${it.idx}" style="font-size:13px;color:var(--green);margin-bottom:8px;font-weight:700;min-height:20px">${d&&d.selectedName?'✓ '+esc(d.selectedName):''}</div>
+  <input type="text" id="inlineSearch-${it.idx}" value="${esc(it.name)}" placeholder="景品名で検索..." style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;margin-bottom:8px" oninput="doInlineSearch(${it.idx},this.value)">
+  <div class="card-actions" style="margin-bottom:0;border:none;padding:0">
+    ${isDone?`<button class="btn btn-undo" onclick="doUndo(${it.idx})">↩ やり直す</button>`:`
+    <button class="btn btn-confirm" onclick="doConfirm(${it.idx})">確定</button>
+    <button class="btn" style="background:var(--cyan);color:#fff;flex:1" onclick="openRegisterForm(${it.idx})">マスタ登録</button>
+    <button class="btn" style="background:var(--orange);color:#fff;flex:1" onclick="doConfirmAsIs(${it.idx})">そのまま</button>
+    <button class="btn btn-skip" onclick="doSkip(${it.idx})">スキップ</button>
+    <button class="btn btn-unknown" onclick="doDecide(${it.idx},'unknown','不明')">不明</button>`}
+  </div>`;
+
+  // PC: 上部固定 + 下部スクロール
+  const col=document.getElementById('detailCol');
+  col.innerHTML=`
+  <div class="detail-header"><h3>${esc(it.name)}</h3></div>
+  <div style="padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2">${topFixed}</div>
+  <div style="padding:8px 16px">
+    <div style="margin-bottom:6px;font-size:11px;color:var(--text2);font-weight:600">自動候補</div>
+    ${buildCandidates(it)}
+    <div id="inlineResults-${it.idx}" style="margin-top:8px"></div>
+  </div>`;
+
+  // mobile
+  document.getElementById('mobileDetailTitle').textContent=it.name;
+  document.getElementById('mobileDetailBody').innerHTML=`
+  <div style="padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:50px;background:var(--bg);z-index:2">${topFixed}</div>
+  <div style="padding:8px 16px">
+    <div style="margin-bottom:6px;font-size:11px;color:var(--text2);font-weight:600">自動候補</div>
+    ${buildCandidates(it)}
+    <div id="inlineResults-m-${it.idx}" style="margin-top:8px"></div>
+  </div>`;
+  if(window.innerWidth<=768){
+    document.getElementById('mobileDetail').style.display='block';
+    window.scrollTo(0,0);
+  }
+}
+function closeMobileDetail(){document.getElementById('mobileDetail').style.display='none'}
+
+function selectCand(itemIdx,pid,pname){
+  const d=decisions[itemIdx]||{};
+  decisions[itemIdx]={...d,selectedId:pid,selectedName:pname,status:d.status||'pending'};
+  // 選択枠だけDOM更新（再描画しない）
+  document.querySelectorAll('.cand').forEach(el=>{
+    const match=el.getAttribute('onclick')||'';
+    if(match.includes("'"+pid+"'"))el.classList.add('selected');
+    else if(match.includes(itemIdx+','))el.classList.remove('selected');
+  });
+  // 紐付け表示を更新
+  document.querySelectorAll('.sel-label').forEach(el=>{
+    if(el.dataset.idx==itemIdx) el.textContent='✓ '+pname;
+  });
+}
+
+async function doConfirm(idx){
+  const d=decisions[idx]||{};
+  if(!d.selectedId){showToast('候補を選んでください',false);return}
+  await saveToDB(idx,'confirmed',d.selectedId,d.selectedName);
+  openIdx=null;showToast('✓ 確定: '+d.selectedName);renderList();
+}
+async function doConfirmAsIs(idx){
+  const it=ITEMS[idx];
+  await saveToDB(idx,'confirmed','__as_is__',it.name+' (そのまま確定)');
+  openIdx=null;showToast('✓ そのまま確定: '+it.name);renderList();
+}
+
+// ─── マスタ登録フォーム ───
+let SUPPLIERS_LIST=[];
+
+async function ensureSupplier(name) {
+  if (!name) return null;
+  const existing = SUPPLIERS_LIST.find(s => s.supplier_name === name);
+  if (existing) return existing.supplier_id;
+  const newId = name.slice(0,3).toUpperCase().replace(/[^A-Z0-9]/g,'X') + String(Date.now()).slice(-2);
+  await sbPost('suppliers', {supplier_id: newId, supplier_name: name, is_active: true});
+  SUPPLIERS_LIST.push({supplier_id: newId, supplier_name: name});
+  return newId;
+}
+
+function buildSupplierOptionsIM(currentVal) {
+  return '<option value="">選択してください</option>' +
+    SUPPLIERS_LIST.map(s => `<option value="${s.supplier_id}" ${currentVal===s.supplier_id?'selected':''}>${esc(s.supplier_name)}</option>`).join('');
+}
+
+function openRegisterForm(idx){
+  const it=ITEMS[idx];
+  const detailCol=document.getElementById('detailCol');
+  const mobileBody=document.getElementById('mobileDetailBody');
+  const html=`
+  <div style="padding:12px 16px">
+    <div style="font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:12px">景品マスタに登録</div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">景品名</label>
+      <input id="regName" value="${esc(it.name)}" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">単価</label>
+      <input id="regCost" type="number" value="${it.price||''}" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">仕入先</label>
+      <select id="regSupplier" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+        ${buildSupplierOptionsIM('')}
+      </select>
+    </div>
+    <div id="regErr" style="font-size:12px;color:var(--red);margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="renderDetail(${idx})">キャンセル</button>
+      <button class="btn" style="background:var(--cyan);color:#fff;flex:1" onclick="doRegisterMaster(${idx})">保存してマスタ登録</button>
+    </div>
+  </div>`;
+  // PC
+  detailCol.innerHTML='<div class="detail-header"><h3>マスタ登録: '+esc(it.name)+'</h3></div>'+html;
+  // Mobile
+  if(mobileBody) mobileBody.innerHTML=html;
+}
+
+async function doRegisterMaster(idx){
+  const name=document.getElementById('regName').value.trim();
+  const cost=Number(document.getElementById('regCost').value);
+  const supplier=document.getElementById('regSupplier').value;
+  const errEl=document.getElementById('regErr');
+  errEl.textContent='';
+
+  if(!name){errEl.textContent='景品名を入力してください';return}
+  if(!cost||cost<=0){errEl.textContent='単価を入力してください';return}
+
+  // 次のprize_id取得
+  showToast('登録中...');
+  try{
+    const maxRows=await sbGet('prize_masters','select=prize_id&order=prize_id.desc&limit=1');
+    const maxNum=maxRows.length?parseInt(maxRows[0].prize_id.replace('PZ-',''),10):0;
+    const newId='PZ-'+String(maxNum+1).padStart(5,'0');
+
+    // マスタ登録
+    await sbPost('prize_masters',{
+      prize_id:newId,
+      prize_name:name,
+      original_cost:cost,
+      supplier_id:supplier||null,
+      status:'active',
+      aliases:JSON.stringify([ITEMS[idx].name]),
+      created_at:new Date().toISOString(),
+      updated_at:new Date().toISOString(),updated_by:getStaffId(),
+    });
+
+    // 確定として保存
+    await saveToDB(idx,'confirmed',newId,name);
+
+    // allPrizesキャッシュ更新
+    if(allPrizes) allPrizes.push({prize_id:newId,prize_name:name,original_cost:cost,status:'active',aliases:JSON.stringify([ITEMS[idx].name])});
+
+    openIdx=null;
+    showToast('✓ マスタ登録+確定: '+name+' ('+newId+')');
+    renderList();
+  }catch(e){
+    errEl.textContent='エラー: '+e.message;
+  }
+}
+
+async function doSkip(idx){await saveToDB(idx,'skipped','','');openIdx=null;showToast('スキップしました');renderList()}
+async function doDecide(idx,status,note){await saveToDB(idx,status,'','',note);openIdx=null;showToast(note+'にしました');renderList()}
+
+async function doUndo(idx){
+  const d=decisions[idx];
+  if(!d||!d.dbId) return;
+  try{
+    await sbPatch('inventory_migration_decisions',d.dbId,{status:'pending',selected_prize_id:null,selected_prize_name:null,decided_at:null,decided_by:getStaffId()});
+    decisions[idx]={...d,status:'pending',selectedId:'',selectedName:''};
+    showToast('↩ 取り消しました');renderList();
+  }catch(e){showToast('エラー: '+e.message,false)}
+}
+
+async function saveToDB(idx,status,pid,pname,note){
+  const it=ITEMS[idx];
+  const d=decisions[idx]||{};
+  const body={item_index:it._itemIndex!=null?it._itemIndex:idx,sheet_name:it.sh,store:it.st,location_type:it.lt,prize_name_orig:it.name,machine_name:it.mc,price:it.price,quantity:it.qty,selected_prize_id:pid||null,selected_prize_name:pname||null,status:status,note:note||null,decided_at:new Date().toISOString(),decided_by:getStaffId()};
+  try{
+    if(d.dbId){
+      await sbPatch('inventory_migration_decisions',d.dbId,body);
+      decisions[idx]={...d,...body,selectedId:pid,selectedName:pname,dbId:d.dbId};
+    }else{
+      // item_indexで既存レコードを検索（ページ再訪問時対策）
+      const existing=await sbGet('inventory_migration_decisions',`select=id&item_index=eq.${idx}&limit=1`);
+      if(existing.length){
+        await sbPatch('inventory_migration_decisions',existing[0].id,body);
+        decisions[idx]={...d,...body,selectedId:pid,selectedName:pname,dbId:existing[0].id};
+      }else{
+        const[row]=await sbPost('inventory_migration_decisions',body);
+        decisions[idx]={status,selectedId:pid||'',selectedName:pname||'',dbId:row.id,note:note||''};
+      }
+    }
+  }catch(e){showToast('保存エラー: '+e.message,false);throw e}
+}
+
+// ─── Prize Search ───
+async function loadAllPrizes(){
+  if(allPrizes) return allPrizes;
+  const [prizes, orders] = await Promise.all([
+  loadItems(),
+    sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,aliases&order=prize_name&limit=5000'),
+    sbGet('prize_orders','select=order_id,prize_id,prize_name_raw,unit_cost,supplier_id,status&order=order_date.desc&limit=5000'),
+  ]);
+  allPrizes=prizes;
+  allOrders=orders;
+  return allPrizes;
+}
+
+let _inlineTimer=null;
+function doInlineSearch(idx, val){
+  clearTimeout(_inlineTimer);
+  _inlineTimer=setTimeout(()=>_runInlineSearch(idx, val), 200);
+}
+function _runInlineSearch(idx, val){
+  const q=(val||'').toLowerCase().trim();
+  const el=document.getElementById('inlineResults-'+idx);
+  const elM=document.getElementById('inlineResults-m-'+idx);
+  if(!el&&!elM) return;
+  if(q.length<2){if(el)el.innerHTML='';if(elM)elM.innerHTML='';return}
+  const origP=Number(ITEMS[idx].price)||0;
+  const d=decisions[idx]||{};
+  // prize_masters検索
+  const hits=(allPrizes||[]).filter(p=>{
+    const nm=(p.prize_name||'').toLowerCase();
+    const al=(p.aliases||'').toLowerCase();
+    const id=(p.prize_id||'').toLowerCase();
+    return nm.includes(q)||al.includes(q)||id.includes(q);
+  }).slice(0,8);
+  // prize_orders検索
+  const seenIds=new Set(hits.map(p=>p.prize_id));
+  const orderHits=(allOrders||[]).filter(o=>{
+    if(o.prize_id&&seenIds.has(o.prize_id)) return false;
+    const nm=(o.prize_name_raw||'').toLowerCase();
+    return nm.includes(q);
+  }).slice(0,5);
+  if(!hits.length&&!orderHits.length){const nh='<div style="padding:8px;color:var(--text2);font-size:12px">該当なし</div>';if(el)el.innerHTML=nh;if(elM)elM.innerHTML=nh;return}
+  let html=hits.map(p=>{
+    const cp=Number(p.original_cost)||0;
+    const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+    const sel=d.selectedId===p.prize_id;
+    return`<div class="cand${sel?' selected':''}" onclick="selectCand(${idx},'${esc(p.prize_id)}','${esc(p.prize_name)}')">
+      <div class="cand-name">${esc(p.prize_name)}</div>
+      <div class="cand-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(p.original_cost)}</span>${origP&&cp?(match?' ✓':' (棚卸'+fmt(origP)+')'):''}${p.status==='active'?'':'<span style="color:var(--red)"> 停止</span>'}</div>
+    </div>`}).join('');
+  if(orderHits.length){
+    html+='<div style="padding:4px 0;font-size:11px;color:var(--cyan);border-top:1px solid var(--border);margin-top:4px">📋 発注履歴</div>';
+    html+=orderHits.map(o=>{
+      const cp=Number(o.unit_cost)||0;
+      const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+      const pickId=o.prize_id||o.order_id;
+      const pickName=o.prize_name_raw||o.order_id;
+      const sel=d.selectedId===pickId;
+      return`<div class="cand${sel?' selected':''}" onclick="selectCand(${idx},'${esc(pickId)}','${esc(pickName)}')">
+        <div class="cand-name">${esc(pickName)}</div>
+        <div class="cand-meta"><span style="color:var(--cyan)">📋</span> ${esc(o.order_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(o.unit_cost)}</span></div>
+      </div>`}).join('');
+  }
+  if(el)el.innerHTML=html;
+  if(elM)elM.innerHTML=html;
+}
+
+function openSearch(idx){
+  searchTargetIdx=idx;
+  const it=ITEMS[idx];
+  document.getElementById('searchForName').textContent='「'+it.name+'」の紐付け先';
+  document.getElementById('modalSearchInput').value=it.name;
+  document.getElementById('searchModal').classList.add('open');
+  doModalSearch();
+}
+function closeSearch(){document.getElementById('searchModal').classList.remove('open');searchTargetIdx=null}
+
+async function doModalSearch(){
+  const q=(document.getElementById('modalSearchInput').value||'').toLowerCase().trim();
+  const el=document.getElementById('modalResults');
+  if(q.length<2){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">2文字以上入力してください</div>';return}
+  el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">検索中...</div>';
+  try{
+    const prizes=await loadAllPrizes();
+    // prize_masters検索
+    const hits=prizes.filter(p=>{
+      const nm=(p.prize_name||'').toLowerCase();
+      const al=(p.aliases||'').toLowerCase();
+      const id=(p.prize_id||'').toLowerCase();
+      return nm.includes(q)||al.includes(q)||id.includes(q);
+    }).slice(0,20);
+    // prize_orders検索（マスタにない発注も）
+    const seenIds=new Set(hits.map(p=>p.prize_id));
+    const orderHits=(allOrders||[]).filter(o=>{
+      if(o.prize_id&&seenIds.has(o.prize_id)) return false;
+      const nm=(o.prize_name_raw||'').toLowerCase();
+      const oid=(o.order_id||'').toLowerCase();
+      return nm.includes(q)||oid.includes(q);
+    }).slice(0,10);
+    if(!hits.length&&!orderHits.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">見つかりませんでした</div>';return}
+    const origP=searchTargetIdx!==null?Number(ITEMS[searchTargetIdx].price)||0:0;
+    const masterHtml=hits.map(p=>{
+      const cp=Number(p.original_cost)||0;
+      const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+      let firstAlias='';
+      try{const al=JSON.parse(p.aliases||'[]');if(al&&al.length)firstAlias=al[0].slice(0,60)}catch{}
+      return`<div class="search-item" onclick="pickFromSearch('${esc(p.prize_id)}','${esc(p.prize_name)}')">
+      <div class="si-name">${esc(p.prize_name)}</div>
+      ${firstAlias?`<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(firstAlias)}</div>`:''}
+      <div class="si-meta">${esc(p.prize_id)} | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(p.original_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸'+fmt(origP)+')'):''} | ${p.status==='active'?'有効':'停止'}</div>
+    </div>`}).join('');
+    const orderHtml=orderHits.length?('<div style="padding:8px 12px;font-size:11px;color:var(--cyan);border-top:1px solid var(--border);margin-top:4px">📋 発注履歴から</div>'+orderHits.map(o=>{
+      const cp=Number(o.unit_cost)||0;
+      const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
+      const pickId=o.prize_id||o.order_id;
+      const pickName=o.prize_name_raw||o.order_id;
+      return`<div class="search-item" onclick="pickFromSearch('${esc(pickId)}','${esc(pickName)}')">
+      <div class="si-name">${esc(o.prize_name_raw||o.order_id)}</div>
+      <div class="si-meta"><span style="color:var(--cyan)">📋${esc(o.order_id)}</span> | <span style="color:${match?'var(--green)':'var(--text)'}">${fmt(o.unit_cost)}</span>${origP?(match?' ✓単価一致':' (棚卸'+fmt(origP)+')'):''}${o.supplier_id?' | '+esc(o.supplier_id):''}</div>
+    </div>`}).join('')):'';
+    el.innerHTML=masterHtml+orderHtml;
+  }catch(e){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--red)">エラー: '+esc(e.message)+'</div>'}
+}
+
+function pickFromSearch(pid,pname){
+  if(searchTargetIdx===null) return;
+  const idx=searchTargetIdx;
+  decisions[idx]={...(decisions[idx]||{}),selectedId:pid,selectedName:pname,status:'pending'};
+  closeSearch();
+  showToast('選択: '+pname);
+  renderList();
+}
+
+function goPage(p){currentPage=p;openIdx=null;renderList();const lc=document.querySelector('.list-col');if(lc)lc.scrollTop=0;else window.scrollTo(0,0)}
+function clearFilters(){document.getElementById('searchInput').value='';document.getElementById('filterDecision').value='';document.getElementById('filterSheet').value='';document.getElementById('filterStore').value='';document.getElementById('filterOrig').value='';currentPage=0;renderList()}
+
+// フィルター初期化: 担当/拠点
+const sheets=[...new Set(ITEMS.map(i=>i.sh.trim()))].sort();
+const sf=document.getElementById('filterSheet');
+sheets.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sf.appendChild(o)});
+
+// 店舗フィルター: 担当/拠点選択に連動
+function populateStoreFilter(sheetFilter){
+  const stf=document.getElementById('filterStore');
+  stf.innerHTML='<option value="">店舗：全て</option>';
+  let items=ITEMS;
+  if(sheetFilter) items=items.filter(it=>it.sh.trim()===sheetFilter.trim());
+  const stores=[...new Set(items.map(it=>it.st.trim()).filter(Boolean))].sort();
+  stores.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;stf.appendChild(o)});
+}
+function onSheetFilter(){
+  const v=document.getElementById('filterSheet').value;
+  document.getElementById('filterStore').value='';
+  populateStoreFilter(v);
+  currentPage=0;
+}
+populateStoreFilter('');
+
+// 初期化: まずサプライヤー+全景品ロード → 候補リアルタイム化
+Promise.all([
+  loadItems(),
+  sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').then(rows => { SUPPLIERS_LIST = rows; }),
+  loadAllPrizes()
+]).then(()=>loadDecisions()).catch(()=>loadDecisions());
+</script>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div><div>ホーム</div></a>
+  <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
+  <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
+  <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
+  <a class="nav-item" href="admin.html"><div class="nav-icon">⚙️</div><div>管理</div></a>
+</nav>
+</body>
+</html>

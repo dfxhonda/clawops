@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;
+  --surface:#1a1a23;
+  --surface2:#22222e;
+  --border:#2e2e3e;
+  --text:#e8e8f0;
+  --text2:#9090a8;
+  --accent:#7c6aff;
+  --accent2:#5a4fcf;
+  --green:#2ecc71;
+  --red:#e74c3c;
+  --radius:10px;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;
+}
+.logo{font-size:48px;margin-bottom:6px}
+h1{font-size:22px;font-weight:800;letter-spacing:1px;margin-bottom:4px}
+.sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+
+/* ── Login ── */
+.login-box{
+  width:100%;max-width:320px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;margin-bottom:20px;
+}
+.login-box h2{font-size:15px;font-weight:700;margin-bottom:16px;text-align:center}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:12px;color:var(--text2);font-weight:700;margin-bottom:5px}
+.login-field select,.login-field input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;
+  color:var(--text);font-size:15px;outline:none;
+  font-family:inherit;transition:border-color .2s;
+}
+.login-field select:focus,.login-field input:focus{border-color:var(--accent)}
+.login-field input::placeholder{color:var(--text2)}
+.btn-login{
+  width:100%;padding:11px;border-radius:var(--radius);
+  background:var(--accent);color:#fff;border:none;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:background .15s;margin-top:4px;
+}
+.btn-login:hover{background:var(--accent2)}
+.btn-login:disabled{opacity:.5;cursor:default}
+.btn-skip{
+  width:100%;padding:9px;border-radius:var(--radius);
+  background:transparent;color:var(--text2);border:1px solid var(--border);
+  font-size:12px;cursor:pointer;margin-top:8px;
+  transition:all .15s;
+}
+.btn-skip:hover{border-color:var(--accent);color:var(--text)}
+.login-msg{font-size:12px;text-align:center;margin-top:10px;min-height:18px}
+.login-msg.err{color:var(--red)}
+.login-msg.ok{color:var(--green)}
+.staff-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:6px 14px;margin-bottom:20px;font-size:13px;
+}
+.staff-badge .name{font-weight:700;color:var(--accent)}
+.btn-logout{
+  background:none;border:none;color:var(--text2);font-size:11px;
+  cursor:pointer;text-decoration:underline;
+}
+.btn-change-pin{
+  background:none;border:none;color:var(--text2);font-size:11px;
+  cursor:pointer;text-decoration:underline;margin-left:4px;
+}
+
+/* ── Grid ── */
+.grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  width:100%;max-width:360px;
+}
+.card{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:24px 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  text-decoration:none;color:var(--text);
+  transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.card:hover,.card:active{
+  background:var(--surface2);border-color:var(--accent);
+  transform:translateY(-2px);
+}
+.card-icon{font-size:36px;line-height:1}
+.card-label{font-size:14px;font-weight:700}
+.card-desc{font-size:11px;color:var(--text2);text-align:center;line-height:1.4}
+.footer{margin-top:40px;font-size:11px;color:var(--text2)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="logo">🎮</div>
+<h1>ClawOps</h1>
+<p class="sub">クレーンゲーム運営管理</p>
+
+<!-- Login -->
+<div id="loginBox" class="login-box">
+  <h2>ログイン</h2>
+  <div class="login-field">
+    <label>スタッフ名</label>
+    <select id="staffSelect"><option value="">読み込み中...</option></select>
+  </div>
+  <div id="pinSection" class="hidden">
+    <div class="login-field">
+      <label id="pinLabel">暗証番号（4桁以上）</label>
+      <input type="password" id="pinInput" inputmode="numeric" placeholder="暗証番号を入力">
+    </div>
+  </div>
+  <button class="btn-login" id="btnLogin" onclick="handleLogin()" disabled>ログイン</button>
+  <button class="btn-skip" onclick="skipLogin()">ログインせず使う</button>
+  <div class="login-msg" id="loginMsg"></div>
+</div>
+
+<!-- Staff badge (shown when logged in) -->
+<div id="staffBadge" class="staff-badge hidden">
+  <span class="name" id="badgeName"></span>
+  <button class="btn-logout" onclick="logout()">ログアウト</button>
+  <button class="btn-change-pin" onclick="showChangePin()">暗証番号変更</button>
+</div>
+
+<!-- Menu -->
+<div id="menuGrid" class="grid hidden">
+  <a class="card" href="prizes.html">
+    <div class="card-icon">🏆</div>
+    <div class="card-label">景品マスタ</div>
+    <div class="card-desc">景品の登録・検索</div>
+  </a>
+  <a class="card" href="orders.html">
+    <div class="card-icon">📋</div>
+    <div class="card-label">発注管理</div>
+    <div class="card-desc">発注・入荷チェック</div>
+  </a>
+  <a class="card" href="inventory.html">
+    <div class="card-icon">📦</div>
+    <div class="card-label">在庫管理</div>
+    <div class="card-desc">在庫確認・移動</div>
+  </a>
+  <a class="card" href="announcements.html">
+    <div class="card-icon">📬</div>
+    <div class="card-label">景品案内</div>
+    <div class="card-desc">仕入先からの新商品</div>
+  </a>
+  <a class="card" href="inventory_migration.html">
+    <div class="card-icon">🔄</div>
+    <div class="card-label">棚卸し移行</div>
+    <div class="card-desc">旧データの移行作業</div>
+  </a>
+  <a class="card" href="admin.html">
+    <div class="card-icon">⚙️</div>
+    <div class="card-label">管理</div>
+    <div class="card-desc">設定・ツール</div>
+  </a>
+</div>
+
+<!-- Change PIN modal -->
+<div id="changePinModal" class="login-box hidden" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;max-width:300px">
+  <h2>暗証番号変更</h2>
+  <div class="login-field">
+    <label>新しい暗証番号（4桁以上）</label>
+    <input type="password" id="newPinInput" inputmode="numeric" placeholder="新しい暗証番号">
+  </div>
+  <button class="btn-login" onclick="changePin()">変更する</button>
+  <button class="btn-skip" onclick="document.getElementById('changePinModal').classList.add('hidden')">キャンセル</button>
+  <div class="login-msg" id="changePinMsg"></div>
+</div>
+
+<div class="footer">ClawOps v1.0</div>
+
+<script>
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+let STAFF=[];
+let currentStaff=null; // {staff_id, name, pin}
+
+async function sbGet(table,params=''){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}`,{headers});
+  return r.ok?r.json():[];
+}
+async function sbPatch(table,id,idCol,body){
+  await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
+    method:'PATCH',headers:{...headers,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify(body)
+  });
+}
+
+// ── Init ──
+async function init(){
+  // Check saved session
+  const saved=sessionStorage.getItem('clawops_staff');
+  if(saved){
+    currentStaff=JSON.parse(saved);
+    showMenu();
+    return;
+  }
+
+  STAFF=await sbGet('staff','select=staff_id,name,pin&is_active=eq.true&order=name');
+  const sel=document.getElementById('staffSelect');
+  sel.innerHTML='<option value="">-- 選択してください --</option>'+
+    STAFF.map(s=>`<option value="${s.staff_id}">${s.name}</option>`).join('');
+  sel.onchange=onStaffChange;
+  document.getElementById('btnLogin').disabled=false;
+}
+
+function onStaffChange(){
+  const sel=document.getElementById('staffSelect');
+  const staff=STAFF.find(s=>s.staff_id===sel.value);
+  const pinSec=document.getElementById('pinSection');
+  const pinLabel=document.getElementById('pinLabel');
+  const pinInput=document.getElementById('pinInput');
+  document.getElementById('loginMsg').textContent='';
+
+  if(!staff){pinSec.classList.add('hidden');return;}
+
+  pinSec.classList.remove('hidden');
+  if(staff.pin){
+    pinLabel.textContent='暗証番号';
+    pinInput.placeholder='暗証番号を入力';
+  }else{
+    pinLabel.textContent='暗証番号を設定（4桁以上）';
+    pinInput.placeholder='好きな番号を決めてください';
+  }
+  pinInput.value='';
+  pinInput.focus();
+}
+
+async function handleLogin(){
+  const sel=document.getElementById('staffSelect');
+  const staff=STAFF.find(s=>s.staff_id===sel.value);
+  const pin=document.getElementById('pinInput').value.trim();
+  const msg=document.getElementById('loginMsg');
+
+  if(!staff){msg.className='login-msg err';msg.textContent='スタッフを選択してください';return;}
+  if(pin.length<4){msg.className='login-msg err';msg.textContent='暗証番号は4桁以上で入力してください';return;}
+
+  if(staff.pin){
+    // 認証
+    if(pin!==staff.pin){
+      msg.className='login-msg err';msg.textContent='暗証番号が違います';return;
+    }
+  }else{
+    // 初回: PINを保存
+    await sbPatch('staff',staff.staff_id,'staff_id',{pin:pin});
+    staff.pin=pin;
+    msg.className='login-msg ok';msg.textContent='暗証番号を登録しました';
+  }
+
+  currentStaff={staff_id:staff.staff_id,name:staff.name};
+  sessionStorage.setItem('clawops_staff',JSON.stringify(currentStaff));
+  showMenu();
+}
+
+function skipLogin(){
+  currentStaff=null;
+  sessionStorage.removeItem('clawops_staff');
+  document.getElementById('loginBox').classList.add('hidden');
+  document.getElementById('staffBadge').classList.add('hidden');
+  document.getElementById('menuGrid').classList.remove('hidden');
+}
+
+function showMenu(){
+  document.getElementById('loginBox').classList.add('hidden');
+  document.getElementById('menuGrid').classList.remove('hidden');
+  if(currentStaff){
+    document.getElementById('badgeName').textContent=currentStaff.name;
+    document.getElementById('staffBadge').classList.remove('hidden');
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('clawops_staff');
+  currentStaff=null;
+  location.reload();
+}
+
+function showChangePin(){
+  document.getElementById('changePinModal').classList.remove('hidden');
+  document.getElementById('newPinInput').value='';
+  document.getElementById('changePinMsg').textContent='';
+  document.getElementById('newPinInput').focus();
+}
+
+async function changePin(){
+  const newPin=document.getElementById('newPinInput').value.trim();
+  const msg=document.getElementById('changePinMsg');
+  if(newPin.length<4){msg.className='login-msg err';msg.textContent='4桁以上で入力してください';return;}
+  await sbPatch('staff',currentStaff.staff_id,'staff_id',{pin:newPin});
+  msg.className='login-msg ok';msg.textContent='変更しました';
+  setTimeout(()=>document.getElementById('changePinModal').classList.add('hidden'),1000);
+}
+
+// Enter key support
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(!document.getElementById('changePinModal').classList.contains('hidden')){changePin();return;}
+    if(!document.getElementById('loginBox').classList.contains('hidden')){handleLogin();}
+  }
+});
+
+init();
+</script>
+</body>
+</html>
