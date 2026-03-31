@@ -24,6 +24,7 @@ import PrizeList from './pages/sb/PrizeList'
 // Supabase連携
 import PrizeMasterDB from './pages/db/PrizeMasterDB'
 import MachineFormDB from './pages/db/MachineFormDB'
+import MachineTypeDB from './pages/db/MachineTypeDB'
 import BoothFormDB from './pages/db/BoothFormDB'
 
 // 棚卸しアプリ
@@ -75,6 +76,7 @@ export default function App() {
       <Route path="/db/machines" element={<MachineFormDB />} />
       <Route path="/db/machines/:storeCode" element={<MachineFormDB />} />
       <Route path="/db/machines/:storeCode/:machineCode/booths" element={<BoothFormDB />} />
+      <Route path="/db/machine-types" element={<MachineTypeDB />} />
 
       {/* 棚卸しアプリ */}
       <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />

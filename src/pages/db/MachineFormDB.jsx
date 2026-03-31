@@ -2,11 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
-const MACHINE_TYPES = [
-  'BUZZ_CRANE_4', 'BUZZ_CRANE_SLIM', 'BUZZ_CRANE_MINI',
-  'SESAME_W', 'HIGH_GACHA', '500_GACHA', 'OTHER',
-]
-
 const OWNERSHIP_TYPES = [
   { value: 'purchased', label: '購入' },
   { value: 'leased', label: 'リース' },
@@ -25,8 +20,14 @@ export default function MachineFormDB() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [boothCount, setBoothCount] = useState('4')
+  const [machineTypes, setMachineTypes] = useState([])
 
-  useEffect(() => { loadStores() }, [])
+  useEffect(() => { loadStores(); loadMachineTypes() }, [])
+
+  async function loadMachineTypes() {
+    const { data } = await supabase.from('machine_types').select('type_id, type_name').order('type_id')
+    setMachineTypes(data || [])
+  }
 
   const loadMachines = useCallback(async () => {
     if (!selStore) return
@@ -66,7 +67,7 @@ export default function MachineFormDB() {
     setForm({
       store_code: selStore,
       machine_name: '',
-      model_id: 'BUZZ_CRANE_4',
+      model_id: machineTypes[0]?.type_id || '',
       play_price: '100',
       meter_per_play: '1',
       floor: '',
@@ -188,7 +189,8 @@ export default function MachineFormDB() {
             <label style={labelStyle}>マシンタイプ</label>
             <select value={form.model_id || ''} onChange={e => setForm(p => ({ ...p, model_id: e.target.value }))}
               style={inputStyle}>
-              {MACHINE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="">-- 選択 --</option>
+              {machineTypes.map(t => <option key={t.type_id} value={t.type_id}>{t.type_name} ({t.type_id})</option>)}
             </select>
           </div>
 
