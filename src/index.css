@@ -30,14 +30,24 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* iPad対応: 列幅・フォントサイズ調整 */
+/* iOS自動ズーム防止: 16px未満だとフォーカス時にズームされる */
+input[type="number"],
+input[type="text"],
+input[type="tel"],
+input[type="date"],
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* iPad対応: タップターゲット拡大 */
 @media (min-width: 768px) {
   input[type="number"],
   input[type="text"],
+  input[type="tel"],
   input[type="date"],
   select,
   textarea {
-    font-size: 16px !important;
     min-height: 44px;
   }
 }
