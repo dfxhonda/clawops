@@ -115,6 +115,13 @@ tr:hover td{background:rgba(124,106,255,.06)}
   main{max-width:960px;margin:0 auto}
   .modal{max-width:520px}
 }
+.stepper{display:flex;align-items:center;gap:0}
+.stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn:active{background:var(--accent)}
+.stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
+.stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
 </style>
 </head>
 <body>
@@ -558,7 +565,7 @@ function addBooth(){
   const machOpts=machines.map(m=>'<option value="'+m.machine_code+'">'+esc(storeName(m.store_code))+' - '+esc(m.machine_name)+'</option>').join('');
   showModal('<div class="modal-title">ブース追加</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
-    +'<div class="form-group"><label>ブース番号</label><input id="f_num" type="number" min="1" max="9" value="1" autofocus></div>'
+    +'<div class="form-group"><label>ブース番号</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal(\'f_num\',-1)">−</button><input id="f_num" type="tel" min="1" max="9" value="1" autofocus inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal(\'f_num\',1)">＋</button></div></div>'
     +'<div class="form-group"><label>ブースコード</label><input id="f_code" placeholder="空白で自動生成"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewBooth()">追加</button></div>');
 }
@@ -586,7 +593,7 @@ function editBooth(code){
   const machOpts=machines.map(m=>'<option value="'+m.machine_code+'"'+(m.machine_code===b.machine_code?' selected':'')+'>'+esc(storeName(m.store_code))+' - '+esc(m.machine_name)+'</option>').join('');
   showModal('<div class="modal-title">ブース編集</div>'
     +'<div class="form-group"><label>機械</label><select id="f_machine">'+machOpts+'</select></div>'
-    +'<div class="form-group"><label>ブース番号</label><input id="f_num" type="number" min="1" max="9" value="'+esc(b.booth_number)+'" autofocus></div>'
+    +'<div class="form-group"><label>ブース番号</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal(\'f_num\',-1)">−</button><input id="f_num" type="tel" min="1" max="9" value="'+esc(b.booth_number)+'" autofocus inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal(\'f_num\',1)">＋</button></div></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditBooth(\''+esc(code)+'\')">保存</button></div>'
     +'<button class="btn-del-modal" onclick="delBooth(\''+esc(code)+'\')">削除</button>');
 }
@@ -615,6 +622,18 @@ async function delBooth(code){
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
   finally{hideLoading();}
+}
+
+// ─── STEPPER ──────────────────────────────────────────────────────────────────
+function stepVal(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
+  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
+  const cur = parseInt(el.value) || 0;
+  const next = Math.min(max, Math.max(min, cur + delta));
+  el.value = next;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

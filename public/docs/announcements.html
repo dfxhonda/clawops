@@ -182,6 +182,13 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   .mobile-list{display:block;top:calc(var(--header-h) + var(--toolbar-h) + 36px)}
   .fab{display:block}
 }
+.stepper{display:flex;align-items:center;gap:0}
+.stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn:active{background:var(--accent)}
+.stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
+.stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
 </style>
 </head>
 <body>
@@ -553,10 +560,10 @@ function buildForm(it){
   return`
   <div class="field"><label>景品名 <span style="color:var(--red)">*</span></label><input id="fName" value="${esc(it.prize_name||'')}"></div>
   <div class="field"><label>仕入先</label><select id="fSup">${'<option value="">選択</option>'+SUP_IDS.map(s=>`<option value="${s}" ${it.supplier_id===s?'selected':''}>${supName(s)}</option>`).join('')}</select></div>
-  <div class="field"><label>個別単価</label><input type="number" id="fCost" value="${it.unit_cost||''}"></div>
+  <div class="field"><label>個別単価</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCost',-10)">−</button><input type="tel" id="fCost" value="${it.unit_cost||''}" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCost',10)">＋</button></div></div>
   <div style="display:flex;gap:8px">
-    <div class="field" style="flex:1"><label>入り数</label><input type="number" id="fCaseQty" value="${it.case_quantity||''}"></div>
-    <div class="field" style="flex:1"><label>箱単価</label><input type="number" id="fCaseCost" value="${it.case_cost||''}"></div>
+    <div class="field" style="flex:1"><label>入り数</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCaseQty',-1)">−</button><input type="tel" id="fCaseQty" value="${it.case_quantity||''}" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCaseQty',1)">＋</button></div></div>
+    <div class="field" style="flex:1"><label>箱単価</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCaseCost',-10)">−</button><input type="tel" id="fCaseCost" value="${it.case_cost||''}" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCaseCost',10)">＋</button></div></div>
   </div>
   <div class="field"><label>発売日</label><input type="date" id="fRelease" value="${it.release_date||''}"></div>
   <div class="field"><label>画像URL</label><input id="fImage" value="${esc(it.image_url||'')}" placeholder="https://..."></div>
@@ -632,7 +639,7 @@ function openOrderModal(id){
       <span>${supName(it.supplier_id)}</span>
       ${it.unit_cost?`<span>${fmt(it.unit_cost)}</span>`:''}
     </div>
-    <div class="field"><label>発注数量 <span style="color:var(--red)">*</span></label><input type="number" id="ordQty" min="1" value="${it.case_quantity||''}" placeholder="個数"></div>
+    <div class="field"><label>発注数量 <span style="color:var(--red)">*</span></label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('ordQty',-1)">−</button><input type="tel" id="ordQty" min="1" value="${it.case_quantity||''}" placeholder="個数" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('ordQty',1)">＋</button></div></div>
     <div class="field"><label>発注日</label><input type="date" id="ordDate" value="${today}"></div>
     <div class="field"><label>入荷先</label><input id="ordDest" placeholder="例: 久留米倉庫"></div>
     <div style="display:flex;gap:8px;padding:12px 0">
@@ -667,6 +674,18 @@ async function submitOrder(annId){
     showToast('発注に登録しました: '+orderId);
     await loadAll();
   }catch(e){document.getElementById('ordErr').textContent='エラー: '+e.message}finally{hideLoading()}
+}
+
+// ─── STEPPER ──────────────────────────────────────────────────────────────────
+function stepVal(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
+  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
+  const cur = parseInt(el.value) || 0;
+  const next = Math.min(max, Math.max(min, cur + delta));
+  el.value = next;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
 // ─── INIT ───

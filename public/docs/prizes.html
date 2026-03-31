@@ -350,6 +350,13 @@ header{
   .mobile-detail{display:block}
   .fab{display:flex}
 }
+.stepper{display:flex;align-items:center;gap:0}
+.stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn:active{background:var(--accent)}
+.stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
+.stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
 </style>
 </head>
 <body>
@@ -800,7 +807,7 @@ function renderDetail() {
   <div class="field-row">
     <div class="field">
       <label>現在単価（円）<span class="req">*</span></label>
-      <input type="number" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirty()">
+      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCost',-10)">−</button><input type="tel" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCost',10)">＋</button></div>
     </div>
     <div class="field">
       <label>状態</label>
@@ -814,7 +821,7 @@ function renderDetail() {
     </div>
     <div class="field">
       <label>標準入り数</label>
-      <input type="number" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirty()">
+      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fQty',-1)">−</button><input type="tel" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fQty',1)">＋</button></div>
     </div>
   </div>
 </div>
@@ -1087,7 +1094,7 @@ function renderMobileDetailContent() {
   </div>
   <div class="field">
     <label>現在単価（円）<span class="req">*</span></label>
-    <input type="number" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()">
+    <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCost',-10)">−</button><input type="tel" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCost',10)">＋</button></div>
   </div>
   <div class="field">
     <label>仕入先</label>
@@ -1099,7 +1106,7 @@ function renderMobileDetailContent() {
   </div>
   <div class="field">
     <label>標準入り数</label>
-    <input type="number" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirtyMobile()">
+    <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfQty',-1)">−</button><input type="tel" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfQty',1)">＋</button></div>
   </div>
 </div>
 <div class="md-actions">
@@ -1199,6 +1206,18 @@ async function deactivatePrizeMobile() {
   } finally {
     hideLoading();
   }
+}
+
+// ─── STEPPER ──────────────────────────────────────────────────────────────────
+function stepVal(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
+  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
+  const cur = parseInt(el.value) || 0;
+  const next = Math.min(max, Math.max(min, cur + delta));
+  el.value = next;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

@@ -173,6 +173,13 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   .fab{display:block}
   #mobileSortSelect{display:block}
 }
+.stepper{display:flex;align-items:center;gap:0}
+.stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn:active{background:var(--accent)}
+.stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
+.stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
 </style>
 </head>
 <body>
@@ -565,7 +572,7 @@ function buildMovementForm(stock){
   <div class="field"><label>景品</label><select id="mvPrize"><option value="">選択してください</option>${prizeOpts}</select></div>
   <div class="field"><label>元の場所</label><select id="mvFrom"><option value="">なし（入荷時）</option>${ownerOpts}</select></div>
   <div class="field"><label>先の場所</label><select id="mvTo"><option value="">選択してください</option>${ownerOpts}</select></div>
-  <div class="field"><label>数量</label><input type="number" id="mvQty" min="1" placeholder="動かす数"><div class="error" id="mvErr"></div></div>
+  <div class="field"><label>数量</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mvQty',-1)">−</button><input type="tel" id="mvQty" min="1" placeholder="動かす数" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mvQty',1)">＋</button></div><div class="error" id="mvErr"></div></div>
   <div class="field"><label>理由メモ</label><textarea id="mvNote" placeholder="任意"></textarea></div>
   <div style="display:flex;gap:8px;margin-top:12px">
     <button class="btn btn-ghost" onclick="closeMovement()" style="flex:1">キャンセル</button>
@@ -619,7 +626,7 @@ function openAdjust(stockId){
   document.getElementById('movementContent').innerHTML=`
   <h3>数量修正: ${esc(pz.prize_name||s.prize_id)}</h3>
   <div class="field"><label>現在数量</label><div style="padding:8px 0;font-size:18px;font-weight:700">${s.quantity}個</div></div>
-  <div class="field"><label>修正後の数量</label><input type="number" id="adjQty" min="0" value="${s.quantity}"><div class="error" id="adjErr"></div></div>
+  <div class="field"><label>修正後の数量</label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('adjQty',-1)">−</button><input type="tel" id="adjQty" min="0" value="${s.quantity}" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('adjQty',1)">＋</button></div><div class="error" id="adjErr"></div></div>
   <div class="field"><label>修正理由 <span style="color:var(--red)">*</span></label><textarea id="adjReason" placeholder="例: 棚卸しで差異があった"></textarea></div>
   <div style="display:flex;gap:8px;margin-top:12px">
     <button class="btn btn-ghost" onclick="closeMovement()" style="flex:1">キャンセル</button>
@@ -645,6 +652,18 @@ async function submitAdjust(stockId){
     showToast('数量を修正しました');
     await loadAll();
   }catch(e){errEl.textContent='エラー: '+e.message}finally{hideLoading()}
+}
+
+// ─── STEPPER ──────────────────────────────────────────────────────────────────
+function stepVal(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
+  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
+  const cur = parseInt(el.value) || 0;
+  const next = Math.min(max, Math.max(min, cur + delta));
+  el.value = next;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
 }
 
 // ─── INIT ───

@@ -95,6 +95,13 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 }
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
+.stepper{display:flex;align-items:center;gap:0}
+.stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn:active{background:var(--accent)}
+.stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
+.stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
 </style>
 </head>
 <body>
@@ -450,7 +457,7 @@ function openRegisterForm(idx){
     </div>
     <div style="margin-bottom:10px">
       <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">単価</label>
-      <input id="regCost" type="number" value="${it.price||''}" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
+      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('regCost',-10)">−</button><input id="regCost" type="tel" value="${it.price||''}" inputmode="numeric" pattern="[0-9]*" style="width:100%;padding:8px 10px;border-radius:0;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('regCost',10)">＋</button></div>
     </div>
     <div style="margin-bottom:10px">
       <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">仕入先</label>
@@ -711,6 +718,18 @@ Promise.all([
   sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').then(rows => { SUPPLIERS_LIST = rows; }),
   loadAllPrizes()
 ]).then(()=>loadDecisions()).catch(()=>loadDecisions());
+
+// ─── STEPPER ──────────────────────────────────────────────────────────────────
+function stepVal(inputId, delta) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const min = el.hasAttribute('min') ? parseInt(el.min) : -Infinity;
+  const max = el.hasAttribute('max') ? parseInt(el.max) : Infinity;
+  const cur = parseInt(el.value) || 0;
+  const next = Math.min(max, Math.max(min, cur + delta));
+  el.value = next;
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+}
 </script>
 
 <nav class="bottom-nav">
