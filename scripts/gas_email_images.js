@@ -301,9 +301,9 @@ function parseInfinityAttachment(attachment, orderDate) {
   try {
     // ExcelをGoogleスプレッドシートに変換して読む
     const blob = attachment.copyBlob();
-    const tempFile = Drive.Files.insert(
-      { title: 'temp_inf_' + Date.now(), mimeType: 'application/vnd.google-apps.spreadsheet' },
-      blob, { convert: true }
+    const tempFile = Drive.Files.create(
+      { name: 'temp_inf_' + Date.now(), mimeType: 'application/vnd.google-apps.spreadsheet' },
+      blob, { fields: 'id' }
     );
     const ss = SpreadsheetApp.openById(tempFile.id);
     const sheet = ss.getSheets()[0];
@@ -343,9 +343,9 @@ function parsePCHPdfAttachment(attachment, orderDate) {
     const blob = attachment.copyBlob();
     blob.setContentType('application/pdf');
     // PDF→Googleドキュメント（OCR変換）
-    const tempFile = Drive.Files.insert(
-      { title: 'temp_pch_' + Date.now(), mimeType: 'application/vnd.google-apps.document' },
-      blob, { convert: true, ocr: true }
+    const tempFile = Drive.Files.create(
+      { name: 'temp_pch_' + Date.now(), mimeType: 'application/vnd.google-apps.document' },
+      blob, { fields: 'id' }
     );
     const doc = DocumentApp.openById(tempFile.id);
     const text = doc.getBody().getText();
@@ -446,9 +446,9 @@ function testPCHEmail() {
           try {
             const blob = att.copyBlob();
             blob.setContentType('application/pdf');
-            const tempFile = Drive.Files.insert(
-              { title: 'test_pch_' + Date.now(), mimeType: 'application/vnd.google-apps.document' },
-              blob, { convert: true, ocr: true }
+            const tempFile = Drive.Files.create(
+              { name: 'test_pch_' + Date.now(), mimeType: 'application/vnd.google-apps.document' },
+              blob, { fields: 'id' }
             );
             const doc = DocumentApp.openById(tempFile.id);
             const text = doc.getBody().getText();
