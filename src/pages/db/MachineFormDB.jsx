@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
+const MACHINE_TYPES = [
+  'BUZZ_CRANE_4', 'BUZZ_CRANE_SLIM', 'BUZZ_CRANE_MINI',
+  'SESAME_W', 'HIGH_GACHA', '500_GACHA', 'OTHER',
+]
+
 const OWNERSHIP_TYPES = [
   { value: 'purchased', label: '購入' },
   { value: 'leased', label: 'リース' },
@@ -61,6 +66,7 @@ export default function MachineFormDB() {
     setForm({
       store_code: selStore,
       machine_name: '',
+      model_id: 'BUZZ_CRANE_4',
       play_price: '100',
       meter_per_play: '1',
       floor: '',
@@ -90,6 +96,7 @@ export default function MachineFormDB() {
           machine_code: machineCode,
           store_code: selStore,
           machine_name: form.machine_name.trim(),
+          model_id: form.model_id || null,
           play_price: Number(form.play_price) || 100,
           meter_per_play: Number(form.meter_per_play) || 1,
           floor: form.floor || null,
@@ -123,6 +130,7 @@ export default function MachineFormDB() {
       } else {
         const { error } = await supabase.from('machines').update({
           machine_name: form.machine_name.trim(),
+          model_id: form.model_id || null,
           play_price: Number(form.play_price) || 100,
           meter_per_play: Number(form.meter_per_play) || 1,
           floor: form.floor || null,
@@ -174,6 +182,14 @@ export default function MachineFormDB() {
             <label style={labelStyle}>機械名 <span style={{ color: '#ff6666' }}>*</span></label>
             <input type="text" value={form.machine_name || ''} onChange={e => setForm(p => ({ ...p, machine_name: e.target.value }))}
               placeholder="BUZZ CRANE 4P" style={inputStyle} />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>マシンタイプ</label>
+            <select value={form.model_id || ''} onChange={e => setForm(p => ({ ...p, model_id: e.target.value }))}
+              style={inputStyle}>
+              {MACHINE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
@@ -296,7 +312,7 @@ export default function MachineFormDB() {
                   {m.machine_name || '(名前なし)'}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: '#4a9eff', fontFamily: 'monospace' }}>{m.machine_code.slice(0, 6)}…</span>
+                  {m.model_id && <span style={{ fontSize: 11, background: '#252525', padding: '1px 6px', borderRadius: 4, color: '#aaa' }}>{m.model_id}</span>}
                   <span style={{ fontSize: 11, color: '#aaa' }}>¥{Number(m.play_price || 0).toLocaleString()}</span>
                   {m.floor && <span style={{ fontSize: 11, background: '#252525', padding: '1px 6px', borderRadius: 4, color: '#aaa' }}>{m.floor}</span>}
                   {m.ownership_type && m.ownership_type !== 'purchased' && (
