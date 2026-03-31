@@ -15,6 +15,7 @@ const SECTIONS = [
       { icon: '🎰', title: '機械管理', desc: '機械の追加・ブース生成', path: '/admin/machines' },
       { icon: '🎁', title: '景品管理 (Sheets)', desc: '景品マスタ・発注・在庫', path: '/admin/prizes' },
       { icon: '🗄️', title: '景品マスタ (Supabase)', desc: 'クラウドDB版・高速検索', path: '/db/prizes', highlight: true },
+      { icon: '🎰', title: '機械管理 (Supabase)', desc: '機械登録・ブース自動生成', path: '/db/machines', highlight: true },
     ]
   },
   {

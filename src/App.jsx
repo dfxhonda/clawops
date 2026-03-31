@@ -23,6 +23,8 @@ import TestDataImport from './pages/TestDataImport'
 import PrizeList from './pages/sb/PrizeList'
 // Supabase連携
 import PrizeMasterDB from './pages/db/PrizeMasterDB'
+import MachineFormDB from './pages/db/MachineFormDB'
+import BoothFormDB from './pages/db/BoothFormDB'
 
 // 棚卸しアプリ
 import InventoryDashboard from './pages/inventory/InventoryDashboard'
@@ -70,6 +72,9 @@ export default function App() {
 
       {/* Supabase DB */}
       <Route path="/db/prizes" element={<PrizeMasterDB />} />
+      <Route path="/db/machines" element={<MachineFormDB />} />
+      <Route path="/db/machines/:storeCode" element={<MachineFormDB />} />
+      <Route path="/db/machines/:storeCode/:machineCode/booths" element={<BoothFormDB />} />
 
       {/* 棚卸しアプリ */}
       <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />
