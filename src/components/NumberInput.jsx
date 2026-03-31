@@ -42,9 +42,7 @@ export default function NumberInput({ value, onChange, min, max, step = 1, class
       </button>
       <input
         ref={ref}
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
+        type="tel"
         value={value ?? ''}
         onChange={handleChange}
         placeholder={placeholder}
