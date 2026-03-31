@@ -135,6 +135,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <button class="tab-btn" onclick="switchTab('ownership')">📋 所有</button>
     <button class="tab-btn" onclick="switchTab('transfers')">🔄 移管</button>
     <button class="tab-btn" onclick="switchTab('patrols')">🔍 巡回</button>
+    <button class="tab-btn" onclick="switchTab('tools')">🔧 ツール</button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -320,6 +321,7 @@ function render(){
   else if(currentTab==='ownership')el.innerHTML=renderSimpleList('所有形態',ownershipTypes,'type_id',['type_id','type_name','sort_order'],'ownership_types','type_id');
   else if(currentTab==='transfers')el.innerHTML=renderSimpleList('移管タイプ',transferTypes,'type_id',['type_id','type_name','sort_order'],'transfer_types','type_id');
   else if(currentTab==='patrols')el.innerHTML=renderSimpleList('巡回ステータス',patrolStatuses,'status_id',['status_id','status_name','color','sort_order'],'patrol_statuses','status_id');
+  else if(currentTab==='tools') el.innerHTML=renderTools();
 }
 function th(tab,col,label){
   return'<th class="th-sort" onclick="toggleSort(\''+tab+'\',\''+col+'\')">'+label+sortArrow(tab,col)+'</th>';
@@ -529,6 +531,19 @@ async function delSimple(tableName, pkCol, pkVal) {
 }
 
 // ─── TAB SWITCH ───────────────────────────────────────────────────────────────
+function renderTools(){
+  return`<div style="padding:16px;display:flex;flex-direction:column;gap:12px;max-width:500px">
+    <a href="inventory_migration.html" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
+      <span style="font-size:28px">📋</span>
+      <div><div style="font-weight:700;font-size:15px">棚卸し移行</div><div style="font-size:12px;color:var(--text2)">棚卸しデータの景品マスタ紐付け作業</div></div>
+    </a>
+    <a href="inventory.html" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
+      <span style="font-size:28px">📦</span>
+      <div><div style="font-weight:700;font-size:15px">在庫管理</div><div style="font-size:12px;color:var(--text2)">在庫移動・数量修正</div></div>
+    </a>
+  </div>`;
+}
+
 function switchTab(tab){
   currentTab=tab;filterStore='';filterMachine='';searchQ='';
   document.getElementById('searchInput').value='';
