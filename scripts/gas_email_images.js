@@ -672,6 +672,26 @@ function dailyProcess() {
         }
       }
 
+      // 画像添付があればStorage+案内紐付け（items有無に関わらず処理）
+      const msgId = msg.getId();
+      const attachments = msg.getAttachments();
+      const images = attachments.filter(a => a.getContentType().startsWith('image/'));
+      if (images.length > 0) {
+        const uploaded = [];
+        for (const att of images) {
+          try {
+            const origName = att.getName();
+            const fileName = sanitizeFilename(origName);
+            const storagePath = msgId + '/' + fileName;
+            const blob = att.copyBlob();
+            const imageUrl = uploadToStorage(blob, storagePath, att.getContentType());
+            if (imageUrl) { uploaded.push({ origName, imageUrl }); }
+          } catch (e) { Logger.log('Image error: ' + att.getName() + ': ' + e.message); }
+        }
+        if (uploaded.length) linkImagesToAnnouncements(msgId, uploaded);
+        Logger.log('Images: ' + uploaded.length + ' uploaded for ' + (supplierId || 'unknown'));
+      }
+
       if (items.length === 0) {
         msg.markRead();
         continue;
@@ -679,7 +699,6 @@ function dailyProcess() {
 
       // PCH・メルカリは景品案内不要（発注のみ）
       const skipAnnouncement = supplierId === 'PCH' || supplierId === 'MCR' || supplierId === 'MC2';
-      const msgId = msg.getId();
 
       for (const item of items) {
         // 1. prize_announcements に登録（PCH・メルカリ以外、重複チェック）
@@ -713,25 +732,6 @@ function dailyProcess() {
             orderCount++;
           }
         }
-      }
-
-      // 3. 画像添付があればStorage+案内紐付け（既読にする前に処理）
-      const attachments = msg.getAttachments();
-      const images = attachments.filter(a => a.getContentType().startsWith('image/'));
-      if (images.length > 0) {
-        const uploaded = [];
-        for (const att of images) {
-          try {
-            const origName = att.getName();
-            const fileName = sanitizeFilename(origName);
-            const storagePath = msgId + '/' + fileName;
-            const blob = att.copyBlob();
-            const imageUrl = uploadToStorage(blob, storagePath, att.getContentType());
-            if (imageUrl) { uploaded.push({ origName, imageUrl }); }
-          } catch (e) { Logger.log('Image error: ' + att.getName() + ': ' + e.message); }
-        }
-        if (uploaded.length) linkImagesToAnnouncements(msgId, uploaded);
-        Logger.log('Images: ' + uploaded.length + ' uploaded for ' + (supplierId || 'unknown'));
       }
 
       msg.markRead();
