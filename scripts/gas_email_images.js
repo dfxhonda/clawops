@@ -715,6 +715,25 @@ function dailyProcess() {
         }
       }
 
+      // 3. 画像添付があればStorage+案内紐付け（既読にする前に処理）
+      const attachments = msg.getAttachments();
+      const images = attachments.filter(a => a.getContentType().startsWith('image/'));
+      if (images.length > 0) {
+        const uploaded = [];
+        for (const att of images) {
+          try {
+            const origName = att.getName();
+            const fileName = sanitizeFilename(origName);
+            const storagePath = msgId + '/' + fileName;
+            const blob = att.copyBlob();
+            const imageUrl = uploadToStorage(blob, storagePath, att.getContentType());
+            if (imageUrl) { uploaded.push({ origName, imageUrl }); }
+          } catch (e) { Logger.log('Image error: ' + att.getName() + ': ' + e.message); }
+        }
+        if (uploaded.length) linkImagesToAnnouncements(msgId, uploaded);
+        Logger.log('Images: ' + uploaded.length + ' uploaded for ' + (supplierId || 'unknown'));
+      }
+
       msg.markRead();
     }
   }
