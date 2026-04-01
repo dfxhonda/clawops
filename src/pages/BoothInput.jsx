@@ -37,6 +37,7 @@ export default function BoothInput() {
   const [vehicleStocks, setVehicleStocks] = useState([])
   const [showVehiclePanel, setShowVehiclePanel] = useState(false)
   const [staffId, setStaffId] = useState(() => sessionStorage.getItem('clawops_staff_id') || '')
+  const [filter, setFilter] = useState('all')
 
   // ref管理: refs[boothId][fieldName] = inputElement
   const refsMap = useRef({})
@@ -90,21 +91,21 @@ export default function BoothInput() {
     setInputs(prev => ({ ...prev, [boothId]: { ...(prev[boothId]||{}), [key]: val } }))
   }
 
-  // Enterキーで次フィールドへ
+  // Enterキーで次フィールドへ（filteredBoothsベースで遷移）
   function handleKeyDown(e, boothId, fieldName) {
     if (e.key !== 'Enter') return
     e.preventDefault()
 
-    const boothIdx = booths.findIndex(b => b.booth_id === boothId)
+    const boothIdx = filteredBooths.findIndex(b => b.booth_id === boothId)
     const fieldIdx = FIELD_ORDER.indexOf(fieldName)
 
     if (fieldIdx < FIELD_ORDER.length - 1) {
       // 同じブース内の次フィールド
       const nextField = FIELD_ORDER[fieldIdx + 1]
       refsMap.current[boothId]?.[nextField]?.focus()
-    } else if (boothIdx < booths.length - 1) {
+    } else if (boothIdx < filteredBooths.length - 1) {
       // 次ブースのINメーター
-      const nextBoothId = booths[boothIdx + 1].booth_id
+      const nextBoothId = filteredBooths[boothIdx + 1].booth_id
       refsMap.current[nextBoothId]?.['in_meter']?.focus()
       // 次ブースが見えるようスクロール
       refsMap.current[nextBoothId]?.['in_meter']?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -183,10 +184,11 @@ export default function BoothInput() {
     </div>
   )
 
-  const inputCount = booths.filter(b => {
-    const inp = inputs[b.booth_id] || {}
-    return inp.in_meter && inp.in_meter !== ''
-  }).length
+  const isEntered = (b) => !!(inputs[b.booth_id]?.in_meter)
+  const inputCount = booths.filter(isEntered).length
+  const filteredBooths = filter === 'all' ? booths
+    : filter === 'todo' ? booths.filter(b => !isEntered(b))
+    : booths.filter(b => isEntered(b))
 
   return (
     <div className="max-w-lg mx-auto px-3 pt-3 pb-24">
@@ -254,9 +256,25 @@ export default function BoothInput() {
         )}
       </div>
 
-      {/* 全ブース一覧 */}
+      {/* フィルタータブ */}
+      <div className="flex bg-surface2 rounded-xl p-1 mb-2">
+        {[['all', '全て', booths.length], ['todo', '未入力', booths.length - inputCount], ['done', '入力済', inputCount]].map(([val, label, count]) => (
+          <button key={val} onClick={() => setFilter(val)}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all
+              ${filter === val ? 'bg-surface text-accent shadow-sm' : 'text-muted'}`}>
+            {label}({count})
+          </button>
+        ))}
+      </div>
+
+      {/* ブース一覧 */}
+      {filteredBooths.length === 0 ? (
+        <div className="text-center text-muted text-sm py-8">
+          {filter === 'todo' ? '全ブース入力済みです' : '入力済みのブースはありません'}
+        </div>
+      ) : null}
       <div className="space-y-1.5">
-        {booths.map((booth) => (
+        {filteredBooths.map((booth) => (
           <BoothCard
             key={booth.booth_id}
             booth={booth}
