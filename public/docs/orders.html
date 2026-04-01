@@ -809,8 +809,10 @@ function renderDetail() {
     </select>
   </div>
   <div class="field">
-    <label>景品名（正式名）<span class="req">*</span></label>
-    <input type="text" id="fPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">
+    <label>景品名（正式名）${isNewMode ? '<span class="req">*</span>' : ''}</label>
+    ${isNewMode
+      ? `<input type="text" id="fPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirty()">`
+      : `<div class="field-readonly">${esc(o.prize_name_raw || '—')}</div><input type="hidden" id="fPrizeName" value="${esc(o.prize_name_raw||'')}">`}
   </div>
   <div class="field">
     <label>景品紐付け（prize_masters）</label>
@@ -818,21 +820,27 @@ function renderDetail() {
   </div>
   <div class="field-row">
     <div class="field">
-      <label>数量（case_quantity）<span class="req">*</span></label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCaseQty',-1)">−</button><input type="tel" id="fCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}" min="0" placeholder="例：12" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCaseQty',1)">＋</button></div>
+      <label>数量</label>
+      ${isNewMode
+        ? `<div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCaseQty',-1)">−</button><input type="tel" id="fCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}" min="0" placeholder="例：12" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCaseQty',1)">＋</button></div>`
+        : `<div class="field-readonly">${o.case_quantity != null ? o.case_quantity : '—'}</div><input type="hidden" id="fCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}">`}
     </div>
     <div class="field">
-      <label>ケース数（case_count）</label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCaseCount',-1)">−</button><input type="tel" id="fCaseCount" value="${o.case_count!=null?o.case_count:''}" min="0" placeholder="例：1" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCaseCount',1)">＋</button></div>
+      <label>ケース数</label>
+      ${isNewMode
+        ? `<div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCaseCount',-1)">−</button><input type="tel" id="fCaseCount" value="${o.case_count!=null?o.case_count:''}" min="0" placeholder="例：1" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCaseCount',1)">＋</button></div>`
+        : `<div class="field-readonly">${o.case_count != null ? o.case_count : '—'}</div><input type="hidden" id="fCaseCount" value="${o.case_count!=null?o.case_count:''}">`}
     </div>
   </div>
   <div class="field-row">
     <div class="field">
-      <label>単価（unit_cost）<span class="req">*</span></label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fUnitCost',-10)">−</button><input type="tel" id="fUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}" min="0" placeholder="例：800" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fUnitCost',10)">＋</button></div>
+      <label>単価</label>
+      ${isNewMode
+        ? `<div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fUnitCost',-10)">−</button><input type="tel" id="fUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}" min="0" placeholder="例：800" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fUnitCost',10)">＋</button></div>`
+        : `<div class="field-readonly">${o.unit_cost != null ? fmt(o.unit_cost) : '—'}</div><input type="hidden" id="fUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}">`}
     </div>
     <div class="field">
-      <label>ケース金額（case_cost）</label>
+      <label>ケース金額</label>
       <div class="field-readonly">${o.case_cost != null ? fmt(o.case_cost) : '—'}</div>
     </div>
   </div>
@@ -1106,8 +1114,10 @@ function renderMobileDetailContent() {
 </div>
 <div class="md-body">
   <div class="field">
-    <label>景品名<span class="req">*</span></label>
-    <input type="text" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">
+    <label>景品名${isNewMode ? '<span class="req">*</span>' : ''}</label>
+    ${isNewMode
+      ? `<input type="text" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">`
+      : `<div class="field-readonly">${esc(o.prize_name_raw || '—')}</div><input type="hidden" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}">`}
   </div>
   <div class="field">
     <label>仕入先</label>
@@ -1128,18 +1138,24 @@ function renderMobileDetailContent() {
   </div>
   <div class="field-row">
     <div class="field">
-      <label>数量<span class="req">*</span></label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCaseQty',-1)">−</button><input type="tel" id="mfCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}" min="0" placeholder="12" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCaseQty',1)">＋</button></div>
+      <label>数量</label>
+      ${isNewMode
+        ? `<div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCaseQty',-1)">−</button><input type="tel" id="mfCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}" min="0" placeholder="12" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCaseQty',1)">＋</button></div>`
+        : `<div class="field-readonly">${o.case_quantity != null ? o.case_quantity : '—'}</div><input type="hidden" id="mfCaseQty" value="${o.case_quantity!=null?o.case_quantity:''}">`}
     </div>
     <div class="field">
       <label>ケース数</label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCaseCount',-1)">−</button><input type="tel" id="mfCaseCount" value="${o.case_count!=null?o.case_count:''}" min="0" placeholder="1" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCaseCount',1)">＋</button></div>
+      ${isNewMode
+        ? `<div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCaseCount',-1)">−</button><input type="tel" id="mfCaseCount" value="${o.case_count!=null?o.case_count:''}" min="0" placeholder="1" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCaseCount',1)">＋</button></div>`
+        : `<div class="field-readonly">${o.case_count != null ? o.case_count : '—'}</div><input type="hidden" id="mfCaseCount" value="${o.case_count!=null?o.case_count:''}">`}
     </div>
   </div>
   <div class="field-row">
     <div class="field">
-      <label>単価<span class="req">*</span></label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfUnitCost',-10)">−</button><input type="tel" id="mfUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}" min="0" placeholder="800" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfUnitCost',10)">＋</button></div>
+      <label>単価</label>
+      ${isNewMode
+        ? `<div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfUnitCost',-10)">−</button><input type="tel" id="mfUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}" min="0" placeholder="800" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfUnitCost',10)">＋</button></div>`
+        : `<div class="field-readonly">${o.unit_cost != null ? fmt(o.unit_cost) : '—'}</div><input type="hidden" id="mfUnitCost" value="${o.unit_cost!=null?o.unit_cost:''}">`}
     </div>
     <div class="field">
       <label>状態</label>
