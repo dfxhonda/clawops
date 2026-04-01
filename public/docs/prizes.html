@@ -367,7 +367,7 @@ header{
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 新しい景品を追加</button>
-  <button onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
+  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
 </header>
 
 <div class="toolbar">
@@ -514,6 +514,9 @@ function esc(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function displayAliases(raw) {
+  try { const a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a.join(', ') : raw || ''; } catch { return raw || ''; }
+}
 function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
 
 function resolveSupplierDisplay(p) {
@@ -550,7 +553,7 @@ async function loadAll() {
     const [prizes, suppRows] = await Promise.all([
       sbGet('prize_masters',
         'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
-        '&order=prize_name.asc&limit=2000'),
+        '&order=prize_name.asc'),
       sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
     ]);
     DATA = prizes;
@@ -806,7 +809,7 @@ function renderDetail() {
   </div>
   <div class="field">
     <label>正式名称（カンマ区切りで複数可）</label>
-    <input type="text" id="fAliases" value="${esc(p.aliases||'')}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirty()">
+    <input type="text" id="fAliases" value="${esc(displayAliases(p.aliases))}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirty()">
   </div>
   <div class="field-row">
     <div class="field">
@@ -861,7 +864,8 @@ function revertChanges() {
 // ─── SAVE ──────────────────────────────────────────────────────────────────────
 async function savePrize() {
   const name      = (document.getElementById('fName').value || '').trim();
-  const aliases   = (document.getElementById('fAliases').value || '').trim();
+  const aliasesRaw = (document.getElementById('fAliases').value || '').trim();
+  const aliases   = aliasesRaw ? JSON.stringify(aliasesRaw.split(',').map(s=>s.trim()).filter(Boolean)) : '[]';
   const costStr   = document.getElementById('fCost').value;
   const status    = document.getElementById('fStatus').value;
   const supVal    = document.getElementById('fSupplier').value || null;
@@ -938,7 +942,7 @@ function duplicatePrize() {
 
   // Pre-fill from source
   document.getElementById('fName').value    = src.prize_name + '（複製）';
-  document.getElementById('fAliases').value = src.aliases || '';
+  document.getElementById('fAliases').value = displayAliases(src.aliases);
   document.getElementById('fCost').value    = src.original_cost != null ? src.original_cost : '';
   document.getElementById('fStatus').value  = 'provisional';
   document.getElementById('fSupplier').value = src.supplier_name || '';
@@ -1097,7 +1101,7 @@ ${mFormalName ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--tex
   </div>
   <div class="field">
     <label>正式名称（カンマ区切りで複数可）</label>
-    <input type="text" id="mfAliases" value="${esc(p.aliases||'')}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirtyMobile()">
+    <input type="text" id="mfAliases" value="${esc(displayAliases(p.aliases))}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirtyMobile()">
   </div>
   <div class="field">
     <label>現在単価（円）<span class="req">*</span></label>
@@ -1125,7 +1129,8 @@ ${mFormalName ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--tex
 
 async function savePrizeMobile() {
   const name    = (document.getElementById('mfName').value || '').trim();
-  const aliases = (document.getElementById('mfAliases').value || '').trim();
+  const aliasesRaw = (document.getElementById('mfAliases').value || '').trim();
+  const aliases = aliasesRaw ? JSON.stringify(aliasesRaw.split(',').map(s=>s.trim()).filter(Boolean)) : '[]';
   const costStr = document.getElementById('mfCost').value;
   const status  = document.getElementById('mfStatus').value;
   const supVal  = document.getElementById('mfSupplier').value || null;
@@ -1188,7 +1193,7 @@ function duplicatePrizeMobile() {
   isDirty = false; isNewMode = true; selPrizeId = null;
   renderMobileDetailContent();
   document.getElementById('mfName').value    = src.prize_name + '（複製）';
-  document.getElementById('mfAliases').value = src.aliases || '';
+  document.getElementById('mfAliases').value = displayAliases(src.aliases);
   document.getElementById('mfCost').value    = src.original_cost != null ? src.original_cost : '';
   document.getElementById('mfStatus').value  = 'provisional';
   document.getElementById('mfSupplier').value = src.supplier_name || '';

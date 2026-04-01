@@ -344,7 +344,7 @@ header{
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 発注を追加</button>
-  <button onclick="if(confirm('ログアウトしますか？')){sessionStorage.clear();location.href='index.html'}" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
+  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
 </header>
 
 <div class="toolbar">
@@ -355,11 +355,6 @@ header{
   <div class="tb-sep"></div>
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
-    <option value="アクシズ">アクシズ</option>
-    <option value="インフィニティ">インフィニティ</option>
-    <option value="エスディーワイ">エスディーワイ</option>
-    <option value="ピーチトイ">ピーチトイ</option>
-    <option value="景品フォーム">景品フォーム</option>
   </select>
   <div class="tb-sep"></div>
   <select class="filter-select" id="destFilter" onchange="setDestFilter(this.value)">
@@ -549,8 +544,8 @@ async function loadAll() {
     const [orders, prizes, suppRows] = await Promise.all([
       sbGet('prize_orders',
         'select=order_id,prize_id,prize_name_raw,supplier_id,order_source,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,destination,status,source_file,notes' +
-        '&order=order_date.desc&limit=2000'),
-      sbGet('prize_masters', 'select=prize_id,prize_name&order=prize_name.asc&limit=2000').catch(() => []),
+        '&order=order_date.desc'),
+      sbGet('prize_masters', 'select=prize_id,prize_name&order=prize_name.asc').catch(() => []),
       sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
     ]);
 
@@ -794,7 +789,9 @@ function renderDetail() {
   <div class="field-row">
     <div class="field">
       <label>発注日</label>
-      <input type="date" id="fOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}" oninput="markDirty()">
+      ${isNewMode
+        ? `<input type="date" id="fOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}" oninput="markDirty()">`
+        : `<div class="field-readonly">${esc(o.order_date ? String(o.order_date).slice(0,10) : '—')}</div><input type="hidden" id="fOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}">`}
     </div>
     <div class="field">
       <label>入荷予定日</label>
@@ -1129,7 +1126,9 @@ function renderMobileDetailContent() {
   <div class="field-row">
     <div class="field">
       <label>発注日</label>
-      <input type="date" id="mfOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}" oninput="markDirtyMobile()">
+      ${isNewMode
+        ? `<input type="date" id="mfOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}" oninput="markDirtyMobile()">`
+        : `<div class="field-readonly">${esc(o.order_date ? String(o.order_date).slice(0,10) : '—')}</div><input type="hidden" id="mfOrderDate" value="${esc(o.order_date ? String(o.order_date).slice(0,10) : '')}">`}
     </div>
     <div class="field">
       <label>入荷予定日</label>
