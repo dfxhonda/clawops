@@ -21,8 +21,7 @@
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
 const BUCKET = 'announcements';
-const PROP_KEY = 'processed_ids';
-const PROP_KEY_IMG = 'processed_img_ids';
+// 未読/既読方式: processed_ids廃止
 
 // 仕入先判定
 const SUPPLIER_MAP = {
@@ -214,6 +213,10 @@ const MERCARI_ACCOUNTS = {
 function parseMercariEmail(body) {
   const items = [];
 
+  // 転送元GASが付与した購入日を抽出
+  const origDateMatch = body.match(/ORIGINAL_DATE[：:]?\s*(\d{4}-\d{2}-\d{2})/);
+  const originalDate = origDateMatch ? origDateMatch[1] : null;
+
   // 商品名
   const nameMatch = body.match(/商品名\s*[:：]\s*(.+)/);
   if (!nameMatch) return items;
@@ -248,6 +251,7 @@ function parseMercariEmail(body) {
     case_cost: totalPrice,
     notes: 'メルカリ購入' + (mercariId ? ' ' + mercariId : ''),
     _supplierId: supplierId,
+    _originalDate: originalDate,
   });
 
   return items;
@@ -596,10 +600,9 @@ function createOrder(prizeName, unitCost, caseQty, supplierId, orderDate, prizeI
   return orderId;
 }
 
-// ─── メイン: メール取込（毎日実行） ───
+// ─── メイン: メール取込（未読メールのみ処理→既読にする） ───
 function dailyProcess() {
-  const processed = getProcessedSet(PROP_KEY);
-  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR from:peach_to_y@rj8.so-net.ne.jp OR (subject:メルカリ ご購入) OR (subject:請書 has:attachment) newer_than:7d', 0, 50);
+  const threads = GmailApp.search('is:unread (from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR from:peach_to_y@rj8.so-net.ne.jp OR subject:メルカリ OR (subject:請書 has:attachment))', 0, 50);
 
   let announcementCount = 0;
   let orderCount = 0;
@@ -607,8 +610,7 @@ function dailyProcess() {
 
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
-      const msgId = msg.getId();
-      if (processed.has(msgId)) continue;
+      if (!msg.isUnread()) continue;
 
       const from = msg.getFrom();
       const subject = msg.getSubject();
@@ -631,10 +633,17 @@ function dailyProcess() {
           supplierId = 'INF';
         }
       }
-      if (!supplierId) { processed.add(msgId); continue; }
+      if (!supplierId) { msg.markRead(); continue; }
 
       // 発注書/請書判定（メルカリ・INF・PCHは常に発注扱い）
       const isOrder = supplierId === 'MCR' || supplierId === 'INF' || supplierId === 'PCH' || /発注|注文|請書|確認書|請求/.test(subject);
+
+      // メルカリは転送元GASが付与したORIGINAL_DATEを発注日に使う
+      let orderDate = date;
+      if (supplierId === 'MCR' || /mercari|メルカリ/.test(body)) {
+        const origMatch = body.match(/ORIGINAL_DATE[：:]?\s*(\d{4}-\d{2}-\d{2})/);
+        if (origMatch) orderDate = origMatch[1];
+      }
 
       // メール本文パース
       let items = [];
@@ -644,32 +653,33 @@ function dailyProcess() {
 
       if (supplierId === 'MCR') {
         items = parseMercariEmail(body);
-        supplierId = getMercariSupplierId(items); // アカウントで MCR or MC2 に分岐
+        supplierId = getMercariSupplierId(items);
       }
 
       if (supplierId === 'INF') {
         const atts = msg.getAttachments();
         const xlsx = atts.find(a => a.getName().includes('請書') && a.getName().endsWith('.xlsx'));
-        if (xlsx) items = parseInfinityAttachment(xlsx, date);
+        if (xlsx) items = parseInfinityAttachment(xlsx, orderDate);
       }
 
       if (supplierId === 'PCH') {
         const atts = msg.getAttachments();
         for (const att of atts) {
           if (att.getContentType() === 'application/pdf' || att.getName().endsWith('.pdf')) {
-            const pchItems = parsePCHPdfAttachment(att, date);
+            const pchItems = parsePCHPdfAttachment(att, orderDate);
             items = items.concat(pchItems);
           }
         }
       }
 
       if (items.length === 0) {
-        processed.add(msgId);
+        msg.markRead();
         continue;
       }
 
       // PCH・メルカリは景品案内不要（発注のみ）
       const skipAnnouncement = supplierId === 'PCH' || supplierId === 'MCR' || supplierId === 'MC2';
+      const msgId = msg.getId();
 
       for (const item of items) {
         // 1. prize_announcements に登録（PCH・メルカリ以外、重複チェック）
@@ -695,38 +705,37 @@ function dailyProcess() {
 
         // 2. 発注書なら prize_orders + prize_masters にも登録
         if (isOrder) {
+          const itemDate = item._originalDate || orderDate;
           const prizeId = ensurePrizeMaster(item.prize_name, item.unit_cost, supplierId);
           if (prizeId) {
             masterCount++;
-            createOrder(item.prize_name, item.unit_cost, item.case_quantity, supplierId, date, prizeId);
+            createOrder(item.prize_name, item.unit_cost, item.case_quantity, supplierId, itemDate, prizeId);
             orderCount++;
           }
         }
       }
 
-      processed.add(msgId);
+      msg.markRead();
     }
   }
 
-  saveProcessedSet(PROP_KEY, processed);
   Logger.log('Daily done: ' + announcementCount + ' announcements, ' + orderCount + ' orders, ' + masterCount + ' masters');
 }
 
-// ─── 画像処理（15分おき） ───
+// ─── 画像処理（未読の画像付きメールのみ） ───
 function processImages() {
-  const processed = getProcessedSet(PROP_KEY_IMG);
-  const threads = GmailApp.search('from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com has:attachment newer_than:7d', 0, 30);
+  const threads = GmailApp.search('is:unread (from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com) has:attachment', 0, 30);
 
   let count = 0;
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
+      if (!msg.isUnread()) continue;
       const msgId = msg.getId();
-      if (processed.has(msgId)) continue;
 
       const attachments = msg.getAttachments();
       const images = attachments.filter(a => a.getContentType().startsWith('image/'));
 
-      if (images.length === 0) { processed.add(msgId); continue; }
+      if (images.length === 0) continue; // 画像なしはスキップ（dailyProcessで既読にされる）
 
       // まず全画像をアップロード
       const uploaded = [];
@@ -747,11 +756,10 @@ function processImages() {
       }
       // まとめて紐付け
       if (uploaded.length) linkImagesToAnnouncements(msgId, uploaded);
-      processed.add(msgId);
+      // 注意: ここではmarkReadしない（dailyProcessが先に処理→既読にする）
     }
   }
 
-  saveProcessedSet(PROP_KEY_IMG, processed);
   Logger.log('Images done: ' + count + ' uploaded');
 }
 
@@ -827,20 +835,21 @@ function sanitizeFilename(name) {
   return hash + ext;
 }
 
-// ─── プロパティ管理 ───
-function getProcessedSet(key) {
-  const json = PropertiesService.getScriptProperties().getProperty(key);
-  return new Set(json ? JSON.parse(json) : []);
-}
-function saveProcessedSet(key, idSet) {
-  const arr = Array.from(idSet).slice(-500);
-  PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(arr));
+// ─── 手動実行用: 全対象メールを未読に戻して再取込 ───
+function resetAllUnread() {
+  const threads = GmailApp.search('(from:info@sdy-co.com OR from:achieve.sakamoto@gmail.com OR from:peach_to_y@rj8.so-net.ne.jp OR subject:メルカリ OR (subject:請書 has:attachment)) newer_than:30d', 0, 100);
+  let count = 0;
+  for (const thread of threads) {
+    for (const msg of thread.getMessages()) {
+      if (!msg.isUnread()) { msg.markUnread(); count++; }
+    }
+  }
+  Logger.log('Marked ' + count + ' messages as unread');
 }
 
-// ─── 手動実行用 ───
+// 再取込実行（未読に戻してから処理）
 function resetAndReprocessAll() {
-  PropertiesService.getScriptProperties().deleteProperty(PROP_KEY);
-  PropertiesService.getScriptProperties().deleteProperty(PROP_KEY_IMG);
+  resetAllUnread();
   dailyProcess();
   processImages();
 }
