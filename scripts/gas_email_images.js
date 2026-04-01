@@ -898,17 +898,11 @@ function setupTriggers() {
     ScriptApp.deleteTrigger(t);
   }
 
-  // dailyProcess: 1時間おきに実行（新着メール→案内+発注登録）
+  // dailyProcess: 1時間おきに実行（未読メール→案内+発注+画像を一括処理）
   ScriptApp.newTrigger('dailyProcess')
     .timeBased()
     .everyHours(1)
     .create();
 
-  // processImages: 15分おきに実行（添付画像→Storage+紐付け）
-  ScriptApp.newTrigger('processImages')
-    .timeBased()
-    .everyMinutes(15)
-    .create();
-
-  Logger.log('トリガー設定完了: dailyProcess=1時間おき, processImages=15分おき');
+  Logger.log('トリガー設定完了: dailyProcess=1時間おき');
 }
