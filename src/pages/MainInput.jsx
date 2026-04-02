@@ -269,23 +269,36 @@ export default function MainInput() {
           </div>
         </div>
 
-        {/* 機械タブ */}
-        {machines.length > 0 && (
-          <div className="flex gap-1 px-2.5 pb-1.5 overflow-x-auto" style={{scrollbarWidth:'none'}}>
-            {machines.map(m => {
-              const active = m.machine_id === machineId
-              return (
-                <button key={m.machine_id} onClick={() => setMachineId(m.machine_id)}
-                  className={`shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all
-                    ${active
-                      ? 'bg-blue-600/15 border-blue-500 text-blue-400'
-                      : 'bg-surface border-border text-muted/70'}`}>
-                  {m.machine_code} {m.machine_name?.slice(0,6)}
-                </button>
-              )
-            })}
-          </div>
-        )}
+        {/* 機械切替（左右スワイプ） */}
+        {machines.length > 0 && (() => {
+          const idx = machines.findIndex(m => m.machine_id === machineId)
+          const cur = machines[idx] || machines[0]
+          return (
+            <div className="flex items-center px-2.5 pb-1.5 gap-2"
+              onTouchStart={e => { e.currentTarget._sx = e.touches[0].clientX }}
+              onTouchEnd={e => {
+                const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0)
+                if (Math.abs(dx) < 40) return
+                if (dx < 0 && idx < machines.length - 1) setMachineId(machines[idx + 1].machine_id)
+                if (dx > 0 && idx > 0) setMachineId(machines[idx - 1].machine_id)
+              }}>
+              <button onClick={() => idx > 0 && setMachineId(machines[idx - 1].machine_id)}
+                className={`text-lg px-1 ${idx > 0 ? 'text-blue-400' : 'text-muted/20'}`}>◀</button>
+              <div className="flex-1 text-center">
+                <div className="text-sm font-bold text-blue-400">{cur.machine_code} {cur.machine_name?.slice(0, 8)}</div>
+                <div className="flex justify-center gap-1 mt-0.5">
+                  {machines.map((m, i) => (
+                    <div key={m.machine_id}
+                      onClick={() => setMachineId(m.machine_id)}
+                      className={`w-1.5 h-1.5 rounded-full cursor-pointer ${i === idx ? 'bg-blue-400' : 'bg-muted/30'}`} />
+                  ))}
+                </div>
+              </div>
+              <button onClick={() => idx < machines.length - 1 && setMachineId(machines[idx + 1].machine_id)}
+                className={`text-lg px-1 ${idx < machines.length - 1 ? 'text-blue-400' : 'text-muted/20'}`}>▶</button>
+            </div>
+          )
+        })()}
       </div>
 
       {/* ===== 4ブース入力エリア ===== */}
