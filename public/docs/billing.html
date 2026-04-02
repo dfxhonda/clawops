@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集金帳票 | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--radius:8px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px}
+.header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px}
+.header h1{font-size:16px;flex:1}
+.no-print a{color:var(--text2);font-size:12px}
+.container{max-width:700px;margin:0 auto;padding:12px}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filters select,.filters input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
+.btn{padding:6px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .2s}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-print{background:var(--green);color:#fff}
+
+/* サマリー */
+.summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.summary .big{font-size:24px;font-weight:800;color:var(--accent)}
+.summary .label{font-size:10px;color:var(--text2)}
+.summary .sub{font-size:12px;color:var(--text2)}
+
+/* 機械ブロック */
+.machine-block{margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.machine-header{padding:10px 14px;font-weight:700;font-size:14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.machine-header .machine-total{font-size:12px;color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:5px 8px;color:var(--text2);font-weight:600;background:var(--surface2)}
+td{padding:5px 8px;border-bottom:1px solid var(--border)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.subtotal td{font-weight:700;background:var(--surface2);border-top:2px solid var(--border)}
+.payout-h{color:var(--red)}.payout-m{color:var(--yellow)}.payout-l{color:var(--green)}
+
+/* 按分 */
+.split-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px}
+.split-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+.split-row .rate{color:var(--text2)}
+.split-row .amount{font-weight:700}
+.split-total{border-top:1px solid var(--border);padding-top:6px;margin-top:6px;font-weight:800;font-size:15px}
+
+.loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2)}
+.spinner{width:24px;height:24px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 印刷用 */
+@media print{
+  body{background:#fff;color:#000;font-size:10px}
+  .no-print,.header,.filters{display:none!important}
+  .container{max-width:100%;padding:0}
+  .summary,.machine-block,.split-box{border-color:#ccc;break-inside:avoid}
+  .summary .big{color:#333}
+  th{background:#eee;color:#333}
+  td{border-color:#ccc}
+  .subtotal td{background:#eee}
+  :root{--surface:#fff;--surface2:#f5f5f5;--border:#ccc;--text:#000;--text2:#666;--accent:#333}
+  .payout-h{color:#c00}.payout-m{color:#960}.payout-l{color:#060}
+}
+</style>
+</head>
+<body>
+<div class="header no-print">
+  <a href="index.html">← 戻る</a>
+  <h1>💰 集金帳票</h1>
+  <button class="btn btn-print" onclick="window.print()">🖨️ 印刷</button>
+</div>
+<div class="container">
+  <div class="filters no-print">
+    <select id="storeFilter" onchange="render()"></select>
+    <input type="month" id="monthFilter" onchange="render()">
+  </div>
+  <div id="content"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+</div>
+
+<script>
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+async function sbGet(t,p=''){let a=[],o=0;while(true){const r=await fetch(SB_URL+'/'+t+'?'+p+'&limit=1000&offset='+o,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());const d=await r.json();a=a.concat(d);if(d.length<1000)break;o+=1000}return a}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
+function fmtYen(n){return n!=null?'¥'+Number(n).toLocaleString():'—'}
+function payoutCls(r){return r>30?'payout-h':r>15?'payout-m':'payout-l'}
+
+let allReadings=[], storeMap={}, machineMap={};
+
+async function loadAll(){
+  const [readings, stores, machines] = await Promise.all([
+    sbGet('meter_readings','select=booth_id,read_time,in_meter,out_meter,prize_name,prize_stock_count,prize_restock_count&order=read_time.asc'),
+    sbGet('stores','select=store_code,store_name&is_active=eq.true&order=store_name'),
+    sbGet('machines','select=machine_code,store_code,machine_name&is_active=eq.true'),
+  ]);
+  allReadings=readings;
+  storeMap=Object.fromEntries(stores.map(s=>[s.store_code,s.store_name]));
+  machineMap=Object.fromEntries(machines.map(m=>[m.machine_code,m.machine_name||m.machine_code]));
+
+  // 店舗フィルター（machinesがある店舗のみ）
+  const storeCodes=[...new Set(machines.map(m=>m.store_code))].sort();
+  const sel=document.getElementById('storeFilter');
+  storeCodes.forEach(sc=>{const o=document.createElement('option');o.value=sc;o.textContent=storeMap[sc]||sc;sel.appendChild(o)});
+
+  // 月フィルター: データの最新月をデフォルト
+  const months=[...new Set(readings.map(r=>(r.read_time||'').slice(0,7)))].sort();
+  if(months.length) document.getElementById('monthFilter').value=months[months.length-1];
+
+  render();
+}
+
+function render(){
+  const store=document.getElementById('storeFilter').value;
+  const month=document.getElementById('monthFilter').value;
+  if(!store||!month){document.getElementById('content').innerHTML='<p style="color:var(--text2);text-align:center;padding:40px">店舗と月を選択してください</p>';return}
+
+  const monthStart=month+'-01';
+  const monthEnd=month+'-31';
+
+  // フィルタリング
+  const filtered=allReadings.filter(r=>{
+    if(!(r.booth_id||'').startsWith(store)) return false;
+    const d=(r.read_time||'').slice(0,10);
+    return d>=monthStart && d<=monthEnd;
+  });
+
+  // booth_id別にグループ→差分計算
+  const byBooth={};
+  filtered.forEach(r=>{
+    if(!r.booth_id||r.in_meter==null) return;
+    if(!byBooth[r.booth_id]) byBooth[r.booth_id]=[];
+    byBooth[r.booth_id].push(r);
+  });
+
+  // ブース別集計
+  const boothStats=[];
+  for(const [bid,rows] of Object.entries(byBooth)){
+    rows.sort((a,b)=>(a.read_time||'').localeCompare(b.read_time||''));
+    let inSum=0,outSum=0,days=0;
+    for(let i=1;i<rows.length;i++){
+      const inD=(rows[i].in_meter||0)-(rows[i-1].in_meter||0);
+      const outD=(rows[i].out_meter||0)-(rows[i-1].out_meter||0);
+      if(inD>0&&inD<50000){inSum+=inD;days++}
+      if(outD>0&&outD<50000) outSum+=outD;
+    }
+    const mc=bid.split('-').slice(0,2).join('-');
+    const lastPrize=rows[rows.length-1]?.prize_name||'';
+    const lastStock=rows[rows.length-1]?.prize_stock_count||'';
+    boothStats.push({bid,mc,inSum,outSum,days,lastPrize,lastStock,
+      sales:inSum*100, payout:inSum>0?(outSum/inSum*100):0});
+  }
+
+  // 機械別グループ
+  const byMachine={};
+  boothStats.forEach(b=>{
+    if(!byMachine[b.mc]) byMachine[b.mc]=[];
+    byMachine[b.mc].push(b);
+  });
+
+  // 店舗合計
+  const totalIn=boothStats.reduce((s,b)=>s+b.inSum,0);
+  const totalOut=boothStats.reduce((s,b)=>s+b.outSum,0);
+  const totalSales=totalIn*100;
+  const totalPayout=totalIn>0?(totalOut/totalIn*100):0;
+  const totalDays=[...new Set(filtered.map(r=>(r.read_time||'').slice(0,10)))].length;
+
+  // 機械ブロックHTML
+  const machineBlocks=Object.entries(byMachine).sort((a,b)=>a[0].localeCompare(b[0])).map(([mc,booths])=>{
+    booths.sort((a,b)=>a.bid.localeCompare(b.bid));
+    const mIn=booths.reduce((s,b)=>s+b.inSum,0);
+    const mOut=booths.reduce((s,b)=>s+b.outSum,0);
+    const mPayout=mIn>0?(mOut/mIn*100):0;
+    const mName=machineMap[mc]||mc;
+    const rows=booths.map(b=>{
+      const bCode=b.bid.split('-').pop();
+      return `<tr>
+        <td>${esc(bCode)}</td>
+        <td class="num">${fmt(b.inSum)}</td>
+        <td class="num">${fmtYen(b.sales)}</td>
+        <td class="num">${fmt(b.outSum)}</td>
+        <td class="num ${payoutCls(b.payout)}">${b.payout.toFixed(1)}%</td>
+        <td>${esc((b.lastPrize||'').slice(0,12))}</td>
+        <td class="num">${b.lastStock||''}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="machine-block">
+      <div class="machine-header">
+        <span>${esc(mName)} (${mc})</span>
+        <span class="machine-total">${fmtYen(mIn*100)} / ${mPayout.toFixed(1)}%</span>
+      </div>
+      <table>
+        <tr><th>ブース</th><th class="num">IN差分</th><th class="num">売上</th><th class="num">OUT差</th><th class="num">出率</th><th>景品名</th><th class="num">残</th></tr>
+        ${rows}
+        <tr class="subtotal">
+          <td>小計</td>
+          <td class="num">${fmt(mIn)}</td>
+          <td class="num">${fmtYen(mIn*100)}</td>
+          <td class="num">${fmt(mOut)}</td>
+          <td class="num ${payoutCls(mPayout)}">${mPayout.toFixed(1)}%</td>
+          <td colspan="2"></td>
+        </tr>
+      </table>
+    </div>`;
+  }).join('');
+
+  // 按分（デフォルト 70/20/10）
+  const splits=[
+    {label:'店舗（設置先）',rate:70},
+    {label:'FC（ナイスランド）',rate:20},
+    {label:'本部（change/DFX）',rate:10},
+  ];
+  const splitHtml=splits.map(sp=>`
+    <div class="split-row">
+      <span>${esc(sp.label)} <span class="rate">${sp.rate}%</span></span>
+      <span class="amount">${fmtYen(Math.round(totalSales*sp.rate/100))}</span>
+    </div>`).join('');
+
+  document.getElementById('content').innerHTML=`
+    <div style="text-align:center;font-size:11px;color:var(--text2);margin-bottom:8px">
+      ${esc(storeMap[store]||store)} — ${month} 集金帳票
+    </div>
+
+    <div class="summary">
+      <div><div class="big">${fmtYen(totalSales)}</div><div class="label">期間売上</div></div>
+      <div><div class="big ${payoutCls(totalPayout)}">${totalPayout.toFixed(1)}%</div><div class="label">出率</div></div>
+      <div class="sub">${Object.keys(byMachine).length}機械 / ${boothStats.length}ブース</div>
+      <div class="sub">${totalDays}日分のデータ</div>
+    </div>
+
+    ${machineBlocks||'<p style="text-align:center;color:var(--text2);padding:40px">この期間のデータはありません</p>'}
+
+    <div class="split-box">
+      <div style="font-weight:700;margin-bottom:8px;font-size:13px">按分計算</div>
+      ${splitHtml}
+      <div class="split-row split-total">
+        <span>合計</span>
+        <span>${fmtYen(totalSales)}</span>
+      </div>
+    </div>
+  `;
+}
+
+loadAll().catch(e=>{document.getElementById('content').innerHTML=`<div style="color:var(--red);padding:20px">エラー: ${esc(e.message)}</div>`});
+</script>
+</body>
+</html>

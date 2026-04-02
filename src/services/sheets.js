@@ -1071,18 +1071,27 @@ export async function countStock({ prizeId, prizeName, ownerType, ownerId, actua
   const currentQty = stock ? stock.quantity : 0
   const diff = actualQuantity - currentQty
 
+  const now = new Date().toISOString()
   if (stock) {
-    await updatePrizeStock(stock.stock_id, { ...stock, quantity: actualQuantity, updated_by: createdBy })
+    // 在庫数量更新 + 棚卸し確定日時を記録
+    const { error: upErr } = await supabase.from('prize_stocks').update({
+      quantity: actualQuantity,
+      last_counted_at: now, last_counted_by: createdBy || null,
+      updated_at: now, updated_by: createdBy || null,
+    }).eq('stock_id', stock.stock_id)
+    if (upErr) throw new Error('棚卸し更新エラー: ' + upErr.message)
+    clearCache()
   } else {
     await addPrizeStock({ prize_id: prizeId, quantity: actualQuantity, owner_type: ownerType, owner_id: ownerId, updated_by: createdBy })
   }
 
-  // count記録（差異がなくても記録）
+  // count記録（差異がなくても記録。adjustment_reasonで理由を明記）
   await addStockMovement({
     prize_id: prizeId, movement_type: diff !== 0 ? MOVEMENT_TYPES.ADJUST : MOVEMENT_TYPES.COUNT,
     from_owner_type: ownerType, from_owner_id: ownerId,
     to_owner_type: ownerType, to_owner_id: ownerId,
     quantity: diff,
+    adjustment_reason: diff !== 0 ? '棚卸し差分' : '棚卸し一致',
     note: note || `棚卸し: 理論値${currentQty} → 実数${actualQuantity}${diff !== 0 ? ` (差異${diff > 0 ? '+' : ''}${diff})` : ' (一致)'}`,
     created_by: createdBy||''
   })
