@@ -1,47 +1,34 @@
 import { useNavigate } from 'react-router-dom'
-import { clearToken } from '../services/sheets'
+import { clearToken, getToken } from '../services/sheets'
+
+const DOCS_BASE = '/docs/'
 
 const SECTIONS = [
   {
-    title: '棚卸し・在庫',
+    title: '現場作業',
     items: [
       { icon: '📦', title: '棚卸し管理', desc: '入庫・移管・棚卸し・マッチング', path: '/inventory', highlight: true },
-    ]
-  },
-  {
-    title: 'マスタ管理',
-    items: [
-      { icon: '🏪', title: '店舗管理', desc: '店舗の追加・編集・契約率', path: '/admin/stores' },
-      { icon: '🎰', title: '機械管理', desc: '機械の追加・ブース生成', path: '/admin/machines' },
-      { icon: '🎁', title: '景品管理 (Sheets)', desc: '景品マスタ・発注・在庫', path: '/admin/prizes' },
-      { icon: '🗄️', title: '景品マスタ (Supabase)', desc: 'クラウドDB版・高速検索', path: '/db/prizes', highlight: true },
-      { icon: '🎰', title: '機械管理 (Supabase)', desc: '機械登録・ブース自動生成', path: '/db/machines', highlight: true },
-    ]
-  },
-  {
-    title: 'マスタ設定 (Supabase)',
-    items: [
-      { icon: '🏷️', title: 'マシンタイプ', desc: 'クレーン機種の種類管理', path: '/db/machine-types', highlight: true },
-      { icon: '📂', title: 'マシンカテゴリ', desc: 'クレーン・ガチャ等の分類', path: '/db/machine-categories', highlight: true },
-      { icon: '📋', title: '所有形態', desc: '購入・リース・レンタル', path: '/db/ownership-types', highlight: true },
-      { icon: '🚚', title: '仕入先', desc: '景品の仕入先マスタ', path: '/db/suppliers', highlight: true },
-      { icon: '🔄', title: '移管タイプ', desc: '在庫移管の種類管理', path: '/db/transfer-types', highlight: true },
-      { icon: '🔍', title: '巡回ステータス', desc: '巡回時の状態選択肢', path: '/db/patrol-statuses', highlight: true },
-    ]
-  },
-  {
-    title: 'データ',
-    items: [
       { icon: '🔍', title: 'データ検索', desc: '過去データの検索・修正', path: '/datasearch' },
-      { icon: '📄', title: '集金帳票', desc: 'インポート・出力', path: '/admin/import-slips' },
     ]
   },
   {
-    title: 'ツール',
+    title: '本部管理',
+    external: true,
+    items: [
+      { icon: '🏆', title: '景品マスタ', desc: '景品の登録・検索・編集', href: DOCS_BASE + 'prizes.html' },
+      { icon: '📋', title: '発注管理', desc: '発注履歴・入荷チェック', href: DOCS_BASE + 'orders.html' },
+      { icon: '📦', title: '在庫管理', desc: '在庫検索・移動記録', href: DOCS_BASE + 'inventory.html' },
+      { icon: '📬', title: '景品案内', desc: '仕入先からの新商品案内', href: DOCS_BASE + 'announcements.html' },
+      { icon: '⚙️', title: 'マスタ管理・ツール', desc: '店舗・機械・Excel出力', href: DOCS_BASE + 'admin.html' },
+    ]
+  },
+  {
+    title: '開発ツール',
+    devOnly: true,
     items: [
       { icon: '📷', title: 'QRスキャン', desc: 'ブースQRで直接入力', path: '/patrol' },
       { icon: '🔧', title: 'シートセットアップ', desc: '新規シート作成・初期化', path: '/admin/setup-sheets' },
-      { icon: '🧪', title: 'テストデータ投入', desc: '3名×3ヶ月のシミュレーション', path: '/admin/test-data' },
+      { icon: '🧪', title: 'テストデータ投入', desc: 'シミュレーションデータ', path: '/admin/test-data' },
     ]
   },
 ]
@@ -52,7 +39,7 @@ export default function AdminMenu() {
   return (
     <div className="min-h-screen pb-16">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between">
-        <div className="text-base font-bold">管理</div>
+        <div className="text-base font-bold">メニュー</div>
         <button onClick={() => { clearToken(); navigate('/login') }}
           className="text-xs text-muted hover:text-accent2 transition-colors">
           ログアウト
@@ -61,21 +48,40 @@ export default function AdminMenu() {
 
       {SECTIONS.map(sec => (
         <div key={sec.title}>
-          <div className="text-[10px] text-muted font-bold uppercase tracking-wider px-4 pt-4 pb-1">{sec.title}</div>
+          <div className="text-[10px] text-muted font-bold uppercase tracking-wider px-4 pt-4 pb-1">
+            {sec.title}
+            {sec.external && <span className="ml-1 text-blue-400 normal-case">(別ページで開きます)</span>}
+          </div>
           <div className="px-3 space-y-1.5">
-            {sec.items.map(item => (
-              <button key={item.path} onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 p-3.5 rounded-xl text-left
-                  active:scale-[0.98] transition-all
-                  ${item.highlight ? 'bg-accent/10 border-2 border-accent' : 'bg-surface border border-border hover:border-blue-600/30'}`}>
-                <span className="text-2xl w-10 text-center">{item.icon}</span>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold">{item.title}</div>
-                  <div className="text-[11px] text-muted">{item.desc}</div>
-                </div>
-                <span className="text-muted/30 text-lg">›</span>
-              </button>
-            ))}
+            {sec.items.map(item => {
+              if (item.href) {
+                // 外部リンク（静的HTML）
+                return (
+                  <a key={item.href} href={item.href}
+                    className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left bg-surface border border-border hover:border-blue-600/30 no-underline text-inherit">
+                    <span className="text-2xl w-10 text-center">{item.icon}</span>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">{item.title}</div>
+                      <div className="text-[11px] text-muted">{item.desc}</div>
+                    </div>
+                    <span className="text-muted/30 text-lg">↗</span>
+                  </a>
+                )
+              }
+              return (
+                <button key={item.path} onClick={() => navigate(item.path)}
+                  className={`w-full flex items-center gap-3 p-3.5 rounded-xl text-left
+                    active:scale-[0.98] transition-all
+                    ${item.highlight ? 'bg-accent/10 border-2 border-accent' : 'bg-surface border border-border hover:border-blue-600/30'}`}>
+                  <span className="text-2xl w-10 text-center">{item.icon}</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold">{item.title}</div>
+                    <div className="text-[11px] text-muted">{item.desc}</div>
+                  </div>
+                  <span className="text-muted/30 text-lg">›</span>
+                </button>
+              )
+            })}
           </div>
         </div>
       ))}

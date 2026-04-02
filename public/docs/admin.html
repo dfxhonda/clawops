@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>マスタ管理 | ClawOps</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -536,16 +537,77 @@ async function delSimple(tableName, pkCol, pkVal) {
 
 // ─── TAB SWITCH ───────────────────────────────────────────────────────────────
 function renderTools(){
-  return`<div style="padding:16px;display:flex;flex-direction:column;gap:12px;max-width:500px">
-    <a href="inventory_migration.html" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
+  const linkStyle = 'display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)';
+  const btnStyle = 'display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);cursor:pointer;font-size:14px;width:100%;text-align:left';
+  return`<div style="padding:16px;display:flex;flex-direction:column;gap:16px;max-width:500px">
+    <div style="font-weight:700;font-size:15px;color:var(--text2)">ページリンク</div>
+    <a href="inventory_migration.html" style="${linkStyle}">
       <span style="font-size:28px">📋</span>
       <div><div style="font-weight:700;font-size:15px">棚卸し移行</div><div style="font-size:12px;color:var(--text2)">棚卸しデータの景品マスタ紐付け作業</div></div>
     </a>
-    <a href="inventory.html" style="display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:var(--text)">
+    <a href="inventory.html" style="${linkStyle}">
       <span style="font-size:28px">📦</span>
       <div><div style="font-weight:700;font-size:15px">在庫管理</div><div style="font-size:12px;color:var(--text2)">在庫移動・数量修正</div></div>
     </a>
+    <div style="margin-top:8px;font-weight:700;font-size:15px;color:var(--text2)">Excel出力</div>
+    <button onclick="exportExcel('prizes')" style="${btnStyle}"><span style="font-size:22px">📊</span>景品マスタ</button>
+    <button onclick="exportExcel('orders')" style="${btnStyle}"><span style="font-size:22px">📦</span>発注履歴</button>
+    <button onclick="exportExcel('stocks')" style="${btnStyle}"><span style="font-size:22px">📋</span>在庫一覧</button>
+    <button onclick="exportExcel('movements')" style="${btnStyle}"><span style="font-size:22px">🔄</span>在庫移動履歴</button>
+    <button onclick="exportExcel('suppliers')" style="${btnStyle}"><span style="font-size:22px">🚚</span>仕入先一覧</button>
   </div>`;
+}
+
+async function exportExcel(type){
+  showLoading();
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    let data, headers, fileName;
+
+    if (type === 'prizes') {
+      const raw = await sbGet('prize_masters','select=prize_id,prize_name,category,supplier_id,original_cost,status,aliases,default_case_quantity,jan_code,size,series&order=prize_name.asc');
+      headers = {prize_id:'景品ID',prize_name:'景品名',category:'カテゴリ',supplier_id:'仕入先',original_cost:'単価',status:'状態',aliases:'別名',default_case_quantity:'標準入数',jan_code:'JANコード',size:'サイズ',series:'シリーズ'};
+      data = raw; fileName = `ClawOps_景品マスタ_${today}`;
+    }
+    else if (type === 'orders') {
+      const raw = await sbGet('prize_orders','select=order_id,prize_id,prize_name_raw,supplier_id,order_date,case_quantity,case_count,unit_cost,case_cost,destination,status,expected_date,source_file,notes&order=order_date.desc');
+      headers = {order_id:'発注ID',prize_id:'景品ID',prize_name_raw:'景品名(原文)',supplier_id:'仕入先',order_date:'発注日',case_quantity:'入数',case_count:'ケース数',unit_cost:'単価',case_cost:'ケース原価',destination:'入荷先',status:'状態',expected_date:'入荷予定',source_file:'元データ',notes:'メモ'};
+      data = raw; fileName = `ClawOps_発注履歴_${today}`;
+    }
+    else if (type === 'stocks') {
+      const [stocks, prizes] = await Promise.all([
+        sbGet('prize_stocks','select=stock_id,prize_id,owner_type,owner_id,quantity,tags,updated_at,updated_by,last_counted_at&order=updated_at.desc'),
+        sbGet('prize_masters','select=prize_id,prize_name')
+      ]);
+      const pm = Object.fromEntries(prizes.map(p => [p.prize_id, p.prize_name]));
+      data = stocks.map(s => ({...s, prize_name: pm[s.prize_id]||''}));
+      headers = {stock_id:'在庫ID',prize_id:'景品ID',prize_name:'景品名',owner_type:'場所種別',owner_id:'場所ID',quantity:'数量',tags:'タグ',updated_at:'更新日',updated_by:'更新者',last_counted_at:'最終棚卸し'};
+      fileName = `ClawOps_在庫一覧_${today}`;
+    }
+    else if (type === 'movements') {
+      const raw = await sbGet('stock_movements','select=movement_id,prize_id,movement_type,from_owner_type,from_owner_id,to_owner_type,to_owner_id,quantity,note,reason,adjustment_reason,created_at,created_by&order=created_at.desc');
+      headers = {movement_id:'移動ID',prize_id:'景品ID',movement_type:'種別',from_owner_type:'移動元種別',from_owner_id:'移動元ID',to_owner_type:'移動先種別',to_owner_id:'移動先ID',quantity:'数量',note:'メモ',reason:'理由',adjustment_reason:'調整理由',created_at:'日時',created_by:'操作者'};
+      data = raw; fileName = `ClawOps_在庫移動_${today}`;
+    }
+    else if (type === 'suppliers') {
+      const raw = await sbGet('suppliers','select=supplier_id,supplier_name,supplier_type,contact_method,order_method,lead_time_days,payment_terms,is_active,notes&order=supplier_name');
+      headers = {supplier_id:'仕入先ID',supplier_name:'仕入先名',supplier_type:'タイプ',contact_method:'連絡方法',order_method:'発注方法',lead_time_days:'リードタイム(日)',payment_terms:'支払条件',is_active:'有効',notes:'メモ'};
+      data = raw; fileName = `ClawOps_仕入先_${today}`;
+    }
+
+    // ヘッダーキー順でデータを整形
+    const keys = Object.keys(headers);
+    const rows = data.map(row => keys.map(k => row[k] ?? ''));
+    const ws = XLSX.utils.aoa_to_sheet([keys.map(k => headers[k]), ...rows]);
+    // 列幅自動調整
+    ws['!cols'] = keys.map(k => ({wch: Math.max(headers[k].length * 2, 12)}));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'データ');
+    XLSX.writeFile(wb, fileName + '.xlsx');
+    showToast(`${fileName}.xlsx をダウンロードしました`);
+  } catch(e) {
+    showToast('Excel出力エラー: ' + e.message, false);
+  } finally { hideLoading(); }
 }
 
 function switchTab(tab){

@@ -1,9 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TABS = [
-  { path: '/',          icon: '✏️', label: '入力' },
+  { path: '/',          icon: '🚶', label: '巡回' },
   { path: '/dashboard', icon: '📊', label: '売上' },
-  { path: '/admin',     icon: '⚙️', label: '管理' },
+  { path: '/admin',     icon: '☰', label: 'メニュー' },
 ]
 
 export default function TabBar() {

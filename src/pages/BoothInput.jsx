@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { getBooths, getMachines, getLastReadingsMap, parseNum, getStocksByOwner, addStockMovement, adjustPrizeStockQuantity, getPrizeStocksExtended } from '../services/sheets'
+import { getBooths, getMachines, getLastReadingsMap, parseNum, getStocksByOwner, addStockMovement, adjustPrizeStockQuantity, getPrizeStocksExtended, MOVEMENT_TYPES } from '../services/sheets'
 
 const DRAFT_KEY = 'clawops_drafts'
 function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] } }
@@ -148,28 +148,39 @@ export default function BoothInput() {
     if (count === 0) { alert('まだINメーターが入力されていません。\nブースのIN欄に売上メーター値を入力してください。'); return }
 
     // 補充分を車在庫から自動引き算（stock_movementsにreplenishレコード）
+    // 順序: 履歴記録→在庫更新（履歴だけ残る方が帳簿ズレより安全）
     if (replenishItems.length > 0 && staffId) {
-      try {
-        const allStocks = await getPrizeStocksExtended(true)
-        for (const item of replenishItems) {
-          // 担当車在庫から景品名で検索
-          const stock = allStocks.find(s => s.owner_type === 'staff' && s.owner_id === staffId && s.prize_name === item.prizeName)
-          if (stock) {
-            const newQty = stock.quantity - item.quantity
-            await adjustPrizeStockQuantity(stock.stock_id, -item.quantity, staffId)
-            await addStockMovement({
-              prize_id: stock.prize_id, movement_type: 'replenish',
-              from_owner_type: 'staff', from_owner_id: staffId,
-              to_owner_type: 'booth', to_owner_id: item.boothCode,
-              quantity: item.quantity, note: `巡回補充: ${item.prizeName} → ${item.boothCode}`,
-              created_by: staffId
-            })
-          }
+      const failedItems = []
+      const allStocks = await getPrizeStocksExtended(true)
+      for (const item of replenishItems) {
+        const stock = allStocks.find(s => s.owner_type === 'staff' && s.owner_id === staffId && s.prize_name === item.prizeName)
+        if (!stock) { failedItems.push({ ...item, error: '車在庫に該当景品なし' }); continue }
+        try {
+          // 先に履歴を記録（失敗しても在庫は変わらない）
+          // note: to_owner_type='booth'はmovement追跡用。prize_stocksのowner_typeとは別概念
+          await addStockMovement({
+            prize_id: stock.prize_id, movement_type: MOVEMENT_TYPES.REPLENISH,
+            from_owner_type: 'staff', from_owner_id: staffId,
+            to_owner_type: 'booth', to_owner_id: item.boothCode,
+            quantity: item.quantity, note: `巡回補充: ${item.prizeName} → ${item.boothCode}`,
+            created_by: staffId
+          })
+          // 次に在庫を変更（在庫不足時はエラーになる）
+          await adjustPrizeStockQuantity(stock.stock_id, -item.quantity, staffId)
+        } catch (e) {
+          failedItems.push({ ...item, error: e.message })
         }
-        // 車在庫リフレッシュ
+      }
+      // 車在庫リフレッシュ
+      try {
         const vs = await getStocksByOwner('staff', staffId)
         setVehicleStocks(vs)
       } catch {}
+      // 失敗があればユーザーに通知
+      if (failedItems.length > 0) {
+        const details = failedItems.map(f => `・${f.prizeName}: ${f.error}`).join('\n')
+        alert(`メーター入力は保存済みですが、以下の補充処理でエラーが発生しました。棚卸し画面で在庫を確認してください。\n\n${details}`)
+      }
     }
 
     navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPrizes, getLocations, transferStock, getStockMovements, getPrizeOrders } from '../../services/sheets'
+import { getPrizes, getLocations, transferStock, getStockMovements, getPrizeOrders, markOrderArrived } from '../../services/sheets'
 import NumberInput from '../../components/NumberInput'
 
 export default function InventoryReceive() {
@@ -62,7 +62,7 @@ export default function InventoryReceive() {
         toOwnerType: 'location', toOwnerId: selectedLocation,
         quantity: parseInt(quantity),
         note: note || '入庫チェック',
-        createdBy: ''
+        createdBy: sessionStorage.getItem('clawops_staff_id') || ''
       })
       setMessage({ type: 'success', text: `${prize?.prize_name} ×${quantity} を入庫しました` })
       setSelectedPrize('')
@@ -83,17 +83,25 @@ export default function InventoryReceive() {
     setSaving(true)
     try {
       const qty = parseInt(order.order_quantity) || 1
-      await transferStock({
-        prizeId: order.prize_id || '',
-        prizeName: order.prize_name || '',
-        fromOwnerType: '', fromOwnerId: '',
-        toOwnerType: 'location', toOwnerId: locationId,
-        quantity: qty,
-        note: `発注入荷: 発注ID ${order.order_id}`,
-        createdBy: ''
-      })
-      setMessage({ type: 'success', text: `${order.prize_name} ×${qty} を入庫しました` })
-      setPendingOrders(prev => prev.filter(o => o.order_id !== order.order_id))
+      const staff = sessionStorage.getItem('clawops_staff_id') || ''
+      // 先にステータス更新（失敗しても在庫は変わらない。逆順だと在庫二重加算リスク）
+      await markOrderArrived(order.order_id, qty)
+      try {
+        await transferStock({
+          prizeId: order.prize_id || '',
+          prizeName: order.prize_name || '',
+          fromOwnerType: '', fromOwnerId: '',
+          toOwnerType: 'location', toOwnerId: locationId,
+          quantity: qty,
+          note: `発注入荷: 発注ID ${order.order_id}`,
+          createdBy: staff
+        })
+        setMessage({ type: 'success', text: `${order.prize_name} ×${qty} を入庫しました` })
+        setPendingOrders(prev => prev.filter(o => o.order_id !== order.order_id))
+      } catch (stockErr) {
+        // 在庫追加失敗: ステータスは入荷済みだが在庫未反映。リストに残して再操作可能にする
+        setMessage({ type: 'error', text: `入荷ステータス更新済みですが在庫追加に失敗しました。手動で在庫を追加してください: ${stockErr.message}` })
+      }
       const mv = await getStockMovements(true)
       setRecentArrivals(mv.filter(m => m.movement_type === 'arrival').slice(-10).reverse())
     } catch (e) {

@@ -1,4 +1,13 @@
 export const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
+
+// 在庫移動の種類
+export const MOVEMENT_TYPES = {
+  TRANSFER: 'transfer',   // 拠点間・担当者間の移管
+  ARRIVAL: 'arrival',     // 外部からの入庫
+  REPLENISH: 'replenish', // 担当車→ブースへの補充
+  COUNT: 'count',         // 棚卸し確認（差異なし）
+  ADJUST: 'adjust',       // 棚卸し調整（差異あり）
+}
 const TOKEN_KEY = 'gapi_token'
 
 export function getToken() { return sessionStorage.getItem(TOKEN_KEY) }
@@ -499,6 +508,18 @@ export async function addPrizeOrder(o) {
   return data.order_id
 }
 
+// 発注の入荷確認（arrived_at + status更新）
+export async function markOrderArrived(orderId, arrivedQuantity) {
+  const now = new Date().toISOString()
+  const { error } = await supabase.from('prize_orders').update({
+    arrived_at: now,
+    received_quantity: arrivedQuantity,
+    status: 'arrived',
+  }).eq('order_id', orderId)
+  if (error) throw new Error('入荷更新エラー: ' + error.message)
+  clearCache()
+}
+
 // 旧Google Sheets版（参考用・他シートで引き続き使用）
 // ============================================
 // prizes シート列構成 (A-S):
@@ -614,13 +635,7 @@ async function _sheets_addPrizeOrder(o) {
 }
 
 export async function getPrizeStocks() {
-  const rows = await sheetsGet('prize_stocks!A2:H')
-  return rows.map((r, i) => ({
-    _row: i + 2,
-    stock_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
-    booth_id: r[3]||'', booth_name: r[4]||'',
-    quantity: r[5]||'0', last_updated_at: r[6]||'', last_updated_by: r[7]||'',
-  }))
+  return getPrizeStocksExtended()
 }
 
 // ============================================
@@ -725,39 +740,41 @@ export async function deleteInventoryCheck(rowNum) {
 }
 
 // ============================================
-// ロケーション管理 (locations) — 棚卸しアプリ用
+// ロケーション管理 (locations) — Supabase版
 // ============================================
-// シート構成: location_id / name / parent_location_id / store_code / location_type / note / active_flag / created_at / updated_at
+// Supabase: location_id / location_name / location_type / parent_location_id / store_code / operator_id / is_active / notes / capacity_note / is_full / created_at / updated_at / updated_by
+
 export async function getLocations(forceRefresh = false) {
   if (!forceRefresh && getCache('locations')) return getCache('locations')
-  try {
-    const rows = await sheetsGet('locations!A2:I')
-    const result = rows
-      .filter(r => r[0] && String(r[0]).trim() !== '')
-      .map((r, i) => ({
-        _row: i + 2,
-        location_id: r[0]||'', name: r[1]||'', parent_location_id: r[2]||'',
-        store_code: r[3]||'', location_type: r[4]||'', note: r[5]||'',
-        active_flag: r[6]||'1', created_at: r[7]||'', updated_at: r[8]||'',
-      }))
-    setCache('locations', result)
-    return result
-  } catch (e) {
-    // locations sheet not found, returning empty
-    return []
-  }
+  const { data, error } = await supabase
+    .from('locations')
+    .select('*')
+    .eq('is_active', true)
+    .order('location_name')
+  if (error) { console.error('locations取得エラー:', error.message); return [] }
+  // 既存コードとの互換性: name, note, active_flag を維持
+  const result = data.map(r => ({
+    location_id: r.location_id, name: r.location_name || '',
+    location_name: r.location_name || '',
+    parent_location_id: r.parent_location_id || '',
+    store_code: r.store_code || '', location_type: r.location_type || '',
+    note: r.notes || '', notes: r.notes || '',
+    active_flag: r.is_active ? '1' : '0', is_active: r.is_active,
+    operator_id: r.operator_id || '',
+    capacity_note: r.capacity_note || '', is_full: r.is_full || false,
+    created_at: r.created_at || '', updated_at: r.updated_at || '',
+    updated_by: r.updated_by || '',
+  }))
+  setCache('locations', result)
+  return result
 }
 
-// 階層取得: parentId配下のサブロケーションを全取得（再帰）
 export async function getLocationTree(parentId = null) {
   const all = await getLocations()
   if (!parentId) {
-    // ルートロケーション（parent_location_idが空のもの）
     return all.filter(l => !l.parent_location_id)
   }
-  // 指定parentId配下を取得
-  const children = all.filter(l => l.parent_location_id === parentId)
-  return children
+  return all.filter(l => l.parent_location_id === parentId)
 }
 
 // 指定ロケーション + その子孫のID一覧を取得
@@ -776,57 +793,76 @@ export async function getLocationIdsIncludingChildren(locationId) {
 
 export async function addLocation(loc) {
   const now = new Date().toISOString()
-  await sheetsAppend('locations!A:I', [[
-    loc.location_id, loc.name, loc.parent_location_id||'', loc.store_code||'',
-    loc.location_type||'warehouse', loc.note||'', '1', now, now
-  ]])
+  const { error } = await supabase.from('locations').insert({
+    location_id: loc.location_id,
+    location_name: loc.name || loc.location_name || '',
+    parent_location_id: loc.parent_location_id || null,
+    store_code: loc.store_code || null,
+    location_type: loc.location_type || 'warehouse',
+    notes: loc.note || loc.notes || null,
+    is_active: true,
+    created_at: now, updated_at: now,
+  })
+  if (error) throw new Error('拠点追加エラー: ' + error.message)
   clearCache()
 }
 
-export async function updateLocation(rowNum, loc) {
+export async function updateLocation(locationId, loc) {
   const now = new Date().toISOString()
-  await sheetsPut(`locations!B${rowNum}:I${rowNum}`, [[
-    loc.name, loc.parent_location_id||'', loc.store_code||'',
-    loc.location_type||'', loc.note||'', loc.active_flag||'1',
-    loc.created_at||'', now
-  ]])
+  const { error } = await supabase.from('locations').update({
+    location_name: loc.name || loc.location_name || undefined,
+    parent_location_id: loc.parent_location_id || undefined,
+    store_code: loc.store_code || undefined,
+    location_type: loc.location_type || undefined,
+    notes: loc.note || loc.notes || undefined,
+    is_active: loc.active_flag === '0' ? false : (loc.is_active ?? true),
+    updated_at: now, updated_by: loc.updated_by || null,
+  }).eq('location_id', locationId)
+  if (error) throw new Error('拠点更新エラー: ' + error.message)
   clearCache()
 }
 
 // ============================================
-// 在庫管理 prize_stocks 拡張 (owner_type/owner_id対応)
+// 在庫管理 prize_stocks — Supabase版
 // ============================================
-// シート構成: stock_id / prize_id / prize_name / booth_id / booth_name / quantity / last_updated_at / last_updated_by / owner_type / owner_id / tags / updated_at / updated_by
+// Supabase prize_stocks: stock_id / prize_id / owner_type / owner_id / quantity / tags / created_at / updated_at / updated_by / last_counted_at / last_counted_by
+// prize_nameはprize_mastersからFK JOINで取得
+
 export async function getPrizeStocksExtended(forceRefresh = false) {
   if (!forceRefresh && getCache('prize_stocks_ext')) return getCache('prize_stocks_ext')
-  try {
-    const rows = await sheetsGet('prize_stocks!A2:M')
-    const result = rows
-      .filter(r => r[0] && String(r[0]).trim() !== '')
-      .map((r, i) => ({
-        _row: i + 2,
-        stock_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
-        booth_id: r[3]||'', booth_name: r[4]||'',
-        quantity: parseInt(r[5]) || 0,
-        last_updated_at: r[6]||'', last_updated_by: r[7]||'',
-        owner_type: r[8]||'', owner_id: r[9]||'',
-        tags: r[10]||'', updated_at: r[11]||'', updated_by: r[12]||'',
-      }))
-    setCache('prize_stocks_ext', result)
-    return result
-  } catch (e) {
-    // prize_stocks extended read failed, returning empty
-    return []
+  // ページネーション対応（Supabaseデフォルト1000件上限）
+  const pageSize = 1000
+  let all = [], offset = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('prize_stocks')
+      .select('*, prize_masters(prize_name)')
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + pageSize - 1)
+    if (error) { console.error('prize_stocks取得エラー:', error.message); return [] }
+    all = all.concat(data)
+    if (data.length < pageSize) break
+    offset += pageSize
   }
+  const result = all.map(r => ({
+    stock_id: r.stock_id, prize_id: r.prize_id,
+    prize_name: r.prize_masters?.prize_name || '',
+    owner_type: r.owner_type || '', owner_id: r.owner_id || '',
+    quantity: r.quantity ?? 0,
+    tags: r.tags || '',
+    updated_at: r.updated_at || '', updated_by: r.updated_by || '',
+    last_counted_at: r.last_counted_at || '', last_counted_by: r.last_counted_by || '',
+    created_at: r.created_at || '',
+  }))
+  setCache('prize_stocks_ext', result)
+  return result
 }
 
-// owner_type + owner_id で在庫をフィルタ
 export async function getStocksByOwner(ownerType, ownerId) {
   const all = await getPrizeStocksExtended()
   return all.filter(s => s.owner_type === ownerType && s.owner_id === ownerId)
 }
 
-// ロケーション配下（子孫含む）の全在庫取得
 export async function getStocksByLocationTree(locationId) {
   const ids = await getLocationIdsIncludingChildren(locationId)
   const all = await getPrizeStocksExtended()
@@ -835,97 +871,130 @@ export async function getStocksByLocationTree(locationId) {
 
 export async function addPrizeStock(stock) {
   const now = new Date().toISOString()
-  const id = 'PS' + Date.now()
-  await sheetsAppend('prize_stocks!A:M', [[
-    id, stock.prize_id, stock.prize_name||'', stock.booth_id||'', stock.booth_name||'',
-    stock.quantity||0, now, stock.updated_by||'',
-    stock.owner_type||'', stock.owner_id||'', stock.tags||'', now, stock.updated_by||''
-  ]])
+  // insertを使用（upsertだと並行操作でquantity上書きリスクがあるため、fail-loud設計）
+  // UNIQUE制約(prize_id,owner_type,owner_id)違反時はエラーで返り、呼び出し元でリトライ可能
+  const { data, error } = await supabase.from('prize_stocks').insert({
+    prize_id: stock.prize_id || null,
+    owner_type: stock.owner_type || '',
+    owner_id: stock.owner_id || '',
+    quantity: stock.quantity ?? 0,
+    tags: stock.tags || null,
+    updated_by: stock.updated_by || null,
+    created_at: now, updated_at: now,
+  }).select('stock_id').single()
+  if (error) throw new Error('在庫追加エラー: ' + error.message)
   clearCache()
-  return id
+  return data.stock_id
 }
 
-export async function updatePrizeStock(rowNum, stock) {
+export async function updatePrizeStock(stockId, stock) {
   const now = new Date().toISOString()
-  await sheetsPut(`prize_stocks!B${rowNum}:M${rowNum}`, [[
-    stock.prize_id, stock.prize_name||'', stock.booth_id||'', stock.booth_name||'',
-    stock.quantity||0, stock.last_updated_at||now, stock.last_updated_by||'',
-    stock.owner_type||'', stock.owner_id||'', stock.tags||'', now, stock.updated_by||''
-  ]])
+  const { error } = await supabase.from('prize_stocks').update({
+    quantity: stock.quantity ?? 0,
+    owner_type: stock.owner_type || undefined,
+    owner_id: stock.owner_id || undefined,
+    tags: stock.tags || undefined,
+    updated_at: now,
+    updated_by: stock.updated_by || null,
+  }).eq('stock_id', stockId)
+  if (error) throw new Error('在庫更新エラー: ' + error.message)
   clearCache()
 }
 
-// 在庫数量を差分更新（+ or -）
 export async function adjustPrizeStockQuantity(stockId, delta, updatedBy = '') {
   const all = await getPrizeStocksExtended(true)
   const stock = all.find(s => s.stock_id === stockId)
   if (!stock) throw new Error('Stock not found: ' + stockId)
   const newQty = stock.quantity + delta
-  await updatePrizeStock(stock._row, { ...stock, quantity: newQty, updated_by: updatedBy })
+  if (newQty < 0) throw new Error(`在庫不足: 現在${stock.quantity}個、要求${Math.abs(delta)}個 (${stock.prize_name || stockId})`)
+  await updatePrizeStock(stockId, { ...stock, quantity: newQty, updated_by: updatedBy })
   return newQty
 }
 
 // ============================================
-// 在庫移動履歴 (stock_movements) — 棚卸しアプリ用
+// 在庫移動履歴 (stock_movements) — Supabase版
 // ============================================
-// シート構成: movement_id / prize_id / movement_type / from_owner_type / from_owner_id / to_owner_type / to_owner_id / quantity / note / created_at / created_by
+// Supabase: movement_id / prize_id / movement_type / from_owner_type / from_owner_id / to_owner_type / to_owner_id / quantity / reason / note / created_at / created_by / updated_at / updated_by / tracking_number / adjustment_reason
+
 export async function getStockMovements(forceRefresh = false) {
   if (!forceRefresh && getCache('stock_movements')) return getCache('stock_movements')
-  try {
-    const rows = await sheetsGet('stock_movements!A2:K')
-    const result = rows
-      .filter(r => r[0] && String(r[0]).trim() !== '')
-      .map((r, i) => ({
-        _row: i + 2,
-        movement_id: r[0]||'', prize_id: r[1]||'', movement_type: r[2]||'',
-        from_owner_type: r[3]||'', from_owner_id: r[4]||'',
-        to_owner_type: r[5]||'', to_owner_id: r[6]||'',
-        quantity: parseInt(r[7]) || 0, note: r[8]||'',
-        created_at: r[9]||'', created_by: r[10]||'',
-      }))
-    setCache('stock_movements', result)
-    return result
-  } catch (e) {
-    // stock_movements sheet not found, returning empty
-    return []
+  // ページネーション対応（Supabaseデフォルト1000件上限）
+  const pageSize = 1000
+  let all = [], offset = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('stock_movements')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1)
+    if (error) { console.error('stock_movements取得エラー:', error.message); return [] }
+    all = all.concat(data)
+    if (data.length < pageSize) break
+    offset += pageSize
   }
+  const result = all.map(r => ({
+    movement_id: r.movement_id, prize_id: r.prize_id || '', movement_type: r.movement_type || '',
+    from_owner_type: r.from_owner_type || '', from_owner_id: r.from_owner_id || '',
+    to_owner_type: r.to_owner_type || '', to_owner_id: r.to_owner_id || '',
+    quantity: r.quantity ?? 0, note: r.note || '',
+    reason: r.reason || '', adjustment_reason: r.adjustment_reason || '',
+    tracking_number: r.tracking_number || '',
+    created_at: r.created_at || '', created_by: r.created_by || '',
+  }))
+  setCache('stock_movements', result)
+  return result
 }
 
 export async function addStockMovement(mv) {
   const now = new Date().toISOString()
-  const id = 'MV' + Date.now()
-  await sheetsAppend('stock_movements!A:K', [[
-    id, mv.prize_id, mv.movement_type,
-    mv.from_owner_type||'', mv.from_owner_id||'',
-    mv.to_owner_type||'', mv.to_owner_id||'',
-    mv.quantity||0, mv.note||'', now, mv.created_by||''
-  ]])
+  const { data, error } = await supabase.from('stock_movements').insert({
+    prize_id: mv.prize_id || null,
+    movement_type: mv.movement_type,
+    from_owner_type: mv.from_owner_type || null,
+    from_owner_id: mv.from_owner_id || null,
+    to_owner_type: mv.to_owner_type || '',
+    to_owner_id: mv.to_owner_id || '',
+    quantity: mv.quantity || 0,
+    note: mv.note || null,
+    reason: mv.reason || null,
+    adjustment_reason: mv.adjustment_reason || null,
+    created_at: now, created_by: mv.created_by || null,
+  }).select('movement_id').single()
+  if (error) throw new Error('移動履歴追加エラー: ' + error.message)
   clearCache()
-  return id
+  return data.movement_id
 }
 
 // 在庫移管トランザクション: from → to に数量移動 + movement記録
 export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy }) {
+  // 数量バリデーション
+  const qty = parseInt(quantity)
+  if (!Number.isFinite(qty) || qty <= 0) throw new Error(`無効な数量: ${quantity}`)
+  quantity = qty
   const all = await getPrizeStocksExtended(true)
 
   // 移動元の在庫を減算
   if (fromOwnerType && fromOwnerId) {
-    const fromStock = all.find(s => s.prize_id === prizeId && s.owner_type === fromOwnerType && s.owner_id === fromOwnerId)
-    if (fromStock) {
-      await updatePrizeStock(fromStock._row, { ...fromStock, quantity: fromStock.quantity - quantity, updated_by: createdBy })
-    }
+    const fromStocks = all.filter(s => s.prize_id === prizeId && s.owner_type === fromOwnerType && s.owner_id === fromOwnerId)
+    if (fromStocks.length === 0) throw new Error(`移動元在庫が見つかりません: ${prizeName || prizeId} (${fromOwnerType}/${fromOwnerId})`)
+    if (fromStocks.length > 1) console.warn(`同一景品の複数レコード検出: ${prizeId} at ${fromOwnerType}/${fromOwnerId} (${fromStocks.length}件)`)
+    const fromStock = fromStocks[0]
+    if (fromStock.quantity < quantity) throw new Error(`在庫不足: ${prizeName || prizeId} 現在${fromStock.quantity}個、移動要求${quantity}個`)
+    await updatePrizeStock(fromStock.stock_id, { ...fromStock, quantity: fromStock.quantity - quantity, updated_by: createdBy })
   }
 
   // 移動先の在庫を加算（なければ新規作成）
-  const toStock = all.find(s => s.prize_id === prizeId && s.owner_type === toOwnerType && s.owner_id === toOwnerId)
+  const toStocks = all.filter(s => s.prize_id === prizeId && s.owner_type === toOwnerType && s.owner_id === toOwnerId)
+  if (toStocks.length > 1) console.warn(`同一景品の複数レコード検出: ${prizeId} at ${toOwnerType}/${toOwnerId} (${toStocks.length}件)`)
+  const toStock = toStocks[0] || null
   if (toStock) {
-    await updatePrizeStock(toStock._row, { ...toStock, quantity: toStock.quantity + quantity, updated_by: createdBy })
+    await updatePrizeStock(toStock.stock_id, { ...toStock, quantity: toStock.quantity + quantity, updated_by: createdBy })
   } else {
-    await addPrizeStock({ prize_id: prizeId, prize_name: prizeName, quantity, owner_type: toOwnerType, owner_id: toOwnerId, updated_by: createdBy })
+    await addPrizeStock({ prize_id: prizeId, quantity, owner_type: toOwnerType, owner_id: toOwnerId, updated_by: createdBy })
   }
 
   // 移動履歴を記録
-  const movementType = fromOwnerType ? 'transfer' : 'arrival'
+  const movementType = fromOwnerType ? MOVEMENT_TYPES.TRANSFER : MOVEMENT_TYPES.ARRIVAL
   return addStockMovement({
     prize_id: prizeId, movement_type: movementType,
     from_owner_type: fromOwnerType||'', from_owner_id: fromOwnerId||'',
@@ -936,24 +1005,30 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
 
 // 棚卸し実数確認: 実数をセット + 差異があればadjust movement記録
 export async function countStock({ prizeId, prizeName, ownerType, ownerId, actualQuantity, note, createdBy }) {
+  const qty = parseInt(actualQuantity)
+  if (!Number.isFinite(qty) || qty < 0) throw new Error(`無効な数量: ${actualQuantity}`)
+  actualQuantity = qty
   const all = await getPrizeStocksExtended(true)
-  const stock = all.find(s => s.prize_id === prizeId && s.owner_type === ownerType && s.owner_id === ownerId)
+  const stocks = all.filter(s => s.prize_id === prizeId && s.owner_type === ownerType && s.owner_id === ownerId)
+  if (stocks.length > 1) console.warn(`同一景品の複数レコード検出: ${prizeId} at ${ownerType}/${ownerId} (${stocks.length}件)`)
+  const stock = stocks[0] || null
 
   const currentQty = stock ? stock.quantity : 0
   const diff = actualQuantity - currentQty
 
   if (stock) {
-    await updatePrizeStock(stock._row, { ...stock, quantity: actualQuantity, updated_by: createdBy })
+    await updatePrizeStock(stock.stock_id, { ...stock, quantity: actualQuantity, updated_by: createdBy })
   } else {
-    await addPrizeStock({ prize_id: prizeId, prize_name: prizeName, quantity: actualQuantity, owner_type: ownerType, owner_id: ownerId, updated_by: createdBy })
+    await addPrizeStock({ prize_id: prizeId, quantity: actualQuantity, owner_type: ownerType, owner_id: ownerId, updated_by: createdBy })
   }
 
   // count記録（差異がなくても記録）
   await addStockMovement({
-    prize_id: prizeId, movement_type: diff !== 0 ? 'adjust' : 'count',
+    prize_id: prizeId, movement_type: diff !== 0 ? MOVEMENT_TYPES.ADJUST : MOVEMENT_TYPES.COUNT,
     from_owner_type: ownerType, from_owner_id: ownerId,
     to_owner_type: ownerType, to_owner_id: ownerId,
-    quantity: diff, note: note || (diff !== 0 ? `棚卸し差異: ${diff > 0 ? '+' : ''}${diff}` : '棚卸し一致'),
+    quantity: diff,
+    note: note || `棚卸し: 理論値${currentQty} → 実数${actualQuantity}${diff !== 0 ? ` (差異${diff > 0 ? '+' : ''}${diff})` : ' (一致)'}`,
     created_by: createdBy||''
   })
 
