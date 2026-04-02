@@ -110,49 +110,39 @@ export async function sheetsBatchUpdate(requests) {
   return res.json()
 }
 
+// ============================================
+// メーター読み値 (meter_readings) — Supabase版
+// ============================================
+
 export async function getAllMeterReadings(forceRefresh = false) {
   if (!forceRefresh && getCache('meter_readings')) return getCache('meter_readings')
-  const rows = await sheetsGet('meter_readings!A1:U')
-  if (rows.length === 0) return []
-
-  // ヘッダー行でインデックス解決
-  const header = rows[0].map(h => String(h).trim().toLowerCase())
-  const col = name => header.indexOf(name)
-  const iBoothId   = col('booth_id')
-  const iFullCode  = col('full_booth_code')
-  const iReadTime  = col('read_time')
-  const iInMeter   = col('in_meter')
-  const iOutMeter  = col('out_meter')
-  const iRestock   = col('prize_restock_count')
-  const iStock     = col('prize_stock_count')
-  const iPrizeName = col('prize_name')
-  const iSetA      = col('set_a')
-  const iSetC      = col('set_c')
-  const iSetL      = col('set_l')
-  const iSetR      = col('set_r')
-  const iSetO      = col('set_o')
-
-  const result = rows.slice(1)
-    .filter(r => {
-      const bid = iBoothId >= 0 ? r[iBoothId] : undefined
-      return bid !== undefined && bid !== null && String(bid).trim() !== ''
-    })
-    .map(r => ({
-      booth_id:            String(r[iBoothId]).trim(),
-      full_booth_code:     iFullCode  >= 0 ? (r[iFullCode]  || '') : '',
-      read_time:           iReadTime  >= 0 ? (r[iReadTime]  || '') : '',
-      in_meter:            iInMeter   >= 0 ? (r[iInMeter]   || '') : '',
-      out_meter:           iOutMeter  >= 0 ? (r[iOutMeter]  || '') : '',
-      prize_restock_count: iRestock   >= 0 ? (r[iRestock]   || '') : '',
-      prize_stock_count:   iStock     >= 0 ? (r[iStock]     || '') : '',
-      prize_name:          iPrizeName >= 0 ? (r[iPrizeName] || '') : '',
-      set_a:               iSetA      >= 0 ? (r[iSetA]      || '') : '',
-      set_c:               iSetC      >= 0 ? (r[iSetC]      || '') : '',
-      set_l:               iSetL      >= 0 ? (r[iSetL]      || '') : '',
-      set_r:               iSetR      >= 0 ? (r[iSetR]      || '') : '',
-      set_o:               iSetO      >= 0 ? (r[iSetO]      || '') : '',
-    }))
-
+  const pageSize = 1000
+  let all = [], offset = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('meter_readings')
+      .select('*')
+      .order('read_time', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (error) { console.error('meter_readings取得エラー:', error.message); return [] }
+    all = all.concat(data)
+    if (data.length < pageSize) break
+    offset += pageSize
+  }
+  const result = all.map(r => ({
+    reading_id: r.reading_id,
+    booth_id: r.booth_id || '',
+    full_booth_code: r.full_booth_code || '',
+    read_time: r.read_time || '',
+    in_meter: r.in_meter != null ? String(r.in_meter) : '',
+    out_meter: r.out_meter != null ? String(r.out_meter) : '',
+    prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+    prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+    prize_name: r.prize_name || '',
+    set_a: r.set_a || '', set_c: r.set_c || '', set_l: r.set_l || '',
+    set_r: r.set_r || '', set_o: r.set_o || '',
+    note: r.note || '', source: r.source || 'manual',
+  }))
   setCache('meter_readings', result)
   return result
 }
@@ -180,12 +170,26 @@ export async function getLastReadingsMap(boothIds) {
   return map
 }
 
+// ============================================
+// 店舗・機械・ブース — Supabase版
+// ============================================
+
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
-  const rows = await sheetsGet('stores!A2:N')
-  const result = rows
-    .map(r => ({ store_id:r[0], store_code:r[1], store_name:r[2], active_flag:r[10] }))
-    .filter(s => s.active_flag == 1 && s.store_code !== 'SIM01')
+  const { data, error } = await supabase
+    .from('stores')
+    .select('store_code, store_id, store_name, is_active')
+    .eq('is_active', true)
+    .neq('store_code', 'SIM01')
+    .order('store_name')
+  if (error) { console.error('stores取得エラー:', error.message); return [] }
+  // 既存コード互換: store_id, store_code, store_name, active_flag
+  const result = data.map(r => ({
+    store_id: r.store_code, // React側はstore_idでstore_codeを参照している
+    store_code: r.store_code,
+    store_name: r.store_name,
+    active_flag: r.is_active ? 1 : 0,
+  }))
   setCache('stores', result)
   return result
 }
@@ -193,24 +197,29 @@ export async function getStores() {
 export async function getMachines(storeId) {
   const ckey = `machines_${storeId}`
   if (getCache(ckey)) return getCache(ckey)
-  const rows = await sheetsGet('machines!A2:M')
-  const result = rows
-    .filter(r => String(r[1]) === String(storeId) && String(r[12]) === '1')
-    .map(r => ({
-      machine_id:      r[0],
-      store_id:        r[1],
-      machine_code:    r[2],
-      machine_name:    r[3],
-      machine_model:   r[4],
-      machine_type:    r[5],
-      booth_count:     r[6],
-      default_price:   parseNum(r[7] || '100'),
-      meter_layout:    r[8],
-      rental_code:     r[9],
-      monthly_advance: parseNum(r[10] || '0'),
-      location_note:   r[11],
-      active_flag:     r[12],
-    }))
+  const { data, error } = await supabase
+    .from('machines')
+    .select('*')
+    .eq('store_code', storeId)
+    .eq('is_active', true)
+    .order('machine_code')
+  if (error) { console.error('machines取得エラー:', error.message); return [] }
+  // 既存コード互換マッピング
+  const result = data.map(r => ({
+    machine_id: r.machine_code, // React側はmachine_idでmachine_codeを参照
+    store_id: r.store_code,
+    machine_code: r.machine_code,
+    machine_name: r.machine_name || '',
+    machine_model: r.model_id || '',
+    machine_type: '',
+    booth_count: '',
+    default_price: parseNum(r.play_price || '100'),
+    meter_layout: '',
+    rental_code: r.machine_number || '',
+    monthly_advance: 0,
+    location_note: r.notes || '',
+    active_flag: r.is_active ? '1' : '0',
+  }))
   setCache(ckey, result)
   return result
 }
@@ -218,41 +227,78 @@ export async function getMachines(storeId) {
 export async function getBooths(machineId) {
   const ckey = `booths_${machineId}`
   if (getCache(ckey)) return getCache(ckey)
-  const rows = await sheetsGet('booths!A2:K')
-  const result = rows
-    .filter(r => String(r[1]) === String(machineId) && String(r[10]) === '1')
-    .map(r => ({ booth_id:r[0], machine_id:r[1], booth_code:r[2], booth_number:r[3],
-      full_booth_code:r[5], meter_in_digit:r[6], meter_out_digit:r[7], play_price:r[9] }))
+  const { data, error } = await supabase
+    .from('booths')
+    .select('*')
+    .eq('machine_code', machineId)
+    .eq('is_active', true)
+    .order('booth_number')
+  if (error) { console.error('booths取得エラー:', error.message); return [] }
+  // 既存コード互換マッピング
+  const result = data.map(r => ({
+    booth_id: r.booth_code, // React側はbooth_idでbooth_codeを参照
+    machine_id: r.machine_code,
+    booth_code: r.booth_code,
+    booth_number: r.booth_number,
+    full_booth_code: r.booth_code, // booth_code = full_booth_code (KIK01-M01-B01形式)
+    meter_in_digit: r.meter_in_number || '7',
+    meter_out_digit: r.meter_out_number || '7',
+    play_price: r.play_price,
+  }))
   setCache(ckey, result)
   return result
 }
 
 export async function saveReading(r) {
   const now = r.read_date ? new Date(r.read_date + "T12:00:00").toISOString() : new Date().toISOString()
-  await sheetsAppend('meter_readings!A:U', [[
-    'R'+Date.now(), r.booth_id, r.full_booth_code, now,
-    r.in_meter, r.out_meter||'', r.prize_restock_count||'',
-    r.prize_stock_count||'', r.prize_name||'', 'manual','','', r.note||'', now,
-    r.set_a||'', r.set_c||'', r.set_l||'', r.set_r||'', r.set_o||''
-  ]])
+  const { error } = await supabase.from('meter_readings').insert({
+    booth_id: r.booth_id,
+    full_booth_code: r.full_booth_code || null,
+    read_time: now,
+    in_meter: r.in_meter ? parseFloat(r.in_meter) : null,
+    out_meter: r.out_meter ? parseFloat(r.out_meter) : null,
+    prize_restock_count: parseInt(r.prize_restock_count) || 0,
+    prize_stock_count: parseInt(r.prize_stock_count) || 0,
+    prize_name: r.prize_name || null,
+    set_a: r.set_a || null, set_c: r.set_c || null, set_l: r.set_l || null,
+    set_r: r.set_r || null, set_o: r.set_o || null,
+    note: r.note || null,
+    source: 'manual',
+    created_at: now,
+    created_by: r.created_by || null,
+  })
+  if (error) throw new Error('メーター保存エラー: ' + error.message)
   clearCache()
 }
 
 export async function findBoothByCode(fullBoothCode) {
-  const rows = await sheetsGet('booths!A2:K')
-  const booth = rows.find(r => String(r[5]).trim() === String(fullBoothCode).trim() && String(r[10]) === '1')
-  if (!booth) return null
+  const { data, error } = await supabase
+    .from('booths')
+    .select('*')
+    .eq('booth_code', String(fullBoothCode).trim())
+    .eq('is_active', true)
+    .limit(1)
+    .single()
+  if (error || !data) return null
   return {
-    booth_id: booth[0], machine_id: booth[1], booth_code: booth[2], booth_number: booth[3],
-    full_booth_code: booth[5], meter_in_digit: booth[6], meter_out_digit: booth[7], play_price: booth[9]
+    booth_id: data.booth_code, machine_id: data.machine_code,
+    booth_code: data.booth_code, booth_number: data.booth_number,
+    full_booth_code: data.booth_code,
+    meter_in_digit: data.meter_in_number || '7',
+    meter_out_digit: data.meter_out_number || '7',
+    play_price: data.play_price,
   }
 }
 
 export async function findMachineById(machineId) {
-  const rows = await sheetsGet('machines!A2:M')
-  const m = rows.find(r => String(r[0]) === String(machineId))
-  if (!m) return null
-  return { machine_id: m[0], store_id: m[1], machine_code: m[2], machine_name: m[3] }
+  const { data, error } = await supabase
+    .from('machines')
+    .select('machine_code, store_code, machine_name')
+    .eq('machine_code', machineId)
+    .limit(1)
+    .single()
+  if (error || !data) return null
+  return { machine_id: data.machine_code, store_id: data.store_code, machine_code: data.machine_code, machine_name: data.machine_name }
 }
 
 export async function findStoreById(storeId) {
@@ -260,13 +306,15 @@ export async function findStoreById(storeId) {
   return stores.find(s => String(s.store_id) === String(storeId)) || null
 }
 
-export async function updateReading(rowIndex, r) {
-  const range = `meter_readings!E${rowIndex}:I${rowIndex}`
-  await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-    { method: 'PUT', headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: [[r.in_meter, r.out_meter, r.prize_restock_count, r.prize_stock_count, r.prize_name]] }) }
-  )
+export async function updateReading(readingId, r) {
+  const { error } = await supabase.from('meter_readings').update({
+    in_meter: r.in_meter ? parseFloat(r.in_meter) : null,
+    out_meter: r.out_meter ? parseFloat(r.out_meter) : null,
+    prize_restock_count: parseInt(r.prize_restock_count) || 0,
+    prize_stock_count: parseInt(r.prize_stock_count) || 0,
+    prize_name: r.prize_name || null,
+  }).eq('reading_id', readingId)
+  if (error) throw new Error('メーター更新エラー: ' + error.message)
   clearCache()
 }
 

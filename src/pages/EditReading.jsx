@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { sheetsGet, sheetsPut, parseNum } from '../services/sheets'
+import { getReadingsByBooth, updateReading, parseNum } from '../services/sheets'
 
 export default function EditReading() {
   const { boothId } = useParams()
@@ -17,22 +17,18 @@ export default function EditReading() {
   async function loadReadings() {
     setLoading(true)
     try {
-      const allRows = await sheetsGet('meter_readings!A1:P')
-      if (!allRows.length) { setLoading(false); return }
-      const header = allRows[0].map(h => String(h).trim().toLowerCase())
-      const idx = name => header.indexOf(name)
-      const rows = allRows.slice(1).map((r,i) => ({
-        rowIndex: i+2,
-        booth_id: r[idx('booth_id')]||'',
-        full_booth_code: r[idx('full_booth_code')]||'',
-        read_time: (r[idx('read_time')]||'').slice(0,10),
-        in_meter: r[idx('in_meter')]||'',
-        out_meter: r[idx('out_meter')]||'',
-        prize_restock_count: r[idx('prize_restock_count')]||'',
-        prize_stock_count: r[idx('prize_stock_count')]||'',
-        prize_name: r[idx('prize_name')]||''
-      })).filter(r => String(r.booth_id) === String(boothId)).reverse()
-      setReadings(rows)
+      const rows = await getReadingsByBooth(boothId)
+      setReadings([...rows].reverse().map(r => ({
+        reading_id: r.reading_id,
+        booth_id: r.booth_id,
+        full_booth_code: r.full_booth_code,
+        read_time: (r.read_time || '').slice(0, 10),
+        in_meter: r.in_meter,
+        out_meter: r.out_meter,
+        prize_restock_count: r.prize_restock_count,
+        prize_stock_count: r.prize_stock_count,
+        prize_name: r.prize_name,
+      })))
     } catch (e) {
       setError(e.message)
     }
@@ -45,8 +41,12 @@ export default function EditReading() {
     setSaving(true)
     try {
       const val = (key) => editing[key] !== '' ? editing[key] : original[key]
-      const range = `meter_readings!E${editing.rowIndex}:I${editing.rowIndex}`
-      await sheetsPut(range, [[ val('in_meter'), val('out_meter'), val('prize_restock_count'), val('prize_stock_count'), val('prize_name') ]])
+      await updateReading(editing.reading_id, {
+        in_meter: val('in_meter'), out_meter: val('out_meter'),
+        prize_restock_count: val('prize_restock_count'),
+        prize_stock_count: val('prize_stock_count'),
+        prize_name: val('prize_name'),
+      })
       setEditing(null); setOriginal(null)
       await loadReadings()
     } catch (e) {
