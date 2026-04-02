@@ -20,6 +20,8 @@ export default function InventoryReceive() {
   const [quantity, setQuantity] = useState('')
   const [note, setNote] = useState('')
   const [searchText, setSearchText] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -137,26 +139,49 @@ export default function InventoryReceive() {
         </button>
       </div>
 
-      {/* 入庫先（共通） */}
-      <div className="bg-surface border border-border rounded-xl p-3 mb-4">
-        <label className="text-xs text-muted block mb-1">入庫先（拠点）</label>
-        <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)}
-          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text">
-          <option value="">選択してください</option>
-          {locations.map(l => (
-            <option key={l.location_id} value={l.location_id}>
-              {l.parent_location_id ? '　└ ' : ''}{l.name}
-            </option>
-          ))}
-        </select>
+      {/* 入庫先 + 入荷予定日フィルター */}
+      <div className="bg-surface border border-border rounded-xl p-3 mb-4 space-y-2">
+        <div>
+          <label className="text-xs text-muted block mb-1">入庫先（拠点）</label>
+          <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)}
+            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text">
+            <option value="">選択してください</option>
+            {locations.map(l => (
+              <option key={l.location_id} value={l.location_id}>
+                {l.parent_location_id ? '　└ ' : ''}{l.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted block mb-1">入荷予定日で絞り込み</label>
+          <div className="flex items-center gap-2">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
+            <span className="text-muted text-xs">〜</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
+            {(dateFrom || dateTo) && (
+              <button onClick={() => { setDateFrom(''); setDateTo('') }}
+                className="text-xs text-muted hover:text-accent2 shrink-0">×</button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 発注リストタブ */}
-      {tab === 'orders' && (
+      {tab === 'orders' && (() => {
+        const filtered = pendingOrders.filter(o => {
+          const ed = (o.expected_date || o.order_date || '').slice(0, 10)
+          if (dateFrom && ed < dateFrom) return false
+          if (dateTo && ed > dateTo) return false
+          return true
+        })
+        return (
         <>
-          {pendingOrders.length > 0 ? (
+          {filtered.length > 0 ? (
             <div className="space-y-2 mb-4">
-              {pendingOrders.map(order => (
+              {filtered.map(order => (
                 <div key={order.order_id} className="bg-surface border border-border rounded-xl p-3">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
@@ -179,7 +204,8 @@ export default function InventoryReceive() {
             </div>
           )}
         </>
-      )}
+        )
+      })()}
 
       {/* 手動入庫タブ */}
       {tab === 'manual' && (

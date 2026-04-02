@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLocations, getPrizeStocksExtended, countStock, getStockMovements, transferStock } from '../../services/sheets'
+import { getLocations, getPrizeStocksExtended, countStock, getStockMovements, transferStock, getStaffMap } from '../../services/sheets'
 import NumberInput from '../../components/NumberInput'
 
 export default function InventoryCount() {
   const navigate = useNavigate()
   const [locations, setLocations] = useState([])
   const [stocks, setStocks] = useState([])
+  const [staffMap, setStaffMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
@@ -37,9 +38,10 @@ export default function InventoryCount() {
   useEffect(() => {
     async function load() {
       try {
-        const [l, s, mv] = await Promise.all([getLocations(), getPrizeStocksExtended(), getStockMovements()])
+        const [l, s, mv, sm] = await Promise.all([getLocations(), getPrizeStocksExtended(), getStockMovements(), getStaffMap()])
         setLocations(l.filter(x => x.active_flag === '1'))
         setStocks(s)
+        setStaffMap(sm)
         const staffIds = [...new Set(s.filter(x => x.owner_type === 'staff').map(x => x.owner_id))].filter(Boolean)
         setStaffList(staffIds)
         setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
@@ -233,7 +235,7 @@ export default function InventoryCount() {
           <select value={ownerId} onChange={e => { setOwnerId(e.target.value); clearAll() }}
             className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text">
             <option value="">担当者を選択</option>
-            {staffList.map(s => <option key={s} value={s}>{s}</option>)}
+            {staffList.map(s => <option key={s} value={s}>{staffMap[s] || s}</option>)}
           </select>
         )}
       </div>

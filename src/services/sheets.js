@@ -31,81 +31,50 @@ function isOldEnough(readTime) {
   return d < new Date(Date.now() - 24 * 60 * 60 * 1000)
 }
 
+// 旧Sheets API関数（レガシー。DataSearch等で一部使用。401でトークン消去しない）
 export async function sheetsGet(range) {
   const token = getToken()
-  if (!token) {
-    window.location.href = '/login'
-    throw new Error('認証トークンがありません')
-  }
+  if (!token) throw new Error('認証トークンがありません')
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,
     { headers: { Authorization: `Bearer ${token}` } }
   )
-  if (res.status === 401) {
-    clearToken()
-    window.location.href = '/login'
-    throw new Error('認証が切れました。再ログインしてください')
-  }
   if (!res.ok) throw new Error('Sheets API error: ' + res.status)
   return (await res.json()).values || []
 }
 
 async function sheetsAppend(range, values) {
   const token = getToken()
-  if (!token) {
-    window.location.href = '/login'
-    throw new Error('認証トークンがありません')
-  }
+  if (!token) throw new Error('認証トークンがありません')
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`,
     { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values }) }
   )
-  if (res.status === 401) {
-    clearToken()
-    window.location.href = '/login'
-    throw new Error('認証が切れました。再ログインしてください')
-  }
   if (!res.ok) throw new Error('Sheets append error: ' + res.status)
   return res.json()
 }
 
 export async function sheetsPut(range, values) {
   const token = getToken()
-  if (!token) {
-    window.location.href = '/login'
-    throw new Error('認証トークンがありません')
-  }
+  if (!token) throw new Error('認証トークンがありません')
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
     { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values }) }
   )
-  if (res.status === 401) {
-    clearToken()
-    window.location.href = '/login'
-    throw new Error('認証が切れました。再ログインしてください')
-  }
   if (!res.ok) throw new Error('Sheets PUT error: ' + res.status)
   return res.json()
 }
 
 export async function sheetsBatchUpdate(requests) {
   const token = getToken()
-  if (!token) {
-    window.location.href = '/login'
-    throw new Error('認証トークンがありません')
-  }
+  if (!token) throw new Error('認証トークンがありません')
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
     { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ requests }) }
   )
-  if (res.status === 401) {
-    clearToken()
-    window.location.href = '/login'
-    throw new Error('認証が切れました。再ログインしてください')
-  }
   if (!res.ok) throw new Error('Sheets batchUpdate error: ' + res.status)
   return res.json()
 }
@@ -167,6 +136,16 @@ export async function getLastReadingsMap(boothIds) {
     const last = [...rows].reverse().find(r => isOldEnough(r.read_time)) || null
     map[id] = { latest, last }
   }
+  return map
+}
+
+// スタッフID→名前マッピング取得
+export async function getStaffMap() {
+  if (getCache('staff_map')) return getCache('staff_map')
+  const { data, error } = await supabase.from('staff').select('staff_id, name').eq('is_active', true)
+  if (error) { console.error('staff取得エラー:', error.message); return {} }
+  const map = Object.fromEntries(data.map(s => [s.staff_id, s.name]))
+  setCache('staff_map', map)
   return map
 }
 

@@ -292,6 +292,7 @@ export default function BoothInput() {
             readingsMap={readingsMap}
             inp={inputs[booth.booth_id] || {}}
             setInp={setInp}
+            navigate={navigate}
             getRef={getRef}
             handleKeyDown={handleKeyDown}
           />
@@ -318,7 +319,7 @@ export default function BoothInput() {
 }
 
 // 個別ブースカード
-function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
+function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate }) {
   const { latest, last } = readingsMap[booth.booth_id] || {}
   const price = parseNum(booth.play_price || '100')
 
@@ -347,9 +348,11 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown }) {
   return (
     <div className={`bg-surface border rounded-lg overflow-hidden ${hasInput ? 'border-accent/30' : 'border-border'}`}>
 
-      {/* R1: ブース名 + 景品名 + 単価 */}
+      {/* R1: ブース名 + 履歴 + 景品名 + 単価 */}
       <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
         <span className="text-xs font-bold text-accent shrink-0">{booth.booth_code}</span>
+        <button onClick={() => navigate(`/edit/${booth.booth_id}`)}
+          className="text-[10px] text-muted/60 hover:text-accent shrink-0">履歴</button>
         <input
           ref={getRef(booth.booth_id, 'prize_name')}
           className="flex-1 min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-muted/60 truncate"

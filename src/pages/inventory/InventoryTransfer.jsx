@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLocations, getPrizeStocksExtended, transferStock, getStockMovements, getStores, getMachines, getBooths } from '../../services/sheets'
+import { getLocations, getPrizeStocksExtended, transferStock, getStockMovements, getStores, getMachines, getBooths, getStaffMap } from '../../services/sheets'
 import NumberInput from '../../components/NumberInput'
 
 const TRANSFER_TYPES = [
@@ -29,6 +29,7 @@ export default function InventoryTransfer() {
 
   // 担当者リスト（在庫からユニークに抽出）
   const [staffList, setStaffList] = useState([])
+  const [staffMap, setStaffMap] = useState({})
 
   // アソート配分用
   const [assortAllocations, setAssortAllocations] = useState([])
@@ -40,9 +41,10 @@ export default function InventoryTransfer() {
   useEffect(() => {
     async function load() {
       try {
-        const [l, s, mv] = await Promise.all([getLocations(), getPrizeStocksExtended(), getStockMovements()])
+        const [l, s, mv, sm] = await Promise.all([getLocations(), getPrizeStocksExtended(), getStockMovements(), getStaffMap()])
         setLocations(l.filter(x => x.active_flag === '1'))
         setStocks(s)
+        setStaffMap(sm)
         const staffIds = [...new Set(s.filter(x => x.owner_type === 'staff').map(x => x.owner_id))].filter(Boolean)
         setStaffList(staffIds)
         setRecentTransfers(mv.filter(m => m.movement_type === 'transfer').slice(-10).reverse())
@@ -266,7 +268,7 @@ export default function InventoryTransfer() {
                         onChange={e => updateAssortRow(idx, 'staffName', e.target.value)}
                         className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-2 text-sm text-text">
                         <option value="">担当者</option>
-                        {staffList.map(s => <option key={s} value={s}>{s}</option>)}
+                        {staffList.map(s => <option key={s} value={s}>{staffMap[s] || s}</option>)}
                       </select>
                       <NumberInput value={alloc.quantity}
                         onChange={v => updateAssortRow(idx, 'quantity', v)}
