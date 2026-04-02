@@ -555,6 +555,7 @@ function renderTools(){
     <button onclick="exportExcel('stocks')" style="${btnStyle}"><span style="font-size:22px">📋</span>在庫一覧</button>
     <button onclick="exportExcel('movements')" style="${btnStyle}"><span style="font-size:22px">🔄</span>在庫移動履歴</button>
     <button onclick="exportExcel('suppliers')" style="${btnStyle}"><span style="font-size:22px">🚚</span>仕入先一覧</button>
+    <button onclick="exportExcel('readings')" style="${btnStyle}"><span style="font-size:22px">📈</span>メーター読取履歴</button>
   </div>`;
 }
 
@@ -593,6 +594,11 @@ async function exportExcel(type){
       const raw = await sbGet('suppliers','select=supplier_id,supplier_name,supplier_type,contact_method,order_method,lead_time_days,payment_terms,is_active,notes&order=supplier_name');
       headers = {supplier_id:'仕入先ID',supplier_name:'仕入先名',supplier_type:'タイプ',contact_method:'連絡方法',order_method:'発注方法',lead_time_days:'リードタイム(日)',payment_terms:'支払条件',is_active:'有効',notes:'メモ'};
       data = raw; fileName = `ClawOps_仕入先_${today}`;
+    }
+    else if (type === 'readings') {
+      const raw = await sbGet('meter_readings','select=reading_id,booth_id,full_booth_code,read_time,in_meter,out_meter,prize_restock_count,prize_stock_count,prize_name,set_a,set_c,set_l,set_r,set_o,note,source,created_at&order=read_time.desc');
+      headers = {reading_id:'読取ID',booth_id:'ブースID',full_booth_code:'フルコード',read_time:'読取日時',in_meter:'INメーター',out_meter:'OUTメーター',prize_restock_count:'補充数',prize_stock_count:'残数',prize_name:'景品名',set_a:'設定A',set_c:'設定C',set_l:'設定L',set_r:'設定R',set_o:'設定O',note:'メモ',source:'ソース',created_at:'作成日時'};
+      data = raw; fileName = `ClawOps_メーター読取_${today}`;
     }
 
     // ヘッダーキー順でデータを整形
