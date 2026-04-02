@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>売上分析 | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;--radius:8px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+.header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px}
+.header h1{font-size:16px;flex:1}
+.header a{font-size:12px;color:var(--text2)}
+.container{max-width:800px;margin:0 auto;padding:12px}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filters select,.filters input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+.card .val{font-size:22px;font-weight:800;color:var(--accent)}
+.card .label{font-size:10px;color:var(--text2);margin-top:2px}
+.section{margin-bottom:20px}
+.section-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;padding-left:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:6px 8px;color:var(--text2);border-bottom:1px solid var(--border);font-weight:600;position:sticky;top:0;background:var(--bg)}
+td{padding:6px 8px;border-bottom:1px solid var(--border)}
+tr:hover{background:var(--surface2)}
+.rank{color:var(--accent);font-weight:800;width:28px}
+.bar-chart{display:flex;align-items:flex-end;gap:2px;height:120px;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto}
+.bar{min-width:8px;background:var(--accent);border-radius:2px 2px 0 0;position:relative;cursor:pointer;transition:background .2s}
+.bar:hover{background:var(--cyan)}
+.bar-label{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:7px;color:var(--text2);white-space:nowrap}
+.bar-val{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:7px;color:var(--text);white-space:nowrap;display:none}
+.bar:hover .bar-val{display:block}
+.payout-high{color:var(--red)}
+.payout-mid{color:var(--yellow)}
+.payout-low{color:var(--green)}
+.loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2)}
+.spinner{width:24px;height:24px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.detail-row{cursor:pointer}
+.detail-panel{display:none;background:var(--surface2);padding:8px;font-size:11px}
+.detail-panel.open{display:block}
+@media(max-width:600px){.cards{grid-template-columns:repeat(2,1fr)}.bar-chart{height:80px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html">← 戻る</a>
+  <h1>📊 売上分析</h1>
+</div>
+<div class="container">
+  <div class="filters">
+    <select id="storeFilter" onchange="render()"><option value="">全店舗</option></select>
+    <input type="date" id="dateFrom" onchange="render()">
+    <span style="color:var(--text2)">〜</span>
+    <input type="date" id="dateTo" onchange="render()">
+  </div>
+  <div id="content"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+</div>
+
+<script>
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+
+async function sbGet(table,params=''){
+  let all=[],offset=0;const P=1000;
+  while(true){
+    const r=await fetch(SB_URL+'/'+table+'?'+params+'&limit='+P+'&offset='+offset,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    if(!r.ok)throw new Error(await r.text());const d=await r.json();all=all.concat(d);if(d.length<P)break;offset+=P;
+  }
+  return all;
+}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
+function fmtYen(n){return n!=null?'¥'+Number(n).toLocaleString():'—'}
+
+let allReadings=[], stores=[], storeMap={};
+
+async function loadAll(){
+  const [readings, storeData] = await Promise.all([
+    sbGet('meter_readings','select=booth_id,full_booth_code,read_time,in_meter,out_meter,prize_stock_count,prize_restock_count,prize_name&order=read_time.asc'),
+    sbGet('stores','select=store_code,store_name&is_active=eq.true&order=store_name'),
+  ]);
+  allReadings = readings;
+  stores = storeData;
+  storeMap = Object.fromEntries(storeData.map(s=>[s.store_code,s.store_name]));
+
+  // 店舗フィルター構築
+  const storeCodes = [...new Set(readings.map(r=>(r.booth_id||'').split('-')[0]).filter(Boolean))];
+  const sel = document.getElementById('storeFilter');
+  storeCodes.sort().forEach(sc=>{
+    const o=document.createElement('option');o.value=sc;o.textContent=storeMap[sc]||sc;sel.appendChild(o);
+  });
+
+  // 日付範囲
+  const dates = readings.map(r=>r.read_time?.slice(0,10)).filter(Boolean).sort();
+  if(dates.length){
+    document.getElementById('dateFrom').value=dates[0];
+    document.getElementById('dateTo').value=dates[dates.length-1];
+  }
+  render();
+}
+
+function getFiltered(){
+  const store=document.getElementById('storeFilter').value;
+  const from=document.getElementById('dateFrom').value;
+  const to=document.getElementById('dateTo').value;
+  return allReadings.filter(r=>{
+    if(store && !(r.booth_id||'').startsWith(store)) return false;
+    const d=(r.read_time||'').slice(0,10);
+    if(from && d<from) return false;
+    if(to && d>to) return false;
+    return true;
+  });
+}
+
+function calcBoothStats(readings){
+  // booth_id別にグループ化
+  const byBooth={};
+  readings.forEach(r=>{
+    if(!r.booth_id) return;
+    if(!byBooth[r.booth_id]) byBooth[r.booth_id]=[];
+    byBooth[r.booth_id].push(r);
+  });
+
+  const stats=[];
+  for(const [bid,rows] of Object.entries(byBooth)){
+    rows.sort((a,b)=>(a.read_time||'').localeCompare(b.read_time||''));
+    let totalIn=0, totalOut=0, days=0, lastPrize='';
+    for(let i=1;i<rows.length;i++){
+      const inDiff=(rows[i].in_meter||0)-(rows[i-1].in_meter||0);
+      const outDiff=(rows[i].out_meter||0)-(rows[i-1].out_meter||0);
+      if(inDiff>0 && inDiff<50000){totalIn+=inDiff;days++}
+      if(outDiff>0 && outDiff<50000) totalOut+=outDiff;
+    }
+    lastPrize=rows[rows.length-1]?.prize_name||'';
+    const sales=totalIn*100;
+    const payoutRate=totalIn>0?((totalOut/totalIn)*100):0;
+    const dailyAvg=days>0?Math.round(sales/days):0;
+    const storeName=storeMap[(bid||'').split('-')[0]]||'';
+    stats.push({bid,sales,totalIn,totalOut,payoutRate,dailyAvg,days,lastPrize,storeName,readingCount:rows.length});
+  }
+  stats.sort((a,b)=>b.sales-a.sales);
+  return stats;
+}
+
+function calcDailyTotals(readings){
+  const byDate={};
+  // booth_id×日付でグループ化し、日付ごとのIN差分を合算
+  const byBooth={};
+  readings.forEach(r=>{
+    if(!r.booth_id) return;
+    if(!byBooth[r.booth_id]) byBooth[r.booth_id]=[];
+    byBooth[r.booth_id].push(r);
+  });
+  for(const rows of Object.values(byBooth)){
+    rows.sort((a,b)=>(a.read_time||'').localeCompare(b.read_time||''));
+    for(let i=1;i<rows.length;i++){
+      const d=(rows[i].read_time||'').slice(0,10);
+      const inDiff=(rows[i].in_meter||0)-(rows[i-1].in_meter||0);
+      if(inDiff>0 && inDiff<50000){
+        byDate[d]=(byDate[d]||0)+inDiff;
+      }
+    }
+  }
+  return Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
+}
+
+function payoutClass(rate){
+  if(rate>30) return 'payout-high';
+  if(rate>15) return 'payout-mid';
+  return 'payout-low';
+}
+
+function render(){
+  const filtered=getFiltered();
+  const stats=calcBoothStats(filtered);
+  const daily=calcDailyTotals(filtered);
+
+  const totalSales=stats.reduce((s,b)=>s+b.sales,0);
+  const totalBooths=stats.length;
+  const totalDays=daily.length;
+  const avgDaily=totalDays>0?Math.round(totalSales/totalDays):0;
+  const avgPayout=stats.length>0?(stats.reduce((s,b)=>s+b.payoutRate,0)/stats.length):0;
+
+  // バーチャート
+  const maxDaily=Math.max(...daily.map(d=>d[1]),1);
+  const chartH=100;
+  const bars=daily.map(([d,v])=>{
+    const h=Math.max(2,Math.round((v/maxDaily)*chartH));
+    const label=d.slice(5);
+    return `<div class="bar" style="height:${h}px;flex:1" title="${d}: ¥${(v*100).toLocaleString()}">
+      <span class="bar-val">${fmtYen(v*100)}</span>
+      ${daily.length<=60?`<span class="bar-label">${label}</span>`:''}
+    </div>`;
+  }).join('');
+
+  // ランキングテーブル
+  const rows=stats.map((b,i)=>`
+    <tr class="detail-row" onclick="this.nextElementSibling.classList.toggle('open')">
+      <td class="rank">${i+1}</td>
+      <td><div style="font-weight:700">${esc(b.bid)}</div><div style="font-size:10px;color:var(--text2)">${esc(b.storeName)} / ${esc(b.lastPrize||'—')}</div></td>
+      <td style="text-align:right;font-weight:700">${fmtYen(b.sales)}</td>
+      <td style="text-align:right">${fmtYen(b.dailyAvg)}<span style="font-size:9px;color:var(--text2)">/日</span></td>
+      <td style="text-align:right" class="${payoutClass(b.payoutRate)}">${b.payoutRate.toFixed(1)}%</td>
+    </tr>
+    <tr><td colspan="5" class="detail-panel">
+      IN合計: ${fmt(b.totalIn)} / OUT合計: ${fmt(b.totalOut)} / 読取回数: ${b.readingCount} / 有効日数: ${b.days}
+    </td></tr>
+  `).join('');
+
+  document.getElementById('content').innerHTML=`
+    <div class="cards">
+      <div class="card"><div class="val">${fmtYen(totalSales)}</div><div class="label">総売上</div></div>
+      <div class="card"><div class="val">${fmtYen(avgDaily)}</div><div class="label">平均日売上</div></div>
+      <div class="card"><div class="val">${totalBooths}<span style="font-size:12px">ブース</span></div><div class="label">${totalDays}日間</div></div>
+      <div class="card"><div class="val ${payoutClass(avgPayout)}">${avgPayout.toFixed(1)}%</div><div class="label">平均出率</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">日別売上推移</div>
+      <div class="bar-chart" style="height:${chartH+30}px">${bars||'<span style="color:var(--text2)">データなし</span>'}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">ブース別売上ランキング</div>
+      <table>
+        <tr><th>#</th><th>ブース</th><th style="text-align:right">売上</th><th style="text-align:right">日平均</th><th style="text-align:right">出率</th></tr>
+        ${rows||'<tr><td colspan="5" style="text-align:center;color:var(--text2)">データなし</td></tr>'}
+      </table>
+    </div>
+  `;
+}
+
+loadAll().catch(e=>{
+  document.getElementById('content').innerHTML=`<div style="color:var(--red);padding:20px">エラー: ${esc(e.message)}</div>`;
+});
+</script>
+</body>
+</html>
