@@ -233,44 +233,40 @@ export default function MainInput() {
     <div className="min-h-screen pb-32">
       {/* ===== トップバー ===== */}
       <div className="sticky top-0 z-50 bg-bg border-b border-border">
-        {/* クイックアクセス + 日付 */}
+        {/* 店舗ドロップダウン + 日付 + クイックアクセス */}
         <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-1">
-          <button onClick={() => {
-              const mid = machines[0]?.machine_id
-              if (storeId && mid) navigate(`/booth/${mid}`, { state: { storeId, storeName: currentStore?.store_name } })
-              else navigate('/patrol')
-            }}
-            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white active:scale-95">
-            🚶 巡回入力
-          </button>
-          <button onClick={() => navigate('/patrol')}
-            className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-surface border border-border text-muted active:scale-95">
-            📷 QR
-          </button>
-          <button onClick={() => navigate('/inventory')}
-            className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-surface border border-border text-muted active:scale-95">
-            📦 棚卸し
-          </button>
-          {storeId && (
-            <button onClick={() => navigate(`/ranking/${storeId}`)}
-              className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-surface border border-border text-muted active:scale-95">
-              📊 売上
+          <select value={storeId || ''} onChange={e => setStoreId(e.target.value)}
+            className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[140px] truncate [color-scheme:dark]">
+            {stores.map(s => (
+              <option key={s.store_id} value={s.store_id}>{s.store_name}</option>
+            ))}
+          </select>
+          <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
+            className="bg-surface2 border border-border text-text text-xs px-1.5 py-1.5 rounded-lg [color-scheme:dark] w-[115px]" />
+          <div className="flex items-center gap-1 ml-auto">
+            <button onClick={() => {
+                const mid = machines[0]?.machine_id
+                if (storeId && mid) navigate(`/booth/${mid}`, { state: { storeId, storeName: currentStore?.store_name } })
+                else navigate('/patrol')
+              }}
+              className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white active:scale-95">
+              🚶 巡回
             </button>
-          )}
-          <div className="shrink-0 ml-auto text-xs text-blue-400 font-bold">{readDate.slice(5)}</div>
-        </div>
-
-        {/* 店舗チップ */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 overflow-x-auto" style={{scrollbarWidth:'none'}}>
-          {stores.map(s => (
-            <button key={s.store_id} onClick={() => setStoreId(s.store_id)}
-              className={`shrink-0 px-3 py-1 rounded-2xl text-xs font-semibold border transition-all
-                ${s.store_id === storeId
-                  ? 'bg-blue-600 border-blue-600 text-white'
-                  : 'bg-surface border-border text-muted'}`}>
-              {s.store_name}
+            <button onClick={() => navigate('/patrol')}
+              className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
+              📷
             </button>
-          ))}
+            <button onClick={() => navigate('/inventory')}
+              className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
+              📦
+            </button>
+            {storeId && (
+              <button onClick={() => navigate(`/ranking/${storeId}`)}
+                className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
+                📊
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 機械タブ */}
