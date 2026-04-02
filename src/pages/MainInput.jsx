@@ -160,7 +160,7 @@ export default function MainInput() {
 
   function showToast(msg, type) {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), type === 'error' ? 8000 : 3000)
   }
 
   // ===== 集計計算 =====
@@ -382,7 +382,7 @@ export default function MainInput() {
 
                 {/* 残 */}
                 <div>
-                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残</div>
+                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残数</div>
                   <input ref={getRef(booth.booth_id, 'prize_stock')}
                     type="number" inputMode="numeric"
                     className="w-full p-2 text-[14px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
@@ -396,7 +396,7 @@ export default function MainInput() {
 
                 {/* 補 */}
                 <div>
-                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補</div>
+                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補充</div>
                   <input ref={getRef(booth.booth_id, 'prize_restock')}
                     type="number" inputMode="numeric"
                     className="w-full p-2 text-[14px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"

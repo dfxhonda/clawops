@@ -15,8 +15,11 @@ export default function Login() {
     if (sessionStorage.getItem('clawops_staff_id')) { navigate('/'); return }
     // スタッフ一覧取得
     supabase.from('staff').select('staff_id, name, pin').eq('is_active', true).order('name')
-      .then(({ data }) => { setStaff(data || []); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then(({ data, error: err }) => {
+        if (err) setError('サーバーに接続できません。通信状態を確認してください。')
+        setStaff(data || []); setLoading(false)
+      })
+      .catch(() => { setError('サーバーに接続できません'); setLoading(false) })
   }, [])
 
   function handleLogin() {

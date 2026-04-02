@@ -7,6 +7,13 @@ import Dashboard from './pages/Dashboard'
 import AdminMenu from './pages/AdminMenu'
 import TabBar from './components/TabBar'
 
+// 巡回入力
+import BoothInput from './pages/BoothInput'
+import DraftList from './pages/DraftList'
+import Complete from './pages/Complete'
+import RankingView from './pages/RankingView'
+import MachineList from './pages/MachineList'
+
 // 既存ページ（管理系）
 import EditReading from './pages/EditReading'
 import DataSearch from './pages/DataSearch'
@@ -62,6 +69,13 @@ export default function App() {
       <Route path="/" element={<PrivateRoute><WithTabs><MainInput /></WithTabs></PrivateRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><WithTabs><Dashboard /></WithTabs></PrivateRoute>} />
       <Route path="/admin" element={<PrivateRoute><WithTabs><AdminMenu /></WithTabs></PrivateRoute>} />
+
+      {/* 巡回入力 */}
+      <Route path="/booth/:machineId" element={<PrivateRoute><BoothInput /></PrivateRoute>} />
+      <Route path="/drafts" element={<PrivateRoute><DraftList /></PrivateRoute>} />
+      <Route path="/complete" element={<PrivateRoute><Complete /></PrivateRoute>} />
+      <Route path="/ranking/:storeId" element={<PrivateRoute><RankingView /></PrivateRoute>} />
+      <Route path="/machines/:storeId" element={<PrivateRoute><MachineList /></PrivateRoute>} />
 
       {/* サブページ（タブバー非表示） */}
       <Route path="/datasearch" element={<PrivateRoute><DataSearch /></PrivateRoute>} />
