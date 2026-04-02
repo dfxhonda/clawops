@@ -230,7 +230,16 @@ export default function MainInput() {
   )
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen pb-32"
+      onTouchStart={e => { e.currentTarget._sx = e.touches[0].clientX; e.currentTarget._sy = e.touches[0].clientY }}
+      onTouchEnd={e => {
+        const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0)
+        const dy = e.changedTouches[0].clientY - (e.currentTarget._sy || 0)
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return // 縦スクロール優先
+        const idx = machines.findIndex(m => m.machine_id === machineId)
+        if (dx < 0 && idx < machines.length - 1) setMachineId(machines[idx + 1].machine_id)
+        if (dx > 0 && idx > 0) setMachineId(machines[idx - 1].machine_id)
+      }}>
       {/* ===== トップバー ===== */}
       <div className="sticky top-0 z-50 bg-bg border-b border-border">
         {/* 店舗ドロップダウン + 日付 + クイックアクセス */}
