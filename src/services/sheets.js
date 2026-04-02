@@ -176,16 +176,23 @@ export async function getLastReadingsMap(boothIds) {
 
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
+  // 機械が登録されている店舗のみ取得（巡回入力で使う店舗に絞る）
+  const { data: machineStores, error: mErr } = await supabase
+    .from('machines')
+    .select('store_code')
+    .eq('is_active', true)
+  if (mErr) { console.error('machines取得エラー:', mErr.message); return [] }
+  const storeCodes = [...new Set(machineStores.map(m => m.store_code).filter(Boolean))]
+  if (storeCodes.length === 0) return []
   const { data, error } = await supabase
     .from('stores')
     .select('store_code, store_id, store_name, is_active')
+    .in('store_code', storeCodes)
     .eq('is_active', true)
-    .neq('store_code', 'SIM01')
     .order('store_name')
   if (error) { console.error('stores取得エラー:', error.message); return [] }
-  // 既存コード互換: store_id, store_code, store_name, active_flag
   const result = data.map(r => ({
-    store_id: r.store_code, // React側はstore_idでstore_codeを参照している
+    store_id: r.store_code,
     store_code: r.store_code,
     store_name: r.store_name,
     active_flag: r.is_active ? 1 : 0,
