@@ -6,59 +6,66 @@
 <title>集金帳票 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--green:#2ecc71;--red:#e74c3c;--radius:8px}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px}
-.header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
-.header h1{font-size:16px;flex:1}
-.btn{padding:6px 12px;border-radius:var(--radius);font-size:12px;font-weight:700;border:none;cursor:pointer}
-.container{max-width:700px;margin:0 auto;padding:12px}
-.filters{display:flex;gap:8px;margin-bottom:12px;align-items:center}
-.filters select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
-table{width:100%;border-collapse:collapse;font-size:11px}
-th{text-align:left;padding:5px 6px;color:var(--text2);font-weight:600;background:var(--surface2);white-space:nowrap}
-td{padding:5px 6px;border-bottom:1px solid var(--border)}
-.num{text-align:right;font-variant-numeric:tabular-nums}
-.machine-block{margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;break-inside:avoid}
-.machine-header{padding:8px 12px;font-weight:700;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.machine-footer{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
-.machine-footer input,.machine-footer textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:13px}
-.machine-footer .amt{width:120px;font-weight:700;font-size:15px}
-.machine-footer .note{flex:1;font-size:12px}
-.subtotal td{font-weight:700;background:var(--surface2)}
-.total-box{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:16px;margin-bottom:16px;text-align:center}
-.total-box .big{font-size:28px;font-weight:800;color:var(--accent)}
-.total-box .label{font-size:11px;color:var(--text2)}
-.sign-area{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;display:flex;justify-content:space-between}
-.sign-box{text-align:center;width:45%}
-.sign-box .line{border-bottom:1px solid var(--text);margin-top:40px;margin-bottom:4px}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--green:#2ecc71;--red:#e74c3c;--radius:6px}
+body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN',-apple-system,sans-serif;font-size:13px}
+.header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px}
+.header h1{font-size:15px;flex:1}
+.btn{padding:5px 10px;border-radius:var(--radius);font-size:11px;font-weight:700;border:none;cursor:pointer}
+.container{max-width:700px;margin:0 auto;padding:8px 12px}
+.filters{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.filters select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:var(--radius);font-size:12px}
+
+/* 伝票様式 */
+.slip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.slip-header{padding:10px 12px;text-align:center;border-bottom:1px solid var(--border)}
+.slip-header .title{font-size:16px;font-weight:800;letter-spacing:2px}
+.slip-header .sub{font-size:11px;color:var(--text2);margin-top:2px}
+.slip-header .company{font-size:10px;color:var(--text2);margin-top:4px}
+.slip-to{padding:6px 12px;border-bottom:1px solid var(--border);font-size:12px}
+
+/* 明細テーブル */
+.slip table{width:100%;border-collapse:collapse;font-size:11px}
+.slip th{padding:4px 6px;background:var(--surface2);color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);text-align:center;font-size:10px}
+.slip td{padding:4px 6px;border-bottom:1px solid var(--border)}
+.slip .num{text-align:right;font-variant-numeric:tabular-nums}
+.slip .machine-row td{background:var(--surface2);font-weight:700;font-size:12px}
+.slip .booth-row td{font-size:11px}
+.slip .amt-cell{background:var(--surface2)}
+.slip .amt-cell input{background:transparent;border:none;color:var(--text);font-size:14px;font-weight:700;text-align:right;width:100%;outline:none}
+.slip .note-cell input{background:transparent;border:none;color:var(--text);font-size:11px;width:100%;outline:none}
+.slip .total-row td{font-weight:800;font-size:14px;background:var(--surface2);border-top:2px solid var(--border)}
+
+/* 合計+サイン */
+.grand-total{padding:16px;text-align:center;border-top:2px solid var(--border)}
+.grand-total .amount{font-size:28px;font-weight:800;color:var(--accent);letter-spacing:1px}
+.sign-area{padding:16px;display:flex;gap:20px;justify-content:center}
+.sign-box{width:40%;text-align:center}
+.sign-box .line{border-bottom:1px solid var(--text);margin-top:50px;margin-bottom:4px}
 .sign-box .label{font-size:10px;color:var(--text2)}
-.history-section{margin-top:16px}
-.history-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:6px}
+
+.history-section{margin-top:12px}
+.history-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px;margin-bottom:4px;font-size:11px}
 .loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2)}
-.spinner{width:24px;height:24px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+.spinner{width:20px;height:20px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media print{
-  body{background:#fff;color:#000;font-size:10px}
+  body{background:#fff;color:#000;font-size:11px}
   .no-print{display:none!important}
-  .container{max-width:100%;padding:8px}
-  .machine-block{border-color:#999;break-inside:avoid}
-  .machine-header{background:#eee}
-  th{background:#eee;color:#333}
-  td{border-color:#ccc}
-  .subtotal td{background:#eee}
-  .total-box{border-color:#333}
-  .total-box .big{color:#000}
-  .sign-area{border-color:#999}
+  .container{max-width:100%;padding:0}
+  .slip{border-color:#999;break-inside:avoid}
+  .slip th{background:#f0f0f0;color:#333}
+  .slip .machine-row td,.slip .amt-cell,.slip .total-row td{background:#f0f0f0}
+  .grand-total .amount{color:#000}
   .sign-box .line{border-color:#000}
-  :root{--surface:#fff;--surface2:#f5f5f5;--border:#ccc;--text:#000;--text2:#666}
-  .machine-footer input,.machine-footer textarea{border-color:#999;background:#fff;color:#000}
+  :root{--surface:#fff;--surface2:#f5f5f5;--border:#bbb;--text:#000;--text2:#666}
+  .slip .amt-cell input,.slip .note-cell input{color:#000}
 }
 </style>
 </head>
 <body>
 <div class="header no-print">
-  <a href="index.html" style="color:var(--text2);font-size:12px">← 戻る</a>
+  <a href="index.html" style="color:var(--text2);font-size:11px">← 戻る</a>
   <h1>💰 集金帳票</h1>
   <button class="btn" style="background:var(--green);color:#fff" onclick="window.print()">🖨️ PDF</button>
   <button class="btn" style="background:#00b4d8;color:#fff" onclick="generateReport()">📤 報告</button>
@@ -66,7 +73,7 @@ td{padding:5px 6px;border-bottom:1px solid var(--border)}
 <div class="container">
   <div class="filters no-print">
     <select id="storeFilter" onchange="render()"></select>
-    <span style="font-size:12px;color:var(--text2)" id="prevInfo"></span>
+    <span style="font-size:10px;color:var(--text2)" id="prevInfo"></span>
   </div>
   <div id="content"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
 </div>
@@ -79,23 +86,24 @@ async function sbPost(t,b){const r=await fetch(SB_URL+'/'+t,{method:'POST',heade
 async function sbPatch(t,col,val,b){const r=await fetch(SB_URL+'/'+t+'?'+col+'=eq.'+encodeURIComponent(val),{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
 async function sbDelete(t,col,val){const r=await fetch(SB_URL+'/'+t+'?'+col+'=eq.'+encodeURIComponent(val),{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text())}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
-function fmtYen(n){return n!=null?'¥'+Number(n).toLocaleString():'—'}
+function fmt(n){return n!=null?Number(n).toLocaleString():''}
+function fmtYen(n){return n!=null?'¥'+Number(n).toLocaleString():''}
 
-let allReadings=[], storeMap={}, machineMap={}, billingEvents=[], allSnapshots=[];
+let allReadings=[], storeMap={}, machinesData=[], boothsData=[], billingEvents=[], allSnapshots=[];
 
 async function loadAll(){
-  const [readings, stores, machines, events, snapshots] = await Promise.all([
+  const [readings, stores, machines, booths, events, snapshots] = await Promise.all([
     sbGet('meter_readings','select=booth_id,read_time,in_meter,out_meter,prize_name&order=read_time.asc'),
     sbGet('stores','select=store_code,store_name&is_active=eq.true&order=store_name'),
-    sbGet('machines','select=machine_code,store_code,machine_name&is_active=eq.true'),
+    sbGet('machines','select=machine_code,store_code,machine_name,machine_number,billing_order,play_price&is_active=eq.true&order=billing_order,machine_code'),
+    sbGet('booths','select=booth_code,machine_code,booth_number,booth_label,play_price&is_active=eq.true&order=booth_number'),
     sbGet('billing_events','select=*&order=billing_date.desc'),
     sbGet('billing_snapshots','select=*'),
   ]);
-  billingEvents=events; allSnapshots=snapshots;
-  allReadings=readings;
+  allReadings=readings; billingEvents=events; allSnapshots=snapshots;
+  machinesData=machines; boothsData=booths;
   storeMap=Object.fromEntries(stores.map(s=>[s.store_code,s.store_name]));
-  machineMap=Object.fromEntries(machines.map(m=>[m.machine_code,m.machine_name||m.machine_code]));
+
   const storeCodes=[...new Set(machines.map(m=>m.store_code))].sort();
   const sel=document.getElementById('storeFilter');
   storeCodes.forEach(sc=>{const o=document.createElement('option');o.value=sc;o.textContent=storeMap[sc]||sc;sel.appendChild(o)});
@@ -104,102 +112,105 @@ async function loadAll(){
 
 function render(){
   const store=document.getElementById('storeFilter').value;
-  if(!store){document.getElementById('content').innerHTML='<p style="color:var(--text2);text-align:center;padding:40px">店舗を選択してください</p>';return}
+  if(!store){document.getElementById('content').innerHTML='<p style="color:var(--text2);text-align:center;padding:40px">店舗を選択</p>';return}
 
-  // 前回集金snapshot
+  // 前回snapshot
   const storeEvents=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''));
   const prevEvent=storeEvents[0]||null;
   const prevSnapMap={};
   if(prevEvent) allSnapshots.filter(s=>s.billing_id===prevEvent.billing_id).forEach(s=>{
-    prevSnapMap[s.booth_id]={in_meter:Number(s.in_meter)||0,out_meter:Number(s.out_meter)||0};
+    prevSnapMap[s.booth_id]={in_meter:Number(s.in_meter)||0};
   });
-  document.getElementById('prevInfo').textContent=prevEvent?`前回: ${prevEvent.billing_date}`:'初回集金';
+  document.getElementById('prevInfo').textContent=prevEvent?`前回集金: ${prevEvent.billing_date}`:'初回';
 
-  // 最新meter_reading
+  // 最新readings
   const storeReadings=allReadings.filter(r=>(r.booth_id||'').startsWith(store)&&r.in_meter!=null);
   const latestByBooth={};
   storeReadings.forEach(r=>{if(!latestByBooth[r.booth_id]||(r.read_time||'')>(latestByBooth[r.booth_id].read_time||''))latestByBooth[r.booth_id]=r});
 
-  // ブース集計
-  const boothStats=[];
-  for(const [bid,cur] of Object.entries(latestByBooth)){
-    const prev=prevSnapMap[bid]||{in_meter:0,out_meter:0};
-    const mc=bid.split('-').slice(0,2).join('-');
-    boothStats.push({bid,mc,prevIn:prev.in_meter,curIn:Number(cur.in_meter)||0,prizeName:cur.prize_name||''});
-  }
+  // 機械一覧(集金順)
+  const storeMachines=machinesData.filter(m=>m.store_code===store).sort((a,b)=>(a.billing_order||0)-(b.billing_order||0) || a.machine_code.localeCompare(b.machine_code));
 
-  // 機械別グループ
-  const byMachine={};
-  boothStats.forEach(b=>{if(!byMachine[b.mc])byMachine[b.mc]=[];byMachine[b.mc].push(b)});
-  window._billingMCs=Object.keys(byMachine);
+  const today=new Date();
+  const dateStr=`${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+  const storeName=storeMap[store]||store;
+
+  // 明細行を構築
+  let tableRows='';
+  let rowIdx=0;
+  storeMachines.forEach(m=>{
+    const mBooths=boothsData.filter(b=>b.machine_code===m.machine_code).sort((a,b)=>a.booth_number-b.booth_number);
+    const rNum=m.machine_number||'';
+
+    // 機械ヘッダー行
+    tableRows+=`<tr class="machine-row">
+      <td colspan="2">${esc(m.machine_name)}</td>
+      <td colspan="2">${rNum?'R'+rNum:''}</td>
+      <td class="amt-cell" rowspan="${mBooths.length+1}"><input type="number" inputmode="numeric" id="amt_${m.machine_code}" placeholder="金額" oninput="updateTotal()"></td>
+      <td rowspan="${mBooths.length+1}"><input type="text" id="note_${m.machine_code}" placeholder="備考" style="font-size:10px"></td>
+    </tr>`;
+
+    // ブース行
+    mBooths.forEach(b=>{
+      const label=b.booth_label||String(b.booth_number);
+      const cur=latestByBooth[b.booth_code];
+      const prev=prevSnapMap[b.booth_code]||{in_meter:0};
+      const curIn=cur?Number(cur.in_meter)||0:0;
+      const diff=curIn-prev.in_meter;
+      tableRows+=`<tr class="booth-row">
+        <td style="padding-left:16px;color:var(--text2)">${esc(label)}</td>
+        <td class="num">${fmt(prev.in_meter)}</td>
+        <td class="num">${fmt(curIn)}</td>
+        <td class="num" style="font-weight:600">${fmt(diff)}</td>
+      </tr>`;
+    });
+    rowIdx++;
+  });
+
+  // 合計行
+  tableRows+=`<tr class="total-row">
+    <td colspan="4" style="text-align:right;padding-right:12px">合計（税込）</td>
+    <td class="num" id="grandTotalCell" style="font-size:16px">¥0</td>
+    <td></td>
+  </tr>`;
+
+  window._billingMCs=storeMachines.map(m=>m.machine_code);
   window._billingLatest=latestByBooth;
   window._billingPrevSnap=prevSnapMap;
 
-  const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
-  const storeName=storeMap[store]||store;
-
-  // 機械ブロック
-  const machineBlocks=Object.entries(byMachine).sort((a,b)=>a[0].localeCompare(b[0])).map(([mc,booths])=>{
-    booths.sort((a,b)=>a.bid.localeCompare(b.bid));
-    const mName=machineMap[mc]||mc;
-    const rows=booths.map(b=>`<tr>
-      <td>${esc(b.bid.split('-').pop())}</td>
-      <td class="num">${fmt(b.prevIn)}</td>
-      <td class="num">${fmt(b.curIn)}</td>
-      <td class="num" style="font-weight:700">${fmt(b.curIn-b.prevIn)}</td>
-      <td style="font-size:10px">${esc((b.prizeName||'').slice(0,12))}</td>
-    </tr>`).join('');
-
-    return `<div class="machine-block" data-mc="${esc(mc)}">
-      <div class="machine-header"><span>${esc(mName)}</span></div>
-      <table>
-        <tr><th>ブース</th><th class="num">前回IN</th><th class="num">今回IN</th><th class="num">差分</th><th>景品</th></tr>
-        ${rows}
-      </table>
-      <div class="machine-footer">
-        <input type="number" inputmode="numeric" class="amt" id="amt_${mc}" placeholder="集金額" oninput="updateTotal()">
-        <input type="text" class="note" id="note_${mc}" placeholder="備考">
-      </div>
-    </div>`;
-  }).join('');
-
   document.getElementById('content').innerHTML=`
-    <div style="text-align:center;margin-bottom:12px">
-      <div style="font-size:18px;font-weight:800">${esc(storeName)} 集金帳票</div>
-      <div style="font-size:12px;color:var(--text2)">${today}</div>
-    </div>
-
-    ${machineBlocks||'<p style="text-align:center;color:var(--text2);padding:40px">データなし</p>'}
-
-    <div class="total-box">
-      <div class="label">集金合計</div>
-      <div class="big" id="grandTotal">¥0</div>
-    </div>
-
-    <div class="sign-area">
-      <div class="sign-box">
-        <div class="line"></div>
-        <div class="label">集金担当者</div>
+    <div class="slip">
+      <div class="slip-header">
+        <div class="title">売 上 伝 票</div>
+        <div class="sub">${dateStr}　No.</div>
+        <div class="company">株式会社 ナイスランド</div>
       </div>
-      <div class="sign-box">
-        <div class="line"></div>
-        <div class="label">店舗確認者</div>
+      <div class="slip-to">
+        <strong>${esc(storeName)}</strong>　様<br>
+        <span style="font-size:10px;color:var(--text2)">下記のとおり精算申し上げます</span>
+      </div>
+      <table>
+        <tr><th>品名</th><th>前回</th><th>今回</th><th>差分</th><th style="width:100px">金額</th><th style="width:80px">備考</th></tr>
+        ${tableRows}
+      </table>
+      <div class="sign-area">
+        <div class="sign-box"><div class="line"></div><div class="label">集金担当者</div></div>
+        <div class="sign-box"><div class="line"></div><div class="label">店舗確認者</div></div>
       </div>
     </div>
 
-    <div class="no-print" style="margin-bottom:16px">
+    <div class="no-print" style="margin-bottom:12px">
       <button onclick="confirmBilling()" class="btn" style="width:100%;padding:12px;font-size:14px;background:var(--accent);color:#fff">💰 集金確定</button>
     </div>
-
     ${renderHistory(store)}
   `;
 }
 
 function updateTotal(){
   const mcs=window._billingMCs||[];
-  let total=0;
-  mcs.forEach(mc=>{total+=parseInt(document.getElementById('amt_'+mc)?.value||'0')||0});
-  document.getElementById('grandTotal').textContent=fmtYen(total);
+  let t=0;mcs.forEach(mc=>{t+=parseInt(document.getElementById('amt_'+mc)?.value||'0')||0});
+  const el=document.getElementById('grandTotalCell');
+  if(el) el.textContent=fmtYen(t);
 }
 
 async function confirmBilling(){
@@ -207,7 +218,9 @@ async function confirmBilling(){
   if(!store) return;
   const mcs=window._billingMCs||[];
   const details=mcs.map(mc=>({
-    machine_code:mc,machine_name:machineMap[mc]||mc,
+    machine_code:mc,
+    machine_name:machinesData.find(m=>m.machine_code===mc)?.machine_name||mc,
+    machine_number:machinesData.find(m=>m.machine_code===mc)?.machine_number||'',
     collected_amount:parseInt(document.getElementById('amt_'+mc)?.value||'0')||0,
     note:document.getElementById('note_'+mc)?.value||''
   }));
@@ -217,24 +230,22 @@ async function confirmBilling(){
 
   const latestByBooth=window._billingLatest||{};
   const prevSnapMap=window._billingPrevSnap||{};
-  let totalIn=0,totalOut=0;
+  let totalIn=0;
   const snapshots=[];
   for(const [bid,cur] of Object.entries(latestByBooth)){
-    const prev=prevSnapMap[bid]||{in_meter:0,out_meter:0};
+    const prev=prevSnapMap[bid]||{in_meter:0};
     totalIn+=(Number(cur.in_meter)||0)-prev.in_meter;
-    totalOut+=(Number(cur.out_meter)||0)-prev.out_meter;
     snapshots.push({booth_id:bid,in_meter:Number(cur.in_meter)||0,out_meter:Number(cur.out_meter)||0,prize_name:cur.prize_name||''});
   }
   const today=new Date().toISOString().slice(0,10);
-  const storeEvents=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''));
-  const prevEvent=storeEvents[0]||null;
+  const prevEvent=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''))[0]||null;
   const staff=sessionStorage.getItem('clawops_staff_name')||'';
 
   try{
     const evtRes=await sbPost('billing_events',[{
       store_code:store,billing_date:today,
       period_from:prevEvent?prevEvent.period_to:today,period_to:today,
-      total_in_diff:totalIn,total_out_diff:totalOut,total_sales:totalIn*100,
+      total_in_diff:totalIn,total_sales:totalIn*100,
       collected_amount:total,machine_details:details,
       status:'confirmed',created_by:staff,confirmed_at:new Date().toISOString(),confirmed_by:staff
     }]);
@@ -255,26 +266,21 @@ function generateReport(){
   const mcs=window._billingMCs||[];
   const today=new Date().toISOString().slice(0,10);
   const storeName=storeMap[store]||store;
-
-  // 入力中のデータ or 最新確定データ
   const latest=billingEvents.find(e=>e.store_code===store&&e.status==='confirmed');
   let details,total;
   if(latest&&!mcs.some(mc=>parseInt(document.getElementById('amt_'+mc)?.value||'0')>0)){
-    details=latest.machine_details||[];
-    total=Number(latest.collected_amount)||0;
+    details=latest.machine_details||[];total=Number(latest.collected_amount)||0;
   }else{
-    details=mcs.map(mc=>({machine_name:machineMap[mc]||mc,collected_amount:parseInt(document.getElementById('amt_'+mc)?.value||'0')||0,note:document.getElementById('note_'+mc)?.value||''}));
+    details=mcs.map(mc=>({machine_name:machinesData.find(m=>m.machine_code===mc)?.machine_name||mc,collected_amount:parseInt(document.getElementById('amt_'+mc)?.value||'0')||0,note:document.getElementById('note_'+mc)?.value||''}));
     total=details.reduce((s,d)=>s+d.collected_amount,0);
   }
-
   let text=`【集金報告】${storeName} ${today}\n`;
   details.filter(d=>d.collected_amount>0).forEach(d=>{
-    text+=`${d.machine_name}: ¥${(d.collected_amount||0).toLocaleString()}`;
+    text+=`${d.machine_name}: ${fmtYen(d.collected_amount)}`;
     if(d.note) text+=`（${d.note}）`;
     text+='\n';
   });
-  text+=`合計: ¥${total.toLocaleString()}`;
-
+  text+=`合計: ${fmtYen(total)}`;
   navigator.clipboard.writeText(text).then(()=>alert('コピーしました')).catch(()=>prompt('コピー:',text));
 }
 
@@ -282,16 +288,13 @@ function renderHistory(store){
   const events=billingEvents.filter(e=>e.store_code===store);
   if(!events.length) return '';
   return `<div class="history-section no-print">
-    <div style="font-weight:700;font-size:13px;color:var(--text2);margin-bottom:8px">集金履歴</div>
+    <div style="font-weight:700;font-size:12px;color:var(--text2);margin-bottom:6px">集金履歴</div>
     ${events.map(e=>{
       const details=e.machine_details||[];
       return `<div class="history-item">
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-weight:700">${e.billing_date}</span>
-          <span style="font-weight:800;color:var(--accent)">${fmtYen(e.collected_amount)}</span>
-        </div>
-        <div style="font-size:11px;color:var(--text2)">${details.map(d=>`${d.machine_name}:${fmtYen(d.collected_amount)}${d.note?' ('+d.note+')':''}`).join(' / ')}</div>
-        <button onclick="sbDelete('billing_events','billing_id','${e.billing_id}').then(()=>{billingEvents=billingEvents.filter(x=>x.billing_id!=='${e.billing_id}');render()})" style="font-size:10px;color:var(--red);background:none;border:none;cursor:pointer;margin-top:4px">削除</button>
+        <div style="display:flex;justify-content:space-between"><span>${e.billing_date}</span><span style="font-weight:800;color:var(--accent)">${fmtYen(e.collected_amount)}</span></div>
+        <div style="color:var(--text2)">${details.map(d=>`${d.machine_name}:${fmtYen(d.collected_amount)}`).join(' / ')}</div>
+        <button onclick="sbDelete('billing_events','billing_id','${e.billing_id}').then(()=>{billingEvents=billingEvents.filter(x=>x.billing_id!=='${e.billing_id}');render()})" style="font-size:9px;color:var(--red);background:none;border:none;cursor:pointer">削除</button>
       </div>`;
     }).join('')}
   </div>`;
