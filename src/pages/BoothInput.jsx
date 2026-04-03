@@ -202,22 +202,27 @@ export default function BoothInput() {
     : booths.filter(b => isEntered(b))
 
   return (
-    <div className="max-w-lg mx-auto px-3 pt-3 pb-24">
+    <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
-      <div className="flex items-center gap-2 mb-2">
-        <button onClick={() => navigate(-1)} className="text-xl text-muted hover:text-accent">←</button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-bold truncate">{machineName || '機械'}</h2>
-          <p className="text-[11px] text-muted">{state?.storeName} ・{booths.length}ブース</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
-            className="bg-surface2 border border-border text-text text-xs px-1.5 py-1 rounded [color-scheme:dark] w-[120px]" />
-          <div className="text-center">
-            <div className="text-sm font-bold text-accent">{inputCount}/{booths.length}</div>
+      <div className="shrink-0 px-3 pt-3">
+        <div className="flex items-center gap-2 mb-2">
+          <button onClick={() => navigate(-1)} className="text-xl text-muted hover:text-accent">←</button>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-bold truncate">{machineName || '機械'}</h2>
+            <p className="text-[11px] text-muted">{state?.storeName} ・{booths.length}ブース</p>
           </div>
+          <div className="flex items-center gap-2">
+            <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
+              className="bg-surface2 border border-border text-text text-xs px-1.5 py-1 rounded [color-scheme:dark] w-[120px]" />
+            <div className="text-center">
+              <div className="text-sm font-bold text-accent">{inputCount}/{booths.length}</div>
+            </div>
+          </div>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
+      <div className="flex-1 overflow-y-auto px-3 pb-24">
 
       {readDate !== new Date().toISOString().slice(0,10) &&
         <div className="text-[10px] text-accent2 font-bold text-center mb-1">⚠️ 過去日付で入力中</div>}
@@ -298,6 +303,7 @@ export default function BoothInput() {
           />
         ))}
       </div>
+      </div>{/* スクロール領域終了 */}
 
       {/* 固定フッター */}
       <div className="fixed bottom-0 left-0 right-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2.5 z-50">

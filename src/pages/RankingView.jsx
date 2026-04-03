@@ -74,15 +74,20 @@ export default function RankingView() {
   const medalBorders = ['border-l-yellow-400','border-l-gray-400','border-l-amber-700']
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
+    <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
-        <div>
-          <h2 className="text-lg font-bold">{state?.storeName}</h2>
-          <p className="text-xs text-muted">売上ランキング</p>
+      <div className="shrink-0 px-4 pt-6">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold">{state?.storeName}</h2>
+            <p className="text-xs text-muted">売上ランキング</p>
+          </div>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
 
       {/* モード切替 */}
       <div className="flex bg-surface2 rounded-xl p-1 mb-4">
@@ -171,6 +176,7 @@ export default function RankingView() {
           </div>
         ))}
       </div>
+      </div>{/* スクロール領域終了 */}
     </div>
   )
 }

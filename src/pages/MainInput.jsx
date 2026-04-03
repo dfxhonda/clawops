@@ -254,6 +254,8 @@ export default function MainInput() {
           <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
             className="bg-surface2 border border-border text-text text-xs px-1.5 py-1.5 rounded-lg [color-scheme:dark] w-[115px]" />
           <div className="flex items-center gap-1 ml-auto">
+            <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+              className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
             <button onClick={() => {
                 const mid = machines[0]?.machine_id
                 if (storeId && mid) navigate(`/booth/${mid}`, { state: { storeId, storeName: currentStore?.store_name } })

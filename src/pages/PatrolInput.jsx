@@ -109,15 +109,20 @@ export default function PatrolInput() {
   const inputCls = "w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent"
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
+    <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
-      <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate('/patrol')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
-        <div className="flex-1">
-          <h2 className="text-lg font-bold text-accent">{booth.full_booth_code}</h2>
-          <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName || booth.booth_code}</p>
+      <div className="shrink-0 px-4 pt-4">
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => navigate('/patrol')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-accent">{booth.full_booth_code}</h2>
+            <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName || booth.booth_code}</p>
+          </div>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
 
       {/* 保存完了 */}
       {saved ? (
@@ -246,6 +251,7 @@ export default function PatrolInput() {
           </div>
         </>
       )}
+      </div>{/* スクロール領域終了 */}
     </div>
   )
 }

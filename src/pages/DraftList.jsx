@@ -68,15 +68,20 @@ export default function DraftList() {
   )
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
+    <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
-        <div className="flex-1">
-          <h2 className="text-lg font-bold">下書き一覧</h2>
-          <p className="text-xs text-muted">{drafts.length}件の未保存データ</p>
+      <div className="shrink-0 px-4 pt-6">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold">下書き一覧</h2>
+            <p className="text-xs text-muted">{drafts.length}件の未保存データ</p>
+          </div>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
 
       {drafts.length === 0 ? (
         <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">
@@ -159,6 +164,7 @@ export default function DraftList() {
           </button>
         </>
       )}
+      </div>{/* スクロール領域終了 */}
     </div>
   )
 }

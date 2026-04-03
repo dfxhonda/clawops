@@ -42,11 +42,16 @@ export default function InventoryDashboard() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto pb-24">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate('/')} className="text-muted text-2xl">←</button>
-        <h1 className="text-xl font-bold text-accent">📦 棚卸し管理</h1>
+    <div className="h-screen flex flex-col bg-bg text-text max-w-lg mx-auto">
+      <div className="shrink-0 p-4 pb-0">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => navigate('/')} className="text-muted text-2xl">←</button>
+          <h1 className="flex-1 text-xl font-bold text-accent">📦 棚卸し管理</h1>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+        </div>
       </div>
+      <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
 
       {/* サマリーカード */}
       {!loading && stats && (
@@ -88,6 +93,7 @@ export default function InventoryDashboard() {
           </button>
         ))}
       </div>
+      </div>{/* スクロール領域終了 */}
     </div>
   )
 }

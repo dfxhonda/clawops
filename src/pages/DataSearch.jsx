@@ -134,6 +134,8 @@ export default function DataSearch() {
             <div className="text-lg font-bold">データ検索・修正</div>
             <div className="text-xs text-muted mt-0.5">全{allReadings.length}件</div>
           </div>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
 
         {saveMsg && (

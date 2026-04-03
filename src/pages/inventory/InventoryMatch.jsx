@@ -172,11 +172,16 @@ export default function InventoryMatch() {
   if (loading) return <div className="min-h-screen bg-bg text-muted flex items-center justify-center">読み込み中...</div>
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto pb-24">
-      <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
-        <h1 className="text-xl font-bold text-accent">🔍 景品マッチング</h1>
+    <div className="h-screen flex flex-col bg-bg text-text max-w-lg mx-auto">
+      <div className="shrink-0 p-4 pb-0">
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
+          <h1 className="flex-1 text-xl font-bold text-accent">🔍 景品マッチング</h1>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+        </div>
       </div>
+      <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
 
       {message && (
         <div className={`rounded-xl p-3 mb-4 text-sm ${message.type === 'error' ? 'bg-accent2/20 text-accent2' : 'bg-accent3/20 text-accent3'}`}>
@@ -262,6 +267,7 @@ export default function InventoryMatch() {
           <p className="mt-2 text-xs">マッチしないものは (仮) として仮登録できます</p>
         </div>
       )}
+      </div>{/* スクロール領域終了 */}
     </div>
   )
 }

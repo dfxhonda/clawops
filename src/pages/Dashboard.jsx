@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getStores, getMachines, getBooths, getAllMeterReadings, parseNum } from '../services/sheets'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [stores, setStores] = useState([])
   const [storeId, setStoreId] = useState(null)
   const [rankings, setRankings] = useState([])
@@ -80,7 +82,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen pb-16">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5">
-        <div className="text-base font-bold">ダッシュボード</div>
+        <div className="flex items-center justify-between">
+          <div className="text-base font-bold">ダッシュボード</div>
+          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+        </div>
       </div>
 
       {/* 店舗チップ */}
