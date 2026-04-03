@@ -87,16 +87,18 @@ function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
 function fmtYen(n){return n!=null?'¥'+Number(n).toLocaleString():'—'}
 function payoutCls(r){return r>30?'payout-h':r>15?'payout-m':'payout-l'}
 
-let allReadings=[], storeMap={}, machineMap={}, billingEvents=[];
+let allReadings=[], storeMap={}, machineMap={}, billingEvents=[], allSnapshots=[];
 
 async function loadAll(){
-  const [readings, stores, machines, events] = await Promise.all([
-    sbGet('meter_readings','select=booth_id,read_time,in_meter,out_meter,prize_name,prize_stock_count,prize_restock_count&order=read_time.asc'),
+  const [readings, stores, machines, events, snapshots] = await Promise.all([
+    sbGet('meter_readings','select=booth_id,read_time,in_meter,out_meter,prize_name&order=read_time.asc'),
     sbGet('stores','select=store_code,store_name&is_active=eq.true&order=store_name'),
     sbGet('machines','select=machine_code,store_code,machine_name&is_active=eq.true'),
     sbGet('billing_events','select=*&order=billing_date.desc'),
+    sbGet('billing_snapshots','select=*'),
   ]);
   billingEvents=events;
+  allSnapshots=snapshots;
   allReadings=readings;
   storeMap=Object.fromEntries(stores.map(s=>[s.store_code,s.store_name]));
   machineMap=Object.fromEntries(machines.map(m=>[m.machine_code,m.machine_name||m.machine_code]));
@@ -118,73 +120,70 @@ function render(){
   const month=document.getElementById('monthFilter').value;
   if(!store||!month){document.getElementById('content').innerHTML='<p style="color:var(--text2);text-align:center;padding:40px">店舗と月を選択してください</p>';return}
 
-  const monthStart=month+'-01';
-  const monthEnd=month+'-31';
+  // --- スナップショット差分方式 ---
+  // 前回集金のsnapshotsを取得（この店舗の最新confirmed/draftイベント）
+  const storeEvents=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''));
+  const prevEvent=storeEvents[0]||null; // 最新の集金イベント
+  const prevSnapMap={}; // booth_id → {in_meter, out_meter}
+  if(prevEvent){
+    allSnapshots.filter(s=>s.billing_id===prevEvent.billing_id).forEach(s=>{
+      prevSnapMap[s.booth_id]={in_meter:Number(s.in_meter)||0, out_meter:Number(s.out_meter)||0, prize_name:s.prize_name||''};
+    });
+  }
 
-  // フィルタリング
-  const filtered=allReadings.filter(r=>{
-    if(!(r.booth_id||'').startsWith(store)) return false;
-    const d=(r.read_time||'').slice(0,10);
-    return d>=monthStart && d<=monthEnd;
+  // 各ブースの最新meter_reading（この店舗）
+  const storeReadings=allReadings.filter(r=>(r.booth_id||'').startsWith(store) && r.in_meter!=null);
+  const latestByBooth={};
+  storeReadings.forEach(r=>{
+    const prev=latestByBooth[r.booth_id];
+    if(!prev || (r.read_time||'') > (prev.read_time||'')) latestByBooth[r.booth_id]=r;
   });
 
-  // booth_id別にグループ→差分計算
-  const byBooth={};
-  filtered.forEach(r=>{
-    if(!r.booth_id||r.in_meter==null) return;
-    if(!byBooth[r.booth_id]) byBooth[r.booth_id]=[];
-    byBooth[r.booth_id].push(r);
-  });
-
-  // ブース別集計
+  // ブース別集計: 今回メーター − 前回メーター
   const boothStats=[];
-  for(const [bid,rows] of Object.entries(byBooth)){
-    rows.sort((a,b)=>(a.read_time||'').localeCompare(b.read_time||''));
-    let inSum=0,outSum=0,days=0;
-    for(let i=1;i<rows.length;i++){
-      const inD=(rows[i].in_meter||0)-(rows[i-1].in_meter||0);
-      const outD=(rows[i].out_meter||0)-(rows[i-1].out_meter||0);
-      if(inD>0&&inD<50000){inSum+=inD;days++}
-      if(outD>0&&outD<50000) outSum+=outD;
-    }
+  for(const [bid,cur] of Object.entries(latestByBooth)){
+    const prev=prevSnapMap[bid]||{in_meter:0,out_meter:0};
+    const curIn=Number(cur.in_meter)||0;
+    const curOut=Number(cur.out_meter)||0;
+    const inDiff=curIn-prev.in_meter;
+    const outDiff=curOut-prev.out_meter;
     const mc=bid.split('-').slice(0,2).join('-');
-    const lastPrize=rows[rows.length-1]?.prize_name||'';
-    const lastStock=rows[rows.length-1]?.prize_stock_count||'';
-    boothStats.push({bid,mc,inSum,outSum,days,lastPrize,lastStock,
-      sales:inSum*100, payout:inSum>0?(outSum/inSum*100):0});
+    boothStats.push({
+      bid, mc,
+      prevIn:prev.in_meter, curIn, inDiff,
+      prevOut:prev.out_meter, curOut, outDiff,
+      sales:inDiff*100,
+      payout:inDiff>0?(outDiff/inDiff*100):0,
+      prizeName:cur.prize_name||'',
+    });
   }
 
   // 機械別グループ
   const byMachine={};
-  boothStats.forEach(b=>{
-    if(!byMachine[b.mc]) byMachine[b.mc]=[];
-    byMachine[b.mc].push(b);
-  });
+  boothStats.forEach(b=>{if(!byMachine[b.mc])byMachine[b.mc]=[];byMachine[b.mc].push(b)});
 
-  // 店舗合計
-  const totalIn=boothStats.reduce((s,b)=>s+b.inSum,0);
-  const totalOut=boothStats.reduce((s,b)=>s+b.outSum,0);
+  const totalIn=boothStats.reduce((s,b)=>s+b.inDiff,0);
+  const totalOut=boothStats.reduce((s,b)=>s+b.outDiff,0);
   const totalSales=totalIn*100;
   const totalPayout=totalIn>0?(totalOut/totalIn*100):0;
-  const totalDays=[...new Set(filtered.map(r=>(r.read_time||'').slice(0,10)))].length;
 
-  // 機械ブロックHTML
+  // 機械ブロック
   const machineBlocks=Object.entries(byMachine).sort((a,b)=>a[0].localeCompare(b[0])).map(([mc,booths])=>{
     booths.sort((a,b)=>a.bid.localeCompare(b.bid));
-    const mIn=booths.reduce((s,b)=>s+b.inSum,0);
-    const mOut=booths.reduce((s,b)=>s+b.outSum,0);
+    const mIn=booths.reduce((s,b)=>s+b.inDiff,0);
+    const mOut=booths.reduce((s,b)=>s+b.outDiff,0);
     const mPayout=mIn>0?(mOut/mIn*100):0;
     const mName=machineMap[mc]||mc;
     const rows=booths.map(b=>{
       const bCode=b.bid.split('-').pop();
       return `<tr>
         <td>${esc(bCode)}</td>
-        <td class="num">${fmt(b.inSum)}</td>
+        <td class="num" style="font-size:10px;color:var(--text2)">${fmt(b.prevIn)}</td>
+        <td class="num" style="font-size:10px">${fmt(b.curIn)}</td>
+        <td class="num" style="font-weight:700">${fmt(b.inDiff)}</td>
         <td class="num">${fmtYen(b.sales)}</td>
-        <td class="num">${fmt(b.outSum)}</td>
         <td class="num ${payoutCls(b.payout)}">${b.payout.toFixed(1)}%</td>
-        <td>${esc((b.lastPrize||'').slice(0,12))}</td>
-        <td class="num">${b.lastStock||''}</td>
+        <td style="font-size:10px">${esc((b.prizeName||'').slice(0,10))}</td>
       </tr>`;
     }).join('');
 
@@ -194,61 +193,45 @@ function render(){
         <span class="machine-total">${fmtYen(mIn*100)} / ${mPayout.toFixed(1)}%</span>
       </div>
       <table>
-        <tr><th>ブース</th><th class="num">IN差分</th><th class="num">売上</th><th class="num">OUT差</th><th class="num">出率</th><th>景品名</th><th class="num">残</th></tr>
+        <tr><th>ブース</th><th class="num" style="font-size:10px">前回IN</th><th class="num" style="font-size:10px">今回IN</th><th class="num">IN差</th><th class="num">売上</th><th class="num">出率</th><th>景品</th></tr>
         ${rows}
         <tr class="subtotal">
-          <td>小計</td>
+          <td colspan="3">小計</td>
           <td class="num">${fmt(mIn)}</td>
           <td class="num">${fmtYen(mIn*100)}</td>
-          <td class="num">${fmt(mOut)}</td>
           <td class="num ${payoutCls(mPayout)}">${mPayout.toFixed(1)}%</td>
-          <td colspan="2"></td>
+          <td></td>
         </tr>
       </table>
     </div>`;
   }).join('');
 
-  // 按分（デフォルト 70/20/10）
-  const splits=[
-    {label:'店舗（設置先）',rate:70},
-    {label:'FC（ナイスランド）',rate:20},
-    {label:'本部（change/DFX）',rate:10},
-  ];
-  const splitHtml=splits.map(sp=>`
-    <div class="split-row">
-      <span>${esc(sp.label)} <span class="rate">${sp.rate}%</span></span>
-      <span class="amount">${fmtYen(Math.round(totalSales*sp.rate/100))}</span>
-    </div>`).join('');
+  // 按分
+  const splits=[{label:'店舗（設置先）',rate:70},{label:'FC（ナイスランド）',rate:20},{label:'本部（change/DFX）',rate:10}];
+  const splitHtml=splits.map(sp=>`<div class="split-row"><span>${esc(sp.label)} <span class="rate">${sp.rate}%</span></span><span class="amount">${fmtYen(Math.round(totalSales*sp.rate/100))}</span></div>`).join('');
 
   document.getElementById('content').innerHTML=`
     <div style="text-align:center;font-size:11px;color:var(--text2);margin-bottom:8px">
-      ${esc(storeMap[store]||store)} — ${month} 集金帳票
+      ${esc(storeMap[store]||store)} — 集金帳票
+      ${prevEvent ? `<br>前回集金: ${prevEvent.billing_date}` : '<br>初回集金（前回メーター=0）'}
     </div>
 
     <div class="summary">
-      <div><div class="big">${fmtYen(totalSales)}</div><div class="label">期間売上</div></div>
+      <div><div class="big">${fmtYen(totalSales)}</div><div class="label">売上（メーター差分）</div></div>
       <div><div class="big ${payoutCls(totalPayout)}">${totalPayout.toFixed(1)}%</div><div class="label">出率</div></div>
       <div class="sub">${Object.keys(byMachine).length}機械 / ${boothStats.length}ブース</div>
-      <div class="sub">${totalDays}日分のデータ</div>
+      <div class="sub">前回IN: ${fmt(boothStats.reduce((s,b)=>s+b.prevIn,0))} → 今回IN: ${fmt(boothStats.reduce((s,b)=>s+b.curIn,0))}</div>
     </div>
 
-    ${machineBlocks||'<p style="text-align:center;color:var(--text2);padding:40px">この期間のデータはありません</p>'}
+    ${machineBlocks||'<p style="text-align:center;color:var(--text2);padding:40px">データがありません</p>'}
 
     <div class="split-box">
       <div style="font-weight:700;margin-bottom:8px;font-size:13px">按分計算</div>
       ${splitHtml}
-      <div class="split-row split-total">
-        <span>合計</span>
-        <span>${fmtYen(totalSales)}</span>
-      </div>
+      <div class="split-row split-total"><span>合計</span><span>${fmtYen(totalSales)}</span></div>
     </div>
 
-    ${totalSales > 0 ? `
-    <div class="no-print" style="margin-bottom:16px">
-      <button onclick="confirmBilling()" class="btn btn-accent" style="width:100%;padding:12px;font-size:14px">
-        💰 この内容で集金確定
-      </button>
-    </div>` : ''}
+    ${totalSales > 0 ? `<div class="no-print" style="margin-bottom:16px"><button onclick="confirmBilling()" class="btn btn-accent" style="width:100%;padding:12px;font-size:14px">💰 この内容で集金確定（メータースナップショット保存）</button></div>` : ''}
 
     ${renderBillingHistory(store)}
   `;
@@ -256,47 +239,70 @@ function render(){
 
 async function confirmBilling(){
   const store=document.getElementById('storeFilter').value;
-  const month=document.getElementById('monthFilter').value;
-  if(!store||!month) return;
-  if(!confirm(`${storeMap[store]||store} の ${month} 集金を確定しますか？`)) return;
+  if(!store) return;
+  if(!confirm(`${storeMap[store]||store} の集金を確定しますか？\n各ブースの現在のメーター値をスナップショット保存します。`)) return;
 
-  const periodFrom=month+'-01';
-  const lastDay=new Date(parseInt(month.slice(0,4)), parseInt(month.slice(5,7)), 0).getDate();
-  const periodTo=month+'-'+String(lastDay).padStart(2,'0');
-
-  // 集計値を再計算
-  const filtered=allReadings.filter(r=>{
-    if(!(r.booth_id||'').startsWith(store)) return false;
-    const d=(r.read_time||'').slice(0,10);
-    return d>=periodFrom && d<=periodTo;
-  });
-  const byBooth={};
-  filtered.forEach(r=>{if(r.booth_id&&r.in_meter!=null){if(!byBooth[r.booth_id])byBooth[r.booth_id]=[];byBooth[r.booth_id].push(r)}});
-  let totalIn=0,totalOut=0;
-  for(const rows of Object.values(byBooth)){
-    rows.sort((a,b)=>(a.read_time||'').localeCompare(b.read_time||''));
-    for(let i=1;i<rows.length;i++){
-      const d=(rows[i].in_meter||0)-(rows[i-1].in_meter||0);
-      const od=(rows[i].out_meter||0)-(rows[i-1].out_meter||0);
-      if(d>0&&d<50000)totalIn+=d;
-      if(od>0&&od<50000)totalOut+=od;
-    }
+  // 前回集金を取得
+  const storeEvents=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''));
+  const prevEvent=storeEvents[0]||null;
+  const prevSnapMap={};
+  if(prevEvent){
+    allSnapshots.filter(s=>s.billing_id===prevEvent.billing_id).forEach(s=>{
+      prevSnapMap[s.booth_id]={in_meter:Number(s.in_meter)||0, out_meter:Number(s.out_meter)||0};
+    });
   }
+
+  // 各ブースの最新メーター値
+  const storeReadings=allReadings.filter(r=>(r.booth_id||'').startsWith(store) && r.in_meter!=null);
+  const latestByBooth={};
+  storeReadings.forEach(r=>{
+    const prev=latestByBooth[r.booth_id];
+    if(!prev || (r.read_time||'') > (prev.read_time||'')) latestByBooth[r.booth_id]=r;
+  });
+
+  // 差分計算
+  let totalIn=0, totalOut=0;
+  const snapshots=[];
+  for(const [bid,cur] of Object.entries(latestByBooth)){
+    const prev=prevSnapMap[bid]||{in_meter:0,out_meter:0};
+    const curIn=Number(cur.in_meter)||0;
+    const curOut=Number(cur.out_meter)||0;
+    totalIn+=(curIn-prev.in_meter);
+    totalOut+=(curOut-prev.out_meter);
+    snapshots.push({booth_id:bid, in_meter:curIn, out_meter:curOut, prize_name:cur.prize_name||''});
+  }
+
+  const today=new Date().toISOString().slice(0,10);
+  const periodFrom=prevEvent ? prevEvent.period_to : storeReadings.length>0 ? storeReadings[0].read_time?.slice(0,10)||today : today;
   const sales=totalIn*100;
   const payout=totalIn>0?(totalOut/totalIn*100):0;
   const staff=sessionStorage.getItem('clawops_staff_name')||'';
 
   try{
-    await sbPost('billing_events',[{
-      store_code:store, billing_date:new Date().toISOString().slice(0,10),
-      period_from:periodFrom, period_to:periodTo,
+    // billing_event作成
+    const evtRes=await sbPost('billing_events',[{
+      store_code:store, billing_date:today,
+      period_from:periodFrom, period_to:today,
       total_in_diff:totalIn, total_out_diff:totalOut,
       total_sales:sales, payout_rate:Math.round(payout*10)/10,
       split_store:Math.round(sales*0.7), split_fc:Math.round(sales*0.2), split_hq:Math.round(sales*0.1),
       status:'draft', created_by:staff, note:''
     }]);
+    const billingId=evtRes[0]?.billing_id;
+
+    // snapshotsを全ブース分保存
+    if(billingId && snapshots.length>0){
+      const snapsWithId=snapshots.map(s=>({...s, billing_id:billingId}));
+      // 50件ずつバッチinsert
+      for(let i=0;i<snapsWithId.length;i+=50){
+        await sbPost('billing_snapshots', snapsWithId.slice(i,i+50));
+      }
+    }
+
+    // リロード
     billingEvents=await sbGet('billing_events','select=*&order=billing_date.desc');
-    alert('集金を確定しました（draft）');
+    allSnapshots=await sbGet('billing_snapshots','select=*');
+    alert(`集金確定: ${snapshots.length}ブースのメーターをスナップショット保存しました`);
     render();
   }catch(e){alert('エラー: '+e.message)}
 }
