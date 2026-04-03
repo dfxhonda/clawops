@@ -42,6 +42,15 @@ td{padding:5px 8px;border-bottom:1px solid var(--border)}
 .split-row .amount{font-weight:700}
 .split-total{border-top:1px solid var(--border);padding-top:6px;margin-top:6px;font-weight:800;font-size:15px}
 
+.machine-input{padding:8px 14px;border-top:1px solid var(--border)}
+.machine-input label{font-size:10px;color:var(--text2);display:block;margin-bottom:2px}
+.machine-input input,.machine-input textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:13px;width:100%}
+.machine-input .row{display:flex;gap:6px;margin-bottom:6px}
+.machine-input .row>div{flex:1}
+.receipt-preview{max-width:120px;max-height:80px;border-radius:4px;margin-top:4px}
+.totals-box{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:14px;margin-bottom:16px}
+.totals-row{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
+.totals-row.big{font-size:18px;font-weight:800;border-top:2px solid var(--border);padding-top:8px;margin-top:4px}
 .loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2)}
 .spinner{width:24px;height:24px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -65,7 +74,8 @@ td{padding:5px 8px;border-bottom:1px solid var(--border)}
 <div class="header no-print">
   <a href="index.html">← 戻る</a>
   <h1>💰 集金帳票</h1>
-  <button class="btn btn-print" onclick="window.print()">🖨️ 印刷</button>
+  <button class="btn btn-print" onclick="window.print()">🖨️</button>
+  <button class="btn" style="background:var(--cyan);color:#fff" onclick="generateReport()">📤 報告</button>
 </div>
 <div class="container">
   <div class="filters no-print">
@@ -187,10 +197,10 @@ function render(){
       </tr>`;
     }).join('');
 
-    return `<div class="machine-block">
+    return `<div class="machine-block" data-mc="${esc(mc)}">
       <div class="machine-header">
         <span>${esc(mName)} (${mc})</span>
-        <span class="machine-total">${fmtYen(mIn*100)} / ${mPayout.toFixed(1)}%</span>
+        <span class="machine-total">参考:${fmtYen(mIn*100)} / ${mPayout.toFixed(1)}%</span>
       </div>
       <table>
         <tr><th>ブース</th><th class="num" style="font-size:10px">前回IN</th><th class="num" style="font-size:10px">今回IN</th><th class="num">IN差</th><th class="num">売上</th><th class="num">出率</th><th>景品</th></tr>
@@ -203,12 +213,38 @@ function render(){
           <td></td>
         </tr>
       </table>
+      <div class="machine-input no-print">
+        <div class="row">
+          <div>
+            <label>実集金額</label>
+            <input type="number" inputmode="numeric" id="amt_${mc}" placeholder="¥ 実際の金額">
+          </div>
+          <div>
+            <label>立替額</label>
+            <input type="number" inputmode="numeric" id="adv_${mc}" placeholder="¥ 0">
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:2">
+            <label>立替備考</label>
+            <input type="text" id="advn_${mc}" placeholder="景品代、部品代 等">
+          </div>
+          <div style="flex:1">
+            <label>📷 レシート</label>
+            <input type="file" accept="image/*" capture="environment" id="rcpt_${mc}" onchange="previewReceipt('${mc}')" style="font-size:10px;padding:3px">
+          </div>
+        </div>
+        <div id="rcpt_prev_${mc}"></div>
+      </div>
     </div>`;
   }).join('');
 
-  // 按分
-  const splits=[{label:'店舗（設置先）',rate:70},{label:'FC（ナイスランド）',rate:20},{label:'本部（change/DFX）',rate:10}];
-  const splitHtml=splits.map(sp=>`<div class="split-row"><span>${esc(sp.label)} <span class="rate">${sp.rate}%</span></span><span class="amount">${fmtYen(Math.round(totalSales*sp.rate/100))}</span></div>`).join('');
+  // machineCodesをグローバルに保持（confirmBillingで使用）
+  window._billingMCs=Object.keys(byMachine);
+  window._billingBoothStats=boothStats;
+  window._billingLatest=latestByBooth;
+  window._billingPrevSnap=prevSnapMap;
+  window._billingTotalSales=totalSales;
 
   document.getElementById('content').innerHTML=`
     <div style="text-align:center;font-size:11px;color:var(--text2);margin-bottom:8px">
@@ -217,94 +253,200 @@ function render(){
     </div>
 
     <div class="summary">
-      <div><div class="big">${fmtYen(totalSales)}</div><div class="label">売上（メーター差分）</div></div>
+      <div><div class="big">${fmtYen(totalSales)}</div><div class="label">メーター参考値</div></div>
       <div><div class="big ${payoutCls(totalPayout)}">${totalPayout.toFixed(1)}%</div><div class="label">出率</div></div>
       <div class="sub">${Object.keys(byMachine).length}機械 / ${boothStats.length}ブース</div>
-      <div class="sub">前回IN: ${fmt(boothStats.reduce((s,b)=>s+b.prevIn,0))} → 今回IN: ${fmt(boothStats.reduce((s,b)=>s+b.curIn,0))}</div>
+      <div class="sub">※実集金額は各機械に入力してください</div>
     </div>
 
     ${machineBlocks||'<p style="text-align:center;color:var(--text2);padding:40px">データがありません</p>'}
 
-    <div class="split-box">
-      <div style="font-weight:700;margin-bottom:8px;font-size:13px">按分計算</div>
-      ${splitHtml}
-      <div class="split-row split-total"><span>合計</span><span>${fmtYen(totalSales)}</span></div>
+    <div class="totals-box no-print" id="totalsBox">
+      <div class="totals-row"><span>実集金合計</span><span id="totalCollected">—</span></div>
+      <div class="totals-row"><span>立替合計</span><span id="totalAdvance">—</span></div>
+      <div class="totals-row big"><span>差引渡し額</span><span id="totalNet">—</span></div>
+      <div style="font-size:10px;color:var(--text2);margin-top:4px">メーター参考: ${fmtYen(totalSales)}</div>
     </div>
 
-    ${totalSales > 0 ? `<div class="no-print" style="margin-bottom:16px"><button onclick="confirmBilling()" class="btn btn-accent" style="width:100%;padding:12px;font-size:14px">💰 この内容で集金確定（メータースナップショット保存）</button></div>` : ''}
+    <div class="no-print" style="margin-bottom:16px">
+      <button onclick="updateTotals()" class="btn" style="width:100%;padding:10px;font-size:13px;background:var(--surface2);color:var(--text);border:1px solid var(--border);margin-bottom:8px">🔄 合計を更新</button>
+      <button onclick="confirmBilling()" class="btn btn-accent" style="width:100%;padding:12px;font-size:14px">💰 集金確定</button>
+    </div>
 
     ${renderBillingHistory(store)}
   `;
 }
 
+function previewReceipt(mc){
+  const input=document.getElementById('rcpt_'+mc);
+  const prev=document.getElementById('rcpt_prev_'+mc);
+  if(input.files&&input.files[0]){
+    const url=URL.createObjectURL(input.files[0]);
+    prev.innerHTML=`<img src="${url}" class="receipt-preview">`;
+  }
+}
+
+function updateTotals(){
+  const mcs=window._billingMCs||[];
+  let collected=0, advance=0;
+  mcs.forEach(mc=>{
+    collected+=parseInt(document.getElementById('amt_'+mc)?.value||'0')||0;
+    advance+=parseInt(document.getElementById('adv_'+mc)?.value||'0')||0;
+  });
+  document.getElementById('totalCollected').textContent=fmtYen(collected);
+  document.getElementById('totalAdvance').textContent=fmtYen(advance);
+  document.getElementById('totalNet').textContent=fmtYen(collected-advance);
+}
+
+function getMachineInputs(){
+  const mcs=window._billingMCs||[];
+  return mcs.map(mc=>({
+    machine_code:mc,
+    machine_name:machineMap[mc]||mc,
+    collected_amount:parseInt(document.getElementById('amt_'+mc)?.value||'0')||0,
+    advance_amount:parseInt(document.getElementById('adv_'+mc)?.value||'0')||0,
+    advance_note:document.getElementById('advn_'+mc)?.value||'',
+    receipt_url:'', // アップロード後に設定
+  }));
+}
+
+async function uploadReceipt(mc, billingId){
+  const input=document.getElementById('rcpt_'+mc);
+  if(!input?.files?.[0]) return '';
+  const file=input.files[0];
+  const ext=file.name.split('.').pop()||'jpg';
+  const path=`${billingId}/${mc}.${ext}`;
+  const SB_STORE='https://gedxzunoyzmvbqgwjalx.supabase.co/storage/v1/object/receipts/'+path;
+  const r=await fetch(SB_STORE,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type},
+    body:file
+  });
+  if(!r.ok) console.error('レシートアップロードエラー:',await r.text());
+  return 'https://gedxzunoyzmvbqgwjalx.supabase.co/storage/v1/object/public/receipts/'+path;
+}
+
 async function confirmBilling(){
   const store=document.getElementById('storeFilter').value;
   if(!store) return;
-  if(!confirm(`${storeMap[store]||store} の集金を確定しますか？\n各ブースの現在のメーター値をスナップショット保存します。`)) return;
 
-  // 前回集金を取得
-  const storeEvents=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''));
-  const prevEvent=storeEvents[0]||null;
-  const prevSnapMap={};
-  if(prevEvent){
-    allSnapshots.filter(s=>s.billing_id===prevEvent.billing_id).forEach(s=>{
-      prevSnapMap[s.booth_id]={in_meter:Number(s.in_meter)||0, out_meter:Number(s.out_meter)||0};
-    });
-  }
+  const details=getMachineInputs();
+  const totalCollected=details.reduce((s,d)=>s+d.collected_amount,0);
+  if(totalCollected<=0){alert('各機械の実集金額を入力してください');return}
+  if(!confirm(`${storeMap[store]||store} の集金を確定しますか？\n実集金合計: ${fmtYen(totalCollected)}`)) return;
 
-  // 各ブースの最新メーター値
-  const storeReadings=allReadings.filter(r=>(r.booth_id||'').startsWith(store) && r.in_meter!=null);
-  const latestByBooth={};
-  storeReadings.forEach(r=>{
-    const prev=latestByBooth[r.booth_id];
-    if(!prev || (r.read_time||'') > (prev.read_time||'')) latestByBooth[r.booth_id]=r;
-  });
+  const latestByBooth=window._billingLatest||{};
+  const prevSnapMap=window._billingPrevSnap||{};
 
-  // 差分計算
   let totalIn=0, totalOut=0;
   const snapshots=[];
   for(const [bid,cur] of Object.entries(latestByBooth)){
     const prev=prevSnapMap[bid]||{in_meter:0,out_meter:0};
-    const curIn=Number(cur.in_meter)||0;
-    const curOut=Number(cur.out_meter)||0;
-    totalIn+=(curIn-prev.in_meter);
-    totalOut+=(curOut-prev.out_meter);
-    snapshots.push({booth_id:bid, in_meter:curIn, out_meter:curOut, prize_name:cur.prize_name||''});
+    totalIn+=(Number(cur.in_meter)||0)-prev.in_meter;
+    totalOut+=(Number(cur.out_meter)||0)-prev.out_meter;
+    snapshots.push({booth_id:bid, in_meter:Number(cur.in_meter)||0, out_meter:Number(cur.out_meter)||0, prize_name:cur.prize_name||''});
   }
 
   const today=new Date().toISOString().slice(0,10);
-  const periodFrom=prevEvent ? prevEvent.period_to : storeReadings.length>0 ? storeReadings[0].read_time?.slice(0,10)||today : today;
-  const sales=totalIn*100;
+  const storeEvents=billingEvents.filter(e=>e.store_code===store).sort((a,b)=>(b.billing_date||'').localeCompare(a.billing_date||''));
+  const prevEvent=storeEvents[0]||null;
+  const periodFrom=prevEvent ? prevEvent.period_to : today;
+  const meterSales=totalIn*100;
   const payout=totalIn>0?(totalOut/totalIn*100):0;
+  const totalAdvance=details.reduce((s,d)=>s+d.advance_amount,0);
   const staff=sessionStorage.getItem('clawops_staff_name')||'';
 
   try{
-    // billing_event作成
     const evtRes=await sbPost('billing_events',[{
       store_code:store, billing_date:today,
       period_from:periodFrom, period_to:today,
       total_in_diff:totalIn, total_out_diff:totalOut,
-      total_sales:sales, payout_rate:Math.round(payout*10)/10,
-      split_store:Math.round(sales*0.7), split_fc:Math.round(sales*0.2), split_hq:Math.round(sales*0.1),
-      status:'draft', created_by:staff, note:''
+      total_sales:meterSales, payout_rate:Math.round(payout*10)/10,
+      collected_amount:totalCollected,
+      split_store:Math.round(totalCollected*0.7), split_fc:Math.round(totalCollected*0.2), split_hq:Math.round(totalCollected*0.1),
+      machine_details:details,
+      status:'confirmed', created_by:staff, confirmed_at:new Date().toISOString(), confirmed_by:staff,
+      note:totalAdvance>0?`立替合計¥${totalAdvance.toLocaleString()}`:''
     }]);
     const billingId=evtRes[0]?.billing_id;
+
+    // レシートアップロード
+    if(billingId){
+      for(let i=0;i<details.length;i++){
+        const url=await uploadReceipt(details[i].machine_code, billingId);
+        if(url) details[i].receipt_url=url;
+      }
+      // machine_detailsを更新（レシートURL付き）
+      if(details.some(d=>d.receipt_url)){
+        await sbPatch('billing_events','billing_id',billingId,{machine_details:details});
+      }
+    }
 
     // snapshotsを全ブース分保存
     if(billingId && snapshots.length>0){
       const snapsWithId=snapshots.map(s=>({...s, billing_id:billingId}));
-      // 50件ずつバッチinsert
       for(let i=0;i<snapsWithId.length;i+=50){
         await sbPost('billing_snapshots', snapsWithId.slice(i,i+50));
       }
     }
 
-    // リロード
     billingEvents=await sbGet('billing_events','select=*&order=billing_date.desc');
     allSnapshots=await sbGet('billing_snapshots','select=*');
-    alert(`集金確定: ${snapshots.length}ブースのメーターをスナップショット保存しました`);
+    alert(`集金確定: 実集金¥${totalCollected.toLocaleString()} / ${snapshots.length}ブースのスナップショット保存`);
     render();
   }catch(e){alert('エラー: '+e.message)}
+}
+
+function generateReport(){
+  const store=document.getElementById('storeFilter').value;
+  if(!store){alert('店舗を選択してください');return}
+
+  // 最新の確定集金を取得
+  const latest=billingEvents.find(e=>e.store_code===store && e.status==='confirmed');
+  if(!latest){
+    // 未確定の場合は入力中の値から生成
+    const details=getMachineInputs();
+    const totalC=details.reduce((s,d)=>s+d.collected_amount,0);
+    const totalA=details.reduce((s,d)=>s+d.advance_amount,0);
+    const meterRef=window._billingTotalSales||0;
+    const today=new Date().toISOString().slice(0,10);
+
+    let text=`【集金報告】${storeMap[store]||store} ${today}\n━━━━━━━━━━━━━━━━━━\n`;
+    details.filter(d=>d.collected_amount>0).forEach(d=>{
+      text+=`■ ${d.machine_name}: ¥${d.collected_amount.toLocaleString()}`;
+      if(d.advance_amount>0) text+=`（立替: ¥${d.advance_amount.toLocaleString()} ${d.advance_note}）`;
+      text+='\n';
+    });
+    text+=`━━━━━━━━━━━━━━━━━━\n`;
+    text+=`実集金合計: ¥${totalC.toLocaleString()}\n`;
+    if(totalA>0) text+=`立替合計: ¥${totalA.toLocaleString()}\n差引渡し額: ¥${(totalC-totalA).toLocaleString()}\n`;
+    text+=`メーター参考: ¥${meterRef.toLocaleString()}`;
+
+    navigator.clipboard.writeText(text).then(()=>alert('報告テキストをコピーしました。LINE/メールに貼り付けてください。')).catch(()=>{
+      prompt('以下をコピーしてください:',text);
+    });
+    return;
+  }
+
+  // 確定済みの集金から生成
+  const details=latest.machine_details||[];
+  const totalC=Number(latest.collected_amount)||0;
+  const totalA=details.reduce((s,d)=>s+(d.advance_amount||0),0);
+
+  let text=`【集金報告】${storeMap[store]||store} ${latest.billing_date}\n━━━━━━━━━━━━━━━━━━\n`;
+  details.filter(d=>d.collected_amount>0).forEach(d=>{
+    text+=`■ ${d.machine_name}: ¥${(d.collected_amount||0).toLocaleString()}`;
+    if(d.advance_amount) text+=`（立替: ¥${d.advance_amount.toLocaleString()} ${d.advance_note||''}）`;
+    text+='\n';
+  });
+  text+=`━━━━━━━━━━━━━━━━━━\n`;
+  text+=`実集金合計: ¥${totalC.toLocaleString()}\n`;
+  if(totalA>0) text+=`立替合計: ¥${totalA.toLocaleString()}\n差引渡し額: ¥${(totalC-totalA).toLocaleString()}\n`;
+  text+=`メーター参考: ¥${(Number(latest.total_sales)||0).toLocaleString()}`;
+
+  navigator.clipboard.writeText(text).then(()=>alert('報告テキストをコピーしました。LINE/メールに貼り付けてください。')).catch(()=>{
+    prompt('以下をコピーしてください:',text);
+  });
 }
 
 async function confirmEvent(id){
