@@ -40,7 +40,7 @@ export default function MainInput() {
   useEffect(() => {
     getStores().then(s => {
       setStores(s)
-      if (s.length > 0) setStoreId(s[0].store_id)
+      // デフォルトは未選択（最初に店舗を選ばせる）
       setLoading(false)
     }).catch(() => { setLoading(false) })
   }, [])
@@ -245,7 +245,8 @@ export default function MainInput() {
         {/* 店舗ドロップダウン + 日付 + クイックアクセス */}
         <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-1">
           <select value={storeId || ''} onChange={e => setStoreId(e.target.value)}
-            className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[140px] truncate [color-scheme:dark]">
+            className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[160px] truncate [color-scheme:dark]">
+            <option value="">店舗を選択</option>
             {stores.map(s => (
               <option key={s.store_id} value={s.store_id}>{s.store_name}</option>
             ))}
@@ -310,8 +311,15 @@ export default function MainInput() {
         })()}
       </div>
 
-      {/* ===== 4ブース入力エリア ===== */}
-      <div className="px-2 pt-1.5">
+      {/* ===== ブース入力エリア ===== */}
+      {!storeId ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="text-4xl mb-4">🏪</div>
+          <div className="text-lg font-bold text-muted mb-2">店舗を選択してください</div>
+          <div className="text-xs text-muted/60">上のドロップダウンから巡回する店舗を選んでください</div>
+        </div>
+      ) : null}
+      <div className="px-2 pt-1.5" style={{display:storeId?'block':'none'}}>
         {booths.map((booth, bIdx) => {
           const s = calcBoothStats(booth)
           const inp = inputs[booth.booth_id] || {}
