@@ -115,59 +115,65 @@ export default function InventoryReceive() {
   if (loading) return <div className="min-h-screen bg-bg text-muted flex items-center justify-center">読み込み中...</div>
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto pb-24">
-      <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
-        <h1 className="text-xl font-bold text-accent">📦 入庫チェック</h1>
-      </div>
-
-      {message && (
-        <div className={`rounded-xl p-3 mb-4 text-sm ${message.type === 'error' ? 'bg-accent2/20 text-accent2' : 'bg-accent3/20 text-accent3'}`}>
-          {message.text}
+    <div className="h-screen bg-bg text-text flex flex-col max-w-lg mx-auto">
+      {/* 固定ヘッダー部分 */}
+      <div className="shrink-0 px-4 pt-4">
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
+          <h1 className="text-xl font-bold text-accent">📦 入庫チェック</h1>
         </div>
-      )}
 
-      {/* タブ切り替え */}
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setTab('orders')}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'orders' ? 'bg-accent/20 text-accent' : 'bg-surface2 text-muted'}`}>
-          発注リスト ({pendingOrders.length})
-        </button>
-        <button onClick={() => setTab('manual')}
-          className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'manual' ? 'bg-accent3/20 text-accent3' : 'bg-surface2 text-muted'}`}>
-          手動入庫
-        </button>
-      </div>
+        {message && (
+          <div className={`rounded-xl p-3 mb-3 text-sm ${message.type === 'error' ? 'bg-accent2/20 text-accent2' : 'bg-accent3/20 text-accent3'}`}>
+            {message.text}
+          </div>
+        )}
 
-      {/* 入庫先 + 入荷予定日フィルター */}
-      <div className="bg-surface border border-border rounded-xl p-3 mb-4 space-y-2">
-        <div>
-          <label className="text-xs text-muted block mb-1">入庫先（拠点）</label>
-          <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)}
-            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text">
-            <option value="">選択してください</option>
-            {locations.map(l => (
-              <option key={l.location_id} value={l.location_id}>
-                {l.parent_location_id ? '　└ ' : ''}{l.name}
-              </option>
-            ))}
-          </select>
+        {/* タブ切り替え */}
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => setTab('orders')}
+            className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'orders' ? 'bg-accent/20 text-accent' : 'bg-surface2 text-muted'}`}>
+            発注リスト ({pendingOrders.length})
+          </button>
+          <button onClick={() => setTab('manual')}
+            className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'manual' ? 'bg-accent3/20 text-accent3' : 'bg-surface2 text-muted'}`}>
+            手動入庫
+          </button>
         </div>
-        <div>
-          <label className="text-xs text-muted block mb-1">入荷予定日で絞り込み</label>
-          <div className="flex items-center gap-2">
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
-            <span className="text-muted text-xs">〜</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
-            {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(''); setDateTo('') }}
-                className="text-xs text-muted hover:text-accent2 shrink-0">×</button>
-            )}
+
+        {/* 入庫先 + 入荷予定日フィルター */}
+        <div className="bg-surface border border-border rounded-xl p-3 mb-3 space-y-2">
+          <div>
+            <label className="text-xs text-muted block mb-1">入庫先（拠点）</label>
+            <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)}
+              className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text">
+              <option value="">選択してください</option>
+              {locations.map(l => (
+                <option key={l.location_id} value={l.location_id}>
+                  {l.parent_location_id ? '　└ ' : ''}{l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted block mb-1">入荷予定日で絞り込み</label>
+            <div className="flex items-center gap-2">
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
+              <span className="text-muted text-xs">〜</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
+              {(dateFrom || dateTo) && (
+                <button onClick={() => { setDateFrom(''); setDateTo('') }}
+                  className="text-xs text-muted hover:text-accent2 shrink-0">×</button>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* スクロール可能な景品リスト部分 */}
+      <div className="flex-1 overflow-y-auto px-4 pb-8">
 
       {/* 発注リストタブ */}
       {tab === 'orders' && (() => {
@@ -268,6 +274,7 @@ export default function InventoryReceive() {
           </div>
         </div>
       )}
+      </div>{/* スクロール領域終了 */}
     </div>
   )
 }
