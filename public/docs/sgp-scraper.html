@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>景品フォーム取込 | ClawOps</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f13;color:#e8e8f0;font-family:-apple-system,sans-serif;padding:20px;max-width:600px;margin:0 auto}
+h1{font-size:18px;margin-bottom:16px}
+.card{background:#1a1a23;border:1px solid #2e2e3e;border-radius:8px;padding:16px;margin-bottom:12px}
+.card h2{font-size:14px;margin-bottom:8px}
+.card p{font-size:12px;color:#9090a8;margin-bottom:10px}
+textarea{width:100%;background:#22222e;border:1px solid #2e2e3e;color:#e8e8f0;border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:vertical}
+button{background:#7c6aff;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:8px}
+button:hover{opacity:.9}
+.info{font-size:11px;color:#9090a8;margin-top:8px}
+.step{background:#22222e;border-radius:6px;padding:10px;margin:8px 0;font-size:12px}
+.step b{color:#7c6aff}
+code{background:#2e2e3e;padding:2px 6px;border-radius:4px;font-size:11px}
+#result{margin-top:12px;font-size:12px;color:#2ecc71;display:none}
+</style>
+</head>
+<body>
+<h1>📦 景品フォーム データ取込</h1>
+
+<div class="card">
+  <h2>📋 発注履歴の取得方法</h2>
+  <div class="step">
+    <b>Step 1:</b> <a href="https://kings-man.info/stock/" target="_blank" style="color:#7c6aff">景品フォーム</a>にログイン → 発注履歴ページを開く
+  </div>
+  <div class="step">
+    <b>Step 2:</b> 表示月を選択（全月分取りたい場合は月ごとに繰り返し）
+  </div>
+  <div class="step">
+    <b>Step 3:</b> ページ上で <code>Ctrl+A</code>（全選択）→ <code>Ctrl+C</code>（コピー）
+  </div>
+  <div class="step">
+    <b>Step 4:</b> 下のテキストエリアに <code>Ctrl+V</code>（貼り付け）
+  </div>
+  <textarea id="pasteArea" rows="8" placeholder="景品フォームのページ内容をここに貼り付け..."></textarea>
+  <button onclick="parseOrderHistory()">📊 発注履歴をExcel出力</button>
+  <div id="result"></div>
+</div>
+
+<div class="card">
+  <h2>🔄 簡易スクレイプ（コンソール用）</h2>
+  <p>景品フォームのページでF12→Console→<code>allow pasting</code>→Enter→下のコードを貼り付けて実行</p>
+  <textarea id="scriptArea" rows="6" readonly style="cursor:pointer" onclick="this.select();document.execCommand('copy');document.getElementById('copyMsg').style.display='block'">
+var tbl=document.querySelector('table');if(!tbl){alert('テーブルが見つかりません');throw'';}var rows=tbl.querySelectorAll('tr');var d=[];rows.forEach(function(r){var c=r.querySelectorAll('td,th');if(c.length>3){d.push(Array.from(c).map(function(x){return x.innerText.trim()}))}});var t=d.map(function(r){return r.join('\t')}).join('\n');var b=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='sgp_orders.tsv';document.body.appendChild(a);a.click();alert(d.length+'行ダウンロード');
+  </textarea>
+  <div id="copyMsg" style="display:none;font-size:11px;color:#2ecc71;margin-top:4px">コピーしました！景品フォームのコンソールに貼り付けてください</div>
+</div>
+
+<div class="card">
+  <h2>📁 TSVファイルからExcel変換</h2>
+  <p>上のコンソールスクリプトでダウンロードしたTSVファイルを選択</p>
+  <input type="file" id="tsvFile" accept=".tsv,.txt,.csv" style="font-size:12px;color:#e8e8f0">
+  <button onclick="convertTsvToExcel()">📊 Excelに変換</button>
+</div>
+
+<script>
+function parseOrderHistory(){
+  const text=document.getElementById('pasteArea').value.trim();
+  if(!text){alert('テキストを貼り付けてください');return}
+
+  // タブ区切りまたは複数スペースで行を分割
+  const lines=text.split('\n').filter(l=>l.trim());
+  const rows=lines.map(l=>l.split('\t').length>3 ? l.split('\t') : l.split(/\s{2,}/));
+
+  if(rows.length<2){alert('データが少なすぎます。景品フォームのページ全体をコピーしてください');return}
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=rows[0].map((_,i)=>({wch:Math.max(12,...rows.map(r=>(r[i]||'').length*1.5))}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'発注履歴');
+  const today=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`景品フォーム_発注履歴_${today}.xlsx`);
+
+  const res=document.getElementById('result');
+  res.style.display='block';
+  res.textContent=`✅ ${rows.length}行をExcel出力しました`;
+}
+
+function convertTsvToExcel(){
+  const file=document.getElementById('tsvFile').files[0];
+  if(!file){alert('ファイルを選択してください');return}
+
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const text=e.target.result;
+    const lines=text.split('\n').filter(l=>l.trim());
+    const rows=lines.map(l=>l.split('\t'));
+
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=rows[0]?.map((_,i)=>({wch:Math.max(12,...rows.map(r=>(r[i]||'').length*1.5))}));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'発注履歴');
+    const today=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb,`景品フォーム_${today}.xlsx`);
+    alert(`${rows.length}行をExcel出力しました`);
+  };
+  reader.readAsText(file,'UTF-8');
+}
+</script>
+</body>
+</html>
