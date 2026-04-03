@@ -11,10 +11,22 @@ export default function Login() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 既にログイン済みならトップへ（gapi_tokenも確認してループ防止）
-    const staffId = sessionStorage.getItem('clawops_staff_id')
+    // 既にログイン済みならトップへ
+    let staffId = sessionStorage.getItem('clawops_staff_id')
+
+    // ポータル(index.html)経由のログイン: clawops_staffキーにJSONが入っている
+    if (!staffId) {
+      try {
+        const portalStaff = JSON.parse(sessionStorage.getItem('clawops_staff') || 'null')
+        if (portalStaff?.staff_id) {
+          staffId = portalStaff.staff_id
+          sessionStorage.setItem('clawops_staff_id', staffId)
+          sessionStorage.setItem('clawops_staff_name', portalStaff.name || '')
+        }
+      } catch {}
+    }
+
     if (staffId) {
-      // gapi_tokenがなければ補完（ポータル経由でstaffIdだけある場合）
       if (!sessionStorage.getItem('gapi_token')) {
         sessionStorage.setItem('gapi_token', 'supabase_auth_' + staffId)
       }
