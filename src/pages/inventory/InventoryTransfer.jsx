@@ -204,7 +204,7 @@ export default function InventoryTransfer() {
               <option value="">選択してください</option>
               {fromOwnerType === 'location'
                 ? locations.map(l => <option key={l.location_id} value={l.location_id}>{l.parent_location_id ? '　└ ' : ''}{l.name}</option>)
-                : staffList.map(s => <option key={s} value={s}>{s}</option>)
+                : staffList.map(s => <option key={s} value={s}>{staffMap[s] || s}</option>)
               }
             </select>
           </div>
@@ -320,7 +320,7 @@ export default function InventoryTransfer() {
                     <select value={toId} onChange={e => setToId(e.target.value)}
                       className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text mb-2">
                       <option value="">既存の担当者から選択</option>
-                      {staffList.filter(s => s !== fromId).map(s => <option key={s} value={s}>{s}</option>)}
+                      {staffList.filter(s => s !== fromId).map(s => <option key={s} value={s}>{staffMap[s] || s}</option>)}
                     </select>
                     <input type="text" value={staffList.includes(toId) ? '' : toId}
                       onChange={e => setToId(e.target.value)}
@@ -376,7 +376,7 @@ export default function InventoryTransfer() {
                   <span className="text-text truncate flex-1">{m.note || m.prize_id}</span>
                   <span className="text-accent font-bold shrink-0 ml-2">×{m.quantity}</span>
                 </div>
-                <div className="text-xs text-muted">{m.from_owner_id} → {m.to_owner_id}
+                <div className="text-xs text-muted">{staffMap[m.from_owner_id] || m.from_owner_id} → {staffMap[m.to_owner_id] || m.to_owner_id}
                   {m.created_at && <span className="ml-2">{new Date(m.created_at).toLocaleDateString('ja-JP')}</span>}
                 </div>
               </div>

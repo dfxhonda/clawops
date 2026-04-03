@@ -360,7 +360,7 @@ export default function InventoryCount() {
                   <span className="text-accent font-bold shrink-0 ml-2">×{m.quantity}</span>
                 </div>
                 <div className="text-xs text-muted">
-                  {m.to_owner_id || m.from_owner_id}
+                  {staffMap[m.to_owner_id] || staffMap[m.from_owner_id] || m.to_owner_id || m.from_owner_id}
                   {m.created_at && <span className="ml-2">{new Date(m.created_at).toLocaleDateString('ja-JP')}</span>}
                 </div>
               </div>
