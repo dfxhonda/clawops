@@ -11,8 +11,15 @@ export default function Login() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 既にログイン済みならトップへ
-    if (sessionStorage.getItem('clawops_staff_id')) { navigate('/'); return }
+    // 既にログイン済みならトップへ（gapi_tokenも確認してループ防止）
+    const staffId = sessionStorage.getItem('clawops_staff_id')
+    if (staffId) {
+      // gapi_tokenがなければ補完（ポータル経由でstaffIdだけある場合）
+      if (!sessionStorage.getItem('gapi_token')) {
+        sessionStorage.setItem('gapi_token', 'supabase_auth_' + staffId)
+      }
+      navigate('/'); return
+    }
     // スタッフ一覧取得
     supabase.from('staff').select('staff_id, name, pin').eq('is_active', true).order('name')
       .then(({ data, error: err }) => {
