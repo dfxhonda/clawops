@@ -17,6 +17,7 @@ export default function DataSearch() {
   const [edits, setEdits] = useState({})
   const [deletes, setDeletes] = useState(new Set())
   const [editingRow, setEditingRow] = useState(null)
+  const [dateSort, setDateSort] = useState('desc') // 'desc' or 'asc'
 
   useEffect(() => {
     Promise.all([getAllMeterReadings(true), getStores()]).then(([readings, storeList]) => {
@@ -42,7 +43,12 @@ export default function DataSearch() {
       if (filterDateFrom && r.read_time?.slice(0,10) < filterDateFrom) return false
       if (filterDateTo && r.read_time?.slice(0,10) > filterDateTo) return false
       return true
-    }).slice(-300)
+    })
+    .sort((a, b) => {
+      const da = a.read_time || '', db = b.read_time || ''
+      return dateSort === 'desc' ? db.localeCompare(da) : da.localeCompare(db)
+    })
+    .slice(0, 300)
 
   function startEdit(r) {
     setEditingRow(r._idx)
@@ -119,72 +125,81 @@ export default function DataSearch() {
   const selectCls = "w-full bg-surface2 border border-border rounded-lg px-2.5 py-2 text-text text-sm outline-none focus:border-accent"
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-4 pb-28 overflow-x-hidden">
-      {/* ヘッダー */}
-      <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate('/')} className="bg-surface2 border border-border text-text rounded-lg px-3 py-1.5 text-base">←</button>
-        <div className="flex-1 min-w-0">
-          <div className="text-lg font-bold">データ検索・修正</div>
-          <div className="text-xs text-muted mt-0.5">全{allReadings.length}件</div>
-        </div>
-      </div>
-
-      {saveMsg && (
-        <div className={`rounded-lg p-2.5 mb-3 text-sm border border-border ${saveMsg.startsWith('✅') ? 'bg-surface2 text-accent3' : 'bg-surface2 text-accent2'}`}>
-          {saveMsg}
-        </div>
-      )}
-
-      {/* フィルター */}
-      <div className="bg-surface border border-border rounded-xl p-3.5 mb-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <div className="text-[10px] text-muted uppercase tracking-wider mb-1">店舗</div>
-            <select className={selectCls} value={filterStore} onChange={e=>handleStoreChange(e.target.value)}>
-              <option value="">全店舗</option>
-              {stores.map(s=><option key={s.store_id} value={s.store_code}>{s.store_name}</option>)}
-            </select>
+    <div className="h-screen max-w-lg mx-auto flex flex-col overflow-hidden">
+      {/* 固定ヘッダー+検索セクション */}
+      <div className="shrink-0 px-4 pt-4">
+        <div className="flex items-center gap-3 mb-3">
+          <button onClick={() => navigate('/')} className="bg-surface2 border border-border text-text rounded-lg px-3 py-1.5 text-base">←</button>
+          <div className="flex-1 min-w-0">
+            <div className="text-lg font-bold">データ検索・修正</div>
+            <div className="text-xs text-muted mt-0.5">全{allReadings.length}件</div>
           </div>
-          <div>
-            <div className="text-[10px] text-muted uppercase tracking-wider mb-1">ブース</div>
-            {filterStore ? (
-              <select className={selectCls} value={filterBooth} onChange={e=>setFilterBooth(e.target.value)}>
-                <option value="">全ブース</option>
-                {boothOptions.map(code=><option key={code} value={code}>{code}</option>)}
+        </div>
+
+        {saveMsg && (
+          <div className={`rounded-lg p-2.5 mb-3 text-sm border border-border ${saveMsg.startsWith('✅') ? 'bg-surface2 text-accent3' : 'bg-surface2 text-accent2'}`}>
+            {saveMsg}
+          </div>
+        )}
+
+        {/* フィルター */}
+        <div className="bg-surface border border-border rounded-xl p-3 mb-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[10px] text-muted uppercase tracking-wider mb-1">店舗</div>
+              <select className={selectCls} value={filterStore} onChange={e=>handleStoreChange(e.target.value)}>
+                <option value="">全店舗</option>
+                {stores.map(s=><option key={s.store_id} value={s.store_code}>{s.store_name}</option>)}
               </select>
-            ) : (
-              <select className={selectCls + ' opacity-40'} disabled><option>店舗を先に選択</option></select>
-            )}
+            </div>
+            <div>
+              <div className="text-[10px] text-muted uppercase tracking-wider mb-1">ブース</div>
+              {filterStore ? (
+                <select className={selectCls} value={filterBooth} onChange={e=>setFilterBooth(e.target.value)}>
+                  <option value="">全ブース</option>
+                  {boothOptions.map(code=><option key={code} value={code}>{code}</option>)}
+                </select>
+              ) : (
+                <select className={selectCls + ' opacity-40'} disabled><option>店舗を先に選択</option></select>
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] text-muted uppercase tracking-wider mb-1">日付（から）</div>
+              <input className={inputCls} type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted uppercase tracking-wider mb-1">日付（まで）</div>
+              <input className={inputCls} type="date" value={filterDateTo} onChange={e=>setFilterDateTo(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <div className="text-[10px] text-muted uppercase tracking-wider mb-1">日付（から）</div>
-            <input className={inputCls} type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} />
+          <div className="mt-2">
+            <div className="text-[10px] text-muted uppercase tracking-wider mb-1">景品名</div>
+            <input className={inputCls} type="text" placeholder="景品名で検索" value={filterPrize} onChange={e=>setFilterPrize(e.target.value)} />
           </div>
-          <div>
-            <div className="text-[10px] text-muted uppercase tracking-wider mb-1">日付（まで）</div>
-            <input className={inputCls} type="date" value={filterDateTo} onChange={e=>setFilterDateTo(e.target.value)} />
+          <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted">{filtered.length}件</span>
+              <button className="bg-surface2 border border-border text-text text-[11px] px-2 py-0.5 rounded"
+                onClick={() => setDateSort(d => d === 'desc' ? 'asc' : 'desc')}>
+                日付{dateSort === 'desc' ? '↓新→古' : '↑古→新'}
+              </button>
+            </div>
+            <button className="bg-surface2 border border-border text-text text-xs px-3 py-1 rounded-lg"
+              onClick={()=>{setFilterStore('');setFilterBooth('');setFilterPrize('');setFilterDateFrom('');setFilterDateTo('')}}>
+              リセット
+            </button>
           </div>
-        </div>
-        <div className="mt-2">
-          <div className="text-[10px] text-muted uppercase tracking-wider mb-1">景品名</div>
-          <input className={inputCls} type="text" placeholder="景品名で検索" value={filterPrize} onChange={e=>setFilterPrize(e.target.value)} />
-        </div>
-        <div className="flex justify-between items-center mt-2.5">
-          <span className="text-xs text-muted">{filtered.length}件表示</span>
-          <button className="bg-surface2 border border-border text-text text-xs px-3 py-1 rounded-lg"
-            onClick={()=>{setFilterStore('');setFilterBooth('');setFilterPrize('');setFilterDateFrom('');setFilterDateTo('')}}>
-            リセット
-          </button>
         </div>
       </div>
 
+      {/* スクロール可能なデータリスト */}
+      <div className="flex-1 overflow-y-auto px-4 pb-28">
       {filtered.length===0 && (
         <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">
           条件に一致するデータがありません
         </div>
       )}
 
-      {/* データリスト */}
       <div className="space-y-2">
         {filtered.map(r => {
           const isEditing = editingRow===r._idx
@@ -243,6 +258,8 @@ export default function DataSearch() {
           )
         })}
       </div>
+
+      </div>{/* スクロール領域終了 */}
 
       {/* 確定バー */}
       {totalPending>0 && (
