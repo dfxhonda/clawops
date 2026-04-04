@@ -88,7 +88,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 
 /* Detail */
 .detail-header{padding:14px 16px;border-bottom:1px solid var(--border)}
-.detail-header h3{font-size:15px;color:var(--accent)}
+.detail-header h3{font-size:15px;color:var(--accent);word-break:break-word}
 .field{padding:8px 16px}
 .field label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px}
 .field input,.field select,.field textarea{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px}
@@ -529,7 +529,8 @@ function openMobileDetail(id){
     <h3 style="font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.prize_name)}</h3>
   </header>
   <div style="padding:16px">
-    ${it.image_url?`<img src="${esc(it.image_url)}" style="width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius);background:var(--surface2);margin-bottom:16px" onerror="this.style.display='none'">`:''}
+    ${it.image_url?`<img src="${esc(it.image_url)}" style="width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius);background:var(--surface2);margin-bottom:12px" onerror="this.style.display='none'">`:''}
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;word-break:break-word;line-height:1.4">${esc(it.prize_name)}</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
       <span class="supplier-tag sup-${it.supplier_id||''}">${supName(it.supplier_id)}</span>
       <span class="badge b-${it.status}">${STATUS_LABEL[it.status]||it.status}</span>
