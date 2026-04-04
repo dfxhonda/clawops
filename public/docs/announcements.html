@@ -701,7 +701,7 @@ function openOrderModal(id){
     </div>
     <div class="field"><label>発注数量 <span style="color:var(--red)">*</span></label><div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('ordQty',-1)">−</button><input type="tel" id="ordQty" min="1" value="${it.case_quantity||''}" placeholder="個数" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('ordQty',1)">＋</button></div></div>
     <div class="field"><label>発注日</label><input type="date" id="ordDate" value="${today}"></div>
-    <div class="field"><label>入荷先</label><input id="ordDest" placeholder="例: 久留米倉庫"></div>
+    <div class="field"><label>入荷先 <span style="color:var(--red)">*</span></label><select id="ordDest" class="filter-select" style="width:100%;padding:8px 10px;font-size:14px"><option value="">選択してください</option><option value="久留米">久留米</option><option value="田隈">田隈</option><option value="飯塚">飯塚</option><option value="鹿児島">鹿児島</option><option value="振り分け待ち">振り分け待ち</option></select></div>
     <div style="display:flex;gap:8px;padding:12px 0">
       <button class="btn btn-ghost" onclick="closeOrderModal()" style="flex:1">キャンセル</button>
       <button class="btn btn-green" onclick="submitOrder(${it.id})" style="flex:1">発注に登録</button>
@@ -719,6 +719,7 @@ async function submitOrder(annId){
   const dest=document.getElementById('ordDest').value.trim();
   if(!qty||qty<1){document.getElementById('ordErr').textContent='数量を入力してください';return}
   if(qty>9999){document.getElementById('ordErr').textContent='数量は9999以下にしてください';return}
+  if(!dest){document.getElementById('ordErr').textContent='入荷先を選択してください';return}
   showLoading();
   try{
     const orderId='ORD-'+String(Date.now()).slice(-6)+'-'+Math.random().toString(36).slice(2,5).toUpperCase();
