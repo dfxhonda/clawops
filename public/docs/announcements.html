@@ -2,7 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
 <title>景品案内 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -194,6 +197,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <body>
 
 <header>
+  <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <div class="header-title">📬 景品案内</div>
   <div class="header-count" id="countBadge">読込中...</div>
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
@@ -253,6 +257,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 
 <nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div><div class="nav-label">ホーム</div></a>
   <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
   <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
   <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
