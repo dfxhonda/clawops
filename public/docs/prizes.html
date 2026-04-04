@@ -301,8 +301,9 @@ header{
   padding:0 14px;height:52px;display:flex;align-items:center;gap:10px;z-index:10;
 }
 .md-back{
-  background:none;border:none;color:var(--accent);
-  font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;
+  background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;
+  border:1px solid var(--border);cursor:pointer;flex-shrink:0;
   -webkit-tap-highlight-color:transparent;
 }
 .md-title{font-size:16px;font-weight:700;flex:1}
@@ -1090,7 +1091,7 @@ function renderMobileDetailContent() {
 
   panel.innerHTML = `
 <div class="md-header">
-  <button class="md-back" onclick="closeMobileDetail()">← 一覧に戻る</button>
+  <button class="md-back" onclick="closeMobileDetail()">‹</button>
   <div class="md-title">${esc(titleText)}</div>
 </div>
 ${mFormalName ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--text2);word-break:break-all;border-bottom:1px solid var(--border)">${esc(mFormalName)}</div>` : ''}

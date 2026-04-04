@@ -29,11 +29,11 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 .detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);flex-direction:column;gap:12px;font-size:13px}
 .detail-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
 .detail-header h3{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.detail-back{background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;display:none}
+.detail-back{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;border:1px solid var(--border);cursor:pointer;flex-shrink:0}
 .detail-body{padding:12px 16px}
 .mobile-detail{display:none;position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .mobile-detail-header{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:8px;z-index:10}
-@media (max-width:768px){.detail-col{display:none!important}.detail-back{display:block}}
+@media (max-width:768px){.detail-col{display:none!important}.detail-back{display:inline-flex}}
 .list{padding:0}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
 .card.done{border-color:var(--green);opacity:.7}
@@ -135,7 +135,7 @@ header h1{font-size:16px;font-weight:700;white-space:nowrap}
 </div>
 <div class="mobile-detail" id="mobileDetail">
   <div class="mobile-detail-header">
-    <button class="detail-back" onclick="closeMobileDetail()">‹ 戻る</button>
+    <button class="detail-back" onclick="closeMobileDetail()">‹</button>
     <span id="mobileDetailTitle" style="flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
   </div>
   <div id="mobileDetailBody" style="padding:12px 16px"></div>

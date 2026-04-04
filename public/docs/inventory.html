@@ -506,7 +506,7 @@ function openMobileDetail(id){
   const el=document.getElementById('mobileDetail');
   el.innerHTML=`
   <header style="position:sticky;top:0;background:var(--surface);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:1">
-    <button onclick="closeMobileDetail()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer">←</button>
+    <button onclick="closeMobileDetail()" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;border:1px solid var(--border);cursor:pointer;flex-shrink:0">‹</button>
     <h3 style="font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pz.prize_name||s.prize_id)}</h3>
   </header>
   <div style="padding:16px">
