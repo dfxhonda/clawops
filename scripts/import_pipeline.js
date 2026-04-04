@@ -98,7 +98,9 @@ function shortenPrizeName(raw) {
   s = s.replace(/●\s*\d+\s*/g, '');          // ●300  ●500 etc
   // --- Phase 2: /日付締切パターン削除 ---
   s = s.replace(/\/?[\d\/]+締切/g, '');       // /11締切  /8/22締切  8/22締切
+  s = s.replace(/[\d\/]+〆\s*/g, '');          // 4/16〆 etc
   s = s.replace(/〆切/g, '');
+  s = s.replace(/商品名[:：]\s*/g, '');         // 商品名: 商品名：
   s = s.trim();
   // --- Phase 3: 先頭の3-4桁数字+スペース(価格帯タグ)削除 ---
   s = s.replace(/^\d{3,4}\s+/, '');           // 300 , 500 , 1000 etc
