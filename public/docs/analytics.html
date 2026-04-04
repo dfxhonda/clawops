@@ -11,7 +11,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 a{color:var(--accent);text-decoration:none}
 .header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px}
 .header h1{font-size:16px;flex:1}
-.header a{font-size:12px;color:var(--text2)}
+.header a.back{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;border:1px solid var(--border);flex-shrink:0}
 .container{max-width:800px;margin:0 auto;padding:12px}
 .filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .filters select,.filters input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
@@ -46,7 +46,7 @@ tr:hover{background:var(--surface2)}
 </head>
 <body>
 <div class="header">
-  <a href="index.html">← 戻る</a>
+  <a href="index.html" class="back">‹</a>
   <h1>📊 売上分析</h1>
 </div>
 <div class="container">

@@ -4,105 +4,352 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>景品フォーム取込 | ClawOps</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f0f13;color:#e8e8f0;font-family:-apple-system,sans-serif;padding:20px;max-width:600px;margin:0 auto}
-h1{font-size:18px;margin-bottom:16px}
-.card{background:#1a1a23;border:1px solid #2e2e3e;border-radius:8px;padding:16px;margin-bottom:12px}
-.card h2{font-size:14px;margin-bottom:8px}
-.card p{font-size:12px;color:#9090a8;margin-bottom:10px}
-textarea{width:100%;background:#22222e;border:1px solid #2e2e3e;color:#e8e8f0;border-radius:6px;padding:8px;font-size:11px;font-family:monospace;resize:vertical}
-button{background:#7c6aff;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:8px}
-button:hover{opacity:.9}
-.info{font-size:11px;color:#9090a8;margin-top:8px}
-.step{background:#22222e;border-radius:6px;padding:10px;margin:8px 0;font-size:12px}
-.step b{color:#7c6aff}
-code{background:#2e2e3e;padding:2px 6px;border-radius:4px;font-size:11px}
-#result{margin-top:12px;font-size:12px;color:#2ecc71;display:none}
+:root{
+  --bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;
+  --text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;
+  --green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;padding:0 0 80px}
+.header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.header h1{font-size:16px;flex:1}
+.header .badge{font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 8px;color:var(--text2)}
+.btn-logout{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+.section{padding:12px 16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-green{background:var(--green);color:#fff}
+.btn-sm{padding:6px 10px;font-size:11px;border-radius:6px}
+
+/* Result display */
+.result{margin-top:10px;font-size:12px;border-radius:8px;padding:10px;display:none}
+.result.ok{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);color:var(--green)}
+.result.err{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--red)}
+.result.loading{display:block;background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;transition:all .15s}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Gallery Grid */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.g-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.g-item:hover{border-color:var(--accent)}
+.g-item img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--surface)}
+.g-item .g-info{padding:6px 8px}
+.g-item .g-name{font-size:10px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text)}
+.g-item .g-meta{font-size:9px;color:var(--text2);margin-top:3px;display:flex;justify-content:space-between}
+.g-item .g-code{font-family:monospace;font-size:9px;color:var(--cyan)}
+.g-noimg{width:100%;aspect-ratio:1;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:20px}
+
+/* Status badges */
+.st{font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;display:inline-block}
+.st-ordered{background:rgba(243,156,18,.12);color:var(--yellow)}
+.st-arrived{background:rgba(46,204,113,.12);color:var(--green)}
+.st-cancelled{background:rgba(231,76,60,.12);color:var(--red)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;display:none}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;padding:16px}
+.modal img{width:100%;border-radius:8px;margin-bottom:12px}
+.modal h3{font-size:14px;margin-bottom:8px}
+.modal .meta{font-size:12px;color:var(--text2);margin-bottom:12px}
+.modal .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Stats row */
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;flex:1;min-width:80px;text-align:center}
+.stat .num{font-size:20px;font-weight:700;color:var(--accent)}
+.stat .label{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* Backfill */
+.backfill-progress{font-size:11px;color:var(--text2);margin-top:6px}
 </style>
 </head>
 <body>
-<h1>📦 景品フォーム データ取込</h1>
 
-<div class="card">
-  <h2>📋 発注履歴の取得方法</h2>
-  <div class="step">
-    <b>Step 1:</b> <a href="https://kings-man.info/stock/" target="_blank" style="color:#7c6aff">景品フォーム</a>にログイン → 発注履歴ページを開く
-  </div>
-  <div class="step">
-    <b>Step 2:</b> 表示月を選択（全月分取りたい場合は月ごとに繰り返し）
-  </div>
-  <div class="step">
-    <b>Step 3:</b> ページ上で <code>Ctrl+A</code>（全選択）→ <code>Ctrl+C</code>（コピー）
-  </div>
-  <div class="step">
-    <b>Step 4:</b> 下のテキストエリアに <code>Ctrl+V</code>（貼り付け）
-  </div>
-  <textarea id="pasteArea" rows="8" placeholder="景品フォームのページ内容をここに貼り付け..."></textarea>
-  <button onclick="parseOrderHistory()">📊 発注履歴をExcel出力</button>
-  <div id="result"></div>
+<div class="header">
+  <a href="admin.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;border:1px solid var(--border);text-decoration:none;flex-shrink:0">‹</a>
+  <h1>景品フォーム取込</h1>
+  <span class="badge" id="countBadge">-</span>
+  <button class="btn-logout" onclick="location.href='index.html'">ログアウト</button>
 </div>
 
-<div class="card">
-  <h2>🔄 簡易スクレイプ（コンソール用）</h2>
-  <p>景品フォームのページでF12→Console→<code>allow pasting</code>→Enter→下のコードを貼り付けて実行</p>
-  <textarea id="scriptArea" rows="6" readonly style="cursor:pointer" onclick="this.select();document.execCommand('copy');document.getElementById('copyMsg').style.display='block'">
-var tbl=document.querySelector('table');if(!tbl){alert('テーブルが見つかりません');throw'';}var rows=tbl.querySelectorAll('tr');var d=[];rows.forEach(function(r){var c=r.querySelectorAll('td,th');if(c.length>3){d.push(Array.from(c).map(function(x){return x.innerText.trim()}))}});var t=d.map(function(r){return r.join('\t')}).join('\n');var b=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='sgp_orders.tsv';document.body.appendChild(a);a.click();alert(d.length+'行ダウンロード');
-  </textarea>
-  <div id="copyMsg" style="display:none;font-size:11px;color:#2ecc71;margin-top:4px">コピーしました！景品フォームのコンソールに貼り付けてください</div>
+<div class="section">
+  <!-- Import Controls -->
+  <div class="card">
+    <h2>データ取込</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btnImport" onclick="runImport(false)">
+        最新データ取込
+      </button>
+      <button class="btn btn-green" id="btnImportImg" onclick="runImport(true)">
+        画像付き取込
+      </button>
+    </div>
+    <div class="result" id="importResult"></div>
+  </div>
+
+  <!-- Backfill Controls -->
+  <div class="card">
+    <h2>過去画像の取得</h2>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:8px">未取得の過去画像を少しずつダウンロードします（1回20枚ずつ）</p>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-secondary btn-sm" id="btnBackfill" onclick="runBackfill()">
+        過去画像を取得
+      </button>
+      <span class="backfill-progress" id="backfillStatus"></span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsRow" style="display:none">
+    <div class="stat"><div class="num" id="stTotal">0</div><div class="label">総件数</div></div>
+    <div class="stat"><div class="num" id="stOrdered">0</div><div class="label">発注中</div></div>
+    <div class="stat"><div class="num" id="stArrived">0</div><div class="label">入荷済</div></div>
+    <div class="stat"><div class="num" id="stImages">0</div><div class="label">画像</div></div>
+  </div>
+
+  <!-- Month tabs -->
+  <div class="tabs" id="monthTabs"></div>
+
+  <!-- Gallery -->
+  <div class="gallery" id="gallery"></div>
+  <div id="emptyMsg" style="text-align:center;color:var(--text2);font-size:13px;padding:40px 0;display:none">
+    データがありません
+  </div>
 </div>
 
-<div class="card">
-  <h2>📁 TSVファイルからExcel変換</h2>
-  <p>上のコンソールスクリプトでダウンロードしたTSVファイルを選択</p>
-  <input type="file" id="tsvFile" accept=".tsv,.txt,.csv" style="font-size:12px;color:#e8e8f0">
-  <button onclick="convertTsvToExcel()">📊 Excelに変換</button>
+<!-- Image Modal -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <img id="modalImg" src="" alt="">
+    <h3 id="modalName"></h3>
+    <div class="meta" id="modalMeta"></div>
+    <div class="actions">
+      <a class="btn btn-primary btn-sm" id="modalDL" href="" download="">ダウンロード</a>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
 </div>
 
 <script>
-function parseOrderHistory(){
-  const text=document.getElementById('pasteArea').value.trim();
-  if(!text){alert('テキストを貼り付けてください');return}
+const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SB_STORAGE = SB_URL + '/storage/v1/object/public/announcements/sgp/';
+const FN_URL = SB_URL + '/functions/v1/sgp-import';
 
-  // タブ区切りまたは複数スペースで行を分割
-  const lines=text.split('\n').filter(l=>l.trim());
-  const rows=lines.map(l=>l.split('\t').length>3 ? l.split('\t') : l.split(/\s{2,}/));
+let allOrders = [];
+let currentMonth = '';
 
-  if(rows.length<2){alert('データが少なすぎます。景品フォームのページ全体をコピーしてください');return}
-
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=rows[0].map((_,i)=>({wch:Math.max(12,...rows.map(r=>(r[i]||'').length*1.5))}));
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'発注履歴');
-  const today=new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb,`景品フォーム_発注履歴_${today}.xlsx`);
-
-  const res=document.getElementById('result');
-  res.style.display='block';
-  res.textContent=`✅ ${rows.length}行をExcel出力しました`;
+// --- Supabase REST ---
+async function sbGet(table, params) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
+  });
+  return r.json();
 }
 
-function convertTsvToExcel(){
-  const file=document.getElementById('tsvFile').files[0];
-  if(!file){alert('ファイルを選択してください');return}
+// --- Import ---
+async function runImport(withImages) {
+  const res = document.getElementById('importResult');
+  const btn = withImages ? document.getElementById('btnImportImg') : document.getElementById('btnImport');
+  btn.disabled = true;
+  res.className = 'result loading';
+  res.style.display = 'block';
+  res.innerHTML = '<span class="spinner"></span> 取込中...';
 
-  const reader=new FileReader();
-  reader.onload=function(e){
-    const text=e.target.result;
-    const lines=text.split('\n').filter(l=>l.trim());
-    const rows=lines.map(l=>l.split('\t'));
+  try {
+    const url = FN_URL + (withImages ? '?images=1' : '');
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + SB_KEY }
+    });
+    const d = await r.json();
 
-    const ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=rows[0]?.map((_,i)=>({wch:Math.max(12,...rows.map(r=>(r[i]||'').length*1.5))}));
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'発注履歴');
-    const today=new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb,`景品フォーム_${today}.xlsx`);
-    alert(`${rows.length}行をExcel出力しました`);
+    if (r.ok) {
+      res.className = 'result ok';
+      res.innerHTML = `取得: ${d.records_fetched}件 / 新規: ${d.records_inserted}件 / 更新: ${d.records_updated}件 / スキップ: ${d.records_skipped}件` +
+        (d.images_uploaded ? ` / 画像: ${d.images_uploaded}枚` : '') +
+        ` (${(d.duration_ms/1000).toFixed(1)}秒)`;
+      loadOrders();
+    } else {
+      res.className = 'result err';
+      res.textContent = d.error || JSON.stringify(d);
+    }
+  } catch (e) {
+    res.className = 'result err';
+    res.textContent = e.message;
+  }
+  btn.disabled = false;
+}
+
+// --- Backfill ---
+let backfillPage = 1;
+async function runBackfill() {
+  const btn = document.getElementById('btnBackfill');
+  const st = document.getElementById('backfillStatus');
+  btn.disabled = true;
+  st.textContent = `ページ ${backfillPage} 取得中...`;
+
+  try {
+    const r = await fetch(FN_URL + `?images=1&page=${backfillPage}`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + SB_KEY }
+    });
+    const d = await r.json();
+    st.textContent = `ページ ${backfillPage}: 画像 ${d.images_uploaded || 0}枚取得 (${d.records_fetched}件中)`;
+    backfillPage++;
+    if (d.records_fetched > 0) {
+      loadOrders();
+    } else {
+      st.textContent += ' — 全ページ取得完了';
+    }
+  } catch (e) {
+    st.textContent = 'エラー: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+// --- Load Orders ---
+async function loadOrders() {
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  const since = threeMonthsAgo.toISOString().slice(0, 10);
+
+  const data = await sbGet('prize_orders',
+    `select=order_id,prize_name_raw,order_date,expected_date,case_count,unit_cost,case_cost,status,notes,import_meta,raw_import_id` +
+    `&supplier_id=eq.SGP&order_source=eq.sgp_api&order_date=gte.${since}&order=order_date.desc&limit=1000`
+  );
+
+  allOrders = data || [];
+
+  // Stats
+  document.getElementById('statsRow').style.display = 'flex';
+  document.getElementById('stTotal').textContent = allOrders.length;
+  document.getElementById('stOrdered').textContent = allOrders.filter(o => o.status === 'ordered').length;
+  document.getElementById('stArrived').textContent = allOrders.filter(o => o.status === 'arrived').length;
+  document.getElementById('countBadge').textContent = allOrders.length + '件';
+
+  // Count unique item_codes with images
+  const codes = new Set();
+  allOrders.forEach(o => { if (o.import_meta?.item_code) codes.add(o.import_meta.item_code); });
+  document.getElementById('stImages').textContent = codes.size;
+
+  // Month tabs
+  const months = [...new Set(allOrders.map(o => o.order_date?.slice(0, 7)).filter(Boolean))].sort().reverse();
+  const tabsEl = document.getElementById('monthTabs');
+  tabsEl.innerHTML = '<div class="tab active" onclick="filterMonth(\'\',this)">全て</div>' +
+    months.map(m => `<div class="tab" onclick="filterMonth('${m}',this)">${m.replace('-', '/')}</div>`).join('');
+  currentMonth = '';
+
+  renderGallery();
+}
+
+function filterMonth(m, el) {
+  currentMonth = m;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderGallery();
+}
+
+function renderGallery() {
+  const filtered = currentMonth
+    ? allOrders.filter(o => o.order_date?.startsWith(currentMonth))
+    : allOrders;
+
+  const el = document.getElementById('gallery');
+  const empty = document.getElementById('emptyMsg');
+
+  if (filtered.length === 0) {
+    el.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  el.innerHTML = filtered.map(o => {
+    const code = o.import_meta?.item_code || '';
+    const imgUrl = code ? SB_STORAGE + code + '.jpg' : '';
+    const name = o.prize_name_raw || '';
+    const stClass = 'st-' + (o.status || 'ordered');
+    const stLabel = {ordered:'発注中', arrived:'入荷済', cancelled:'取消'}[o.status] || o.status;
+    const date = o.order_date?.slice(5) || '';
+    const qty = o.case_count || '';
+    const cost = o.unit_cost ? '¥' + Number(o.unit_cost).toLocaleString() : '';
+
+    return `<div class="g-item" onclick="openModal('${esc(code)}','${esc(name)}','${date}','${esc(stLabel)}','${qty}','${cost}','${esc(o.notes||'')}')">
+      ${imgUrl
+        ? `<img src="${imgUrl}" loading="lazy" onerror="this.outerHTML='<div class=g-noimg>📦</div>'">`
+        : '<div class="g-noimg">📦</div>'}
+      <div class="g-info">
+        <div class="g-name">${esc(name)}</div>
+        <div class="g-meta">
+          <span class="g-code">${esc(code)}</span>
+          <span class="st ${stClass}">${stLabel}</span>
+        </div>
+        <div class="g-meta"><span>${date}</span><span>${qty ? qty+'個' : ''} ${cost}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// --- Modal ---
+function openModal(code, name, date, status, qty, cost, notes) {
+  const imgUrl = code ? SB_STORAGE + code + '.jpg' : '';
+  const sgpImgUrl = code ? 'https://kings-man.info/stock/item_image/' : '';
+
+  document.getElementById('modalImg').src = imgUrl;
+  document.getElementById('modalImg').onerror = function() {
+    this.style.display = 'none';
   };
-  reader.readAsText(file,'UTF-8');
+  document.getElementById('modalName').textContent = name;
+  document.getElementById('modalMeta').innerHTML =
+    `<div>コード: <b>${code}</b> / 日付: ${date} / ${status}</div>` +
+    `<div>${qty ? qty+'個' : ''} ${cost}</div>` +
+    (notes ? `<div style="margin-top:4px;font-size:11px;color:var(--text2)">${esc(notes)}</div>` : '');
+
+  const dl = document.getElementById('modalDL');
+  if (imgUrl) {
+    dl.href = imgUrl;
+    dl.download = code + '.jpg';
+    dl.style.display = '';
+  } else {
+    dl.style.display = 'none';
+  }
+
+  document.getElementById('modalBg').classList.add('show');
 }
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('show');
+  document.getElementById('modalImg').style.display = '';
+}
+
+// --- Utils ---
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// --- Init ---
+document.addEventListener('DOMContentLoaded', loadOrders);
 </script>
 </body>
 </html>
