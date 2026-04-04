@@ -205,10 +205,10 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <div class="toolbar">
   <input type="text" class="search-input" id="searchInput" placeholder="景品名で検索...">
   <div class="tb-sep"></div>
-  <select class="filter-select" id="supplierFilter" onchange="render()">
+  <select class="filter-select" id="supplierFilter" onchange="resetDisplayCount();render()">
     <option value="">仕入先：全て</option>
   </select>
-  <select class="filter-select" id="statusFilter" onchange="render()">
+  <select class="filter-select" id="statusFilter" onchange="resetDisplayCount();render()">
     <option value="">状態：全て</option>
     <option value="unread">未読</option>
     <option value="interested">興味あり</option>
@@ -295,8 +295,10 @@ let selId=null;
 let editId=null;
 let sortKey='created_at';
 let sortDir='desc';
+const DISPLAY_LIMIT=100;
+let displayCount=DISPLAY_LIMIT;
 
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function fmt(n){return n!=null?Number(n).toLocaleString():'—'}
 function fmtDate(d){if(!d)return'—';const p=String(d).split('T')[0].split('-');return p[0].slice(2)+'.'+p[1]+'.'+p[2]}
 function supName(id){return SUP_NAME[id]||id||'—'}
@@ -358,22 +360,25 @@ function getFiltered(){
   });
   return list;
 }
-function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=key;sortDir=key==='created_at'?'desc':'asc'}render()}
+function setSort(key){if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=key;sortDir=key==='created_at'?'desc':'asc'}resetDisplayCount();render()}
+function resetDisplayCount(){displayCount=DISPLAY_LIMIT}
 function clearFilters(){
   document.getElementById('searchInput').value='';
   document.getElementById('headerSearch').value='';
   document.getElementById('supplierFilter').value='';
   document.getElementById('statusFilter').value='';
-  render();
+  resetDisplayCount();render();
 }
+let _debounce;
+function debouncedRender(){clearTimeout(_debounce);_debounce=setTimeout(()=>{resetDisplayCount();render()},200)}
 document.getElementById('searchInput')?.addEventListener('input',function(){
   const hs=document.getElementById('headerSearch');
   if(hs&&hs.value!==this.value)hs.value=this.value;
-  render();
+  debouncedRender();
 });
 document.getElementById('headerSearch').addEventListener('input',function(){
   document.getElementById('searchInput').value=this.value;
-  render();
+  debouncedRender();
 });
 
 function buildSortBar(){
@@ -396,19 +401,23 @@ function buildSortBar(){
 function toggleSort(key){
   if(sortKey===key)sortDir=sortDir==='asc'?'desc':'asc';
   else{sortKey=key;sortDir=key==='created_at'?'desc':'asc';}
-  render();
+  resetDisplayCount();render();
 }
 
 // ─── RENDER TABLE ───
 function render(){
-  const list=getFiltered();
-  document.getElementById('countBadge').textContent=list.length+'件';
-  renderTable(list);
-  renderMobileList(list);
+  const all=getFiltered();
+  const total=all.length;
+  const list=all.slice(0,displayCount);
+  const hasMore=total>displayCount;
+  document.getElementById('countBadge').textContent=total+'件'+(hasMore?`（${displayCount}件表示中）`:'');
+  renderTable(list,hasMore,total);
+  renderMobileList(list,hasMore,total);
   buildSortBar();
 }
+function showMore(){displayCount+=DISPLAY_LIMIT;render()}
 
-function renderTable(list){
+function renderTable(list,hasMore,total){
   const pane=document.getElementById('listPane');
   if(!list.length){pane.innerHTML='<div class="empty-pane"><div class="empty-icon">📬</div>案内がありません</div>';return}
   pane.innerHTML=`
@@ -426,8 +435,8 @@ function renderTable(list){
 ${list.map(it=>{
   const sel=it.id===selId;
   const hasImg=!!it.image_url;
-  return`<tr class="${sel?'sel':''}" onclick="selectItem(${it.id})">
-  <td>${hasImg?`<img src="${esc(it.image_url)}" style="width:32px;height:32px;border-radius:4px;object-fit:cover">`:'<div style="width:32px;height:32px;border-radius:4px;background:var(--surface2)"></div>'}</td>
+  return`<tr class="${sel?'sel':''}" data-id="${it.id}" onclick="selectItem(${it.id})">
+  <td>${hasImg?`<img src="${esc(it.image_url)}" loading="lazy" style="width:32px;height:32px;border-radius:4px;object-fit:cover">`:'<div style="width:32px;height:32px;border-radius:4px;background:var(--surface2)"></div>'}</td>
   <td style="font-weight:600">${esc(it.prize_name)}</td>
   <td><span class="supplier-tag sup-${it.supplier_id||''}">${supName(it.supplier_id)}</span></td>
   <td class="td-r">${it.unit_cost?fmt(it.unit_cost):'—'}</td>
@@ -435,14 +444,21 @@ ${list.map(it=>{
   <td><span class="badge b-${it.status}">${STATUS_LABEL[it.status]||it.status}</span></td>
   <td style="font-size:11px;color:var(--text2)">${fmtDate(it.created_at)}</td>
 </tr>`}).join('')}
-</tbody></table>`;
+</tbody></table>
+${hasMore?`<div style="padding:16px;text-align:center"><button class="btn btn-ghost" onclick="showMore()" style="width:100%;padding:12px">残り${total-displayCount}件を表示</button></div>`:''}`;
 }
 
 // ─── DETAIL (右パネル常時表示) ───
 function selectItem(id){
+  const prev=selId;
   selId=id;
   renderDetail();
-  render();
+  // CSSクラス切替のみ（テーブル全体の再描画を避ける）
+  const tbody=document.querySelector('tbody');
+  if(tbody){
+    if(prev!=null){const old=tbody.querySelector(`tr[data-id="${prev}"]`);if(old)old.classList.remove('sel')}
+    const cur=tbody.querySelector(`tr[data-id="${id}"]`);if(cur)cur.classList.add('sel');
+  }
 }
 
 function renderDetail(){
@@ -478,12 +494,12 @@ function renderDetail(){
 }
 
 // ─── MOBILE LIST ───
-function renderMobileList(list){
+function renderMobileList(list,hasMore,total){
   const el=document.getElementById('mobileList');
   if(!el)return;
   if(!list.length){el.innerHTML='<div class="empty-pane"><div class="empty-icon">📬</div>案内がありません</div>';return}
   el.innerHTML=list.map(it=>`<div class="mc-item" onclick="openMobileDetail(${it.id})">
-  ${it.image_url?`<img class="mc-thumb" src="${esc(it.image_url)}" onerror="this.style.display='none'">`:''}
+  ${it.image_url?`<img class="mc-thumb" src="${esc(it.image_url)}" loading="lazy" onerror="this.style.display='none'">`:''}
   <div class="mc-body">
     <div class="mc-name">${esc(it.prize_name)}</div>
     <div class="mc-meta">
@@ -494,7 +510,7 @@ function renderMobileList(list){
     </div>
   </div>
   <div style="color:var(--text2);font-size:18px">›</div>
-</div>`).join('');
+</div>`).join('')+(hasMore?`<div style="padding:16px;text-align:center"><button class="btn btn-ghost" onclick="showMore()" style="width:100%;padding:12px">残り${total-displayCount}件を表示</button></div>`:'');
 }
 
 // ─── MOBILE DETAIL (スライドイン) ───
@@ -674,6 +690,7 @@ async function deleteItem(id){
 // ─── ORDER MODAL ───
 function openOrderModal(id){
   const it=ITEMS.find(x=>x.id===id);if(!it)return;
+  if(it.status==='ordered'){showToast('この案内は発注済みです',false);return}
   const today=new Date().toISOString().split('T')[0];
   document.getElementById('orderBody').innerHTML=`
   <div style="padding:12px 16px">
@@ -701,6 +718,7 @@ async function submitOrder(annId){
   const ordDate=document.getElementById('ordDate').value;
   const dest=document.getElementById('ordDest').value.trim();
   if(!qty||qty<1){document.getElementById('ordErr').textContent='数量を入力してください';return}
+  if(qty>9999){document.getElementById('ordErr').textContent='数量は9999以下にしてください';return}
   showLoading();
   try{
     const orderId='ORD-'+String(Date.now()).slice(-6)+'-'+Math.random().toString(36).slice(2,5).toUpperCase();
