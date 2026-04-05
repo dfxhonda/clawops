@@ -53,7 +53,7 @@ export default function EditReading() {
         prize_restock_count: val('prize_restock_count'),
         prize_stock_count: val('prize_stock_count'),
         prize_name: val('prize_name'),
-      })
+      }, { before: original })
       setEditing(null); setOriginal(null)
       await loadReadings()
     } catch (e) {

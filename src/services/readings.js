@@ -88,7 +88,7 @@ export async function saveReading(r) {
   })
 }
 
-export async function updateReading(readingId, r) {
+export async function updateReading(readingId, r, { before, reason } = {}) {
   const { error } = await supabase.from('meter_readings').update({
     in_meter: r.in_meter ? parseFloat(r.in_meter) : null,
     out_meter: r.out_meter ? parseFloat(r.out_meter) : null,
@@ -98,10 +98,18 @@ export async function updateReading(readingId, r) {
   }).eq('reading_id', readingId)
   if (error) throw new Error('メーター更新エラー: ' + error.message)
   clearCache()
+  const parts = [`メーター修正:`]
+  if (before) {
+    parts.push(`IN: ${before.in_meter || '-'}→${r.in_meter || '-'}`)
+    parts.push(`OUT: ${before.out_meter || '-'}→${r.out_meter || '-'}`)
+  } else {
+    parts.push(`IN=${r.in_meter || '-'} OUT=${r.out_meter || '-'}`)
+  }
+  if (reason) parts.push(`理由: ${reason}`)
   writeAuditLog({
     action: 'reading_update',
     target_table: 'meter_readings',
     target_id: readingId,
-    detail: `メーター修正: IN=${r.in_meter || '-'} OUT=${r.out_meter || '-'}`,
+    detail: parts.join(' '),
   })
 }

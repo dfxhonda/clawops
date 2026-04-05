@@ -62,7 +62,7 @@ export async function addStockMovement(mv) {
   return data.movement_id
 }
 
-export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy }) {
+export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy, reason }) {
   const qty = parseInt(quantity)
   if (!Number.isFinite(qty) || qty <= 0) throw new Error(`無効な数量: ${quantity}`)
   quantity = qty
@@ -90,7 +90,7 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
   writeAuditLog({
     action: 'stock_transfer',
     target_table: 'stock_movements',
-    detail: `${prizeName || prizeId} x${quantity}: ${fromOwnerType}/${fromOwnerId} → ${toOwnerType}/${toOwnerId}`,
+    detail: `${prizeName || prizeId} x${quantity}: ${fromOwnerType}/${fromOwnerId} → ${toOwnerType}/${toOwnerId}${reason ? ` 理由: ${reason}` : ''}`,
     staff_id: createdBy,
   })
 
@@ -102,7 +102,7 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
   })
 }
 
-export async function countStock({ prizeId, prizeName, ownerType, ownerId, actualQuantity, note, createdBy }) {
+export async function countStock({ prizeId, prizeName, ownerType, ownerId, actualQuantity, note, createdBy, reason }) {
   const qty = parseInt(actualQuantity)
   if (!Number.isFinite(qty) || qty < 0) throw new Error(`無効な数量: ${actualQuantity}`)
   actualQuantity = qty
@@ -131,7 +131,7 @@ export async function countStock({ prizeId, prizeName, ownerType, ownerId, actua
     action: diff !== 0 ? 'stock_count_adjust' : 'stock_count_match',
     target_table: 'prize_stocks',
     target_id: stock?.stock_id || '',
-    detail: `棚卸し: ${prizeName || prizeId} 理論値${currentQty} → 実数${actualQuantity}${diff !== 0 ? ` (差異${diff > 0 ? '+' : ''}${diff})` : ' (一致)'}`,
+    detail: `棚卸し: ${prizeName || prizeId} 理論値${currentQty} → 実数${actualQuantity}${diff !== 0 ? ` (差異${diff > 0 ? '+' : ''}${diff})` : ' (一致)'}${reason ? ` 理由: ${reason}` : ''}`,
     staff_id: createdBy,
   })
 
