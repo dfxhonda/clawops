@@ -310,6 +310,18 @@ async function handleLogin(){
       access_token:data.session.access_token
     };
     sessionStorage.setItem('clawops_staff',JSON.stringify(currentStaff));
+    // Supabase Auth セッションをlocalStorageに保存（React SPAと共有）
+    const sbProjectRef='gedxzunoyzmvbqgwjalx';
+    localStorage.setItem('sb-'+sbProjectRef+'-auth-token',JSON.stringify({
+      access_token:data.session.access_token,
+      refresh_token:data.session.refresh_token,
+      expires_at:data.session.expires_at,
+      token_type:'bearer',
+      user:{
+        id:'',email:'',
+        user_metadata:{staff_id:data.staff.staff_id,name:data.staff.name,role:data.staff.role}
+      }
+    }));
     msg.className='login-msg ok';msg.textContent='ログイン成功';
     showMenu();
   }catch(e){
