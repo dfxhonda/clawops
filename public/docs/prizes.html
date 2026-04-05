@@ -935,28 +935,28 @@ function renderDetail() {
     <label>正式名称（カンマ区切りで複数可）</label>
     <textarea id="fAliases" rows="2" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirty()" style="resize:vertical">${esc(displayAliases(p.aliases))}</textarea>
   </div>
-  <div class="field">
-    <label>カテゴリ</label>
-    <input type="text" id="fCategory" value="${esc(p.category||'')}" placeholder="例：ぬいぐるみ、フィギュア" oninput="markDirty()">
-  </div>
   <div class="field-row">
     <div class="field">
       <label>現在単価（円）<span class="req">*</span></label>
       <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fCost',-10)">−</button><input type="tel" id="fCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fCost',10)">＋</button></div>
     </div>
     <div class="field">
-      <label>状態</label>
-      <select id="fStatus" onchange="markDirty()">${statusOpts}</select>
+      <label>標準入り数</label>
+      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fQty',-1)">−</button><input type="tel" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fQty',1)">＋</button></div>
     </div>
   </div>
-  <div class="field-row">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div class="field">
+      <label>カテゴリ</label>
+      <input type="text" id="fCategory" value="${esc(p.category||'')}" placeholder="例：ぬいぐるみ" oninput="markDirty()">
+    </div>
     <div class="field">
       <label>仕入先</label>
       <select id="fSupplier" onchange="markDirty()">${suppOpts}</select>
     </div>
     <div class="field">
-      <label>標準入り数</label>
-      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('fQty',-1)">−</button><input type="tel" id="fQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirty()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('fQty',1)">＋</button></div>
+      <label>状態</label>
+      <select id="fStatus" onchange="markDirty()">${statusOpts}</select>
     </div>
   </div>
 </div>
@@ -1386,25 +1386,29 @@ ${!isNewMode ? `<div style="padding:2px 16px 8px;font-size:10px;color:var(--text
     <label>正式名称（カンマ区切りで複数可）</label>
     <textarea id="mfAliases" rows="2" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirtyMobile()" style="resize:vertical">${esc(displayAliases(p.aliases))}</textarea>
   </div>
-  <div class="field">
-    <label>カテゴリ</label>
-    <input type="text" id="mfCategory" value="${esc(p.category||'')}" placeholder="例：ぬいぐるみ、フィギュア" oninput="markDirtyMobile()">
+  <div class="field-row">
+    <div class="field">
+      <label>現在単価（円）<span class="req">*</span></label>
+      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCost',-10)">−</button><input type="tel" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCost',10)">＋</button></div>
+    </div>
+    <div class="field">
+      <label>標準入り数</label>
+      <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfQty',-1)">−</button><input type="tel" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfQty',1)">＋</button></div>
+    </div>
   </div>
-  <div class="field">
-    <label>現在単価（円）<span class="req">*</span></label>
-    <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfCost',-10)">−</button><input type="tel" id="mfCost" value="${p.original_cost!=null?p.original_cost:''}" min="0" placeholder="例：800" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfCost',10)">＋</button></div>
-  </div>
-  <div class="field">
-    <label>仕入先</label>
-    <select id="mfSupplier" onchange="markDirtyMobile()">${suppOpts}</select>
-  </div>
-  <div class="field">
-    <label>状態</label>
-    <select id="mfStatus" onchange="markDirtyMobile()">${statusOpts}</select>
-  </div>
-  <div class="field">
-    <label>標準入り数</label>
-    <div class="stepper"><button type="button" class="stepper-btn minus" onclick="stepVal('mfQty',-1)">−</button><input type="tel" id="mfQty" value="${p.default_case_quantity!=null?p.default_case_quantity:''}" min="1" placeholder="例：12" oninput="markDirtyMobile()" inputmode="numeric" pattern="[0-9]*" style="font-size:16px"><button type="button" class="stepper-btn plus" onclick="stepVal('mfQty',1)">＋</button></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div class="field">
+      <label>カテゴリ</label>
+      <input type="text" id="mfCategory" value="${esc(p.category||'')}" placeholder="例：ぬいぐるみ" oninput="markDirtyMobile()">
+    </div>
+    <div class="field">
+      <label>仕入先</label>
+      <select id="mfSupplier" onchange="markDirtyMobile()">${suppOpts}</select>
+    </div>
+    <div class="field">
+      <label>状態</label>
+      <select id="mfStatus" onchange="markDirtyMobile()">${statusOpts}</select>
+    </div>
   </div>
 </div>
 <div class="md-actions">
