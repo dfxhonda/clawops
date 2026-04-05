@@ -22,7 +22,8 @@ console.log('=== ClawOps v8 Import Pipeline START ===', START_TIME.toISOString()
 
 // === Config ===
 const SUPA_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SUPA_KEY) { console.error('Error: SUPABASE_SERVICE_ROLE_KEY 環境変数が未設定です'); process.exit(1); }
 const supaHeaders = { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' };
 
 const BASE_DIR = 'C:\\Users\\dfx\\clawops\\取込';

@@ -17,3 +17,7 @@ data/imports/*
 
 # アーカイブ（旧取込データ等）
 archive/
+
+# Security
+.env.local.scripts
+*.key

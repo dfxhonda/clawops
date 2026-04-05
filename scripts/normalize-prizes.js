@@ -13,7 +13,8 @@
  */
 
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SB_KEY) { console.error('Error: SUPABASE_SERVICE_ROLE_KEY 環境変数が未設定です'); process.exit(1); }
 
 // ─── ステータス正規化マップ ───────────────────────────────────────────────────
 const STATUS_MAP = {
