@@ -76,7 +76,7 @@ export default function PatrolScan() {
             <h2 className="text-lg font-bold">巡回スキャン</h2>
             <p className="text-xs text-muted">ブースQRコードを読み取り</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>

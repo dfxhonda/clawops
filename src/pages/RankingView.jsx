@@ -83,7 +83,7 @@ export default function RankingView() {
             <h2 className="text-lg font-bold">{state?.storeName}</h2>
             <p className="text-xs text-muted">売上ランキング</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>

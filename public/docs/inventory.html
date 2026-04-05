@@ -183,6 +183,15 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
+
+/* Store/Location selector */
+.store-select-prompt { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:24px; }
+.store-select-prompt .icon { font-size:48px; margin-bottom:12px; }
+.store-select-prompt .msg { font-size:15px; color:var(--text2); margin-bottom:20px; }
+.store-select-grid { display:grid; grid-template-columns:1fr; gap:10px; width:100%; max-width:360px; }
+.store-select-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:left; color:var(--text); font-size:15px; font-weight:700; cursor:pointer; }
+.store-select-btn:active { border-color:var(--accent); }
+.store-select-btn .sub { font-size:11px; color:var(--text2); font-weight:400; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -201,7 +210,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <div class="toolbar">
   <input type="text" class="search-input" id="searchInput" placeholder="景品名で検索...">
   <div class="tb-sep"></div>
-  <select class="filter-select" id="ownerFilter" onchange="applyFilters()">
+  <select class="filter-select" id="ownerFilter" onchange="onOwnerFilterChange()">
     <option value="">場所：全て</option>
   </select>
   <select class="filter-select" id="qtyFilter" onchange="applyFilters()">
@@ -286,27 +295,97 @@ function showLoading(){document.getElementById('loadingOverlay').classList.add('
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show')}
 
 // ─── LOAD ───
-async function loadAll(){
+let _currentOwnerType='', _currentOwnerId='';
+
+async function loadLocations(){
   showLoading();
   try{
-    const[stocks,movements,prizes,locations,staff]=await Promise.all([
-      sbGet('prize_stocks','select=*&order=updated_at.desc'),
-      sbGet('stock_movements','select=*&order=created_at.desc'),
+    const[prizes,locations,staff]=await Promise.all([
       sbGet('prize_masters','select=prize_id,prize_name,original_cost,status&order=prize_name'),
-      sbGet('locations','select=location_id,location_name,location_type&is_active=eq.true&order=location_name'),
+      sbGet('locations','select=location_id,location_name,location_type,parent_location_id&is_active=eq.true&order=location_name'),
       sbGet('staff','select=staff_id,name,has_vehicle_stock&is_active=eq.true&order=name'),
     ]);
-    STOCKS=stocks;MOVEMENTS=movements;
     PRIZES=Object.fromEntries(prizes.map(p=>[p.prize_id,p]));
     LOCATIONS=locations;
     STAFF=staff.filter(s=>s.has_vehicle_stock);
     OWNERS=[...LOCATIONS.map(l=>({type:'location',id:l.location_id,label:l.location_name})),...STAFF.map(s=>({type:'staff',id:s.staff_id,label:s.name+'の車'}))];
     populateFilters();
+    // Check sessionStorage for saved selection
+    const saved=sessionStorage.getItem('clawops_selected_location');
+    if(saved){
+      const[sType,sId]=saved.split(':');
+      const valid=OWNERS.find(o=>o.type===sType&&o.id===sId);
+      if(valid){
+        document.getElementById('ownerFilter').value=saved;
+        filterOwner=saved;
+        await loadOwnerData(sType,sId);
+        return;
+      }
+    }
+    renderLocationSelector();
+  }catch(e){
+    document.getElementById('listPane').innerHTML=`<div class="empty-pane">⚠️ ${esc(e.message)}</div>`;
+    document.getElementById('mobileList').innerHTML=`<div class="empty-pane">⚠️ ${esc(e.message)}</div>`;
+  }finally{hideLoading()}
+}
+
+async function loadOwnerData(ownerType, ownerId){
+  _currentOwnerType=ownerType;_currentOwnerId=ownerId;
+  showLoading();
+  try{
+    const[stocks,movements]=await Promise.all([
+      sbGet('prize_stocks',`select=*&order=updated_at.desc&owner_type=eq.${encodeURIComponent(ownerType)}&owner_id=eq.${encodeURIComponent(ownerId)}`),
+      sbGet('stock_movements',`select=*&order=created_at.desc&or=(from_owner_id.eq.${encodeURIComponent(ownerId)},to_owner_id.eq.${encodeURIComponent(ownerId)})`),
+    ]);
+    STOCKS=stocks;MOVEMENTS=movements;
     render();
     if(selStockId)renderDetail();
   }catch(e){
     document.getElementById('listPane').innerHTML=`<div class="empty-pane">⚠️ ${esc(e.message)}</div>`;
+    document.getElementById('mobileList').innerHTML=`<div class="empty-pane">⚠️ ${esc(e.message)}</div>`;
   }finally{hideLoading()}
+}
+
+function renderLocationSelector(){
+  // Hide count/total badges until data loaded
+  document.getElementById('countBadge').textContent='';
+  document.getElementById('totalBadge').textContent='';
+  let html='<div class="store-select-prompt"><div class="icon">📍</div><div class="msg">場所を選択してください</div><div class="store-select-grid">';
+  LOCATIONS.forEach(loc=>{
+    const indent=loc.parent_location_id?'　└ ':'';
+    html+=`<button class="store-select-btn" onclick="selectLocation('location','${loc.location_id}')">${indent}${esc(loc.location_name)}</button>`;
+  });
+  if(STAFF&&STAFF.length>0){
+    html+='</div><div class="msg" style="margin-top:24px">または担当者</div><div class="store-select-grid">';
+    STAFF.forEach(s=>{
+      html+=`<button class="store-select-btn" onclick="selectLocation('staff','${esc(s.staff_id)}')">${esc(s.name)}の車</button>`;
+    });
+  }
+  html+='</div></div>';
+  document.getElementById('listPane').innerHTML=html;
+  document.getElementById('mobileList').innerHTML=html;
+}
+
+function selectLocation(type, id){
+  sessionStorage.setItem('clawops_selected_location',type+':'+id);
+  document.getElementById('ownerFilter').value=type+':'+id;
+  filterOwner=type+':'+id;
+  loadOwnerData(type,id);
+}
+
+function onOwnerFilterChange(){
+  const val=document.getElementById('ownerFilter').value;
+  if(!val){
+    // "全て" selected → show location selector
+    sessionStorage.removeItem('clawops_selected_location');
+    _currentOwnerType='';_currentOwnerId='';
+    filterOwner='';
+    STOCKS=[];MOVEMENTS=[];
+    renderLocationSelector();
+    return;
+  }
+  const[type,id]=val.split(':');
+  selectLocation(type,id);
 }
 
 function populateFilters(){
@@ -346,12 +425,14 @@ function applyFilters(){
   render();
 }
 function clearFilters(){
-  curSearch='';filterOwner='';filterQty='';
+  curSearch='';filterQty='';
   document.getElementById('searchInput').value='';
   document.getElementById('headerSearch').value='';
-  document.getElementById('ownerFilter').value='';
   document.getElementById('qtyFilter').value='';
-  render();
+  // Keep current location selection, only clear search/qty filters
+  if(_currentOwnerType&&_currentOwnerId){
+    render();
+  }
 }
 document.getElementById('searchInput').addEventListener('input',e=>{
   curSearch=e.target.value.toLowerCase().trim();
@@ -473,7 +554,7 @@ function renderDetail(){
     <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">最近の移動履歴</div>
     ${mvs.length?mvs.slice(0,10).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
       <div><span style="color:var(--cyan);font-weight:600">${esc(m.movement_type)}</span> <strong>${m.quantity}個</strong></div>
-      <div style="color:var(--text2)">${ownerLabel(m.from_owner_type,m.from_owner_id)} → ${ownerLabel(m.to_owner_type,m.to_owner_id)}</div>
+      <div style="color:var(--text2)">${esc(ownerLabel(m.from_owner_type,m.from_owner_id))} → ${esc(ownerLabel(m.to_owner_type,m.to_owner_id))}</div>
       ${m.note?`<div style="color:var(--text2);font-size:11px;margin-top:2px">${esc(m.note)}</div>`:''}
       <div style="color:var(--text2);font-size:11px;text-align:right">${fmtDate(m.created_at)}</div>
     </div>`).join(''):'<div style="padding:16px 0;color:var(--text2);text-align:center">履歴なし</div>'}
@@ -538,7 +619,7 @@ function openMobileDetail(id){
     <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">最近の移動履歴</div>
     ${mvs.length?mvs.slice(0,10).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
       <div><span style="color:var(--cyan);font-weight:600">${esc(m.movement_type)}</span> <strong>${m.quantity}個</strong></div>
-      <div style="color:var(--text2)">${ownerLabel(m.from_owner_type,m.from_owner_id)} → ${ownerLabel(m.to_owner_type,m.to_owner_id)} | ${fmtDate(m.created_at)}</div>
+      <div style="color:var(--text2)">${esc(ownerLabel(m.from_owner_type,m.from_owner_id))} → ${esc(ownerLabel(m.to_owner_type,m.to_owner_id))} | ${fmtDate(m.created_at)}</div>
       ${m.note?`<div style="color:var(--text2);font-size:11px">${esc(m.note)}</div>`:''}
     </div>`).join(''):'<div style="padding:16px 0;color:var(--text2);text-align:center">履歴なし</div>'}
   </div>`;
@@ -610,7 +691,7 @@ async function submitMovement(){
     if(toType&&toId) await upsertStock(prizeId,toType,toId,qty);
     closeMovement();closeMobileDetail();
     showToast('登録しました');
-    await loadAll();
+    if(_currentOwnerType&&_currentOwnerId) await loadOwnerData(_currentOwnerType,_currentOwnerId);
   }catch(e){errEl.textContent='エラー: '+e.message}finally{hideLoading()}
 }
 
@@ -656,7 +737,7 @@ async function submitAdjust(stockId){
     await sbPatch('prize_stocks',stockId,'stock_id',{quantity:newQty,updated_at:new Date().toISOString(),updated_by:getStaffId()});
     closeMovement();closeMobileDetail();
     showToast('数量を修正しました');
-    await loadAll();
+    if(_currentOwnerType&&_currentOwnerId) await loadOwnerData(_currentOwnerType,_currentOwnerId);
   }catch(e){errEl.textContent='エラー: '+e.message}finally{hideLoading()}
 }
 
@@ -673,7 +754,7 @@ function stepVal(inputId, delta) {
 }
 
 // ─── INIT ───
-loadAll();
+loadLocations();
 </script>
 </body>
 </html>

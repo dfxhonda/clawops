@@ -77,7 +77,7 @@ export default function DraftList() {
             <h2 className="text-lg font-bold">下書き一覧</h2>
             <p className="text-xs text-muted">{drafts.length}件の未保存データ</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
@@ -103,22 +103,22 @@ export default function DraftList() {
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
                   <div className="text-xs text-muted mb-1">INメーター</div>
-                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.in_meter||''}
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" inputMode="numeric" value={editing.in_meter||''}
                     onChange={e => setEditing({...editing,in_meter:e.target.value})} />
                 </div>
                 <div>
                   <div className="text-xs text-muted mb-1">OUTメーター</div>
-                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.out_meter||''}
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" inputMode="numeric" value={editing.out_meter||''}
                     onChange={e => setEditing({...editing,out_meter:e.target.value})} />
                 </div>
                 <div>
                   <div className="text-xs text-muted mb-1">景品補充数</div>
-                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.prize_restock_count||''}
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" inputMode="numeric" value={editing.prize_restock_count||''}
                     onChange={e => setEditing({...editing,prize_restock_count:e.target.value})} />
                 </div>
                 <div>
                   <div className="text-xs text-muted mb-1">景品投入残</div>
-                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" value={editing.prize_stock_count||''}
+                  <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text text-lg outline-none focus:border-accent" type="number" inputMode="numeric" value={editing.prize_stock_count||''}
                     onChange={e => setEditing({...editing,prize_stock_count:e.target.value})} />
                 </div>
               </div>

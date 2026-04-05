@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>画像マッチング | ClawOps</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;
+  --text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;
+  --green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--cyan:#00b4d8;--orange:#e67e22;
+  --radius:8px;--nav-h:58px;--header-h:56px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
+
+header{
+  position:sticky;top:0;z-index:100;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  padding:8px 12px;display:flex;align-items:center;gap:8px;
+  height:var(--header-h);
+}
+.header-title{font-size:17px;font-weight:700;flex:1}
+.header-count{font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 10px}
+
+.container{max-width:900px;margin:0 auto;padding:12px;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 80px)}
+
+/* Drop zone */
+.drop-zone{
+  border:2px dashed var(--border);border-radius:var(--radius);padding:32px;
+  text-align:center;cursor:pointer;transition:border-color .2s;
+  min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.drop-zone.active{border-color:var(--accent)}
+.drop-zone .icon{font-size:48px;margin-bottom:8px}
+.drop-zone .msg{font-size:14px;color:var(--text2)}
+.drop-zone .sub{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* Preview */
+.preview-area{display:none;margin-bottom:12px}
+.preview-area.show{display:block}
+.preview-img{width:100%;max-height:400px;object-fit:contain;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)}
+.preview-name{font-size:13px;color:var(--text2);margin-top:6px;text-align:center}
+
+/* Search */
+.search-section{margin-top:12px}
+.search-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:10px 12px;border-radius:var(--radius);font-size:14px;outline:none;
+}
+.search-input:focus{border-color:var(--accent)}
+
+/* Prize list */
+.prize-list{margin-top:8px;max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
+.prize-item{
+  padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;gap:10px;transition:background .15s;
+}
+.prize-item:last-child{border-bottom:none}
+.prize-item:hover,.prize-item:active{background:var(--surface2)}
+.prize-item.selected{background:var(--accent2);border-color:var(--accent)}
+.prize-item .thumb{width:40px;height:40px;border-radius:4px;object-fit:cover;background:var(--surface2);flex-shrink:0}
+.prize-item .thumb-empty{width:40px;height:40px;border-radius:4px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);flex-shrink:0}
+.prize-item .info{flex:1;min-width:0}
+.prize-item .name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prize-item .meta{font-size:10px;color:var(--text2);margin-top:2px}
+.prize-item .has-img{font-size:9px;color:var(--green)}
+
+/* Match button */
+.match-bar{
+  position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));left:0;right:0;
+  padding:12px;background:var(--surface);border-top:1px solid var(--border);z-index:100;
+  display:none;
+}
+.match-bar.show{display:block}
+.match-bar .selected-info{font-size:12px;color:var(--text2);margin-bottom:8px;text-align:center}
+.match-btn{
+  width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;
+  cursor:pointer;background:var(--accent);color:#fff;
+}
+.match-btn:disabled{opacity:.4;cursor:default}
+
+/* Stats */
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+.stat .val{font-size:20px;font-weight:800;color:var(--accent)}
+.stat .label{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* Toast */
+.toast{position:fixed;top:calc(var(--header-h)+12px);right:16px;padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;z-index:400;display:none;animation:fadeIn .2s ease}
+.toast.ok{background:var(--surface);border:1px solid var(--green);color:var(--green)}
+.toast.err{background:var(--surface);border:1px solid var(--red);color:var(--red)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2);gap:8px}
+.spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:4px;margin-bottom:8px}
+.filter-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer}
+.filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Multi-file nav */
+.file-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.file-nav button{padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer}
+.file-nav button:disabled{opacity:.3;cursor:default}
+.file-nav .counter{font-size:12px;color:var(--text2);flex:1;text-align:center}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
+  <span class="header-title">🖼️ 画像マッチング</span>
+  <span class="header-count" id="countBadge">読込中…</span>
+  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
+</header>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat"><div class="val" id="statTotal">-</div><div class="label">画像なし景品</div></div>
+    <div class="stat"><div class="val" id="statMatched">0</div><div class="label">今回マッチ</div></div>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📸</div>
+    <div class="msg">画像をドラッグ&ドロップ、またはタップして選択</div>
+    <div class="sub">複数ファイル選択可</div>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+  </div>
+
+  <!-- File navigation (for multiple files) -->
+  <div class="file-nav" id="fileNav" style="display:none">
+    <button onclick="prevFile()">← 前</button>
+    <span class="counter" id="fileCounter">1 / 1</span>
+    <button onclick="nextFile()">次 →</button>
+    <button onclick="skipFile()" style="color:var(--red);font-size:11px">🗑 スキップ</button>
+    <button onclick="document.getElementById('fileInput').click()" style="margin-left:auto;font-size:11px">📁 追加</button>
+  </div>
+
+  <!-- Image Preview -->
+  <div class="preview-area" id="previewArea">
+    <img id="previewImg" class="preview-img">
+    <div class="preview-name" id="previewName"></div>
+  </div>
+
+  <!-- Search & List -->
+  <div class="search-section" id="searchSection" style="display:none">
+    <input type="search" class="search-input" id="searchInput" placeholder="🔍 景品名で検索..." autocomplete="off" oninput="renderList()">
+    <div class="filter-tabs" style="margin-top:8px">
+      <button class="filter-tab active" onclick="setFilter('noimg')" id="tabNoImg">画像なし</button>
+      <button class="filter-tab" onclick="setFilter('all')" id="tabAll">すべて</button>
+    </div>
+    <div class="prize-list" id="prizeList"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+  </div>
+</div>
+
+<!-- Match confirm bar -->
+<div class="match-bar" id="matchBar">
+  <div class="selected-info" id="selectedInfo">景品を選択してください</div>
+  <button class="match-btn" id="matchBtn" disabled onclick="doMatch()">マッチ確定</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl"></div>
+
+<!-- Spinner overlay -->
+<div id="spinnerOverlay" style="display:none" class="spinner-overlay"><div class="spinner"></div></div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div><div>ホーム</div></a>
+  <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
+  <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
+  <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
+  <a class="nav-item" href="announcements.html"><div class="nav-icon">📬</div><div>案内</div></a>
+  <a class="nav-item" href="admin.html"><div class="nav-icon">⚙️</div><div>管理</div></a>
+</nav>
+
+<script>
+const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SB_STORAGE='https://gedxzunoyzmvbqgwjalx.supabase.co/storage/v1/object';
+
+async function sbGet(t,p=''){let a=[],o=0;while(true){const r=await fetch(SB_URL+'/'+t+'?'+p+'&limit=1000&offset='+o,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());const d=await r.json();a=a.concat(d);if(d.length<1000)break;o+=1000}return a}
+async function sbPatch(t,id,col,b){const r=await fetch(SB_URL+'/'+t+'?'+col+'=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/'/g,'&#39;')}
+
+let allPrizes=[], files=[], currentFileIdx=0, selectedPrizeId=null, matchedCount=0, filterMode='noimg', cacheBust=Date.now();
+
+// ─── INIT ───
+async function init(){
+  try{
+    allPrizes=await sbGet('prize_masters','select=prize_id,prize_name,image_url,original_cost,supplier_name&order=prize_name');
+    const noImg=allPrizes.filter(p=>!p.image_url);
+    document.getElementById('countBadge').textContent=`${noImg.length}件 画像なし`;
+    document.getElementById('statTotal').textContent=noImg.length;
+  }catch(e){
+    document.getElementById('countBadge').textContent='エラー';
+    showToast('読込エラー: '+e.message,false);
+  }
+}
+
+// ─── FILE HANDLING ───
+const dz=document.getElementById('dropZone');
+const fi=document.getElementById('fileInput');
+
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('active')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('active'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('active');addFiles(e.dataTransfer.files)});
+fi.addEventListener('change',e=>{addFiles(e.target.files);fi.value=''});
+
+function addFiles(fileList){
+  const newFiles=[...fileList].filter(f=>f.type.startsWith('image/'));
+  if(!newFiles.length)return;
+  files=files.concat(newFiles);
+  currentFileIdx=files.length-newFiles.length;
+  showCurrentFile();
+}
+
+function showCurrentFile(){
+  if(!files.length)return;
+  const f=files[currentFileIdx];
+  const preview=document.getElementById('previewArea');
+  const img=document.getElementById('previewImg');
+  const name=document.getElementById('previewName');
+  const nav=document.getElementById('fileNav');
+  const search=document.getElementById('searchSection');
+
+  if(img.src&&img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);
+  img.src=URL.createObjectURL(f);
+  name.textContent=f.name;
+  preview.classList.add('show');
+  nav.style.display='flex';
+  search.style.display='block';
+  dz.style.display='none';
+
+  document.getElementById('fileCounter').textContent=`${currentFileIdx+1} / ${files.length}`;
+  nav.querySelectorAll('button')[0].disabled=currentFileIdx===0;
+  nav.querySelectorAll('button')[1].disabled=currentFileIdx>=files.length-1;
+
+  // Clear selection
+  selectedPrizeId=null;
+  updateMatchBar();
+  renderList();
+}
+
+function prevFile(){if(currentFileIdx>0){currentFileIdx--;showCurrentFile()}}
+function nextFile(){if(currentFileIdx<files.length-1){currentFileIdx++;showCurrentFile()}}
+
+// ─── PRIZE LIST ───
+function setFilter(mode){
+  filterMode=mode;
+  document.getElementById('tabNoImg').classList.toggle('active',mode==='noimg');
+  document.getElementById('tabAll').classList.toggle('active',mode==='all');
+  renderList();
+}
+
+function renderList(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  let list=allPrizes;
+  if(filterMode==='noimg') list=list.filter(p=>!p.image_url);
+  if(q) list=list.filter(p=>(p.prize_name||'').toLowerCase().includes(q)||(p.supplier_name||'').toLowerCase().includes(q));
+  list=list.slice(0,100);
+
+  const el=document.getElementById('prizeList');
+  if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">該当なし</div>';return}
+
+  el.innerHTML=list.map(p=>{
+    const sel=p.prize_id===selectedPrizeId?' selected':'';
+    const imgHtml=p.image_url
+      ?`<img class="thumb" src="${SB_STORAGE}/public/announcements/${esc(p.image_url)}?t=${cacheBust}" loading="lazy" onerror="this.style.display='none'">`
+      :`<div class="thumb-empty">📷</div>`;
+    const cost=p.original_cost?`¥${Number(p.original_cost).toLocaleString()}`:'';
+    const supplier=p.supplier_name?` / ${esc(p.supplier_name)}`:'';
+    const hasImg=p.image_url?`<span class="has-img">画像あり</span>`:'';
+    return `<div class="prize-item${sel}" onclick="selectPrize('${esc(p.prize_id)}')">
+      ${imgHtml}
+      <div class="info">
+        <div class="name">${esc(p.prize_name)}</div>
+        <div class="meta">${esc(p.prize_id)} ${cost}${supplier} ${hasImg}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectPrize(id){
+  selectedPrizeId=id;
+  const el=document.getElementById('prizeList');
+  const scrollY=el.scrollTop;
+  renderList();
+  el.scrollTop=scrollY;
+  updateMatchBar();
+}
+
+function updateMatchBar(){
+  const bar=document.getElementById('matchBar');
+  const btn=document.getElementById('matchBtn');
+  const info=document.getElementById('selectedInfo');
+  if(!files.length){bar.classList.remove('show');return}
+  bar.classList.add('show');
+  if(selectedPrizeId){
+    const p=allPrizes.find(x=>x.prize_id===selectedPrizeId);
+    info.textContent=p?`${p.prize_name} (${p.prize_id})`:selectedPrizeId;
+    btn.disabled=false;
+  }else{
+    info.textContent='↑ リストから景品を選択してください';
+    btn.disabled=true;
+  }
+}
+
+// ─── IMAGE RESIZE ───
+function resizeImage(file, maxSide=1200, quality=0.8){
+  return new Promise((resolve,reject)=>{
+    if(!file.type.startsWith('image/')){reject(new Error('画像ファイルを選択'));return}
+    if(file.size>20*1024*1024){reject(new Error('ファイルサイズが大きすぎます（上限20MB）'));return}
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(img.src);
+      let w=img.width,h=img.height;
+      if(w>maxSide||h>maxSide){
+        if(w>h){h=Math.round(h*maxSide/w);w=maxSide}
+        else{w=Math.round(w*maxSide/h);h=maxSide}
+      }
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      c.toBlob(b=>b?resolve(b):reject(new Error('変換失敗')),'image/jpeg',quality);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(img.src);reject(new Error('読込失敗'))};
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+// ─── MATCH & UPLOAD ───
+let matching=false;
+async function doMatch(){
+  if(matching||!selectedPrizeId||!files[currentFileIdx])return;
+  matching=true;
+  const file=files[currentFileIdx];
+  const prizeId=selectedPrizeId;
+  document.getElementById('matchBtn').disabled=true;
+  document.getElementById('spinnerOverlay').style.display='flex';
+  try{
+    const blob=await resizeImage(file);
+    const path=`manual/${encodeURIComponent(prizeId)}.jpg`;
+    const res=await fetch(`${SB_STORAGE}/announcements/${path}`,{
+      method:'PUT',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'image/jpeg','x-upsert':'true'},
+      body:blob
+    });
+    if(!res.ok)throw new Error('アップロード失敗');
+
+    await sbPatch('prize_masters',prizeId,'prize_id',{image_url:path,updated_at:new Date().toISOString()});
+
+    // Update local data
+    cacheBust=Date.now();
+    const p=allPrizes.find(x=>x.prize_id===prizeId);
+    if(p)p.image_url=`manual/${prizeId}.jpg`;
+    matchedCount++;
+    document.getElementById('statMatched').textContent=matchedCount;
+    const noImg=allPrizes.filter(x=>!x.image_url);
+    document.getElementById('statTotal').textContent=noImg.length;
+
+    showToast(`${p?p.prize_name:prizeId} に画像を設定しました`,true);
+
+    // Auto-advance to next file
+    files.splice(currentFileIdx,1);
+    if(files.length===0){
+      // All done
+      document.getElementById('previewArea').classList.remove('show');
+      document.getElementById('fileNav').style.display='none';
+      document.getElementById('searchSection').style.display='none';
+      document.getElementById('matchBar').classList.remove('show');
+      dz.style.display='flex';
+      selectedPrizeId=null;
+    }else{
+      if(currentFileIdx>=files.length)currentFileIdx=files.length-1;
+      selectedPrizeId=null;
+      showCurrentFile();
+    }
+  }catch(e){
+    showToast('エラー: '+e.message,false);
+  }
+  document.getElementById('spinnerOverlay').style.display='none';
+  matching=false;
+}
+
+// ─── SKIP ───
+// Skip current image without matching
+function skipFile(){
+  if(!files.length)return;
+  files.splice(currentFileIdx,1);
+  if(files.length===0){
+    document.getElementById('previewArea').classList.remove('show');
+    document.getElementById('fileNav').style.display='none';
+    document.getElementById('searchSection').style.display='none';
+    document.getElementById('matchBar').classList.remove('show');
+    dz.style.display='flex';
+    selectedPrizeId=null;
+  }else{
+    if(currentFileIdx>=files.length)currentFileIdx=files.length-1;
+    selectedPrizeId=null;
+    showCurrentFile();
+  }
+}
+
+// ─── TOAST ───
+let toastTimer;
+function showToast(msg,ok=true){
+  const el=document.getElementById('toastEl');
+  el.textContent=msg;
+  el.className='toast '+(ok?'ok':'err');
+  el.style.display='block';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{el.style.display='none'},3000);
+}
+
+init();
+</script>
+</body>
+</html>

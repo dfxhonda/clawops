@@ -223,7 +223,7 @@ export default function MainInput() {
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto mb-3" />
+        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
         <p className="text-muted text-sm">読み込み中...</p>
       </div>
     </div>
@@ -254,7 +254,7 @@ export default function MainInput() {
           <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
             className="bg-surface2 border border-border text-text text-xs px-1.5 py-1.5 rounded-lg [color-scheme:dark] w-[115px]" />
           <div className="flex items-center gap-1 ml-auto">
-            <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+            <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
               className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
             <button onClick={() => {
                 const mid = machines[0]?.machine_id

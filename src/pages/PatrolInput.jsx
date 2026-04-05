@@ -118,7 +118,7 @@ export default function PatrolInput() {
             <h2 className="text-lg font-bold text-accent">{booth.full_booth_code}</h2>
             <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName || booth.booth_code}</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function PatrolInput() {
                 INメーター *
                 {!inMeter && latestIn !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
               </div>
-              <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number"
+              <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
                 placeholder={latestIn!==null?String(latestIn):'0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
               {inDiff !== null && (
                 <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${inAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
@@ -207,7 +207,7 @@ export default function PatrolInput() {
                 OUTメーター
                 {!outMeter && latestOut !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
               </div>
-              <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number"
+              <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
                 placeholder={latestOut!==null?String(latestOut):'0000000'} value={outMeter} onChange={e => setOutMeter(e.target.value)} />
               {outDiff !== null && (
                 <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
@@ -221,11 +221,11 @@ export default function PatrolInput() {
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div>
                 <div className="text-xs text-muted mb-1">景品補充数</div>
-                <input className={inputCls} type="number" placeholder="0" value={prizeRestock} onChange={e => setPrizeRestock(e.target.value)} />
+                <input className={inputCls} type="number" inputMode="numeric" placeholder="0" value={prizeRestock} onChange={e => setPrizeRestock(e.target.value)} />
               </div>
               <div>
                 <div className="text-xs text-muted mb-1">景品投入残</div>
-                <input className={inputCls} type="number" placeholder="0" value={prizeStock} onChange={e => setPrizeStock(e.target.value)} />
+                <input className={inputCls} type="number" inputMode="numeric" placeholder="0" value={prizeStock} onChange={e => setPrizeStock(e.target.value)} />
               </div>
             </div>
             <div className="mb-4">

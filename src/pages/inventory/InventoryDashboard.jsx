@@ -47,7 +47,7 @@ export default function InventoryDashboard() {
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => navigate('/')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">📦 棚卸し管理</h1>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>

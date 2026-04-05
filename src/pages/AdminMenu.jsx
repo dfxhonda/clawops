@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom'
-import { clearToken, getToken } from '../services/sheets'
 
 const DOCS_BASE = '/docs/'
 
@@ -19,6 +18,7 @@ const SECTIONS = [
       { icon: '📋', title: '発注管理', desc: '発注履歴・入荷チェック', href: DOCS_BASE + 'orders.html' },
       { icon: '📦', title: '在庫管理', desc: '在庫検索・移動記録', href: DOCS_BASE + 'inventory.html' },
       { icon: '📬', title: '景品案内', desc: '仕入先からの新商品案内', href: DOCS_BASE + 'announcements.html' },
+      { icon: '🖼️', title: '画像マッチング', desc: '景品写真と景品マスタの手動紐付け', href: DOCS_BASE + 'image-match.html' },
       { icon: '⚙️', title: 'マスタ管理・ツール', desc: '店舗・機械・Excel出力', href: DOCS_BASE + 'admin.html' },
     ]
   },
@@ -40,7 +40,7 @@ export default function AdminMenu() {
     <div className="min-h-screen pb-16">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between">
         <div className="text-base font-bold">メニュー</div>
-        <button onClick={() => { clearToken(); navigate('/login') }}
+        <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
           className="text-xs text-muted hover:text-accent2 transition-colors">
           ログアウト
         </button>

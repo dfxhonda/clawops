@@ -108,3 +108,8 @@ curl -d "作業が完了しました" ntfy.sh/clawops-hiro-0328
 - **Simplicity First**: 変更は可能な限りシンプルに。影響するコードを最小限に
 - **No Laziness**: 根本原因を見つける。一時しのぎ禁止。シニア開発者水準で
 - **Minimal Impact**: 変更は必要な箇所だけ触る。バグを持ち込まない
+
+## 添付ファイル置き場
+- `docs/lists/`   — 設置希望リスト等のスキャン画像
+- `docs/photos/`  — 現調写真
+- `docs/images/`  — その他画像

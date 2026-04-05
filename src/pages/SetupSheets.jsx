@@ -247,7 +247,7 @@ export default function SetupSheets() {
       )}
 
       {done && (
-        <button onClick={() => navigate('/admin/prizes')}
+        <button onClick={() => { window.location.href = '/docs/prizes.html' }}
           className="w-full bg-accent3 text-black font-bold rounded-xl py-3 text-sm mb-4">
           景品管理へ移動
         </button>

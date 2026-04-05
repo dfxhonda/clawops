@@ -35,7 +35,7 @@ export default function Login() {
     // スタッフ一覧取得
     supabase.from('staff').select('staff_id, name, pin').eq('is_active', true).order('name')
       .then(({ data, error: err }) => {
-        if (err) setError('サーバーに接続できません。通信状態を確認してください。')
+        if (err) { setError('サーバーに接続できません。通信状態を確認してください。'); setLoading(false); return }
         setStaff(data || []); setLoading(false)
       })
       .catch(() => { setError('サーバーに接続できません'); setLoading(false) })
@@ -56,7 +56,7 @@ export default function Login() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full" />
+      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
     </div>
   )
 

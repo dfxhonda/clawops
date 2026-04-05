@@ -9,12 +9,12 @@
 <title>集金帳票 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--green:#2ecc71;--red:#e74c3c;--radius:6px}
-body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN',-apple-system,sans-serif;font-size:13px}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--cyan:#00b4d8;--orange:#e67e22;--radius:8px;--nav-h:58px;--header-h:56px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:13px}
 .header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px}
-.header h1{font-size:15px;flex:1}
+.header h1{font-size:17px;flex:1}
 .btn{padding:5px 10px;border-radius:var(--radius);font-size:11px;font-weight:700;border:none;cursor:pointer}
-.container{max-width:700px;margin:0 auto;padding:8px 12px}
+.container{max-width:700px;margin:0 auto;padding:8px 12px;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px)}
 .filters{display:flex;gap:8px;margin-bottom:10px;align-items:center}
 .filters select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:var(--radius);font-size:12px}
 
@@ -48,8 +48,15 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
 
 .history-section{margin-top:12px}
 .history-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px;margin-bottom:4px;font-size:11px}
+.store-select-prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:24px}
+.store-select-prompt .icon{font-size:48px;margin-bottom:12px}
+.store-select-prompt .msg{font-size:15px;color:var(--text2);margin-bottom:20px}
+.store-select-grid{display:grid;grid-template-columns:1fr;gap:10px;width:100%;max-width:360px}
+.store-select-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:left;color:var(--text);font-size:15px;font-weight:700;cursor:pointer}
+.store-select-btn:active{border-color:var(--accent)}
+.store-select-btn .sub{font-size:11px;color:var(--text2);font-weight:400;margin-top:2px}
 .loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2)}
-.spinner{width:20px;height:20px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media print{
@@ -64,18 +71,23 @@ body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic Pr
   :root{--surface:#fff;--surface2:#f5f5f5;--border:#bbb;--text:#000;--text2:#666}
   .slip .amt-cell input,.slip .note-cell input{color:#000}
 }
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
 </style>
 </head>
 <body>
 <div class="header no-print">
-  <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;border:1px solid var(--border);text-decoration:none;flex-shrink:0">‹</a>
+  <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <h1>💰 集金帳票</h1>
   <button class="btn" style="background:var(--green);color:#fff" onclick="window.print()">🖨️ PDF</button>
-  <button class="btn" style="background:#00b4d8;color:#fff" onclick="generateReport()">📤 報告</button>
+  <button class="btn" style="background:var(--cyan);color:#fff" onclick="generateReport()">📤 報告</button>
+  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:auto">ログアウト</button>
 </div>
 <div class="container">
   <div class="filters no-print">
-    <select id="storeFilter" onchange="render()"></select>
+    <select id="storeFilter" onchange="selectStore(this.value)"><option value="">-- 店舗を選択 --</option></select>
     <span style="font-size:10px;color:var(--text2)" id="prevInfo"></span>
   </div>
   <div id="content"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
@@ -93,24 +105,72 @@ function fmt(n){return n!=null?Number(n).toLocaleString():''}
 function fmtYen(n){return n!=null?'¥'+Number(n).toLocaleString():''}
 
 let allReadings=[], storeMap={}, machinesData=[], boothsData=[], billingEvents=[], allSnapshots=[];
+let storeList=[];
 
-async function loadAll(){
-  const [readings, stores, machines, booths, events, snapshots] = await Promise.all([
-    sbGet('meter_readings','select=booth_id,read_time,in_meter,out_meter,prize_name&order=read_time.asc'),
+async function loadStores(){
+  const [stores, machines] = await Promise.all([
     sbGet('stores','select=store_code,store_name&is_active=eq.true&order=store_name'),
-    sbGet('machines','select=machine_code,store_code,machine_name,machine_number,billing_order,play_price&is_active=eq.true&order=billing_order,machine_code'),
-    sbGet('booths','select=booth_code,machine_code,booth_number,booth_label,play_price&is_active=eq.true&order=booth_number'),
-    sbGet('billing_events','select=*&order=billing_date.desc'),
-    sbGet('billing_snapshots','select=*'),
+    sbGet('machines','select=machine_code,store_code&is_active=eq.true'),
   ]);
-  allReadings=readings; billingEvents=events; allSnapshots=snapshots;
-  machinesData=machines; boothsData=booths;
   storeMap=Object.fromEntries(stores.map(s=>[s.store_code,s.store_name]));
-
   const storeCodes=[...new Set(machines.map(m=>m.store_code))].sort();
+  storeList=storeCodes.map(sc=>({code:sc,name:storeMap[sc]||sc}));
+
   const sel=document.getElementById('storeFilter');
-  storeCodes.forEach(sc=>{const o=document.createElement('option');o.value=sc;o.textContent=storeMap[sc]||sc;sel.appendChild(o)});
+  storeList.forEach(s=>{const o=document.createElement('option');o.value=s.code;o.textContent=s.name;sel.appendChild(o)});
+
+  const saved=sessionStorage.getItem('clawops_selected_store');
+  if(saved&&storeCodes.includes(saved)){
+    sel.value=saved;
+    await loadStoreData(saved);
+  }else{
+    renderStoreSelector();
+  }
+}
+
+async function loadStoreData(storeCode){
+  document.getElementById('content').innerHTML='<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  const machines=await sbGet('machines','select=machine_code,store_code,machine_name,machine_number,billing_order,play_price&is_active=eq.true&store_code=eq.'+encodeURIComponent(storeCode)+'&order=billing_order,machine_code');
+  machinesData=machines;
+  const machineCodes=machines.map(m=>m.machine_code);
+  if(machineCodes.length===0){boothsData=[];allReadings=[];billingEvents=[];allSnapshots=[];render();return}
+
+  const boothsParam='machine_code=in.('+machineCodes.join(',')+')';
+  const booths=await sbGet('booths','select=booth_code,machine_code,booth_number,booth_label,play_price&is_active=eq.true&'+boothsParam+'&order=booth_number');
+  boothsData=booths;
+  const boothIds=booths.map(b=>b.booth_code);
+
+  const fetches=[
+    sbGet('billing_events','select=*&store_code=eq.'+encodeURIComponent(storeCode)+'&order=billing_date.desc'),
+  ];
+  if(boothIds.length>0){
+    const readingsParam='booth_id=in.('+boothIds.join(',')+')';
+    fetches.push(sbGet('meter_readings','select=booth_id,read_time,in_meter,out_meter,prize_name&'+readingsParam+'&order=read_time.asc'));
+    fetches.push(sbGet('billing_snapshots','select=*&booth_id=in.('+boothIds.join(',')+')'));
+  }else{
+    fetches.push(Promise.resolve([]));
+    fetches.push(Promise.resolve([]));
+  }
+  const [events, readings, snapshots]=await Promise.all(fetches);
+  billingEvents=events; allReadings=readings; allSnapshots=snapshots;
   render();
+}
+
+function renderStoreSelector(){
+  document.getElementById('content').innerHTML=`<div class="store-select-prompt">
+    <div class="icon">🏪</div>
+    <div class="msg">集金する店舗を選択してください</div>
+    <div class="store-select-grid">
+      ${storeList.map(s=>`<button class="store-select-btn" onclick="selectStore('${esc(s.code)}')">${esc(s.name)}<div class="sub">${esc(s.code)}</div></button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function selectStore(code){
+  if(!code){renderStoreSelector();return}
+  sessionStorage.setItem('clawops_selected_store',code);
+  document.getElementById('storeFilter').value=code;
+  loadStoreData(code);
 }
 
 function render(){
@@ -256,10 +316,8 @@ async function confirmBilling(){
     if(billingId&&snapshots.length>0){
       for(let i=0;i<snapshots.length;i+=50) await sbPost('billing_snapshots',snapshots.slice(i,i+50).map(s=>({...s,billing_id:billingId})));
     }
-    billingEvents=await sbGet('billing_events','select=*&order=billing_date.desc');
-    allSnapshots=await sbGet('billing_snapshots','select=*');
     alert(`集金確定: ${fmtYen(total)}`);
-    render();
+    await loadStoreData(store);
   }catch(e){alert('エラー: '+e.message)}
 }
 
@@ -295,15 +353,23 @@ function renderHistory(store){
     ${events.map(e=>{
       const details=e.machine_details||[];
       return `<div class="history-item">
-        <div style="display:flex;justify-content:space-between"><span>${e.billing_date}</span><span style="font-weight:800;color:var(--accent)">${fmtYen(e.collected_amount)}</span></div>
-        <div style="color:var(--text2)">${details.map(d=>`${d.machine_name}:${fmtYen(d.collected_amount)}`).join(' / ')}</div>
-        <button onclick="sbDelete('billing_events','billing_id','${e.billing_id}').then(()=>{billingEvents=billingEvents.filter(x=>x.billing_id!=='${e.billing_id}');render()})" style="font-size:9px;color:var(--red);background:none;border:none;cursor:pointer">削除</button>
+        <div style="display:flex;justify-content:space-between"><span>${esc(e.billing_date)}</span><span style="font-weight:800;color:var(--accent)">${fmtYen(e.collected_amount)}</span></div>
+        <div style="color:var(--text2)">${details.map(d=>`${esc(d.machine_name)}:${fmtYen(d.collected_amount)}`).join(' / ')}</div>
+        <button onclick="sbDelete('billing_events','billing_id','${esc(e.billing_id)}').then(()=>{billingEvents=billingEvents.filter(x=>x.billing_id!=='${esc(e.billing_id)}');render()})" style="font-size:9px;color:var(--red);background:none;border:none;cursor:pointer">削除</button>
       </div>`;
     }).join('')}
   </div>`;
 }
 
-loadAll().catch(e=>{document.getElementById('content').innerHTML=`<div style="color:var(--red);padding:20px">エラー: ${esc(e.message)}</div>`});
+loadStores().catch(e=>{document.getElementById('content').innerHTML=`<div style="color:var(--red);padding:20px">エラー: ${esc(e.message)}</div>`});
 </script>
+<nav class="bottom-nav no-print">
+  <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div><div>ホーム</div></a>
+  <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
+  <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
+  <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
+  <a class="nav-item" href="announcements.html"><div class="nav-icon">📬</div><div>案内</div></a>
+  <a class="nav-item active"><div class="nav-icon">💰</div><div>集金</div></a>
+</nav>
 </body>
 </html>

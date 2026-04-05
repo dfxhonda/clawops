@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStores, getMachines, clearToken } from '../services/sheets'
+import { getStores, getMachines } from '../services/sheets'
 
 export default function StoreSelect() {
   const [stores, setStores] = useState([])
@@ -50,7 +50,7 @@ export default function StoreSelect() {
         <p className="text-accent2 mb-3">エラー: {error}</p>
         <button
           className="bg-surface2 border border-border text-text rounded-lg px-4 py-2 text-sm"
-          onClick={() => { clearToken(); navigate('/login') }}
+          onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
         >
           ログインし直す
         </button>
@@ -70,7 +70,7 @@ export default function StoreSelect() {
         </div>
         <button
           className="text-muted text-sm hover:text-accent2 transition-colors"
-          onClick={() => { clearToken(); navigate('/login') }}
+          onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
         >
           ログアウト
         </button>
@@ -115,17 +115,17 @@ export default function StoreSelect() {
 
       {/* 管理メニュー */}
       <div className="grid grid-cols-3 gap-2 mb-6">
-        <button onClick={() => navigate('/admin/stores')}
+        <button onClick={() => { window.location.href = '/docs/admin.html' }}
           className="py-3 px-2 rounded-xl border border-border bg-surface text-center transition-all hover:border-accent/30 active:scale-[0.98]">
           <span className="text-lg block">🏪</span>
           <span className="text-[11px] font-bold text-muted">店舗管理</span>
         </button>
-        <button onClick={() => navigate('/admin/machines')}
+        <button onClick={() => { window.location.href = '/docs/admin.html' }}
           className="py-3 px-2 rounded-xl border border-border bg-surface text-center transition-all hover:border-accent/30 active:scale-[0.98]">
           <span className="text-lg block">🎰</span>
           <span className="text-[11px] font-bold text-muted">機械管理</span>
         </button>
-        <button onClick={() => navigate('/admin/prizes')}
+        <button onClick={() => { window.location.href = '/docs/prizes.html' }}
           className="py-3 px-2 rounded-xl border border-border bg-surface text-center transition-all hover:border-accent/30 active:scale-[0.98]">
           <span className="text-lg block">📦</span>
           <span className="text-[11px] font-bold text-muted">景品管理</span>

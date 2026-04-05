@@ -14,30 +14,14 @@ import Complete from './pages/Complete'
 import RankingView from './pages/RankingView'
 import MachineList from './pages/MachineList'
 
-// 既存ページ（管理系）
+// 管理系
 import EditReading from './pages/EditReading'
 import DataSearch from './pages/DataSearch'
 import PatrolScan from './pages/PatrolScan'
 import PatrolInput from './pages/PatrolInput'
-import StoreForm from './pages/StoreForm'
-import MachineForm from './pages/MachineForm'
-import PrizeManagement from './pages/PrizeManagement'
 import ImportSlips from './pages/ImportSlips'
 import SetupSheets from './pages/SetupSheets'
 import TestDataImport from './pages/TestDataImport'
-
-// Supabase版（認証不要・公開）
-import PrizeList from './pages/sb/PrizeList'
-// Supabase連携
-import PrizeMasterDB from './pages/db/PrizeMasterDB'
-import MachineFormDB from './pages/db/MachineFormDB'
-import MachineTypeDB from './pages/db/MachineTypeDB'
-import BoothFormDB from './pages/db/BoothFormDB'
-import SupplierDB from './pages/db/SupplierDB'
-import OwnershipTypeDB from './pages/db/OwnershipTypeDB'
-import TransferTypeDB from './pages/db/TransferTypeDB'
-import PatrolStatusDB from './pages/db/PatrolStatusDB'
-import MachineCategoryDB from './pages/db/MachineCategoryDB'
 
 // 棚卸しアプリ
 import InventoryDashboard from './pages/inventory/InventoryDashboard'
@@ -77,30 +61,14 @@ export default function App() {
       <Route path="/ranking/:storeId" element={<PrivateRoute><RankingView /></PrivateRoute>} />
       <Route path="/machines/:storeId" element={<PrivateRoute><MachineList /></PrivateRoute>} />
 
-      {/* サブページ（タブバー非表示） */}
+      {/* サブページ */}
       <Route path="/datasearch" element={<PrivateRoute><DataSearch /></PrivateRoute>} />
       <Route path="/edit/:boothId" element={<PrivateRoute><EditReading /></PrivateRoute>} />
       <Route path="/patrol" element={<PrivateRoute><PatrolScan /></PrivateRoute>} />
       <Route path="/patrol/input" element={<PrivateRoute><PatrolInput /></PrivateRoute>} />
-      <Route path="/admin/stores" element={<PrivateRoute><StoreForm /></PrivateRoute>} />
-      <Route path="/admin/machines" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
-      <Route path="/admin/machines/:storeId" element={<PrivateRoute><MachineForm /></PrivateRoute>} />
-      <Route path="/admin/prizes" element={<PrivateRoute><PrizeManagement /></PrivateRoute>} />
       <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
       <Route path="/admin/setup-sheets" element={<PrivateRoute><SetupSheets /></PrivateRoute>} />
       <Route path="/admin/test-data" element={<PrivateRoute><TestDataImport /></PrivateRoute>} />
-
-      {/* Supabase DB */}
-      <Route path="/db/prizes" element={<PrizeMasterDB />} />
-      <Route path="/db/machines" element={<MachineFormDB />} />
-      <Route path="/db/machines/:storeCode" element={<MachineFormDB />} />
-      <Route path="/db/machines/:storeCode/:machineCode/booths" element={<BoothFormDB />} />
-      <Route path="/db/machine-types" element={<MachineTypeDB />} />
-      <Route path="/db/suppliers" element={<SupplierDB />} />
-      <Route path="/db/ownership-types" element={<OwnershipTypeDB />} />
-      <Route path="/db/transfer-types" element={<TransferTypeDB />} />
-      <Route path="/db/patrol-statuses" element={<PatrolStatusDB />} />
-      <Route path="/db/machine-categories" element={<MachineCategoryDB />} />
 
       {/* 棚卸しアプリ */}
       <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />
@@ -108,9 +76,6 @@ export default function App() {
       <Route path="/inventory/transfer" element={<PrivateRoute><InventoryTransfer /></PrivateRoute>} />
       <Route path="/inventory/count" element={<PrivateRoute><InventoryCount /></PrivateRoute>} />
       <Route path="/inventory/match" element={<PrivateRoute><InventoryMatch /></PrivateRoute>} />
-
-      {/* Supabase版 公開ページ（認証不要） */}
-      <Route path="/sb/prizes" element={<PrizeList />} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

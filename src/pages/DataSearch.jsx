@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllMeterReadings, getStores, parseNum, sheetsPut, sheetsBatchUpdate, clearCache } from '../services/sheets'
+import { supabase } from '../lib/supabase'
+import { getStores, parseNum } from '../services/sheets'
 
 export default function DataSearch() {
   const navigate = useNavigate()
@@ -9,7 +10,7 @@ export default function DataSearch() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
-  const [filterStore, setFilterStore] = useState('')
+  const [filterStore, setFilterStore] = useState(() => sessionStorage.getItem('clawops_selected_store') || '')
   const [filterBooth, setFilterBooth] = useState('')
   const [filterPrize, setFilterPrize] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
@@ -20,10 +21,37 @@ export default function DataSearch() {
   const [dateSort, setDateSort] = useState('desc') // 'desc' or 'asc'
 
   useEffect(() => {
-    Promise.all([getAllMeterReadings(true), getStores()]).then(([readings, storeList]) => {
-      setAllReadings(readings); setStores(storeList); setLoading(false)
-    }).catch(() => { setLoading(false) })
+    getStores().then(storeList => setStores(storeList)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!filterStore) { setLoading(false); return }
+    setLoading(true)
+    supabase
+      .from('meter_readings')
+      .select('*')
+      .like('full_booth_code', `${filterStore}-%`)
+      .order('read_time', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) { console.error(error); setAllReadings([]); setLoading(false); return }
+        const result = (data || []).map(r => ({
+          reading_id: r.reading_id,
+          booth_id: r.booth_id || '',
+          full_booth_code: r.full_booth_code || '',
+          read_time: r.read_time || '',
+          in_meter: r.in_meter != null ? String(r.in_meter) : '',
+          out_meter: r.out_meter != null ? String(r.out_meter) : '',
+          prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+          prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+          prize_name: r.prize_name || '',
+          set_a: r.set_a || '', set_c: r.set_c || '', set_l: r.set_l || '',
+          set_r: r.set_r || '', set_o: r.set_o || '',
+          note: r.note || '', source: r.source || 'manual',
+        }))
+        setAllReadings(result)
+        setLoading(false)
+      })
+  }, [filterStore])
 
   const boothOptions = useMemo(() => {
     if (!filterStore) return []
@@ -31,7 +59,11 @@ export default function DataSearch() {
     return [...codes].sort()
   }, [filterStore, allReadings])
 
-  function handleStoreChange(val) { setFilterStore(val); setFilterBooth('') }
+  function handleStoreChange(val) {
+    setFilterStore(val); setFilterBooth('')
+    if (val) sessionStorage.setItem('clawops_selected_store', val)
+    else sessionStorage.removeItem('clawops_selected_store')
+  }
 
   const filtered = allReadings
     .map((r, i) => ({ ...r, _idx: i }))
@@ -83,25 +115,38 @@ export default function DataSearch() {
     if (!editEntries.length && !deleteEntries.length) return
     setSaving(true); setSaveMsg('')
     try {
-      const deleteRows = deleteEntries.map(idx => idx + 2).sort((a,b) => b - a)
-      for (const rowIndex of deleteRows) {
-        await sheetsBatchUpdate([{ deleteDimension: { range: { sheetId: 0, dimension: 'ROWS', startIndex: rowIndex - 1, endIndex: rowIndex }}}])
+      for (const idx of deleteEntries) {
+        const row = allReadings[idx]
+        if (!row?.reading_id) continue
+        const { error } = await supabase.from('meter_readings').delete().eq('reading_id', row.reading_id)
+        if (error) throw new Error('削除エラー: ' + error.message)
       }
       for (const [idxStr, edit] of editEntries) {
-        const idx = Number(idxStr); const orig = edit._original; const rowIndex = idx + 2
-        if (edit.read_time && edit.read_time !== orig.read_time?.slice(0,10)) {
-          await sheetsPut(`meter_readings!D${rowIndex}`, [[edit.read_time]])
+        const orig = edit._original
+        if (!orig?.reading_id) continue
+        const updates = {}
+        if (edit.read_time && edit.read_time !== orig.read_time?.slice(0,10)) updates.read_time = edit.read_time
+        if (edit.in_meter !== '') updates.in_meter = parseFloat(edit.in_meter) || null
+        if (edit.out_meter !== '') updates.out_meter = parseFloat(edit.out_meter) || null
+        if (edit.prize_restock_count !== '') updates.prize_restock_count = parseInt(edit.prize_restock_count) || 0
+        if (edit.prize_stock_count !== '') updates.prize_stock_count = parseInt(edit.prize_stock_count) || 0
+        if (edit.prize_name !== '') updates.prize_name = edit.prize_name
+        if (Object.keys(updates).length > 0) {
+          const { error } = await supabase.from('meter_readings').update(updates).eq('reading_id', orig.reading_id)
+          if (error) throw new Error('更新エラー: ' + error.message)
         }
-        const range = `meter_readings!E${rowIndex}:I${rowIndex}`
-        await sheetsPut(range, [[
-          edit.in_meter!==''?edit.in_meter:orig.in_meter, edit.out_meter!==''?edit.out_meter:orig.out_meter,
-          edit.prize_restock_count!==''?edit.prize_restock_count:orig.prize_restock_count,
-          edit.prize_stock_count!==''?edit.prize_stock_count:orig.prize_stock_count,
-          edit.prize_name!==''?edit.prize_name:orig.prize_name,
-        ]])
       }
-      clearCache()
-      const fresh = await getAllMeterReadings(true)
+      // 同じSupabaseクエリでデータを再取得
+      const { data } = await supabase.from('meter_readings').select('*').like('full_booth_code', `${filterStore}-%`).order('read_time', { ascending: true })
+      const fresh = (data || []).map(r => ({
+        reading_id: r.reading_id, booth_id: r.booth_id || '', full_booth_code: r.full_booth_code || '',
+        read_time: r.read_time || '', in_meter: r.in_meter != null ? String(r.in_meter) : '',
+        out_meter: r.out_meter != null ? String(r.out_meter) : '',
+        prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+        prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+        prize_name: r.prize_name || '', set_a: r.set_a || '', set_c: r.set_c || '', set_l: r.set_l || '',
+        set_r: r.set_r || '', set_o: r.set_o || '', note: r.note || '', source: r.source || 'manual',
+      }))
       setAllReadings(fresh); setEdits({}); setDeletes(new Set()); setEditingRow(null)
       setSaveMsg(`✅ 編集${editEntries.length}件・削除${deleteEntries.length}件 完了`)
     } catch(e) { setSaveMsg('❌ エラー: '+e.message) }
@@ -116,7 +161,7 @@ export default function DataSearch() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
-        <p className="text-muted text-sm">全データを取得しています...</p>
+        <p className="text-muted text-sm">データを取得しています...</p>
       </div>
     </div>
   )
@@ -132,9 +177,9 @@ export default function DataSearch() {
           <button onClick={() => navigate('/')} className="bg-surface2 border border-border text-text rounded-lg px-3 py-1.5 text-base">←</button>
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold">データ検索・修正</div>
-            <div className="text-xs text-muted mt-0.5">全{allReadings.length}件</div>
+            <div className="text-xs text-muted mt-0.5">{filterStore ? `${allReadings.length}件` : '店舗を選択してください'}</div>
           </div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
 
@@ -144,26 +189,40 @@ export default function DataSearch() {
           </div>
         )}
 
-        {/* フィルター */}
+        {/* 店舗選択グリッド（店舗未選択時） */}
+        {!filterStore && stores.length > 0 && (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+            <div className="text-5xl mb-3">🏪</div>
+            <div className="text-[15px] text-muted mb-5">検索する店舗を選択してください</div>
+            <div className="grid grid-cols-1 gap-2.5 w-full max-w-[360px]">
+              {stores.map(s => (
+                <button key={s.store_id} onClick={() => handleStoreChange(s.store_code)}
+                  className="bg-surface border border-border rounded-lg p-4 text-left text-text text-[15px] font-bold cursor-pointer">
+                  {s.store_name}
+                  <div className="text-[11px] text-muted font-normal mt-0.5">{s.store_code}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* フィルター（店舗選択済み時のみ表示） */}
+        {filterStore && (
         <div className="bg-surface border border-border rounded-xl p-3 mb-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div className="text-[10px] text-muted uppercase tracking-wider mb-1">店舗</div>
               <select className={selectCls} value={filterStore} onChange={e=>handleStoreChange(e.target.value)}>
-                <option value="">全店舗</option>
+                <option value="">-- 店舗を選択 --</option>
                 {stores.map(s=><option key={s.store_id} value={s.store_code}>{s.store_name}</option>)}
               </select>
             </div>
             <div>
               <div className="text-[10px] text-muted uppercase tracking-wider mb-1">ブース</div>
-              {filterStore ? (
-                <select className={selectCls} value={filterBooth} onChange={e=>setFilterBooth(e.target.value)}>
-                  <option value="">全ブース</option>
-                  {boothOptions.map(code=><option key={code} value={code}>{code}</option>)}
-                </select>
-              ) : (
-                <select className={selectCls + ' opacity-40'} disabled><option>店舗を先に選択</option></select>
-              )}
+              <select className={selectCls} value={filterBooth} onChange={e=>setFilterBooth(e.target.value)}>
+                <option value="">全ブース</option>
+                {boothOptions.map(code=><option key={code} value={code}>{code}</option>)}
+              </select>
             </div>
             <div>
               <div className="text-[10px] text-muted uppercase tracking-wider mb-1">日付（から）</div>
@@ -187,14 +246,16 @@ export default function DataSearch() {
               </button>
             </div>
             <button className="bg-surface2 border border-border text-text text-xs px-3 py-1 rounded-lg"
-              onClick={()=>{setFilterStore('');setFilterBooth('');setFilterPrize('');setFilterDateFrom('');setFilterDateTo('')}}>
+              onClick={()=>{handleStoreChange('');setFilterPrize('');setFilterDateFrom('');setFilterDateTo('')}}>
               リセット
             </button>
           </div>
         </div>
+        )}
       </div>
 
-      {/* スクロール可能なデータリスト */}
+      {/* スクロール可能なデータリスト（店舗選択済み時のみ） */}
+      {filterStore && (
       <div className="flex-1 overflow-y-auto px-4 pb-28">
       {filtered.length===0 && (
         <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">
@@ -261,7 +322,8 @@ export default function DataSearch() {
         })}
       </div>
 
-      </div>{/* スクロール領域終了 */}
+      </div>
+      )}
 
       {/* 確定バー */}
       {totalPending>0 && (

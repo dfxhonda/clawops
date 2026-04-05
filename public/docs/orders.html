@@ -337,6 +337,13 @@ header{
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
+.store-select-prompt { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:24px; }
+.store-select-prompt .icon { font-size:48px; margin-bottom:12px; }
+.store-select-prompt .msg { font-size:15px; color:var(--text2); margin-bottom:20px; }
+.store-select-grid { display:grid; grid-template-columns:1fr; gap:10px; width:100%; max-width:360px; }
+.store-select-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:left; color:var(--text); font-size:15px; font-weight:700; cursor:pointer; }
+.store-select-btn:active { border-color:var(--accent); }
+.store-select-btn .sub { font-size:11px; color:var(--text2); font-weight:400; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -362,7 +369,7 @@ header{
     <option value="">仕入先：全て</option>
   </select>
   <div class="tb-sep"></div>
-  <select class="filter-select" id="destFilter" onchange="setDestFilter(this.value)">
+  <select class="filter-select" id="destFilter" onchange="selectDest(this.value)">
     <option value="">入荷先：全て</option>
     <option value="久留米">久留米</option>
     <option value="田隈">田隈</option>
@@ -543,23 +550,80 @@ function showToast(msg, ok=true) {
   _toastTimer = setTimeout(() => el.style.display='none', 3000);
 }
 
+// ─── DESTINATIONS ─────────────────────────────────────────────────────────────
+const DESTINATIONS = [
+  {code:'久留米', icon:'🏪'},
+  {code:'田隈', icon:'🏪'},
+  {code:'飯塚', icon:'🏪'},
+  {code:'鹿児島', icon:'🏪'},
+  {code:'振り分け待ち', icon:'📦'}
+];
+
+let _masterLoaded = false;
+
+function renderDestSelector() {
+  document.getElementById('listPane').innerHTML = `<div class="store-select-prompt">
+    <div class="icon">📦</div>
+    <div class="msg">入荷先を選択してください</div>
+    <div class="store-select-grid">
+      ${DESTINATIONS.map(d => `<button class="store-select-btn" onclick="selectDest('${d.code}')">${d.icon} ${esc(d.code)}</button>`).join('')}
+    </div>
+  </div>`;
+  document.getElementById('mobileList').innerHTML = `<div class="store-select-prompt">
+    <div class="icon">📦</div>
+    <div class="msg">入荷先を選択してください</div>
+    <div class="store-select-grid">
+      ${DESTINATIONS.map(d => `<button class="store-select-btn" onclick="selectDest('${d.code}')">${d.icon} ${esc(d.code)}</button>`).join('')}
+    </div>
+  </div>`;
+  document.getElementById('countBadge').textContent = '';
+}
+
+function selectDest(dest) {
+  sessionStorage.setItem('clawops_selected_destination', dest);
+  document.getElementById('destFilter').value = dest;
+  filterDest = dest;
+  loadDestData(dest);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  const saved = sessionStorage.getItem('clawops_selected_destination');
+  if (saved) {
+    document.getElementById('destFilter').value = saved;
+    filterDest = saved;
+    loadDestData(saved);
+  } else {
+    renderDestSelector();
+  }
+}
+
 // ─── LOAD ─────────────────────────────────────────────────────────────────────
-async function loadAll() {
+async function loadDestData(dest) {
   showLoading();
   try {
-    const [orders, prizes, suppRows] = await Promise.all([
+    const fetches = [
       sbGet('prize_orders',
         'select=order_id,prize_id,prize_name_raw,supplier_id,order_source,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,destination,status,source_file,notes' +
-        '&order=order_date.desc'),
-      sbGet('prize_masters', 'select=prize_id,prize_name&order=prize_name.asc').catch(() => []),
-      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
-    ]);
+        '&destination=eq.' + encodeURIComponent(dest) +
+        '&order=order_date.desc')
+    ];
+    if (!_masterLoaded) {
+      fetches.push(
+        sbGet('prize_masters', 'select=prize_id,prize_name&order=prize_name.asc').catch(() => []),
+        sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
+      );
+    }
+    const results = await Promise.all(fetches);
 
-    DATA = orders;
-    PRIZES = prizes || [];
-    PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.prize_name]));
-    SUPPLIERS_LIST = suppRows;
-    SUP_NAME = Object.fromEntries(SUPPLIERS_LIST.map(s => [s.supplier_id, s.supplier_name]));
+    DATA = results[0];
+    if (!_masterLoaded) {
+      PRIZES = results[1] || [];
+      PRIZE_MAP = Object.fromEntries(PRIZES.map(p => [String(p.prize_id), p.prize_name]));
+      SUPPLIERS_LIST = results[2] || [];
+      SUP_NAME = Object.fromEntries(SUPPLIERS_LIST.map(s => [s.supplier_id, s.supplier_name]));
+      _masterLoaded = true;
+    }
 
     // 仕入先フィルター選択肢を日本語名で生成
     const supIds = [...new Set([...SUPPLIERS_LIST.map(s => s.supplier_id), ...DATA.map(o => o.supplier_id).filter(Boolean)])].sort();
@@ -682,7 +746,6 @@ function setSort(key) {
 // ─── FILTER CONTROLS ─────────────────────────────────────────────────────────
 function setStatusFilter(val) { filterStatus = val; render(); }
 function setSupplierFilter(val) { filterSupplier = val; render(); }
-function setDestFilter(val) { filterDest = val; render(); }
 function setDateFilter() {
   filterDateFrom = document.getElementById('dateFrom').value;
   filterDateTo   = document.getElementById('dateTo').value;
@@ -954,7 +1017,7 @@ async function saveOrder() {
       showToast('保存しました');
       isDirty = false;
       isNewMode = false;
-      await loadAll();
+      await loadDestData(filterDest || sessionStorage.getItem('clawops_selected_destination') || '');
       if (newId) selOrderId = newId;
       render();
       renderDetail();
@@ -962,7 +1025,7 @@ async function saveOrder() {
       await sbPatch('prize_orders', selOrderId, 'order_id', payload);
       showToast('保存しました');
       isDirty = false;
-      await loadAll();
+      await loadDestData(filterDest || sessionStorage.getItem('clawops_selected_destination') || '');
       render();
       renderDetail();
     }
@@ -985,7 +1048,7 @@ async function setOrderStatus(newStatus) {
     await sbPatch('prize_orders', selOrderId, 'order_id', {status: newStatus, updated_by: getStaffId()});
     showToast(`${label}にしました`);
     isDirty = false;
-    await loadAll();
+    await loadDestData(filterDest || sessionStorage.getItem('clawops_selected_destination') || '');
     render();
     renderDetail();
   } catch(e) {
@@ -1250,7 +1313,7 @@ async function saveOrderMobile() {
       showToast('保存しました');
       isDirty = false; isNewMode = false;
       closeMobileDetail();
-      await loadAll();
+      await loadDestData(filterDest || sessionStorage.getItem('clawops_selected_destination') || '');
       if (newId) selOrderId = newId;
       render();
     } else {
@@ -1258,7 +1321,7 @@ async function saveOrderMobile() {
       showToast('保存しました');
       isDirty = false;
       closeMobileDetail();
-      await loadAll();
+      await loadDestData(filterDest || sessionStorage.getItem('clawops_selected_destination') || '');
       render();
     }
   } catch(e) {
@@ -1280,7 +1343,7 @@ async function setOrderStatusMobile(newStatus) {
     showToast(`${label}にしました`);
     isDirty = false;
     closeMobileDetail();
-    await loadAll();
+    await loadDestData(filterDest || sessionStorage.getItem('clawops_selected_destination') || '');
     render();
   } catch(e) {
     showToast('エラー: ' + e.message, false);
@@ -1302,7 +1365,7 @@ function stepVal(inputId, delta) {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-loadAll();
+init();
 </script>
 </body>
 </html>

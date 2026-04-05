@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getReadingsByBooth, updateReading, parseNum } from '../services/sheets'
+import { updateReading, parseNum } from '../services/sheets'
+import { supabase } from '../lib/supabase'
 
 export default function EditReading() {
   const { boothId } = useParams()
@@ -17,17 +18,22 @@ export default function EditReading() {
   async function loadReadings() {
     setLoading(true)
     try {
-      const rows = await getReadingsByBooth(boothId)
-      setReadings([...rows].reverse().map(r => ({
+      const { data, error: err } = await supabase
+        .from('meter_readings')
+        .select('reading_id,booth_id,full_booth_code,read_time,in_meter,out_meter,prize_restock_count,prize_stock_count,prize_name')
+        .eq('booth_id', boothId)
+        .order('read_time', { ascending: false })
+      if (err) throw new Error(err.message)
+      setReadings((data || []).map(r => ({
         reading_id: r.reading_id,
         booth_id: r.booth_id,
         full_booth_code: r.full_booth_code,
         read_time: (r.read_time || '').slice(0, 10),
-        in_meter: r.in_meter,
-        out_meter: r.out_meter,
-        prize_restock_count: r.prize_restock_count,
-        prize_stock_count: r.prize_stock_count,
-        prize_name: r.prize_name,
+        in_meter: r.in_meter != null ? String(r.in_meter) : '',
+        out_meter: r.out_meter != null ? String(r.out_meter) : '',
+        prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+        prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+        prize_name: r.prize_name || '',
       })))
     } catch (e) {
       setError(e.message)
@@ -85,8 +91,8 @@ export default function EditReading() {
 
       <div className="space-y-2">
         {readings.map(r => (
-          <div key={r.rowIndex} className="bg-surface border border-border rounded-xl p-4">
-            {editing?.rowIndex===r.rowIndex ? (
+          <div key={r.reading_id} className="bg-surface border border-border rounded-xl p-4">
+            {editing?.reading_id===r.reading_id ? (
               <div>
                 <div className="text-sm text-muted mb-3 font-bold">{r.read_time}</div>
                 <div className="bg-blue-900/20 border border-blue-800/30 rounded-lg px-3 py-2 text-xs text-blue-400 mb-3">
@@ -96,7 +102,7 @@ export default function EditReading() {
                   {[['in_meter','INメーター'],['out_meter','OUTメーター'],['prize_restock_count','景品補充数'],['prize_stock_count','景品投入残']].map(([key,label]) => (
                     <div key={key}>
                       <div className="text-xs text-muted mb-1">{label}</div>
-                      <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent" type="number"
+                      <input className="w-full p-2.5 text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent" type="number" inputMode="numeric"
                         placeholder={original?.[key]||''}
                         value={editing[key]}
                         onChange={e => setEditing({...editing,[key]:e.target.value})} />

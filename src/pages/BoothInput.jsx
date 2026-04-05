@@ -218,7 +218,7 @@ export default function BoothInput() {
               <div className="text-sm font-bold text-accent">{inputCount}/{booths.length}</div>
             </div>
           </div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>

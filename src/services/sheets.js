@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabase'
+
 export const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 
 // 在庫移動の種類
@@ -402,7 +404,6 @@ export async function updateMachine(rowNum, m) {
 // ============================================
 // Supabase接続（景品マスタ・発注履歴）
 // ============================================
-import { supabase } from '../lib/supabase'
 
 const SUPPLIER_MAP = {
   SGP: '景品フォーム', PCH: 'ピーチトイ', SDY: 'エスディーワイ',

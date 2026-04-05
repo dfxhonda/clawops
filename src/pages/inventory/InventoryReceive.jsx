@@ -121,7 +121,7 @@ export default function InventoryReceive() {
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">📦 入庫チェック</h1>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
 

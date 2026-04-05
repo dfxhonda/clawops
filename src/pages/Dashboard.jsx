@@ -75,7 +75,7 @@ export default function Dashboard() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full mx-auto" />
+      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto" />
     </div>
   )
 
@@ -84,7 +84,7 @@ export default function Dashboard() {
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5">
         <div className="flex items-center justify-between">
           <div className="text-base font-bold">ダッシュボード</div>
-          <button onClick={() => { sessionStorage.clear(); navigate('/login') }}
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
             className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
         </div>
       </div>
