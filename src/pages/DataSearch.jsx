@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getStores, parseNum } from '../services/sheets'
+import LogoutButton from '../components/LogoutButton'
 
 export default function DataSearch() {
   const navigate = useNavigate()
@@ -179,8 +180,7 @@ export default function DataSearch() {
             <div className="text-lg font-bold">データ検索・修正</div>
             <div className="text-xs text-muted mt-0.5">{filterStore ? `${allReadings.length}件` : '店舗を選択してください'}</div>
           </div>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
 
         {saveMsg && (

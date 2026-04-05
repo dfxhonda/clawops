@@ -6,3 +6,14 @@ dist/
 .DS_Store
 .aidesigner/*
 !.aidesigner/.gitkeep
+
+# データエクスポート（CSVやJSON等の出力ファイル）
+data/exports/*
+!data/exports/.gitkeep
+
+# データインポート用ファイル
+data/imports/*
+!data/imports/.gitkeep
+
+# アーカイブ（旧取込データ等）
+archive/

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getPrizes, getLocations, transferStock, getStockMovements, getPrizeOrders, markOrderArrived } from '../../services/sheets'
 import NumberInput from '../../components/NumberInput'
+import { getStaffId } from '../../lib/auth/session'
+import LogoutButton from '../../components/LogoutButton'
 
 export default function InventoryReceive() {
   const navigate = useNavigate()
@@ -64,7 +66,7 @@ export default function InventoryReceive() {
         toOwnerType: 'location', toOwnerId: selectedLocation,
         quantity: parseInt(quantity),
         note: note || '入庫チェック',
-        createdBy: sessionStorage.getItem('clawops_staff_id') || ''
+        createdBy: getStaffId() || ''
       })
       setMessage({ type: 'success', text: `${prize?.prize_name} ×${quantity} を入庫しました` })
       setSelectedPrize('')
@@ -85,7 +87,7 @@ export default function InventoryReceive() {
     setSaving(true)
     try {
       const qty = parseInt(order.order_quantity) || 1
-      const staff = sessionStorage.getItem('clawops_staff_id') || ''
+      const staff = getStaffId() || ''
       // 先にステータス更新（失敗しても在庫は変わらない。逆順だと在庫二重加算リスク）
       await markOrderArrived(order.order_id, qty)
       try {
@@ -121,8 +123,7 @@ export default function InventoryReceive() {
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">📦 入庫チェック</h1>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
 
         {message && (

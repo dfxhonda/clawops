@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { getBooths, getMachines, getLastReadingsMap, parseNum, getStocksByOwner, addStockMovement, adjustPrizeStockQuantity, getPrizeStocksExtended, MOVEMENT_TYPES } from '../services/sheets'
+import { getStaffId, updateStaffId } from '../lib/auth/session'
+import LogoutButton from '../components/LogoutButton'
 
 const DRAFT_KEY = 'clawops_drafts'
 function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] } }
@@ -36,7 +38,7 @@ export default function BoothInput() {
   const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0,10))
   const [vehicleStocks, setVehicleStocks] = useState([])
   const [showVehiclePanel, setShowVehiclePanel] = useState(false)
-  const [staffId, setStaffId] = useState(() => sessionStorage.getItem('clawops_staff_id') || '')
+  const [staffId, setStaffId] = useState(() => getStaffId() || '')
   const [filter, setFilter] = useState('all')
 
   // ref管理: refs[boothId][fieldName] = inputElement
@@ -70,7 +72,7 @@ export default function BoothInput() {
       }
       setInputs(restored)
       // 車在庫を取得
-      const sid = sessionStorage.getItem('clawops_staff_id')
+      const sid = getStaffId()
       if (sid) {
         try {
           const vs = await getStocksByOwner('staff', sid)
@@ -218,8 +220,7 @@ export default function BoothInput() {
               <div className="text-sm font-bold text-accent">{inputCount}/{booths.length}</div>
             </div>
           </div>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-24">
@@ -234,8 +235,8 @@ export default function BoothInput() {
             <div className="flex-1 flex items-center gap-2">
               <input type="text" placeholder="担当者ID（例: テストA）" id="_staffInput"
                 className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text"
-                onKeyDown={e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) { setStaffId(v); sessionStorage.setItem('clawops_staff_id', v) } } }} />
-              <button onClick={() => { const v = document.getElementById('_staffInput')?.value?.trim(); if (v) { setStaffId(v); sessionStorage.setItem('clawops_staff_id', v) } }}
+                onKeyDown={e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) { setStaffId(v); updateStaffId(v) } } }} />
+              <button onClick={() => { const v = document.getElementById('_staffInput')?.value?.trim(); if (v) { setStaffId(v); updateStaffId(v) } }}
                 className="bg-accent/20 text-accent text-xs px-3 py-1.5 rounded-lg font-bold">設定</button>
             </div>
           ) : (
@@ -247,7 +248,7 @@ export default function BoothInput() {
             </button>
           )}
           {staffId && (
-            <button onClick={() => { setStaffId(''); sessionStorage.removeItem('clawops_staff_id'); setVehicleStocks([]) }}
+            <button onClick={() => { setStaffId(''); updateStaffId(''); setVehicleStocks([]) }}
               className="text-[10px] text-muted hover:text-accent2">×</button>
           )}
         </div>

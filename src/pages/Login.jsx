@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { setSession } from '../lib/auth/session'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -9,49 +10,98 @@ export default function Login() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [authenticating, setAuthenticating] = useState(false)
 
   useEffect(() => {
-    // 既にログイン済みならトップへ
-    let staffId = sessionStorage.getItem('clawops_staff_id')
-
-    // ポータル(index.html)経由のログイン: clawops_staffキーにJSONが入っている
-    if (!staffId) {
-      try {
-        const portalStaff = JSON.parse(sessionStorage.getItem('clawops_staff') || 'null')
-        if (portalStaff?.staff_id) {
-          staffId = portalStaff.staff_id
-          sessionStorage.setItem('clawops_staff_id', staffId)
-          sessionStorage.setItem('clawops_staff_name', portalStaff.name || '')
-        }
-      } catch {}
-    }
-
-    if (staffId) {
-      if (!sessionStorage.getItem('gapi_token')) {
-        sessionStorage.setItem('gapi_token', 'supabase_auth_' + staffId)
+    // Supabase Auth セッションチェック
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // セッション有効 → session層へ集約
+        const meta = session.user?.user_metadata || {}
+        setSession({
+          staffId:     meta.staff_id || '',
+          staffName:   meta.name || '',
+          staffRole:   meta.role || '',
+          accessToken: session.access_token,
+        })
+        navigate('/')
+        return
       }
-      navigate('/'); return
-    }
-    // スタッフ一覧取得
-    supabase.from('staff').select('staff_id, name, pin').eq('is_active', true).order('name')
-      .then(({ data, error: err }) => {
-        if (err) { setError('サーバーに接続できません。通信状態を確認してください。'); setLoading(false); return }
-        setStaff(data || []); setLoading(false)
-      })
-      .catch(() => { setError('サーバーに接続できません'); setLoading(false) })
+      // 未ログイン → スタッフ一覧取得（staff_publicビュー経由、PINは含まない）
+      loadStaffList()
+    })
   }, [])
 
-  function handleLogin() {
+  async function loadStaffList() {
+    try {
+      const { data, error: err } = await supabase
+        .from('staff_public')
+        .select('staff_id, name, has_pin')
+        .eq('is_active', true)
+        .order('name')
+      if (err) throw err
+      setStaff(data || [])
+    } catch {
+      setError('サーバーに接続できません。通信状態を確認してください。')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleLogin() {
     if (!selected) { setError('スタッフを選んでください'); return }
-    const s = staff.find(x => x.staff_id === selected)
-    // PINが設定されていればチェック、未設定ならスキップ
-    if (s.pin && s.pin !== pin) { setError('暗証番号が違います'); return }
-    // ログイン成功: sessionStorageにスタッフ情報を保存
-    sessionStorage.setItem('clawops_staff_id', s.staff_id)
-    sessionStorage.setItem('clawops_staff_name', s.name)
-    // sheets.jsのgetToken()互換: ダミートークンをセット（OAuth不要だが既存コードの認証チェック用）
-    sessionStorage.setItem('gapi_token', 'supabase_auth_' + s.staff_id)
-    navigate('/')
+    setAuthenticating(true)
+    setError('')
+
+    try {
+      // Edge Function でサーバー側PIN照合 + JWT発行
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-pin`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ staff_id: selected, pin: pin || '' }),
+        }
+      )
+
+      const result = await res.json()
+
+      if (!res.ok || !result.session) {
+        setError(result.error || '認証に失敗しました')
+        setAuthenticating(false)
+        return
+      }
+
+      // Supabase Auth セッションをセット
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.session.access_token,
+        refresh_token: result.session.refresh_token,
+      })
+
+      if (sessionError) {
+        console.error('Session set error:', sessionError)
+        setError('セッション設定に失敗しました')
+        setAuthenticating(false)
+        return
+      }
+
+      // session層へ集約
+      setSession({
+        staffId:     result.staff.staff_id,
+        staffName:   result.staff.name,
+        staffRole:   result.staff.role || '',
+        accessToken: result.session.access_token,
+      })
+
+      navigate('/')
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('通信エラーが発生しました。再試行してください。')
+      setAuthenticating(false)
+    }
   }
 
   if (loading) return (
@@ -84,7 +134,7 @@ export default function Login() {
             ))}
           </div>
 
-          {selected && staff.find(x => x.staff_id === selected)?.pin && (
+          {selected && staff.find(x => x.staff_id === selected)?.has_pin && (
             <div className="mb-4">
               <input type="password" inputMode="numeric" maxLength={6} placeholder="暗証番号"
                 value={pin} onChange={e => { setPin(e.target.value); setError('') }}
@@ -95,10 +145,12 @@ export default function Login() {
 
           {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
 
-          <button onClick={handleLogin}
+          <button onClick={handleLogin} disabled={authenticating}
             className={`w-full font-bold py-4 px-6 rounded-xl transition-colors text-base
-              ${selected ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-surface2 text-muted cursor-not-allowed'}`}>
-            ログイン
+              ${authenticating ? 'bg-blue-800 text-blue-300 cursor-wait'
+                : selected ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-surface2 text-muted cursor-not-allowed'}`}>
+            {authenticating ? '認証中...' : 'ログイン'}
           </button>
         </div>
       </div>

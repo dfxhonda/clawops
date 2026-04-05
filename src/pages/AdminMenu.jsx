@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import LogoutButton from '../components/LogoutButton'
 
 const DOCS_BASE = '/docs/'
 
@@ -40,10 +41,7 @@ export default function AdminMenu() {
     <div className="min-h-screen pb-16">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between">
         <div className="text-base font-bold">メニュー</div>
-        <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-          className="text-xs text-muted hover:text-accent2 transition-colors">
-          ログアウト
-        </button>
+        <LogoutButton />
       </div>
 
       {SECTIONS.map(sec => (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { getMachines, getBooths, getAllMeterReadings, parseNum } from '../services/sheets'
+import LogoutButton from '../components/LogoutButton'
 
 export default function RankingView() {
   const { storeId } = useParams()
@@ -83,8 +84,7 @@ export default function RankingView() {
             <h2 className="text-lg font-bold">{state?.storeName}</h2>
             <p className="text-xs text-muted">売上ランキング</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-10">

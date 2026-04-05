@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 import { findBoothByCode } from '../services/sheets'
+import LogoutButton from '../components/LogoutButton'
 
 
 export default function PatrolScan() {
@@ -76,8 +77,7 @@ export default function PatrolScan() {
             <h2 className="text-lg font-bold">巡回スキャン</h2>
             <p className="text-xs text-muted">ブースQRコードを読み取り</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-10">

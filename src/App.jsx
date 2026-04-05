@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { getToken } from './services/sheets'
+import { isLoggedIn } from './lib/auth/session'
 import ErrorBoundary from './components/ErrorBoundary'
+import RoleGuard, { AdminOnly, ManagerOnly, PatrolOnly } from './components/RoleGuard'
 import Login from './pages/Login'
 import MainInput from './pages/MainInput'
 import Dashboard from './pages/Dashboard'
@@ -31,7 +32,7 @@ import InventoryCount from './pages/inventory/InventoryCount'
 import InventoryMatch from './pages/inventory/InventoryMatch'
 
 function PrivateRoute({ children }) {
-  return getToken() ? children : <Navigate to="/login" />
+  return isLoggedIn() ? children : <Navigate to="/login" />
 }
 
 function WithTabs({ children }) {
@@ -49,33 +50,37 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* メイン3タブ */}
+      {/* メイン3タブ — 全ロール */}
       <Route path="/" element={<PrivateRoute><WithTabs><MainInput /></WithTabs></PrivateRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><WithTabs><Dashboard /></WithTabs></PrivateRoute>} />
-      <Route path="/admin" element={<PrivateRoute><WithTabs><AdminMenu /></WithTabs></PrivateRoute>} />
+      <Route path="/admin" element={<PrivateRoute><WithTabs><ManagerOnly><AdminMenu /></ManagerOnly></WithTabs></PrivateRoute>} />
 
-      {/* 巡回入力 */}
+      {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<PrivateRoute><BoothInput /></PrivateRoute>} />
       <Route path="/drafts" element={<PrivateRoute><DraftList /></PrivateRoute>} />
       <Route path="/complete" element={<PrivateRoute><Complete /></PrivateRoute>} />
       <Route path="/ranking/:storeId" element={<PrivateRoute><RankingView /></PrivateRoute>} />
       <Route path="/machines/:storeId" element={<PrivateRoute><MachineList /></PrivateRoute>} />
 
-      {/* サブページ */}
-      <Route path="/datasearch" element={<PrivateRoute><DataSearch /></PrivateRoute>} />
-      <Route path="/edit/:boothId" element={<PrivateRoute><EditReading /></PrivateRoute>} />
-      <Route path="/patrol" element={<PrivateRoute><PatrolScan /></PrivateRoute>} />
-      <Route path="/patrol/input" element={<PrivateRoute><PatrolInput /></PrivateRoute>} />
-      <Route path="/admin/import-slips" element={<PrivateRoute><ImportSlips /></PrivateRoute>} />
-      <Route path="/admin/setup-sheets" element={<PrivateRoute><SetupSheets /></PrivateRoute>} />
-      <Route path="/admin/test-data" element={<PrivateRoute><TestDataImport /></PrivateRoute>} />
+      {/* 巡回QR — patrol以上 */}
+      <Route path="/patrol" element={<PrivateRoute><PatrolOnly><PatrolScan /></PatrolOnly></PrivateRoute>} />
+      <Route path="/patrol/input" element={<PrivateRoute><PatrolOnly><PatrolInput /></PatrolOnly></PrivateRoute>} />
 
-      {/* 棚卸しアプリ */}
-      <Route path="/inventory" element={<PrivateRoute><InventoryDashboard /></PrivateRoute>} />
-      <Route path="/inventory/receive" element={<PrivateRoute><InventoryReceive /></PrivateRoute>} />
-      <Route path="/inventory/transfer" element={<PrivateRoute><InventoryTransfer /></PrivateRoute>} />
-      <Route path="/inventory/count" element={<PrivateRoute><InventoryCount /></PrivateRoute>} />
-      <Route path="/inventory/match" element={<PrivateRoute><InventoryMatch /></PrivateRoute>} />
+      {/* データ検索・修正 — manager以上 */}
+      <Route path="/datasearch" element={<PrivateRoute><ManagerOnly><DataSearch /></ManagerOnly></PrivateRoute>} />
+      <Route path="/edit/:boothId" element={<PrivateRoute><ManagerOnly><EditReading /></ManagerOnly></PrivateRoute>} />
+
+      {/* 管理ツール — admin のみ */}
+      <Route path="/admin/import-slips" element={<PrivateRoute><AdminOnly><ImportSlips /></AdminOnly></PrivateRoute>} />
+      <Route path="/admin/setup-sheets" element={<PrivateRoute><AdminOnly><SetupSheets /></AdminOnly></PrivateRoute>} />
+      <Route path="/admin/test-data" element={<PrivateRoute><AdminOnly><TestDataImport /></AdminOnly></PrivateRoute>} />
+
+      {/* 棚卸し — patrol以上 */}
+      <Route path="/inventory" element={<PrivateRoute><PatrolOnly><InventoryDashboard /></PatrolOnly></PrivateRoute>} />
+      <Route path="/inventory/receive" element={<PrivateRoute><PatrolOnly><InventoryReceive /></PatrolOnly></PrivateRoute>} />
+      <Route path="/inventory/transfer" element={<PrivateRoute><PatrolOnly><InventoryTransfer /></PatrolOnly></PrivateRoute>} />
+      <Route path="/inventory/count" element={<PrivateRoute><PatrolOnly><InventoryCount /></PatrolOnly></PrivateRoute>} />
+      <Route path="/inventory/match" element={<PrivateRoute><ManagerOnly><InventoryMatch /></ManagerOnly></PrivateRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<script src="config.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -430,9 +431,9 @@ header{
 
 <script>
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
-const SB_STORAGE = SB_URL + '/storage/v1/object/public/announcements/';
+const SB_URL = window.CLAWOPS_CONFIG.SUPABASE_URL + '/rest/v1';
+const SB_KEY = window.CLAWOPS_CONFIG.SUPABASE_ANON_KEY;
+const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_URL + '/storage/v1/object';
 
 // ─── SUPABASE REST ────────────────────────────────────────────────────────────
 async function sbGet(table, params='') {

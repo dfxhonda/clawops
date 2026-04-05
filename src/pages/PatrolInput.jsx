@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getLastReadingsMap, findMachineById, findStoreById, parseNum } from '../services/sheets'
+import LogoutButton from '../components/LogoutButton'
 
 const DRAFT_KEY = 'clawops_drafts'
 function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] } }
@@ -118,8 +119,7 @@ export default function PatrolInput() {
             <h2 className="text-lg font-bold text-accent">{booth.full_booth_code}</h2>
             <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName || booth.booth_code}</p>
           </div>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-10">

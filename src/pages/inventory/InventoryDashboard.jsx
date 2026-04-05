@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLocations, getPrizeStocksExtended, getStockMovements } from '../../services/sheets'
+import { useInventoryDashboard } from '../../features/inventory/hooks/useInventoryDashboard'
+import LogoutButton from '../../components/LogoutButton'
 
 const MENU_ITEMS = [
   { path: '/inventory/receive',  icon: '📦', label: '入庫チェック',     desc: '発注品の入荷確認' },
@@ -11,35 +11,7 @@ const MENU_ITEMS = [
 
 export default function InventoryDashboard() {
   const navigate = useNavigate()
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const [locations, stocks, movements] = await Promise.all([
-          getLocations(), getPrizeStocksExtended(), getStockMovements()
-        ])
-        const staffStocks = stocks.filter(s => s.owner_type === 'staff')
-        const locStocks = stocks.filter(s => s.owner_type === 'location')
-        const todayMovements = movements.filter(m => m.created_at?.startsWith(new Date().toISOString().slice(0, 10)))
-        setStats({
-          locationCount: locations.filter(l => !l.parent_location_id).length,
-          subLocationCount: locations.filter(l => l.parent_location_id).length,
-          staffStockItems: staffStocks.length,
-          staffStockTotal: staffStocks.reduce((s, x) => s + x.quantity, 0),
-          locStockItems: locStocks.length,
-          locStockTotal: locStocks.reduce((s, x) => s + x.quantity, 0),
-          todayMovements: todayMovements.length,
-          totalMovements: movements.length,
-        })
-      } catch {
-        setStats(null)
-      }
-      setLoading(false)
-    }
-    load()
-  }, [])
+  const { stats, loading } = useInventoryDashboard()
 
   return (
     <div className="h-screen flex flex-col bg-bg text-text max-w-lg mx-auto">
@@ -47,8 +19,7 @@ export default function InventoryDashboard() {
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => navigate('/')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">📦 棚卸し管理</h1>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">

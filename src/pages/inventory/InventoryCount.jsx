@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLocations, getPrizeStocksExtended, countStock, getStockMovements, transferStock, getStaffMap } from '../../services/sheets'
 import NumberInput from '../../components/NumberInput'
+import LogoutButton from '../../components/LogoutButton'
 
 export default function InventoryCount() {
   const navigate = useNavigate()
@@ -197,8 +198,7 @@ export default function InventoryCount() {
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">📋 実在庫カウント</h1>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">

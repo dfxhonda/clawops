@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getPrizes, addPrize, getLocations, transferStock } from '../../services/sheets'
+import LogoutButton from '../../components/LogoutButton'
 
 // あいまい一致スコア（簡易版: 共通文字列長ベース）
 function fuzzyScore(a, b) {
@@ -177,8 +178,7 @@ export default function InventoryMatch() {
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => navigate('/inventory')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">🔍 景品マッチング</h1>
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/docs/' }}
-            className="text-[10px] text-muted hover:text-accent2">ログアウト</button>
+          <LogoutButton />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
