@@ -291,7 +291,7 @@ function findCandidatesRT(itemName, itemPrice){
     allPrizes.forEach(p=>{
       const nm=(p.prize_name||'');
       let aliasStr='';
-      try{const al=JSON.parse(p.aliases||'[]');if(Array.isArray(al))aliasStr=al.join(' ')}catch{}
+      try{const al=JSON.parse(p.aliases||'[]');if(Array.isArray(al))aliasStr=al.join(' ')}catch{ /* ignore */ }
       let score=Math.max(scoreText(q,tokens,nm),scoreText(q,tokens,aliasStr));
       if(score===0) return;
       const cp=Number(p.original_cost)||0;
@@ -662,7 +662,7 @@ async function doModalSearch(){
       const cp=Number(p.original_cost)||0;
       const match=origP&&cp&&Math.abs(origP-cp)/Math.max(origP,cp)<0.1;
       let firstAlias='';
-      try{const al=JSON.parse(p.aliases||'[]');if(al&&al.length)firstAlias=al[0].slice(0,60)}catch{}
+      try{const al=JSON.parse(p.aliases||'[]');if(al&&al.length)firstAlias=al[0].slice(0,60)}catch{ /* ignore */ }
       return`<div class="search-item" onclick="pickFromSearch('${esc(p.prize_id)}','${esc(p.prize_name)}')">
       <div class="si-name">${esc(p.prize_name)}</div>
       ${firstAlias?`<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(firstAlias)}</div>`:''}

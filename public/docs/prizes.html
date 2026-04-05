@@ -908,7 +908,7 @@ function renderDetail() {
   const dirtyDot = isDirty ? '<span class="detail-dirty"></span>' : '';
   const title = isNewMode ? '＋ 新しい景品' : esc(p.prize_name || '（名称未設定）');
   let formalName = '';
-  try { const al = JSON.parse(p.aliases || '[]'); if (Array.isArray(al) && al[0] && al[0] !== p.prize_name) formalName = al[0]; } catch {}
+  try { const al = JSON.parse(p.aliases || '[]'); if (Array.isArray(al) && al[0] && al[0] !== p.prize_name) formalName = al[0]; } catch { /* ignore */ }
 
   const imgSrc = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + Date.now()) : '';
   pane.innerHTML = `
@@ -1113,7 +1113,7 @@ function findDuplicates(name, aliasesStr, currentId) {
 function showMergeModal(dupeRecord, currentPayload, currentId, onMerge, onSkip) {
   const dp = dupeRecord;
   let dpAliases = [];
-  try { dpAliases = parseAliases(dp.aliases); } catch {}
+  try { dpAliases = parseAliases(dp.aliases); } catch { /* ignore */ }
   const formalName = dpAliases[0] || '';
   const el = document.createElement('div');
   el.className = 'merge-modal';
@@ -1359,7 +1359,7 @@ function renderMobileDetailContent() {
   ).join('');
   const titleText = isNewMode ? '新しい景品' : (p.prize_name || '景品詳細');
   let mFormalName = '';
-  try { const al = JSON.parse(p.aliases || '[]'); if (Array.isArray(al) && al[0] && al[0] !== p.prize_name) mFormalName = al[0]; } catch {}
+  try { const al = JSON.parse(p.aliases || '[]'); if (Array.isArray(al) && al[0] && al[0] !== p.prize_name) mFormalName = al[0]; } catch { /* ignore */ }
 
   panel.innerHTML = `
 <div class="md-header">
