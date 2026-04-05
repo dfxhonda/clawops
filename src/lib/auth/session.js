@@ -1,10 +1,13 @@
 // ============================================
-// セッション管理 — sessionStorage の唯一の窓口
+// セッション管理 — Supabase Auth + sessionStorage 併用
 // auth 関連の読み書きはすべてここを通す
 // ============================================
 import { supabase } from '../supabase'
 
-// --- キー定義 ---
+// --- Supabase localStorage キー ---
+const SB_TOKEN_KEY = 'sb-gedxzunoyzmvbqgwjalx-auth-token'
+
+// --- sessionStorage キー定義（後方互換） ---
 const KEYS = {
   TOKEN:     'gapi_token',
   STAFF_ID:  'clawops_staff_id',
@@ -23,21 +26,48 @@ export function setSession({ staffId, staffName, staffRole, accessToken }) {
 // --- セッション読み取り ---
 export function getSession() {
   return {
-    staffId:     sessionStorage.getItem(KEYS.STAFF_ID)   || '',
-    staffName:   sessionStorage.getItem(KEYS.STAFF_NAME) || '',
-    staffRole:   sessionStorage.getItem(KEYS.STAFF_ROLE) || 'staff',
-    accessToken: sessionStorage.getItem(KEYS.TOKEN)      || '',
+    staffId:     getStaffId(),
+    staffName:   getStaffName(),
+    staffRole:   getStaffRole(),
+    accessToken: getToken(),
   }
 }
 
-// --- 個別ゲッター（便利関数） ---
-export function getToken()     { return sessionStorage.getItem(KEYS.TOKEN) }
-export function getStaffId()   { return sessionStorage.getItem(KEYS.STAFF_ID)   || '' }
-export function getStaffName() { return sessionStorage.getItem(KEYS.STAFF_NAME) || '' }
-export function getStaffRole() { return sessionStorage.getItem(KEYS.STAFF_ROLE) || 'staff' }
+// --- 個別ゲッター（sessionStorage → Supabase localStorage フォールバック） ---
+export function getToken() {
+  return sessionStorage.getItem(KEYS.TOKEN) || _sbAccessToken()
+}
+export function getStaffId() {
+  return sessionStorage.getItem(KEYS.STAFF_ID) || _sbMeta('staff_id') || ''
+}
+export function getStaffName() {
+  return sessionStorage.getItem(KEYS.STAFF_NAME) || _sbMeta('name') || ''
+}
+export function getStaffRole() {
+  return sessionStorage.getItem(KEYS.STAFF_ROLE) || _sbMeta('role') || 'staff'
+}
 
-// --- ログイン判定 ---
-export function isLoggedIn() { return !!getToken() }
+// --- 同期ログイン判定（初期レンダー用） ---
+// Supabase localStorage トークンの有無 + 有効期限をチェック
+export function isLoggedIn() {
+  // sessionStorage にトークンがあれば OK（後方互換）
+  if (sessionStorage.getItem(KEYS.TOKEN)) return true
+  // Supabase localStorage トークンを確認
+  try {
+    const raw = localStorage.getItem(SB_TOKEN_KEY)
+    if (!raw) return false
+    const parsed = JSON.parse(raw)
+    if (parsed.expires_at && parsed.expires_at * 1000 < Date.now()) return false
+    return true
+  } catch { return false }
+}
+
+// --- 非同期セッション検証（権威的） ---
+// Supabase Auth に問い合わせて実際のセッションを返す
+export async function validateSession() {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session
+}
 
 // --- ロール判定 ---
 export function hasRole(requiredRoles) {
@@ -59,4 +89,20 @@ export function clearSession() {
 export async function logout() {
   try { await supabase.auth.signOut() } catch { /* ignore */ }
   clearSession()
+}
+
+// --- 内部ヘルパー: Supabase localStorage からトークン情報を取得 ---
+function _sbParsed() {
+  try {
+    const raw = localStorage.getItem(SB_TOKEN_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function _sbAccessToken() {
+  return _sbParsed()?.access_token || ''
+}
+
+function _sbMeta(key) {
+  return _sbParsed()?.user?.user_metadata?.[key] || ''
 }
