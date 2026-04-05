@@ -409,6 +409,12 @@ header{
     <option value="inactive">停止中</option>
   </select>
   <div class="tb-sep"></div>
+  <select class="filter-select" id="stockFilter" onchange="setStockFilter(this.value)">
+    <option value="">在庫：全て</option>
+    <option value="instock">在庫あり</option>
+    <option value="nostock">在庫なし</option>
+  </select>
+  <div class="tb-sep"></div>
   <select class="filter-select" id="supplierFilter" onchange="setSupplierFilter(this.value)">
     <option value="">仕入先：全て</option>
   </select>
@@ -523,6 +529,8 @@ let isDirty = false;
 let curSearch = '';
 let filterStatus = '';
 let filterSupplier = '';
+let filterStock = ''; // '' = all, 'instock' = quantity>0, 'nostock' = quantity=0
+let stockMap = {}; // prize_id -> total quantity
 let filterOrderDateFrom = '';
 let filterOrderDateTo = '';
 let sortKey = 'latest_order_date';
@@ -584,14 +592,20 @@ function showToast(msg, ok=true) {
 async function loadAll() {
   showLoading();
   try {
-    const [prizes, suppRows] = await Promise.all([
+    const [prizes, suppRows, stocks] = await Promise.all([
       sbGet('prize_masters',
         'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date,image_url' +
         '&order=prize_name.asc'),
-      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
+      sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => []),
+      sbGet('prize_stocks', 'select=prize_id,quantity').catch(() => [])
     ]);
     DATA = prizes;
     SUPPLIERS_LIST = suppRows;
+    stockMap = {};
+    for (const s of stocks) {
+      if (!s.prize_id) continue;
+      stockMap[s.prize_id] = (stockMap[s.prize_id] || 0) + (Number(s.quantity) || 0);
+    }
 
     buildSupplierFilter();
     render();
@@ -626,6 +640,8 @@ function getFiltered() {
   let list = DATA.filter(p => {
     if (filterStatus && p.status !== filterStatus) return false;
     if (filterSupplier && p.supplier_name !== filterSupplier) return false;
+    if (filterStock === 'instock' && !(stockMap[p.prize_id] > 0)) return false;
+    if (filterStock === 'nostock' && stockMap[p.prize_id] > 0) return false;
     if (filterOrderDateFrom || filterOrderDateTo) {
       if (!p.latest_order_date) return false;
       const d = String(p.latest_order_date).slice(0, 10);
@@ -746,6 +762,7 @@ function render() {
   <th style="text-align:right;cursor:default">ケース金額</th>
   <th ${th('supplier_name')} onclick="setSort('supplier_name')">仕入先${sortKey==='supplier_name'?sortArrow(sortDir):''}</th>
   <th ${th('latest_order_date')} onclick="setSort('latest_order_date')">最終発注${sortKey==='latest_order_date'?sortArrow(sortDir):''}</th>
+  <th style="text-align:right;cursor:default">在庫</th>
   <th ${th('status')} onclick="setSort('status')">状態${sortKey==='status'?sortArrow(sortDir):''}</th>
 </tr></thead>
 <tbody>
@@ -763,6 +780,7 @@ ${list.map(p => {
   <td class="td-cost" style="color:var(--text2)">${caseAmt}</td>
   <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
   <td style="font-size:12px;color:var(--text2)">${fmtDate(p.latest_order_date)}</td>
+  <td style="text-align:right;font-size:12px">${stockMap[p.prize_id]>0?`<span style="color:var(--green);font-weight:600">${stockMap[p.prize_id]}</span>`:'<span style="color:var(--border)">—</span>'}</td>
   <td>${statusBadge(p.status)}</td>
 </tr>`;
 }).join('')}
@@ -789,6 +807,7 @@ function setSupplierFilter(val) {
   render();
 }
 
+function setStockFilter(val) { filterStock = val; render(); }
 function setOrderDateFrom(val) { filterOrderDateFrom = val; render(); }
 function setOrderDateTo(val)   { filterOrderDateTo   = val; render(); }
 function setMobileSort(val)    { if (sortKey !== val) { sortKey = val; sortDir = 'asc'; render(); } }
@@ -797,12 +816,14 @@ function clearFilters() {
   curSearch = '';
   filterStatus = '';
   filterSupplier = '';
+  filterStock = '';
   filterOrderDateFrom = '';
   filterOrderDateTo = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('headerSearch').value = '';
   document.getElementById('statusFilter').value = '';
   document.getElementById('supplierFilter').value = '';
+  document.getElementById('stockFilter').value = '';
   document.getElementById('orderDateFrom').value = '';
   document.getElementById('orderDateTo').value = '';
   render();
@@ -1277,7 +1298,7 @@ function renderMobileList(list) {
   <div class="mc-status-bar ${statusClass}"></div>
   <div class="mc-body">
     <div class="mc-name">${p.image_url?'🖼 ':''}${highlight(p.prize_name || '', curSearch)}</div>
-    <div class="mc-sub">${sup !== '—' ? `<span style="color:var(--orange)">${esc(sup)}</span>` : ''}${p.category ? ` <span style="color:var(--text2)">${esc(p.category)}</span>` : ''}${p.latest_order_date ? ` <span style="color:var(--text2)">発注:${fmtDate(p.latest_order_date)}</span>` : ''}</div>
+    <div class="mc-sub">${sup !== '—' ? `<span style="color:var(--orange)">${esc(sup)}</span>` : ''}${p.category ? ` <span style="color:var(--text2)">${esc(p.category)}</span>` : ''}${p.latest_order_date ? ` <span style="color:var(--text2)">発注:${fmtDate(p.latest_order_date)}</span>` : ''}${stockMap[p.prize_id]>0 ? ` <span style="color:var(--green);font-weight:600">在庫:${stockMap[p.prize_id]}</span>` : ''}</div>
     <div class="mc-kv">
       <div class="mc-kv-item"><div class="mc-kv-label">単価</div><div class="mc-kv-val">¥${fmt(p.original_cost)}</div></div>
       ${caseAmtVal != null ? `<div class="mc-kv-item"><div class="mc-kv-label">ケース</div><div class="mc-kv-val" style="color:var(--cyan)">¥${fmt(caseAmtVal)}</div></div>` : ''}
