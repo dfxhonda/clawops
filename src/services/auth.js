@@ -6,14 +6,6 @@ export {
   getAuthSession,
   extractMeta,
   logout,
-  getToken,
-  getStaffId,
-  getStaffName,
-  getStaffRole,
-  hasRole,
-  isAdmin,
-  isManager,
-  isPatrol,
 } from '../lib/auth/session'
 
 export { useAuth, AuthProvider } from '../lib/auth/AuthProvider'

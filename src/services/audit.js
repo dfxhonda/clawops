@@ -3,7 +3,7 @@
 // 「誰が・いつ・何を・どう変えたか」を記録
 // ============================================
 import { supabase } from '../lib/supabase'
-import { getStaffId } from '../lib/auth/session'
+import { getAuthSession, extractMeta } from '../lib/auth/session'
 
 /**
  * 監査ログを書き込む
@@ -15,7 +15,11 @@ import { getStaffId } from '../lib/auth/session'
  * @param {string} [entry.staff_id] - 操作者のstaff_id（省略時はsessionStorageから取得）
  */
 export async function writeAuditLog(entry) {
-  const staffId = entry.staff_id || getStaffId() || 'unknown'
+  let staffId = entry.staff_id
+  if (!staffId) {
+    const session = await getAuthSession()
+    staffId = extractMeta(session).staffId || 'unknown'
+  }
   try {
     await supabase.from('audit_logs').insert({
       staff_id: staffId,

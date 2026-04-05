@@ -4,7 +4,7 @@
 // ============================================
 
 // 認証
-export { getToken, logout, getStaffId, getStaffName, getStaffRole, hasRole, isAdmin, isManager, isPatrol } from './auth'
+export { logout } from './auth'
 
 // ユーティリティ
 export { parseNum, clearCache } from './utils'

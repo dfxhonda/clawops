@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getToken } from '../services/auth'
+import { useAuth } from '../lib/auth/AuthProvider'
 import { clearCache } from '../services/utils'
 import { getPrizes } from '../services/prizes'
 
@@ -153,6 +153,7 @@ function generateInventoryTestData(prizes) {
 
 export default function TestDataImport() {
   const navigate = useNavigate()
+  const { accessToken } = useAuth()
   // meter_readings用
   const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
@@ -192,7 +193,7 @@ export default function TestDataImport() {
   }
 
   async function batchAppend(rows) {
-    const token = getToken()
+    const token = accessToken
     if (!token) { addLog('❌ ログインが必要です'); setStatus('error'); return }
     setStatus('running')
     let done = 0
@@ -225,7 +226,7 @@ export default function TestDataImport() {
 
   // ========== 棚卸しテストデータ ==========
   async function handleInventoryTestData() {
-    const token = getToken()
+    const token = accessToken
     if (!token) { addInvLog('認証トークンがありません', 'error'); return }
 
     setInvStatus('running')

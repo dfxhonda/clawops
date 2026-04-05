@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getToken } from '../services/auth'
+import { useAuth } from '../lib/auth/AuthProvider'
 
 const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 const SHEET_NAME = '集金帳票CSV'
@@ -39,6 +39,7 @@ const HEADERS = ['slip_id','date','store_code','store_name','machine_name','mach
 
 export default function ImportSlips() {
   const navigate = useNavigate()
+  const { accessToken } = useAuth()
   const [status, setStatus] = useState('ready')
   const [log, setLog] = useState([])
 
@@ -47,7 +48,7 @@ export default function ImportSlips() {
   }
 
   async function createSheetIfNeeded() {
-    const token = getToken()
+    const token = accessToken
     // Check existing sheets
     const res = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties.title`,
@@ -75,7 +76,7 @@ export default function ImportSlips() {
   }
 
   async function writeHeaders() {
-    const token = getToken()
+    const token = accessToken
     addLog('ヘッダー行を書き込み中...')
     await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME + '!A1')}?valueInputOption=USER_ENTERED`,
@@ -89,7 +90,7 @@ export default function ImportSlips() {
   }
 
   async function writeData() {
-    const token = getToken()
+    const token = accessToken
     addLog(`${SLIPS_DATA.length}件のデータを書き込み中...`)
     await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME + '!A:L')}:append?valueInputOption=USER_ENTERED`,
@@ -103,7 +104,7 @@ export default function ImportSlips() {
   }
 
   async function handleImport() {
-    if (!getToken()) {
+    if (!accessToken) {
       addLog('❌ ログインしてください')
       return
     }

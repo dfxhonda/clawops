@@ -8,7 +8,7 @@ import { getLastReadingsMap } from '../services/readings'
 import { parseNum } from '../services/utils'
 import { getStocksByOwner, adjustPrizeStockQuantity, getPrizeStocksExtended } from '../services/inventory'
 import { addStockMovement, MOVEMENT_TYPES } from '../services/movements'
-import { getStaffId } from '../lib/auth/session'
+import { useAuth } from '../lib/auth/AuthProvider'
 
 // BoothInput は clawops_drafts（配列形式）を使う（MainInput の v2 とは別）
 const DRAFT_KEY = 'clawops_drafts'
@@ -25,6 +25,7 @@ function saveDraftItem(draft) {
 const FIELD_ORDER = ['in_meter', 'out_meter', 'prize_stock', 'prize_restock', 'set_a', 'set_c', 'set_l', 'set_r', 'set_o', 'prize_name']
 
 export function useBoothInput(machineId, storeInfo) {
+  const { staffId: authStaffId } = useAuth()
   const [booths, setBooths] = useState([])
   const [machineName, setMachineName] = useState('')
   const [readingsMap, setReadingsMap] = useState({})
@@ -33,7 +34,7 @@ export function useBoothInput(machineId, storeInfo) {
   const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [vehicleStocks, setVehicleStocks] = useState([])
   const [showVehiclePanel, setShowVehiclePanel] = useState(false)
-  const [staffId, setStaffIdState] = useState(() => getStaffId() || '')
+  const [staffId, setStaffIdState] = useState(() => authStaffId || '')
   const [filter, setFilter] = useState('all')
 
   // ref管理
@@ -67,7 +68,7 @@ export function useBoothInput(machineId, storeInfo) {
       }
       setInputs(restored)
       // 車在庫
-      const sid = getStaffId()
+      const sid = authStaffId
       if (sid) {
         try {
           const vs = await getStocksByOwner('staff', sid)

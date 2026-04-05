@@ -4,11 +4,12 @@ import { getLocations } from '../../services/masters'
 import { transferStock, getStockMovements } from '../../services/movements'
 import { getPrizes, getPrizeOrders, markOrderArrived } from '../../services/prizes'
 import NumberInput from '../../components/NumberInput'
-import { getStaffId } from '../../lib/auth/session'
+import { useAuth } from '../../lib/auth/AuthProvider'
 import LogoutButton from '../../components/LogoutButton'
 
 export default function InventoryReceive() {
   const navigate = useNavigate()
+  const { staffId } = useAuth()
   const [prizes, setPrizes] = useState([])
   const [locations, setLocations] = useState([])
   const [recentArrivals, setRecentArrivals] = useState([])
@@ -68,7 +69,7 @@ export default function InventoryReceive() {
         toOwnerType: 'location', toOwnerId: selectedLocation,
         quantity: parseInt(quantity),
         note: note || '入庫チェック',
-        createdBy: getStaffId() || ''
+        createdBy: staffId || ''
       })
       setMessage({ type: 'success', text: `${prize?.prize_name} ×${quantity} を入庫しました` })
       setSelectedPrize('')
@@ -89,7 +90,7 @@ export default function InventoryReceive() {
     setSaving(true)
     try {
       const qty = parseInt(order.order_quantity) || 1
-      const staff = getStaffId() || ''
+      const staff = staffId || ''
       // 先にステータス更新（失敗しても在庫は変わらない。逆順だと在庫二重加算リスク）
       await markOrderArrived(order.order_id, qty)
       try {

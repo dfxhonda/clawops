@@ -11,7 +11,7 @@ const MENU_ITEMS = [
 
 export default function InventoryDashboard() {
   const navigate = useNavigate()
-  const { stats, loading } = useInventoryDashboard()
+  const { stats, loading, error, reload } = useInventoryDashboard()
 
   return (
     <div className="h-screen flex flex-col bg-bg text-text max-w-lg mx-auto">
@@ -48,6 +48,15 @@ export default function InventoryDashboard() {
       )}
       {loading && (
         <div className="text-center text-muted py-8 text-sm">読み込み中...</div>
+      )}
+      {error && !loading && (
+        <div className="bg-accent2/20 border border-accent2/30 rounded-xl p-4 mb-6 text-center">
+          <div className="text-sm text-accent2 mb-2">{error}</div>
+          <button onClick={reload}
+            className="bg-accent2 text-white text-xs font-bold px-4 py-2 rounded-lg">
+            再読み込み
+          </button>
+        </div>
       )}
 
       {/* メニュー */}

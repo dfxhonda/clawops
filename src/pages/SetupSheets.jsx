@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getToken } from '../services/auth'
+import { useAuth } from '../lib/auth/AuthProvider'
 
 const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 
@@ -37,6 +37,7 @@ const PRIZES_EXTRA_HEADERS = {
 
 export default function SetupSheets() {
   const navigate = useNavigate()
+  const { accessToken } = useAuth()
   const [log, setLog] = useState([])
   const [running, setRunning] = useState(false)
   const [done, setDone] = useState(false)
@@ -48,7 +49,7 @@ export default function SetupSheets() {
   async function runSetup() {
     setRunning(true)
     setLog([])
-    const token = getToken()
+    const token = accessToken
     if (!token) {
       addLog('認証トークンがありません。先にログインしてください。', 'error')
       setRunning(false)
