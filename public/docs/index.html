@@ -234,7 +234,7 @@ async function sbGet(table,params=''){
   return r.ok?r.json():[];
 }
 async function sbPatch(table,id,idCol,body){
-  await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
+  await fetch(`${SB_URL}/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
     method:'PATCH',headers:{...headers,'Content-Type':'application/json','Prefer':'return=minimal'},
     body:JSON.stringify(body)
   });
