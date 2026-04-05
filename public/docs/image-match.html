@@ -151,7 +151,7 @@ header{
   <!-- Image Preview (swipeable) -->
   <div class="preview-area" id="previewArea">
     <span class="swipe-hint left" id="hintL" style="display:none">‹</span>
-    <img id="previewImg" class="preview-img">
+    <img id="previewImg" class="preview-img" alt="景品画像">
     <span class="swipe-hint right" id="hintR" style="display:none">›</span>
     <div class="preview-name" id="previewName"></div>
   </div>
@@ -349,7 +349,7 @@ function renderList(){
   el.innerHTML=list.map(p=>{
     const sel=p.prize_id===selectedPrizeId?' selected':'';
     const imgHtml=p.image_url
-      ?`<img class="thumb" src="${SB_STORAGE}/public/announcements/${esc(p.image_url)}?t=${cacheBust}" loading="lazy" onerror="this.style.display='none'">`
+      ?`<img class="thumb" alt="" src="${SB_STORAGE}/public/announcements/${esc(p.image_url)}?t=${cacheBust}" loading="lazy" onerror="this.style.display='none'">`
       :`<div class="thumb-empty">📷</div>`;
     const supplier=p.supplier_name?`<span class="supplier-tag">${esc(p.supplier_name)}</span>`:'';
     const lastOrder=lastOrderMap[p.prize_id]?`<span class="order-date">発注:${esc(lastOrderMap[p.prize_id])}</span>`:'';

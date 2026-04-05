@@ -724,7 +724,7 @@ ${list.map(o => {
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectOrder('${esc(oid)}')">
   <td style="font-size:12px;color:var(--text2)">${fmtDate(o.expected_date)}</td>
   <td class="td-name" title="${esc(prizeName(o))}">
-    <div style="display:flex;align-items:center;gap:4px;overflow:hidden"><span style="display:inline-flex;align-items:center;flex-shrink:0">${o.prize_id && IMG_MAP[String(o.prize_id)] ? `<img src="${esc(SB_STORAGE + IMG_MAP[String(o.prize_id)]) + '?t=' + Date.now()}" style="width:20px;height:20px;border-radius:50%;object-fit:cover">` : ''}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prizeName(o))}</span></div>
+    <div style="display:flex;align-items:center;gap:4px;overflow:hidden"><span style="display:inline-flex;align-items:center;flex-shrink:0">${o.prize_id && IMG_MAP[String(o.prize_id)] ? `<img src="${esc(SB_STORAGE + IMG_MAP[String(o.prize_id)]) + '?t=' + Date.now()}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover">` : ''}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prizeName(o))}</span></div>
   </td>
   <td class="td-src" title="${esc(supName(o.supplier_id))}">${esc(o.supplier_id || '—')}</td>
   <td class="td-qty">${o.case_quantity != null ? o.case_quantity : '—'}</td>
@@ -1115,7 +1115,7 @@ function renderMobileList(list) {
     const oid = String(o.order_id);
     const mImg = o.prize_id ? IMG_MAP[String(o.prize_id)] : null;
     return `<div class="mc-item" onclick="openMobileDetail('${esc(oid)}')">
-  ${mImg ? `<img src="${esc(SB_STORAGE + mImg) + '?t=' + Date.now()}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;margin:8px 0 8px 8px;flex-shrink:0">` : ''}
+  ${mImg ? `<img src="${esc(SB_STORAGE + mImg) + '?t=' + Date.now()}" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:cover;margin:8px 0 8px 8px;flex-shrink:0">` : ''}
   <div class="mc-body">
     <div class="mc-name">${esc(prizeName(o))}</div>
     <div class="mc-meta">

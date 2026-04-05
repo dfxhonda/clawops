@@ -441,7 +441,7 @@ ${list.map(it=>{
   const sel=it.id===selId;
   const hasImg=!!it.image_url;
   return`<tr class="${sel?'sel':''}" data-id="${it.id}" onclick="selectItem(${it.id})">
-  <td>${hasImg?`<img src="${esc(it.image_url)}" loading="lazy" style="width:32px;height:32px;border-radius:4px;object-fit:cover">`:'<div style="width:32px;height:32px;border-radius:4px;background:var(--surface2)"></div>'}</td>
+  <td>${hasImg?`<img src="${esc(it.image_url)}" alt="" loading="lazy" style="width:32px;height:32px;border-radius:4px;object-fit:cover">`:'<div style="width:32px;height:32px;border-radius:4px;background:var(--surface2)"></div>'}</td>
   <td style="font-weight:600">${esc(it.prize_name)}</td>
   <td><span class="supplier-tag sup-${it.supplier_id||''}">${supName(it.supplier_id)}</span></td>
   <td class="td-r">${it.unit_cost?fmt(it.unit_cost):'—'}</td>
@@ -474,7 +474,7 @@ function renderDetail(){
   pane.innerHTML=`
   <div class="detail-header"><h3>${esc(it.prize_name)}</h3></div>
   <div style="padding:16px">
-    ${it.image_url?`<img src="${esc(it.image_url)}" class="detail-img" onerror="this.style.display='none'">`:''}
+    ${it.image_url?`<img src="${esc(it.image_url)}" alt="景品画像" class="detail-img" onerror="this.style.display='none'">`:''}
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
       <span class="supplier-tag sup-${it.supplier_id||''}">${supName(it.supplier_id)}</span>
       <span class="badge b-${it.status}">${STATUS_LABEL[it.status]||it.status}</span>
@@ -504,7 +504,7 @@ function renderMobileList(list,hasMore,total){
   if(!el)return;
   if(!list.length){el.innerHTML='<div class="empty-pane"><div class="empty-icon">📬</div>案内がありません</div>';return}
   el.innerHTML=list.map(it=>`<div class="mc-item" onclick="openMobileDetail(${it.id})">
-  ${it.image_url?`<img class="mc-thumb" src="${esc(it.image_url)}" loading="lazy" onerror="this.style.display='none'">`:''}
+  ${it.image_url?`<img class="mc-thumb" alt="" src="${esc(it.image_url)}" loading="lazy" onerror="this.style.display='none'">`:''}
   <div class="mc-body">
     <div class="mc-name">${esc(it.prize_name)}</div>
     <div class="mc-meta">
@@ -529,7 +529,7 @@ function openMobileDetail(id){
     <h3 style="font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.prize_name)}</h3>
   </header>
   <div style="padding:16px">
-    ${it.image_url?`<img src="${esc(it.image_url)}" style="width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius);background:var(--surface2);margin-bottom:12px" onerror="this.style.display='none'">`:''}
+    ${it.image_url?`<img src="${esc(it.image_url)}" alt="景品画像" style="width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius);background:var(--surface2);margin-bottom:12px" onerror="this.style.display='none'">`:''}
     <div style="font-size:14px;font-weight:700;margin-bottom:12px;word-break:break-word;line-height:1.4">${esc(it.prize_name)}</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
       <span class="supplier-tag sup-${it.supplier_id||''}">${supName(it.supplier_id)}</span>

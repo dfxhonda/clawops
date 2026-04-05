@@ -302,7 +302,7 @@ function renderGallery() {
 
     return `<div class="g-item" data-idx="${i}" onclick="openModalByIdx(this.dataset.idx)">
       ${imgUrl
-        ? `<img src="${imgUrl}" loading="lazy" onerror="this.outerHTML='<div class=g-noimg>📦</div>'">`
+        ? `<img src="${imgUrl}" alt="" loading="lazy" onerror="this.outerHTML='<div class=g-noimg>📦</div>'">`
         : '<div class="g-noimg">📦</div>'}
       <div class="g-info">
         <div class="g-name">${esc(name)}</div>
