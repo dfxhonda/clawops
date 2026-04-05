@@ -1140,23 +1140,36 @@ async function executeMerge(keepRecord, removeId, newPayload) {
   // Update the keep record
   await sbPatch('prize_masters', keepRecord.prize_id, 'prize_id', merged);
 
-  // Re-point references from removeId -> keepId (if removeId exists and differs)
+  // Re-point ALL FK references from removeId -> keepId
   if (removeId && removeId !== keepRecord.prize_id) {
-    const tables = ['prize_orders', 'prize_stocks', 'stock_movements'];
-    for (const t of tables) {
-      try {
-        await fetch(SB_URL + '/' + t + '?prize_id=eq.' + encodeURIComponent(removeId), {
-          method: 'PATCH',
-          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-          body: JSON.stringify({ prize_id: keepRecord.prize_id })
-        });
-      } catch(e) { /* table may not have matching rows, that's OK */ }
+    const keepId = keepRecord.prize_id;
+    // Tables with prize_id FK
+    const prizeIdTables = ['prize_orders','prize_stocks','stock_movements','booth_prize_stocks','locker_contents','capsule_materials','phase_history','daily_booth_stats','locker_actions'];
+    for (const t of prizeIdTables) {
+      await fetch(SB_URL+'/'+t+'?prize_id=eq.'+encodeURIComponent(removeId),{
+        method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({prize_id:keepId})
+      }).catch(()=>{});
     }
-    // Delete the old record
-    await fetch(SB_URL + '/prize_masters?prize_id=eq.' + encodeURIComponent(removeId), {
-      method: 'DELETE',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    // booths.current_prize_id
+    await fetch(SB_URL+'/booths?current_prize_id=eq.'+encodeURIComponent(removeId),{
+      method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({current_prize_id:keepId})
+    }).catch(()=>{});
+    // replacement_suggestions (2 columns)
+    await fetch(SB_URL+'/replacement_suggestions?current_prize_id=eq.'+encodeURIComponent(removeId),{
+      method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({current_prize_id:keepId})
+    }).catch(()=>{});
+    await fetch(SB_URL+'/replacement_suggestions?suggested_prize_id=eq.'+encodeURIComponent(removeId),{
+      method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({suggested_prize_id:keepId})
+    }).catch(()=>{});
+    // Delete the old record (all FK refs should be cleared now)
+    const delRes = await fetch(SB_URL+'/prize_masters?prize_id=eq.'+encodeURIComponent(removeId),{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
     });
+    if (!delRes.ok) throw new Error('旧レコード削除失敗: '+(await delRes.text()));
   }
 
   return keepRecord.prize_id;
