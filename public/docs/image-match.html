@@ -59,7 +59,12 @@ header{
 .toolbar{display:flex;gap:4px;margin-top:8px;align-items:center;flex-wrap:wrap}
 .filter-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer}
 .filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.sort-btn{padding:4px 10px;border-radius:var(--radius);font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;margin-left:auto}
+.sort-btn{padding:4px 10px;border-radius:var(--radius);font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer}
+.sort-btn.active{color:var(--accent);border-color:var(--accent)}
+.toolbar .spacer{flex:1}
+.supplier-filter{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:var(--radius);font-size:11px}
+.list-count{font-size:10px;color:var(--text2);text-align:right;margin-top:4px}
+.more-btn{width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;border-top:none}
 
 /* Prize list */
 .prize-list{margin-top:8px;max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
@@ -157,7 +162,17 @@ header{
     <div class="toolbar">
       <button class="filter-tab active" onclick="setFilter('noimg')" id="tabNoImg">画像なし</button>
       <button class="filter-tab" onclick="setFilter('all')" id="tabAll">すべて</button>
-      <button class="sort-btn" id="sortBtn" onclick="toggleSort()">名前順 ↓</button>
+      <select class="supplier-filter" id="supplierFilter" onchange="renderList()">
+        <option value="">仕入先：全て</option>
+      </select>
+    </div>
+    <div class="toolbar" style="margin-top:4px">
+      <span style="font-size:10px;color:var(--text2)">並替:</span>
+      <button class="sort-btn active" id="sortName" onclick="setSort('name')">名前 ↑</button>
+      <button class="sort-btn" id="sortSupplier" onclick="setSort('supplier')">仕入先</button>
+      <button class="sort-btn" id="sortOrder" onclick="setSort('order_date')">発注日</button>
+      <div class="spacer"></div>
+      <span class="list-count" id="listCount"></span>
     </div>
     <div class="prize-list" id="prizeList"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
   </div>
@@ -194,8 +209,9 @@ async function sbPatch(t,id,col,b){const r=await fetch(SB_URL+'/'+t+'?'+col+'=eq
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/'/g,'&#39;')}
 
 let allPrizes=[], files=[], currentFileIdx=0, selectedPrizeId=null, filterMode='noimg', cacheBust=Date.now();
-let sortKey='name', sortDir='asc'; // name, supplier, order_date
-let lastOrderMap={}; // prize_id -> latest order_date
+let sortKey='name', sortDir='asc';
+let lastOrderMap={};
+let displayLimit=100;
 
 // ─── INIT ───
 async function init(){
@@ -209,6 +225,10 @@ async function init(){
     for(const o of orders){
       if(o.prize_id && !lastOrderMap[o.prize_id]) lastOrderMap[o.prize_id]=o.order_date;
     }
+    // Build supplier dropdown
+    const suppliers=[...new Set(prizes.map(p=>p.supplier_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+    const sel=document.getElementById('supplierFilter');
+    suppliers.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)});
   }catch(e){
     showToast('読込エラー: '+e.message,false);
   }
@@ -277,13 +297,16 @@ previewArea.addEventListener('touchend',e=>{
 },{passive:true});
 
 // ─── SORT ───
-function toggleSort(){
-  const cycle=['name','supplier','order_date'];
-  let idx=cycle.indexOf(sortKey);
-  if(sortDir==='asc'){sortDir='desc'}
-  else{sortDir='asc';idx=(idx+1)%cycle.length;sortKey=cycle[idx]}
+function setSort(key){
+  if(sortKey===key){sortDir=sortDir==='asc'?'desc':'asc'}
+  else{sortKey=key;sortDir=key==='order_date'?'desc':'asc'}
   const labels={name:'名前',supplier:'仕入先',order_date:'発注日'};
-  document.getElementById('sortBtn').textContent=`${labels[sortKey]}順 ${sortDir==='asc'?'↑':'↓'}`;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  const btnId={name:'sortName',supplier:'sortSupplier',order_date:'sortOrder'}[key];
+  const btn=document.getElementById(btnId);
+  btn.classList.add('active');
+  btn.textContent=`${labels[key]} ${sortDir==='asc'?'↑':'↓'}`;
+  displayLimit=100;
   renderList();
 }
 
@@ -292,13 +315,16 @@ function setFilter(mode){
   filterMode=mode;
   document.getElementById('tabNoImg').classList.toggle('active',mode==='noimg');
   document.getElementById('tabAll').classList.toggle('active',mode==='all');
+  displayLimit=100;
   renderList();
 }
 
 function renderList(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  const supplierQ=document.getElementById('supplierFilter').value;
   let list=allPrizes;
   if(filterMode==='noimg') list=list.filter(p=>!p.image_url);
+  if(supplierQ) list=list.filter(p=>p.supplier_name===supplierQ);
   if(q) list=list.filter(p=>(p.prize_name||'').toLowerCase().includes(q)||(p.supplier_name||'').toLowerCase().includes(q));
 
   // Sort
@@ -311,7 +337,11 @@ function renderList(){
     return sortDir==='asc'?cmp:-cmp;
   });
 
-  list=list.slice(0,100);
+  const totalCount=list.length;
+  const showing=Math.min(displayLimit,totalCount);
+  document.getElementById('listCount').textContent=`${showing}/${totalCount}件`;
+  const hasMore=totalCount>displayLimit;
+  list=list.slice(0,displayLimit);
 
   const el=document.getElementById('prizeList');
   if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">該当なし</div>';return}
@@ -332,7 +362,10 @@ function renderList(){
       </div>
     </div>`;
   }).join('');
+  if(hasMore) el.innerHTML+=`<button class="more-btn" onclick="showMore()">もっと見る（残り${totalCount-displayLimit}件）</button>`;
 }
+
+function showMore(){displayLimit+=200;renderList()}
 
 function selectPrize(id){
   selectedPrizeId=id;
