@@ -1155,15 +1155,18 @@ async function executeMerge(keepRecord, removeId, newPayload) {
     if (!seen.has(key)) { seen.add(key); mergedAliases.push(a); }
   }
 
-  // Build merged payload: new values take priority (use ?? for 0-safe fallback)
+  // Build merged payload: take best value from both records
+  // For remove record, look up from DATA (has image_url etc.)
+  const removeRec = removeId ? DATA.find(x => String(x.prize_id) === String(removeId)) : null;
+
   const merged = {
     prize_name: newPayload.prize_name,
     aliases: JSON.stringify(mergedAliases),
-    original_cost: newPayload.original_cost,
-    category: newPayload.category || keepRecord.category || null,
-    supplier_name: newPayload.supplier_name || keepRecord.supplier_name || null,
-    default_case_quantity: newPayload.default_case_quantity ?? keepRecord.default_case_quantity ?? null,
-    image_url: keepRecord.image_url || null,
+    original_cost: newPayload.original_cost ?? keepRecord.original_cost ?? null,
+    category: newPayload.category || keepRecord.category || (removeRec?.category) || null,
+    supplier_name: newPayload.supplier_name || keepRecord.supplier_name || (removeRec?.supplier_name) || null,
+    default_case_quantity: newPayload.default_case_quantity ?? keepRecord.default_case_quantity ?? (removeRec?.default_case_quantity) ?? null,
+    image_url: keepRecord.image_url || (removeRec?.image_url) || null,
     status: newPayload.status,
     updated_at: new Date().toISOString(),
     updated_by: getStaffId()
