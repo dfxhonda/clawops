@@ -430,42 +430,8 @@ header{
 <button class="fab" onclick="openMobileNew()" aria-label="発注を追加">＋</button>
 
 <script>
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const SB_URL = window.CLAWOPS_CONFIG.SUPABASE_URL + '/rest/v1';
-const SB_KEY = window.CLAWOPS_CONFIG.SUPABASE_ANON_KEY;
-const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_URL + '/storage/v1/object';
-
-// ─── SUPABASE REST ────────────────────────────────────────────────────────────
-async function sbGet(table, params='') {
-  let all=[],offset=0;const PAGE=1000;
-  while(true){
-    const r = await fetch(`${SB_URL}/${table}?${params}&limit=${PAGE}&offset=${offset}`, {
-      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-    });
-    if (!r.ok) throw new Error(await r.text());
-    const d=await r.json();all=all.concat(d);if(d.length<PAGE)break;offset+=PAGE;
-  }
-  return all;
-}
-
-async function sbPatch(table, id, idCol, body) {
-  const r = await fetch(`${SB_URL}/${table}?${idCol}=eq.${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) throw new Error(await r.text());
-}
-
-async function sbPost(table, body) {
-  const r = await fetch(`${SB_URL}/${table}`, {
-    method: 'POST',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
+// ─── CONSTANTS (from config.js) ──────────────────────────────────────────────
+const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_STORAGE;
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_staff'));return s?.staff_id||null}catch{return null}}

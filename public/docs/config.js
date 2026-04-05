@@ -70,8 +70,9 @@
     return r.json();
   }
 
-  async function sbDelete(table, id) {
-    const r = await fetch(SB_REST + '/' + table + '?id=eq.' + id, {
+  async function sbDelete(table, colOrId, val) {
+    var filter = val != null ? colOrId + '=eq.' + encodeURIComponent(val) : 'id=eq.' + encodeURIComponent(colOrId);
+    const r = await fetch(SB_REST + '/' + table + '?' + filter, {
       method: 'DELETE',
       headers: headers()
     });

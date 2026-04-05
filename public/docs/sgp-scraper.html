@@ -156,21 +156,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif
 </div>
 
 <script>
-const SB_URL = window.CLAWOPS_CONFIG.SUPABASE_URL + '/rest/v1';
-const SB_KEY = window.CLAWOPS_CONFIG.SUPABASE_ANON_KEY;
-const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_URL + '/storage/v1/object';
-const FN_URL = window.CLAWOPS_CONFIG.SUPABASE_URL + '/functions/v1/sgp-import';
+const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_STORAGE + '/public/announcements/sgp/';
+const FN_URL = window.CLAWOPS_CONFIG.SUPABASE_FN + '/sgp-import';
 
 let allOrders = [];
 let currentMonth = '';
-
-// --- Supabase REST ---
-async function sbGet(table, params) {
-  const r = await fetch(`${SB_URL}/${table}?${params}`, {
-    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY }
-  });
-  return r.json();
-}
 
 // --- Import ---
 async function runImport(withImages) {
@@ -185,7 +175,7 @@ async function runImport(withImages) {
     const url = FN_URL + (withImages ? '?images=1' : '');
     const r = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + SB_KEY }
+      headers: { Authorization: 'Bearer ' + window.CLAWOPS_CONFIG.SUPABASE_ANON_KEY }
     });
     const d = await r.json();
 
@@ -217,7 +207,7 @@ async function runBackfill() {
   try {
     const r = await fetch(FN_URL + `?images=1&page=${backfillPage}`, {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + SB_KEY }
+      headers: { Authorization: 'Bearer ' + window.CLAWOPS_CONFIG.SUPABASE_ANON_KEY }
     });
     const d = await r.json();
     st.textContent = `ページ ${backfillPage}: 画像 ${d.images_uploaded || 0}枚取得 (${d.records_fetched}件中)`;
