@@ -1,7 +1,5 @@
 import { supabase } from '../lib/supabase'
 
-export const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
-
 // 在庫移動の種類
 export const MOVEMENT_TYPES = {
   TRANSFER: 'transfer',   // 拠点間・担当者間の移管
@@ -13,8 +11,6 @@ export const MOVEMENT_TYPES = {
 const TOKEN_KEY = 'gapi_token'
 
 export function getToken() { return sessionStorage.getItem(TOKEN_KEY) }
-export function setToken(t) { sessionStorage.setItem(TOKEN_KEY, t) }
-export function clearToken() { sessionStorage.removeItem(TOKEN_KEY) }
 
 export function parseNum(v) {
   if (v === undefined || v === null || v === '') return NaN
@@ -31,54 +27,6 @@ function isOldEnough(readTime) {
   const d = new Date(readTime)
   if (isNaN(d)) return false
   return d < new Date(Date.now() - 24 * 60 * 60 * 1000)
-}
-
-// 旧Sheets API関数（レガシー。DataSearch等で一部使用。401でトークン消去しない）
-export async function sheetsGet(range) {
-  const token = getToken()
-  if (!token) throw new Error('認証トークンがありません')
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  )
-  if (!res.ok) throw new Error('Sheets API error: ' + res.status)
-  return (await res.json()).values || []
-}
-
-async function sheetsAppend(range, values) {
-  const token = getToken()
-  if (!token) throw new Error('認証トークンがありません')
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED`,
-    { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values }) }
-  )
-  if (!res.ok) throw new Error('Sheets append error: ' + res.status)
-  return res.json()
-}
-
-export async function sheetsPut(range, values) {
-  const token = getToken()
-  if (!token) throw new Error('認証トークンがありません')
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-    { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values }) }
-  )
-  if (!res.ok) throw new Error('Sheets PUT error: ' + res.status)
-  return res.json()
-}
-
-export async function sheetsBatchUpdate(requests) {
-  const token = getToken()
-  if (!token) throw new Error('認証トークンがありません')
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
-    { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests }) }
-  )
-  if (!res.ok) throw new Error('Sheets batchUpdate error: ' + res.status)
-  return res.json()
 }
 
 // ============================================
@@ -116,17 +64,6 @@ export async function getAllMeterReadings(forceRefresh = false) {
   }))
   setCache('meter_readings', result)
   return result
-}
-
-export async function getReadingsByBooth(boothId) {
-  const all = await getAllMeterReadings()
-  return all.filter(r => String(r.booth_id) === String(boothId))
-}
-
-export async function getLastReading(boothId) {
-  const rows = await getReadingsByBooth(boothId)
-  const old = [...rows].reverse().find(r => isOldEnough(r.read_time))
-  return old || null
 }
 
 export async function getLastReadingsMap(boothIds) {
@@ -307,99 +244,6 @@ export async function updateReading(readingId, r) {
 }
 
 // ============================================
-// 店舗管理 CRUD
-// ============================================
-export async function getAllStoresRaw() {
-  const rows = await sheetsGet('stores!A2:N')
-  return rows.map((r, i) => ({
-    _row: i + 2,
-    store_id: r[0]||'', store_code: r[1]||'', store_name: r[2]||'',
-    store_address: r[3]||'', store_tel: r[4]||'',
-    accounting_contact_name: r[5]||'', accounting_contact_tel: r[6]||'',
-    settlement_cycle: r[7]||'',
-    contract_rate_store: r[8]||'', contract_rate_fc: r[9]||'',
-    active_flag: r[10]||'', note: r[11]||'',
-    created_at: r[12]||'', updated_at: r[13]||'',
-  }))
-}
-
-export async function addStore(s) {
-  const now = new Date().toISOString()
-  const id = 'S' + Date.now()
-  await sheetsAppend('stores!A:N', [[
-    id, s.store_code, s.store_name, s.store_address||'', s.store_tel||'',
-    s.accounting_contact_name||'', s.accounting_contact_tel||'',
-    s.settlement_cycle||'月次', s.contract_rate_store||'70', s.contract_rate_fc||'20',
-    '1', s.note||'', now, now
-  ]])
-  clearCache()
-  return id
-}
-
-export async function updateStore(rowNum, s) {
-  const now = new Date().toISOString()
-  await sheetsPut(`stores!B${rowNum}:N${rowNum}`, [[
-    s.store_code, s.store_name, s.store_address||'', s.store_tel||'',
-    s.accounting_contact_name||'', s.accounting_contact_tel||'',
-    s.settlement_cycle||'', s.contract_rate_store||'', s.contract_rate_fc||'',
-    s.active_flag||'1', s.note||'', s.created_at||'', now
-  ]])
-  clearCache()
-}
-
-// ============================================
-// 機械管理 CRUD
-// ============================================
-export async function getAllMachinesRaw(storeId) {
-  const rows = await sheetsGet('machines!A2:M')
-  return rows
-    .map((r, i) => ({
-      _row: i + 2,
-      machine_id: r[0]||'', store_id: r[1]||'', machine_code: r[2]||'',
-      machine_name: r[3]||'', machine_model: r[4]||'', machine_type: r[5]||'',
-      booth_count: r[6]||'', default_price: r[7]||'100',
-      meter_layout: r[8]||'', rental_code: r[9]||'',
-      monthly_advance: r[10]||'0', location_note: r[11]||'',
-      active_flag: r[12]||'',
-    }))
-    .filter(m => !storeId || String(m.store_id) === String(storeId))
-}
-
-export async function addMachine(m) {
-  const now = new Date().toISOString()
-  const id = 'M' + Date.now()
-  await sheetsAppend('machines!A:M', [[
-    id, m.store_id, m.machine_code, m.machine_name||'', m.machine_model||'',
-    m.machine_type||'', m.booth_count||'1', m.default_price||'100',
-    m.meter_layout||'', m.rental_code||'', m.monthly_advance||'0',
-    m.location_note||'', '1'
-  ]])
-  // 自動ブース生成
-  const count = parseInt(m.booth_count) || 1
-  for (let i = 1; i <= count; i++) {
-    const bc = `B${String(i).padStart(2,'0')}`
-    const storeCode = m.store_code || ''
-    const fullCode = `${storeCode}-${m.machine_code}-${bc}`
-    await sheetsAppend('booths!A:K', [[
-      'BT' + Date.now() + i, id, bc, String(i), '',
-      fullCode, '7', '7', '', m.default_price||'100', '1'
-    ]])
-  }
-  clearCache()
-  return id
-}
-
-export async function updateMachine(rowNum, m) {
-  await sheetsPut(`machines!B${rowNum}:M${rowNum}`, [[
-    m.store_id, m.machine_code, m.machine_name||'', m.machine_model||'',
-    m.machine_type||'', m.booth_count||'', m.default_price||'100',
-    m.meter_layout||'', m.rental_code||'', m.monthly_advance||'0',
-    m.location_note||'', m.active_flag||'1'
-  ]])
-  clearCache()
-}
-
-// ============================================
 // 景品管理 CRUD
 // ============================================
 // Supabase接続（景品マスタ・発注履歴）
@@ -411,13 +255,6 @@ const SUPPLIER_MAP = {
 }
 
 function supName(id) { return SUPPLIER_MAP[id] || id || '' }
-
-// --- 仕入先 ---
-export async function getSuppliers() {
-  const { data, error } = await supabase.from('suppliers').select('supplier_id, supplier_name').order('supplier_name')
-  if (error) throw new Error('仕入先取得エラー: ' + error.message)
-  return data || []
-}
 
 // --- 景品マスタ (Supabase) ---
 export async function getPrizes() {
@@ -462,45 +299,6 @@ export async function addPrize(p) {
   return data.prize_id
 }
 
-export async function addPrizesBatch(items) {
-  const rows = items.map(p => {
-    const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === p.supplier_name)
-    return {
-      prize_name: p.prize_name,
-      original_cost: parseInt(p.unit_cost) || 0,
-      supplier_id: supEntry ? supEntry[0] : null,
-      supplier_name: p.supplier_name || null,
-      jan_code: p.jan_code || null,
-      category: p.category || null,
-      status: p.is_active === 'FALSE' ? 'inactive' : 'active',
-    }
-  })
-  const { error } = await supabase.from('prize_masters').insert(rows)
-  if (error) throw new Error('一括登録エラー: ' + error.message)
-  clearCache()
-  return rows.length
-}
-
-export async function updatePrize(prizeId, p) {
-  const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === p.supplier_name)
-  const supId = supEntry ? supEntry[0] : p.supplier_id || null
-  const { error } = await supabase.from('prize_masters').update({
-    prize_name: p.prize_name,
-    original_cost: parseInt(p.unit_cost) || 0,
-    supplier_id: supId,
-    supplier_name: p.supplier_name || null,
-    jan_code: p.jan_code || null,
-    category: p.category || null,
-    size: p.item_size || null,
-    default_case_quantity: parseInt(p.pieces_per_case) || null,
-    status: p.is_active === 'FALSE' ? 'inactive' : 'active',
-    notes: p.notes || null,
-    updated_at: new Date().toISOString(),
-  }).eq('prize_id', prizeId)
-  if (error) throw new Error('景品更新エラー: ' + error.message)
-  clearCache()
-}
-
 // --- 発注履歴 (Supabase) ---
 export async function getPrizeOrders() {
   if (getCache('prize_orders')) return getCache('prize_orders')
@@ -525,24 +323,6 @@ export async function getPrizeOrders() {
   return result
 }
 
-export async function addPrizeOrder(o) {
-  const supEntry = Object.entries(SUPPLIER_MAP).find(([, v]) => v === o.supplier_name)
-  const prize = (getCache('prizes') || []).find(p => String(p.prize_id) === String(o.prize_id))
-  const { data, error } = await supabase.from('prize_orders').insert({
-    prize_id: o.prize_id || null,
-    prize_name_raw: o.prize_name || prize?.prize_name || '',
-    supplier_id: supEntry ? supEntry[0] : prize?.supplier_id || null,
-    order_date: o.ordered_at || null,
-    case_quantity: parseInt(o.order_quantity) || 0,
-    unit_cost: parseInt(o.unit_cost_at_order) || 0,
-    notes: o.note || null,
-    status: 'ordered',
-  }).select().single()
-  if (error) throw new Error('発注登録エラー: ' + error.message)
-  clearCache()
-  return data.order_id
-}
-
 // 発注の入荷確認（arrived_at + status更新）
 export async function markOrderArrived(orderId, arrivedQuantity) {
   const now = new Date().toISOString()
@@ -555,229 +335,9 @@ export async function markOrderArrived(orderId, arrivedQuantity) {
   clearCache()
 }
 
-// 旧Google Sheets版（参考用・他シートで引き続き使用）
-// ============================================
-// prizes シート列構成 (A-S):
-// A:prize_id B:prize_name C:jan_code D:barcode_value E:unit_cost
-// F:supplier_name G:supplier_contact H:is_active I:created_at J:updated_at
-// K:short_name L:item_size M:category N:order_at O:arrival_at
-// P:restock_count Q:stock_count R:case_count S:pieces_per_case
-// 旧: Google Sheets版（使わないが参考用に残す）
-async function _sheets_getPrizes() {
-  const rows = await sheetsGet('prizes!A2:S')
-  const result = rows.map((r, i) => ({
-    _row: i + 2,
-    prize_id: r[0]||'', prize_name: r[1]||'', jan_code: r[2]||'',
-    barcode_value: r[3]||'', unit_cost: r[4]||'', supplier_name: r[5]||'',
-    supplier_contact: r[6]||'', is_active: r[7]||'TRUE',
-    created_at: r[8]||'', updated_at: r[9]||'',
-    short_name: r[10]||'', item_size: r[11]||'', category: r[12]||'',
-    order_at: r[13]||'', arrival_at: r[14]||'',
-    restock_count: r[15]||'', stock_count: r[16]||'',
-    case_count: r[17]||'', pieces_per_case: r[18]||'',
-  }))
-  setCache('prizes', result)
-  return result
-}
-
-async function _sheets_addPrize(p) {
-  const now = new Date().toISOString()
-  const existing = await _sheets_getPrizes()
-  const nextId = existing.length > 0
-    ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
-    : 1
-  const barcode = p.jan_code || `PRZ-${nextId}`
-  await sheetsAppend('prizes!A:S', [[
-    nextId, p.prize_name, p.jan_code||'', barcode,
-    p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
-    p.is_active || 'TRUE', now, now,
-    p.short_name||'', p.item_size||'', p.category||'',
-    p.order_at||'', p.arrival_at||'',
-    p.restock_count||'', p.stock_count||'',
-    p.case_count||'', p.pieces_per_case||'',
-  ]])
-  clearCache()
-  return nextId
-}
-
-async function _sheets_addPrizesBatch(items) {
-  const now = new Date().toISOString()
-  const existing = await _sheets_getPrizes()
-  let nextId = existing.length > 0
-    ? Math.max(...existing.map(x => parseInt(x.prize_id)||0)) + 1
-    : 1
-  const rows = items.map(p => {
-    const id = nextId++
-    const barcode = p.jan_code || `PRZ-${id}`
-    return [
-      id, p.prize_name||'', p.jan_code||'', barcode,
-      p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
-      p.is_active || 'TRUE', now, now,
-      p.short_name||'', p.item_size||'', p.category||'',
-      p.order_at||'', p.arrival_at||'',
-      p.restock_count||'', p.stock_count||'',
-      p.case_count||'', p.pieces_per_case||'',
-    ]
-  })
-  // バッチappend（1行ずつ送ると遅いのでまとめる）
-  for (const row of rows) {
-    await sheetsAppend('prizes!A:S', [row])
-  }
-  clearCache()
-  return rows.length
-}
-
-async function _sheets_updatePrize(rowNum, p) {
-  const now = new Date().toISOString()
-  await sheetsPut(`prizes!B${rowNum}:S${rowNum}`, [[
-    p.prize_name, p.jan_code||'', p.barcode_value||'',
-    p.unit_cost||'0', p.supplier_name||'', p.supplier_contact||'',
-    p.is_active||'TRUE', p.created_at||'', now,
-    p.short_name||'', p.item_size||'', p.category||'',
-    p.order_at||'', p.arrival_at||'',
-    p.restock_count||'', p.stock_count||'',
-    p.case_count||'', p.pieces_per_case||'',
-  ]])
-  clearCache()
-}
-
-async function _sheets_getPrizeOrders() {
-  const rows = await sheetsGet('prize_orders!A2:L')
-  return rows.map((r, i) => ({
-    _row: i + 2,
-    order_id: r[0]||'', prize_id: r[1]||'', prize_name: r[2]||'',
-    ordered_at: r[3]||'', order_quantity: r[4]||'',
-    arrived_at: r[5]||'', arrival_quantity: r[6]||'',
-    unit_cost_at_order: r[7]||'', total_cost: r[8]||'',
-    note: r[9]||'', created_at: r[10]||'', supplier_name: r[11]||'',
-  }))
-}
-
-async function _sheets_addPrizeOrder(o) {
-  const now = new Date().toISOString()
-  const existing = await _sheets_getPrizeOrders()
-  const nextId = existing.length > 0
-    ? Math.max(...existing.map(x => parseInt(x.order_id)||0)) + 1
-    : 1
-  const total = (parseInt(o.order_quantity)||0) * (parseInt(o.unit_cost_at_order)||0)
-  await sheetsAppend('prize_orders!A:L', [[
-    nextId, o.prize_id, o.prize_name||'', o.ordered_at||'',
-    o.order_quantity||'', o.arrived_at||'', o.arrival_quantity||'',
-    o.unit_cost_at_order||'', total, o.note||'', now, o.supplier_name||''
-  ]])
-  clearCache()
-  return nextId
-}
-
-export async function getPrizeStocks() {
-  return getPrizeStocksExtended()
-}
-
-// ============================================
-// 車在庫管理 (vehicle_stocks)
-// ============================================
-// シート構成: stock_id / staff_name / prize_id / prize_name / quantity / note / created_at / updated_at
-export async function getVehicleStocks() {
-  if (getCache('vehicle_stocks')) return getCache('vehicle_stocks')
-  try {
-    const rows = await sheetsGet('vehicle_stocks!A2:H')
-    const result = rows.map((r, i) => ({
-      _row: i + 2,
-      stock_id: r[0]||'', staff_name: r[1]||'', prize_id: r[2]||'',
-      prize_name: r[3]||'', quantity: r[4]||'0', note: r[5]||'',
-      created_at: r[6]||'', updated_at: r[7]||'',
-    }))
-    setCache('vehicle_stocks', result)
-    return result
-  } catch (e) {
-    // vehicle_stocks sheet not found, returning empty
-    return []
-  }
-}
-
-export async function addVehicleStock(item) {
-  const now = new Date().toISOString()
-  const existing = await getVehicleStocks()
-  const nextId = existing.length > 0
-    ? Math.max(...existing.map(x => parseInt(x.stock_id)||0)) + 1
-    : 1
-  await sheetsAppend('vehicle_stocks!A:H', [[
-    nextId, item.staff_name||'', item.prize_id||'', item.prize_name||'',
-    item.quantity||'0', item.note||'', now, now
-  ]])
-  clearCache()
-  return nextId
-}
-
-export async function updateVehicleStock(rowNum, item) {
-  const now = new Date().toISOString()
-  await sheetsPut(`vehicle_stocks!B${rowNum}:H${rowNum}`, [[
-    item.staff_name||'', item.prize_id||'', item.prize_name||'',
-    item.quantity||'0', item.note||'', item.created_at||'', now
-  ]])
-  clearCache()
-}
-
-export async function deleteVehicleStock(rowNum) {
-  // 行クリアで論理削除（空行にする）
-  await sheetsPut(`vehicle_stocks!A${rowNum}:H${rowNum}`, [[
-    '', '', '', '', '', '', '', ''
-  ]])
-  clearCache()
-}
-
-// ============================================
-// 棚卸し記録 (inventory_checks)
-// ============================================
-// シート構成: check_id / check_date / prize_id / prize_name / warehouse_qty / checked_by / note / created_at
-export async function getInventoryChecks() {
-  if (getCache('inventory_checks')) return getCache('inventory_checks')
-  try {
-    const rows = await sheetsGet('inventory_checks!A2:H')
-    const result = rows.map((r, i) => ({
-      _row: i + 2,
-      check_id: r[0]||'', check_date: r[1]||'', prize_id: r[2]||'',
-      prize_name: r[3]||'', warehouse_qty: r[4]||'0', checked_by: r[5]||'',
-      note: r[6]||'', created_at: r[7]||'',
-    }))
-    setCache('inventory_checks', result)
-    return result
-  } catch (e) {
-    // inventory_checks sheet not found, returning empty
-    return []
-  }
-}
-
-export async function saveInventoryCheck(items) {
-  // items: [{prize_id, prize_name, warehouse_qty, checked_by, note}]
-  const now = new Date().toISOString()
-  const checkDate = now.slice(0, 10)
-  const rows = items.map((item, i) => [
-    'IC' + Date.now() + i, checkDate, item.prize_id||'', item.prize_name||'',
-    item.warehouse_qty||'0', item.checked_by||'', item.note||'', now
-  ])
-  for (const row of rows) {
-    await sheetsAppend('inventory_checks!A:H', [row])
-  }
-  clearCache()
-}
-
-export async function updateInventoryCheck(rowNum, data) {
-  await sheetsPut(`inventory_checks!E${rowNum}:G${rowNum}`, [[
-    data.warehouse_qty || '0', data.checked_by || '', data.note || ''
-  ]])
-  clearCache()
-}
-
-export async function deleteInventoryCheck(rowNum) {
-  await sheetsPut(`inventory_checks!A${rowNum}:H${rowNum}`, [['','','','','','','','']])
-  clearCache()
-}
-
 // ============================================
 // ロケーション管理 (locations) — Supabase版
 // ============================================
-// Supabase: location_id / location_name / location_type / parent_location_id / store_code / operator_id / is_active / notes / capacity_note / is_full / created_at / updated_at / updated_by
 
 export async function getLocations(forceRefresh = false) {
   if (!forceRefresh && getCache('locations')) return getCache('locations')
@@ -804,64 +364,9 @@ export async function getLocations(forceRefresh = false) {
   return result
 }
 
-export async function getLocationTree(parentId = null) {
-  const all = await getLocations()
-  if (!parentId) {
-    return all.filter(l => !l.parent_location_id)
-  }
-  return all.filter(l => l.parent_location_id === parentId)
-}
-
-// 指定ロケーション + その子孫のID一覧を取得
-export async function getLocationIdsIncludingChildren(locationId) {
-  const all = await getLocations()
-  const ids = [locationId]
-  function collectChildren(pid) {
-    all.filter(l => l.parent_location_id === pid).forEach(child => {
-      ids.push(child.location_id)
-      collectChildren(child.location_id)
-    })
-  }
-  collectChildren(locationId)
-  return ids
-}
-
-export async function addLocation(loc) {
-  const now = new Date().toISOString()
-  const { error } = await supabase.from('locations').insert({
-    location_id: loc.location_id,
-    location_name: loc.name || loc.location_name || '',
-    parent_location_id: loc.parent_location_id || null,
-    store_code: loc.store_code || null,
-    location_type: loc.location_type || 'warehouse',
-    notes: loc.note || loc.notes || null,
-    is_active: true,
-    created_at: now, updated_at: now,
-  })
-  if (error) throw new Error('拠点追加エラー: ' + error.message)
-  clearCache()
-}
-
-export async function updateLocation(locationId, loc) {
-  const now = new Date().toISOString()
-  const { error } = await supabase.from('locations').update({
-    location_name: loc.name || loc.location_name || undefined,
-    parent_location_id: loc.parent_location_id || undefined,
-    store_code: loc.store_code || undefined,
-    location_type: loc.location_type || undefined,
-    notes: loc.note || loc.notes || undefined,
-    is_active: loc.active_flag === '0' ? false : (loc.is_active ?? true),
-    updated_at: now, updated_by: loc.updated_by || null,
-  }).eq('location_id', locationId)
-  if (error) throw new Error('拠点更新エラー: ' + error.message)
-  clearCache()
-}
-
 // ============================================
 // 在庫管理 prize_stocks — Supabase版
 // ============================================
-// Supabase prize_stocks: stock_id / prize_id / owner_type / owner_id / quantity / tags / created_at / updated_at / updated_by / last_counted_at / last_counted_by
-// prize_nameはprize_mastersからFK JOINで取得
 
 export async function getPrizeStocksExtended(forceRefresh = false) {
   if (!forceRefresh && getCache('prize_stocks_ext')) return getCache('prize_stocks_ext')
@@ -898,16 +403,8 @@ export async function getStocksByOwner(ownerType, ownerId) {
   return all.filter(s => s.owner_type === ownerType && s.owner_id === ownerId)
 }
 
-export async function getStocksByLocationTree(locationId) {
-  const ids = await getLocationIdsIncludingChildren(locationId)
-  const all = await getPrizeStocksExtended()
-  return all.filter(s => s.owner_type === 'location' && ids.includes(s.owner_id))
-}
-
-export async function addPrizeStock(stock) {
+async function addPrizeStock(stock) {
   const now = new Date().toISOString()
-  // insertを使用（upsertだと並行操作でquantity上書きリスクがあるため、fail-loud設計）
-  // UNIQUE制約(prize_id,owner_type,owner_id)違反時はエラーで返り、呼び出し元でリトライ可能
   const { data, error } = await supabase.from('prize_stocks').insert({
     prize_id: stock.prize_id || null,
     owner_type: stock.owner_type || '',
@@ -922,7 +419,7 @@ export async function addPrizeStock(stock) {
   return data.stock_id
 }
 
-export async function updatePrizeStock(stockId, stock) {
+async function updatePrizeStock(stockId, stock) {
   const now = new Date().toISOString()
   const { error } = await supabase.from('prize_stocks').update({
     quantity: stock.quantity ?? 0,
@@ -949,7 +446,6 @@ export async function adjustPrizeStockQuantity(stockId, delta, updatedBy = '') {
 // ============================================
 // 在庫移動履歴 (stock_movements) — Supabase版
 // ============================================
-// Supabase: movement_id / prize_id / movement_type / from_owner_type / from_owner_id / to_owner_type / to_owner_id / quantity / reason / note / created_at / created_by / updated_at / updated_by / tracking_number / adjustment_reason
 
 export async function getStockMovements(forceRefresh = false) {
   if (!forceRefresh && getCache('stock_movements')) return getCache('stock_movements')
