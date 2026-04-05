@@ -200,8 +200,8 @@ async function sbPost(table,body){
   const r=await fetch(SB_URL+'/'+table,{method:'POST',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());
 }
-async function sbPatch(table,col,val,body){
-  const r=await fetch(SB_URL+'/'+table+'?'+col+'=eq.'+encodeURIComponent(val),{method:'PATCH',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+async function sbPatch(table,id,idCol,body){
+  const r=await fetch(SB_URL+'/'+table+'?'+idCol+'=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{...SB_H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());
 }
 async function sbDelete(table,col,val){
@@ -527,7 +527,7 @@ async function saveSimple(tableName, pkCol, isNew, pkVal) {
   closeModal(); showLoading();
   try {
     if (isNew) { await sbPost(tableName, payload); showToast('追加しました'); }
-    else { await sbPatch(tableName, pkCol, pkVal, payload); showToast('保存しました'); }
+    else { await sbPatch(tableName, pkVal, pkCol, payload); showToast('保存しました'); }
     await loadAll();
   } catch(e) { showToast('エラー: ' + e.message, false); }
   finally { hideLoading(); }
@@ -706,7 +706,7 @@ async function saveEditStore(code){
   };
   closeModal();showLoading();
   try{
-    await sbPatch('stores','store_code',code,payload);
+    await sbPatch('stores',code,'store_code',payload);
     showToast('保存しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -776,7 +776,7 @@ async function saveEditMachine(code){
   };
   closeModal();showLoading();
   try{
-    await sbPatch('machines','machine_code',code,payload);
+    await sbPatch('machines',code,'machine_code',payload);
     showToast('保存しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -840,7 +840,7 @@ async function saveEditBooth(code){
   };
   closeModal();showLoading();
   try{
-    await sbPatch('booths','booth_code',code,payload);
+    await sbPatch('booths',code,'booth_code',payload);
     showToast('保存しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
