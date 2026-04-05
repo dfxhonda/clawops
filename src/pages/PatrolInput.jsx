@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { usePatrolInput, STATUS_OPTIONS } from '../hooks/usePatrolInput'
 import LogoutButton from '../components/LogoutButton'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function PatrolInput() {
   const { state } = useLocation()
@@ -18,6 +20,8 @@ export default function PatrolInput() {
     handleSave,
   } = usePatrolInput(booth, () => navigate('/patrol'))
 
+  const [error, setError] = useState(null)
+
   if (!booth) return null
 
   if (loading) return (
@@ -30,8 +34,9 @@ export default function PatrolInput() {
   )
 
   function onSave() {
+    setError(null)
     const result = handleSave()
-    if (!result.ok) alert(result.message)
+    if (!result.ok) setError({ message: result.message, type: 'validation' })
   }
 
   const lastIn = last?.in_meter ? Number(last.in_meter) : null
@@ -51,6 +56,7 @@ export default function PatrolInput() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 pb-10">
+      {error && <ErrorDisplay error={error.message} type={error.type} onDismiss={() => setError(null)} />}
 
       {/* 保存完了 */}
       {saved ? (

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { getStores } from '../services/masters'
 import { parseNum } from '../services/utils'
 import LogoutButton from '../components/LogoutButton'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 export default function DataSearch() {
   const navigate = useNavigate()
@@ -11,7 +12,8 @@ export default function DataSearch() {
   const [stores, setStores] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saveMsg, setSaveMsg] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+  const [error, setError] = useState(null)
   const [filterStore, setFilterStore] = useState(() => sessionStorage.getItem('clawops_selected_store') || '')
   const [filterBooth, setFilterBooth] = useState('')
   const [filterPrize, setFilterPrize] = useState('')
@@ -115,7 +117,7 @@ export default function DataSearch() {
     const editEntries = Object.entries(edits)
     const deleteEntries = [...deletes]
     if (!editEntries.length && !deleteEntries.length) return
-    setSaving(true); setSaveMsg('')
+    setSaving(true); setSuccessMsg(''); setError(null)
     try {
       for (const idx of deleteEntries) {
         const row = allReadings[idx]
@@ -150,8 +152,8 @@ export default function DataSearch() {
         set_r: r.set_r || '', set_o: r.set_o || '', note: r.note || '', source: r.source || 'manual',
       }))
       setAllReadings(fresh); setEdits({}); setDeletes(new Set()); setEditingRow(null)
-      setSaveMsg(`✅ 編集${editEntries.length}件・削除${deleteEntries.length}件 完了`)
-    } catch(e) { setSaveMsg('❌ エラー: '+e.message) }
+      setSuccessMsg(`編集${editEntries.length}件・削除${deleteEntries.length}件 完了`); setError(null)
+    } catch(e) { setError(e.message) }
     setSaving(false)
   }
 
@@ -184,11 +186,8 @@ export default function DataSearch() {
           <LogoutButton />
         </div>
 
-        {saveMsg && (
-          <div className={`rounded-lg p-2.5 mb-3 text-sm border border-border ${saveMsg.startsWith('✅') ? 'bg-surface2 text-accent3' : 'bg-surface2 text-accent2'}`}>
-            {saveMsg}
-          </div>
-        )}
+        {error && <ErrorDisplay error={error} onRetry={saveAll} onDismiss={() => setError(null)} />}
+        {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-3 text-sm">{successMsg}</div>}
 
         {/* 店舗選択グリッド（店舗未選択時） */}
         {!filterStore && stores.length > 0 && (

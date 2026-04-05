@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { parseNum } from '../services/utils'
 import { useBoothInput } from '../hooks/useBoothInput'
 import LogoutButton from '../components/LogoutButton'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 // 設定値の定義（5種類）
 const SETTINGS = [
@@ -23,13 +25,15 @@ export default function BoothInput() {
     loading, showVehiclePanel, setShowVehiclePanel, staffId,
     setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff,
   } = useBoothInput(machineId, state)
+  const [error, setError] = useState(null)
 
   async function onSave() {
+    setError(null)
     const result = await handleSaveAll()
-    if (!result.ok) { alert(result.message); return }
+    if (!result.ok) { setError({ message: result.message, type: 'validation' }); return }
     if (result.failedItems?.length > 0) {
       const details = result.failedItems.map(f => `・${f.prizeName}: ${f.error}`).join('\n')
-      alert(`メーター入力は保存済みですが、以下の補充処理でエラーが発生しました。棚卸し画面で在庫を確認してください。\n\n${details}`)
+      setError({ message: `補充処理でエラーが発生しました。棚卸し画面で在庫を確認してください。\n${details}`, type: 'stock_insufficient' })
     }
     navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })
   }
@@ -123,6 +127,8 @@ export default function BoothInput() {
           </button>
         ))}
       </div>
+
+      {error && <ErrorDisplay error={error.message} type={error.type} onDismiss={() => setError(null)} />}
 
       {/* ブース一覧 */}
       {filteredBooths.length === 0 ? (

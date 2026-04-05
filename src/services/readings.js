@@ -3,6 +3,7 @@
 // ============================================
 import { supabase } from '../lib/supabase'
 import { parseNum, getCache, setCache, clearCache, isOldEnough } from './utils'
+import { writeAuditLog } from './audit'
 
 export async function getAllMeterReadings(forceRefresh = false) {
   if (!forceRefresh && getCache('meter_readings')) return getCache('meter_readings')
@@ -78,6 +79,13 @@ export async function saveReading(r) {
   })
   if (error) throw new Error('メーター保存エラー: ' + error.message)
   clearCache()
+  writeAuditLog({
+    action: 'reading_create',
+    target_table: 'meter_readings',
+    target_id: r.booth_id,
+    detail: `メーター入力: IN=${r.in_meter || '-'} OUT=${r.out_meter || '-'} (${r.full_booth_code || r.booth_id})`,
+    staff_id: r.created_by || undefined,
+  })
 }
 
 export async function updateReading(readingId, r) {
@@ -90,4 +98,10 @@ export async function updateReading(readingId, r) {
   }).eq('reading_id', readingId)
   if (error) throw new Error('メーター更新エラー: ' + error.message)
   clearCache()
+  writeAuditLog({
+    action: 'reading_update',
+    target_table: 'meter_readings',
+    target_id: readingId,
+    detail: `メーター修正: IN=${r.in_meter || '-'} OUT=${r.out_meter || '-'}`,
+  })
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { saveReading } from '../services/readings'
 import LogoutButton from '../components/LogoutButton'
+import ErrorDisplay from '../components/ErrorDisplay'
 
 const DRAFT_KEY = 'clawops_drafts'
 
@@ -22,6 +23,7 @@ export default function DraftList() {
   const navigate = useNavigate()
   const [drafts, setDrafts] = useState([])
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
   const [done, setDone] = useState(false)
 
@@ -44,12 +46,21 @@ export default function DraftList() {
   async function handleSaveAll() {
     if (!drafts.length) return
     setSaving(true)
+    setError(null)
+    const savedBoothIds = []
     try {
-      for (const d of drafts) await saveReading(d)
+      for (const d of drafts) {
+        await saveReading(d)
+        savedBoothIds.push(d.booth_id)
+      }
       clearDrafts()
       setDone(true)
     } catch(e) {
-      alert('保存エラー: ' + e.message)
+      // Remove already-saved drafts from sessionStorage
+      const remaining = getDrafts().filter(d => !savedBoothIds.includes(d.booth_id))
+      sessionStorage.setItem('clawops_drafts', JSON.stringify(remaining))
+      setDrafts(remaining)
+      setError(e)
     }
     setSaving(false)
   }
@@ -95,6 +106,7 @@ export default function DraftList() {
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors mb-4">
             {saving ? '保存中...' : `✅ ${drafts.length}件を一括保存`}
           </button>
+          <ErrorDisplay error={error} onRetry={handleSaveAll} onDismiss={() => setError(null)} />
 
           {/* 編集フォーム */}
           {editing && (

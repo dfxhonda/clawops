@@ -79,7 +79,7 @@ export async function getPrizeOrders() {
   return result
 }
 
-export async function markOrderArrived(orderId, arrivedQuantity) {
+export async function markOrderArrived(orderId, arrivedQuantity, staffId) {
   const now = new Date().toISOString()
   const { error } = await supabase.from('prize_orders').update({
     arrived_at: now,
@@ -94,5 +94,6 @@ export async function markOrderArrived(orderId, arrivedQuantity) {
     target_table: 'prize_orders',
     target_id: orderId,
     detail: `入荷確認: ${arrivedQuantity}個`,
+    staff_id: staffId || undefined,
   })
 }

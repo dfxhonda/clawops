@@ -6,6 +6,7 @@ import { getPrizes, getPrizeOrders, markOrderArrived } from '../../services/priz
 import NumberInput from '../../components/NumberInput'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import LogoutButton from '../../components/LogoutButton'
+import ErrorDisplay from '../../components/ErrorDisplay'
 
 export default function InventoryReceive() {
   const navigate = useNavigate()
@@ -16,7 +17,8 @@ export default function InventoryReceive() {
   const [pendingOrders, setPendingOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState(null)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [error, setError] = useState(null)
   const [tab, setTab] = useState('orders') // 'orders' | 'manual'
 
   // 手動入力フォーム
@@ -56,7 +58,7 @@ export default function InventoryReceive() {
 
   async function handleSubmit() {
     if (!selectedPrize || !selectedLocation || !quantity) {
-      setMessage({ type: 'error', text: '景品・入庫先・数量を入力してください' })
+      setError('景品・入庫先・数量を入力してください')
       return
     }
     setSaving(true)
@@ -71,7 +73,7 @@ export default function InventoryReceive() {
         note: note || '入庫チェック',
         createdBy: staffId || ''
       })
-      setMessage({ type: 'success', text: `${prize?.prize_name} ×${quantity} を入庫しました` })
+      setSuccessMsg(`${prize?.prize_name} ×${quantity} を入庫しました`); setError(null)
       setSelectedPrize('')
       setQuantity('')
       setNote('')
@@ -79,20 +81,20 @@ export default function InventoryReceive() {
       const mv = await getStockMovements(true)
       setRecentArrivals(mv.filter(m => m.movement_type === 'arrival').slice(-10).reverse())
     } catch (e) {
-      setMessage({ type: 'error', text: '入庫に失敗: ' + e.message })
+      setError('入庫に失敗: ' + e.message)
     }
     setSaving(false)
   }
 
   // 発注データからの入庫確認
   async function handleOrderArrival(order, locationId) {
-    if (!locationId) { setMessage({ type: 'error', text: '入庫先を選択してください' }); return }
+    if (!locationId) { setError('入庫先を選択してください'); return }
     setSaving(true)
     try {
       const qty = parseInt(order.order_quantity) || 1
       const staff = staffId || ''
       // 先にステータス更新（失敗しても在庫は変わらない。逆順だと在庫二重加算リスク）
-      await markOrderArrived(order.order_id, qty)
+      await markOrderArrived(order.order_id, qty, staff)
       try {
         await transferStock({
           prizeId: order.prize_id || '',
@@ -103,16 +105,16 @@ export default function InventoryReceive() {
           note: `発注入荷: 発注ID ${order.order_id}`,
           createdBy: staff
         })
-        setMessage({ type: 'success', text: `${order.prize_name} ×${qty} を入庫しました` })
+        setSuccessMsg(`${order.prize_name} ×${qty} を入庫しました`); setError(null)
         setPendingOrders(prev => prev.filter(o => o.order_id !== order.order_id))
       } catch (stockErr) {
         // 在庫追加失敗: ステータスは入荷済みだが在庫未反映。リストに残して再操作可能にする
-        setMessage({ type: 'error', text: `入荷ステータス更新済みですが在庫追加に失敗しました。手動で在庫を追加してください: ${stockErr.message}` })
+        setError(`入荷ステータス更新済みですが在庫追加に失敗しました。手動で在庫を追加してください: ${stockErr.message}`)
       }
       const mv = await getStockMovements(true)
       setRecentArrivals(mv.filter(m => m.movement_type === 'arrival').slice(-10).reverse())
     } catch (e) {
-      setMessage({ type: 'error', text: '入庫失敗: ' + e.message })
+      setError('入庫失敗: ' + e.message)
     }
     setSaving(false)
   }
@@ -129,11 +131,8 @@ export default function InventoryReceive() {
           <LogoutButton />
         </div>
 
-        {message && (
-          <div className={`rounded-xl p-3 mb-3 text-sm ${message.type === 'error' ? 'bg-accent2/20 text-accent2' : 'bg-accent3/20 text-accent3'}`}>
-            {message.text}
-          </div>
-        )}
+        {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}
+        {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-3 text-sm">{successMsg}</div>}
 
         {/* タブ切り替え */}
         <div className="flex gap-2 mb-3">

@@ -6,6 +6,7 @@ import { transferStock, getStockMovements } from '../../services/movements'
 import { getStaffMap } from '../../services/readings'
 import NumberInput from '../../components/NumberInput'
 import LogoutButton from '../../components/LogoutButton'
+import ErrorDisplay from '../../components/ErrorDisplay'
 
 const TRANSFER_TYPES = [
   { key: 'loc2loc',   label: '拠点間移管',     icon: '🏢→🏢',  desc: '拠点から別の拠点へ' },
@@ -22,7 +23,8 @@ export default function InventoryTransfer() {
   const [recentTransfers, setRecentTransfers] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState(null)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [error, setError] = useState(null)
 
   const [transferType, setTransferType] = useState('')
   const [fromId, setFromId] = useState('')
@@ -73,12 +75,12 @@ export default function InventoryTransfer() {
   // --- 通常移管 ---
   async function handleSubmit() {
     if (!selectedStock || !toId || !quantity) {
-      setMessage({ type: 'error', text: '景品・移動先・数量を入力してください' })
+      setError('景品・移動先・数量を入力してください')
       return
     }
     const qty = parseInt(quantity)
     if (qty > selectedStock.quantity) {
-      setMessage({ type: 'error', text: `在庫不足です（現在 ${selectedStock.quantity} 個）` })
+      setError(`在庫不足です（現在 ${selectedStock.quantity} 個）`)
       return
     }
     setSaving(true)
@@ -90,13 +92,13 @@ export default function InventoryTransfer() {
         toOwnerType, toOwnerId: toId,
         quantity: qty, note: note || '', createdBy: ''
       })
-      setMessage({ type: 'success', text: `${selectedStock.prize_name} ×${qty} を移管しました` })
+      setSuccessMsg(`${selectedStock.prize_name} ×${qty} を移管しました`); setError(null)
       setSelectedStock(null)
       setQuantity('')
       setNote('')
       await refreshData()
     } catch (e) {
-      setMessage({ type: 'error', text: '移管失敗: ' + e.message })
+      setError('移管失敗: ' + e.message)
     }
     setSaving(false)
   }
@@ -104,15 +106,15 @@ export default function InventoryTransfer() {
   // --- アソート一括配分 ---
   async function handleAssortSubmit() {
     if (!selectedStock) {
-      setMessage({ type: 'error', text: '景品を選択してください' }); return
+      setError('景品を選択してください'); return
     }
     const validAllocs = assortAllocations.filter(a => a.staffName && parseInt(a.quantity) > 0)
     if (validAllocs.length === 0) {
-      setMessage({ type: 'error', text: '配分先を最低1件入力してください' }); return
+      setError('配分先を最低1件入力してください'); return
     }
     const totalAlloc = validAllocs.reduce((s, a) => s + parseInt(a.quantity), 0)
     if (totalAlloc > selectedStock.quantity) {
-      setMessage({ type: 'error', text: `合計 ${totalAlloc}個 > 在庫 ${selectedStock.quantity}個 です` }); return
+      setError(`合計 ${totalAlloc}個 > 在庫 ${selectedStock.quantity}個 です`); return
     }
     setSaving(true)
     try {
@@ -127,13 +129,13 @@ export default function InventoryTransfer() {
           createdBy: ''
         })
       }
-      setMessage({ type: 'success', text: `${selectedStock.prize_name} を ${validAllocs.length}名に配分しました（計${totalAlloc}個）` })
+      setSuccessMsg(`${selectedStock.prize_name} を ${validAllocs.length}名に配分しました（計${totalAlloc}個）`); setError(null)
       setSelectedStock(null)
       setAssortAllocations([])
       setNote('')
       await refreshData()
     } catch (e) {
-      setMessage({ type: 'error', text: 'アソート配分失敗: ' + e.message })
+      setError('アソート配分失敗: ' + e.message)
     }
     setSaving(false)
   }
@@ -179,11 +181,8 @@ export default function InventoryTransfer() {
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
 
-      {message && (
-        <div className={`rounded-xl p-3 mb-4 text-sm ${message.type === 'error' ? 'bg-accent2/20 text-accent2' : 'bg-accent3/20 text-accent3'}`}>
-          {message.text}
-        </div>
-      )}
+      {error && <ErrorDisplay error={error} onRetry={transferType === 'assort' ? handleAssortSubmit : handleSubmit} onDismiss={() => setError(null)} />}
+      {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-4 text-sm">{successMsg}</div>}
 
       {/* 移管タイプ選択 */}
       <div className="grid grid-cols-2 gap-2 mb-4">

@@ -6,6 +6,7 @@ import { countStock, getStockMovements, transferStock } from '../../services/mov
 import { getStaffMap } from '../../services/readings'
 import NumberInput from '../../components/NumberInput'
 import LogoutButton from '../../components/LogoutButton'
+import ErrorDisplay from '../../components/ErrorDisplay'
 
 export default function InventoryCount() {
   const navigate = useNavigate()
@@ -14,7 +15,8 @@ export default function InventoryCount() {
   const [staffMap, setStaffMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState(null)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [error, setError] = useState(null)
 
   const [ownerType, setOwnerType] = useState('location')
   const [ownerId, setOwnerId] = useState('')
@@ -113,7 +115,7 @@ export default function InventoryCount() {
       }))
 
     if (entries.length === 0) {
-      setMessage({ type: 'error', text: '実数を入力してください' })
+      setError('実数を入力してください')
       return
     }
 
@@ -132,17 +134,14 @@ export default function InventoryCount() {
       }
       setResults(res)
       const diffCount = res.filter(r => r.diff !== 0).length
-      setMessage({
-        type: diffCount > 0 ? 'warn' : 'success',
-        text: `${entries.length}件の棚卸し完了（差異: ${diffCount}件）`
-      })
+      setSuccessMsg(`${entries.length}件の棚卸し完了（差異: ${diffCount}件）`); setError(null)
       // リフレッシュ
       const [s, mv] = await Promise.all([getPrizeStocksExtended(true), getStockMovements(true)])
       setStocks(s)
       setCountInputs({})
       setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
     } catch (e) {
-      setMessage({ type: 'error', text: '棚卸し保存失敗: ' + e.message })
+      setError('棚卸し保存失敗: ' + e.message)
     }
     setSaving(false)
   }
@@ -157,11 +156,11 @@ export default function InventoryCount() {
 
   async function handleMove() {
     if (!moveTarget || !moveToId || !moveQty) {
-      setMessage({ type: 'error', text: '移動先と数量を入力してください' }); return
+      setError('移動先と数量を入力してください'); return
     }
     const qty = parseInt(moveQty)
     if (qty <= 0 || qty > moveTarget.quantity) {
-      setMessage({ type: 'error', text: `数量は1〜${moveTarget.quantity}の範囲で入力` }); return
+      setError(`数量は1〜${moveTarget.quantity}の範囲で入力`); return
     }
     const toOwner = moveType.endsWith('staff') ? 'staff' : 'location'
     setMoveSaving(true)
@@ -173,7 +172,7 @@ export default function InventoryCount() {
         toOwnerType: toOwner, toOwnerId: moveToId,
         quantity: qty, note: moveNote || '', createdBy: ''
       })
-      setMessage({ type: 'success', text: `${moveTarget.prize_name} x${qty} を移動しました` })
+      setSuccessMsg(`${moveTarget.prize_name} x${qty} を移動しました`); setError(null)
       setMoveTarget(null)
       const [s, mv] = await Promise.all([getPrizeStocksExtended(true), getStockMovements(true)])
       setStocks(s)
@@ -181,7 +180,7 @@ export default function InventoryCount() {
       setStaffList(sIds)
       setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
     } catch (e) {
-      setMessage({ type: 'error', text: '移動失敗: ' + e.message })
+      setError('移動失敗: ' + e.message)
     }
     setMoveSaving(false)
   }
@@ -206,15 +205,8 @@ export default function InventoryCount() {
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
 
-      {message && (
-        <div className={`rounded-xl p-3 mb-4 text-sm ${
-          message.type === 'error' ? 'bg-accent2/20 text-accent2' :
-          message.type === 'warn' ? 'bg-accent/20 text-accent' :
-          'bg-accent3/20 text-accent3'
-        }`}>
-          {message.text}
-        </div>
-      )}
+      {error && <ErrorDisplay error={error} onRetry={handleSubmitAll} onDismiss={() => setError(null)} />}
+      {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-4 text-sm">{successMsg}</div>}
 
       {/* 対象選択 */}
       <div className="bg-surface border border-border rounded-xl p-4 mb-4">
