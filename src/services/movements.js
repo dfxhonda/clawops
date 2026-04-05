@@ -92,6 +92,9 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
     target_table: 'stock_movements',
     detail: `${prizeName || prizeId} x${quantity}: ${fromOwnerType}/${fromOwnerId} → ${toOwnerType}/${toOwnerId}${reason ? ` 理由: ${reason}` : ''}`,
     staff_id: createdBy,
+    before_data: { from: `${fromOwnerType}/${fromOwnerId}`, to: `${toOwnerType}/${toOwnerId}` },
+    after_data: { prize_id: prizeId, quantity },
+    reason: reason || undefined,
   })
 
   return addStockMovement({
@@ -133,6 +136,9 @@ export async function countStock({ prizeId, prizeName, ownerType, ownerId, actua
     target_id: stock?.stock_id || '',
     detail: `棚卸し: ${prizeName || prizeId} 理論値${currentQty} → 実数${actualQuantity}${diff !== 0 ? ` (差異${diff > 0 ? '+' : ''}${diff})` : ' (一致)'}${reason ? ` 理由: ${reason}` : ''}`,
     staff_id: createdBy,
+    before_data: { quantity: currentQty, prize_id: prizeId, owner_type: ownerType, owner_id: ownerId },
+    after_data: { quantity: actualQuantity, diff },
+    reason: reason || undefined,
   })
 
   await addStockMovement({
