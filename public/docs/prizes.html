@@ -1058,8 +1058,11 @@ async function doSavePrizeWithMerge(keepRec, payload) {
     showToast('マージして保存しました'); isDirty = false; isNewMode = false;
     selPrizeId = keptId;
     await loadAll(); render(); renderDetail();
-  } catch(e) { showToast('マージエラー: ' + e.message, false); }
-  finally { hideLoading(); }
+  } catch(e) {
+    showToast('マージエラー: ' + e.message, false);
+    const btn = document.getElementById('btnSave');
+    if (btn) { btn.disabled = false; btn.textContent = '保存'; }
+  } finally { hideLoading(); }
 }
 
 // ─── MERGE SCHEME ─────────────────────────────────────────────────────────────
@@ -1102,7 +1105,7 @@ function showMergeModal(dupeRecord, currentPayload, currentId, onMerge, onSkip) 
         ${formalName ? `正式名称: ${esc(formalName)}<br>` : ''}
         ID: ${esc(dp.prize_id)}<br>
         単価: ¥${fmt(dp.original_cost)} / 仕入先: ${esc(dp.supplier_name||'—')}<br>
-        状態: ${dp.status}
+        状態: ${esc(dp.status)}
       </div>
     </div>
     <div class="merge-actions">
@@ -1118,19 +1121,27 @@ function showMergeModal(dupeRecord, currentPayload, currentId, onMerge, onSkip) 
 }
 
 async function executeMerge(keepRecord, removeId, newPayload) {
-  // Merge aliases: union of both
+  const API = SB_URL + '/rest/v1';
+  const hdrs = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'};
+
+  // Merge aliases: union (case-insensitive dedup)
   const keepAliases = parseAliases(keepRecord.aliases);
   const newAliases = parseAliases(newPayload.aliases);
-  const mergedAliases = [...new Set([...keepAliases, ...newAliases])];
+  const seen = new Set();
+  const mergedAliases = [];
+  for (const a of [...keepAliases, ...newAliases]) {
+    const key = a.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); mergedAliases.push(a); }
+  }
 
-  // Build merged payload: new values take priority, fallback to existing
+  // Build merged payload: new values take priority (use ?? for 0-safe fallback)
   const merged = {
     prize_name: newPayload.prize_name,
     aliases: JSON.stringify(mergedAliases),
     original_cost: newPayload.original_cost,
     category: newPayload.category || keepRecord.category || null,
     supplier_name: newPayload.supplier_name || keepRecord.supplier_name || null,
-    default_case_quantity: newPayload.default_case_quantity || keepRecord.default_case_quantity || null,
+    default_case_quantity: newPayload.default_case_quantity ?? keepRecord.default_case_quantity ?? null,
     image_url: keepRecord.image_url || null,
     status: newPayload.status,
     updated_at: new Date().toISOString(),
@@ -1143,32 +1154,27 @@ async function executeMerge(keepRecord, removeId, newPayload) {
   // Re-point ALL FK references from removeId -> keepId
   if (removeId && removeId !== keepRecord.prize_id) {
     const keepId = keepRecord.prize_id;
+    const errors = [];
+
     // Tables with prize_id FK
     const prizeIdTables = ['prize_orders','prize_stocks','stock_movements','booth_prize_stocks','locker_contents','capsule_materials','phase_history','daily_booth_stats','locker_actions'];
     for (const t of prizeIdTables) {
-      await fetch(SB_URL+'/'+t+'?prize_id=eq.'+encodeURIComponent(removeId),{
-        method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify({prize_id:keepId})
-      }).catch(()=>{});
+      const r = await fetch(API+'/'+t+'?prize_id=eq.'+encodeURIComponent(removeId),{method:'PATCH',headers:hdrs,body:JSON.stringify({prize_id:keepId})});
+      if (!r.ok && r.status !== 404) errors.push(t+':'+r.status);
     }
     // booths.current_prize_id
-    await fetch(SB_URL+'/booths?current_prize_id=eq.'+encodeURIComponent(removeId),{
-      method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({current_prize_id:keepId})
-    }).catch(()=>{});
+    const r1 = await fetch(API+'/booths?current_prize_id=eq.'+encodeURIComponent(removeId),{method:'PATCH',headers:hdrs,body:JSON.stringify({current_prize_id:keepId})});
+    if (!r1.ok && r1.status !== 404) errors.push('booths:'+r1.status);
     // replacement_suggestions (2 columns)
-    await fetch(SB_URL+'/replacement_suggestions?current_prize_id=eq.'+encodeURIComponent(removeId),{
-      method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({current_prize_id:keepId})
-    }).catch(()=>{});
-    await fetch(SB_URL+'/replacement_suggestions?suggested_prize_id=eq.'+encodeURIComponent(removeId),{
-      method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({suggested_prize_id:keepId})
-    }).catch(()=>{});
-    // Delete the old record (all FK refs should be cleared now)
-    const delRes = await fetch(SB_URL+'/prize_masters?prize_id=eq.'+encodeURIComponent(removeId),{
-      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
+    const r2 = await fetch(API+'/replacement_suggestions?current_prize_id=eq.'+encodeURIComponent(removeId),{method:'PATCH',headers:hdrs,body:JSON.stringify({current_prize_id:keepId})});
+    if (!r2.ok && r2.status !== 404) errors.push('repl_cur:'+r2.status);
+    const r3 = await fetch(API+'/replacement_suggestions?suggested_prize_id=eq.'+encodeURIComponent(removeId),{method:'PATCH',headers:hdrs,body:JSON.stringify({suggested_prize_id:keepId})});
+    if (!r3.ok && r3.status !== 404) errors.push('repl_sug:'+r3.status);
+
+    if (errors.length) throw new Error('参照更新失敗: '+errors.join(', '));
+
+    // Delete the old record
+    const delRes = await fetch(API+'/prize_masters?prize_id=eq.'+encodeURIComponent(removeId),{method:'DELETE',headers:hdrs});
     if (!delRes.ok) throw new Error('旧レコード削除失敗: '+(await delRes.text()));
   }
 
@@ -1448,6 +1454,7 @@ async function doSaveMobileDirect(payload) {
 
 async function doSaveMobileWithMerge(keepRec, payload) {
   if (payload.supplier_name) await ensureSupplier(payload.supplier_name);
+  const saveBtn = document.getElementById('mfBtnSave');
   showLoading();
   try {
     const removeId = isNewMode ? null : selPrizeId;
@@ -1455,8 +1462,10 @@ async function doSaveMobileWithMerge(keepRec, payload) {
     showToast('マージして保存しました'); isDirty = false; isNewMode = false;
     selPrizeId = keptId;
     closeMobileDetail(); await loadAll(); render();
-  } catch(e) { showToast('マージエラー: ' + e.message, false); }
-  finally { hideLoading(); }
+  } catch(e) {
+    showToast('マージエラー: ' + e.message, false);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
+  } finally { hideLoading(); }
 }
 
 function duplicatePrizeMobile() {
