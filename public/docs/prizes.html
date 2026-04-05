@@ -513,6 +513,7 @@ let filterOrderDateFrom = '';
 let filterOrderDateTo = '';
 let sortKey = 'latest_order_date';
 let sortDir = 'desc';
+let imgCacheBust = Date.now();
 let _loadingCount = 0;
 let _toastTimer = null;
 
@@ -647,8 +648,13 @@ function resizeImage(file, maxSide = 1200, quality = 0.8) {
       reject(new Error('画像ファイルを選択してください'));
       return;
     }
+    if (file.size > 20 * 1024 * 1024) {
+      reject(new Error('ファイルサイズが大きすぎます（上限20MB）'));
+      return;
+    }
     const img = new Image();
     img.onload = () => {
+      URL.revokeObjectURL(img.src);
       let w = img.width, h = img.height;
       if (w > maxSide || h > maxSide) {
         if (w > h) { h = Math.round(h * maxSide / w); w = maxSide; }
@@ -663,7 +669,7 @@ function resizeImage(file, maxSide = 1200, quality = 0.8) {
         else reject(new Error('画像の変換に失敗しました'));
       }, 'image/jpeg', quality);
     };
-    img.onerror = () => reject(new Error('画像を読み込めませんでした'));
+    img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error('画像を読み込めませんでした')); };
     img.src = URL.createObjectURL(file);
   });
 }
@@ -735,7 +741,7 @@ ${list.map(p => {
   const supDisp = esc(resolveSupplierDisplay(p));
   const caseAmt = (p.default_case_quantity && p.original_cost != null)
     ? (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
-  const thumbUrl = p.image_url ? SB_STORAGE + p.image_url : '';
+  const thumbUrl = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + imgCacheBust) : '';
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
   <td class="td-name" title="${esc(p.prize_name)}"><span style="display:inline-flex;align-items:center;gap:6px">${thumbUrl ? `<img src="${thumbUrl}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0">` : `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--surface);flex-shrink:0"></span>`}${highlight(p.prize_name || '', curSearch)}</span></td>
   <td class="td-short" title="${esc(p.category)}">${highlight(p.category || '—', curSearch)}</td>
@@ -869,7 +875,7 @@ function renderDetail() {
   let formalName = '';
   try { const al = JSON.parse(p.aliases || '[]'); if (Array.isArray(al) && al[0] && al[0] !== p.prize_name) formalName = al[0]; } catch {}
 
-  const imgSrc = p.image_url ? SB_STORAGE + p.image_url + '?t=' + Date.now() : '';
+  const imgSrc = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + Date.now()) : '';
   pane.innerHTML = `
 <div class="prize-img-area" style="text-align:center;padding:16px 16px 8px">
   ${imgSrc
@@ -927,7 +933,7 @@ function renderDetail() {
 </div>`;
 }
 
-async function handleImgUpload(input) {
+async function handleImgUploadShared(input, rerenderFn) {
   const file = input.files?.[0];
   if (!file) return;
   const targetId = selPrizeId;
@@ -935,8 +941,9 @@ async function handleImgUpload(input) {
   showLoading();
   try {
     await uploadPrizeImage(targetId, file);
+    imgCacheBust = Date.now();
     showToast('画像を保存しました');
-    renderDetail();
+    rerenderFn();
   } catch(e) {
     showToast('エラー: ' + e.message, false);
   } finally {
@@ -944,6 +951,7 @@ async function handleImgUpload(input) {
     input.value = '';
   }
 }
+function handleImgUpload(input) { handleImgUploadShared(input, renderDetail); }
 
 function markDirty() {
   isDirty = true;
@@ -1127,7 +1135,7 @@ function renderMobileList(list) {
     const caseAmtVal = (p.default_case_quantity != null && p.original_cost != null)
       ? p.original_cost * p.default_case_quantity : null;
     const statusClass = p.status || 'inactive';
-    const mThumb = p.image_url ? SB_STORAGE + p.image_url : '';
+    const mThumb = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + imgCacheBust) : '';
     return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
   <div class="mc-status-bar ${statusClass}"></div>
   ${mThumb ? `<img src="${mThumb}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin:8px 0 8px 8px;flex-shrink:0">` : `<div style="width:40px;height:40px;border-radius:8px;background:var(--surface);margin:8px 0 8px 8px;flex-shrink:0"></div>`}
@@ -1201,7 +1209,7 @@ function renderMobileDetailContent() {
 ${mFormalName ? `<div style="padding:4px 16px 0;font-size:11px;color:var(--text2);word-break:break-all">${esc(mFormalName)}</div>` : ''}
 ${!isNewMode ? `<div style="padding:2px 16px 8px;font-size:10px;color:var(--text2)">ID: ${esc(p.prize_id)}</div>` : ''}
 <div style="text-align:center;padding:12px 16px;border-bottom:1px solid var(--border)">
-  ${(() => { const mImgSrc = p.image_url ? SB_STORAGE + p.image_url + '?t=' + Date.now() : ''; return mImgSrc
+  ${(() => { const mImgSrc = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + Date.now()) : ''; return mImgSrc
     ? `<img src="${mImgSrc}" alt="" style="max-width:100%;max-height:180px;border-radius:8px;cursor:pointer;object-fit:contain" onclick="document.getElementById('mImgUpload').click()">`
     : `<div style="width:100px;height:100px;margin:0 auto;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border)" onclick="document.getElementById('mImgUpload').click()">
         <span style="font-size:32px;color:var(--text2)">📷</span>
@@ -1247,23 +1255,7 @@ ${!isNewMode ? `<div style="padding:2px 16px 8px;font-size:10px;color:var(--text
 </div>`;
 }
 
-async function handleMobileImgUpload(input) {
-  const file = input.files?.[0];
-  if (!file) return;
-  const targetId = selPrizeId;
-  if (!targetId) { showToast('景品を先に保存してください', false); return; }
-  showLoading();
-  try {
-    await uploadPrizeImage(targetId, file);
-    showToast('画像を保存しました');
-    renderMobileDetailContent();
-  } catch(e) {
-    showToast('エラー: ' + e.message, false);
-  } finally {
-    hideLoading();
-    input.value = '';
-  }
-}
+function handleMobileImgUpload(input) { handleImgUploadShared(input, renderMobileDetailContent); }
 
 async function savePrizeMobile() {
   const name    = (document.getElementById('mfName').value || '').trim();
