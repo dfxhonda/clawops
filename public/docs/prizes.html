@@ -275,21 +275,28 @@ header{
 }
 .mobile-detail.open{transform:translateX(0)}
 .mc-item{
-  display:flex;align-items:center;
-  padding:13px 14px;border-bottom:1px solid var(--border);
-  cursor:pointer;transition:background .1s;
+  display:flex;align-items:stretch;
+  padding:12px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;gap:10px;
   -webkit-tap-highlight-color:transparent;
 }
 .mc-item:active{background:var(--surface2)}
+.mc-status-bar{width:3px;border-radius:2px;flex-shrink:0}
+.mc-status-bar.active{background:var(--green)}
+.mc-status-bar.provisional{background:var(--yellow)}
+.mc-status-bar.inactive{background:var(--border)}
 .mc-body{flex:1;min-width:0}
-.mc-name{font-size:15px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-name{font-size:15px;font-weight:700;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-name mark{background:rgba(124,106,255,.3);color:var(--text);border-radius:2px;padding:0 1px}
+.mc-sub{font-size:11px;color:var(--text2);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mc-meta{font-size:12px;color:var(--text2);margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden}
 .mc-aliases{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mc-kv{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:5px}
-.mc-kv-item{display:flex;flex-direction:column;gap:1px;min-width:0}
-.mc-kv-label{font-size:10px;color:var(--text2);font-weight:700;letter-spacing:.2px}
-.mc-kv-val{font-size:12px;color:var(--text);white-space:nowrap}
-.mc-arrow{color:var(--text2);font-size:22px;padding-left:8px;flex-shrink:0;line-height:1}
+.mc-kv{display:flex;flex-wrap:wrap;gap:4px 0;margin-top:0}
+.mc-kv-item{display:flex;flex-direction:column;gap:1px;min-width:0;padding:4px 8px;background:var(--surface2);border-radius:4px;margin-right:6px}
+.mc-kv-label{font-size:9px;color:var(--text2);font-weight:700;letter-spacing:.2px}
+.mc-kv-val{font-size:13px;color:var(--text);white-space:nowrap;font-weight:600;font-variant-numeric:tabular-nums}
+.mc-arrow{color:var(--text2);font-size:22px;padding-left:4px;flex-shrink:0;line-height:1;display:flex;align-items:center}
+.td-name mark,.td-short mark{background:rgba(124,106,255,.3);color:var(--text);border-radius:2px;padding:0 1px}
 .fab{
   position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);right:18px;
   width:52px;height:52px;border-radius:50%;background:var(--accent);
@@ -443,7 +450,7 @@ header{
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
-
+const SB_STORAGE = SB_URL + '/storage/v1/object/public/announcements/';
 
 // ─── SUPABASE REST ────────────────────────────────────────────────────────────
 async function sbGet(table, params='') {
@@ -524,6 +531,12 @@ function displayAliases(raw) {
   try { const a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a.join(', ') : raw || ''; } catch { return raw || ''; }
 }
 function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
+function highlight(text, query) {
+  if (!query || !text) return esc(text || '');
+  const escaped = esc(text);
+  const q = query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return escaped.replace(new RegExp('(' + q + ')', 'gi'), '<mark>$1</mark>');
+}
 
 function resolveSupplierDisplay(p) {
   return p.supplier_name || '—';
@@ -558,7 +571,7 @@ async function loadAll() {
   try {
     const [prizes, suppRows] = await Promise.all([
       sbGet('prize_masters',
-        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date' +
+        'select=prize_id,prize_name,category,aliases,original_cost,supplier_id,supplier_name,status,default_case_quantity,latest_order_date,image_url' +
         '&order=prize_name.asc'),
       sbGet('suppliers', 'select=supplier_id,supplier_name&is_active=eq.true&order=supplier_name').catch(() => [])
     ]);
@@ -627,6 +640,59 @@ function getFiltered() {
   return list;
 }
 
+// ─── IMAGE RESIZE & UPLOAD ───────────────────────────────────────────────────
+function resizeImage(file, maxSide = 1200, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('画像ファイルを選択してください'));
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSide || h > maxSide) {
+        if (w > h) { h = Math.round(h * maxSide / w); w = maxSide; }
+        else { w = Math.round(w * maxSide / h); h = maxSide; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('画像の変換に失敗しました'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => reject(new Error('画像を読み込めませんでした'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function uploadPrizeImage(prizeId, file) {
+  const blob = await resizeImage(file);
+  const path = `manual/${prizeId}.jpg`;
+  const uploadUrl = `${SB_URL}/storage/v1/object/announcements/${path}`;
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: blob
+  });
+  if (!res.ok) throw new Error('画像のアップロードに失敗しました: ' + (await res.text()));
+  await sbPatch('prize_masters', prizeId, 'prize_id', {
+    image_url: path,
+    updated_at: new Date().toISOString(),
+    updated_by: getStaffId()
+  });
+  const item = DATA.find(x => String(x.prize_id) === String(prizeId));
+  if (item) item.image_url = path;
+  return path;
+}
+
 // ─── RENDER LIST ──────────────────────────────────────────────────────────────
 function render() {
   const list = getFiltered();
@@ -669,9 +735,10 @@ ${list.map(p => {
   const supDisp = esc(resolveSupplierDisplay(p));
   const caseAmt = (p.default_case_quantity && p.original_cost != null)
     ? (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
+  const thumbUrl = p.image_url ? SB_STORAGE + p.image_url : '';
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
-  <td class="td-name" title="${esc(p.prize_name)}">${esc(p.prize_name || '')}</td>
-  <td class="td-short" title="${esc(p.category)}">${esc(p.category || '—')}</td>
+  <td class="td-name" title="${esc(p.prize_name)}"><span style="display:inline-flex;align-items:center;gap:6px">${thumbUrl ? `<img src="${thumbUrl}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0">` : `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--surface);flex-shrink:0"></span>`}${highlight(p.prize_name || '', curSearch)}</span></td>
+  <td class="td-short" title="${esc(p.category)}">${highlight(p.category || '—', curSearch)}</td>
   <td class="td-cost">${fmt(p.original_cost)}</td>
   <td class="td-cost" style="color:var(--text2)">${caseAmt}</td>
   <td class="td-sup" title="${supDisp}">${supDisp !== '—' ? supDisp : '<span style="color:var(--border)">—</span>'}</td>
@@ -802,7 +869,17 @@ function renderDetail() {
   let formalName = '';
   try { const al = JSON.parse(p.aliases || '[]'); if (Array.isArray(al) && al[0] && al[0] !== p.prize_name) formalName = al[0]; } catch {}
 
+  const imgSrc = p.image_url ? SB_STORAGE + p.image_url + '?t=' + Date.now() : '';
   pane.innerHTML = `
+<div class="prize-img-area" style="text-align:center;padding:16px 16px 8px">
+  ${imgSrc
+    ? `<img src="${imgSrc}" alt="" style="max-width:100%;max-height:200px;border-radius:8px;cursor:pointer;object-fit:contain" onclick="document.getElementById('imgUpload').click()">`
+    : `<div style="width:120px;height:120px;margin:0 auto;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border)" onclick="document.getElementById('imgUpload').click()">
+        <span style="font-size:36px;color:var(--text2)">📷</span>
+      </div>`}
+  <input type="file" id="imgUpload" accept="image/*" capture="environment" style="display:none" onchange="handleImgUpload(this)">
+  ${imgSrc ? `<div style="font-size:10px;color:var(--text2);margin-top:4px">タップで差し替え</div>` : `<div style="font-size:11px;color:var(--text2);margin-top:8px">写真を撮影</div>`}
+</div>
 <div class="detail-header">
   <div class="detail-title">${dirtyDot}${title}</div>
   ${formalName ? `<div style="font-size:11px;color:var(--text2);margin-top:2px;word-break:break-all">${esc(formalName)}</div>` : ''}
@@ -816,6 +893,10 @@ function renderDetail() {
   <div class="field">
     <label>正式名称（カンマ区切りで複数可）</label>
     <input type="text" id="fAliases" value="${esc(displayAliases(p.aliases))}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirty()">
+  </div>
+  <div class="field">
+    <label>カテゴリ</label>
+    <input type="text" id="fCategory" value="${esc(p.category||'')}" placeholder="例：ぬいぐるみ、フィギュア" oninput="markDirty()">
   </div>
   <div class="field-row">
     <div class="field">
@@ -844,6 +925,24 @@ function renderDetail() {
   ${!isNewMode && p.status !== 'inactive' ? `<button class="btn-stop" onclick="deactivatePrize()">使用停止にする</button>` : ''}
   <button class="btn-revert" onclick="revertChanges()">変更を取り消す</button>
 </div>`;
+}
+
+async function handleImgUpload(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const targetId = selPrizeId;
+  if (!targetId) { showToast('景品を先に保存してください', false); return; }
+  showLoading();
+  try {
+    await uploadPrizeImage(targetId, file);
+    showToast('画像を保存しました');
+    renderDetail();
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+  } finally {
+    hideLoading();
+    input.value = '';
+  }
 }
 
 function markDirty() {
@@ -892,8 +991,10 @@ async function savePrize() {
   if (supVal) await ensureSupplier(supVal);
 
   // ── Payload ──
+  const category = (document.getElementById('fCategory')?.value || '').trim();
   const payload = {
     prize_name: name,
+    category: category || null,
     aliases:    aliases || null,
     original_cost: costNum,
     status,
@@ -992,7 +1093,8 @@ function openNew() {
 function showAliases(id) {
   const p = DATA.find(x => String(x.prize_id) === String(id));
   if (!p) return;
-  const aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean);
+  let aliases = [];
+  try { const parsed = JSON.parse(p.aliases || '[]'); if (Array.isArray(parsed)) aliases = parsed; } catch { aliases = (p.aliases || '').split(',').map(a => a.trim()).filter(Boolean); }
   const el = document.createElement('div');
   el.className = 'aliases-modal';
   el.innerHTML = `
@@ -1024,21 +1126,18 @@ function renderMobileList(list) {
     const sup = resolveSupplierDisplay(p);
     const caseAmtVal = (p.default_case_quantity != null && p.original_cost != null)
       ? p.original_cost * p.default_case_quantity : null;
-    const caseAmtHtml = caseAmtVal != null
-      ? `<span style="color:var(--cyan)">${fmt(caseAmtVal)}</span>`
-      : `<span style="color:var(--text2)">—</span>`;
-    const qtyHtml = p.default_case_quantity != null
-      ? `<span style="color:var(--text2)">×${p.default_case_quantity}</span>`
-      : `<span style="color:var(--text2)">—</span>`;
+    const statusClass = p.status || 'inactive';
+    const mThumb = p.image_url ? SB_STORAGE + p.image_url : '';
     return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
+  <div class="mc-status-bar ${statusClass}"></div>
+  ${mThumb ? `<img src="${mThumb}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin:8px 0 8px 8px;flex-shrink:0">` : `<div style="width:40px;height:40px;border-radius:8px;background:var(--surface);margin:8px 0 8px 8px;flex-shrink:0"></div>`}
   <div class="mc-body">
-    <div class="mc-name">${esc(p.prize_name || '')}</div>
-    <div class="mc-meta">
-      <span style="color:var(--orange)">${esc(sup !== '—' ? sup : '仕入先未設定')}</span>
-      <span style="font-weight:700">${fmt(p.original_cost)}</span>
-      ${caseAmtHtml}${qtyHtml}
-      <span style="color:var(--text2)">${fmtDate(p.latest_order_date)}</span>
-      ${statusBadge(p.status)}
+    <div class="mc-name">${highlight(p.prize_name || '', curSearch)}</div>
+    <div class="mc-sub">${sup !== '—' ? `<span style="color:var(--orange)">${esc(sup)}</span>` : ''}${p.category ? ` <span style="color:var(--text2)">${esc(p.category)}</span>` : ''}${p.latest_order_date ? ` <span style="color:var(--text2)">発注:${fmtDate(p.latest_order_date)}</span>` : ''}</div>
+    <div class="mc-kv">
+      <div class="mc-kv-item"><div class="mc-kv-label">単価</div><div class="mc-kv-val">¥${fmt(p.original_cost)}</div></div>
+      ${caseAmtVal != null ? `<div class="mc-kv-item"><div class="mc-kv-label">ケース</div><div class="mc-kv-val" style="color:var(--cyan)">¥${fmt(caseAmtVal)}</div></div>` : ''}
+      ${p.default_case_quantity != null ? `<div class="mc-kv-item"><div class="mc-kv-label">入数</div><div class="mc-kv-val">${p.default_case_quantity}</div></div>` : ''}
     </div>
   </div>
   <div class="mc-arrow">›</div>
@@ -1079,7 +1178,7 @@ function markDirtyMobile() {
 
 function renderMobileDetailContent() {
   const panel = document.getElementById('mobileDetail');
-  const empty = {prize_name:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',default_case_quantity:''};
+  const empty = {prize_name:'',category:'',aliases:'',original_cost:'',supplier_id:'',supplier_name:'',status:'provisional',default_case_quantity:''};
   const p = isNewMode ? empty : DATA.find(x => String(x.prize_id) === String(selPrizeId));
   if (!p) {
     panel.innerHTML = '<div class="detail-empty"><div class="detail-empty-icon">⚠️</div><div>データが見つかりません</div></div>';
@@ -1099,7 +1198,17 @@ function renderMobileDetailContent() {
   <button class="md-back" onclick="closeMobileDetail()">‹</button>
   <div class="md-title">${esc(titleText)}</div>
 </div>
-${mFormalName ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--text2);word-break:break-all;border-bottom:1px solid var(--border)">${esc(mFormalName)}</div>` : ''}
+${mFormalName ? `<div style="padding:4px 16px 0;font-size:11px;color:var(--text2);word-break:break-all">${esc(mFormalName)}</div>` : ''}
+${!isNewMode ? `<div style="padding:2px 16px 8px;font-size:10px;color:var(--text2)">ID: ${esc(p.prize_id)}</div>` : ''}
+<div style="text-align:center;padding:12px 16px;border-bottom:1px solid var(--border)">
+  ${(() => { const mImgSrc = p.image_url ? SB_STORAGE + p.image_url + '?t=' + Date.now() : ''; return mImgSrc
+    ? `<img src="${mImgSrc}" alt="" style="max-width:100%;max-height:180px;border-radius:8px;cursor:pointer;object-fit:contain" onclick="document.getElementById('mImgUpload').click()">`
+    : `<div style="width:100px;height:100px;margin:0 auto;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px dashed var(--border)" onclick="document.getElementById('mImgUpload').click()">
+        <span style="font-size:32px;color:var(--text2)">📷</span>
+      </div>`; })()}
+  <input type="file" id="mImgUpload" accept="image/*" capture="environment" style="display:none" onchange="handleMobileImgUpload(this)">
+  ${p.image_url ? `<div style="font-size:10px;color:var(--text2);margin-top:4px">タップで差し替え</div>` : `<div style="font-size:11px;color:var(--text2);margin-top:6px">写真を撮影</div>`}
+</div>
 <div class="md-body">
   <div class="field">
     <label>景品名（短縮名）<span class="req">*</span></label>
@@ -1108,6 +1217,10 @@ ${mFormalName ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--tex
   <div class="field">
     <label>正式名称（カンマ区切りで複数可）</label>
     <input type="text" id="mfAliases" value="${esc(displayAliases(p.aliases))}" placeholder="例：【メーカー】商品名 入数 サイズ" oninput="markDirtyMobile()">
+  </div>
+  <div class="field">
+    <label>カテゴリ</label>
+    <input type="text" id="mfCategory" value="${esc(p.category||'')}" placeholder="例：ぬいぐるみ、フィギュア" oninput="markDirtyMobile()">
   </div>
   <div class="field">
     <label>現在単価（円）<span class="req">*</span></label>
@@ -1130,7 +1243,26 @@ ${mFormalName ? `<div style="padding:4px 16px 8px;font-size:11px;color:var(--tex
   <button class="btn-save" id="mfBtnSave" onclick="savePrizeMobile()" style="width:100%">保存</button>
   ${!isNewMode ? `<button class="btn-dup" onclick="duplicatePrizeMobile()">この景品を複製</button>` : ''}
   ${!isNewMode && p.status !== 'inactive' ? `<button class="btn-stop" onclick="deactivatePrizeMobile()">使用停止にする</button>` : ''}
+  <button class="btn-revert" onclick="if(isDirty&&!confirm('未保存の変更があります。破棄しますか？'))return;isDirty=false;closeMobileDetail()" style="width:100%;text-align:center">キャンセル</button>
 </div>`;
+}
+
+async function handleMobileImgUpload(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const targetId = selPrizeId;
+  if (!targetId) { showToast('景品を先に保存してください', false); return; }
+  showLoading();
+  try {
+    await uploadPrizeImage(targetId, file);
+    showToast('画像を保存しました');
+    renderMobileDetailContent();
+  } catch(e) {
+    showToast('エラー: ' + e.message, false);
+  } finally {
+    hideLoading();
+    input.value = '';
+  }
 }
 
 async function savePrizeMobile() {
@@ -1154,8 +1286,9 @@ async function savePrizeMobile() {
   // ── Auto-register new supplier ──
   if (supVal) await ensureSupplier(supVal);
 
+  const category = (document.getElementById('mfCategory')?.value || '').trim();
   const payload = {
-    prize_name: name, aliases: aliases || null,
+    prize_name: name, category: category || null, aliases: aliases || null,
     original_cost: costNum, status,
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
     updated_at: new Date().toISOString(),
@@ -1200,6 +1333,7 @@ function duplicatePrizeMobile() {
   renderMobileDetailContent();
   document.getElementById('mfName').value    = src.prize_name + '（複製）';
   document.getElementById('mfAliases').value = displayAliases(src.aliases);
+  document.getElementById('mfCategory').value = src.category || '';
   document.getElementById('mfCost').value    = src.original_cost != null ? src.original_cost : '';
   document.getElementById('mfStatus').value  = 'provisional';
   document.getElementById('mfSupplier').value = src.supplier_name || '';
