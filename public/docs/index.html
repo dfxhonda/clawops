@@ -233,11 +233,10 @@ async function sbGet(table,params=''){
   const r=await fetch(`${SB_URL}/${table}?${params}`,{headers});
   return r.ok?r.json():[];
 }
-async function sbPatch(table,id,idCol,body,token){
-  const h={...headers,'Content-Type':'application/json','Prefer':'return=minimal'};
-  if(token) h['Authorization']='Bearer '+token;
-  await fetch(`${SB_URL}/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
-    method:'PATCH',headers:h,body:JSON.stringify(body)
+async function sbPatch(table,id,idCol,body){
+  await fetch(`${SB_URL}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
+    method:'PATCH',headers:{...headers,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify(body)
   });
 }
 
