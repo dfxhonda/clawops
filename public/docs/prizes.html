@@ -27,6 +27,7 @@
   --nav-h:58px;
   --header-h:56px;
   --toolbar-h:52px;
+  --white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
@@ -42,9 +43,9 @@ header{
 .header-spacer{flex:1}
 .btn-add{
   padding:8px 16px;border-radius:var(--radius);
-  background:var(--accent);color:#fff;border:none;
+  background:var(--accent);color:var(--white);border:none;
   font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
-  transition:background .15s;
+  transition:background .15s;min-height:var(--btn-min-h);
 }
 .btn-add:hover{background:var(--accent2)}
 
@@ -70,7 +71,7 @@ header{
   border:1px solid var(--border);background:var(--surface2);color:var(--text2);
   cursor:pointer;transition:all .15s;white-space:nowrap;user-select:none;
 }
-.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--white)}
 .chip.provisional.on{background:var(--yellow);border-color:var(--yellow);color:#000}
 .chip.inactive.on{background:rgba(144,144,168,.2);border-color:var(--text2);color:var(--text)}
 .tb-sep{flex-shrink:0;width:1px;height:20px;background:var(--border)}
@@ -137,7 +138,7 @@ header{
 .td-cost{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .td-sup{color:var(--orange);font-size:12px}
 .td-actions{white-space:nowrap}
-.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.badge{display:inline-block;font-size:var(--badge-fs);font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
 .badge-active{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-provisional{background:rgba(243,156,18,.12);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
 .badge-inactive{background:rgba(144,144,168,.1);color:var(--text2);border:1px solid var(--border)}
@@ -198,16 +199,16 @@ header{
 }
 .btn-save{
   padding:9px 20px;border-radius:var(--radius);
-  background:var(--accent);color:#fff;border:none;
+  background:var(--accent);color:var(--white);border:none;
   font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;
-  white-space:nowrap;
+  white-space:nowrap;min-height:var(--btn-min-h);
 }
 .btn-save:hover:not(:disabled){background:var(--accent2)}
 .btn-save:disabled{opacity:.45;pointer-events:none}
 .btn-dup,.btn-stop,.btn-revert{
   padding:9px 14px;border-radius:var(--radius);
   background:transparent;font-size:13px;font-weight:600;cursor:pointer;
-  transition:all .15s;white-space:nowrap;
+  transition:all .15s;white-space:nowrap;min-height:var(--btn-min-h);
 }
 .btn-dup{color:var(--text2);border:1px solid var(--border)}
 .btn-dup:hover{border-color:var(--accent);color:var(--accent)}
@@ -230,7 +231,7 @@ header{
 .aliases-close{
   margin-top:14px;width:100%;padding:9px;border-radius:var(--radius);
   background:var(--surface2);border:1px solid var(--border);
-  color:var(--text);font-size:13px;font-weight:600;cursor:pointer;
+  color:var(--text);font-size:13px;font-weight:600;cursor:pointer;min-height:var(--btn-min-h);
 }
 .aliases-close:hover{border-color:var(--accent)}
 
@@ -239,12 +240,12 @@ header{
 .merge-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:420px;width:100%}
 .merge-box h3{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--yellow)}
 .merge-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px}
-.merge-card .mc-label{font-size:10px;color:var(--text2);font-weight:600;margin-bottom:4px}
+.merge-card .mc-label{font-size:11px;color:var(--text2);font-weight:600;margin-bottom:4px}
 .merge-card .mc-name{font-size:14px;font-weight:700;margin-bottom:4px}
 .merge-card .mc-detail{font-size:11px;color:var(--text2);line-height:1.6;word-break:break-all}
 .merge-actions{display:flex;flex-direction:column;gap:8px}
-.merge-btn{padding:12px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;border:none;width:100%;text-align:center}
-.merge-btn.primary{background:var(--accent);color:#fff}
+.merge-btn{padding:12px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;border:none;width:100%;text-align:center;min-height:var(--btn-min-h)}
+.merge-btn.primary{background:var(--accent);color:var(--white)}
 .merge-btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
 .merge-btn.ghost{background:none;border:none;color:var(--text2);font-size:12px;padding:8px}
 
@@ -259,6 +260,7 @@ header{
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
   transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+  min-height:48px;
 }
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
@@ -292,7 +294,7 @@ header{
   display:flex;align-items:stretch;
   padding:8px 12px;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background .1s;gap:8px;
-  -webkit-tap-highlight-color:transparent;
+  -webkit-tap-highlight-color:transparent;min-height:56px;
 }
 .mc-item:active{background:var(--surface2)}
 .mc-status-bar{width:3px;border-radius:2px;flex-shrink:0}
@@ -302,19 +304,19 @@ header{
 .mc-body{flex:1;min-width:0}
 .mc-name{font-size:14px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mc-name mark{background:rgba(124,106,255,.3);color:var(--text);border-radius:2px;padding:0 1px}
-.mc-sub{font-size:10px;color:var(--text2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mc-sub{font-size:11px;color:var(--text2);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mc-meta{font-size:12px;color:var(--text2);margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow:hidden}
-.mc-aliases{font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;word-break:break-all;line-height:1.4}
+.mc-aliases{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal;word-break:break-all;line-height:1.4}
 .mc-kv{display:flex;flex-wrap:wrap;gap:2px 0;margin-top:2px}
 .mc-kv-item{display:flex;flex-direction:column;gap:0;min-width:0;padding:2px 6px;background:var(--surface2);border-radius:4px;margin-right:4px}
-.mc-kv-label{font-size:8px;color:var(--text2);font-weight:700;letter-spacing:.2px}
+.mc-kv-label{font-size:9px;color:var(--text2);font-weight:700;letter-spacing:.2px}
 .mc-kv-val{font-size:12px;color:var(--text);white-space:nowrap;font-weight:600;font-variant-numeric:tabular-nums}
 .mc-arrow{color:var(--text2);font-size:22px;padding-left:4px;flex-shrink:0;line-height:1;display:flex;align-items:center}
 .td-name mark,.td-short mark{background:rgba(124,106,255,.3);color:var(--text);border-radius:2px;padding:0 1px}
 .fab{
   position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);right:18px;
   width:52px;height:52px;border-radius:50%;background:var(--accent);
-  color:#fff;border:none;font-size:28px;cursor:pointer;z-index:160;
+  color:var(--white);border:none;font-size:28px;cursor:pointer;z-index:160;
   box-shadow:0 4px 16px rgba(124,106,255,.5);
   display:none;align-items:center;justify-content:center;
   transition:background .15s;-webkit-tap-highlight-color:transparent;
@@ -378,7 +380,7 @@ header{
 .stepper{display:flex;align-items:center;gap:0}
 .stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn{width:44px;height:44px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
@@ -393,7 +395,7 @@ header{
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 新しい景品を追加</button>
-  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
+  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid var(--danger-bg);color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
 </header>
 
 <div class="toolbar">

@@ -27,6 +27,7 @@
   --nav-h:58px;
   --header-h:56px;
   --toolbar-h:52px;
+  --white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
@@ -39,7 +40,7 @@ header{
 .header-title{font-size:17px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 .header-count{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;white-space:nowrap}
 .header-spacer{flex:1}
-.btn-add{padding:8px 16px;border-radius:var(--radius);background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn-add{padding:8px 16px;border-radius:var(--radius);background:var(--accent);color:var(--white);border:none;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:var(--btn-min-h)}
 .btn-add:hover{background:var(--accent2)}
 
 .toolbar{
@@ -74,12 +75,12 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .empty-icon{font-size:48px;margin-bottom:12px}
 
 /* Badges */
-.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:var(--badge-fs);font-weight:600}
 .b-unread{background:rgba(124,106,255,.15);color:var(--accent)}
 .b-read{background:rgba(144,144,168,.15);color:var(--text2)}
 .b-interested{background:rgba(243,156,18,.15);color:var(--yellow)}
 .b-ordered{background:rgba(46,204,113,.15);color:var(--green)}
-.supplier-tag{padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600}
+.supplier-tag{padding:3px 8px;border-radius:4px;font-size:var(--badge-fs);font-weight:600}
 .sup-SGP{background:rgba(0,180,216,.15);color:var(--cyan)}
 .sup-PCH{background:rgba(243,156,18,.15);color:var(--yellow)}
 .sup-SDY{background:rgba(46,204,113,.15);color:var(--green)}
@@ -95,17 +96,17 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .field textarea{min-height:60px;resize:vertical}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);outline:none}
 .detail-actions{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border)}
-.btn{border:none;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-green{background:var(--green);color:#fff}
-.btn-orange{background:var(--orange);color:#fff}
-.btn-warn{background:var(--red);color:#fff}
+.btn{border:none;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;min-height:var(--btn-min-h)}
+.btn-primary{background:var(--accent);color:var(--white)}
+.btn-green{background:var(--green);color:var(--white)}
+.btn-orange{background:var(--orange);color:var(--white)}
+.btn-warn{background:var(--red);color:var(--white)}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
 
 /* Toast */
 .toast{position:fixed;top:calc(var(--header-h)+var(--toolbar-h)+8px);right:16px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:200;display:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)}
-.toast-ok{background:var(--green);color:#fff}
-.toast-err{background:var(--red);color:#fff}
+.toast-ok{background:var(--green);color:var(--white)}
+.toast-err{background:var(--red);color:var(--white)}
 
 /* Loading */
 .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center}
@@ -116,7 +117,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-bg.open{display:flex}
-.modal{background:var(--surface);border-radius:12px;padding:0;max-width:480px;width:100%;max-height:85vh;overflow-y:auto}
+.modal{background:var(--surface);border-radius:12px;padding:0;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;position:relative}
 .modal-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center}
 .modal-header h3{flex:1;font-size:15px;color:var(--accent)}
 .modal-close{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer}
@@ -132,6 +133,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
   transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+  min-height:48px;
 }
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
@@ -140,13 +142,13 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .mobile-list{display:none;position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
 .mobile-detail{position:fixed;top:0;bottom:0;left:0;right:0;z-index:160;background:var(--bg);transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .mobile-detail.open{transform:translateX(0)}
-.mc-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px}
+.mc-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;min-height:56px}
 .mc-item:active{background:var(--surface2)}
 .mc-body{flex:1;min-width:0}
 .mc-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mc-meta{display:flex;gap:8px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-top:2px}
 .mc-thumb{width:48px;height:48px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0}
-.fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--white);border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 
 /* Image */
 .detail-img{width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius);background:var(--surface2);margin-bottom:12px}
@@ -188,7 +190,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .stepper{display:flex;align-items:center;gap:0}
 .stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn{width:44px;height:44px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
@@ -203,7 +205,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openAddModal()">+ 案内を追加</button>
-  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
+  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid var(--danger-bg);color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
 </header>
 
 <div class="toolbar">
@@ -238,7 +240,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <button class="fab" onclick="openAddModal()" aria-label="案内を追加">＋</button>
 
 <!-- Add/Edit Modal -->
-<div class="modal-bg" id="addModal">
+<div class="modal-bg" id="addModal" onclick="if(event.target===this)closeAddModal()">
   <div class="modal">
     <div class="modal-header"><h3 id="modalTitle">案内を追加</h3><button class="modal-close" onclick="closeAddModal()">&times;</button></div>
     <div id="modalBody"></div>
@@ -246,7 +248,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 </div>
 
 <!-- Order Modal -->
-<div class="modal-bg" id="orderModal">
+<div class="modal-bg" id="orderModal" onclick="if(event.target===this)closeOrderModal()">
   <div class="modal">
     <div class="modal-header"><h3>発注に回す</h3><button class="modal-close" onclick="closeOrderModal()">&times;</button></div>
     <div id="orderBody"></div>

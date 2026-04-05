@@ -27,6 +27,7 @@
   --nav-h:58px;
   --header-h:56px;
   --toolbar-h:52px;
+  --white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
@@ -42,9 +43,9 @@ header{
 .header-spacer{flex:1}
 .btn-add{
   padding:8px 16px;border-radius:var(--radius);
-  background:var(--accent);color:#fff;border:none;
+  background:var(--accent);color:var(--white);border:none;
   font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
-  transition:background .15s;
+  transition:background .15s;min-height:var(--btn-min-h);
 }
 .btn-add:hover{background:var(--accent2)}
 
@@ -137,7 +138,7 @@ header{
 .td-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .td-qty{text-align:right;color:var(--text2);font-size:12px}
 .td-dest{color:var(--text2);font-size:12px}
-.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.badge{display:inline-block;font-size:var(--badge-fs);font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
 .badge-ordered{background:rgba(0,180,216,.15);color:var(--cyan);border:1px solid rgba(0,180,216,.3)}
 .badge-arrived{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-cancelled{background:rgba(231,76,60,.12);color:var(--red);border:1px solid rgba(231,76,60,.3)}
@@ -198,16 +199,16 @@ header{
 }
 .btn-save{
   padding:9px 20px;border-radius:var(--radius);
-  background:var(--accent);color:#fff;border:none;
+  background:var(--accent);color:var(--white);border:none;
   font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;
-  white-space:nowrap;
+  white-space:nowrap;min-height:var(--btn-min-h);
 }
 .btn-save:hover:not(:disabled){background:var(--accent2)}
 .btn-save:disabled{opacity:.45;pointer-events:none}
 .btn-arrive,.btn-cancel,.btn-revert{
   padding:9px 14px;border-radius:var(--radius);
   background:transparent;font-size:13px;font-weight:600;cursor:pointer;
-  transition:all .15s;white-space:nowrap;
+  transition:all .15s;white-space:nowrap;min-height:var(--btn-min-h);
 }
 .btn-arrive{color:var(--green);border:1px solid rgba(46,204,113,.4)}
 .btn-arrive:hover{border-color:var(--green);background:rgba(46,204,113,.08)}
@@ -227,6 +228,7 @@ header{
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
   transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+  min-height:48px;
 }
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
@@ -260,7 +262,7 @@ header{
   display:flex;align-items:center;
   padding:13px 14px;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background .1s;
-  -webkit-tap-highlight-color:transparent;
+  -webkit-tap-highlight-color:transparent;min-height:56px;
 }
 .mc-item:active{background:var(--surface2)}
 .mc-body{flex:1;min-width:0}
@@ -270,7 +272,7 @@ header{
 .fab{
   position:fixed;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);right:18px;
   width:52px;height:52px;border-radius:50%;background:var(--accent);
-  color:#fff;border:none;font-size:28px;cursor:pointer;z-index:160;
+  color:var(--white);border:none;font-size:28px;cursor:pointer;z-index:160;
   box-shadow:0 4px 16px rgba(124,106,255,.5);
   display:none;align-items:center;justify-content:center;
   transition:background .15s;-webkit-tap-highlight-color:transparent;
@@ -333,7 +335,7 @@ header{
 .stepper{display:flex;align-items:center;gap:0}
 .stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn{width:44px;height:44px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
@@ -356,7 +358,7 @@ header{
   <input type="search" class="header-search" id="headerSearch" placeholder="検索..." autocomplete="off">
   <div class="header-spacer"></div>
   <button class="btn-add" onclick="openNew()">＋ 発注を追加</button>
-  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
+  <button onclick="if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未保存の変更があります。ログアウトしますか？'))return}else{if(!confirm('ログアウトしますか？'))return}sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid var(--danger-bg);color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px">ログアウト</button>
 </header>
 
 <div class="toolbar">

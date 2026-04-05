@@ -9,7 +9,7 @@
 <title>売上分析 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--orange:#e67e22;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;--radius:8px;--nav-h:58px;--header-h:56px}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--orange:#e67e22;--green:#2ecc71;--yellow:#f39c12;--red:#e74c3c;--cyan:#00b4d8;--radius:8px;--nav-h:58px;--header-h:56px;--white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px;min-height:100vh}
 a{color:var(--accent);text-decoration:none}
 .header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px}
@@ -25,7 +25,7 @@ a{color:var(--accent);text-decoration:none}
 .section{margin-bottom:20px}
 .section-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;padding-left:4px}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:6px 8px;color:var(--text2);border-bottom:1px solid var(--border);font-weight:600;position:sticky;top:0;background:var(--bg)}
+th{text-align:left;padding:6px 8px;color:var(--text2);border-bottom:1px solid var(--border);font-weight:600;font-size:12px;position:sticky;top:0;background:var(--bg)}
 td{padding:6px 8px;border-bottom:1px solid var(--border)}
 tr:hover{background:var(--surface2)}
 .rank{color:var(--accent);font-weight:800;width:28px}
@@ -49,11 +49,11 @@ tr:hover{background:var(--surface2)}
 .store-select-prompt .icon { font-size:48px; margin-bottom:12px; }
 .store-select-prompt .msg { font-size:15px; color:var(--text2); margin-bottom:20px; }
 .store-select-grid { display:grid; grid-template-columns:1fr; gap:10px; width:100%; max-width:360px; }
-.store-select-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:left; color:var(--text); font-size:15px; font-weight:700; cursor:pointer; }
+.store-select-btn { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:left; color:var(--text); font-size:15px; font-weight:700; cursor:pointer; min-height:var(--btn-min-h); }
 .store-select-btn:active { border-color:var(--accent); }
 .store-select-btn .sub { font-size:11px; color:var(--text2); font-weight:400; margin-top:2px; }
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;min-height:48px}
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
 </style>
@@ -62,7 +62,7 @@ tr:hover{background:var(--surface2)}
 <div class="header">
   <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <h1 style="font-size:17px">📊 売上分析</h1>
-  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:auto">ログアウト</button>
+  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid var(--danger-bg);color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:auto">ログアウト</button>
 </div>
 <div class="container">
   <div class="filters">

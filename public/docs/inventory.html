@@ -27,6 +27,7 @@
   --nav-h:58px;
   --header-h:56px;
   --toolbar-h:52px;
+  --white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
@@ -39,7 +40,7 @@ header{
 .header-title{font-size:17px;font-weight:700;letter-spacing:.5px;white-space:nowrap}
 .header-count{font-size:12px;color:var(--text2);background:var(--surface2);padding:3px 10px;border-radius:20px;white-space:nowrap}
 .header-spacer{flex:1}
-.btn-add{padding:8px 16px;border-radius:var(--radius);background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn-add{padding:8px 16px;border-radius:var(--radius);background:var(--accent);color:var(--white);border:none;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-height:var(--btn-min-h)}
 .btn-add:hover{background:var(--accent2)}
 
 .toolbar{
@@ -90,16 +91,16 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .field input:focus,.field select:focus{border-color:var(--accent);outline:none}
 .field .error{font-size:11px;color:var(--red);margin-top:2px}
 .detail-actions{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border)}
-.btn{border:none;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-green{background:var(--green);color:#fff}
-.btn-warn{background:var(--red);color:#fff}
+.btn{border:none;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;min-height:var(--btn-min-h)}
+.btn-primary{background:var(--accent);color:var(--white)}
+.btn-green{background:var(--green);color:var(--white)}
+.btn-warn{background:var(--red);color:var(--white)}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
 
 /* Toast */
 .toast{position:fixed;top:calc(var(--header-h)+var(--toolbar-h)+8px);right:16px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:200;display:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)}
-.toast-ok{background:var(--green);color:#fff}
-.toast-err{background:var(--red);color:#fff}
+.toast-ok{background:var(--green);color:var(--white)}
+.toast-err{background:var(--red);color:var(--white)}
 
 /* Loading */
 .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center}
@@ -110,7 +111,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
-.modal{background:var(--surface);border-radius:12px;padding:20px;max-width:400px;width:90%;max-height:80vh;overflow-y:auto}
+.modal{background:var(--surface);border-radius:12px;padding:20px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;position:relative}
 .modal h3{color:var(--accent);margin-bottom:12px}
 
 /* Bottom nav */
@@ -124,6 +125,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
   flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;
   transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;
+  min-height:48px;
 }
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
@@ -132,12 +134,12 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .mobile-list{display:none;position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
 .mobile-detail{position:fixed;top:0;bottom:0;left:0;right:0;z-index:160;background:var(--bg);transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .mobile-detail.open{transform:translateX(0)}
-.mc-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px}
+.mc-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;min-height:56px}
 .mc-item:active{background:var(--surface2)}
 .mc-body{flex:1;min-width:0}
 .mc-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mc-meta{display:flex;gap:8px;font-size:12px;color:var(--text2);flex-wrap:wrap;margin-top:2px}
-.fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.fab{display:none;position:fixed;right:20px;bottom:calc(var(--nav-h)+16px);width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--white);border:none;font-size:24px;cursor:pointer;z-index:110;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 
 /* ── Header search ── */
 .header-search{
@@ -179,7 +181,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 .stepper{display:flex;align-items:center;gap:0}
 .stepper input{text-align:center;border-radius:0;-moz-appearance:textfield;font-size:16px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.stepper-btn{width:40px;height:40px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
+.stepper-btn{width:44px;height:44px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0;transition:background .15s}
 .stepper-btn:active{background:var(--accent)}
 .stepper-btn.minus{border-radius:var(--radius) 0 0 var(--radius)}
 .stepper-btn.plus{border-radius:0 var(--radius) var(--radius) 0}
@@ -246,7 +248,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <button class="fab" onclick="openMovement()" aria-label="在庫を動かす">＋</button>
 
 <!-- Movement Modal -->
-<div class="modal-bg" id="movementModal">
+<div class="modal-bg" id="movementModal" onclick="if(event.target===this)closeMovement()">
   <div class="modal" id="movementContent"></div>
 </div>
 

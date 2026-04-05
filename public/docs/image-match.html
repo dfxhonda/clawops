@@ -14,6 +14,7 @@
   --text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;
   --green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--cyan:#00b4d8;--orange:#e67e22;
   --radius:8px;--nav-h:58px;--header-h:56px;
+  --white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:14px}
 
@@ -58,13 +59,13 @@ header{
 /* Sort & filter bar */
 .toolbar{display:flex;gap:4px;margin-top:8px;align-items:center;flex-wrap:wrap}
 .filter-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer}
-.filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.sort-btn{padding:4px 10px;border-radius:var(--radius);font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer}
+.filter-tab.active{background:var(--accent);color:var(--white);border-color:var(--accent)}
+.sort-btn{padding:4px 10px;border-radius:var(--radius);font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer}
 .sort-btn.active{color:var(--accent);border-color:var(--accent)}
 .toolbar .spacer{flex:1}
 .supplier-filter{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:var(--radius);font-size:11px}
-.list-count{font-size:10px;color:var(--text2);text-align:right;margin-top:4px}
-.more-btn{width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;border-top:none}
+.list-count{font-size:11px;color:var(--text2);text-align:right;margin-top:4px}
+.more-btn{width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;border-top:none;min-height:var(--btn-min-h)}
 
 /* Prize list */
 .prize-list{margin-top:8px;max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
@@ -79,10 +80,10 @@ header{
 .prize-item .thumb-empty{width:40px;height:40px;border-radius:4px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);flex-shrink:0}
 .prize-item .info{flex:1;min-width:0}
 .prize-item .name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prize-item .meta{font-size:10px;color:var(--text2);margin-top:2px}
-.prize-item .supplier-tag{font-size:9px;color:var(--cyan);background:var(--surface2);border-radius:4px;padding:1px 5px;margin-right:4px}
-.prize-item .order-date{font-size:9px;color:var(--orange)}
-.prize-item .has-img{font-size:9px;color:var(--green)}
+.prize-item .meta{font-size:11px;color:var(--text2);margin-top:2px}
+.prize-item .supplier-tag{font-size:11px;color:var(--cyan);background:var(--surface2);border-radius:4px;padding:2px 6px;margin-right:4px}
+.prize-item .order-date{font-size:11px;color:var(--orange)}
+.prize-item .has-img{font-size:11px;color:var(--green)}
 
 /* Match button */
 .match-bar{
@@ -94,7 +95,7 @@ header{
 .match-bar .selected-info{font-size:12px;color:var(--text2);margin-bottom:8px;text-align:center}
 .match-btn{
   width:100%;padding:14px;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;
-  cursor:pointer;background:var(--accent);color:#fff;
+  cursor:pointer;background:var(--accent);color:var(--white);min-height:var(--btn-min-h);
 }
 .match-btn:disabled{opacity:.4;cursor:default}
 
@@ -111,13 +112,13 @@ header{
 
 /* File nav */
 .file-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.file-nav button{padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer}
+.file-nav button{padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;min-height:var(--btn-min-h)}
 .file-nav button:disabled{opacity:.3;cursor:default}
 .file-nav .counter{font-size:12px;color:var(--text2);flex:1;text-align:center}
 
 /* Bottom nav */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;min-height:48px}
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
 </style>
@@ -127,7 +128,7 @@ header{
 <header>
   <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <span class="header-title">🖼️ 画像マッチング</span>
-  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
+  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid var(--danger-bg);color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
 </header>
 
 <div class="container">

@@ -9,11 +9,11 @@
 <title>集金帳票 | ClawOps</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--cyan:#00b4d8;--orange:#e67e22;--radius:8px;--nav-h:58px;--header-h:56px}
+:root{--bg:#0f0f13;--surface:#1a1a23;--surface2:#22222e;--border:#2e2e3e;--text:#e8e8f0;--text2:#9090a8;--accent:#7c6aff;--accent2:#5a4fcf;--green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--cyan:#00b4d8;--orange:#e67e22;--radius:8px;--nav-h:58px;--header-h:56px;--white:#fff;--btn-min-h:44px;--badge-fs:12px;--space-xs:4px;--space-sm:8px;--space-md:12px;--space-lg:16px;--space-xl:24px;--danger-bg:#5a3a3a}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;font-size:13px}
 .header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px}
 .header h1{font-size:17px;flex:1}
-.btn{padding:5px 10px;border-radius:var(--radius);font-size:11px;font-weight:700;border:none;cursor:pointer}
+.btn{padding:5px 10px;border-radius:var(--radius);font-size:11px;font-weight:700;border:none;cursor:pointer;min-height:var(--btn-min-h)}
 .container{max-width:700px;margin:0 auto;padding:8px 12px;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px)}
 .filters{display:flex;gap:8px;margin-bottom:10px;align-items:center}
 .filters select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:var(--radius);font-size:12px}
@@ -28,7 +28,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 /* 明細テーブル */
 .slip table{width:100%;border-collapse:collapse;font-size:11px}
-.slip th{padding:4px 6px;background:var(--surface2);color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);text-align:center;font-size:10px}
+.slip th{padding:4px 6px;background:var(--surface2);color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);text-align:center;font-size:12px}
 .slip td{padding:4px 6px;border-bottom:1px solid var(--border)}
 .slip .num{text-align:right;font-variant-numeric:tabular-nums}
 .slip .machine-row td{background:var(--surface2);font-weight:700;font-size:12px}
@@ -52,7 +52,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .store-select-prompt .icon{font-size:48px;margin-bottom:12px}
 .store-select-prompt .msg{font-size:15px;color:var(--text2);margin-bottom:20px}
 .store-select-grid{display:grid;grid-template-columns:1fr;gap:10px;width:100%;max-width:360px}
-.store-select-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:left;color:var(--text);font-size:15px;font-weight:700;cursor:pointer}
+.store-select-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:left;color:var(--text);font-size:15px;font-weight:700;cursor:pointer;min-height:var(--btn-min-h)}
 .store-select-btn:active{border-color:var(--accent)}
 .store-select-btn .sub{font-size:11px;color:var(--text2);font-weight:400;margin-top:2px}
 .loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2)}
@@ -61,6 +61,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 @media print{
   body{background:#fff;color:#000;font-size:11px}
+  .btn,.store-select-btn,.nav-item{min-height:auto}
   .no-print{display:none!important}
   .container{max-width:100%;padding:0}
   .slip{border-color:#999;break-inside:avoid}
@@ -72,7 +73,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   .slip .amt-cell input,.slip .note-cell input{color:#000}
 }
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:150}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;color:var(--text2);font-size:10px;font-weight:600;transition:color .15s;text-decoration:none;-webkit-tap-highlight-color:transparent;min-height:48px}
 .nav-item.active{color:var(--accent)}
 .nav-icon{font-size:20px;line-height:1}
 </style>
@@ -81,9 +82,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div class="header no-print">
   <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <h1>💰 集金帳票</h1>
-  <button class="btn" style="background:var(--green);color:#fff" onclick="window.print()">🖨️ PDF</button>
-  <button class="btn" style="background:var(--cyan);color:#fff" onclick="generateReport()">📤 報告</button>
-  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:auto">ログアウト</button>
+  <button class="btn" style="background:var(--green);color:var(--white)" onclick="window.print()">🖨️ PDF</button>
+  <button class="btn" style="background:var(--cyan);color:var(--white)" onclick="generateReport()">📤 報告</button>
+  <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid var(--danger-bg);color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:auto">ログアウト</button>
 </div>
 <div class="container">
   <div class="filters no-print">
@@ -264,7 +265,7 @@ function render(){
     </div>
 
     <div class="no-print" style="margin-bottom:12px">
-      <button onclick="confirmBilling()" class="btn" style="width:100%;padding:12px;font-size:14px;background:var(--accent);color:#fff">💰 集金確定</button>
+      <button onclick="confirmBilling()" class="btn" style="width:100%;padding:12px;font-size:14px;background:var(--accent);color:var(--white)">💰 集金確定</button>
     </div>
     ${renderHistory(store)}
   `;
