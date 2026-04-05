@@ -755,9 +755,9 @@ ${list.map(p => {
   const supDisp = esc(resolveSupplierDisplay(p));
   const caseAmt = (p.default_case_quantity && p.original_cost != null)
     ? (p.original_cost * p.default_case_quantity).toLocaleString('ja-JP') : '—';
-  const thumbUrl = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + imgCacheBust) : '';
+  const hasImg = !!p.image_url;
   return `<tr class="${sel ? 'selected' : ''}" onclick="selectPrize('${esc(sid)}')">
-  <td class="td-name" title="${esc(p.prize_name)}"><span style="display:inline-flex;align-items:center;gap:6px">${thumbUrl ? `<img src="${thumbUrl}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0">` : `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--surface);flex-shrink:0"></span>`}${highlight(p.prize_name || '', curSearch)}</span></td>
+  <td class="td-name" title="${esc(p.prize_name)}"><span style="display:inline-flex;align-items:center;gap:6px">${hasImg ? `<span style="font-size:12px;flex-shrink:0">🖼</span>` : `<span style="font-size:12px;flex-shrink:0;opacity:.2">○</span>`}${highlight(p.prize_name || '', curSearch)}</span></td>
   <td class="td-short" title="${esc(p.category)}">${highlight(p.category || '—', curSearch)}</td>
   <td class="td-cost">${fmt(p.original_cost)}</td>
   <td class="td-cost" style="color:var(--text2)">${caseAmt}</td>
@@ -1267,12 +1267,10 @@ function renderMobileList(list) {
     const caseAmtVal = (p.default_case_quantity != null && p.original_cost != null)
       ? p.original_cost * p.default_case_quantity : null;
     const statusClass = p.status || 'inactive';
-    const mThumb = p.image_url ? esc(SB_STORAGE + p.image_url + '?t=' + imgCacheBust) : '';
     return `<div class="mc-item" onclick="openMobileDetail('${esc(sid)}')">
   <div class="mc-status-bar ${statusClass}"></div>
-  ${mThumb ? `<img src="${mThumb}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin:8px 0 8px 8px;flex-shrink:0">` : `<div style="width:40px;height:40px;border-radius:8px;background:var(--surface);margin:8px 0 8px 8px;flex-shrink:0"></div>`}
   <div class="mc-body">
-    <div class="mc-name">${highlight(p.prize_name || '', curSearch)}</div>
+    <div class="mc-name">${p.image_url?'🖼 ':''}${highlight(p.prize_name || '', curSearch)}</div>
     <div class="mc-sub">${sup !== '—' ? `<span style="color:var(--orange)">${esc(sup)}</span>` : ''}${p.category ? ` <span style="color:var(--text2)">${esc(p.category)}</span>` : ''}${p.latest_order_date ? ` <span style="color:var(--text2)">発注:${fmtDate(p.latest_order_date)}</span>` : ''}</div>
     <div class="mc-kv">
       <div class="mc-kv-item"><div class="mc-kv-label">単価</div><div class="mc-kv-val">¥${fmt(p.original_cost)}</div></div>
