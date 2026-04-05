@@ -265,6 +265,7 @@ tr.sel{background:rgba(124,106,255,.06);border-left:3px solid var(--accent)}
 <script>
 const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SB_STORAGE = SB_URL + '/storage/v1/object/public/announcements/';
 
 async function sbGet(t,p=''){let all=[],offset=0;const PAGE=1000;while(true){const r=await fetch(`${SB_URL}/rest/v1/${t}?${p}&limit=${PAGE}&offset=${offset}`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});if(!r.ok)throw new Error(await r.text());const d=await r.json();all=all.concat(d);if(d.length<PAGE)break;offset+=PAGE;}return all;}
 async function sbPost(t,b){const r=await fetch(`${SB_URL}/rest/v1/${t}`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json()}
@@ -275,6 +276,7 @@ function getStaffId(){try{const s=JSON.parse(sessionStorage.getItem('clawops_sta
 
 // ─── STATE ───
 let STOCKS=[],MOVEMENTS=[],PRIZES={},LOCATIONS=[],STAFF=[],OWNERS=[];
+let IMG_MAP = {};
 let sortKey='updated_at',sortDir='desc';
 let curSearch='',filterOwner='',filterQty='';
 let selStockId=null;
@@ -301,11 +303,12 @@ async function loadLocations(){
   showLoading();
   try{
     const[prizes,locations,staff]=await Promise.all([
-      sbGet('prize_masters','select=prize_id,prize_name,original_cost,status&order=prize_name'),
+      sbGet('prize_masters','select=prize_id,prize_name,original_cost,status,image_url&order=prize_name'),
       sbGet('locations','select=location_id,location_name,location_type,parent_location_id&is_active=eq.true&order=location_name'),
       sbGet('staff','select=staff_id,name,has_vehicle_stock&is_active=eq.true&order=name'),
     ]);
     PRIZES=Object.fromEntries(prizes.map(p=>[p.prize_id,p]));
+    IMG_MAP = Object.fromEntries(prizes.filter(p => p.image_url).map(p => [String(p.prize_id), p.image_url]));
     LOCATIONS=locations;
     STAFF=staff.filter(s=>s.has_vehicle_stock);
     OWNERS=[...LOCATIONS.map(l=>({type:'location',id:l.location_id,label:l.location_name})),...STAFF.map(s=>({type:'staff',id:s.staff_id,label:s.name+'の車'}))];
@@ -502,7 +505,7 @@ ${list.map(s=>{
   const sel=s.stock_id===selStockId;
   const val=(s.quantity||0)*(Number(pz.original_cost)||0);
   return`<tr class="${sel?'sel':''}" onclick="selectStock('${esc(s.stock_id)}')">
-  <td style="font-weight:600">${esc(pz.prize_name||s.prize_id)}</td>
+  <td style="font-weight:600"><div style="display:flex;align-items:center;gap:4px;overflow:hidden"><span style="display:inline-flex;align-items:center;flex-shrink:0">${s.prize_id && IMG_MAP[String(s.prize_id)] ? `<img src="${esc(SB_STORAGE + IMG_MAP[String(s.prize_id)]) + '?t=' + Date.now()}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover">` : ''}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pz.prize_name||s.prize_id)}</span></div></td>
   <td style="font-size:12px;color:var(--orange)">${esc(ownerLabel(s.owner_type,s.owner_id))}</td>
   <td class="td-r" style="font-weight:700;color:${qtyColor(s.quantity)}">${s.quantity}</td>
   <td class="td-r" style="font-size:12px;color:var(--text2)">${fmt(pz.original_cost)}</td>
@@ -527,8 +530,11 @@ function renderDetail(){
   const val=(s.quantity||0)*(Number(pz.original_cost)||0);
   const mvs=MOVEMENTS.filter(m=>m.prize_id===s.prize_id&&((m.from_owner_type===s.owner_type&&m.from_owner_id===s.owner_id)||(m.to_owner_type===s.owner_type&&m.to_owner_id===s.owner_id)));
 
+  const imgPath = s.prize_id ? IMG_MAP[String(s.prize_id)] : null;
+  const imgSrc = imgPath ? esc(SB_STORAGE + imgPath) + '?t=' + Date.now() : '';
   pane.innerHTML=`
   <div class="detail-header"><h3>${esc(pz.prize_name||s.prize_id)}</h3></div>
+  ${imgSrc ? `<div style="text-align:center;padding:10px 16px;border-bottom:1px solid var(--border)"><img src="${imgSrc}" alt="" style="max-width:100%;max-height:150px;border-radius:8px;object-fit:contain"></div>` : ''}
   <div style="padding:16px">
     <div style="display:flex;gap:12px;margin-bottom:16px">
       <div style="flex:1;background:var(--surface2);border-radius:var(--radius);padding:12px;text-align:center">
@@ -568,7 +574,9 @@ function renderMobileList(list){
   if(!list.length){el.innerHTML='<div class="empty-pane"><div class="empty-icon">📦</div>在庫データがありません</div>';return}
   el.innerHTML=list.map(s=>{
     const pz=PRIZES[s.prize_id]||{};
+    const mImg = s.prize_id ? IMG_MAP[String(s.prize_id)] : null;
     return`<div class="mc-item" onclick="openMobileDetail('${esc(s.stock_id)}')">
+  ${mImg ? `<img src="${esc(SB_STORAGE + mImg) + '?t=' + Date.now()}" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0">` : ''}
   <div class="mc-body">
     <div class="mc-name">${esc(pz.prize_name||s.prize_id)}</div>
     <div class="mc-meta">
@@ -590,11 +598,14 @@ function openMobileDetail(id){
   const val=(s.quantity||0)*(Number(pz.original_cost)||0);
   const mvs=MOVEMENTS.filter(m=>m.prize_id===s.prize_id&&((m.from_owner_type===s.owner_type&&m.from_owner_id===s.owner_id)||(m.to_owner_type===s.owner_type&&m.to_owner_id===s.owner_id)));
   const el=document.getElementById('mobileDetail');
+  const mImgPath = s.prize_id ? IMG_MAP[String(s.prize_id)] : null;
+  const mImgSrc = mImgPath ? esc(SB_STORAGE + mImgPath) + '?t=' + Date.now() : '';
   el.innerHTML=`
   <header style="position:sticky;top:0;background:var(--surface);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:1">
     <button onclick="closeMobileDetail()" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:18px;font-weight:700;border:1px solid var(--border);cursor:pointer;flex-shrink:0">‹</button>
     <h3 style="font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pz.prize_name||s.prize_id)}</h3>
   </header>
+  ${mImgSrc ? `<div style="text-align:center;padding:10px 16px;border-bottom:1px solid var(--border)"><img src="${mImgSrc}" alt="" style="max-width:100%;max-height:150px;border-radius:8px;object-fit:contain"></div>` : ''}
   <div style="padding:16px">
     <div style="display:flex;gap:12px;margin-bottom:16px">
       <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
