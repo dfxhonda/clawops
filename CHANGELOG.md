@@ -5,23 +5,34 @@
 ## [Unreleased]
 
 ### 追加
-- `src/lib/auth/session.js` — sessionStorage の唯一の窓口。setSession/getSession/clearSession/isLoggedIn/ロール判定
+- `src/lib/auth/session.js` — Supabase Auth一本化（getAuthSession/extractMeta/logout のみ）
+- `src/lib/auth/AuthProvider.jsx` — 認証の唯一のProvider（useAuth hook付き）
 - `src/components/LogoutButton.jsx` — 共通ログアウトボタン（14画面のインライン実装を統合）
 - `src/features/inventory/hooks/useInventoryDashboard.js` — ダッシュボードの取得・集計フック
 - `src/services/calc.js` に `isToday()` / `calcInventoryStats()` を追加
-- `src/__tests__/` — Vitest テスト基盤（calc / utils / session の 3 ファイル 60 テスト）
+- `src/hooks/useAsync.js` — 非同期処理の統一フック（retry/errorProps付き）
+- `src/components/ErrorDisplay.jsx` — 全画面のエラー表示を統一（自動分類・再試行・dismiss）
+- `src/services/audit.js` — 構造化監査ログ（before_data/after_data JSONB、reason_code/reason_note分離）
+- `src/__tests__/` — Vitest テスト基盤（9ファイル108テスト: 単体86 + 結合22）
+- `src/__tests__/integration/` — サービス層結合テスト（メーター入力・棚卸し・在庫移動の3フロー）
+- `src/__tests__/helpers/supabaseMock.js` — ステートフルSupabaseモック（インメモリDB）
+- `scripts/release.sh` — セマンティックバージョニング用リリーススクリプト
 - `archive/` ディレクトリ（旧 `取込/` を移動、`.gitignore` 済み）
 
 ### 変更
-- `src/services/auth.js` を `lib/auth/session.js` の再エクスポートに変更
-- `src/pages/Login.jsx` — sessionStorage 直書きを `setSession()` 経由に変更
-- `src/components/RoleGuard.jsx` — sessionStorage 直アクセスを `getStaffRole()` 経由に変更
+- `src/services/auth.js` を `lib/auth/session.js` の再エクスポートに変更（sessionStorage依存廃止）
+- `src/pages/Login.jsx` — sessionStorage 直書きを Supabase Auth 経由に変更
+- `src/components/RoleGuard.jsx` — sessionStorage 直アクセスを useAuth() 経由に変更
 - `src/pages/inventory/InventoryDashboard.jsx` — Promise.all + 画面内集計を `useInventoryDashboard` フックに分離
 - 14 画面の `sessionStorage.clear()` ログアウトを `LogoutButton` コンポーネントに統一
-- `src/services/audit.js` — sessionStorage 直アクセスを `getStaffId()` 経由に変更
-- `src/pages/BoothInput.jsx` — staffId 操作を `getStaffId()` / `updateStaffId()` 経由に変更
-- `package.json` — `test` スクリプトを Vitest に変更、`test:watch` を追加
+- 7画面の `alert()` を `ErrorDisplay` コンポーネントに置換（BoothInput, DraftList, PatrolInput, InventoryTransfer, InventoryCount, InventoryReceive, DataSearch）
+- `src/services/readings.js` — saveReading/updateReading に監査ログ追加（before/after構造化データ付き）
+- `src/services/movements.js` — transferStock/countStock の監査ログを構造化（before_data/after_data JSONB）
+- `package.json` — `test`/`test:watch`/`release` スクリプト追加
 - `README.md` — ディレクトリ構成を更新、テスト実行方法を追加
+
+### セキュリティ
+- `src/lib/auth/session.js` — localStorage後方互換コード廃止、Supabase Auth一本化
 
 ---
 
