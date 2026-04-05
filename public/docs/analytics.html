@@ -77,6 +77,7 @@ tr:hover{background:var(--surface2)}
 <script>
 const SB_URL='https://gedxzunoyzmvbqgwjalx.supabase.co/rest/v1';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlZHh6dW5veXptdmJxZ3dqYWx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0ODA1OCwiZXhwIjoyMDg5NzI0MDU4fQ.ATjGmg5kdm-cs_663ddOUvwTZ8vbn24aSjz6uUYm4Fs';
+const SB_STORAGE=SB_URL+'/storage/v1/object/public/announcements/';
 
 async function sbGet(table,params=''){
   let all=[],offset=0;const P=1000;
