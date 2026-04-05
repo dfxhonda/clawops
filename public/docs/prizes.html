@@ -234,6 +234,20 @@ header{
 }
 .aliases-close:hover{border-color:var(--accent)}
 
+/* ── Merge modal ── */
+.merge-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px}
+.merge-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:420px;width:100%}
+.merge-box h3{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--yellow)}
+.merge-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px}
+.merge-card .mc-label{font-size:10px;color:var(--text2);font-weight:600;margin-bottom:4px}
+.merge-card .mc-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.merge-card .mc-detail{font-size:11px;color:var(--text2);line-height:1.6;word-break:break-all}
+.merge-actions{display:flex;flex-direction:column;gap:8px}
+.merge-btn{padding:12px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;border:none;width:100%;text-align:center}
+.merge-btn.primary{background:var(--accent);color:#fff}
+.merge-btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+.merge-btn.ghost{background:none;border:none;color:var(--text2);font-size:12px;padding:8px}
+
 /* ── Bottom nav ── */
 .bottom-nav{
   position:fixed;bottom:0;left:0;right:0;
@@ -990,57 +1004,162 @@ async function savePrize() {
   const costNum = parseInt(costStr, 10);
   if (isNaN(costNum) || costNum < 0) { showToast('単価は0以上の整数を入力してください', false); return; }
 
-  const dupeName = DATA.find(p => p.prize_name === name && String(p.prize_id) !== String(selPrizeId));
-  if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
-
   if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
 
-  // ── Auto-register new supplier ──
-  if (supVal) await ensureSupplier(supVal);
-
-  // ── Payload ──
   const category = (document.getElementById('fCategory')?.value || '').trim();
   const payload = {
-    prize_name: name,
-    category: category || null,
-    aliases:    aliases || null,
-    original_cost: costNum,
-    status,
+    prize_name: name, category: category || null, aliases: aliases || null,
+    original_cost: costNum, status,
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
-    updated_at: new Date().toISOString(),
-    updated_by: getStaffId()
+    updated_at: new Date().toISOString(), updated_by: getStaffId(),
+    supplier_name: supVal
   };
-  payload.supplier_name = supVal;
 
+  // ── Duplicate check with merge option ──
+  const dupes = findDuplicates(name, aliases, selPrizeId);
+  if (dupes.length) {
+    showMergeModal(dupes[0], payload, selPrizeId,
+      async (keepRec) => { await doSavePrizeWithMerge(keepRec, payload); },
+      async () => { await doSavePrizeDirect(payload); }
+    );
+    return;
+  }
+  await doSavePrizeDirect(payload);
+}
+
+async function doSavePrizeDirect(payload) {
+  if (payload.supplier_name) await ensureSupplier(payload.supplier_name);
   const saveBtn = document.getElementById('btnSave');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
   showLoading();
-
   try {
     if (isNewMode) {
       const result = await sbPost('prize_masters', payload);
       const newId = Array.isArray(result) ? result[0]?.prize_id : result?.prize_id;
-      showToast('保存しました');
-      isDirty = false;
-      isNewMode = false;
-      await loadAll();
-      if (newId) selPrizeId = newId;
-      render();
-      renderDetail();
+      showToast('保存しました'); isDirty = false; isNewMode = false;
+      await loadAll(); if (newId) selPrizeId = newId; render(); renderDetail();
     } else {
       await sbPatch('prize_masters', selPrizeId, 'prize_id', payload);
-      showToast('保存しました');
-      isDirty = false;
-      await loadAll();
-      render();
-      renderDetail();
+      showToast('保存しました'); isDirty = false;
+      await loadAll(); render(); renderDetail();
     }
   } catch(e) {
     showToast('エラー: ' + e.message, false);
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
-  } finally {
-    hideLoading();
+  } finally { hideLoading(); }
+}
+
+async function doSavePrizeWithMerge(keepRec, payload) {
+  if (payload.supplier_name) await ensureSupplier(payload.supplier_name);
+  showLoading();
+  try {
+    const removeId = isNewMode ? null : selPrizeId;
+    const keptId = await executeMerge(keepRec, removeId, payload);
+    showToast('マージして保存しました'); isDirty = false; isNewMode = false;
+    selPrizeId = keptId;
+    await loadAll(); render(); renderDetail();
+  } catch(e) { showToast('マージエラー: ' + e.message, false); }
+  finally { hideLoading(); }
+}
+
+// ─── MERGE SCHEME ─────────────────────────────────────────────────────────────
+function parseAliases(raw) {
+  try { const a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a : []; } catch { return (raw||'').split(',').map(s=>s.trim()).filter(Boolean); }
+}
+
+function findDuplicates(name, aliasesStr, currentId) {
+  const inputAliases = parseAliases(aliasesStr).map(a => a.toLowerCase());
+  const dupes = [];
+  for (const p of DATA) {
+    if (String(p.prize_id) === String(currentId)) continue;
+    // 1. prize_name exact match
+    if (p.prize_name === name) { dupes.push(p); continue; }
+    // 2. alias overlap
+    if (inputAliases.length) {
+      const existAliases = parseAliases(p.aliases).map(a => a.toLowerCase());
+      if (inputAliases.some(a => existAliases.includes(a))) { dupes.push(p); continue; }
+    }
+    // 3. input name matches existing alias
+    const existAliases2 = parseAliases(p.aliases).map(a => a.toLowerCase());
+    if (existAliases2.includes(name.toLowerCase())) { dupes.push(p); }
   }
+  return dupes;
+}
+
+function showMergeModal(dupeRecord, currentPayload, currentId, onMerge, onSkip) {
+  const dp = dupeRecord;
+  let dpAliases = [];
+  try { dpAliases = parseAliases(dp.aliases); } catch {}
+  const formalName = dpAliases[0] || '';
+  const el = document.createElement('div');
+  el.className = 'merge-modal';
+  el.innerHTML = `<div class="merge-box">
+    <h3>⚠️ 同じ商品の可能性があります</h3>
+    <div class="merge-card">
+      <div class="mc-label">既存レコード</div>
+      <div class="mc-name">${esc(dp.prize_name)}</div>
+      <div class="mc-detail">
+        ${formalName ? `正式名称: ${esc(formalName)}<br>` : ''}
+        ID: ${esc(dp.prize_id)}<br>
+        単価: ¥${fmt(dp.original_cost)} / 仕入先: ${esc(dp.supplier_name||'—')}<br>
+        状態: ${dp.status}
+      </div>
+    </div>
+    <div class="merge-actions">
+      <button class="merge-btn primary" id="mergeConfirmBtn">マージして保存</button>
+      <button class="merge-btn secondary" id="mergeSeparateBtn">別商品として保存</button>
+      <button class="merge-btn ghost" id="mergeCancelBtn">キャンセル</button>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+  document.getElementById('mergeConfirmBtn').onclick = () => { el.remove(); onMerge(dp); };
+  document.getElementById('mergeSeparateBtn').onclick = () => { el.remove(); onSkip(); };
+  document.getElementById('mergeCancelBtn').onclick = () => { el.remove(); };
+}
+
+async function executeMerge(keepRecord, removeId, newPayload) {
+  // Merge aliases: union of both
+  const keepAliases = parseAliases(keepRecord.aliases);
+  const newAliases = parseAliases(newPayload.aliases);
+  const mergedAliases = [...new Set([...keepAliases, ...newAliases])];
+
+  // Build merged payload: new values take priority, fallback to existing
+  const merged = {
+    prize_name: newPayload.prize_name,
+    aliases: JSON.stringify(mergedAliases),
+    original_cost: newPayload.original_cost,
+    category: newPayload.category || keepRecord.category || null,
+    supplier_name: newPayload.supplier_name || keepRecord.supplier_name || null,
+    default_case_quantity: newPayload.default_case_quantity || keepRecord.default_case_quantity || null,
+    image_url: keepRecord.image_url || null,
+    status: newPayload.status,
+    updated_at: new Date().toISOString(),
+    updated_by: getStaffId()
+  };
+
+  // Update the keep record
+  await sbPatch('prize_masters', keepRecord.prize_id, 'prize_id', merged);
+
+  // Re-point references from removeId -> keepId (if removeId exists and differs)
+  if (removeId && removeId !== keepRecord.prize_id) {
+    const tables = ['prize_orders', 'prize_stocks', 'stock_movements'];
+    for (const t of tables) {
+      try {
+        await fetch(SB_URL + '/' + t + '?prize_id=eq.' + encodeURIComponent(removeId), {
+          method: 'PATCH',
+          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ prize_id: keepRecord.prize_id })
+        });
+      } catch(e) { /* table may not have matching rows, that's OK */ }
+    }
+    // Delete the old record
+    await fetch(SB_URL + '/prize_masters?prize_id=eq.' + encodeURIComponent(removeId), {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+  }
+
+  return keepRecord.prize_id;
 }
 
 // ─── DUPLICATE ────────────────────────────────────────────────────────────────
@@ -1271,23 +1390,31 @@ async function savePrizeMobile() {
   const costNum = parseInt(costStr, 10);
   if (isNaN(costNum) || costNum < 0) { showToast('単価は0以上の整数を入力してください', false); return; }
 
-  const dupeName = DATA.find(p => p.prize_name === name && String(p.prize_id) !== String(selPrizeId));
-  if (dupeName) { showToast('同じ名前の景品がすでにあります', false); return; }
   if (costNum >= 5000 && !confirm(`単価が極端です（¥${fmt(costNum)}）。確認してください。`)) return;
-
-  // ── Auto-register new supplier ──
-  if (supVal) await ensureSupplier(supVal);
 
   const category = (document.getElementById('mfCategory')?.value || '').trim();
   const payload = {
     prize_name: name, category: category || null, aliases: aliases || null,
     original_cost: costNum, status,
     default_case_quantity: qtyStr ? parseInt(qtyStr, 10) : null,
-    updated_at: new Date().toISOString(),
-    updated_by: getStaffId()
+    updated_at: new Date().toISOString(), updated_by: getStaffId(),
+    supplier_name: supVal
   };
-  payload.supplier_name = supVal;
 
+  // ── Duplicate check with merge option ──
+  const dupes = findDuplicates(name, aliases, selPrizeId);
+  if (dupes.length) {
+    showMergeModal(dupes[0], payload, selPrizeId,
+      async (keepRec) => { await doSaveMobileWithMerge(keepRec, payload); },
+      async () => { await doSaveMobileDirect(payload); }
+    );
+    return;
+  }
+  await doSaveMobileDirect(payload);
+}
+
+async function doSaveMobileDirect(payload) {
+  if (payload.supplier_name) await ensureSupplier(payload.supplier_name);
   const saveBtn = document.getElementById('mfBtnSave');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '保存中…'; }
   showLoading();
@@ -1295,26 +1422,30 @@ async function savePrizeMobile() {
     if (isNewMode) {
       const result = await sbPost('prize_masters', payload);
       const newId = Array.isArray(result) ? result[0]?.prize_id : result?.prize_id;
-      showToast('保存しました');
-      isDirty = false; isNewMode = false;
-      closeMobileDetail();
-      await loadAll();
-      if (newId) selPrizeId = newId;
-      render();
+      showToast('保存しました'); isDirty = false; isNewMode = false;
+      closeMobileDetail(); await loadAll(); if (newId) selPrizeId = newId; render();
     } else {
       await sbPatch('prize_masters', selPrizeId, 'prize_id', payload);
-      showToast('保存しました');
-      isDirty = false;
-      closeMobileDetail();
-      await loadAll();
-      render();
+      showToast('保存しました'); isDirty = false;
+      closeMobileDetail(); await loadAll(); render();
     }
   } catch(e) {
     showToast('エラー: ' + e.message, false);
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存'; }
-  } finally {
-    hideLoading();
-  }
+  } finally { hideLoading(); }
+}
+
+async function doSaveMobileWithMerge(keepRec, payload) {
+  if (payload.supplier_name) await ensureSupplier(payload.supplier_name);
+  showLoading();
+  try {
+    const removeId = isNewMode ? null : selPrizeId;
+    const keptId = await executeMerge(keepRec, removeId, payload);
+    showToast('マージして保存しました'); isDirty = false; isNewMode = false;
+    selPrizeId = keptId;
+    closeMobileDetail(); await loadAll(); render();
+  } catch(e) { showToast('マージエラー: ' + e.message, false); }
+  finally { hideLoading(); }
 }
 
 function duplicatePrizeMobile() {
