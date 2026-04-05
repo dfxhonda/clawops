@@ -2,7 +2,7 @@
 // useAsync: 非同期処理の状態管理を統一するフック
 // loading / error / data を一箇所で管理
 // ============================================
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { classifyError } from '../components/ErrorDisplay'
 
 /**
@@ -18,8 +18,10 @@ import { classifyError } from '../components/ErrorDisplay'
 export function useAsync() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const lastFnRef = useRef(null)
 
   const execute = useCallback(async (asyncFn) => {
+    lastFnRef.current = asyncFn
     setLoading(true)
     setError(null)
     try {
@@ -36,7 +38,19 @@ export function useAsync() {
 
   const clearError = useCallback(() => setError(null), [])
 
-  return { loading, error, execute, clearError }
+  /** 最後に実行した非同期関数を再実行する */
+  const retry = useCallback(() => {
+    if (lastFnRef.current) return execute(lastFnRef.current)
+    return Promise.resolve(null)
+  }, [execute])
+
+  /**
+   * ErrorDisplay に渡す props を生成する
+   * @example <ErrorDisplay {...errorProps} />
+   */
+  const errorProps = error ? { error: error.message, type: error.type, onRetry: retry, onDismiss: clearError } : null
+
+  return { loading, error, execute, clearError, retry, errorProps }
 }
 
 /**
