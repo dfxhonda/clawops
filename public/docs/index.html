@@ -221,27 +221,28 @@ h1{font-size:22px;font-weight:800;letter-spacing:1px;margin-bottom:var(--space-x
 
 <script>
 const SB_URL = window.CLAWOPS_CONFIG.SUPABASE_URL + '/rest/v1';
+const SB_FN_URL = window.CLAWOPS_CONFIG.SUPABASE_URL + '/functions/v1';
 const SB_KEY = window.CLAWOPS_CONFIG.SUPABASE_ANON_KEY;
 const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_URL + '/storage/v1/object';
 const headers={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
 let STAFF=[];
-let currentStaff=null; // {staff_id, name, pin}
+let currentStaff=null; // {staff_id, name, role, access_token}
 
 async function sbGet(table,params=''){
   const r=await fetch(`${SB_URL}/${table}?${params}`,{headers});
   return r.ok?r.json():[];
 }
-async function sbPatch(table,id,idCol,body){
+async function sbPatch(table,id,idCol,body,token){
+  const h={...headers,'Content-Type':'application/json','Prefer':'return=minimal'};
+  if(token) h['Authorization']='Bearer '+token;
   await fetch(`${SB_URL}/${table}?${idCol}=eq.${encodeURIComponent(id)}`,{
-    method:'PATCH',headers:{...headers,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify(body)
+    method:'PATCH',headers:h,body:JSON.stringify(body)
   });
 }
 
 // ── Init ──
 async function init(){
-  // Check saved session
   const saved=sessionStorage.getItem('clawops_staff');
   if(saved){
     currentStaff=JSON.parse(saved);
@@ -249,7 +250,7 @@ async function init(){
     return;
   }
 
-  STAFF=await sbGet('staff','select=staff_id,name,pin&is_active=eq.true&order=name');
+  STAFF=await sbGet('staff_public','select=staff_id,name,has_pin&is_active=eq.true&order=name');
   const sel=document.getElementById('staffSelect');
   sel.innerHTML='<option value="">-- 選択してください --</option>'+
     STAFF.map(s=>`<option value="${s.staff_id}">${s.name}</option>`).join('');
@@ -268,7 +269,7 @@ function onStaffChange(){
   if(!staff){pinSec.classList.add('hidden');return;}
 
   pinSec.classList.remove('hidden');
-  if(staff.pin){
+  if(staff.has_pin){
     pinLabel.textContent='暗証番号';
     pinInput.placeholder='暗証番号を入力';
   }else{
@@ -288,21 +289,32 @@ async function handleLogin(){
   if(!staff){msg.className='login-msg err';msg.textContent='スタッフを選択してください';return;}
   if(pin.length<4){msg.className='login-msg err';msg.textContent='暗証番号は4桁以上で入力してください';return;}
 
-  if(staff.pin){
-    // 認証
-    if(pin!==staff.pin){
-      msg.className='login-msg err';msg.textContent='暗証番号が違います';return;
+  // サーバー側でPIN照合
+  msg.className='login-msg';msg.textContent='認証中...';
+  try{
+    const r=await fetch(`${SB_FN_URL}/verify-pin`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({staff_id:staff.staff_id,pin:pin})
+    });
+    const data=await r.json();
+    if(!r.ok){
+      msg.className='login-msg err';
+      msg.textContent=data.error||'認証に失敗しました';
+      return;
     }
-  }else{
-    // 初回: PINを保存
-    await sbPatch('staff',staff.staff_id,'staff_id',{pin:pin});
-    staff.pin=pin;
-    msg.className='login-msg ok';msg.textContent='暗証番号を登録しました';
+    currentStaff={
+      staff_id:data.staff.staff_id,
+      name:data.staff.name,
+      role:data.staff.role,
+      access_token:data.session.access_token
+    };
+    sessionStorage.setItem('clawops_staff',JSON.stringify(currentStaff));
+    msg.className='login-msg ok';msg.textContent='ログイン成功';
+    showMenu();
+  }catch(e){
+    msg.className='login-msg err';msg.textContent='通信エラー: '+e.message;
   }
-
-  currentStaff={staff_id:staff.staff_id,name:staff.name};
-  sessionStorage.setItem('clawops_staff',JSON.stringify(currentStaff));
-  showMenu();
 }
 
 function skipLogin(){
@@ -341,7 +353,10 @@ async function changePin(){
   const newPin=document.getElementById('newPinInput').value.trim();
   const msg=document.getElementById('changePinMsg');
   if(newPin.length<4){msg.className='login-msg err';msg.textContent='4桁以上で入力してください';return;}
-  await sbPatch('staff',currentStaff.staff_id,'staff_id',{pin:newPin});
+  const token=currentStaff.access_token;
+  if(token){
+    await sbPatch('staff',currentStaff.staff_id,'staff_id',{pin:newPin},token);
+  }
   msg.className='login-msg ok';msg.textContent='変更しました';
   setTimeout(()=>closeChangePinModal(),1000);
 }
