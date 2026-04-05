@@ -24,7 +24,6 @@ header{
   height:var(--header-h);
 }
 .header-title{font-size:17px;font-weight:700;flex:1}
-.header-count{font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 10px}
 
 .container{max-width:900px;margin:0 auto;padding:12px;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 80px)}
 
@@ -40,10 +39,13 @@ header{
 .drop-zone .sub{font-size:11px;color:var(--text2);margin-top:4px}
 
 /* Preview */
-.preview-area{display:none;margin-bottom:12px}
+.preview-area{display:none;margin-bottom:12px;position:relative;touch-action:pan-y;user-select:none}
 .preview-area.show{display:block}
-.preview-img{width:100%;max-height:400px;object-fit:contain;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)}
+.preview-img{width:100%;max-height:400px;object-fit:contain;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);pointer-events:none}
 .preview-name{font-size:13px;color:var(--text2);margin-top:6px;text-align:center}
+.swipe-hint{position:absolute;top:50%;transform:translateY(-50%);font-size:28px;color:var(--text2);opacity:.4;pointer-events:none}
+.swipe-hint.left{left:8px}
+.swipe-hint.right{right:8px}
 
 /* Search */
 .search-section{margin-top:12px}
@@ -52,6 +54,12 @@ header{
   padding:10px 12px;border-radius:var(--radius);font-size:14px;outline:none;
 }
 .search-input:focus{border-color:var(--accent)}
+
+/* Sort & filter bar */
+.toolbar{display:flex;gap:4px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.filter-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer}
+.filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sort-btn{padding:4px 10px;border-radius:var(--radius);font-size:10px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;margin-left:auto}
 
 /* Prize list */
 .prize-list{margin-top:8px;max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)}
@@ -67,6 +75,8 @@ header{
 .prize-item .info{flex:1;min-width:0}
 .prize-item .name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .prize-item .meta{font-size:10px;color:var(--text2);margin-top:2px}
+.prize-item .supplier-tag{font-size:9px;color:var(--cyan);background:var(--surface2);border-radius:4px;padding:1px 5px;margin-right:4px}
+.prize-item .order-date{font-size:9px;color:var(--orange)}
 .prize-item .has-img{font-size:9px;color:var(--green)}
 
 /* Match button */
@@ -83,12 +93,6 @@ header{
 }
 .match-btn:disabled{opacity:.4;cursor:default}
 
-/* Stats */
-.stats{display:flex;gap:8px;margin-bottom:12px}
-.stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
-.stat .val{font-size:20px;font-weight:800;color:var(--accent)}
-.stat .label{font-size:10px;color:var(--text2);margin-top:2px}
-
 /* Toast */
 .toast{position:fixed;top:calc(var(--header-h)+12px);right:16px;padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;z-index:400;display:none;animation:fadeIn .2s ease}
 .toast.ok{background:var(--surface);border:1px solid var(--green);color:var(--green)}
@@ -100,12 +104,7 @@ header{
 .loading{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2);gap:8px}
 .spinner-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center}
 
-/* Filter tabs */
-.filter-tabs{display:flex;gap:4px;margin-bottom:8px}
-.filter-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer}
-.filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-
-/* Multi-file nav */
+/* File nav */
 .file-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .file-nav button{padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer}
 .file-nav button:disabled{opacity:.3;cursor:default}
@@ -123,45 +122,42 @@ header{
 <header>
   <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <span class="header-title">🖼️ 画像マッチング</span>
-  <span class="header-count" id="countBadge">読込中…</span>
   <button onclick="if(!confirm('ログアウトしますか？'))return;sessionStorage.clear();location.href='index.html'" style="background:none;border:1px solid #5a3a3a;color:#e74c3c;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">ログアウト</button>
 </header>
 
 <div class="container">
-  <div class="stats">
-    <div class="stat"><div class="val" id="statTotal">-</div><div class="label">画像なし景品</div></div>
-    <div class="stat"><div class="val" id="statMatched">0</div><div class="label">今回マッチ</div></div>
-  </div>
-
   <!-- Drop Zone -->
   <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
     <div class="icon">📸</div>
     <div class="msg">画像をドラッグ&ドロップ、またはタップして選択</div>
-    <div class="sub">複数ファイル選択可</div>
+    <div class="sub">複数ファイル選択可 · 左右スワイプで切替</div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
   </div>
 
-  <!-- File navigation (for multiple files) -->
+  <!-- File navigation -->
   <div class="file-nav" id="fileNav" style="display:none">
-    <button onclick="prevFile()">← 前</button>
+    <button onclick="prevFile()">←</button>
     <span class="counter" id="fileCounter">1 / 1</span>
-    <button onclick="nextFile()">次 →</button>
-    <button onclick="skipFile()" style="color:var(--red);font-size:11px">🗑 スキップ</button>
+    <button onclick="nextFile()">→</button>
+    <button onclick="skipFile()" style="color:var(--red);font-size:11px">スキップ</button>
     <button onclick="document.getElementById('fileInput').click()" style="margin-left:auto;font-size:11px">📁 追加</button>
   </div>
 
-  <!-- Image Preview -->
+  <!-- Image Preview (swipeable) -->
   <div class="preview-area" id="previewArea">
+    <span class="swipe-hint left" id="hintL" style="display:none">‹</span>
     <img id="previewImg" class="preview-img">
+    <span class="swipe-hint right" id="hintR" style="display:none">›</span>
     <div class="preview-name" id="previewName"></div>
   </div>
 
   <!-- Search & List -->
   <div class="search-section" id="searchSection" style="display:none">
-    <input type="search" class="search-input" id="searchInput" placeholder="🔍 景品名で検索..." autocomplete="off" oninput="renderList()">
-    <div class="filter-tabs" style="margin-top:8px">
+    <input type="search" class="search-input" id="searchInput" placeholder="🔍 景品名・仕入先で検索..." autocomplete="off" oninput="renderList()">
+    <div class="toolbar">
       <button class="filter-tab active" onclick="setFilter('noimg')" id="tabNoImg">画像なし</button>
       <button class="filter-tab" onclick="setFilter('all')" id="tabAll">すべて</button>
+      <button class="sort-btn" id="sortBtn" onclick="toggleSort()">名前順 ↓</button>
     </div>
     <div class="prize-list" id="prizeList"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
   </div>
@@ -175,7 +171,6 @@ header{
 
 <!-- Toast -->
 <div class="toast" id="toastEl"></div>
-
 <!-- Spinner overlay -->
 <div id="spinnerOverlay" style="display:none" class="spinner-overlay"><div class="spinner"></div></div>
 
@@ -198,17 +193,23 @@ async function sbGet(t,p=''){let a=[],o=0;while(true){const r=await fetch(SB_URL
 async function sbPatch(t,id,col,b){const r=await fetch(SB_URL+'/'+t+'?'+col+'=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text())}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/'/g,'&#39;')}
 
-let allPrizes=[], files=[], currentFileIdx=0, selectedPrizeId=null, matchedCount=0, filterMode='noimg', cacheBust=Date.now();
+let allPrizes=[], files=[], currentFileIdx=0, selectedPrizeId=null, filterMode='noimg', cacheBust=Date.now();
+let sortKey='name', sortDir='asc'; // name, supplier, order_date
+let lastOrderMap={}; // prize_id -> latest order_date
 
 // ─── INIT ───
 async function init(){
   try{
-    allPrizes=await sbGet('prize_masters','select=prize_id,prize_name,image_url,original_cost,supplier_name&order=prize_name');
-    const noImg=allPrizes.filter(p=>!p.image_url);
-    document.getElementById('countBadge').textContent=`${noImg.length}件 画像なし`;
-    document.getElementById('statTotal').textContent=noImg.length;
+    const [prizes, orders] = await Promise.all([
+      sbGet('prize_masters','select=prize_id,prize_name,image_url,original_cost,supplier_name&order=prize_name'),
+      sbGet('prize_orders','select=prize_id,order_date&order=order_date.desc')
+    ]);
+    allPrizes=prizes;
+    // Build last order map (first occurrence = latest due to desc sort)
+    for(const o of orders){
+      if(o.prize_id && !lastOrderMap[o.prize_id]) lastOrderMap[o.prize_id]=o.order_date;
+    }
   }catch(e){
-    document.getElementById('countBadge').textContent='エラー';
     showToast('読込エラー: '+e.message,false);
   }
 }
@@ -241,7 +242,7 @@ function showCurrentFile(){
 
   if(img.src&&img.src.startsWith('blob:'))URL.revokeObjectURL(img.src);
   img.src=URL.createObjectURL(f);
-  name.textContent=f.name;
+  name.textContent=`${f.name}（${currentFileIdx+1}/${files.length}）`;
   preview.classList.add('show');
   nav.style.display='flex';
   search.style.display='block';
@@ -251,7 +252,10 @@ function showCurrentFile(){
   nav.querySelectorAll('button')[0].disabled=currentFileIdx===0;
   nav.querySelectorAll('button')[1].disabled=currentFileIdx>=files.length-1;
 
-  // Clear selection
+  // Swipe hints
+  document.getElementById('hintL').style.display=currentFileIdx>0?'block':'none';
+  document.getElementById('hintR').style.display=currentFileIdx<files.length-1?'block':'none';
+
   selectedPrizeId=null;
   updateMatchBar();
   renderList();
@@ -259,6 +263,29 @@ function showCurrentFile(){
 
 function prevFile(){if(currentFileIdx>0){currentFileIdx--;showCurrentFile()}}
 function nextFile(){if(currentFileIdx<files.length-1){currentFileIdx++;showCurrentFile()}}
+
+// ─── SWIPE ───
+let touchStartX=0, touchStartY=0;
+const previewArea=document.getElementById('previewArea');
+previewArea.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY},{passive:true});
+previewArea.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){
+    if(dx<0)nextFile(); else prevFile();
+  }
+},{passive:true});
+
+// ─── SORT ───
+function toggleSort(){
+  const cycle=['name','supplier','order_date'];
+  let idx=cycle.indexOf(sortKey);
+  if(sortDir==='asc'){sortDir='desc'}
+  else{sortDir='asc';idx=(idx+1)%cycle.length;sortKey=cycle[idx]}
+  const labels={name:'名前',supplier:'仕入先',order_date:'発注日'};
+  document.getElementById('sortBtn').textContent=`${labels[sortKey]}順 ${sortDir==='asc'?'↑':'↓'}`;
+  renderList();
+}
 
 // ─── PRIZE LIST ───
 function setFilter(mode){
@@ -273,6 +300,17 @@ function renderList(){
   let list=allPrizes;
   if(filterMode==='noimg') list=list.filter(p=>!p.image_url);
   if(q) list=list.filter(p=>(p.prize_name||'').toLowerCase().includes(q)||(p.supplier_name||'').toLowerCase().includes(q));
+
+  // Sort
+  list=[...list].sort((a,b)=>{
+    let va,vb;
+    if(sortKey==='name'){va=a.prize_name||'';vb=b.prize_name||''}
+    else if(sortKey==='supplier'){va=a.supplier_name||'';vb=b.supplier_name||''}
+    else{va=lastOrderMap[a.prize_id]||'';vb=lastOrderMap[b.prize_id]||''}
+    const cmp=va.localeCompare(vb,'ja');
+    return sortDir==='asc'?cmp:-cmp;
+  });
+
   list=list.slice(0,100);
 
   const el=document.getElementById('prizeList');
@@ -283,14 +321,14 @@ function renderList(){
     const imgHtml=p.image_url
       ?`<img class="thumb" src="${SB_STORAGE}/public/announcements/${esc(p.image_url)}?t=${cacheBust}" loading="lazy" onerror="this.style.display='none'">`
       :`<div class="thumb-empty">📷</div>`;
-    const cost=p.original_cost?`¥${Number(p.original_cost).toLocaleString()}`:'';
-    const supplier=p.supplier_name?` / ${esc(p.supplier_name)}`:'';
+    const supplier=p.supplier_name?`<span class="supplier-tag">${esc(p.supplier_name)}</span>`:'';
+    const lastOrder=lastOrderMap[p.prize_id]?`<span class="order-date">発注:${esc(lastOrderMap[p.prize_id])}</span>`:'';
     const hasImg=p.image_url?`<span class="has-img">画像あり</span>`:'';
     return `<div class="prize-item${sel}" onclick="selectPrize('${esc(p.prize_id)}')">
       ${imgHtml}
       <div class="info">
         <div class="name">${esc(p.prize_name)}</div>
-        <div class="meta">${esc(p.prize_id)} ${cost}${supplier} ${hasImg}</div>
+        <div class="meta">${supplier}${lastOrder} ${hasImg}</div>
       </div>
     </div>`;
   }).join('');
@@ -362,23 +400,17 @@ async function doMatch(){
     });
     if(!res.ok)throw new Error('アップロード失敗');
 
-    await sbPatch('prize_masters',prizeId,'prize_id',{image_url:path,updated_at:new Date().toISOString()});
+    await sbPatch('prize_masters',prizeId,'prize_id',{image_url:`manual/${prizeId}.jpg`,updated_at:new Date().toISOString()});
 
-    // Update local data
     cacheBust=Date.now();
     const p=allPrizes.find(x=>x.prize_id===prizeId);
     if(p)p.image_url=`manual/${prizeId}.jpg`;
-    matchedCount++;
-    document.getElementById('statMatched').textContent=matchedCount;
-    const noImg=allPrizes.filter(x=>!x.image_url);
-    document.getElementById('statTotal').textContent=noImg.length;
 
     showToast(`${p?p.prize_name:prizeId} に画像を設定しました`,true);
 
-    // Auto-advance to next file
+    // Auto-advance
     files.splice(currentFileIdx,1);
     if(files.length===0){
-      // All done
       document.getElementById('previewArea').classList.remove('show');
       document.getElementById('fileNav').style.display='none';
       document.getElementById('searchSection').style.display='none';
@@ -398,7 +430,6 @@ async function doMatch(){
 }
 
 // ─── SKIP ───
-// Skip current image without matching
 function skipFile(){
   if(!files.length)return;
   files.splice(currentFileIdx,1);
