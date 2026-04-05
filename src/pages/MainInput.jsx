@@ -1,225 +1,23 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStores, getMachines, getBooths, getLastReadingsMap, getAllMeterReadings, parseNum, saveReading, clearCache } from '../services/sheets'
+import { useMainInput } from '../hooks/useMainInput'
+import { useToast } from '../hooks/useToast'
 import LogoutButton from '../components/LogoutButton'
-
-const DRAFT_KEY = 'clawops_drafts_v2'
-function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'{}') } catch { return {} } }
-function setDrafts(d) { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)) }
 
 export default function MainInput() {
   const navigate = useNavigate()
-  // マスタデータ
-  const [stores, setStores] = useState([])
-  const [machines, setMachines] = useState([])
-  const [booths, setBooths] = useState([])
-  const [readingsMap, setReadingsMap] = useState({})
-  const [allReadings, setAllReadings] = useState([])
+  const { showToast, Toast } = useToast()
+  const {
+    stores, machines, booths, readingsMap, inputs,
+    storeId, setStoreId, machineId, setMachineId, readDate, setReadDate,
+    loading, saving, expandedSettings, setExpandedSettings,
+    setInp, handleKeyDown, handleSave, getRef, switchMachine,
+    calcBoothStats, machineSub, inputCount, currentMachine, currentStore,
+  } = useMainInput()
 
-  // 選択状態
-  const [storeId, setStoreId] = useState(null)
-  const [machineId, setMachineId] = useState(null)
-  const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0,10))
-
-  // 入力データ (boothId -> { in_meter, out_meter, prize_stock, prize_restock, ... })
-  const [inputs, setInputs] = useState({})
-
-  // UI状態
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState(null)
-  const [expandedSettings, setExpandedSettings] = useState({})
-
-  // refs
-  const refsMap = useRef({})
-  const getRef = useCallback((boothId, field) => {
-    if (!refsMap.current[boothId]) refsMap.current[boothId] = {}
-    return (el) => { refsMap.current[boothId][field] = el }
-  }, [])
-
-  // 初回ロード: 店舗一覧
-  useEffect(() => {
-    getStores().then(s => {
-      setStores(s)
-      // デフォルトは未選択（最初に店舗を選ばせる）
-      setLoading(false)
-    }).catch(() => { setLoading(false) })
-  }, [])
-
-  // 店舗変更時: 機械一覧取得
-  useEffect(() => {
-    if (!storeId) return
-    setMachines([])
-    setBooths([])
-    getMachines(storeId).then(ms => {
-      setMachines(ms)
-      if (ms.length > 0) setMachineId(ms[0].machine_id)
-      else setMachineId(null)
-    })
-    // 全readings取得（店舗集計用）
-    getAllMeterReadings().then(r => setAllReadings(r))
-  }, [storeId])
-
-  // 機械変更時: ブース＋最新読み取り取得
-  useEffect(() => {
-    if (!machineId) return
-    setBooths([])
-    async function load() {
-      const bs = await getBooths(machineId)
-      setBooths(bs)
-      const map = await getLastReadingsMap(bs.map(b => b.booth_id))
-      setReadingsMap(map)
-      // ドラフト復元
-      const drafts = getDrafts()
-      const restored = {}
-      for (const b of bs) {
-        if (drafts[b.booth_id]) restored[b.booth_id] = drafts[b.booth_id]
-      }
-      setInputs(restored)
-    }
-    load()
-  }, [machineId])
-
-  // 入力更新
-  function setInp(boothId, key, val) {
-    setInputs(prev => {
-      const next = { ...prev, [boothId]: { ...(prev[boothId]||{}), [key]: val } }
-      // ドラフト自動保存
-      const drafts = getDrafts()
-      drafts[boothId] = next[boothId]
-      setDrafts(drafts)
-      return next
-    })
+  async function onSave() {
+    const result = await handleSave()
+    showToast(result.ok ? `${result.count}件保存しました` : result.message, result.ok ? 'success' : 'error')
   }
-
-  // Enter → 次フィールド (IN → OUT → 残 → 補 → 次ブースIN)
-  const FIELD_ORDER = ['in_meter', 'out_meter', 'prize_stock', 'prize_restock']
-  function handleKeyDown(e, boothId, field) {
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-    const bIdx = booths.findIndex(b => b.booth_id === boothId)
-    const fIdx = FIELD_ORDER.indexOf(field)
-    if (fIdx < FIELD_ORDER.length - 1) {
-      const next = FIELD_ORDER[fIdx + 1]
-      refsMap.current[boothId]?.[next]?.focus()
-    } else if (bIdx < booths.length - 1) {
-      const nextBooth = booths[bIdx + 1].booth_id
-      refsMap.current[nextBooth]?.['in_meter']?.focus()
-      refsMap.current[nextBooth]?.['in_meter']?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }
-
-  // 保存
-  async function handleSave() {
-    const toSave = []
-    for (const booth of booths) {
-      const inp = inputs[booth.booth_id] || {}
-      const { latest } = readingsMap[booth.booth_id] || {}
-      if (!inp.in_meter) continue
-      toSave.push({
-        read_date: readDate,
-        booth_id: booth.booth_id,
-        full_booth_code: booth.full_booth_code,
-        in_meter: inp.in_meter,
-        out_meter: inp.out_meter || '',
-        prize_restock_count: inp.prize_restock || '',
-        prize_stock_count: inp.prize_stock || '',
-        prize_name: inp.prize_name || latest?.prize_name || '',
-        note: '',
-        set_a: inp.set_a || latest?.set_a || '',
-        set_c: inp.set_c || latest?.set_c || '',
-        set_l: inp.set_l || latest?.set_l || '',
-        set_r: inp.set_r || latest?.set_r || '',
-        set_o: inp.set_o || latest?.set_o || '',
-      })
-    }
-    if (toSave.length === 0) { showToast('まだINメーターが入力されていません。ブースのIN欄に売上メーター値を入力してください。', 'error'); return }
-    setSaving(true)
-    try {
-      for (const r of toSave) await saveReading(r)
-      // ドラフトクリア（保存済みブースのみ）
-      const drafts = getDrafts()
-      for (const r of toSave) delete drafts[r.booth_id]
-      setDrafts(drafts)
-      // 入力クリア
-      setInputs(prev => {
-        const next = { ...prev }
-        for (const r of toSave) delete next[r.booth_id]
-        return next
-      })
-      showToast(`${toSave.length}件保存しました`, 'success')
-      // readings更新
-      const fresh = await getAllMeterReadings(true)
-      setAllReadings(fresh)
-      const map = await getLastReadingsMap(booths.map(b => b.booth_id))
-      setReadingsMap(map)
-    } catch (e) {
-      showToast('保存に失敗しました。通信状態を確認してリトライしてください。(' + e.message + ')', 'error')
-    }
-    setSaving(false)
-  }
-
-  function showToast(msg, type) {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), type === 'error' ? 8000 : 3000)
-  }
-
-  // ===== 集計計算 =====
-  const currentMachine = machines.find(m => m.machine_id === machineId)
-  const defaultPrice = currentMachine ? parseNum(currentMachine.default_price) || 100 : 100
-
-  function calcBoothStats(booth) {
-    const inp = inputs[booth.booth_id] || {}
-    const { latest, last } = readingsMap[booth.booth_id] || {}
-    const price = parseNum(booth.play_price || defaultPrice)
-    const prevIn = latest?.in_meter ? parseNum(latest.in_meter) : null
-    const prevOut = latest?.out_meter ? parseNum(latest.out_meter) : null
-    const inVal = inp.in_meter ? parseNum(inp.in_meter) : null
-    const outVal = inp.out_meter ? parseNum(inp.out_meter) : null
-    const inDiff = inVal !== null && prevIn !== null ? inVal - prevIn : null
-    const outDiff = outVal !== null && prevOut !== null ? outVal - prevOut : null
-    const sales = inDiff !== null && inDiff >= 0 ? inDiff * price : null
-    const payoutRate = outDiff !== null && inDiff !== null && inDiff > 0
-      ? ((outDiff / inDiff) * 100).toFixed(1) : null
-    return { price, prevIn, prevOut, inVal, outVal, inDiff, outDiff, sales, payoutRate }
-  }
-
-  // 機械小計
-  function getMachineSubtotal() {
-    let totalSales = 0, prevTotalSales = 0, count = 0
-    for (const booth of booths) {
-      const s = calcBoothStats(booth)
-      if (s.sales !== null && s.sales >= 0) { totalSales += s.sales; count++ }
-      // 前回差分（latest vs last）
-      const { latest, last } = readingsMap[booth.booth_id] || {}
-      if (latest && last) {
-        const d = parseNum(latest.in_meter) - parseNum(last.in_meter)
-        if (!isNaN(d) && d >= 0) prevTotalSales += d * s.price
-      }
-    }
-    return { totalSales, prevTotalSales, diff: totalSales - prevTotalSales, count }
-  }
-
-  // 店舗合計（全機械）
-  function getStoreTotals() {
-    if (!storeId || machines.length === 0) return null
-    let total = 0, prevTotal = 0, inputCount = 0, totalBooths = 0
-    // 全ブースのIDを集める
-    for (const m of machines) {
-      const mBooths = allReadings.filter(r => {
-        const code = r.full_booth_code || ''
-        const storeCode = stores.find(s => s.store_id === storeId)?.store_code
-        return storeCode && code.startsWith(storeCode)
-      })
-      // 簡易集計: 各ブースの最新2件から差分計算
-    }
-    // 簡易版: 現在の機械の情報のみ使う（正確な全店舗集計はAPI追加後）
-    return null
-  }
-
-  const inputCount = booths.filter(b => inputs[b.booth_id]?.in_meter).length
-  const machineSub = getMachineSubtotal()
-  const currentStore = stores.find(s => s.store_id === storeId)
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -230,20 +28,20 @@ export default function MainInput() {
     </div>
   )
 
+  const machineIdx = machines.findIndex(m => m.machine_id === machineId)
+
   return (
     <div className="min-h-screen pb-32"
       onTouchStart={e => { e.currentTarget._sx = e.touches[0].clientX; e.currentTarget._sy = e.touches[0].clientY }}
       onTouchEnd={e => {
         const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0)
         const dy = e.changedTouches[0].clientY - (e.currentTarget._sy || 0)
-        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return // 縦スクロール優先
-        const idx = machines.findIndex(m => m.machine_id === machineId)
-        if (dx < 0 && idx < machines.length - 1) setMachineId(machines[idx + 1].machine_id)
-        if (dx > 0 && idx > 0) setMachineId(machines[idx - 1].machine_id)
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return
+        if (dx < 0) switchMachine('next')
+        if (dx > 0) switchMachine('prev')
       }}>
       {/* ===== トップバー ===== */}
       <div className="sticky top-0 z-50 bg-bg border-b border-border">
-        {/* 店舗ドロップダウン + 日付 + クイックアクセス */}
         <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-1">
           <select value={storeId || ''} onChange={e => setStoreId(e.target.value)}
             className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[160px] truncate [color-scheme:dark]">
@@ -262,52 +60,51 @@ export default function MainInput() {
                 else navigate('/patrol')
               }}
               className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white active:scale-95">
-              🚶 巡回
+              巡回
             </button>
             <button onClick={() => navigate('/patrol')}
               className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
-              📷
+              QR
             </button>
             <button onClick={() => navigate('/inventory')}
               className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
-              📦
+              在庫
             </button>
             {storeId && (
               <button onClick={() => navigate(`/ranking/${storeId}`)}
                 className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
-                📊
+                順位
               </button>
             )}
           </div>
         </div>
 
-        {/* 機械切替（左右スワイプ） */}
+        {/* 機械切替 */}
         {machines.length > 0 && (() => {
-          const idx = machines.findIndex(m => m.machine_id === machineId)
-          const cur = machines[idx] || machines[0]
+          const cur = machines[machineIdx] || machines[0]
           return (
             <div className="flex items-center px-2.5 pb-1.5 gap-2"
               onTouchStart={e => { e.currentTarget._sx = e.touches[0].clientX }}
               onTouchEnd={e => {
                 const dx = e.changedTouches[0].clientX - (e.currentTarget._sx || 0)
                 if (Math.abs(dx) < 40) return
-                if (dx < 0 && idx < machines.length - 1) setMachineId(machines[idx + 1].machine_id)
-                if (dx > 0 && idx > 0) setMachineId(machines[idx - 1].machine_id)
+                if (dx < 0) switchMachine('next')
+                if (dx > 0) switchMachine('prev')
               }}>
-              <button onClick={() => idx > 0 && setMachineId(machines[idx - 1].machine_id)}
-                className={`text-lg px-1 ${idx > 0 ? 'text-blue-400' : 'text-muted/20'}`}>◀</button>
+              <button onClick={() => switchMachine('prev')}
+                className={`text-lg px-1 ${machineIdx > 0 ? 'text-blue-400' : 'text-muted/20'}`}>◀</button>
               <div className="flex-1 text-center">
                 <div className="text-sm font-bold text-blue-400">{cur.machine_code} {cur.machine_name?.slice(0, 8)}</div>
                 <div className="flex justify-center gap-1 mt-0.5">
                   {machines.map((m, i) => (
                     <div key={m.machine_id}
                       onClick={() => setMachineId(m.machine_id)}
-                      className={`w-1.5 h-1.5 rounded-full cursor-pointer ${i === idx ? 'bg-blue-400' : 'bg-muted/30'}`} />
+                      className={`w-1.5 h-1.5 rounded-full cursor-pointer ${i === machineIdx ? 'bg-blue-400' : 'bg-muted/30'}`} />
                   ))}
                 </div>
               </div>
-              <button onClick={() => idx < machines.length - 1 && setMachineId(machines[idx + 1].machine_id)}
-                className={`text-lg px-1 ${idx < machines.length - 1 ? 'text-blue-400' : 'text-muted/20'}`}>▶</button>
+              <button onClick={() => switchMachine('next')}
+                className={`text-lg px-1 ${machineIdx < machines.length - 1 ? 'text-blue-400' : 'text-muted/20'}`}>▶</button>
             </div>
           )
         })()}
@@ -321,8 +118,8 @@ export default function MainInput() {
           <div className="text-xs text-muted/60">上のドロップダウンから巡回する店舗を選んでください</div>
         </div>
       ) : null}
-      <div className="px-2 pt-1.5" style={{display:storeId?'block':'none'}}>
-        {booths.map((booth, bIdx) => {
+      <div className="px-2 pt-1.5" style={{ display: storeId ? 'block' : 'none' }}>
+        {booths.map((booth) => {
           const s = calcBoothStats(booth)
           const inp = inputs[booth.booth_id] || {}
           const { latest } = readingsMap[booth.booth_id] || {}
@@ -338,7 +135,7 @@ export default function MainInput() {
                 {/* ブースコード */}
                 <div className="text-center">
                   <div className="text-[13px] font-extrabold text-blue-400">{booth.booth_code}</div>
-                  <div className="text-[7px] text-muted/50 truncate">{latest?.prize_name?.slice(0,4) || ''}</div>
+                  <div className="text-[7px] text-muted/50 truncate">{latest?.prize_name?.slice(0, 4) || ''}</div>
                 </div>
 
                 {/* IN */}
@@ -442,7 +239,7 @@ export default function MainInput() {
                     title="アシスト回数"
                   />
                 </div>
-                <button onClick={() => setExpandedSettings(prev => ({...prev, [booth.booth_id]: !prev[booth.booth_id]}))}
+                <button onClick={() => setExpandedSettings(prev => ({ ...prev, [booth.booth_id]: !prev[booth.booth_id] }))}
                   className="ml-auto text-muted/40 hover:text-muted transition-colors">
                   {expanded ? '設定 ▲' : 'C/L/R/O ▼'}
                 </button>
@@ -456,16 +253,16 @@ export default function MainInput() {
                     { key: 'set_l', label: 'L', fullName: 'ﾕﾙ', title: '緩和時パワー' },
                     { key: 'set_r', label: 'R', fullName: 'ﾘﾀｰﾝ', title: '復帰時パワー' },
                     { key: 'set_o', label: 'O', fullName: 'ｿﾉ他', title: '固有設定' },
-                  ].map(s => (
-                    <div key={s.key} className="w-10 text-center" title={s.title}>
-                      <div className="text-[8px] text-purple-400 font-bold">{s.label}<span className="text-[6px] text-purple-400/60 block">{s.fullName}</span></div>
+                  ].map(st => (
+                    <div key={st.key} className="w-10 text-center" title={st.title}>
+                      <div className="text-[8px] text-purple-400 font-bold">{st.label}<span className="text-[6px] text-purple-400/60 block">{st.fullName}</span></div>
                       <input
                         className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
-                        type={s.key === 'set_o' ? 'text' : 'number'}
-                        inputMode={s.key === 'set_o' ? 'text' : 'numeric'}
-                        placeholder={latest?.[s.key] || '-'}
-                        value={inp[s.key] || ''}
-                        onChange={e => setInp(booth.booth_id, s.key, e.target.value)}
+                        type={st.key === 'set_o' ? 'text' : 'number'}
+                        inputMode={st.key === 'set_o' ? 'text' : 'numeric'}
+                        placeholder={latest?.[st.key] || '-'}
+                        value={inp[st.key] || ''}
+                        onChange={e => setInp(booth.booth_id, st.key, e.target.value)}
                       />
                     </div>
                   ))}
@@ -485,10 +282,9 @@ export default function MainInput() {
         })}
       </div>
 
-      {/* ===== 集計パネル（下部）===== */}
+      {/* ===== 集計パネル ===== */}
       {booths.length > 0 && (
         <div className="mx-2 mt-2 bg-surface border-t-2 border-border rounded-lg p-2.5">
-          {/* 機械小計 */}
           <div className="text-[10px] text-muted font-bold mb-1.5 flex items-center gap-2">
             {currentMachine?.machine_code} {currentMachine?.machine_name} ({booths.length}ブース)
             <span className="flex-1 h-px bg-border" />
@@ -508,7 +304,7 @@ export default function MainInput() {
       <div className="fixed bottom-10 left-0 right-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2 z-[90]">
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-blue-400">{inputCount}/{booths.length}</span>
-          <button onClick={handleSave} disabled={saving || inputCount === 0}
+          <button onClick={onSave} disabled={saving || inputCount === 0}
             className={`flex-1 py-3.5 rounded-xl font-bold text-sm transition-all min-h-[48px]
               disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] text-white
               ${inputCount > 0 && inputCount >= booths.length
@@ -522,13 +318,7 @@ export default function MainInput() {
         </div>
       </div>
 
-      {/* トースト */}
-      {toast && (
-        <div className={`fixed top-16 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-xl font-bold text-sm shadow-lg transition-all
-          ${toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-          {toast.msg}
-        </div>
-      )}
+      <Toast />
     </div>
   )
 }

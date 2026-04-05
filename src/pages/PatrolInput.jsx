@@ -1,71 +1,22 @@
-import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { getLastReadingsMap, findMachineById, findStoreById, parseNum } from '../services/sheets'
+import { usePatrolInput, STATUS_OPTIONS } from '../hooks/usePatrolInput'
 import LogoutButton from '../components/LogoutButton'
-
-const DRAFT_KEY = 'clawops_drafts'
-function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] } }
-function saveDraft(draft) {
-  const drafts = getDrafts()
-  const idx = drafts.findIndex(d => String(d.booth_id) === String(draft.booth_id))
-  if (idx >= 0) drafts[idx] = { ...drafts[idx], ...draft, updated_at: new Date().toISOString() }
-  else drafts.push({ ...draft, updated_at: new Date().toISOString() })
-  sessionStorage.setItem(DRAFT_KEY, JSON.stringify(drafts))
-}
-
-const STATUS_OPTIONS = [
-  { key: 'ok', label: '正常', icon: '✅', color: 'text-accent3 border-accent3' },
-  { key: 'prize_low', label: '景品少', icon: '⚠️', color: 'text-accent border-accent' },
-  { key: 'prize_empty', label: '景品切れ', icon: '🚨', color: 'text-accent2 border-accent2' },
-  { key: 'malfunction', label: '故障', icon: '🔧', color: 'text-accent2 border-accent2' },
-  { key: 'dirty', label: '清掃要', icon: '🧹', color: 'text-accent4 border-accent4' },
-]
 
 export default function PatrolInput() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const booth = state?.booth
 
-  const [loading, setLoading] = useState(true)
-  const [readingsMap, setReadingsMap] = useState({})
-  const [machineName, setMachineName] = useState('')
-  const [storeName, setStoreName] = useState('')
-  const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0,10))
-  const [saved, setSaved] = useState(false)
-
-  const [inMeter, setInMeter] = useState('')
-  const [outMeter, setOutMeter] = useState('')
-  const [prizeRestock, setPrizeRestock] = useState('')
-  const [prizeStock, setPrizeStock] = useState('')
-  const [prizeName, setPrizeName] = useState('')
-  const [note, setNote] = useState('')
-  const [machineStatus, setMachineStatus] = useState('ok')
-
-  useEffect(() => {
-    if (!booth) { navigate('/patrol'); return }
-    async function load() {
-      setLoading(true)
-      const map = await getLastReadingsMap([booth.booth_id])
-      setReadingsMap(map)
-      const draft = getDrafts().find(d => String(d.booth_id) === String(booth.booth_id))
-      if (draft) {
-        setInMeter(draft.in_meter || ''); setOutMeter(draft.out_meter || '')
-        setPrizeRestock(draft.prize_restock_count || ''); setPrizeStock(draft.prize_stock_count || '')
-        setPrizeName(draft.prize_name || ''); setNote(draft.note || '')
-        if (draft.machine_status) setMachineStatus(draft.machine_status)
-      }
-      try {
-        const machine = await findMachineById(booth.machine_id)
-        if (machine) {
-          setMachineName(machine.machine_name)
-          const store = await findStoreById(machine.store_id)
-          if (store) setStoreName(store.store_name)
-        }
-      } catch {}
-      setLoading(false)
-    }
-    load()
-  }, [booth?.booth_id])
+  const {
+    loading, saved, machineName, storeName,
+    readDate, setReadDate,
+    inMeter, setInMeter, outMeter, setOutMeter,
+    latestIn, latestOut, inDiff, outDiff, inAbnormal, outAbnormal, price,
+    latest, last,
+    prizeRestock, setPrizeRestock, prizeStock, setPrizeStock, prizeName, setPrizeName,
+    note, setNote, machineStatus, setMachineStatus,
+    handleSave,
+  } = usePatrolInput(booth, () => navigate('/patrol'))
 
   if (!booth) return null
 
@@ -78,35 +29,12 @@ export default function PatrolInput() {
     </div>
   )
 
-  const { latest, last } = readingsMap[booth.booth_id] || {}
-  const price = parseNum(booth.play_price||'100')
-  const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
-  const latestOut = latest?.out_meter ? parseNum(latest.out_meter) : null
-  const lastIn = last?.in_meter ? parseNum(last.in_meter) : null
-  const lastOut = last?.out_meter ? parseNum(last.out_meter) : null
-  const inVal = inMeter !== '' ? parseNum(inMeter) : null
-  const outVal = outMeter !== '' ? parseNum(outMeter) : null
-  const inDiff = inVal !== null && lastIn !== null ? inVal - lastIn : null
-  const outDiff = outVal !== null && lastOut !== null ? outVal - lastOut : null
-  const inAbnormal = inDiff !== null && (inDiff < 0 || inDiff > 50000)
-  const outAbnormal = outDiff !== null && (outDiff < 0 || outDiff > 50000)
-
-  function handleSave() {
-    const finalIn = inMeter || (latestIn !== null ? String(latestIn) : '')
-    if (!finalIn) { alert('INメーターを入力してください'); return }
-    const finalOut = outMeter || (latestOut !== null ? String(latestOut) : '')
-    const statusLabel = STATUS_OPTIONS.find(s => s.key === machineStatus)?.label || ''
-    const noteWithStatus = machineStatus !== 'ok' ? `[${statusLabel}] ${note}`.trim() : note
-    saveDraft({
-      read_date: readDate, booth_id: booth.booth_id, full_booth_code: booth.full_booth_code,
-      in_meter: finalIn, out_meter: finalOut,
-      prize_restock_count: prizeRestock, prize_stock_count: prizeStock,
-      prize_name: prizeName || latest?.prize_name || '', note: noteWithStatus, machine_status: machineStatus,
-    })
-    setSaved(true)
+  function onSave() {
+    const result = handleSave()
+    if (!result.ok) alert(result.message)
   }
 
-  const draftCount = getDrafts().length
+  const lastIn = last?.in_meter ? Number(last.in_meter) : null
   const inputCls = "w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent"
 
   return (
@@ -132,7 +60,7 @@ export default function PatrolInput() {
           <p className="text-muted text-sm mb-6">{booth.full_booth_code} のデータを保存しました</p>
           <button onClick={() => navigate('/patrol')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors mb-2">
-            📷 次のブースをスキャン
+            次のブースをスキャン
           </button>
           <button onClick={() => navigate('/')}
             className="w-full bg-surface2 border border-border text-text font-medium py-3 rounded-xl">
@@ -143,10 +71,10 @@ export default function PatrolInput() {
         <>
           {/* 入力日付 */}
           <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-surface rounded-lg border border-border">
-            <span className="text-xs text-muted">📅 入力日付</span>
+            <span className="text-xs text-muted">入力日付</span>
             <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
               className="flex-1 bg-surface2 border border-border text-text text-sm px-2 py-1 rounded-md [color-scheme:dark]" />
-            {readDate !== new Date().toISOString().slice(0,10) &&
+            {readDate !== new Date().toISOString().slice(0, 10) &&
               <span className="text-[10px] text-accent2 font-bold">過去日付</span>}
           </div>
 
@@ -168,15 +96,15 @@ export default function PatrolInput() {
             {/* 前回値 */}
             {latest && (
               <div className="bg-surface2 rounded-lg p-3 mb-4 text-sm">
-                <div className="text-muted text-xs mb-1">📋 前回値（最新）</div>
-                <div>IN: <strong>{latestIn!==null?latestIn.toLocaleString():'-'}</strong>　OUT: <strong>{latestOut!==null?latestOut.toLocaleString():'-'}</strong></div>
+                <div className="text-muted text-xs mb-1">前回値（最新）</div>
+                <div>IN: <strong>{latestIn !== null ? latestIn.toLocaleString() : '-'}</strong>　OUT: <strong>{latestOut !== null ? latestOut.toLocaleString() : '-'}</strong></div>
                 {latest.prize_name && <div className="mt-1">景品: {latest.prize_name}</div>}
-                <div className="text-muted text-[11px] mt-1">{latest.read_time?.slice(0,10)}</div>
+                <div className="text-muted text-[11px] mt-1">{latest.read_time?.slice(0, 10)}</div>
               </div>
             )}
             {last && last !== latest && (
               <div className="bg-surface3 rounded-lg px-3 py-2 mb-4 text-xs text-accent">
-                差分基準: IN {lastIn!==null?lastIn.toLocaleString():'-'} ({last.read_time?.slice(0,10)})
+                差分基準: IN {lastIn !== null ? lastIn.toLocaleString() : '-'} ({last.read_time?.slice(0, 10)})
               </div>
             )}
             {!last && (
@@ -192,10 +120,10 @@ export default function PatrolInput() {
                 {!inMeter && latestIn !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
               </div>
               <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
-                placeholder={latestIn!==null?String(latestIn):'0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
+                placeholder={latestIn !== null ? String(latestIn) : '0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
               {inDiff !== null && (
                 <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${inAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
-                  差分: {inDiff>=0?'+':''}{inDiff.toLocaleString()}回 / ¥{(inDiff*price).toLocaleString()}
+                  差分: {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}回 / ¥{(inDiff * price).toLocaleString()}
                   {inAbnormal && <div className="text-xs mt-1">⚠️ 異常値の可能性</div>}
                 </div>
               )}
@@ -208,10 +136,10 @@ export default function PatrolInput() {
                 {!outMeter && latestOut !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
               </div>
               <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
-                placeholder={latestOut!==null?String(latestOut):'0000000'} value={outMeter} onChange={e => setOutMeter(e.target.value)} />
+                placeholder={latestOut !== null ? String(latestOut) : '0000000'} value={outMeter} onChange={e => setOutMeter(e.target.value)} />
               {outDiff !== null && (
                 <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
-                  差分: {outDiff>=0?'+':''}{outDiff.toLocaleString()}回
+                  差分: {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}回
                   {outAbnormal && <div className="text-xs mt-1">⚠️ 異常値の可能性</div>}
                 </div>
               )}
@@ -234,7 +162,7 @@ export default function PatrolInput() {
                 {!prizeName && latest?.prize_name && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
               </div>
               <input className={inputCls + ' !text-left !text-base'} type="text"
-                placeholder={latest?.prize_name||'景品名を入力'} value={prizeName} onChange={e => setPrizeName(e.target.value)} />
+                placeholder={latest?.prize_name || '景品名を入力'} value={prizeName} onChange={e => setPrizeName(e.target.value)} />
             </div>
 
             {/* メモ */}
@@ -244,9 +172,9 @@ export default function PatrolInput() {
                 placeholder="特記事項があれば入力" value={note} onChange={e => setNote(e.target.value)} />
             </div>
 
-            <button onClick={handleSave}
+            <button onClick={onSave}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors">
-              📝 下書き保存 → 次のスキャンへ
+              下書き保存 → 次のスキャンへ
             </button>
           </div>
         </>
