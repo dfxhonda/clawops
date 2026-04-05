@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getToken, getPrizes, clearCache } from '../services/sheets'
+import { getToken } from '../services/auth'
+import { clearCache } from '../services/utils'
+import { getPrizes } from '../services/prizes'
 
 const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 const SHEET_NAME = 'meter_readings'

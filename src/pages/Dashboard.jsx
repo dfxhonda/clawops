@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStores, getMachines, getBooths, getAllMeterReadings, parseNum } from '../services/sheets'
+import { getStores, getMachines, getBooths } from '../services/masters'
+import { getAllMeterReadings } from '../services/readings'
+import { parseNum } from '../services/utils'
 import LogoutButton from '../components/LogoutButton'
 
 export default function Dashboard() {

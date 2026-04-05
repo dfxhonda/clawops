@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { getStores, parseNum } from '../services/sheets'
+import { getStores } from '../services/masters'
+import { parseNum } from '../services/utils'
 import LogoutButton from '../components/LogoutButton'
 
 export default function DataSearch() {

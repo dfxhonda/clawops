@@ -3,7 +3,9 @@
 // データ取得・入力管理・保存・集計を分離
 // ============================================
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { getStores, getMachines, getBooths, getLastReadingsMap, getAllMeterReadings, parseNum, saveReading } from '../services/sheets'
+import { getStores, getMachines, getBooths } from '../services/masters'
+import { getLastReadingsMap, getAllMeterReadings, saveReading } from '../services/readings'
+import { parseNum } from '../services/utils'
 import { getDrafts, setDrafts, clearDraftBooths, saveDraftBooth } from './useDrafts'
 
 export function useMainInput() {

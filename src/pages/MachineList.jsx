@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getMachines, getStores, getBooths, getAllMeterReadings, parseNum } from '../services/sheets'
+import { getMachines, getStores, getBooths } from '../services/masters'
+import { getAllMeterReadings } from '../services/readings'
+import { parseNum } from '../services/utils'
 
 export default function MachineList() {
   const { storeId } = useParams()

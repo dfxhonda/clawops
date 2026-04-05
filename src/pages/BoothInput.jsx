@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { parseNum } from '../services/sheets'
+import { parseNum } from '../services/utils'
 import { useBoothInput } from '../hooks/useBoothInput'
 import LogoutButton from '../components/LogoutButton'
 

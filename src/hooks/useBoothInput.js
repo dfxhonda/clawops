@@ -3,7 +3,11 @@
 // データ取得・入力・保存・車在庫管理を分離
 // ============================================
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { getBooths, getMachines, getLastReadingsMap, parseNum, getStocksByOwner, addStockMovement, adjustPrizeStockQuantity, getPrizeStocksExtended, MOVEMENT_TYPES } from '../services/sheets'
+import { getBooths, getMachines } from '../services/masters'
+import { getLastReadingsMap } from '../services/readings'
+import { parseNum } from '../services/utils'
+import { getStocksByOwner, adjustPrizeStockQuantity, getPrizeStocksExtended } from '../services/inventory'
+import { addStockMovement, MOVEMENT_TYPES } from '../services/movements'
 import { getStaffId } from '../lib/auth/session'
 
 // BoothInput は clawops_drafts（配列形式）を使う（MainInput の v2 とは別）

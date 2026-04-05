@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPrizes, addPrize, getLocations, transferStock } from '../../services/sheets'
+import { getLocations } from '../../services/masters'
+import { transferStock } from '../../services/movements'
+import { getPrizes, addPrize } from '../../services/prizes'
 import LogoutButton from '../../components/LogoutButton'
 
 // あいまい一致スコア（簡易版: 共通文字列長ベース）

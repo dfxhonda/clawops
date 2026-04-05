@@ -2,7 +2,7 @@
 // useMeterCalc: メーター差分計算の共通ロジック
 // MainInput / BoothInput / PatrolInput で同じ計算
 // ============================================
-import { parseNum } from '../services/sheets'
+import { parseNum } from '../services/utils'
 
 /**
  * メーター差分と異常値検出を計算する純粋関数

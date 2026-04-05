@@ -3,7 +3,9 @@
 // 画面から Promise.all + 集計ロジックを外に出す
 // ============================================
 import { useState, useEffect } from 'react'
-import { getLocations, getPrizeStocksExtended, getStockMovements } from '../../../services/sheets'
+import { getLocations } from '../../../services/masters'
+import { getPrizeStocksExtended } from '../../../services/inventory'
+import { getStockMovements } from '../../../services/movements'
 import { calcInventoryStats } from '../../../services/calc'
 
 /**

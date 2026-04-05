@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLocations, getPrizeStocksExtended, transferStock, getStockMovements, getStores, getMachines, getBooths, getStaffMap } from '../../services/sheets'
+import { getLocations, getStores, getMachines, getBooths } from '../../services/masters'
+import { getPrizeStocksExtended } from '../../services/inventory'
+import { transferStock, getStockMovements } from '../../services/movements'
+import { getStaffMap } from '../../services/readings'
 import NumberInput from '../../components/NumberInput'
 import LogoutButton from '../../components/LogoutButton'
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
-import { findBoothByCode } from '../services/sheets'
+import { findBoothByCode } from '../services/masters'
 import LogoutButton from '../components/LogoutButton'
 
 

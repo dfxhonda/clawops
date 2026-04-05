@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { getMachines, getBooths, getAllMeterReadings, parseNum } from '../services/sheets'
+import { getMachines, getBooths } from '../services/masters'
+import { getAllMeterReadings } from '../services/readings'
+import { parseNum } from '../services/utils'
 import LogoutButton from '../components/LogoutButton'
 
 export default function RankingView() {

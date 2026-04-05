@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { saveReading } from '../services/sheets'
+import { saveReading } from '../services/readings'
 import LogoutButton from '../components/LogoutButton'
 
 const DRAFT_KEY = 'clawops_drafts'

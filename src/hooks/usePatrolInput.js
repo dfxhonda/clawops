@@ -3,7 +3,9 @@
 // 単一ブース入力のデータ取得・保存
 // ============================================
 import { useEffect, useState } from 'react'
-import { getLastReadingsMap, findMachineById, findStoreById, parseNum } from '../services/sheets'
+import { findMachineById, findStoreById } from '../services/masters'
+import { getLastReadingsMap } from '../services/readings'
+import { parseNum } from '../services/utils'
 
 const DRAFT_KEY = 'clawops_drafts'
 function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '[]') } catch { return [] } }

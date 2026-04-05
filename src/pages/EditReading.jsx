@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { updateReading, parseNum } from '../services/sheets'
+import { updateReading } from '../services/readings'
+import { parseNum } from '../services/utils'
 import { supabase } from '../lib/supabase'
 
 export default function EditReading() {
