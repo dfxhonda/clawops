@@ -202,7 +202,7 @@ header{
 </nav>
 
 <script>
-const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_STORAGE + '/public/announcements/';
+const SB_STORAGE = window.CLAWOPS_CONFIG.SUPABASE_STORAGE;
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML.replace(/'/g,'&#39;')}
 
 let allPrizes=[], files=[], currentFileIdx=0, selectedPrizeId=null, filterMode='noimg', cacheBust=Date.now();
@@ -346,7 +346,7 @@ function renderList(){
   el.innerHTML=list.map(p=>{
     const sel=p.prize_id===selectedPrizeId?' selected':'';
     const imgHtml=p.image_url
-      ?`<img class="thumb" alt="" src="${SB_STORAGE}/public/announcements/${esc(p.image_url)}?t=${cacheBust}" loading="lazy" onerror="this.style.display='none'">`
+      ?`<img class="thumb" alt="" src="${SB_STORAGE}${esc(p.image_url)}?t=${cacheBust}" loading="lazy" onerror="this.style.display='none'">`
       :`<div class="thumb-empty">📷</div>`;
     const supplier=p.supplier_name?`<span class="supplier-tag">${esc(p.supplier_name)}</span>`:'';
     const lastOrder=lastOrderMap[p.prize_id]?`<span class="order-date">発注:${esc(lastOrderMap[p.prize_id])}</span>`:'';

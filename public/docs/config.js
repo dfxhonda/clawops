@@ -3,7 +3,7 @@
 (function() {
   const SB_URL = 'https://gedxzunoyzmvbqgwjalx.supabase.co';
   const SB_KEY = 'sb_publishable_IzlPureuUqGFLmiytYHeTw_jSQS2SXF';
-  const SB_STORAGE_BASE = SB_URL + '/storage/v1/object';
+  const SB_STORAGE_BASE = SB_URL + '/storage/v1/object/public/announcements/';
   const SB_REST = SB_URL + '/rest/v1';
   const SB_FN = SB_URL + '/functions/v1';
   const AUTH_STORAGE_KEY = 'sb-gedxzunoyzmvbqgwjalx-auth-token';
