@@ -68,16 +68,19 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
   quantity = qty
   const all = await getPrizeStocksExtended(true)
 
+  let fromQtyBefore = null
   if (fromOwnerType && fromOwnerId) {
     const fromStocks = all.filter(s => s.prize_id === prizeId && s.owner_type === fromOwnerType && s.owner_id === fromOwnerId)
     if (fromStocks.length === 0) throw new Error(`移動元在庫が見つかりません: ${prizeName || prizeId} (${fromOwnerType}/${fromOwnerId})`)
     const fromStock = fromStocks[0]
+    fromQtyBefore = fromStock.quantity
     if (fromStock.quantity < quantity) throw new Error(`在庫不足: ${prizeName || prizeId} 現在${fromStock.quantity}個、移動要求${quantity}個`)
     await updatePrizeStock(fromStock.stock_id, { ...fromStock, quantity: fromStock.quantity - quantity, updated_by: createdBy })
   }
 
   const toStocks = all.filter(s => s.prize_id === prizeId && s.owner_type === toOwnerType && s.owner_id === toOwnerId)
   const toStock = toStocks[0] || null
+  const toQtyBefore = toStock ? toStock.quantity : 0
   if (toStock) {
     await updatePrizeStock(toStock.stock_id, { ...toStock, quantity: toStock.quantity + quantity, updated_by: createdBy })
   } else {
@@ -92,8 +95,15 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
     target_table: 'stock_movements',
     detail: `${prizeName || prizeId} x${quantity}: ${fromOwnerType}/${fromOwnerId} → ${toOwnerType}/${toOwnerId}${reason ? ` 理由: ${reason}` : ''}`,
     staff_id: createdBy,
-    before_data: { from: `${fromOwnerType}/${fromOwnerId}`, to: `${toOwnerType}/${toOwnerId}` },
-    after_data: { prize_id: prizeId, quantity },
+    before_data: {
+      from: { owner: `${fromOwnerType}/${fromOwnerId}`, quantity: fromQtyBefore },
+      to: { owner: `${toOwnerType}/${toOwnerId}`, quantity: toQtyBefore },
+    },
+    after_data: {
+      from: { quantity: fromQtyBefore !== null ? fromQtyBefore - quantity : null },
+      to: { quantity: toQtyBefore + quantity },
+      transferred: quantity,
+    },
     reason: reason || undefined,
   })
 

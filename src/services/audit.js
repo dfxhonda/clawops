@@ -5,6 +5,28 @@
 import { supabase } from '../lib/supabase'
 import { getAuthSession, extractMeta } from '../lib/auth/session'
 
+/** 変更理由の定型区分 */
+export const AUDIT_REASONS = {
+  COUNT_DIFF: '棚卸し差分',
+  INPUT_FIX: '入力ミス修正',
+  RECOUNT: '再カウント',
+  DAMAGE: '破損・廃棄',
+  TRANSFER: '移管',
+  REPLENISH: '補充',
+  ARRIVAL: '入荷',
+  OTHER: 'その他',
+}
+
+/**
+ * 定型区分 + 補足文から reason 文字列を生成
+ * @param {string} category - AUDIT_REASONS のキーまたは値
+ * @param {string} [note] - 補足文
+ */
+export function formatReason(category, note) {
+  const label = AUDIT_REASONS[category] || category || ''
+  return note ? `${label}: ${note}` : label
+}
+
 /**
  * 監査ログを書き込む
  * @param {object} entry
