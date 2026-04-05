@@ -1,34 +1,54 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import ProtectedRoute, { AdminRoute, ManagerRoute, PatrolRoute } from './components/ProtectedRoute'
-import Login from './pages/Login'
-import MainInput from './pages/MainInput'
-import Dashboard from './pages/Dashboard'
-import AdminMenu from './pages/AdminMenu'
 import TabBar from './components/TabBar'
 
-// 巡回入力
-import BoothInput from './pages/BoothInput'
-import DraftList from './pages/DraftList'
-import Complete from './pages/Complete'
-import RankingView from './pages/RankingView'
-import MachineList from './pages/MachineList'
+// ===== 遅延読み込み =====
+// 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
 
-// 管理系
-import EditReading from './pages/EditReading'
-import DataSearch from './pages/DataSearch'
-import PatrolScan from './pages/PatrolScan'
-import PatrolInput from './pages/PatrolInput'
-import ImportSlips from './pages/ImportSlips'
-import SetupSheets from './pages/SetupSheets'
-import TestDataImport from './pages/TestDataImport'
+// 即時ロード（初回表示に必要）
+import Login from './pages/Login'
+import MainInput from './pages/MainInput'
 
-// 棚卸しアプリ
-import InventoryDashboard from './pages/inventory/InventoryDashboard'
-import InventoryReceive from './pages/inventory/InventoryReceive'
-import InventoryTransfer from './pages/inventory/InventoryTransfer'
-import InventoryCount from './pages/inventory/InventoryCount'
-import InventoryMatch from './pages/inventory/InventoryMatch'
+// 遅延ロード — メインタブ
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const AdminMenu = lazy(() => import('./pages/AdminMenu'))
+
+// 遅延ロード — 巡回入力
+const BoothInput = lazy(() => import('./pages/BoothInput'))
+const DraftList = lazy(() => import('./pages/DraftList'))
+const Complete = lazy(() => import('./pages/Complete'))
+const RankingView = lazy(() => import('./pages/RankingView'))
+const MachineList = lazy(() => import('./pages/MachineList'))
+
+// 遅延ロード — 管理系
+const EditReading = lazy(() => import('./pages/EditReading'))
+const DataSearch = lazy(() => import('./pages/DataSearch'))
+const PatrolScan = lazy(() => import('./pages/PatrolScan'))
+const PatrolInput = lazy(() => import('./pages/PatrolInput'))
+const ImportSlips = lazy(() => import('./pages/ImportSlips'))
+const SetupSheets = lazy(() => import('./pages/SetupSheets'))
+const TestDataImport = lazy(() => import('./pages/TestDataImport'))
+
+// 遅延ロード — 棚卸し
+const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard'))
+const InventoryReceive = lazy(() => import('./pages/inventory/InventoryReceive'))
+const InventoryTransfer = lazy(() => import('./pages/inventory/InventoryTransfer'))
+const InventoryCount = lazy(() => import('./pages/inventory/InventoryCount'))
+const InventoryMatch = lazy(() => import('./pages/inventory/InventoryMatch'))
+
+// ローディングスピナー（Suspense フォールバック）
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
+        <p className="text-muted text-sm">読み込み中...</p>
+      </div>
+    </div>
+  )
+}
 
 function WithTabs({ children }) {
   return (
@@ -42,6 +62,7 @@ function WithTabs({ children }) {
 export default function App() {
   return (
     <ErrorBoundary>
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/login" element={<Login />} />
 
@@ -79,6 +100,7 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </Suspense>
     </ErrorBoundary>
   )
 }
