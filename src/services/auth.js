@@ -1,20 +1,19 @@
 // ============================================
 // 認証・セッション管理 — 互換エクスポート
-// 実体は src/lib/auth/session.js に集約
+// 実体は src/lib/auth/session.js + AuthProvider.jsx に集約
 // ============================================
 export {
-  setSession,
-  getSession,
+  getAuthSession,
+  extractMeta,
+  logout,
   getToken,
   getStaffId,
   getStaffName,
   getStaffRole,
-  isLoggedIn,
   hasRole,
   isAdmin,
   isManager,
   isPatrol,
-  updateStaffId,
-  clearSession,
-  logout,
 } from '../lib/auth/session'
+
+export { useAuth, AuthProvider } from '../lib/auth/AuthProvider'

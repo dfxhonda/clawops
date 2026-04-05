@@ -4,7 +4,7 @@
 // ============================================
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { getBooths, getMachines, getLastReadingsMap, parseNum, getStocksByOwner, addStockMovement, adjustPrizeStockQuantity, getPrizeStocksExtended, MOVEMENT_TYPES } from '../services/sheets'
-import { getStaffId, updateStaffId } from '../lib/auth/session'
+import { getStaffId } from '../lib/auth/session'
 
 // BoothInput は clawops_drafts（配列形式）を使う（MainInput の v2 とは別）
 const DRAFT_KEY = 'clawops_drafts'
@@ -111,11 +111,9 @@ export function useBoothInput(machineId, storeInfo) {
   // ===== 担当者管理 =====
   function setStaffId(id) {
     setStaffIdState(id)
-    updateStaffId(id)
   }
   function clearStaff() {
     setStaffIdState('')
-    updateStaffId('')
     setVehicleStocks([])
   }
 

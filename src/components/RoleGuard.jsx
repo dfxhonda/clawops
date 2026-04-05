@@ -1,34 +1,16 @@
 // ============================================
-// RoleGuard: ロールベースの画面アクセス制御
+// RoleGuard: ロールベースの表示制御（インラインガード）
+// ProtectedRoute とは異なり、リダイレクトではなく非表示にする
 // ============================================
-import { Navigate } from 'react-router-dom'
-import { getStaffRole } from '../lib/auth/session'
+import { useAuth } from '../lib/auth/AuthProvider'
 
 /**
- * 指定ロール以上でないとアクセスできない画面を制御するラッパー
- * @param {string[]} allowedRoles - アクセス許可ロール ['admin', 'manager', 'patrol', 'staff']
- * @param {React.ReactNode} children - 表示するコンポーネント
- * @param {string} [fallback='/'] - 権限不足時のリダイレクト先
+ * 指定ロール以外は children を非表示にするラッパー
+ * @param {string[]} roles - アクセス許可ロール
+ * @param {React.ReactNode} [fallback] - 権限不足時に表示する要素
  */
-export default function RoleGuard({ allowedRoles, children, fallback = '/' }) {
-  const role = getStaffRole()
-
-  if (!allowedRoles.includes(role)) {
-    return <Navigate to={fallback} replace />
-  }
-
+export default function RoleGuard({ roles, fallback, children }) {
+  const { staffRole } = useAuth()
+  if (!roles.includes(staffRole)) return fallback || null
   return children
-}
-
-// 便利なプリセット
-export function AdminOnly({ children }) {
-  return <RoleGuard allowedRoles={['admin']}>{children}</RoleGuard>
-}
-
-export function ManagerOnly({ children }) {
-  return <RoleGuard allowedRoles={['admin', 'manager']}>{children}</RoleGuard>
-}
-
-export function PatrolOnly({ children }) {
-  return <RoleGuard allowedRoles={['admin', 'manager', 'patrol']}>{children}</RoleGuard>
 }

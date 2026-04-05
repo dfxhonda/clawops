@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
+import { AuthProvider } from './lib/auth/AuthProvider'
 import ProtectedRoute, { AdminRoute, ManagerRoute, PatrolRoute } from './components/ProtectedRoute'
 import TabBar from './components/TabBar'
 
@@ -61,6 +62,7 @@ function WithTabs({ children }) {
 
 export default function App() {
   return (
+    <AuthProvider>
     <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
     <Routes>
@@ -102,5 +104,6 @@ export default function App() {
     </Routes>
     </Suspense>
     </ErrorBoundary>
+    </AuthProvider>
   )
 }

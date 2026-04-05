@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { setSession } from '../lib/auth/session'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -16,14 +15,7 @@ export default function Login() {
     // Supabase Auth セッションチェック
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // セッション有効 → session層へ集約
-        const meta = session.user?.user_metadata || {}
-        setSession({
-          staffId:     meta.staff_id || '',
-          staffName:   meta.name || '',
-          staffRole:   meta.role || '',
-          accessToken: session.access_token,
-        })
+        // セッション有効 → AuthProvider が検知するので遷移のみ
         navigate('/')
         return
       }
@@ -88,14 +80,7 @@ export default function Login() {
         return
       }
 
-      // session層へ集約
-      setSession({
-        staffId:     result.staff.staff_id,
-        staffName:   result.staff.name,
-        staffRole:   result.staff.role || '',
-        accessToken: result.session.access_token,
-      })
-
+      // AuthProvider の onAuthStateChange が自動検知するので遷移のみ
       navigate('/')
     } catch (err) {
       console.error('Login error:', err)
