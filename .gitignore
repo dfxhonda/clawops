@@ -21,3 +21,7 @@ archive/
 # Security
 .env.local.scripts
 *.key
+
+# 資料・写真（git管理対象外）
+docs/screenshots/
+docs/photos/
