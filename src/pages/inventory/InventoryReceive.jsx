@@ -44,7 +44,6 @@ export default function InventoryReceive() {
       short_name: prize?.short_name || '',
       pieces_per_case: order.pieces_per_case || '',
       case_quantity: order.order_quantity || '',
-      unit_cost: order.unit_cost_at_order || '0',
       case_cost: order.case_cost || '',
       shipping_cost: order.shipping_cost || '0',
       total_tax_included: order.total_tax_included || '0',
@@ -56,10 +55,15 @@ export default function InventoryReceive() {
   async function handleDetailSave() {
     if (!detailOrder) return
     const result = await detailExecute(async () => {
+      const ppc = detailForm.pieces_per_case ? parseInt(detailForm.pieces_per_case) : null
+      const caseQty = detailForm.case_quantity ? parseFloat(detailForm.case_quantity) : null
+      const total = Number(detailForm.total_tax_included) || 0
+      const count = (ppc || 0) * (caseQty || 0)
+      const autoUnitCost = count > 0 ? Math.round(total / count) : null
       await updateOrder(detailOrder.order_id, {
-        pieces_per_case: detailForm.pieces_per_case ? parseInt(detailForm.pieces_per_case) : null,
-        case_quantity: detailForm.case_quantity ? parseFloat(detailForm.case_quantity) : null,
-        unit_cost: detailForm.unit_cost ? parseInt(detailForm.unit_cost) : null,
+        pieces_per_case: ppc,
+        case_quantity: caseQty,
+        unit_cost: autoUnitCost,
         case_cost: detailForm.case_cost ? parseInt(detailForm.case_cost) : null,
         shipping_cost: detailForm.shipping_cost ? parseInt(detailForm.shipping_cost) : null,
       }, staffId)
@@ -384,12 +388,18 @@ export default function InventoryReceive() {
                     onChange={e => setDetailForm(f => ({ ...f, case_quantity: e.target.value }))}
                     className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
                 </div>
-                {/* 単価 */}
+                {/* 単価（自動算出） */}
                 <div>
-                  <label className="text-xs text-muted block mb-1">単価</label>
-                  <input type="number" inputMode="numeric" value={detailForm.unit_cost}
-                    onChange={e => setDetailForm(f => ({ ...f, unit_cost: e.target.value }))}
-                    className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                  <label className="text-xs text-muted block mb-1">単価 <span className="text-accent2">自動</span></label>
+                  <div className="text-sm text-accent font-bold bg-surface2 rounded-lg px-3 py-2">
+                    {(() => {
+                      const total = Number(detailForm.total_tax_included) || 0
+                      const ppc = Number(detailForm.pieces_per_case) || 0
+                      const qty = Number(detailForm.case_quantity) || 0
+                      const count = ppc * qty
+                      return count > 0 ? `¥${Math.round(total / count).toLocaleString()}` : '—'
+                    })()}
+                  </div>
                 </div>
                 {/* ケース金額 */}
                 <div>
