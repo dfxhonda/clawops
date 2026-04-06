@@ -9,8 +9,12 @@ import TabBar from './components/TabBar'
 // 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
 
 // 即時ロード（初回表示に必要）
-import Login from './pages/Login'
 import MainInput from './pages/MainInput'
+
+function PortalRedirect() {
+  window.location.replace('/docs/')
+  return null
+}
 
 // 遅延ロード — メインタブ
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -63,7 +67,7 @@ export default function App() {
     <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<PortalRedirect />} />
 
       {/* メイン3タブ — 全ロール */}
       <Route path="/" element={<ProtectedRoute><WithTabs><MainInput /></WithTabs></ProtectedRoute>} />

@@ -5,13 +5,19 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth/AuthProvider'
 
+// 未認証時はポータルへフルリダイレクト（/login は旧画面のため使わない）
+function redirectToPortal() {
+  window.location.href = '/docs/'
+  return null
+}
+
 /**
  * 認証必須ルート
  */
 export default function ProtectedRoute({ children }) {
   const { loading, isLoggedIn } = useAuth()
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>認証中...</div>
-  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (!isLoggedIn) return redirectToPortal()
   return children
 }
 
@@ -23,7 +29,7 @@ export default function ProtectedRoute({ children }) {
 export function RoleRoute({ roles, fallback = '/', children }) {
   const { loading, isLoggedIn, staffRole } = useAuth()
   if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>認証中...</div>
-  if (!isLoggedIn) return <Navigate to="/login" replace />
+  if (!isLoggedIn) return redirectToPortal()
   if (!roles.includes(staffRole)) return <Navigate to={fallback} replace />
   return children
 }

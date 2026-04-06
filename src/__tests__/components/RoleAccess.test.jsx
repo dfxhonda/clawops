@@ -11,6 +11,22 @@ vi.mock('../../lib/auth/AuthProvider', () => ({
   useAuth: () => mockAuth,
 }))
 
+// window.location のモック
+let locationHref = ''
+beforeEach(() => {
+  locationHref = ''
+  Object.defineProperty(window, 'location', {
+    value: { href: '' },
+    writable: true,
+    configurable: true,
+  })
+  Object.defineProperty(window.location, 'href', {
+    get: () => locationHref,
+    set: (v) => { locationHref = v },
+    configurable: true,
+  })
+})
+
 beforeEach(() => {
   mockAuth = {
     staffId: 'STAFF01',
@@ -98,10 +114,10 @@ describe('RoleRoute コンポーネント描画テスト', () => {
   })
 
   describe('認証エッジケース', () => {
-    it('未認証はloginへリダイレクト', () => {
+    it('未認証はポータルへリダイレクト', () => {
       renderWithRoutes(AdminRoute, { isLoggedIn: false })
       expect(screen.queryByText('SECRET')).not.toBeInTheDocument()
-      expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument()
+      expect(locationHref).toBe('/docs/')
     })
 
     it('loading中は認証中を表示', () => {
@@ -173,9 +189,9 @@ describe('ProtectedRoute コンポーネント描画テスト', () => {
     expect(screen.getByText('SECRET')).toBeInTheDocument()
   })
 
-  it('未認証でloginへリダイレクト', () => {
+  it('未認証でポータルへリダイレクト', () => {
     renderWithRoutes(ProtectedRoute, { isLoggedIn: false })
     expect(screen.queryByText('SECRET')).not.toBeInTheDocument()
-    expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument()
+    expect(locationHref).toBe('/docs/')
   })
 })
