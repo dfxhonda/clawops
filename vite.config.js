@@ -6,12 +6,15 @@ import { readFileSync } from 'fs'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 let gitSha = 'unknown'
+let buildNumber = '0'
 try { gitSha = execSync('git rev-parse --short HEAD').toString().trim() } catch {}
+try { buildNumber = execSync('git rev-list --count HEAD').toString().trim() } catch {}
 
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __GIT_SHA__: JSON.stringify(gitSha),
+    __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [
