@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { saveReading } from '../services/readings'
 import LogoutButton from '../components/LogoutButton'
 import ErrorDisplay from '../components/ErrorDisplay'
@@ -21,11 +21,11 @@ export function getDraftCount() { return getDrafts().length }
 
 export default function DraftList() {
   const navigate = useNavigate()
+  const { state } = useLocation()
   const [drafts, setDrafts] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
-  const [done, setDone] = useState(false)
 
   useEffect(() => { setDrafts(getDrafts()) }, [])
 
@@ -47,6 +47,7 @@ export default function DraftList() {
     if (!drafts.length) return
     setSaving(true)
     setError(null)
+    const savedSnapshot = [...drafts]
     const savedBoothIds = []
     try {
       for (const d of drafts) {
@@ -54,7 +55,13 @@ export default function DraftList() {
         savedBoothIds.push(d.booth_id)
       }
       clearDrafts()
-      setDone(true)
+      navigate('/complete', {
+        state: {
+          storeName: state?.storeName,
+          storeId: state?.storeId,
+          savedDrafts: savedSnapshot,
+        }
+      })
     } catch(e) {
       // Remove already-saved drafts from sessionStorage
       const remaining = getDrafts().filter(d => !savedBoothIds.includes(d.booth_id))
@@ -64,20 +71,6 @@ export default function DraftList() {
     }
     setSaving(false)
   }
-
-  if (done) return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="text-center">
-        <div className="text-6xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold mb-2">一括保存完了！</h2>
-        <p className="text-muted mb-8">Sheetsに保存しました</p>
-        <button onClick={() => navigate('/')}
-          className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors">
-          トップに戻る
-        </button>
-      </div>
-    </div>
-  )
 
   return (
     <div className="h-screen flex flex-col max-w-lg mx-auto">
