@@ -6,6 +6,14 @@ import ErrorDisplay from '../components/ErrorDisplay'
 import AnomalyBanner from '../components/AnomalyBanner'
 import PatrolConfirmModal from '../components/PatrolConfirmModal'
 
+const SETTINGS = [
+  { key: 'a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数', isText: false },
+  { key: 'c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー', isText: false },
+  { key: 'l', label: 'L', shortName: 'ﾕﾙ',   title: '緩和時パワー',    isText: false },
+  { key: 'r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー',   isText: false },
+  { key: 'o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定',       isText: true  },
+]
+
 export default function PatrolInput() {
   const { state } = useLocation()
   const navigate = useNavigate()
@@ -20,6 +28,7 @@ export default function PatrolInput() {
     latest, last,
     prizeRestock, setPrizeRestock, prizeStock, setPrizeStock, prizeName, setPrizeName,
     note, setNote, machineStatus, setMachineStatus,
+    setA, setSetA, setC, setSetC, setL, setSetL, setR, setSetR, setO, setSetO,
     monthlyStats,
     handleSave,
   } = usePatrolInput(booth, () => navigate('/patrol'))
@@ -195,6 +204,33 @@ export default function PatrolInput() {
               inZero={inZero} inTriple={inTriple}
               payoutHigh={payoutHigh} payoutLow={payoutLow}
             />
+
+            {/* 設定値 ACLRO */}
+            <div className="mb-4">
+              <div className="text-xs text-muted mb-2">設定値</div>
+              <div className="flex gap-1.5">
+                {SETTINGS.map(s => {
+                  const vals = { a: setA, c: setC, l: setL, r: setR, o: setO }
+                  const setters = { a: setSetA, c: setSetC, l: setSetL, r: setSetR, o: setSetO }
+                  return (
+                    <div key={s.key} className="flex-1" title={s.title}>
+                      <div className="text-[9px] text-accent4 text-center font-bold leading-tight mb-0.5">
+                        {s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span>
+                      </div>
+                      <input
+                        className="w-full p-1.5 text-xs text-center rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
+                        type={s.isText ? 'text' : 'number'}
+                        inputMode={s.isText ? 'text' : 'numeric'}
+                        placeholder={latest?.[`set_${s.key}`] || '-'}
+                        value={vals[s.key]}
+                        onChange={e => setters[s.key](e.target.value)}
+                        title={s.title}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
 
             {/* 景品 */}
             <div className="grid grid-cols-2 gap-2 mb-4">

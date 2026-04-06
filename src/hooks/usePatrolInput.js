@@ -43,6 +43,12 @@ export function usePatrolInput(booth, navigateToPatrol) {
   const [prizeName, setPrizeName] = useState('')
   const [note, setNote] = useState('')
   const [machineStatus, setMachineStatus] = useState('ok')
+  // 設定値
+  const [setA, setSetA] = useState('')
+  const [setC, setSetC] = useState('')
+  const [setL, setSetL] = useState('')
+  const [setR, setSetR] = useState('')
+  const [setO, setSetO] = useState('')
 
   useEffect(() => {
     if (!booth) { navigateToPatrol?.(); return }
@@ -56,6 +62,8 @@ export function usePatrolInput(booth, navigateToPatrol) {
         setPrizeRestock(draft.prize_restock_count || ''); setPrizeStock(draft.prize_stock_count || '')
         setPrizeName(draft.prize_name || ''); setNote(draft.note || '')
         if (draft.machine_status) setMachineStatus(draft.machine_status)
+        setSetA(draft.set_a || ''); setSetC(draft.set_c || '')
+        setSetL(draft.set_l || ''); setSetR(draft.set_r || ''); setSetO(draft.set_o || '')
       }
       let storeCode = null
       try {
@@ -156,6 +164,11 @@ export function usePatrolInput(booth, navigateToPatrol) {
       play_price: price,
       prize_restock_count: prizeRestock, prize_stock_count: prizeStock,
       prize_name: prizeName || latest?.prize_name || '', note: noteWithStatus, machine_status: machineStatus,
+      set_a: setA || latest?.set_a || '',
+      set_c: setC || latest?.set_c || '',
+      set_l: setL || latest?.set_l || '',
+      set_r: setR || latest?.set_r || '',
+      set_o: setO || latest?.set_o || '',
     })
     setSaved(true)
     return { ok: true }
@@ -175,6 +188,8 @@ export function usePatrolInput(booth, navigateToPatrol) {
     latest, last,
     // 景品
     prizeRestock, setPrizeRestock, prizeStock, setPrizeStock, prizeName, setPrizeName,
+    // 設定値
+    setA, setSetA, setC, setSetC, setL, setSetL, setR, setSetR, setO, setSetO,
     // その他
     note, setNote, machineStatus, setMachineStatus,
     // 月次統計
