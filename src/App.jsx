@@ -33,6 +33,7 @@ const SetupSheets = lazy(() => import('./pages/SetupSheets'))
 const TestDataImport = lazy(() => import('./pages/TestDataImport'))
 const AuditLog = lazy(() => import('./pages/AuditLog'))
 const AuditSummary = lazy(() => import('./pages/AuditSummary'))
+const DailyStatsAdmin = lazy(() => import('./pages/DailyStatsAdmin'))
 
 
 // ローディングスピナー（Suspense フォールバック）
@@ -92,6 +93,7 @@ export default function App() {
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />
       <Route path="/admin/setup-sheets" element={<AdminRoute><SetupSheets /></AdminRoute>} />
       <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
+      <Route path="/admin/daily-stats" element={<AdminRoute><DailyStatsAdmin /></AdminRoute>} />
 
 
       <Route path="*" element={<Navigate to="/" />} />

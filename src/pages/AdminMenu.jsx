@@ -10,6 +10,7 @@ const SECTIONS = [
       { icon: '🔍', title: 'データ検索', desc: '過去データの検索・修正', path: '/datasearch' },
       { icon: '📋', title: '監査ログ', desc: '操作履歴の確認・追跡', path: '/admin/audit' },
       { icon: '📊', title: '監査サマリ', desc: '棚卸し・移管・入荷の件数集計', path: '/admin/audit-summary' },
+      { icon: '📈', title: '日次集計バッチ', desc: '日次ブース統計の手動集計', path: '/admin/daily-stats' },
     ]
   },
   {
