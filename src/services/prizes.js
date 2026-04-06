@@ -16,7 +16,7 @@ export async function getPrizes() {
     supplier_name: supName(r.supplier_id), supplier_id: r.supplier_id || '',
     supplier_contact: '', is_active: r.status === 'active' ? 'TRUE' : 'FALSE',
     created_at: r.created_at || '', updated_at: r.updated_at || '',
-    short_name: r.prize_name || '', item_size: r.size || '', category: r.category || '',
+    short_name: r.short_name || r.prize_name || '', item_size: r.size || '', category: r.category || '',
     order_at: r.order_date || '', arrival_at: r.expected_date || '',
     restock_count: '', stock_count: '',
     case_count: '', pieces_per_case: String(r.default_case_quantity || ''),
@@ -74,6 +74,9 @@ export async function getPrizeOrders() {
     case_cost: String(r.case_cost || ''),
     expected_date: r.expected_date || '',
     destination: r.destination || '',
+    pieces_per_case: r.pieces_per_case != null ? String(r.pieces_per_case) : '',
+    shipping_cost: String(r.shipping_cost || '0'),
+    total_tax_included: String(r.total_tax_included || '0'),
   }))
   setCache('prize_orders', result)
   return result
@@ -97,5 +100,45 @@ export async function markOrderArrived(orderId, arrivedQuantity, staffId, { reas
     staff_id: staffId || undefined,
     reason_code: reason_code || 'ARRIVAL',
     reason_note: reason_note || undefined,
+  })
+}
+
+export async function updateOrder(orderId, patch, staffId) {
+  const allowed = ['pieces_per_case', 'case_quantity', 'unit_cost', 'case_cost', 'shipping_cost', 'notes']
+  const updates = {}
+  for (const key of allowed) {
+    if (patch[key] !== undefined) updates[key] = patch[key]
+  }
+  if (Object.keys(updates).length === 0) return
+  const { error } = await supabase.from('prize_orders').update(updates).eq('order_id', orderId)
+  if (error) throw new Error('発注更新エラー: ' + error.message)
+  clearCache()
+
+  writeAuditLog({
+    action: 'order_update',
+    target_table: 'prize_orders',
+    target_id: orderId,
+    detail: `発注編集: ${Object.keys(updates).join(', ')}`,
+    staff_id: staffId || undefined,
+  })
+}
+
+export async function updatePrizeMaster(prizeId, patch, staffId) {
+  const allowed = ['short_name']
+  const updates = {}
+  for (const key of allowed) {
+    if (patch[key] !== undefined) updates[key] = patch[key]
+  }
+  if (Object.keys(updates).length === 0) return
+  const { error } = await supabase.from('prize_masters').update(updates).eq('prize_id', prizeId)
+  if (error) throw new Error('景品マスタ更新エラー: ' + error.message)
+  clearCache()
+
+  writeAuditLog({
+    action: 'master_update',
+    target_table: 'prize_masters',
+    target_id: prizeId,
+    detail: `マスタ編集: ${Object.keys(updates).join(', ')}`,
+    staff_id: staffId || undefined,
   })
 }

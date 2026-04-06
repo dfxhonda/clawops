@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLocations } from '../../services/masters'
 import { transferStock, getStockMovements } from '../../services/movements'
-import { getPrizes, getPrizeOrders, markOrderArrived } from '../../services/prizes'
+import { getPrizes, getPrizeOrders, markOrderArrived, updateOrder, updatePrizeMaster } from '../../services/prizes'
 import { useAsync } from '../../hooks/useAsync'
 import NumberInput from '../../components/NumberInput'
 import { useAuth } from '../../lib/auth/AuthProvider'
@@ -32,6 +32,53 @@ export default function InventoryReceive() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [reason, setReason] = useState({ code: '', note: '' })
+
+  // 発注詳細モーダル
+  const [detailOrder, setDetailOrder] = useState(null)
+  const [detailForm, setDetailForm] = useState({})
+  const { loading: detailSaving, execute: detailExecute, errorProps: detailErrorProps, clearError: detailClearError } = useAsync()
+
+  function openDetail(order) {
+    const prize = prizes.find(p => p.prize_id === order.prize_id)
+    setDetailForm({
+      short_name: prize?.short_name || '',
+      pieces_per_case: order.pieces_per_case || '',
+      case_quantity: order.order_quantity || '',
+      unit_cost: order.unit_cost_at_order || '0',
+      case_cost: order.case_cost || '',
+      shipping_cost: order.shipping_cost || '0',
+      total_tax_included: order.total_tax_included || '0',
+    })
+    setDetailOrder(order)
+    detailClearError()
+  }
+
+  async function handleDetailSave() {
+    if (!detailOrder) return
+    const result = await detailExecute(async () => {
+      await updateOrder(detailOrder.order_id, {
+        pieces_per_case: detailForm.pieces_per_case ? parseInt(detailForm.pieces_per_case) : null,
+        case_quantity: detailForm.case_quantity ? parseFloat(detailForm.case_quantity) : null,
+        unit_cost: detailForm.unit_cost ? parseInt(detailForm.unit_cost) : null,
+        case_cost: detailForm.case_cost ? parseInt(detailForm.case_cost) : null,
+        shipping_cost: detailForm.shipping_cost ? parseInt(detailForm.shipping_cost) : null,
+      }, staffId)
+
+      const prize = prizes.find(p => p.prize_id === detailOrder.prize_id)
+      if (prize && detailForm.short_name !== (prize.short_name || '')) {
+        await updatePrizeMaster(detailOrder.prize_id, { short_name: detailForm.short_name || null }, staffId)
+      }
+      return true
+    })
+    if (result) {
+      setSuccessMsg('発注詳細を保存しました')
+      setDetailOrder(null)
+      // 再取得
+      const [p, orders] = await Promise.all([getPrizes(), getPrizeOrders()])
+      setPrizes(p.filter(x => x.is_active !== 'FALSE'))
+      setPendingOrders(orders.filter(o => !o.arrived_at || o.arrived_at === ''))
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -200,14 +247,19 @@ export default function InventoryReceive() {
           {filtered.length > 0 ? (
             <div className="space-y-2 mb-4">
               {filtered.map(order => (
-                <div key={order.order_id} className="bg-surface border border-border rounded-xl p-3">
+                <div key={order.order_id} className="bg-surface border border-border rounded-xl p-3 cursor-pointer active:bg-surface2"
+                  onClick={() => openDetail(order)}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{order.prize_name}</div>
-                      <div className="text-xs text-muted">発注: {order.ordered_at || '不明'} / {order.order_quantity}個</div>
+                      <div className="text-xs text-muted">
+                        発注: {order.ordered_at || '不明'} / {order.order_quantity}個
+                        {order.expected_date && <span> / 納期: {order.expected_date}</span>}
+                      </div>
+                      {order.supplier_name && <div className="text-xs text-muted/70">{order.supplier_name}</div>}
                       {order.note && <div className="text-xs text-muted/70 mt-0.5">{order.note}</div>}
                     </div>
-                    <button onClick={() => handleOrderArrival(order, selectedLocation)} disabled={saving || !selectedLocation}
+                    <button onClick={e => { e.stopPropagation(); handleOrderArrival(order, selectedLocation) }} disabled={saving || !selectedLocation}
                       className="bg-accent3 text-black text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-40 shrink-0 ml-2">
                       入荷確認
                     </button>
@@ -291,6 +343,114 @@ export default function InventoryReceive() {
         </div>
       )}
       </div>{/* スクロール領域終了 */}
+
+      {/* 発注詳細モーダル */}
+      {detailOrder && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setDetailOrder(null)}>
+          <div className="bg-bg w-full max-w-lg rounded-t-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-4 pt-4 pb-2 border-b border-border flex justify-between items-center shrink-0">
+              <h2 className="text-base font-bold text-accent">発注詳細</h2>
+              <button onClick={() => setDetailOrder(null)} className="text-muted text-xl">×</button>
+            </div>
+            <div className="overflow-y-auto px-4 py-3 space-y-3 flex-1">
+              {detailErrorProps && <ErrorDisplay {...detailErrorProps} />}
+
+              {/* 景品名（表示のみ） */}
+              <div>
+                <label className="text-xs text-muted block mb-1">景品名</label>
+                <div className="text-sm text-text bg-surface2 rounded-lg px-3 py-2">{detailOrder.prize_name}</div>
+              </div>
+
+              {/* 短縮名（編集可 → マスタ反映） */}
+              <div>
+                <label className="text-xs text-muted block mb-1">短縮名 <span className="text-accent2">→マスタ反映</span></label>
+                <input type="text" value={detailForm.short_name}
+                  onChange={e => setDetailForm(f => ({ ...f, short_name: e.target.value }))}
+                  className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* 入り数 */}
+                <div>
+                  <label className="text-xs text-muted block mb-1">入り数</label>
+                  <input type="number" inputMode="numeric" value={detailForm.pieces_per_case}
+                    onChange={e => setDetailForm(f => ({ ...f, pieces_per_case: e.target.value }))}
+                    className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                </div>
+                {/* ケース数 */}
+                <div>
+                  <label className="text-xs text-muted block mb-1">ケース数</label>
+                  <input type="number" inputMode="decimal" step="0.1" value={detailForm.case_quantity}
+                    onChange={e => setDetailForm(f => ({ ...f, case_quantity: e.target.value }))}
+                    className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                </div>
+                {/* 単価 */}
+                <div>
+                  <label className="text-xs text-muted block mb-1">単価</label>
+                  <input type="number" inputMode="numeric" value={detailForm.unit_cost}
+                    onChange={e => setDetailForm(f => ({ ...f, unit_cost: e.target.value }))}
+                    className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                </div>
+                {/* ケース金額 */}
+                <div>
+                  <label className="text-xs text-muted block mb-1">ケース金額</label>
+                  <input type="number" inputMode="numeric" value={detailForm.case_cost}
+                    onChange={e => setDetailForm(f => ({ ...f, case_cost: e.target.value }))}
+                    className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                </div>
+                {/* 送料 */}
+                <div>
+                  <label className="text-xs text-muted block mb-1">送料</label>
+                  <input type="number" inputMode="numeric" value={detailForm.shipping_cost}
+                    onChange={e => setDetailForm(f => ({ ...f, shipping_cost: e.target.value }))}
+                    className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                </div>
+              </div>
+
+              {/* 合計金額(税込) — 変更不可 */}
+              <div>
+                <label className="text-xs text-muted block mb-1">合計金額(税込) <span className="text-accent2">変更不可</span></label>
+                <div className="text-sm text-accent font-bold bg-surface2 rounded-lg px-3 py-2">
+                  ¥{Number(detailForm.total_tax_included || 0).toLocaleString()}
+                </div>
+              </div>
+
+              {/* 発注情報（表示のみ） */}
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted">
+                <div>
+                  <span className="block mb-0.5">発注日</span>
+                  <span className="text-text text-sm">{detailOrder.ordered_at || '—'}</span>
+                </div>
+                <div>
+                  <span className="block mb-0.5">納期</span>
+                  <span className="text-text text-sm">{detailOrder.expected_date || '—'}</span>
+                </div>
+                <div>
+                  <span className="block mb-0.5">仕入先</span>
+                  <span className="text-text text-sm">{detailOrder.supplier_name || '—'}</span>
+                </div>
+                <div>
+                  <span className="block mb-0.5">送り先</span>
+                  <span className="text-text text-sm">{detailOrder.destination || '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ボタン */}
+            <div className="px-4 py-3 border-t border-border flex gap-2 shrink-0">
+              <button onClick={handleDetailSave} disabled={detailSaving}
+                className="flex-1 bg-accent text-black font-bold rounded-xl py-3 text-sm disabled:opacity-50">
+                {detailSaving ? '保存中...' : '保存'}
+              </button>
+              <button onClick={() => { setDetailOrder(null); handleOrderArrival(detailOrder, selectedLocation) }}
+                disabled={saving || !selectedLocation}
+                className="flex-1 bg-accent3 text-black font-bold rounded-xl py-3 text-sm disabled:opacity-40">
+                入荷確認
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

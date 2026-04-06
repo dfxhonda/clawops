@@ -1,12 +1,10 @@
-# 実���計画: @testing-library/react 画面���スト
+# 実装計画: 発注詳細モーダル + DB拡張
 
-## Task 3: コンポーネントテスト追加
-- [x] Step 0: 依存パッケージ + vitest設定 + setup.js
-- [x] Step 1: renderPage ヘルパー作成
-- [x] Step 2: InventoryTransfer.test.jsx (3テスト)
-- [x] Step 3: InventoryCount.test.jsx (3テスト)
-- [x] Step 4: InventoryReceive.test.jsx (3テスト)
+## Task 4: 発注詳細表示・編集
+- [x] Step 0: DB カラム追加（Supabase MCP）
+- [x] Step 1: サービス関数追加（updateOrder, updatePrizeMaster, getPrizeOrders拡張）
+- [x] Step 2: InventoryReceive.jsx に詳細モーダル追加
 
 ## 検証
-- [x] `npm test` 全パス (117テスト)
+- [x] `npm test` 全パス (117 tests)
 - [x] `npm run build` 成功
