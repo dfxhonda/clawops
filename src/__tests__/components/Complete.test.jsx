@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('react-router-dom', async () => {
@@ -9,6 +9,7 @@ vi.mock('react-router-dom', async () => {
 })
 
 import Complete from '../../pages/Complete'
+import { REPORT_KEY } from '../../pages/DraftList'
 
 function renderComplete(locationState = {}) {
   return render(
@@ -34,6 +35,11 @@ const DRAFTS = [
     prize_name: 'ドラえもん', prize_restock_count: '0', read_date: '2026-04-06',
   },
 ]
+
+beforeEach(() => {
+  sessionStorage.clear()
+  vi.restoreAllMocks()
+})
 
 describe('Complete', () => {
   it('savedDrafts なし → 帳票テーブルが存在しない', () => {
@@ -65,5 +71,40 @@ describe('Complete', () => {
     }]
     renderComplete({ savedDrafts: overflowDraft })
     expect(screen.getAllByText('¥4,000').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('location.state なしでも sessionStorage から帳票を復元する', () => {
+    const payload = {
+      storeName: 'リロード店', storeId: 'S99',
+      savedDrafts: DRAFTS,
+      savedAt: Date.now(),
+    }
+    sessionStorage.setItem(REPORT_KEY, JSON.stringify(payload))
+    // state なしで /complete に直アクセス
+    renderComplete({})
+    expect(screen.getByText('集金帳票')).toBeTruthy()
+    expect(screen.getByText('KKY01-M01-B01')).toBeTruthy()
+  })
+
+  it('savedAt が 25時間前の帳票は無効化される', () => {
+    const expired = {
+      storeName: '古い店', storeId: 'S00',
+      savedDrafts: DRAFTS,
+      savedAt: Date.now() - 25 * 60 * 60 * 1000,
+    }
+    sessionStorage.setItem(REPORT_KEY, JSON.stringify(expired))
+    renderComplete({})
+    expect(screen.queryByText('集金帳票')).toBeNull()
+    // sessionStorage からも削除されている
+    expect(sessionStorage.getItem(REPORT_KEY)).toBeNull()
+  })
+
+  it('「帳票を印刷」クリック後に sessionStorage から帳票が削除される', () => {
+    const payload = { storeName: 'テスト店', storeId: 'S01', savedDrafts: DRAFTS, savedAt: Date.now() }
+    sessionStorage.setItem(REPORT_KEY, JSON.stringify(payload))
+    window.print = vi.fn()  // happy-dom では window.print が未定義のため先に定義
+    renderComplete({ savedDrafts: DRAFTS, savedAt: Date.now() })
+    fireEvent.click(screen.getByRole('button', { name: /帳票を印刷/ }))
+    expect(sessionStorage.getItem(REPORT_KEY)).toBeNull()
   })
 })

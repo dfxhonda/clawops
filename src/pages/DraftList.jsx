@@ -5,6 +5,8 @@ import LogoutButton from '../components/LogoutButton'
 import ErrorDisplay from '../components/ErrorDisplay'
 
 const DRAFT_KEY = 'clawops_drafts'
+export const REPORT_KEY = 'clawops_last_report'
+const REPORT_TTL_MS = 24 * 60 * 60 * 1000 // 24時間
 
 export function getDrafts() {
   try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY)||'[]') } catch { return [] }
@@ -55,13 +57,14 @@ export default function DraftList() {
         savedBoothIds.push(d.booth_id)
       }
       clearDrafts()
-      navigate('/complete', {
-        state: {
-          storeName: state?.storeName,
-          storeId: state?.storeId,
-          savedDrafts: savedSnapshot,
-        }
-      })
+      const reportPayload = {
+        storeName: state?.storeName,
+        storeId: state?.storeId,
+        savedDrafts: savedSnapshot,
+        savedAt: Date.now(),
+      }
+      sessionStorage.setItem(REPORT_KEY, JSON.stringify(reportPayload))
+      navigate('/complete', { state: reportPayload })
     } catch(e) {
       // Remove already-saved drafts from sessionStorage
       const remaining = getDrafts().filter(d => !savedBoothIds.includes(d.booth_id))

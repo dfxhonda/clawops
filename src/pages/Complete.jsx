@@ -1,5 +1,30 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { calcMeterDiff } from '../services/calc'
+import { REPORT_KEY } from './DraftList'
+
+const REPORT_TTL_MS = 24 * 60 * 60 * 1000
+
+function loadReport(locationState) {
+  // location.state 優先
+  if (locationState?.savedDrafts) return locationState
+  // sessionStorage からフォールバック（24時間以内のみ）
+  try {
+    const raw = sessionStorage.getItem(REPORT_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (!data?.savedAt || Date.now() - data.savedAt > REPORT_TTL_MS) {
+      sessionStorage.removeItem(REPORT_KEY)
+      return null
+    }
+    return data
+  } catch {
+    return null
+  }
+}
+
+function clearReport() {
+  sessionStorage.removeItem(REPORT_KEY)
+}
 
 function buildRows(savedDrafts) {
   return (savedDrafts || []).map(d => {
@@ -15,7 +40,8 @@ function buildRows(savedDrafts) {
 export default function Complete() {
   const navigate = useNavigate()
   const { state } = useLocation()
-  const rows = buildRows(state?.savedDrafts)
+  const report = loadReport(state)
+  const rows = buildRows(report?.savedDrafts)
   const hasReport = rows.length > 0
 
   const totalInDiff  = rows.reduce((s, r) => s + r.inDiff,  0)
@@ -27,6 +53,8 @@ export default function Complete() {
     : null
 
   const readDate = rows[0]?.read_date || new Date().toISOString().slice(0, 10)
+  const storeName = report?.storeName || state?.storeName || ''
+  const storeId   = report?.storeId   || state?.storeId   || ''
 
   return (
     <>
@@ -39,7 +67,7 @@ export default function Complete() {
           <div className="text-5xl mb-3">✅</div>
           <h2 className="text-xl font-bold">入力完了！</h2>
           <p className="text-muted text-sm mt-1">
-            {state?.storeName || ''}　{readDate}
+            {storeName}　{readDate}
           </p>
         </div>
 
@@ -97,7 +125,7 @@ export default function Complete() {
 
             {/* 印刷ボタン */}
             <button
-              onClick={() => window.print()}
+              onClick={() => { window.print(); clearReport() }}
               className="no-print w-full mt-3 py-3 rounded-xl border border-border bg-surface2 text-sm font-semibold hover:border-accent/40 transition-all active:scale-[0.98]">
               🖨️ 帳票を印刷
             </button>
@@ -106,15 +134,15 @@ export default function Complete() {
 
         {/* ナビゲーションボタン */}
         <div className="no-print px-4 space-y-2 max-w-sm mx-auto">
-          {state?.storeId && (
+          {storeId && (
             <button
-              onClick={() => navigate(`/machines/${state.storeId}`, { state: { storeName: state.storeName } })}
+              onClick={() => { clearReport(); navigate(`/machines/${storeId}`, { state: { storeName } }) }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors">
               機械選択に戻る
             </button>
           )}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => { clearReport(); navigate('/') }}
             className="w-full bg-surface2 border border-border text-text font-medium py-3 rounded-xl hover:border-accent/30 transition-colors">
             店舗選択に戻る
           </button>
