@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "distillery": {
+      "command": "uvx",
+      "args": [
+        "distillery-mcp"
+      ]
+    }
+  }
+}

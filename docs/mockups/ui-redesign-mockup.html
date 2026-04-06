@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawOps v2 UI リデザイン案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #0d1117; color: #e6edf3; }
+
+  /* タブ切り替え */
+  .tab-bar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: #161b22; border-top: 1px solid #30363d; z-index: 100; }
+  .tab-bar button { flex: 1; padding: 8px 4px; background: none; border: none; color: #8b949e; font-size: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: color 0.2s; }
+  .tab-bar button.active { color: #58a6ff; }
+  .tab-bar button .icon { font-size: 20px; }
+
+  /* ページコンテナ */
+  .page { display: none; min-height: 100vh; padding-bottom: 70px; }
+  .page.active { display: block; }
+
+  /* 共通ヘッダー */
+  .page-header { position: sticky; top: 0; background: #0d1117; z-index: 50; padding: 12px 16px; border-bottom: 1px solid #30363d; }
+  .page-title { font-size: 16px; font-weight: 700; }
+  .page-subtitle { font-size: 11px; color: #8b949e; margin-top: 2px; }
+
+  /* ストアセレクタ（共通） */
+  .store-selector { display: flex; gap: 6px; padding: 10px 16px; overflow-x: auto; background: #161b22; }
+  .store-selector::-webkit-scrollbar { display: none; }
+  .store-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid #30363d; background: #0d1117; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8b949e; transition: all 0.2s; }
+  .store-chip.active { background: #1f6feb; border-color: #1f6feb; color: #fff; font-weight: 600; }
+
+  /* ======= 入力タブ ======= */
+  .machine-tabs { display: flex; gap: 4px; padding: 8px 16px; overflow-x: auto; }
+  .machine-tabs::-webkit-scrollbar { display: none; }
+  .machine-tab { padding: 6px 12px; border-radius: 8px; background: #21262d; border: 1px solid #30363d; font-size: 12px; white-space: nowrap; cursor: pointer; color: #8b949e; position: relative; }
+  .machine-tab.active { background: #1f6feb22; border-color: #1f6feb; color: #58a6ff; font-weight: 600; }
+  .machine-tab .badge { position: absolute; top: -4px; right: -4px; background: #238636; color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 10px; }
+
+  /* 入力モード切替 */
+  .input-mode-bar { display: flex; padding: 4px 16px; gap: 8px; align-items: center; }
+  .input-mode-bar .date-input { background: #21262d; border: 1px solid #30363d; color: #e6edf3; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+  .input-mode-bar .progress { margin-left: auto; font-size: 13px; font-weight: 700; color: #58a6ff; }
+
+  /* ブース入力カード v2 */
+  .booth-card { margin: 6px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; }
+  .booth-card.has-input { border-color: #238636; }
+
+  .booth-header { display: flex; align-items: center; padding: 8px 12px; gap: 8px; background: #21262d; }
+  .booth-code { font-size: 14px; font-weight: 800; color: #58a6ff; min-width: 36px; }
+  .booth-prize { flex: 1; font-size: 13px; color: #8b949e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .booth-rate { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+  .rate-ok { background: #23863622; color: #3fb950; }
+  .rate-high { background: #da363622; color: #f85149; }
+
+  /* メーター入力エリア（横並び大きめ） */
+  .meter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 12px; }
+  .meter-group { }
+  .meter-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .meter-label-text { font-size: 11px; font-weight: 700; color: #8b949e; }
+  .meter-prev { font-size: 10px; color: #484f58; }
+  .meter-input { width: 100%; padding: 10px 8px; font-size: 18px; font-weight: 600; text-align: center; border-radius: 8px; border: 2px solid #30363d; background: #0d1117; color: #e6edf3; outline: none; transition: border-color 0.2s; }
+  .meter-input:focus { border-color: #58a6ff; }
+  .meter-input.filled { border-color: #238636; }
+  .meter-diff { text-align: center; font-size: 11px; font-weight: 700; color: #3fb950; margin-top: 3px; }
+  .meter-diff.warn { color: #f85149; }
+
+  /* サブフィールド（残・補・設定） */
+  .sub-fields { display: flex; gap: 4px; padding: 4px 12px 8px; align-items: flex-end; }
+  .sub-field { flex: 1; text-align: center; }
+  .sub-field label { display: block; font-size: 9px; color: #8b949e; margin-bottom: 2px; font-weight: 600; }
+  .sub-field.setting label { color: #bc8cff; }
+  .sub-field input { width: 100%; padding: 5px 2px; font-size: 13px; text-align: center; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; outline: none; }
+  .sub-field input:focus { border-color: #58a6ff; }
+  .sub-divider { width: 1px; height: 28px; background: #30363d; align-self: flex-end; margin-bottom: 4px; }
+
+  /* 送信バー */
+  .submit-bar { position: fixed; bottom: 56px; left: 0; right: 0; background: #0d1117ee; backdrop-filter: blur(8px); padding: 8px 16px; border-top: 1px solid #30363d; z-index: 90; }
+  .submit-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .submit-btn.primary { background: #1f6feb; color: #fff; }
+  .submit-btn.primary:active { background: #1a5cc7; transform: scale(0.98); }
+
+  /* ======= ダッシュボードタブ ======= */
+  .summary-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px; }
+  .summary-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 14px; }
+  .summary-card .value { font-size: 24px; font-weight: 800; color: #e6edf3; margin-top: 4px; }
+  .summary-card .label { font-size: 11px; color: #8b949e; }
+  .summary-card .change { font-size: 11px; margin-top: 4px; }
+  .summary-card .change.up { color: #3fb950; }
+  .summary-card .change.down { color: #f85149; }
+
+  .ranking-list { padding: 0 16px; }
+  .ranking-item { display: flex; align-items: center; padding: 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 6px; }
+  .ranking-pos { font-size: 18px; font-weight: 800; width: 32px; text-align: center; }
+  .ranking-pos.gold { color: #f0c040; }
+  .ranking-pos.silver { color: #8b949e; }
+  .ranking-pos.bronze { color: #da8547; }
+  .ranking-info { flex: 1; margin-left: 10px; }
+  .ranking-info .name { font-size: 13px; font-weight: 600; }
+  .ranking-info .sub { font-size: 11px; color: #8b949e; }
+  .ranking-amount { font-size: 15px; font-weight: 700; color: #3fb950; }
+
+  /* ======= 管理タブ ======= */
+  .admin-menu { padding: 12px 16px; }
+  .admin-item { display: flex; align-items: center; padding: 14px 16px; background: #161b22; border: 1px solid #30363d; border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s; }
+  .admin-item:active { background: #21262d; }
+  .admin-icon { font-size: 24px; width: 40px; text-align: center; }
+  .admin-text { flex: 1; margin-left: 8px; }
+  .admin-text .title { font-size: 14px; font-weight: 600; }
+  .admin-text .desc { font-size: 11px; color: #8b949e; }
+  .admin-arrow { color: #484f58; font-size: 18px; }
+
+  /* セクションタイトル */
+  .section-title { font-size: 12px; font-weight: 700; color: #8b949e; padding: 12px 16px 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* 比較レイアウト */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  .compare-panel { background: #161b22; border-radius: 12px; padding: 12px; border: 1px solid #30363d; }
+  .compare-panel h3 { font-size: 13px; color: #8b949e; margin-bottom: 12px; text-align: center; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+
+  /* アノテーション吹き出し */
+  .annotation { position: relative; background: #f0c040; color: #0d1117; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; margin: 12px 16px; }
+  .annotation::after { content: ''; position: absolute; bottom: -6px; left: 20px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #f0c040; }
+
+  /* 問題点ハイライト */
+  .problem-tag { display: inline-block; background: #da363633; color: #f85149; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin: 2px; font-weight: 600; }
+  .improve-tag { display: inline-block; background: #23863633; color: #3fb950; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin: 2px; font-weight: 600; }
+
+  /* モックアップ切替 */
+  .mockup-nav { position: fixed; top: 0; left: 0; right: 0; background: #161b22; z-index: 200; padding: 8px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid #f0c040; }
+  .mockup-nav h1 { font-size: 14px; color: #f0c040; font-weight: 800; flex: 1; }
+  .mockup-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; }
+  .mockup-toggle button { padding: 6px 14px; border: none; font-size: 11px; font-weight: 600; cursor: pointer; background: #21262d; color: #8b949e; }
+  .mockup-toggle button.active { background: #f0c040; color: #0d1117; }
+
+  .mockup-body { margin-top: 44px; }
+
+  /* 問題分析ページ */
+  .analysis-page { padding: 16px; }
+  .analysis-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .analysis-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .analysis-card p { font-size: 13px; color: #8b949e; line-height: 1.6; }
+  .analysis-card .fix { margin-top: 8px; padding: 8px 12px; background: #23863615; border-left: 3px solid #3fb950; border-radius: 4px; font-size: 12px; color: #3fb950; }
+</style>
+</head>
+<body>
+
+<!-- モックアップ切替ナビ -->
+<div class="mockup-nav">
+  <h1>ClawOps v2 リデザイン案</h1>
+  <div class="mockup-toggle">
+    <button class="active" onclick="showView('analysis')">問題分析</button>
+    <button onclick="showView('new')">v2案</button>
+  </div>
+</div>
+
+<div class="mockup-body">
+
+<!-- ========== 問題分析ビュー ========== -->
+<div id="view-analysis" class="analysis-page">
+  <div style="text-align:center;padding:8px 0 16px">
+    <div style="font-size:18px;font-weight:800;color:#f85149">現状の問題点</div>
+    <div style="font-size:12px;color:#8b949e;margin-top:4px">使いづらさの原因を分類</div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>🔴 1. 巡回入力フロー — 画面遷移が多すぎる</h3>
+    <p>
+      ホーム → 店舗選択 → 機械リスト → ブース入力 → 下書き確認 → 完了<br>
+      <span style="color:#f85149;font-weight:600">6画面も遷移</span>が必要。毎回の巡回で繰り返すのはストレス。
+    </p>
+    <div class="fix">
+      → <strong>v2案:</strong> 店舗チップ＋機械タブで1画面に統合。入力→保存を2タップで完結。
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>🔴 2. BoothInput — フィールドが多すぎ＆小さすぎ</h3>
+    <p>
+      1ブースに<span style="color:#f85149;font-weight:600">10個の入力欄</span>（IN/OUT/残/補/A/C/L/R/O/景品名）。<br>
+      設定値A〜Oは毎回変えるものではないのに常時表示。<br>
+      入力欄36px幅では指で正確にタップできない。
+    </p>
+    <div class="fix">
+      → <strong>v2案:</strong> IN/OUTを大きく（18px font）。設定A〜Oは折りたたみ（変更時のみ展開）。<br>
+      → 景品名は前回値を自動表示、変更時のみ編集。
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>🔴 3. 画面の見た目 — 情報密度が高すぎる</h3>
+    <p>
+      ダークテーマ自体は良いが、<span style="color:#f85149;font-weight:600">余白が少なく文字が小さい</span>。<br>
+      10px/11pxの文字、48px幅のinputが横に7個並ぶのは視認性が悪い。<br>
+      ブースカード間のスペースも1.5しかなく、どこからどこまでが1ブースか分かりにくい。
+    </p>
+    <div class="fix">
+      → <strong>v2案:</strong> カード間のスペースを広げ、セクションを明確に分割。<br>
+      → メーター入力は最低14px以上、タップターゲットは44px以上確保。
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>🟡 4. ナビゲーション — 今どこにいるか分からない</h3>
+    <p>
+      ←ボタンで戻るだけのナビゲーション。<br>
+      現在の店舗名・機械名がヘッダーに小さく表示されるだけで、<br>
+      全体の中の現在地が把握しづらい。
+    </p>
+    <div class="fix">
+      → <strong>v2案:</strong> 下部タブバーで「入力/ダッシュボード/管理」を常時アクセス可能に。<br>
+      → 店舗は上部チップで固定表示＆切替可能。
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>🟡 5. データ確認 — 売上をすぐ見れない</h3>
+    <p>
+      ランキング画面は別ルートで遷移が必要。<br>
+      入力中に「この機械の売上どうだっけ？」が確認できない。
+    </p>
+    <div class="fix">
+      → <strong>v2案:</strong> ダッシュボードタブで売上・ランキングを即確認。<br>
+      → 入力画面でもブースごとに売上差分をリアルタイム表示。
+    </div>
+  </div>
+
+  <div class="analysis-card">
+    <h3>🟡 6. 管理画面 — ホーム画面がごちゃごちゃ</h3>
+    <p>
+      StoreSelectにモード切替・QRスキャン・管理メニュー3つ・店舗リストが全部詰め込まれている。<br>
+      日常の入力作業と管理作業が混在。
+    </p>
+    <div class="fix">
+      → <strong>v2案:</strong> 管理機能は専用タブに分離。入力タブはひたすら入力に集中。
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:24px 16px">
+    <div style="font-size:16px;font-weight:700;color:#f0c040;margin-bottom:8px">結論: 部分修正ではなくUI構造の再設計が必要</div>
+    <div style="font-size:13px;color:#8b949e;line-height:1.6">
+      ルーティング構造・ページ配置・コンポーネント設計を<br>
+      業務アプリ型（タブナビ＋フラット構造）に移行。<br>
+      sheets.jsのデータ層はそのまま活用。
+    </div>
+    <button onclick="showView('new')" style="margin-top:16px;padding:12px 32px;background:#1f6feb;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">
+      → v2案を見る
+    </button>
+  </div>
+</div>
+
+<!-- ========== v2 新UIビュー ========== -->
+<div id="view-new" style="display:none">
+
+  <!-- 入力タブ -->
+  <div id="tab-input" class="page active">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="page-title">メーター入力</div>
+        <div style="margin-left:auto;font-size:11px;color:#8b949e">2026-03-17</div>
+      </div>
+    </div>
+
+    <!-- 店舗チップ -->
+    <div class="store-selector">
+      <div class="store-chip active">菊陽</div>
+      <div class="store-chip">合志</div>
+      <div class="store-chip">下通</div>
+      <div class="store-chip">南熊本</div>
+      <div class="store-chip">薩摩川内</div>
+    </div>
+
+    <!-- 機械タブ -->
+    <div class="machine-tabs">
+      <div class="machine-tab active">M01 バズクレ4<span class="badge">2/4</span></div>
+      <div class="machine-tab">M02 バズスリム</div>
+      <div class="machine-tab">M03 セサミW</div>
+      <div class="machine-tab">M04 ハイガチャ</div>
+    </div>
+
+    <!-- 進捗バー -->
+    <div class="input-mode-bar">
+      <input type="date" value="2026-03-17" class="date-input">
+      <div style="flex:1;margin:0 12px;height:4px;background:#21262d;border-radius:2px;overflow:hidden">
+        <div style="width:50%;height:100%;background:#238636;border-radius:2px;transition:width 0.3s"></div>
+      </div>
+      <div class="progress">2 / 4</div>
+    </div>
+
+    <!-- ブースカード v2 -->
+    <div class="booth-card has-input">
+      <div class="booth-header">
+        <div class="booth-code">B01</div>
+        <div class="booth-prize">ちいかわ ぬいぐるみ</div>
+        <div class="booth-rate rate-ok">12.5%</div>
+      </div>
+      <div class="meter-row">
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">IN メーター</span>
+            <span class="meter-prev">前回: 15,230</span>
+          </div>
+          <input type="number" class="meter-input filled" value="15842" placeholder="15230">
+          <div class="meter-diff">+612 (¥61,200)</div>
+        </div>
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">OUT メーター</span>
+            <span class="meter-prev">前回: 3,450</span>
+          </div>
+          <input type="number" class="meter-input filled" value="3527" placeholder="3450">
+          <div class="meter-diff">+77</div>
+        </div>
+      </div>
+      <div class="sub-fields">
+        <div class="sub-field"><label>残</label><input type="number" value="5"></div>
+        <div class="sub-field"><label>補</label><input type="number" value="3"></div>
+        <div class="sub-divider"></div>
+        <div class="sub-field setting" style="opacity:0.5"><label>A</label><input placeholder="7"></div>
+        <div class="sub-field setting" style="opacity:0.5"><label>C</label><input placeholder="7"></div>
+        <div class="sub-field setting" style="opacity:0.5"><label>L</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.5"><label>R</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.5"><label>O</label><input placeholder="-"></div>
+      </div>
+    </div>
+
+    <div class="booth-card">
+      <div class="booth-header">
+        <div class="booth-code">B02</div>
+        <div class="booth-prize" style="color:#484f58">ワンピース フィギュア</div>
+        <div class="booth-rate" style="color:#484f58;font-size:11px">---</div>
+      </div>
+      <div class="meter-row">
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">IN メーター</span>
+            <span class="meter-prev">前回: 8,901</span>
+          </div>
+          <input type="number" class="meter-input" placeholder="8901">
+        </div>
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">OUT メーター</span>
+            <span class="meter-prev">前回: 1,234</span>
+          </div>
+          <input type="number" class="meter-input" placeholder="1234">
+        </div>
+      </div>
+      <div class="sub-fields">
+        <div class="sub-field"><label>残</label><input type="number" placeholder="0"></div>
+        <div class="sub-field"><label>補</label><input type="number" placeholder="0"></div>
+        <div class="sub-divider"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>A</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>C</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>L</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>R</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>O</label><input placeholder="-"></div>
+      </div>
+    </div>
+
+    <div class="booth-card">
+      <div class="booth-header">
+        <div class="booth-code">B03</div>
+        <div class="booth-prize" style="color:#484f58">スパイファミリー クッション</div>
+      </div>
+      <div class="meter-row">
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">IN メーター</span>
+            <span class="meter-prev">前回: 5,678</span>
+          </div>
+          <input type="number" class="meter-input" placeholder="5678">
+        </div>
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">OUT メーター</span>
+            <span class="meter-prev">前回: 890</span>
+          </div>
+          <input type="number" class="meter-input" placeholder="890">
+        </div>
+      </div>
+      <div class="sub-fields">
+        <div class="sub-field"><label>残</label><input type="number" placeholder="0"></div>
+        <div class="sub-field"><label>補</label><input type="number" placeholder="0"></div>
+        <div class="sub-divider"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>A</label><input placeholder="7"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>C</label><input placeholder="7"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>L</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>R</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>O</label><input placeholder="-"></div>
+      </div>
+    </div>
+
+    <div class="booth-card">
+      <div class="booth-header">
+        <div class="booth-code">B04</div>
+        <div class="booth-prize" style="color:#484f58">推しの子 アクスタ</div>
+      </div>
+      <div class="meter-row">
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">IN メーター</span>
+            <span class="meter-prev">前回: 12,345</span>
+          </div>
+          <input type="number" class="meter-input" placeholder="12345">
+        </div>
+        <div class="meter-group">
+          <div class="meter-label">
+            <span class="meter-label-text">OUT メーター</span>
+            <span class="meter-prev">前回: 2,100</span>
+          </div>
+          <input type="number" class="meter-input" placeholder="2100">
+        </div>
+      </div>
+      <div class="sub-fields">
+        <div class="sub-field"><label>残</label><input type="number" placeholder="0"></div>
+        <div class="sub-field"><label>補</label><input type="number" placeholder="0"></div>
+        <div class="sub-divider"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>A</label><input placeholder="7"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>C</label><input placeholder="7"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>L</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>R</label><input placeholder="5"></div>
+        <div class="sub-field setting" style="opacity:0.4"><label>O</label><input placeholder="-"></div>
+      </div>
+    </div>
+
+    <div style="height:80px"></div>
+
+    <!-- 送信バー -->
+    <div class="submit-bar">
+      <button class="submit-btn primary">2件を保存して送信 →</button>
+    </div>
+  </div>
+
+  <!-- ダッシュボードタブ -->
+  <div id="tab-dashboard" class="page">
+    <div class="page-header">
+      <div class="page-title">ダッシュボード</div>
+      <div class="page-subtitle">菊陽店 KIK01</div>
+    </div>
+
+    <div class="store-selector">
+      <div class="store-chip active">菊陽</div>
+      <div class="store-chip">合志</div>
+      <div class="store-chip">下通</div>
+      <div class="store-chip">南熊本</div>
+    </div>
+
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="label">今日の売上</div>
+        <div class="value">¥128,400</div>
+        <div class="change up">↑ 15% vs 前回</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">平均出率</div>
+        <div class="value">14.2%</div>
+        <div class="change down">↑ 2.1pt vs 前回</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">入力済</div>
+        <div class="value">12/16</div>
+        <div class="change" style="color:#58a6ff">75% 完了</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">月間累計</div>
+        <div class="value">¥1.82M</div>
+        <div class="change up">↑ 8% vs 先月</div>
+      </div>
+    </div>
+
+    <div class="section-title">売上ランキング TOP5</div>
+    <div class="ranking-list">
+      <div class="ranking-item">
+        <div class="ranking-pos gold">1</div>
+        <div class="ranking-info"><div class="name">M01-B01 ちいかわ ぬいぐるみ</div><div class="sub">バズクレ4 / 出率12.5%</div></div>
+        <div class="ranking-amount">¥61,200</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-pos silver">2</div>
+        <div class="ranking-info"><div class="name">M03-B02 推しの子 アクスタ</div><div class="sub">セサミW / 出率8.3%</div></div>
+        <div class="ranking-amount">¥42,800</div>
+      </div>
+      <div class="ranking-item">
+        <div class="ranking-pos bronze">3</div>
+        <div class="ranking-info"><div class="name">M02-B01 ワンピース フィギュア</div><div class="sub">バズスリム / 出率15.2%</div></div>
+        <div class="ranking-amount">¥38,500</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理タブ -->
+  <div id="tab-admin" class="page">
+    <div class="page-header">
+      <div class="page-title">管理</div>
+      <div class="page-subtitle">マスタデータ・各種設定</div>
+    </div>
+
+    <div class="section-title">マスタ管理</div>
+    <div class="admin-menu">
+      <div class="admin-item">
+        <div class="admin-icon">🏪</div>
+        <div class="admin-text"><div class="title">店舗管理</div><div class="desc">店舗の追加・編集・契約率設定</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+      <div class="admin-item">
+        <div class="admin-icon">🎰</div>
+        <div class="admin-text"><div class="title">機械管理</div><div class="desc">機械の追加・ブース自動生成</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+      <div class="admin-item">
+        <div class="admin-icon">🎁</div>
+        <div class="admin-text"><div class="title">景品管理</div><div class="desc">景品マスタ・発注・在庫</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="section-title">データ</div>
+    <div class="admin-menu">
+      <div class="admin-item">
+        <div class="admin-icon">🔍</div>
+        <div class="admin-text"><div class="title">データ検索</div><div class="desc">過去の入力データを検索・修正</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+      <div class="admin-item">
+        <div class="admin-icon">📄</div>
+        <div class="admin-text"><div class="title">集金帳票</div><div class="desc">集金記録のインポート・出力</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+      <div class="admin-item">
+        <div class="admin-icon">📊</div>
+        <div class="admin-text"><div class="title">月次レポート</div><div class="desc">店舗別・機械別の月次集計</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+    </div>
+
+    <div class="section-title">ツール</div>
+    <div class="admin-menu">
+      <div class="admin-item">
+        <div class="admin-icon">📷</div>
+        <div class="admin-text"><div class="title">QRスキャン</div><div class="desc">ブースQRで直接入力画面へ</div></div>
+        <div class="admin-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下部タブバー -->
+  <div class="tab-bar">
+    <button class="active" onclick="switchTab('input')">
+      <span class="icon">✏️</span>入力
+    </button>
+    <button onclick="switchTab('dashboard')">
+      <span class="icon">📊</span>ダッシュボード
+    </button>
+    <button onclick="switchTab('admin')">
+      <span class="icon">⚙️</span>管理
+    </button>
+  </div>
+</div>
+
+</div><!-- mockup-body -->
+
+<script>
+function showView(view) {
+  document.getElementById('view-analysis').style.display = view === 'analysis' ? 'block' : 'none';
+  document.getElementById('view-new').style.display = view === 'new' ? 'block' : 'none';
+  document.querySelectorAll('.mockup-toggle button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  // Fix: if switching views, make sure buttons get correct state
+  const buttons = document.querySelectorAll('.mockup-toggle button');
+  buttons.forEach(b => {
+    if (view === 'analysis' && b.textContent.includes('問題')) b.classList.add('active');
+    if (view === 'new' && b.textContent.includes('v2')) b.classList.add('active');
+  });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  event.target.closest('button').classList.add('active');
+}
+
+// 設定値のタップで展開/非展開のデモ
+document.querySelectorAll('.sub-field.setting').forEach(el => {
+  el.addEventListener('click', () => {
+    el.style.opacity = '1';
+    el.querySelector('input').focus();
+  });
+});
+
+// store chip click
+document.querySelectorAll('.store-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.parentElement.querySelectorAll('.store-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+
+// machine tab click
+document.querySelectorAll('.machine-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    tab.parentElement.querySelectorAll('.machine-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

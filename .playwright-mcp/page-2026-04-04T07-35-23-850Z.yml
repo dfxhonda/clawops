@@ -1,0 +1,191 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e15] [cursor=pointer]:
+    - generic [ref=e16]: カート
+    - generic [ref=e17]: "5"
+    - generic [ref=e18]: 223,454円
+  - generic [ref=e20]:
+    - generic [ref=e22]:
+      - img [ref=e24]
+      - link [ref=e26] [cursor=pointer]:
+        - /url: https://prize-house.com/
+        - img [ref=e27]
+    - generic [ref=e28]:
+      - img [ref=e30]
+      - img [ref=e32]
+    - generic [ref=e33]:
+      - img [ref=e36] [cursor=pointer]
+      - img [ref=e58] [cursor=pointer]
+      - img [ref=e71] [cursor=pointer]
+      - img [ref=e80] [cursor=pointer]
+      - img [ref=e92] [cursor=pointer]
+    - generic [ref=e99]:
+      - generic [ref=e100]: news
+      - generic [ref=e101]: お知らせ
+      - generic [ref=e102]: 2026.3.25.Wed
+      - generic [ref=e103]: お疲れ様ですm(__)m いつも景品フォームをご利用頂き、誠にありがとうございます！！！ 各社メーカー商品の今月のいちおし商品をご案内しております。 毎月2回更新していきますので、ご確認宜しくお願いします。 次回は、4月9日（木曜日）に発表致します！ （注意)商品を押した際に表示しない商品は完売となります。
+    - generic [ref=e104]:
+      - generic [ref=e105]: spot item -KEIHIN FORM-
+      - generic [ref=e106]: 各社メーカーいちおし商品のご案内
+      - generic [ref=e107]:
+        - generic [ref=e108] [cursor=pointer]:
+          - text: 1番
+          - img "画像エラー" [ref=e111]
+          - generic [ref=e113]:
+            - generic [ref=e114]: 商品名
+            - generic [ref=e115]: サンリオふにゅまるラバークリップ【約5×5×2㎝】
+        - generic [ref=e116] [cursor=pointer]:
+          - text: 2番
+          - img "画像エラー" [ref=e119]
+          - generic [ref=e121]:
+            - generic [ref=e122]: 商品名
+            - generic [ref=e123]: 【8月先行品：4/19〆切】スロットマシンバンク GOLD RUSH 64入(ハーフ/クォーター+1000円)【サイズ:約22.5cm カラーパッケージ入】
+        - generic [ref=e124] [cursor=pointer]:
+          - text: 3番
+          - img "画像エラー" [ref=e127]
+          - generic [ref=e129]:
+            - generic [ref=e130]: 商品名
+            - generic [ref=e131]: アンパンマンフェイスクッション８種【商品サイズ 商品毎にことなります】【PKG タグのみ】
+        - generic [ref=e132] [cursor=pointer]:
+          - text: 4番
+          - img "画像エラー" [ref=e135]
+          - generic [ref=e137]:
+            - generic [ref=e138]: 商品名
+            - generic [ref=e139]: 4月中旬納期 6種 ピクミンテラリウムコレクション2 シークレットBOX入 約H80×W140×D80mm
+        - generic [ref=e140] [cursor=pointer]:
+          - text: 5番
+          - img "画像エラー" [ref=e143]
+          - generic [ref=e145]:
+            - generic [ref=e146]: 商品名
+            - generic [ref=e147]: real enjoy ホイップサンドウィッチスクイーズ 【商品サイズ】H9.8×W5.5×D5.8cm
+        - generic [ref=e148] [cursor=pointer]:
+          - text: 6番
+          - img "画像エラー" [ref=e151]
+          - generic [ref=e153]:
+            - generic [ref=e154]: 商品名
+            - generic [ref=e155]: 名探偵プリキュア！２Ｐタンブラーセット【商品サイズ：縦9.5cm×横14.5cm×幅7cm】
+        - generic [ref=e156] [cursor=pointer]:
+          - text: 7番
+          - img "画像エラー" [ref=e159]
+          - generic [ref=e161]:
+            - generic [ref=e162]: 商品名
+            - generic [ref=e163]: 極とろスクイーズ８種アソート(48入) パッケージサイズ：約直径15㎝
+        - generic [ref=e164] [cursor=pointer]:
+          - text: 8番
+          - img "画像エラー" [ref=e167]
+          - generic [ref=e169]:
+            - generic [ref=e170]: 商品名
+            - generic [ref=e171]: BRINGGREEN FRESH BOWL PACK 4種アソート（送品サイズ：約5.6×5.6×1.5㎝））
+        - generic [ref=e172] [cursor=pointer]:
+          - text: 9番
+          - img "画像エラー" [ref=e175]
+          - generic [ref=e177]:
+            - generic [ref=e178]: 商品名
+            - generic [ref=e179]: ナルト ゆらゆらヘッド 商品サイズ11.5×16×9cm ウィンドウBOX
+          - text: 受付停止
+        - generic [ref=e180] [cursor=pointer]:
+          - text: 10番
+          - img "画像エラー" [ref=e183]
+          - generic [ref=e185]:
+            - generic [ref=e186]: 商品名
+            - generic [ref=e187]: 金運爆上げ！ゴールデンぶた貯金箱BIG【商品サイズ:約160×170×19㎜】○
+        - generic [ref=e188] [cursor=pointer]:
+          - text: 11番
+          - img "画像エラー" [ref=e191]
+          - generic [ref=e193]:
+            - generic [ref=e194]: 商品名
+            - generic [ref=e195]: プレミアム延べ棒カウントバンク【ブリスターBOX入り】【BOXサイズ：約H10*W28*D12cm】【商品サイズ：H8*W27.5*D11.8cm】
+        - generic [ref=e196] [cursor=pointer]:
+          - text: 12番
+          - img "画像エラー" [ref=e199]
+          - generic [ref=e201]:
+            - generic [ref=e202]: 商品名
+            - generic [ref=e203]: くまモンのミニバスタオル PKサイズ：約W27×H24×D2㎝ 2種均等 安心安全の日本製！しかもタオルの名産地愛媛県今治産です！
+        - generic [ref=e204] [cursor=pointer]:
+          - text: 13番
+          - img "画像エラー" [ref=e207]
+          - generic [ref=e209]:
+            - generic [ref=e210]: 商品名
+            - generic [ref=e211]: 折りたたみ式 ｷｬﾘｰﾜｺﾞﾝ【パッケージPP サイズ：約51*14*37ｃｍ】※通常送料＋別途送料 （発注数×34000円）折りたたみ式 キャリーワゴン
+        - generic [ref=e212] [cursor=pointer]:
+          - text: 14番
+          - img "画像エラー" [ref=e215]
+          - generic [ref=e217]:
+            - generic [ref=e218]: 商品名
+            - generic [ref=e219]: 【魔都精兵のスレイブ Fascinity Figure 天花】【全1種】【商品サイズ：約20cm・BOX】
+        - generic [ref=e220] [cursor=pointer]:
+          - text: 15番
+          - img "画像エラー" [ref=e223]
+          - generic [ref=e225]:
+            - generic [ref=e226]: 商品名
+            - generic [ref=e227]: メロメロむにゅっとパンケーキスクイーズ [専用PKG][商品サイズ14*14*4cm]
+        - generic [ref=e228] [cursor=pointer]:
+          - text: 16番
+          - img "画像エラー" [ref=e231]
+          - generic [ref=e233]:
+            - generic [ref=e234]: 商品名
+            - generic [ref=e235]: 【シュリンクパック】コストコ農心 辛ラーメン1種10個入AS※通常送料＋別途送料 （発注数×３０００円）
+        - generic [ref=e236] [cursor=pointer]:
+          - text: 17番
+          - img "画像エラー" [ref=e239]
+          - generic [ref=e241]:
+            - generic [ref=e242]: 商品名
+            - generic [ref=e243]: 劇場版「鬼滅の刃」無限城編 無限城カプセル&お菓子キャッチマシン(128635)
+        - generic [ref=e244] [cursor=pointer]:
+          - text: 18番
+          - img "画像エラー" [ref=e247]
+          - generic [ref=e249]:
+            - generic [ref=e250]: 商品名
+            - generic [ref=e251]: ご飯がススム キムチ味 焼きかま
+        - generic [ref=e252] [cursor=pointer]:
+          - text: 19番
+          - img "画像エラー" [ref=e255]
+          - generic [ref=e257]:
+            - generic [ref=e258]: 商品名
+            - generic [ref=e259]: 55488 ★DONALD スプラッシュモップ 【デザインBOX】 【箱サイズ:13.5*59.5*10cm】 【商品サイズ:38*113*11cm】 ※通常運賃+別途送料 （発注数×4800円）
+        - generic [ref=e260] [cursor=pointer]:
+          - text: 20番
+          - img "画像エラー" [ref=e263]
+          - generic [ref=e265]:
+            - generic [ref=e266]: 商品名
+            - generic [ref=e267]: 4/15〆【7月景品mojojojo新シリーズ】商品名:mojojojo ぬいぐるみぽーち【全3種/ぬいぐるみ：幅約14cm/チェーン全長約115cm】【mojojojoがTVで紹介されました！2026年トレンド！】
+        - generic [ref=e268] [cursor=pointer]:
+          - text: 21番
+          - generic [ref=e270]:
+            - img "画像エラー" [ref=e271]
+            - img "画像エラー" [ref=e272]
+            - img "画像エラー" [ref=e273]
+            - img "画像エラー" [ref=e274]
+          - generic [ref=e276]:
+            - generic [ref=e277]: 商品名
+            - generic [ref=e278]: 紙パック６点セット（ネクターピーチ、りんご、ザクロ、ブルーベリーミックス、乳酸菌、ミルクコーヒー）各３ケース １セット１８ケース
+          - text: 受付停止
+        - generic [ref=e279] [cursor=pointer]:
+          - text: 22番
+          - img "画像エラー" [ref=e282]
+          - generic [ref=e284]:
+            - generic [ref=e285]: 商品名
+            - generic [ref=e286]: サンリオミニミニバニティポーチ カオハナシリーズ 約11*8*8ｃｍ
+        - generic [ref=e287] [cursor=pointer]:
+          - text: 23番
+          - img "画像エラー" [ref=e290]
+          - generic [ref=e292]:
+            - generic [ref=e293]: 商品名
+            - generic [ref=e294]: 【おススメ】サミュエルトゥインクルシール Ver2【商品ｻｲｽﾞ:H228×W108㎜】【240入/6種台紙】
+        - generic [ref=e295] [cursor=pointer]:
+          - text: 24番
+          - generic [ref=e297]:
+            - img "画像エラー" [ref=e298]
+            - img "画像エラー" [ref=e299]
+            - img "画像エラー" [ref=e300]
+            - img "画像エラー" [ref=e301]
+          - generic [ref=e303]:
+            - generic [ref=e304]: 商品名
+            - generic [ref=e305]: アミューズ用フラッグ 左向き 10円玉専用キャッチャーver（低単価 10円キャッチャー用）（サイズ 500mm×500mm×約700）
+  - text: ID パスワード ユーザー名 担当商品グループ 商品発注時検索カテゴリー メールアドレス 状態 権限 発注操作 発送先 メーカー商品操作 メーカー商品発送先 個別締め伝票月 仕入れ予算管理 売上管理 発注分析 PRIZEHOUSEバナー 備考 アミューズ筐体操作 お気に入り機能 作成者ID 作成者名 発送先名 状態 郵便番号 住所 TEL 仮請求先名 請求先名 メーカー商品発送先連携 発送元 仕入れ予算設定 送料対応地帯名称 ユーザー管理者備考 ID グループ名 表示 ID セールス項目名 絞込検索 設定 順位 ID 画像 商品名
+  - text: 状態 商品画像 商品コード 商品名 管理者 登録日 更新日 発注締切日 納期 在庫数 単価(税別) 単価原価(税別) 入数 価格(税別) 仕入(税別) カテゴリー ジャンル 管理者用備考 状態 商品画像 商品コード 商品名 管理者 登録日 更新日 発注締切日 納期 在庫数 単価(税別) 単価原価(税別) 入数 価格(税別) 仕入(税別) カテゴリー ジャンル 管理者用備考 整理ID カート番号 発送 出荷日 受注日時 発注者 発送先 商品コード 仕入先 単価(税別) 単価原価(税別) 入数 受注数 合計金額(税別) 仕入合計金額(税別) 合計金額(税込) 仕入合計金額(税込) 発送状況 伝票月 商品管理者 整理ID カート番号 発注者 商品コード 仕入先 単価(税別) 単価原価(税別) 入数 受注数 合計金額(税別) 仕入合計金額(税別) 合計金額(税込) 仕入合計金額(税込) 送料(税別) 送料(税込) 送料原価(税別) 送料原価(税込) 商品管理者 内容 整理ID カート番号 発注者 請求先 商品コード 単価(税別) 入数 受注数 合計金額(税別) 合計金額(税込) 発送状況 納期 発注者確認 整理ID 商品コード 仕入先 単価(税別) 単価原価(税別) 入数 入庫数 合計金額(税別) 仕入合計金額(税別) 合計金額(税込) 仕入合計金額(税込) 備考 商品管理者
+  - generic [ref=e306]:
+    - link:
+      - /url: "#"
+    - generic [ref=e308]:
+      - generic [ref=e309]: KEIHIN FORM
+      - generic [ref=e310]: ©Copyright FIVE all right reserved.

@@ -1,0 +1,50 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "🏠" [ref=e3] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=e4]: 📬 景品案内
+    - generic [ref=e5]: 読込中...
+    - button "+ 案内を追加" [ref=e6] [cursor=pointer]
+    - button "ログアウト" [ref=e7] [cursor=pointer]
+  - generic [ref=e8]:
+    - textbox "景品名で検索..." [ref=e9]
+    - combobox [ref=e11]:
+      - option "仕入先：全て" [selected]
+    - combobox [ref=e12]:
+      - option "状態：全て" [selected]
+      - option "未読"
+      - option "興味あり"
+      - option "発注済"
+      - option "既読"
+    - button "クリア" [ref=e13] [cursor=pointer]
+  - generic [ref=e14]:
+    - generic [ref=e16]:
+      - generic [ref=e17]: ⏳
+      - text: 読み込み中...
+    - generic [ref=e19]:
+      - generic [ref=e20]: 👈
+      - text: 左のリストから選択
+  - navigation [ref=e24]:
+    - link "🏠 ホーム" [ref=e25] [cursor=pointer]:
+      - /url: index.html
+      - generic [ref=e26]: 🏠
+      - generic [ref=e27]: ホーム
+    - link "🏆 景品" [ref=e28] [cursor=pointer]:
+      - /url: prizes.html
+      - generic [ref=e29]: 🏆
+      - generic [ref=e30]: 景品
+    - link "📋 発注" [ref=e31] [cursor=pointer]:
+      - /url: orders.html
+      - generic [ref=e32]: 📋
+      - generic [ref=e33]: 発注
+    - link "📦 在庫" [ref=e34] [cursor=pointer]:
+      - /url: inventory.html
+      - generic [ref=e35]: 📦
+      - generic [ref=e36]: 在庫
+    - generic [ref=e37] [cursor=pointer]:
+      - generic [ref=e38]: 📬
+      - generic [ref=e39]: 案内
+    - link "⚙️ 管理" [ref=e40] [cursor=pointer]:
+      - /url: admin.html
+      - generic [ref=e41]: ⚙️
+      - generic [ref=e42]: 管理

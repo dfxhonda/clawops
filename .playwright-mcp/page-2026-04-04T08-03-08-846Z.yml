@@ -1,0 +1,17 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "‹" [ref=e3] [cursor=pointer]:
+      - /url: admin.html
+    - heading "景品フォーム取込" [level=1] [ref=e4]
+    - generic [ref=e5]: "-"
+    - button "ログアウト" [ref=e6] [cursor=pointer]
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - heading "データ取込" [level=2] [ref=e9]
+      - generic [ref=e10]:
+        - button "最新データ取込" [ref=e11] [cursor=pointer]
+        - button "画像付き取込" [ref=e12] [cursor=pointer]
+    - generic [ref=e13]:
+      - heading "過去画像の取得" [level=2] [ref=e14]
+      - paragraph [ref=e15]: 未取得の過去画像を少しずつダウンロードします（1回20枚ずつ）
+      - button "過去画像を取得" [ref=e17] [cursor=pointer]

@@ -1,0 +1,27 @@
+- generic [ref=e1]:
+  - generic [ref=e2]: 🎮
+  - heading "ClawOps" [level=1] [ref=e3]
+  - paragraph [ref=e4]: クレーンゲーム運営管理
+  - generic [ref=e5]:
+    - heading "ログイン" [level=2] [ref=e6]
+    - generic [ref=e7]:
+      - generic [ref=e8]: スタッフ名
+      - combobox [ref=e9]:
+        - option "-- 選択してください --"
+        - option "テスト三郎"
+        - option "テスト太郎"
+        - option "テスト次郎"
+        - option "中島"
+        - option "吉井"
+        - option "坂本(嫁)"
+        - option "坂本(社長)"
+        - option "堤"
+        - option "塩川"
+        - option "本田" [selected]
+        - option "武田"
+    - generic [ref=e15]:
+      - generic [ref=e16]: 暗証番号
+      - textbox "暗証番号を入力" [active] [ref=e17]
+    - button "ログイン" [ref=e10] [cursor=pointer]
+    - button "ログインせず使う" [ref=e11] [cursor=pointer]
+  - generic [ref=e13]: ClawOps v1.0

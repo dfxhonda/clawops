@@ -1,0 +1,13 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "‹" [ref=e3] [cursor=pointer]:
+      - /url: index.html
+    - heading "📊 売上分析" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - combobox [ref=e7]:
+        - option "全店舗" [selected]
+      - textbox [ref=e8]
+      - generic [ref=e9]: 〜
+      - textbox [ref=e10]
+    - generic [ref=e12]: 読み込み中...

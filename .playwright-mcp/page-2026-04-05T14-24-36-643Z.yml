@@ -1,0 +1,59 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "🏠" [ref=e3] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=e4]: 🏆 景品マスタ
+    - generic [ref=e5]: 読込中…
+    - button "＋ 新しい景品を追加" [ref=e6] [cursor=pointer]
+    - button "ログアウト" [ref=e7] [cursor=pointer]
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic: 🔍
+      - searchbox "景品名・別名で検索..." [ref=e10]
+    - combobox [ref=e12] [cursor=pointer]:
+      - option "すべて" [selected]
+      - option "Active"
+      - option "仮登録"
+      - option "停止中"
+    - combobox [ref=e14] [cursor=pointer]:
+      - option "在庫：全て" [selected]
+      - option "在庫あり"
+      - option "在庫なし"
+    - combobox [ref=e16] [cursor=pointer]:
+      - option "仕入先：全て" [selected]
+    - generic [ref=e19]: 発注日
+    - textbox [ref=e20] [cursor=pointer]
+    - generic [ref=e21]: 〜
+    - textbox [ref=e22] [cursor=pointer]
+    - button "✕ 検索をクリア" [ref=e23] [cursor=pointer]
+  - generic [ref=e24]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: ⏳
+      - text: 読み込み中...
+    - generic [ref=e29]:
+      - generic [ref=e30]: 👈
+      - generic [ref=e31]: 景品を選択してください
+  - navigation [ref=e34]:
+    - link "🏠 ホーム" [ref=e35] [cursor=pointer]:
+      - /url: index.html
+      - generic [ref=e36]: 🏠
+      - generic [ref=e37]: ホーム
+    - generic [ref=e38] [cursor=pointer]:
+      - generic [ref=e39]: 🏆
+      - generic [ref=e40]: 景品
+    - link "📋 発注" [ref=e41] [cursor=pointer]:
+      - /url: orders.html
+      - generic [ref=e42]: 📋
+      - generic [ref=e43]: 発注
+    - link "📦 在庫" [ref=e44] [cursor=pointer]:
+      - /url: inventory.html
+      - generic [ref=e45]: 📦
+      - generic [ref=e46]: 在庫
+    - link "📬 案内" [ref=e47] [cursor=pointer]:
+      - /url: announcements.html
+      - generic [ref=e48]: 📬
+      - generic [ref=e49]: 案内
+    - link "⚙️ 管理" [ref=e50] [cursor=pointer]:
+      - /url: admin.html
+      - generic [ref=e51]: ⚙️
+      - generic [ref=e52]: 管理

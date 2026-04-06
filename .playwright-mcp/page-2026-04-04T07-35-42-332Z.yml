@@ -1,0 +1,2741 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e11]:
+    - generic [ref=e14]: 発注履歴
+    - generic [ref=e15] [cursor=pointer]:
+      - generic [ref=e16]: カート
+      - generic [ref=e17]: "5"
+      - generic [ref=e18]: 223,454円
+  - text: 1番 2番 3番 4番 5番 6番 7番 8番 9番 受付停止 10番 11番 12番 13番 14番 15番 16番 17番 18番 19番 20番 21番 受付停止 22番 23番 24番 ID パスワード ユーザー名 担当商品グループ 商品発注時検索カテゴリー メールアドレス 状態 権限 発注操作 発送先 メーカー商品操作 メーカー商品発送先 個別締め伝票月 仕入れ予算管理 売上管理 発注分析 PRIZEHOUSEバナー 備考 アミューズ筐体操作 お気に入り機能 作成者ID 作成者名 発送先名 状態 郵便番号 住所 TEL 仮請求先名 請求先名 メーカー商品発送先連携 発送元 仕入れ予算設定 送料対応地帯名称 ユーザー管理者備考 ID グループ名 表示 ID セールス項目名 絞込検索 設定 順位 ID 画像 商品名
+  - generic [ref=e312]:
+    - generic [ref=e315]:
+      - generic [ref=e317]: 伝票月：
+      - generic [ref=e318]: 2026年04月
+    - generic [ref=e321] [cursor=pointer]: 景品フォーム
+    - generic [ref=e322]:
+      - generic [ref=e323]: 【景品フォーム発注履歴】
+      - generic [ref=e324]:
+        - generic [ref=e325]:
+          - text: 表示請求先：
+          - combobox [ref=e326]:
+            - option "全て" [selected]
+            - option "【フォロー】株式会社change（旧achieve）"
+        - generic [ref=e327]:
+          - text: カテゴリー：
+          - combobox [ref=e328]:
+            - option "全て" [selected]
+            - option "オススメ商品"
+            - option "メーカー"
+            - option "即納"
+            - option "大型機用"
+            - option "小型機用"
+            - option "特価品"
+            - option "ぬいぐるみ"
+            - option "お菓子"
+            - option "電子商品"
+            - option "備品"
+            - option "クォーター"
+            - option "超 即納"
+            - option "ラクチャレキュート景品"
+            - option "ラクチャレW景品（上部）"
+            - option "大特価セール品"
+            - option "パーツ（部品）"
+            - option "送料無料（ハーフ別途料金）北海道・沖縄・離島除く"
+            - option "食品"
+            - option "低額キャッチャー景品"
+            - option "フィギュア"
+            - option "SNS・流行り物"
+            - option "日用品"
+            - option "10円キャッチャー"
+            - option "台湾キャッチャー"
+            - option "飲料類"
+            - option "明日出荷（土日祝除く）"
+            - option "インスタント食品"
+            - option "レトルト食品"
+            - option "冷凍食品"
+            - option "おもちゃ"
+            - option "生活雑貨"
+        - textbox "キーワードを入力" [ref=e330]
+        - generic [ref=e332]: 無効店舗表示
+        - generic [ref=e334]: 他アカウントの同請求先も表示
+        - generic [ref=e335]:
+          - generic [ref=e336]: 発送途中伝票：
+          - combobox [ref=e337]:
+            - option "表示" [selected]
+            - option "非表示"
+        - combobox [ref=e339]:
+          - option "発注日時順" [selected]
+          - option "整理ID順"
+          - option "発送先順"
+          - option "出荷日順"
+        - combobox [ref=e341]:
+          - option "降順" [selected]
+          - option "昇順"
+        - generic [ref=e342] [cursor=pointer]: 履歴集計表示
+        - generic [ref=e343] [cursor=pointer]: 出力選択
+      - generic [ref=e345]:
+        - text: 整理ID カート番号 発送 出荷日 発注日時 発注者 請求先 商品コード 単価(税別) 入数 受注数 合計金額(税別) 合計金額(税込) 送料(税別) 発送状況 納期 発注者確認 賞味期限
+        - generic [ref=e346]:
+          - generic [ref=e347]:
+            - img "画像エラー" [ref=e349]
+            - generic [ref=e350]: 整理ID 1586031
+            - generic [ref=e351]: カート番号 169990
+            - generic [ref=e352]:
+              - text: 発送
+              - generic [ref=e353]: 準備中
+            - generic [ref=e354]:
+              - text: 出荷日
+              - generic [ref=e355]: 未設定
+            - generic [ref=e356]: 発注日時 2026-03-31 21:40
+            - generic [ref=e357]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e358]: 株式会社change
+            - generic [ref=e359]:
+              - text: 請求先
+              - generic [ref=e360]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e361]: 商品コード WF698
+            - generic [ref=e362]: ハローキティ着物ぬいぐるみマスコット 約12*5.5*7.5㎝
+            - generic [ref=e363]:
+              - text: 単価(税別)
+              - generic [ref=e364]: 1,000円
+            - generic [ref=e365]: 入数 36
+            - generic [ref=e366]: 受注数 4 箱
+            - generic [ref=e367]: 合計金額(税別) 144,000円
+            - generic [ref=e368]: 合計金額(税込) 158,400円
+            - generic [ref=e369]: 送料(税別) 0円
+            - generic [ref=e370]: 発送状況 発注受付
+            - generic [ref=e371]: 納期 2026年04月 即納です
+            - generic [ref=e372]:
+              - generic [ref=e373]: 即納
+              - generic [ref=e374]: ぬいぐるみ
+              - generic [ref=e375]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e376]:
+              - text: 発注者確認
+              - generic [ref=e378]: 納品前
+            - text: 賞味期限
+          - generic [ref=e379]:
+            - img "画像エラー" [ref=e381]
+            - generic [ref=e382]: 整理ID 1586029
+            - generic [ref=e383]: カート番号 169989
+            - generic [ref=e384]:
+              - text: 発送
+              - generic [ref=e385]: 準備中
+            - generic [ref=e386]:
+              - text: 出荷日
+              - generic [ref=e387]: 未設定
+            - generic [ref=e388]: 発注日時 2026-03-31 21:39
+            - generic [ref=e389]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e390]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e391]:
+              - text: 請求先
+              - generic [ref=e392]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e393]: 商品コード WF698
+            - generic [ref=e394]: ハローキティ着物ぬいぐるみマスコット 約12*5.5*7.5㎝
+            - generic [ref=e395]:
+              - text: 単価(税別)
+              - generic [ref=e396]: 1,000円
+            - generic [ref=e397]: 入数 36
+            - generic [ref=e398]: 受注数 1 箱
+            - generic [ref=e399]: 合計金額(税別) 36,000円
+            - generic [ref=e400]: 合計金額(税込) 39,600円
+            - generic [ref=e401]: 送料(税別) 0円
+            - generic [ref=e402]: 発送状況 発注受付
+            - generic [ref=e403]: 納期 2026年04月 即納です
+            - generic [ref=e404]:
+              - generic [ref=e405]: 即納
+              - generic [ref=e406]: ぬいぐるみ
+              - generic [ref=e407]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e408]:
+              - text: 発注者確認
+              - generic [ref=e410]: 納品前
+            - text: 賞味期限
+          - generic [ref=e411]:
+            - img "画像エラー" [ref=e413]
+            - generic [ref=e414]: 整理ID 1586028
+            - generic [ref=e415]: カート番号 169989
+            - generic [ref=e416]:
+              - text: 発送
+              - generic [ref=e417]: 準備中
+            - generic [ref=e418]:
+              - text: 出荷日
+              - generic [ref=e419]: 未設定
+            - generic [ref=e420]: 発注日時 2026-03-31 21:39
+            - generic [ref=e421]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e422]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e423]:
+              - text: 請求先
+              - generic [ref=e424]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e425]: 商品コード KH884
+            - generic [ref=e426]: もっちりリアルドーナツスクイーズ【商品サイズ：約5.5cm】
+            - generic [ref=e427]:
+              - text: 単価(税別)
+              - generic [ref=e428]: 95円
+            - generic [ref=e429]: 入数 384
+            - generic [ref=e430]: 受注数 1 箱
+            - generic [ref=e431]: 合計金額(税別) 36,480円
+            - generic [ref=e432]: 合計金額(税込) 40,128円
+            - generic [ref=e433]: 送料(税別) 0円
+            - generic [ref=e434]: 発送状況 発注受付
+            - generic [ref=e435]: 納期 2026年04月 下旬
+            - generic [ref=e436]:
+              - generic [ref=e437]: 小型機用
+              - generic [ref=e438]: ラクチャレキュート景品
+              - generic [ref=e439]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e440]:
+              - text: 発注者確認
+              - generic [ref=e442]: 納品前
+            - text: 賞味期限
+          - generic [ref=e443]:
+            - img "画像エラー" [ref=e445]
+            - generic [ref=e446]: 整理ID 1586018
+            - generic [ref=e447]: カート番号 169984
+            - generic [ref=e448]:
+              - text: 発送
+              - generic [ref=e449]: 準備中
+            - generic [ref=e450]:
+              - text: 出荷日
+              - generic [ref=e451]: 未設定
+            - generic [ref=e452]: 発注日時 2026-03-31 21:35
+            - generic [ref=e453]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e454]: 株式会社change 坂本みどり
+            - generic [ref=e455]:
+              - text: 請求先
+              - generic [ref=e456]: 未設定
+            - generic [ref=e457]: 商品コード KH884
+            - generic [ref=e458]: もっちりリアルドーナツスクイーズ【商品サイズ：約5.5cm】
+            - generic [ref=e459]:
+              - text: 単価(税別)
+              - generic [ref=e460]: 95円
+            - generic [ref=e461]: 入数 384
+            - generic [ref=e462]: 受注数 1 箱
+            - generic [ref=e463]: 合計金額(税別) 36,480円
+            - generic [ref=e464]: 合計金額(税込) 40,128円
+            - generic [ref=e465]: 送料(税別) 0円
+            - generic [ref=e466]: 発送状況 発注受付
+            - generic [ref=e467]: 納期 2026年04月 下旬
+            - generic [ref=e468]:
+              - generic [ref=e469]: 小型機用
+              - generic [ref=e470]: ラクチャレキュート景品
+              - generic [ref=e471]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e472]:
+              - text: 発注者確認
+              - generic [ref=e474]: 納品前
+            - text: 賞味期限
+          - generic [ref=e475]:
+            - img "画像エラー" [ref=e477]
+            - generic [ref=e478]: 整理ID 1586015
+            - generic [ref=e479]: カート番号 169984
+            - generic [ref=e480]:
+              - text: 発送
+              - generic [ref=e481]: 準備中
+            - generic [ref=e482]:
+              - text: 出荷日
+              - generic [ref=e483]: 未設定
+            - generic [ref=e484]: 発注日時 2026-03-31 21:35
+            - generic [ref=e485]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e486]: 株式会社change 坂本みどり
+            - generic [ref=e487]:
+              - text: 請求先
+              - generic [ref=e488]: 未設定
+            - generic [ref=e489]: 商品コード WF698
+            - generic [ref=e490]: ハローキティ着物ぬいぐるみマスコット 約12*5.5*7.5㎝
+            - generic [ref=e491]:
+              - text: 単価(税別)
+              - generic [ref=e492]: 1,000円
+            - generic [ref=e493]: 入数 36
+            - generic [ref=e494]: 受注数 2 箱
+            - generic [ref=e495]: 合計金額(税別) 72,000円
+            - generic [ref=e496]: 合計金額(税込) 79,200円
+            - generic [ref=e497]: 送料(税別) 0円
+            - generic [ref=e498]: 発送状況 発注受付
+            - generic [ref=e499]: 納期 2026年04月 即納です
+            - generic [ref=e500]:
+              - generic [ref=e501]: 即納
+              - generic [ref=e502]: ぬいぐるみ
+              - generic [ref=e503]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e504]:
+              - text: 発注者確認
+              - generic [ref=e506]: 納品前
+            - text: 賞味期限
+          - generic [ref=e507]:
+            - img "画像エラー" [ref=e509]
+            - generic [ref=e510]: 整理ID 1585767
+            - generic [ref=e511]: カート番号 169770
+            - generic [ref=e512]:
+              - text: 発送
+              - generic [ref=e513]: 発送完了
+            - generic [ref=e514]:
+              - text: 出荷日
+              - generic [ref=e515]: 2026-04-01
+            - generic [ref=e516]: 発注日時 2026-03-31 21:26
+            - generic [ref=e517]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e518]: 株式会社change
+            - generic [ref=e519]:
+              - text: 請求先
+              - generic [ref=e520]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e521]: 商品コード WC868
+            - generic [ref=e522]: 即納 ベネリック サンリオキャラクターズ PRICE ばんそうこうキーホルダー2 300円
+            - generic [ref=e523]:
+              - text: 単価(税別)
+              - generic [ref=e524]: 180円
+            - generic [ref=e525]: 入数 40
+            - generic [ref=e526]: 受注数 2 袋
+            - generic [ref=e527]: 合計金額(税別) 14,400円
+            - generic [ref=e528]: 合計金額(税込) 15,840円
+            - generic [ref=e529]: 送料(税別) 0円
+            - generic [ref=e530]: 発送状況 発注受付 ￥高 同梱
+            - generic [ref=e531]: 納期 2026年04月
+            - generic [ref=e532]:
+              - generic [ref=e533]: ガチャ景品
+              - generic [ref=e534]: 超即納（おもちゃ）
+              - generic [ref=e535]: 超即納（ガチャ）
+            - generic [ref=e536]:
+              - text: 発注者確認
+              - combobox [ref=e538]:
+                - option "納品前" [selected]
+                - option "納品完了"
+                - option "品出し完了"
+            - text: 賞味期限
+          - generic [ref=e539]:
+            - img "画像エラー" [ref=e541]
+            - generic [ref=e542]: 整理ID 1585751
+            - generic [ref=e543]: カート番号 169770
+            - generic [ref=e544]:
+              - text: 発送
+              - generic [ref=e545]: 発送完了
+            - generic [ref=e546]:
+              - text: 出荷日
+              - generic [ref=e547]: 2026-04-01
+            - generic [ref=e548]: 発注日時 2026-03-31 21:26
+            - generic [ref=e549]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e550]: 株式会社change
+            - generic [ref=e551]:
+              - text: 請求先
+              - generic [ref=e552]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e553]: 商品コード WC869
+            - generic [ref=e554]: 即納 アミューズ不可 バンダイ それいけ！アンパンマン キャラレールNEW4 300円
+            - generic [ref=e555]:
+              - text: 単価(税別)
+              - generic [ref=e556]: 180円
+            - generic [ref=e557]: 入数 40
+            - generic [ref=e558]: 受注数 2 袋
+            - generic [ref=e559]: 合計金額(税別) 14,400円
+            - generic [ref=e560]: 合計金額(税込) 15,840円
+            - generic [ref=e561]: 送料(税別) 0円
+            - generic [ref=e562]: 発送状況 発注受付 ￥高 同梱
+            - generic [ref=e563]: 納期 2026年04月
+            - generic [ref=e564]:
+              - generic [ref=e565]: ガチャ景品
+              - generic [ref=e566]: 超即納（おもちゃ）
+              - generic [ref=e567]: 超即納（ガチャ）
+            - generic [ref=e568]:
+              - text: 発注者確認
+              - combobox [ref=e570]:
+                - option "納品前" [selected]
+                - option "納品完了"
+                - option "品出し完了"
+            - text: 賞味期限
+          - generic [ref=e571]:
+            - img "画像エラー" [ref=e573]
+            - generic [ref=e574]: 整理ID 1583630
+            - generic [ref=e575]: カート番号 169770
+            - generic [ref=e576]:
+              - text: 発送
+              - generic [ref=e577]: 準備中
+            - generic [ref=e578]:
+              - text: 出荷日
+              - generic [ref=e579]: 未設定
+            - generic [ref=e580]: 発注日時 2026-03-31 21:26
+            - generic [ref=e581]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e582]: 株式会社change
+            - generic [ref=e583]:
+              - text: 請求先
+              - generic [ref=e584]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e585]: 商品コード VK854
+            - generic [ref=e586]: OC-001 サミュエルぷっくりステッカー
+            - generic [ref=e587]:
+              - text: 単価(税別)
+              - generic [ref=e588]: 198円
+            - generic [ref=e589]: 入数 288
+            - generic [ref=e590]: 受注数 1 箱
+            - generic [ref=e591]: 合計金額(税別) 57,024円
+            - generic [ref=e592]: 合計金額(税込) 62,726円
+            - generic [ref=e593]: 送料(税別) 0円
+            - generic [ref=e594]: 発送状況 発注受付 4/1手配済
+            - generic [ref=e595]: 納期 2026年04月 下～末
+            - generic [ref=e596]:
+              - generic [ref=e597]: オススメ商品
+              - generic [ref=e598]: SNS・流行り物
+            - generic [ref=e599]:
+              - text: 発注者確認
+              - generic [ref=e601]: 納品前
+            - text: 賞味期限
+          - generic [ref=e602]:
+            - img "画像エラー" [ref=e604]
+            - generic [ref=e605]: 整理ID 1585771
+            - generic [ref=e606]: カート番号 169770
+            - generic [ref=e607]:
+              - text: 発送
+              - generic [ref=e608]: 発送完了
+            - generic [ref=e609]:
+              - text: 出荷日
+              - generic [ref=e610]: 2026-04-01
+            - generic [ref=e611]: 発注日時 2026-03-31 21:26
+            - generic [ref=e612]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e613]: 株式会社change
+            - generic [ref=e614]:
+              - text: 請求先
+              - generic [ref=e615]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e616]: 商品コード WC870
+            - generic [ref=e617]: 即納 ベネリック サンリオキャラクターズ miniminiラグマット風キーホルダー 400円
+            - generic [ref=e618]:
+              - text: 単価(税別)
+              - generic [ref=e619]: 240円
+            - generic [ref=e620]: 入数 30
+            - generic [ref=e621]: 受注数 2 袋
+            - generic [ref=e622]: 合計金額(税別) 14,400円
+            - generic [ref=e623]: 合計金額(税込) 15,840円
+            - generic [ref=e624]: 送料(税別) 540円
+            - generic [ref=e625]: 発送状況 ￥高
+            - generic [ref=e626]: 納期 2026年03月
+            - generic [ref=e627]:
+              - generic [ref=e628]: ガチャ景品
+              - generic [ref=e629]: 超即納（おもちゃ）
+              - generic [ref=e630]: 超即納（ガチャ）
+            - generic [ref=e631]:
+              - text: 発注者確認
+              - combobox [ref=e633]:
+                - option "納品前" [selected]
+                - option "納品完了"
+                - option "品出し完了"
+            - text: 賞味期限
+          - generic [ref=e634]:
+            - img "画像エラー" [ref=e636]
+            - generic [ref=e637]: 整理ID 1583434
+            - generic [ref=e638]: カート番号 169738
+            - generic [ref=e639]:
+              - text: 発送
+              - generic [ref=e640]: 準備中
+            - generic [ref=e641]:
+              - text: 出荷日
+              - generic [ref=e642]: 未設定
+            - generic [ref=e643]: 発注日時 2026-03-30 22:56
+            - generic [ref=e644]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e645]: 株式会社change 霧島
+            - generic [ref=e646]:
+              - text: 請求先
+              - generic [ref=e647]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e648]: 商品コード WC709
+            - generic [ref=e649]: 原宿バタースクイーズ BIG
+            - generic [ref=e650]:
+              - text: 単価(税別)
+              - generic [ref=e651]: 833円
+            - generic [ref=e652]: 入数 60
+            - generic [ref=e653]: 受注数 1 箱
+            - generic [ref=e654]: 合計金額(税別) 49,980円
+            - generic [ref=e655]: 合計金額(税込) 54,978円
+            - generic [ref=e656]: 送料(税別) 0円
+            - generic [ref=e657]: 発送状況 発注受付完了 4/下
+            - generic [ref=e658]: 納期 2026年05月 中旬
+            - generic [ref=e659]:
+              - generic [ref=e660]: 備品
+              - generic [ref=e661]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e662]:
+              - text: 発注者確認
+              - generic [ref=e664]: 納品前
+            - text: 賞味期限
+          - generic [ref=e665]:
+            - img "画像エラー" [ref=e667]
+            - generic [ref=e668]: 整理ID 1583432
+            - generic [ref=e669]: カート番号 169737
+            - generic [ref=e670]:
+              - text: 発送
+              - generic [ref=e671]: 準備中
+            - generic [ref=e672]:
+              - text: 出荷日
+              - generic [ref=e673]: 未設定
+            - generic [ref=e674]: 発注日時 2026-03-30 22:54
+            - generic [ref=e675]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e676]: 株式会社change
+            - generic [ref=e677]:
+              - text: 請求先
+              - generic [ref=e678]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e679]: 商品コード WC709
+            - generic [ref=e680]: 原宿バタースクイーズ BIG
+            - generic [ref=e681]:
+              - text: 単価(税別)
+              - generic [ref=e682]: 833円
+            - generic [ref=e683]: 入数 60
+            - generic [ref=e684]: 受注数 1 箱
+            - generic [ref=e685]: 合計金額(税別) 49,980円
+            - generic [ref=e686]: 合計金額(税込) 54,978円
+            - generic [ref=e687]: 送料(税別) 0円
+            - generic [ref=e688]: 発送状況 発注受付完了 4/下
+            - generic [ref=e689]: 納期 2026年05月 中旬
+            - generic [ref=e690]:
+              - generic [ref=e691]: 備品
+              - generic [ref=e692]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e693]:
+              - text: 発注者確認
+              - generic [ref=e695]: 納品前
+            - text: 賞味期限
+          - generic [ref=e696]:
+            - img "画像エラー" [ref=e698]
+            - generic [ref=e699]: 整理ID 1583413
+            - generic [ref=e700]: カート番号 169736
+            - generic [ref=e701]:
+              - text: 発送
+              - generic [ref=e702]: 準備中
+            - generic [ref=e703]:
+              - text: 出荷日
+              - generic [ref=e704]: 未設定
+            - generic [ref=e705]: 発注日時 2026-03-30 22:40
+            - generic [ref=e706]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e707]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e708]:
+              - text: 請求先
+              - generic [ref=e709]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e710]: 商品コード KH884
+            - generic [ref=e711]: もっちりリアルドーナツスクイーズ【商品サイズ：約5.5cm】
+            - generic [ref=e712]:
+              - text: 単価(税別)
+              - generic [ref=e713]: 95円
+            - generic [ref=e714]: 入数 384
+            - generic [ref=e715]: 受注数 1 箱
+            - generic [ref=e716]: 合計金額(税別) 36,480円
+            - generic [ref=e717]: 合計金額(税込) 40,128円
+            - generic [ref=e718]: 送料(税別) 0円
+            - generic [ref=e719]: 発送状況 発注受付
+            - generic [ref=e720]: 納期 2026年04月 下旬
+            - generic [ref=e721]:
+              - generic [ref=e722]: 小型機用
+              - generic [ref=e723]: ラクチャレキュート景品
+              - generic [ref=e724]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e725]:
+              - text: 発注者確認
+              - generic [ref=e727]: 納品前
+            - text: 賞味期限
+          - generic [ref=e728]:
+            - img "画像エラー" [ref=e730]
+            - generic [ref=e731]: 整理ID 1583417
+            - generic [ref=e732]: カート番号 169736
+            - generic [ref=e733]:
+              - text: 発送
+              - generic [ref=e734]: 準備中
+            - generic [ref=e735]:
+              - text: 出荷日
+              - generic [ref=e736]: 未設定
+            - generic [ref=e737]: 発注日時 2026-03-30 22:40
+            - generic [ref=e738]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e739]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e740]:
+              - text: 請求先
+              - generic [ref=e741]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e742]: 商品コード VY079
+            - generic [ref=e743]: ズートピア２ 超ドでかっ！もちもちクッション PKサイズ：約W84×H54×D2㎝ PK：圧縮OPP 2種均等
+            - generic [ref=e744]:
+              - text: 単価(税別)
+              - generic [ref=e745]: 1,000円
+              - generic [ref=e746]: "@0円"
+            - generic [ref=e747]: 入数 56
+            - generic [ref=e748]: 受注数 0.5 箱
+            - generic [ref=e749]: 合計金額(税別) 28,000円
+            - generic [ref=e750]: 合計金額(税込) 30,800円
+            - generic [ref=e751]: 送料(税別) 1,000円
+            - generic [ref=e752]: 発送状況 発注受付 4月下旬
+            - generic [ref=e753]: 納期 2026年04月 下旬
+            - generic [ref=e755]: 大型機用
+            - generic [ref=e756]:
+              - text: 発注者確認
+              - generic [ref=e758]: 納品前
+            - text: 賞味期限
+          - generic [ref=e759]:
+            - img "画像エラー" [ref=e761]
+            - generic [ref=e762]: 整理ID 1583419
+            - generic [ref=e763]: カート番号 169736
+            - generic [ref=e764]:
+              - text: 発送
+              - generic [ref=e765]: 準備中
+            - generic [ref=e766]:
+              - text: 出荷日
+              - generic [ref=e767]: 未設定
+            - generic [ref=e768]: 発注日時 2026-03-30 22:40
+            - generic [ref=e769]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e770]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e771]:
+              - text: 請求先
+              - generic [ref=e772]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e773]: 商品コード WC709
+            - generic [ref=e774]: 原宿バタースクイーズ BIG
+            - generic [ref=e775]:
+              - text: 単価(税別)
+              - generic [ref=e776]: 833円
+            - generic [ref=e777]: 入数 60
+            - generic [ref=e778]: 受注数 0.5 箱
+            - generic [ref=e779]: 合計金額(税別) 24,990円
+            - generic [ref=e780]: 合計金額(税込) 27,489円
+            - generic [ref=e781]: 送料(税別) 1,000円
+            - generic [ref=e782]: 発送状況 発注受付完了 4/下
+            - generic [ref=e783]: 納期 2026年05月 中旬
+            - generic [ref=e784]:
+              - generic [ref=e785]: 備品
+              - generic [ref=e786]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e787]:
+              - text: 発注者確認
+              - generic [ref=e789]: 納品前
+            - text: 賞味期限
+          - generic [ref=e790]:
+            - img "画像エラー" [ref=e792]
+            - generic [ref=e793]: 整理ID 1583412
+            - generic [ref=e794]: カート番号 169689
+            - generic [ref=e795]:
+              - text: 発送
+              - generic [ref=e796]: 準備中
+            - generic [ref=e797]:
+              - text: 出荷日
+              - generic [ref=e798]: 未設定
+            - generic [ref=e799]: 発注日時 2026-03-30 22:33
+            - generic [ref=e800]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e801]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e802]:
+              - text: 請求先
+              - generic [ref=e803]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e804]: 商品コード UY634
+            - generic [ref=e805]: ３DミニガイコツBC 商品サイズ7×3×1.7cm OPP入り
+            - generic [ref=e806]:
+              - text: 単価(税別)
+              - generic [ref=e807]: 49円
+            - generic [ref=e808]: 入数 1200
+            - generic [ref=e809]: 受注数 1 箱
+            - generic [ref=e810]: 合計金額(税別) 58,800円
+            - generic [ref=e811]: 合計金額(税込) 64,680円
+            - generic [ref=e812]: 送料(税別) 0円
+            - generic [ref=e813]: 発送状況 ■4月発送
+            - generic [ref=e814]: 納期 2026年04月 下旬
+            - generic [ref=e815]:
+              - generic [ref=e816]: オススメ商品
+              - generic [ref=e817]: 小型機用
+              - generic [ref=e818]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+              - generic [ref=e819]: 低額キャッチャー景品
+              - generic [ref=e820]: SNS・流行り物
+              - generic [ref=e821]: 10円キャッチャー
+            - generic [ref=e822]:
+              - text: 発注者確認
+              - generic [ref=e824]: 納品前
+            - text: 賞味期限
+          - generic [ref=e825]:
+            - img "画像エラー" [ref=e827]
+            - generic [ref=e828]: 整理ID 1583409
+            - generic [ref=e829]: カート番号 169689
+            - generic [ref=e830]:
+              - text: 発送
+              - generic [ref=e831]: 準備中
+            - generic [ref=e832]:
+              - text: 出荷日
+              - generic [ref=e833]: 未設定
+            - generic [ref=e834]: 発注日時 2026-03-30 22:33
+            - generic [ref=e835]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e836]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e837]:
+              - text: 請求先
+              - generic [ref=e838]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e839]: 商品コード WC709
+            - generic [ref=e840]: 原宿バタースクイーズ BIG
+            - generic [ref=e841]:
+              - text: 単価(税別)
+              - generic [ref=e842]: 833円
+            - generic [ref=e843]: 入数 60
+            - generic [ref=e844]: 受注数 0.5 箱
+            - generic [ref=e845]: 合計金額(税別) 24,990円
+            - generic [ref=e846]: 合計金額(税込) 27,489円
+            - generic [ref=e847]: 送料(税別) 1,000円
+            - generic [ref=e848]: 発送状況 発注受付完了 4/下
+            - generic [ref=e849]: 納期 2026年05月 中旬
+            - generic [ref=e850]:
+              - generic [ref=e851]: 備品
+              - generic [ref=e852]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e853]:
+              - text: 発注者確認
+              - generic [ref=e855]: 納品前
+            - text: 賞味期限
+          - generic [ref=e856]:
+            - img "画像エラー" [ref=e858]
+            - generic [ref=e859]: 整理ID 1583404
+            - generic [ref=e860]: カート番号 169689
+            - generic [ref=e861]:
+              - text: 発送
+              - generic [ref=e862]: 準備中
+            - generic [ref=e863]:
+              - text: 出荷日
+              - generic [ref=e864]: 未設定
+            - generic [ref=e865]: 発注日時 2026-03-30 22:33
+            - generic [ref=e866]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e867]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e868]:
+              - text: 請求先
+              - generic [ref=e869]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e870]: 商品コード VY079
+            - generic [ref=e871]: ズートピア２ 超ドでかっ！もちもちクッション PKサイズ：約W84×H54×D2㎝ PK：圧縮OPP 2種均等
+            - generic [ref=e872]:
+              - text: 単価(税別)
+              - generic [ref=e873]: 1,000円
+              - generic [ref=e874]: "@0円"
+            - generic [ref=e875]: 入数 56
+            - generic [ref=e876]: 受注数 0.5 箱
+            - generic [ref=e877]: 合計金額(税別) 28,000円
+            - generic [ref=e878]: 合計金額(税込) 30,800円
+            - generic [ref=e879]: 送料(税別) 1,000円
+            - generic [ref=e880]: 発送状況 発注受付 4月下旬
+            - generic [ref=e881]: 納期 2026年04月 下旬
+            - generic [ref=e883]: 大型機用
+            - generic [ref=e884]:
+              - text: 発注者確認
+              - generic [ref=e886]: 納品前
+            - text: 賞味期限
+          - generic [ref=e887]:
+            - img "画像エラー" [ref=e889]
+            - generic [ref=e890]: 整理ID 1583398
+            - generic [ref=e891]: カート番号 169689
+            - generic [ref=e892]:
+              - text: 発送
+              - generic [ref=e893]: 準備中
+            - generic [ref=e894]:
+              - text: 出荷日
+              - generic [ref=e895]: 未設定
+            - generic [ref=e896]: 発注日時 2026-03-30 22:33
+            - generic [ref=e897]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e898]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e899]:
+              - text: 請求先
+              - generic [ref=e900]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e901]: 商品コード VA263
+            - generic [ref=e902]: ハローキティ シャワーサンダル【商品サイズ:約11×26×12㎝】☆
+            - generic [ref=e903]:
+              - text: 単価(税別)
+              - generic [ref=e904]: 1,000円
+            - generic [ref=e905]: 入数 60
+            - generic [ref=e906]: 受注数 0.5 箱
+            - generic [ref=e907]: 合計金額(税別) 30,000円
+            - generic [ref=e908]: 合計金額(税込) 33,000円
+            - generic [ref=e909]: 送料(税別) 0円
+            - generic [ref=e910]: 発送状況 発注受付
+            - generic [ref=e911]: 納期 2026年04月 中旬～下旬
+            - generic [ref=e912]:
+              - generic [ref=e913]: 箱物系
+              - generic [ref=e914]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e915]:
+              - text: 発注者確認
+              - generic [ref=e917]: 納品前
+            - text: 賞味期限
+          - generic [ref=e918]:
+            - img "画像エラー" [ref=e920]
+            - generic [ref=e921]: 整理ID 1580335
+            - generic [ref=e922]: カート番号 169480
+            - generic [ref=e923]:
+              - text: 発送
+              - generic [ref=e924]: 準備中
+            - generic [ref=e925]:
+              - text: 出荷日
+              - generic [ref=e926]: 未設定
+            - generic [ref=e927]: 発注日時 2026-03-29 20:53
+            - generic [ref=e928]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e929]: 株式会社change
+            - generic [ref=e930]:
+              - text: 請求先
+              - generic [ref=e931]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e932]: 商品コード KH884
+            - generic [ref=e933]: もっちりリアルドーナツスクイーズ【商品サイズ：約5.5cm】
+            - generic [ref=e934]:
+              - text: 単価(税別)
+              - generic [ref=e935]: 95円
+            - generic [ref=e936]: 入数 384
+            - generic [ref=e937]: 受注数 1 箱
+            - generic [ref=e938]: 合計金額(税別) 36,480円
+            - generic [ref=e939]: 合計金額(税込) 40,128円
+            - generic [ref=e940]: 送料(税別) 0円
+            - generic [ref=e941]: 発送状況 発注受付
+            - generic [ref=e942]: 納期 2026年04月 下旬
+            - generic [ref=e943]:
+              - generic [ref=e944]: 小型機用
+              - generic [ref=e945]: ラクチャレキュート景品
+              - generic [ref=e946]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e947]:
+              - text: 発注者確認
+              - generic [ref=e949]: 納品前
+            - text: 賞味期限
+          - generic [ref=e950]:
+            - img "画像エラー" [ref=e952]
+            - generic [ref=e953]: 整理ID 1576688
+            - generic [ref=e954]: カート番号 169182
+            - generic [ref=e955]:
+              - text: 発送
+              - generic [ref=e956]: 準備中
+            - generic [ref=e957]:
+              - text: 出荷日
+              - generic [ref=e958]: 未設定
+            - generic [ref=e959]: 発注日時 2026-03-28 00:43
+            - generic [ref=e960]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e961]: 株式会社change
+            - generic [ref=e962]:
+              - text: 請求先
+              - generic [ref=e963]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e964]: 商品コード WF438
+            - generic [ref=e965]: ディズニーぷくぷくシール 約10*22.5㎝
+            - generic [ref=e966]:
+              - text: 単価(税別)
+              - generic [ref=e967]: 212円
+            - generic [ref=e968]: 入数 480
+            - generic [ref=e969]: 受注数 0.5 箱
+            - generic [ref=e970]: 合計金額(税別) 50,880円
+            - generic [ref=e971]: 合計金額(税込) 55,968円
+            - generic [ref=e972]: 送料(税別) 0円
+            - generic [ref=e973]: 発送状況 発注受付
+            - generic [ref=e974]: 納期 2026年04月 中旬予定
+            - generic [ref=e975]:
+              - generic [ref=e976]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+              - generic [ref=e977]: SNS・流行り物
+            - generic [ref=e978]:
+              - text: 発注者確認
+              - generic [ref=e980]: 納品前
+            - text: 賞味期限
+          - generic [ref=e981]:
+            - img "画像エラー" [ref=e983]
+            - generic [ref=e984]: 整理ID 1576211
+            - generic [ref=e985]: カート番号 169058
+            - generic [ref=e986]:
+              - text: 発送
+              - generic [ref=e987]: 発送完了
+            - generic [ref=e988]:
+              - text: 出荷日
+              - generic [ref=e989]: 2026-03-30
+            - generic [ref=e990]: 発注日時 2026-03-27 16:28
+            - generic [ref=e991]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e992]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e993]:
+              - text: 請求先
+              - generic [ref=e994]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e995]: 商品コード WF698
+            - generic [ref=e996]: ハローキティ着物ぬいぐるみマスコット 約12*5.5*7.5㎝
+            - generic [ref=e997]:
+              - text: 単価(税別)
+              - generic [ref=e998]: 1,000円
+            - generic [ref=e999]: 入数 36
+            - generic [ref=e1000]: 受注数 1 箱
+            - generic [ref=e1001]: 合計金額(税別) 36,000円
+            - generic [ref=e1002]: 合計金額(税込) 39,600円
+            - generic [ref=e1003]: 送料(税別) 0円
+            - generic [ref=e1004]: 発送状況 発注受付
+            - generic [ref=e1005]: 納期 2026年04月 即納です
+            - generic [ref=e1006]:
+              - generic [ref=e1007]: 即納
+              - generic [ref=e1008]: ぬいぐるみ
+              - generic [ref=e1009]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1010]:
+              - text: 発注者確認
+              - combobox [ref=e1012]:
+                - option "納品前" [selected]
+                - option "納品完了"
+                - option "品出し完了"
+            - text: 賞味期限
+          - generic [ref=e1013]:
+            - img "画像エラー" [ref=e1015]
+            - generic [ref=e1016]: 整理ID 1574659
+            - generic [ref=e1017]: カート番号 169057
+            - generic [ref=e1018]:
+              - text: 発送
+              - generic [ref=e1019]: 発送完了
+            - generic [ref=e1020]:
+              - text: 出荷日
+              - generic [ref=e1021]: 未設定
+            - generic [ref=e1022]: 発注日時 2026-03-27 00:12
+            - generic [ref=e1023]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1024]: 株式会社change
+            - generic [ref=e1025]:
+              - text: 請求先
+              - generic [ref=e1026]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1027]: 商品コード KR714
+            - generic [ref=e1028]: ダイヤカットクリアストーン クリア10kg(送料+1000円 ハーフ不可)
+            - generic [ref=e1029]:
+              - text: 単価(税別)
+              - generic [ref=e1030]: 9,000円
+              - generic [ref=e1031]: "@4円"
+            - generic [ref=e1032]: 入数 1
+            - generic [ref=e1033]: 受注数 1 箱
+            - generic [ref=e1034]: 合計金額(税別) 9,000円
+            - generic [ref=e1035]: 合計金額(税込) 9,900円
+            - generic [ref=e1036]: 送料(税別) 0円
+            - generic [ref=e1037]: 発送状況 4/7発送完了
+            - generic [ref=e1038]: 納期 2026年04月 下旬
+            - generic [ref=e1040]: 備品
+            - generic [ref=e1041]:
+              - text: 発注者確認
+              - combobox [ref=e1043]:
+                - option "納品前" [selected]
+                - option "納品完了"
+                - option "品出し完了"
+            - text: 賞味期限
+          - generic [ref=e1044]:
+            - img "画像エラー" [ref=e1046]
+            - generic [ref=e1047]: 整理ID 1574558
+            - generic [ref=e1048]: カート番号 169045
+            - generic [ref=e1049]:
+              - text: 発送
+              - generic [ref=e1050]: 準備中
+            - generic [ref=e1051]:
+              - text: 出荷日
+              - generic [ref=e1052]: 未設定
+            - generic [ref=e1053]: 発注日時 2026-03-26 20:54
+            - generic [ref=e1054]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1055]: 株式会社change
+            - generic [ref=e1056]:
+              - text: 請求先
+              - generic [ref=e1057]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1058]: 商品コード WA373
+            - generic [ref=e1059]: 4月納品 全25種 もちふわマシュマロますこっとボールチェーン20種以上のアソート 紙タグ付 約H95×Ｗ85×D60mm
+            - generic [ref=e1060]:
+              - text: 単価(税別)
+              - generic [ref=e1061]: 612円
+            - generic [ref=e1062]: 入数 70
+            - generic [ref=e1063]: 受注数 1 箱
+            - generic [ref=e1064]: 合計金額(税別) 42,840円
+            - generic [ref=e1065]: 合計金額(税込) 47,124円
+            - generic [ref=e1066]: 送料(税別) 0円
+            - generic [ref=e1067]: 発送状況 発注受付
+            - generic [ref=e1068]: 納期 2026年04月
+            - generic [ref=e1070]: オススメ商品
+            - generic [ref=e1071]:
+              - text: 発注者確認
+              - generic [ref=e1073]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1074]:
+            - img "画像エラー" [ref=e1076]
+            - generic [ref=e1077]: 整理ID 1571693
+            - generic [ref=e1078]: カート番号 168907
+            - generic [ref=e1079]:
+              - text: 発送
+              - generic [ref=e1080]: 準備中
+            - generic [ref=e1081]:
+              - text: 出荷日
+              - generic [ref=e1082]: 未設定
+            - generic [ref=e1083]: 発注日時 2026-03-25 22:34
+            - generic [ref=e1084]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1085]: 株式会社change 霧島
+            - generic [ref=e1086]:
+              - text: 請求先
+              - generic [ref=e1087]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1088]: 商品コード VG349
+            - generic [ref=e1089]: BE2118 おなかぷにぷにわんちゃんシール２P
+            - generic [ref=e1090]:
+              - text: 単価(税別)
+              - generic [ref=e1091]: 140円
+            - generic [ref=e1092]: 入数 360
+            - generic [ref=e1093]: 受注数 0.5 箱
+            - generic [ref=e1094]: 合計金額(税別) 25,200円
+            - generic [ref=e1095]: 合計金額(税込) 27,720円
+            - generic [ref=e1096]: 送料(税別) 0円
+            - generic [ref=e1097]: 発送状況 3/26 納期遅延連絡済み 手配済 4月伝票変更 納期変更前:3月末 納期変更後:4月中旬
+            - generic [ref=e1098]: 納期 2026年04月 中旬
+            - generic [ref=e1099]:
+              - generic [ref=e1100]: クォーター
+              - generic [ref=e1101]: SNS・流行り物
+            - generic [ref=e1102]:
+              - text: 発注者確認
+              - generic [ref=e1104]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1105]:
+            - img "画像エラー" [ref=e1107]
+            - generic [ref=e1108]: 整理ID 1571684
+            - generic [ref=e1109]: カート番号 168905
+            - generic [ref=e1110]:
+              - text: 発送
+              - generic [ref=e1111]: 準備中
+            - generic [ref=e1112]:
+              - text: 出荷日
+              - generic [ref=e1113]: 未設定
+            - generic [ref=e1114]: 発注日時 2026-03-25 21:53
+            - generic [ref=e1115]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1116]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1117]:
+              - text: 請求先
+              - generic [ref=e1118]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1119]: 商品コード VG349
+            - generic [ref=e1120]: BE2118 おなかぷにぷにわんちゃんシール２P
+            - generic [ref=e1121]:
+              - text: 単価(税別)
+              - generic [ref=e1122]: 140円
+            - generic [ref=e1123]: 入数 360
+            - generic [ref=e1124]: 受注数 0.5 箱
+            - generic [ref=e1125]: 合計金額(税別) 25,200円
+            - generic [ref=e1126]: 合計金額(税込) 27,720円
+            - generic [ref=e1127]: 送料(税別) 0円
+            - generic [ref=e1128]: 発送状況 発注受付 3/25手配済 3/26 納期遅延連絡済み 4月伝票変更 納期変更前:3月末 納期変更後:4月中旬
+            - generic [ref=e1129]: 納期 2026年04月 中旬
+            - generic [ref=e1130]:
+              - generic [ref=e1131]: クォーター
+              - generic [ref=e1132]: SNS・流行り物
+            - generic [ref=e1133]:
+              - text: 発注者確認
+              - generic [ref=e1135]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1136]:
+            - img "画像エラー" [ref=e1138]
+            - generic [ref=e1139]: 整理ID 1571680
+            - generic [ref=e1140]: カート番号 168904
+            - generic [ref=e1141]:
+              - text: 発送
+              - generic [ref=e1142]: 準備中
+            - generic [ref=e1143]:
+              - text: 出荷日
+              - generic [ref=e1144]: 未設定
+            - generic [ref=e1145]: 発注日時 2026-03-25 21:53
+            - generic [ref=e1146]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1147]: 株式会社change
+            - generic [ref=e1148]:
+              - text: 請求先
+              - generic [ref=e1149]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1150]: 商品コード VG349
+            - generic [ref=e1151]: BE2118 おなかぷにぷにわんちゃんシール２P
+            - generic [ref=e1152]:
+              - text: 単価(税別)
+              - generic [ref=e1153]: 140円
+            - generic [ref=e1154]: 入数 360
+            - generic [ref=e1155]: 受注数 0.5 箱
+            - generic [ref=e1156]: 合計金額(税別) 25,200円
+            - generic [ref=e1157]: 合計金額(税込) 27,720円
+            - generic [ref=e1158]: 送料(税別) 0円
+            - generic [ref=e1159]: 発送状況 発注受付 3/26手配済 3/26 納期遅延連絡済み 4月伝票変更 納期変更前:3月末 納期変更後:4月中旬
+            - generic [ref=e1160]: 納期 2026年04月 中旬
+            - generic [ref=e1161]:
+              - generic [ref=e1162]: クォーター
+              - generic [ref=e1163]: SNS・流行り物
+            - generic [ref=e1164]:
+              - text: 発注者確認
+              - generic [ref=e1166]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1167]:
+            - img "画像エラー" [ref=e1169]
+            - generic [ref=e1170]: 整理ID 1565322
+            - generic [ref=e1171]: カート番号 168463
+            - generic [ref=e1172]:
+              - text: 発送
+              - generic [ref=e1173]: 準備中
+            - generic [ref=e1174]:
+              - text: 出荷日
+              - generic [ref=e1175]: 未設定
+            - generic [ref=e1176]: 発注日時 2026-03-22 22:03
+            - generic [ref=e1177]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1178]: 株式会社change
+            - generic [ref=e1179]:
+              - text: 請求先
+              - generic [ref=e1180]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1181]: 商品コード VY370
+            - generic [ref=e1182]: ムゲンカチカチキーホルダー 【商品サイズ】パッケージサイズ H150×W８５×D27（mm）
+            - generic [ref=e1183]:
+              - text: 単価(税別)
+              - generic [ref=e1184]: 100円
+            - generic [ref=e1185]: 入数 360
+            - generic [ref=e1186]: 受注数 1 箱
+            - generic [ref=e1187]: 合計金額(税別) 36,000円
+            - generic [ref=e1188]: 合計金額(税込) 39,600円
+            - generic [ref=e1189]: 送料(税別) 0円
+            - generic [ref=e1190]: 発送状況 受付完了 4月
+            - generic [ref=e1191]: 納期 2026年04月 中旬～下旬
+            - generic [ref=e1192]:
+              - generic [ref=e1193]: 小型機用
+              - generic [ref=e1194]: 低額キャッチャー景品
+              - generic [ref=e1195]: 10円キャッチャー
+            - generic [ref=e1196]:
+              - text: 発注者確認
+              - generic [ref=e1198]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1199]:
+            - img "画像エラー" [ref=e1201]
+            - generic [ref=e1202]: 整理ID 1565319
+            - generic [ref=e1203]: カート番号 168463
+            - generic [ref=e1204]:
+              - text: 発送
+              - generic [ref=e1205]: 準備中
+            - generic [ref=e1206]:
+              - text: 出荷日
+              - generic [ref=e1207]: 未設定
+            - generic [ref=e1208]: 発注日時 2026-03-22 22:03
+            - generic [ref=e1209]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1210]: 株式会社change
+            - generic [ref=e1211]:
+              - text: 請求先
+              - generic [ref=e1212]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1213]: 商品コード VV521
+            - generic [ref=e1214]: 【大人気小物】ぽちぽち！キーボードブロックBC～おばけモンスターズ～ 384入(ハーフ/クォーター+1000円)【サイズ:約3.7cm 個別PP袋入】
+            - generic [ref=e1215]:
+              - text: 単価(税別)
+              - generic [ref=e1216]: 64,000円
+              - generic [ref=e1217]: "@166.7円"
+            - generic [ref=e1218]: 入数 1
+            - generic [ref=e1219]: 受注数 1 箱
+            - generic [ref=e1220]: 合計金額(税別) 64,000円
+            - generic [ref=e1221]: 合計金額(税込) 70,400円
+            - generic [ref=e1222]: 送料(税別) 0円
+            - generic [ref=e1223]: 発送状況 4/下
+            - generic [ref=e1224]: 納期 2026年04月 下旬
+            - generic [ref=e1225]:
+              - generic [ref=e1226]: 小型機用
+              - generic [ref=e1227]: クォーター
+              - generic [ref=e1228]: ラクチャレキュート景品
+              - generic [ref=e1229]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+              - generic [ref=e1230]: 低額キャッチャー景品
+              - generic [ref=e1231]: 10円キャッチャー
+            - generic [ref=e1232]:
+              - text: 発注者確認
+              - generic [ref=e1234]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1235]:
+            - img "画像エラー" [ref=e1237]
+            - generic [ref=e1238]: 整理ID 1562740
+            - generic [ref=e1239]: カート番号 168157
+            - generic [ref=e1240]:
+              - text: 発送
+              - generic [ref=e1241]: 準備中
+            - generic [ref=e1242]:
+              - text: 出荷日
+              - generic [ref=e1243]: 未設定
+            - generic [ref=e1244]: 発注日時 2026-03-21 00:12
+            - generic [ref=e1245]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1246]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e1247]:
+              - text: 請求先
+              - generic [ref=e1248]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1249]: 商品コード VY395
+            - generic [ref=e1250]: Samuel（サミュエル）ミニアニマルズ 【商品サイズ】パッケージサイズH110×Ｗ90×Ｄ90mm
+            - generic [ref=e1251]:
+              - text: 単価(税別)
+              - generic [ref=e1252]: 720円
+            - generic [ref=e1253]: 入数 48
+            - generic [ref=e1254]: 受注数 1 箱
+            - generic [ref=e1255]: 合計金額(税別) 34,560円
+            - generic [ref=e1256]: 合計金額(税込) 38,016円
+            - generic [ref=e1257]: 送料(税別) 1,000円
+            - generic [ref=e1258]: 発送状況 受付完了 4月
+            - generic [ref=e1259]: 納期 2026年04月 上旬
+            - generic [ref=e1261]: 小型機用
+            - generic [ref=e1262]:
+              - text: 発注者確認
+              - generic [ref=e1264]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1265]:
+            - img "画像エラー" [ref=e1267]
+            - generic [ref=e1268]: 整理ID 1562739
+            - generic [ref=e1269]: カート番号 168156
+            - generic [ref=e1270]:
+              - text: 発送
+              - generic [ref=e1271]: 準備中
+            - generic [ref=e1272]:
+              - text: 出荷日
+              - generic [ref=e1273]: 未設定
+            - generic [ref=e1274]: 発注日時 2026-03-21 00:12
+            - generic [ref=e1275]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1276]: 株式会社change
+            - generic [ref=e1277]:
+              - text: 請求先
+              - generic [ref=e1278]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1279]: 商品コード VY395
+            - generic [ref=e1280]: Samuel（サミュエル）ミニアニマルズ 【商品サイズ】パッケージサイズH110×Ｗ90×Ｄ90mm
+            - generic [ref=e1281]:
+              - text: 単価(税別)
+              - generic [ref=e1282]: 720円
+            - generic [ref=e1283]: 入数 48
+            - generic [ref=e1284]: 受注数 2 箱
+            - generic [ref=e1285]: 合計金額(税別) 69,120円
+            - generic [ref=e1286]: 合計金額(税込) 76,032円
+            - generic [ref=e1287]: 送料(税別) 2,000円
+            - generic [ref=e1288]: 発送状況 受付完了 4月
+            - generic [ref=e1289]: 納期 2026年04月 上旬
+            - generic [ref=e1291]: 小型機用
+            - generic [ref=e1292]:
+              - text: 発注者確認
+              - generic [ref=e1294]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1295]:
+            - img "画像エラー" [ref=e1297]
+            - generic [ref=e1298]: 整理ID 1562738
+            - generic [ref=e1299]: カート番号 168155
+            - generic [ref=e1300]:
+              - text: 発送
+              - generic [ref=e1301]: 準備中
+            - generic [ref=e1302]:
+              - text: 出荷日
+              - generic [ref=e1303]: 未設定
+            - generic [ref=e1304]: 発注日時 2026-03-21 00:11
+            - generic [ref=e1305]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1306]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1307]:
+              - text: 請求先
+              - generic [ref=e1308]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1309]: 商品コード VY395
+            - generic [ref=e1310]: Samuel（サミュエル）ミニアニマルズ 【商品サイズ】パッケージサイズH110×Ｗ90×Ｄ90mm
+            - generic [ref=e1311]:
+              - text: 単価(税別)
+              - generic [ref=e1312]: 720円
+            - generic [ref=e1313]: 入数 48
+            - generic [ref=e1314]: 受注数 1 箱
+            - generic [ref=e1315]: 合計金額(税別) 34,560円
+            - generic [ref=e1316]: 合計金額(税込) 38,016円
+            - generic [ref=e1317]: 送料(税別) 1,000円
+            - generic [ref=e1318]: 発送状況 受付完了 4月
+            - generic [ref=e1319]: 納期 2026年04月 上旬
+            - generic [ref=e1321]: 小型機用
+            - generic [ref=e1322]:
+              - text: 発注者確認
+              - generic [ref=e1324]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1325]:
+            - img "画像エラー" [ref=e1327]
+            - generic [ref=e1328]: 整理ID 1548807
+            - generic [ref=e1329]: カート番号 166885
+            - generic [ref=e1330]:
+              - text: 発送
+              - generic [ref=e1331]: 準備中
+            - generic [ref=e1332]:
+              - text: 出荷日
+              - generic [ref=e1333]: 未設定
+            - generic [ref=e1334]: 発注日時 2026-03-12 20:58
+            - generic [ref=e1335]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1336]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1337]:
+              - text: 請求先
+              - generic [ref=e1338]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1339]: 商品コード WB091
+            - generic [ref=e1340]: ふわもちﾐﾆｽｸｲｰｽﾞver1
+            - generic [ref=e1341]:
+              - text: 単価(税別)
+              - generic [ref=e1342]: 90円
+            - generic [ref=e1343]: 入数 480
+            - generic [ref=e1344]: 受注数 1 箱
+            - generic [ref=e1345]: 合計金額(税別) 43,200円
+            - generic [ref=e1346]: 合計金額(税込) 47,520円
+            - generic [ref=e1347]: 送料(税別) 0円
+            - generic [ref=e1348]: 発送状況 発注受付 4/1 納期遅延連絡済み 4月伝票変更 納期変更前：3月 納期変更後：4月上旬
+            - generic [ref=e1349]: 納期 2026年03月 末～4月上
+            - generic [ref=e1350]:
+              - generic [ref=e1351]: オススメ商品
+              - generic [ref=e1352]: SNS・流行り物
+            - generic [ref=e1353]:
+              - text: 発注者確認
+              - generic [ref=e1355]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1356]:
+            - img "画像エラー" [ref=e1358]
+            - generic [ref=e1359]: 整理ID 1548804
+            - generic [ref=e1360]: カート番号 166884
+            - generic [ref=e1361]:
+              - text: 発送
+              - generic [ref=e1362]: 準備中
+            - generic [ref=e1363]:
+              - text: 出荷日
+              - generic [ref=e1364]: 未設定
+            - generic [ref=e1365]: 発注日時 2026-03-12 20:45
+            - generic [ref=e1366]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1367]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e1368]:
+              - text: 請求先
+              - generic [ref=e1369]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1370]: 商品コード WA612
+            - generic [ref=e1371]: real enjoy・フルーツスクイーズ 【商品サイズ】約H12×W12×D5.5㎝
+            - generic [ref=e1372]:
+              - text: 単価(税別)
+              - generic [ref=e1373]: 190円
+            - generic [ref=e1374]: 入数 240
+            - generic [ref=e1375]: 受注数 1 箱
+            - generic [ref=e1376]: 合計金額(税別) 45,600円
+            - generic [ref=e1377]: 合計金額(税込) 50,160円
+            - generic [ref=e1378]: 送料(税別) 0円
+            - generic [ref=e1379]: 発送状況 受付完了 4月
+            - generic [ref=e1380]: 納期 2026年04月 上旬
+            - generic [ref=e1381]:
+              - generic [ref=e1382]: オススメ商品
+              - generic [ref=e1383]: 小型機用
+              - generic [ref=e1384]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1385]:
+              - text: 発注者確認
+              - generic [ref=e1387]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1388]:
+            - img "画像エラー" [ref=e1390]
+            - generic [ref=e1391]: 整理ID 1548802
+            - generic [ref=e1392]: カート番号 166884
+            - generic [ref=e1393]:
+              - text: 発送
+              - generic [ref=e1394]: 準備中
+            - generic [ref=e1395]:
+              - text: 出荷日
+              - generic [ref=e1396]: 未設定
+            - generic [ref=e1397]: 発注日時 2026-03-12 20:45
+            - generic [ref=e1398]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1399]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e1400]:
+              - text: 請求先
+              - generic [ref=e1401]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1402]: 商品コード WA616
+            - generic [ref=e1403]: real enjoy・ベーカリースクイーズ 【商品サイズ】約H3×W3.3×D2.5㎝
+            - generic [ref=e1404]:
+              - text: 単価(税別)
+              - generic [ref=e1405]: 260円
+            - generic [ref=e1406]: 入数 180
+            - generic [ref=e1407]: 受注数 1 箱
+            - generic [ref=e1408]: 合計金額(税別) 46,800円
+            - generic [ref=e1409]: 合計金額(税込) 51,480円
+            - generic [ref=e1410]: 送料(税別) 0円
+            - generic [ref=e1411]: 発送状況 受付完了 4月
+            - generic [ref=e1412]: 納期 2026年04月 上旬
+            - generic [ref=e1413]:
+              - generic [ref=e1414]: オススメ商品
+              - generic [ref=e1415]: 小型機用
+              - generic [ref=e1416]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1417]:
+              - text: 発注者確認
+              - generic [ref=e1419]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1420]:
+            - img "画像エラー" [ref=e1422]
+            - generic [ref=e1423]: 整理ID 1548801
+            - generic [ref=e1424]: カート番号 166883
+            - generic [ref=e1425]:
+              - text: 発送
+              - generic [ref=e1426]: 準備中
+            - generic [ref=e1427]:
+              - text: 出荷日
+              - generic [ref=e1428]: 未設定
+            - generic [ref=e1429]: 発注日時 2026-03-12 20:43
+            - generic [ref=e1430]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1431]: 株式会社change 霧島
+            - generic [ref=e1432]:
+              - text: 請求先
+              - generic [ref=e1433]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1434]: 商品コード WA616
+            - generic [ref=e1435]: real enjoy・ベーカリースクイーズ 【商品サイズ】約H3×W3.3×D2.5㎝
+            - generic [ref=e1436]:
+              - text: 単価(税別)
+              - generic [ref=e1437]: 260円
+            - generic [ref=e1438]: 入数 180
+            - generic [ref=e1439]: 受注数 1 箱
+            - generic [ref=e1440]: 合計金額(税別) 46,800円
+            - generic [ref=e1441]: 合計金額(税込) 51,480円
+            - generic [ref=e1442]: 送料(税別) 0円
+            - generic [ref=e1443]: 発送状況 受付完了 4月
+            - generic [ref=e1444]: 納期 2026年04月 上旬
+            - generic [ref=e1445]:
+              - generic [ref=e1446]: オススメ商品
+              - generic [ref=e1447]: 小型機用
+              - generic [ref=e1448]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1449]:
+              - text: 発注者確認
+              - generic [ref=e1451]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1452]:
+            - img "画像エラー" [ref=e1454]
+            - generic [ref=e1455]: 整理ID 1548800
+            - generic [ref=e1456]: カート番号 166883
+            - generic [ref=e1457]:
+              - text: 発送
+              - generic [ref=e1458]: 準備中
+            - generic [ref=e1459]:
+              - text: 出荷日
+              - generic [ref=e1460]: 未設定
+            - generic [ref=e1461]: 発注日時 2026-03-12 20:43
+            - generic [ref=e1462]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1463]: 株式会社change 霧島
+            - generic [ref=e1464]:
+              - text: 請求先
+              - generic [ref=e1465]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1466]: 商品コード WA612
+            - generic [ref=e1467]: real enjoy・フルーツスクイーズ 【商品サイズ】約H12×W12×D5.5㎝
+            - generic [ref=e1468]:
+              - text: 単価(税別)
+              - generic [ref=e1469]: 190円
+            - generic [ref=e1470]: 入数 240
+            - generic [ref=e1471]: 受注数 1 箱
+            - generic [ref=e1472]: 合計金額(税別) 45,600円
+            - generic [ref=e1473]: 合計金額(税込) 50,160円
+            - generic [ref=e1474]: 送料(税別) 0円
+            - generic [ref=e1475]: 発送状況 受付完了 4月
+            - generic [ref=e1476]: 納期 2026年04月 上旬
+            - generic [ref=e1477]:
+              - generic [ref=e1478]: オススメ商品
+              - generic [ref=e1479]: 小型機用
+              - generic [ref=e1480]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1481]:
+              - text: 発注者確認
+              - generic [ref=e1483]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1484]:
+            - img "画像エラー" [ref=e1486]
+            - generic [ref=e1487]: 整理ID 1548784
+            - generic [ref=e1488]: カート番号 166881
+            - generic [ref=e1489]:
+              - text: 発送
+              - generic [ref=e1490]: 準備中
+            - generic [ref=e1491]:
+              - text: 出荷日
+              - generic [ref=e1492]: 未設定
+            - generic [ref=e1493]: 発注日時 2026-03-12 20:41
+            - generic [ref=e1494]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1495]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1496]:
+              - text: 請求先
+              - generic [ref=e1497]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1498]: 商品コード WA612
+            - generic [ref=e1499]: real enjoy・フルーツスクイーズ 【商品サイズ】約H12×W12×D5.5㎝
+            - generic [ref=e1500]:
+              - text: 単価(税別)
+              - generic [ref=e1501]: 190円
+            - generic [ref=e1502]: 入数 240
+            - generic [ref=e1503]: 受注数 1 箱
+            - generic [ref=e1504]: 合計金額(税別) 45,600円
+            - generic [ref=e1505]: 合計金額(税込) 50,160円
+            - generic [ref=e1506]: 送料(税別) 0円
+            - generic [ref=e1507]: 発送状況 受付完了 4月
+            - generic [ref=e1508]: 納期 2026年04月 上旬
+            - generic [ref=e1509]:
+              - generic [ref=e1510]: オススメ商品
+              - generic [ref=e1511]: 小型機用
+              - generic [ref=e1512]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1513]:
+              - text: 発注者確認
+              - generic [ref=e1515]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1516]:
+            - img "画像エラー" [ref=e1518]
+            - generic [ref=e1519]: 整理ID 1548782
+            - generic [ref=e1520]: カート番号 166881
+            - generic [ref=e1521]:
+              - text: 発送
+              - generic [ref=e1522]: 準備中
+            - generic [ref=e1523]:
+              - text: 出荷日
+              - generic [ref=e1524]: 未設定
+            - generic [ref=e1525]: 発注日時 2026-03-12 20:41
+            - generic [ref=e1526]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1527]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1528]:
+              - text: 請求先
+              - generic [ref=e1529]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1530]: 商品コード WA616
+            - generic [ref=e1531]: real enjoy・ベーカリースクイーズ 【商品サイズ】約H3×W3.3×D2.5㎝
+            - generic [ref=e1532]:
+              - text: 単価(税別)
+              - generic [ref=e1533]: 260円
+            - generic [ref=e1534]: 入数 180
+            - generic [ref=e1535]: 受注数 1 箱
+            - generic [ref=e1536]: 合計金額(税別) 46,800円
+            - generic [ref=e1537]: 合計金額(税込) 51,480円
+            - generic [ref=e1538]: 送料(税別) 0円
+            - generic [ref=e1539]: 発送状況 受付完了 4月
+            - generic [ref=e1540]: 納期 2026年04月 上旬
+            - generic [ref=e1541]:
+              - generic [ref=e1542]: オススメ商品
+              - generic [ref=e1543]: 小型機用
+              - generic [ref=e1544]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1545]:
+              - text: 発注者確認
+              - generic [ref=e1547]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1548]:
+            - img "画像エラー" [ref=e1550]
+            - generic [ref=e1551]: 整理ID 1548530
+            - generic [ref=e1552]: カート番号 166877
+            - generic [ref=e1553]:
+              - text: 発送
+              - generic [ref=e1554]: 準備中
+            - generic [ref=e1555]:
+              - text: 出荷日
+              - generic [ref=e1556]: 未設定
+            - generic [ref=e1557]: 発注日時 2026-03-12 19:57
+            - generic [ref=e1558]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1559]: 株式会社change
+            - generic [ref=e1560]:
+              - text: 請求先
+              - generic [ref=e1561]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1562]: 商品コード WB081
+            - generic [ref=e1563]: 大流行バタースクイーズ特別ｹｰｽ入14×4㎝
+            - generic [ref=e1564]:
+              - text: 単価(税別)
+              - generic [ref=e1565]: 260円
+            - generic [ref=e1566]: 入数 240
+            - generic [ref=e1567]: 受注数 2 箱
+            - generic [ref=e1568]: 合計金額(税別) 124,800円
+            - generic [ref=e1569]: 合計金額(税込) 137,280円
+            - generic [ref=e1570]: 送料(税別) 0円
+            - generic [ref=e1571]: 発送状況 発注受付
+            - generic [ref=e1572]: 納期 2026年04月 中末
+            - generic [ref=e1573]:
+              - generic [ref=e1574]: オススメ商品
+              - generic [ref=e1575]: SNS・流行り物
+            - generic [ref=e1576]:
+              - text: 発注者確認
+              - generic [ref=e1578]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1579]:
+            - img "画像エラー" [ref=e1581]
+            - generic [ref=e1582]: 整理ID 1548171
+            - generic [ref=e1583]: カート番号 166849
+            - generic [ref=e1584]:
+              - text: 発送
+              - generic [ref=e1585]: 準備中
+            - generic [ref=e1586]:
+              - text: 出荷日
+              - generic [ref=e1587]: 未設定
+            - generic [ref=e1588]: 発注日時 2026-03-12 16:39
+            - generic [ref=e1589]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1590]: 株式会社change
+            - generic [ref=e1591]:
+              - text: 請求先
+              - generic [ref=e1592]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1593]: 商品コード VZ793
+            - generic [ref=e1594]: 極とろスクイーズ８種アソート(48入) パッケージサイズ：約直径15㎝
+            - generic [ref=e1595]:
+              - text: 単価(税別)
+              - generic [ref=e1596]: 850円
+            - generic [ref=e1597]: 入数 48
+            - generic [ref=e1598]: 受注数 2 箱
+            - generic [ref=e1599]: 合計金額(税別) 81,600円
+            - generic [ref=e1600]: 合計金額(税込) 89,760円
+            - generic [ref=e1601]: 送料(税別) 0円
+            - generic [ref=e1602]: 発送状況 受注完了
+            - generic [ref=e1603]: 納期 2026年05月 下旬
+            - generic [ref=e1604]:
+              - generic [ref=e1605]: 小型機用
+              - generic [ref=e1606]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+              - generic [ref=e1607]: SNS・流行り物
+            - generic [ref=e1608]:
+              - text: 発注者確認
+              - generic [ref=e1610]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1611]:
+            - img "画像エラー" [ref=e1613]
+            - generic [ref=e1614]: 整理ID 1548167
+            - generic [ref=e1615]: カート番号 166848
+            - generic [ref=e1616]:
+              - text: 発送
+              - generic [ref=e1617]: 準備中
+            - generic [ref=e1618]:
+              - text: 出荷日
+              - generic [ref=e1619]: 未設定
+            - generic [ref=e1620]: 発注日時 2026-03-12 16:39
+            - generic [ref=e1621]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1622]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1623]:
+              - text: 請求先
+              - generic [ref=e1624]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1625]: 商品コード VZ793
+            - generic [ref=e1626]: 極とろスクイーズ８種アソート(48入) パッケージサイズ：約直径15㎝
+            - generic [ref=e1627]:
+              - text: 単価(税別)
+              - generic [ref=e1628]: 850円
+            - generic [ref=e1629]: 入数 48
+            - generic [ref=e1630]: 受注数 1 箱
+            - generic [ref=e1631]: 合計金額(税別) 40,800円
+            - generic [ref=e1632]: 合計金額(税込) 44,880円
+            - generic [ref=e1633]: 送料(税別) 0円
+            - generic [ref=e1634]: 発送状況 受注完了
+            - generic [ref=e1635]: 納期 2026年05月 下旬
+            - generic [ref=e1636]:
+              - generic [ref=e1637]: 小型機用
+              - generic [ref=e1638]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+              - generic [ref=e1639]: SNS・流行り物
+            - generic [ref=e1640]:
+              - text: 発注者確認
+              - generic [ref=e1642]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1643]:
+            - img "画像エラー" [ref=e1645]
+            - generic [ref=e1646]: 整理ID 1546775
+            - generic [ref=e1647]: カート番号 166681
+            - generic [ref=e1648]:
+              - text: 発送
+              - generic [ref=e1649]: 準備中
+            - generic [ref=e1650]:
+              - text: 出荷日
+              - generic [ref=e1651]: 未設定
+            - generic [ref=e1652]: 発注日時 2026-03-12 08:04
+            - generic [ref=e1653]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1654]: 株式会社change
+            - generic [ref=e1655]:
+              - text: 請求先
+              - generic [ref=e1656]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1657]: 商品コード VV527
+            - generic [ref=e1658]: 液晶付きミニデジタルカメラ Snap２ 64入(ハーフ/クォーター+1000円)【サイズ:MAX8m カラーパッケージ入】
+            - generic [ref=e1659]:
+              - text: 単価(税別)
+              - generic [ref=e1660]: 63,000円
+              - generic [ref=e1661]: "@984円"
+            - generic [ref=e1662]: 入数 1
+            - generic [ref=e1663]: 受注数 0.5 箱
+            - generic [ref=e1664]: 合計金額(税別) 31,500円
+            - generic [ref=e1665]: 合計金額(税込) 34,650円
+            - generic [ref=e1666]: 送料(税別) 1,000円
+            - generic [ref=e1667]: 発送状況 4/下
+            - generic [ref=e1668]: 納期 2026年04月 下旬
+            - generic [ref=e1669]:
+              - generic [ref=e1670]: 小型機用
+              - generic [ref=e1671]: 電子商品
+              - generic [ref=e1672]: クォーター
+              - generic [ref=e1673]: ラクチャレキュート景品
+              - generic [ref=e1674]: 箱物系
+              - generic [ref=e1675]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e1676]:
+              - text: 発注者確認
+              - generic [ref=e1678]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1679]:
+            - img "画像エラー" [ref=e1681]
+            - generic [ref=e1682]: 整理ID 1546210
+            - generic [ref=e1683]: カート番号 166619
+            - generic [ref=e1684]:
+              - text: 発送
+              - generic [ref=e1685]: 発送完了
+            - generic [ref=e1686]:
+              - text: 出荷日
+              - generic [ref=e1687]: 未設定
+            - generic [ref=e1688]: 発注日時 2026-03-11 15:44
+            - generic [ref=e1689]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1690]: 株式会社change
+            - generic [ref=e1691]:
+              - text: 請求先
+              - generic [ref=e1692]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1693]: 商品コード KR714
+            - generic [ref=e1694]: ダイヤカットクリアストーン クリア10kg(送料+1000円 ハーフ不可)
+            - generic [ref=e1695]:
+              - text: 単価(税別)
+              - generic [ref=e1696]: 9,000円
+              - generic [ref=e1697]: "@4円"
+            - generic [ref=e1698]: 入数 1
+            - generic [ref=e1699]: 受注数 2 箱
+            - generic [ref=e1700]: 合計金額(税別) 18,000円
+            - generic [ref=e1701]: 合計金額(税込) 19,800円
+            - generic [ref=e1702]: 送料(税別) 2,000円
+            - generic [ref=e1703]: 発送状況 4/7発送完了 3/12 納期遅延連絡済み 4月伝票変更 納期変更前：3月即納 納期変更後：4月下旬
+            - generic [ref=e1704]: 納期 2026年04月 下旬
+            - generic [ref=e1706]: 備品
+            - generic [ref=e1707]:
+              - text: 発注者確認
+              - combobox [ref=e1709]:
+                - option "納品前" [selected]
+                - option "納品完了"
+                - option "品出し完了"
+            - text: 賞味期限
+          - generic [ref=e1710]:
+            - img "画像エラー" [ref=e1712]
+            - generic [ref=e1713]: 整理ID 1516806
+            - generic [ref=e1714]: カート番号 165042
+            - generic [ref=e1715]:
+              - text: 発送
+              - generic [ref=e1716]: 準備中
+            - generic [ref=e1717]:
+              - text: 出荷日
+              - generic [ref=e1718]: 未設定
+            - generic [ref=e1719]: 発注日時 2026-03-02 16:47
+            - generic [ref=e1720]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1721]: 株式会社change
+            - generic [ref=e1722]:
+              - text: 請求先
+              - generic [ref=e1723]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1724]: 商品コード VS562
+            - generic [ref=e1725]: バタースクイーズ
+            - generic [ref=e1726]:
+              - text: 単価(税別)
+              - generic [ref=e1727]: 333円
+            - generic [ref=e1728]: 入数 100
+            - generic [ref=e1729]: 受注数 1 箱
+            - generic [ref=e1730]: 合計金額(税別) 33,300円
+            - generic [ref=e1731]: 合計金額(税込) 36,630円
+            - generic [ref=e1732]: 送料(税別) 0円
+            - generic [ref=e1733]: 発送状況 発注受付3/2手配
+            - generic [ref=e1734]: 納期 2026年04月 末
+            - generic [ref=e1736]: SNS・流行り物
+            - generic [ref=e1737]:
+              - text: 発注者確認
+              - generic [ref=e1739]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1740]:
+            - img "画像エラー" [ref=e1742]
+            - generic [ref=e1743]: 整理ID 1516802
+            - generic [ref=e1744]: カート番号 165041
+            - generic [ref=e1745]:
+              - text: 発送
+              - generic [ref=e1746]: 準備中
+            - generic [ref=e1747]:
+              - text: 出荷日
+              - generic [ref=e1748]: 未設定
+            - generic [ref=e1749]: 発注日時 2026-03-02 16:47
+            - generic [ref=e1750]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1751]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e1752]:
+              - text: 請求先
+              - generic [ref=e1753]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1754]: 商品コード VS562
+            - generic [ref=e1755]: バタースクイーズ
+            - generic [ref=e1756]:
+              - text: 単価(税別)
+              - generic [ref=e1757]: 333円
+            - generic [ref=e1758]: 入数 100
+            - generic [ref=e1759]: 受注数 0.5 箱
+            - generic [ref=e1760]: 合計金額(税別) 16,650円
+            - generic [ref=e1761]: 合計金額(税込) 18,315円
+            - generic [ref=e1762]: 送料(税別) 1,200円
+            - generic [ref=e1763]: 発送状況 発注受付3/2手配
+            - generic [ref=e1764]: 納期 2026年04月 末
+            - generic [ref=e1766]: SNS・流行り物
+            - generic [ref=e1767]:
+              - text: 発注者確認
+              - generic [ref=e1769]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1770]:
+            - img "画像エラー" [ref=e1772]
+            - generic [ref=e1773]: 整理ID 1516780
+            - generic [ref=e1774]: カート番号 165040
+            - generic [ref=e1775]:
+              - text: 発送
+              - generic [ref=e1776]: 準備中
+            - generic [ref=e1777]:
+              - text: 出荷日
+              - generic [ref=e1778]: 未設定
+            - generic [ref=e1779]: 発注日時 2026-03-02 16:45
+            - generic [ref=e1780]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1781]: 株式会社change 霧島
+            - generic [ref=e1782]:
+              - text: 請求先
+              - generic [ref=e1783]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1784]: 商品コード VS562
+            - generic [ref=e1785]: バタースクイーズ
+            - generic [ref=e1786]:
+              - text: 単価(税別)
+              - generic [ref=e1787]: 333円
+            - generic [ref=e1788]: 入数 100
+            - generic [ref=e1789]: 受注数 2 箱
+            - generic [ref=e1790]: 合計金額(税別) 66,600円
+            - generic [ref=e1791]: 合計金額(税込) 73,260円
+            - generic [ref=e1792]: 送料(税別) 0円
+            - generic [ref=e1793]: 発送状況 発注受付3/2手配
+            - generic [ref=e1794]: 納期 2026年04月 末
+            - generic [ref=e1796]: SNS・流行り物
+            - generic [ref=e1797]:
+              - text: 発注者確認
+              - generic [ref=e1799]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1800]:
+            - img "画像エラー" [ref=e1802]
+            - generic [ref=e1803]: 整理ID 1515089
+            - generic [ref=e1804]: カート番号 164904
+            - generic [ref=e1805]:
+              - text: 発送
+              - generic [ref=e1806]: 準備中
+            - generic [ref=e1807]:
+              - text: 出荷日
+              - generic [ref=e1808]: 未設定
+            - generic [ref=e1809]: 発注日時 2026-03-01 22:48
+            - generic [ref=e1810]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1811]: 株式会社change
+            - generic [ref=e1812]:
+              - text: 請求先
+              - generic [ref=e1813]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1814]: 商品コード VS562
+            - generic [ref=e1815]: バタースクイーズ
+            - generic [ref=e1816]:
+              - text: 単価(税別)
+              - generic [ref=e1817]: 333円
+            - generic [ref=e1818]: 入数 100
+            - generic [ref=e1819]: 受注数 1 箱
+            - generic [ref=e1820]: 合計金額(税別) 33,300円
+            - generic [ref=e1821]: 合計金額(税込) 36,630円
+            - generic [ref=e1822]: 送料(税別) 0円
+            - generic [ref=e1823]: 発送状況 発注受付3/2手配
+            - generic [ref=e1824]: 納期 2026年04月 末
+            - generic [ref=e1826]: SNS・流行り物
+            - generic [ref=e1827]:
+              - text: 発注者確認
+              - generic [ref=e1829]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1830]:
+            - img "画像エラー" [ref=e1832]
+            - generic [ref=e1833]: 整理ID 1515064
+            - generic [ref=e1834]: カート番号 164901
+            - generic [ref=e1835]:
+              - text: 発送
+              - generic [ref=e1836]: 準備中
+            - generic [ref=e1837]:
+              - text: 出荷日
+              - generic [ref=e1838]: 未設定
+            - generic [ref=e1839]: 発注日時 2026-03-01 22:43
+            - generic [ref=e1840]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1841]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1842]:
+              - text: 請求先
+              - generic [ref=e1843]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1844]: 商品コード VS562
+            - generic [ref=e1845]: バタースクイーズ
+            - generic [ref=e1846]:
+              - text: 単価(税別)
+              - generic [ref=e1847]: 333円
+            - generic [ref=e1848]: 入数 100
+            - generic [ref=e1849]: 受注数 1 箱
+            - generic [ref=e1850]: 合計金額(税別) 33,300円
+            - generic [ref=e1851]: 合計金額(税込) 36,630円
+            - generic [ref=e1852]: 送料(税別) 0円
+            - generic [ref=e1853]: 発送状況 発注受付3/2手配
+            - generic [ref=e1854]: 納期 2026年04月 末
+            - generic [ref=e1856]: SNS・流行り物
+            - generic [ref=e1857]:
+              - text: 発注者確認
+              - generic [ref=e1859]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1860]:
+            - img "画像エラー" [ref=e1862]
+            - generic [ref=e1863]: 整理ID 1487880
+            - generic [ref=e1864]: カート番号 161972
+            - generic [ref=e1865]:
+              - text: 発送
+              - generic [ref=e1866]: 準備中
+            - generic [ref=e1867]:
+              - text: 出荷日
+              - generic [ref=e1868]: 未設定
+            - generic [ref=e1869]: 発注日時 2026-02-16 22:51
+            - generic [ref=e1870]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1871]: 株式会社change
+            - generic [ref=e1872]:
+              - text: 請求先
+              - generic [ref=e1873]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1874]: 商品コード VU938
+            - generic [ref=e1875]: BE2132 もちとろフルーツスクイズBC
+            - generic [ref=e1876]:
+              - text: 単価(税別)
+              - generic [ref=e1877]: 195円
+            - generic [ref=e1878]: 入数 216
+            - generic [ref=e1879]: 受注数 1 箱
+            - generic [ref=e1880]: 合計金額(税別) 42,120円
+            - generic [ref=e1881]: 合計金額(税込) 46,332円
+            - generic [ref=e1882]: 送料(税別) 0円
+            - generic [ref=e1883]: 発送状況 発注受付 2/16手配
+            - generic [ref=e1884]: 納期 2026年05月 上
+            - generic [ref=e1886]: SNS・流行り物
+            - generic [ref=e1887]:
+              - text: 発注者確認
+              - generic [ref=e1889]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1890]:
+            - img "画像エラー" [ref=e1892]
+            - generic [ref=e1893]: 整理ID 1487881
+            - generic [ref=e1894]: カート番号 161972
+            - generic [ref=e1895]:
+              - text: 発送
+              - generic [ref=e1896]: 準備中
+            - generic [ref=e1897]:
+              - text: 出荷日
+              - generic [ref=e1898]: 未設定
+            - generic [ref=e1899]: 発注日時 2026-02-16 22:51
+            - generic [ref=e1900]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1901]: 株式会社change
+            - generic [ref=e1902]:
+              - text: 請求先
+              - generic [ref=e1903]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1904]: 商品コード VU911
+            - generic [ref=e1905]: BE2130 PUFFYDAYSフルーツタルトスクイズ
+            - generic [ref=e1906]:
+              - text: 単価(税別)
+              - generic [ref=e1907]: 670円
+            - generic [ref=e1908]: 入数 72
+            - generic [ref=e1909]: 受注数 1 箱
+            - generic [ref=e1910]: 合計金額(税別) 48,240円
+            - generic [ref=e1911]: 合計金額(税込) 53,064円
+            - generic [ref=e1912]: 送料(税別) 0円
+            - generic [ref=e1913]: 発送状況 発注受付 2/16手配
+            - generic [ref=e1914]: 納期 2026年05月 中旬
+            - generic [ref=e1915]:
+              - generic [ref=e1916]: 箱物系
+              - generic [ref=e1917]: SNS・流行り物
+            - generic [ref=e1918]:
+              - text: 発注者確認
+              - generic [ref=e1920]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1921]:
+            - img "画像エラー" [ref=e1923]
+            - generic [ref=e1924]: 整理ID 1470128
+            - generic [ref=e1925]: カート番号 161414
+            - generic [ref=e1926]:
+              - text: 発送
+              - generic [ref=e1927]: 準備中
+            - generic [ref=e1928]:
+              - text: 出荷日
+              - generic [ref=e1929]: 未設定
+            - generic [ref=e1930]: 発注日時 2026-02-07 19:25
+            - generic [ref=e1931]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1932]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e1933]:
+              - text: 請求先
+              - generic [ref=e1934]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1935]: 商品コード UF321
+            - generic [ref=e1936]: BE2021 ふわとろスクーズBC
+            - generic [ref=e1937]:
+              - text: 単価(税別)
+              - generic [ref=e1938]: 260円
+            - generic [ref=e1939]: 入数 216
+            - generic [ref=e1940]: 受注数 2 箱
+            - generic [ref=e1941]: 合計金額(税別) 112,320円
+            - generic [ref=e1942]: 合計金額(税込) 123,552円
+            - generic [ref=e1943]: 送料(税別) 0円
+            - generic [ref=e1944]: 発送状況 発注受付2/9手配済 3/23連絡済み 3/23 納期遅延連絡済み 4月伝票変更 納期変更前:3月下〜末 納期変更後:4月上〜中旬
+            - generic [ref=e1945]: 納期 2026年05月 中旬
+            - generic [ref=e1946]:
+              - generic [ref=e1947]: 小型機用
+              - generic [ref=e1948]: SNS・流行り物
+            - generic [ref=e1949]:
+              - text: 発注者確認
+              - generic [ref=e1951]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1952]:
+            - img "画像エラー" [ref=e1954]
+            - generic [ref=e1955]: 整理ID 1467919
+            - generic [ref=e1956]: カート番号 161276
+            - generic [ref=e1957]:
+              - text: 発送
+              - generic [ref=e1958]: 準備中
+            - generic [ref=e1959]:
+              - text: 出荷日
+              - generic [ref=e1960]: 未設定
+            - generic [ref=e1961]: 発注日時 2026-02-06 21:13
+            - generic [ref=e1962]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1963]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e1964]:
+              - text: 請求先
+              - generic [ref=e1965]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1966]: 商品コード UF321
+            - generic [ref=e1967]: BE2021 ふわとろスクーズBC
+            - generic [ref=e1968]:
+              - text: 単価(税別)
+              - generic [ref=e1969]: 260円
+            - generic [ref=e1970]: 入数 216
+            - generic [ref=e1971]: 受注数 1 箱
+            - generic [ref=e1972]: 合計金額(税別) 56,160円
+            - generic [ref=e1973]: 合計金額(税込) 61,776円
+            - generic [ref=e1974]: 送料(税別) 0円
+            - generic [ref=e1975]: 発送状況 発注受付2/9手配 3/23連絡済み 3/23 納期遅延連絡済み 4月伝票変更 納期変更前:3月下〜末 納期変更後:4月上〜中旬
+            - generic [ref=e1976]: 納期 2026年05月 中旬
+            - generic [ref=e1977]:
+              - generic [ref=e1978]: 小型機用
+              - generic [ref=e1979]: SNS・流行り物
+            - generic [ref=e1980]:
+              - text: 発注者確認
+              - generic [ref=e1982]: 納品前
+            - text: 賞味期限
+          - generic [ref=e1983]:
+            - img "画像エラー" [ref=e1985]
+            - generic [ref=e1986]: 整理ID 1467915
+            - generic [ref=e1987]: カート番号 161275
+            - generic [ref=e1988]:
+              - text: 発送
+              - generic [ref=e1989]: 準備中
+            - generic [ref=e1990]:
+              - text: 出荷日
+              - generic [ref=e1991]: 未設定
+            - generic [ref=e1992]: 発注日時 2026-02-06 21:12
+            - generic [ref=e1993]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e1994]: 株式会社change 霧島
+            - generic [ref=e1995]:
+              - text: 請求先
+              - generic [ref=e1996]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e1997]: 商品コード UF321
+            - generic [ref=e1998]: BE2021 ふわとろスクーズBC
+            - generic [ref=e1999]:
+              - text: 単価(税別)
+              - generic [ref=e2000]: 260円
+            - generic [ref=e2001]: 入数 216
+            - generic [ref=e2002]: 受注数 2 箱
+            - generic [ref=e2003]: 合計金額(税別) 112,320円
+            - generic [ref=e2004]: 合計金額(税込) 123,552円
+            - generic [ref=e2005]: 送料(税別) 0円
+            - generic [ref=e2006]: 発送状況 発注受付2/9手配済 3/23連絡済み 3/23 納期遅延連絡済み 4月伝票変更 納期変更前:3月下〜末 納期変更後:4月上〜中旬
+            - generic [ref=e2007]: 納期 2026年05月 中旬
+            - generic [ref=e2008]:
+              - generic [ref=e2009]: 小型機用
+              - generic [ref=e2010]: SNS・流行り物
+            - generic [ref=e2011]:
+              - text: 発注者確認
+              - generic [ref=e2013]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2014]:
+            - img "画像エラー" [ref=e2016]
+            - generic [ref=e2017]: 整理ID 1467911
+            - generic [ref=e2018]: カート番号 161274
+            - generic [ref=e2019]:
+              - text: 発送
+              - generic [ref=e2020]: 準備中
+            - generic [ref=e2021]:
+              - text: 出荷日
+              - generic [ref=e2022]: 未設定
+            - generic [ref=e2023]: 発注日時 2026-02-06 21:12
+            - generic [ref=e2024]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2025]: 株式会社change
+            - generic [ref=e2026]:
+              - text: 請求先
+              - generic [ref=e2027]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2028]: 商品コード UF321
+            - generic [ref=e2029]: BE2021 ふわとろスクーズBC
+            - generic [ref=e2030]:
+              - text: 単価(税別)
+              - generic [ref=e2031]: 260円
+            - generic [ref=e2032]: 入数 216
+            - generic [ref=e2033]: 受注数 3 箱
+            - generic [ref=e2034]: 合計金額(税別) 168,480円
+            - generic [ref=e2035]: 合計金額(税込) 185,328円
+            - generic [ref=e2036]: 送料(税別) 0円
+            - generic [ref=e2037]: 発送状況 発注受付2/9手配済 3/23連絡済み 3/23 納期遅延連絡済み 4月伝票変更 納期変更前:3月下〜末 納期変更後:4月上〜中旬
+            - generic [ref=e2038]: 納期 2026年05月 中旬
+            - generic [ref=e2039]:
+              - generic [ref=e2040]: 小型機用
+              - generic [ref=e2041]: SNS・流行り物
+            - generic [ref=e2042]:
+              - text: 発注者確認
+              - generic [ref=e2044]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2045]:
+            - img "画像エラー" [ref=e2047]
+            - generic [ref=e2048]: 整理ID 1465747
+            - generic [ref=e2049]: カート番号 161204
+            - generic [ref=e2050]:
+              - text: 発送
+              - generic [ref=e2051]: 準備中
+            - generic [ref=e2052]:
+              - text: 出荷日
+              - generic [ref=e2053]: 未設定
+            - generic [ref=e2054]: 発注日時 2026-02-06 21:11
+            - generic [ref=e2055]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2056]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2057]:
+              - text: 請求先
+              - generic [ref=e2058]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2059]: 商品コード UF321
+            - generic [ref=e2060]: BE2021 ふわとろスクーズBC
+            - generic [ref=e2061]:
+              - text: 単価(税別)
+              - generic [ref=e2062]: 260円
+            - generic [ref=e2063]: 入数 216
+            - generic [ref=e2064]: 受注数 2 箱
+            - generic [ref=e2065]: 合計金額(税別) 112,320円
+            - generic [ref=e2066]: 合計金額(税込) 123,552円
+            - generic [ref=e2067]: 送料(税別) 0円
+            - generic [ref=e2068]: 発送状況 発注受付 2/9手配済 3/23連絡済み 3/23 納期遅延連絡済み 4月伝票変更 納期変更前:3月下〜末 納期変更後:4月上〜中旬
+            - generic [ref=e2069]: 納期 2026年05月 中旬
+            - generic [ref=e2070]:
+              - generic [ref=e2071]: 小型機用
+              - generic [ref=e2072]: SNS・流行り物
+            - generic [ref=e2073]:
+              - text: 発注者確認
+              - generic [ref=e2075]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2076]:
+            - img "画像エラー" [ref=e2078]
+            - generic [ref=e2079]: 整理ID 1449329
+            - generic [ref=e2080]: カート番号 160526
+            - generic [ref=e2081]:
+              - text: 発送
+              - generic [ref=e2082]: 準備中
+            - generic [ref=e2083]:
+              - text: 出荷日
+              - generic [ref=e2084]: 未設定
+            - generic [ref=e2085]: 発注日時 2026-02-01 23:54
+            - generic [ref=e2086]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2087]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2088]:
+              - text: 請求先
+              - generic [ref=e2089]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2090]: 商品コード UF161
+            - generic [ref=e2091]: ぶるにゃん でらっくす 240入 (ハーフ/クォーター+1000円)【サイズ:約6.6cm 個別OPP袋入】
+            - generic [ref=e2092]:
+              - text: 単価(税別)
+              - generic [ref=e2093]: 45,500円
+              - generic [ref=e2094]: "@190円"
+            - generic [ref=e2095]: 入数 1
+            - generic [ref=e2096]: 受注数 1 箱
+            - generic [ref=e2097]: 合計金額(税別) 45,500円
+            - generic [ref=e2098]: 合計金額(税込) 50,050円
+            - generic [ref=e2099]: 送料(税別) 0円
+            - generic [ref=e2100]: 発送状況 4/下
+            - generic [ref=e2101]: 納期 2026年04月 下旬
+            - generic [ref=e2102]:
+              - generic [ref=e2103]: 電子商品
+              - generic [ref=e2104]: クォーター
+              - generic [ref=e2105]: ラクチャレキュート景品
+              - generic [ref=e2106]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2107]:
+              - text: 発注者確認
+              - generic [ref=e2109]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2110]:
+            - img "画像エラー" [ref=e2112]
+            - generic [ref=e2113]: 整理ID 1449337
+            - generic [ref=e2114]: カート番号 160526
+            - generic [ref=e2115]:
+              - text: 発送
+              - generic [ref=e2116]: 準備中
+            - generic [ref=e2117]:
+              - text: 出荷日
+              - generic [ref=e2118]: 未設定
+            - generic [ref=e2119]: 発注日時 2026-02-01 23:54
+            - generic [ref=e2120]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2121]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2122]:
+              - text: 請求先
+              - generic [ref=e2123]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2124]: 商品コード VH973
+            - generic [ref=e2125]: 【大人気！】コンパクトボイスチェンジャー～Metal 2～ 192入＠328(ハーフ/クォーター+1000円)【サイズ:約5.5x5x6.7cm 個別OPP袋入】
+            - generic [ref=e2126]:
+              - text: 単価(税別)
+              - generic [ref=e2127]: 63,000円
+              - generic [ref=e2128]: "@328円"
+            - generic [ref=e2129]: 入数 1
+            - generic [ref=e2130]: 受注数 1 箱
+            - generic [ref=e2131]: 合計金額(税別) 63,000円
+            - generic [ref=e2132]: 合計金額(税込) 69,300円
+            - generic [ref=e2133]: 送料(税別) 0円
+            - generic [ref=e2134]: 発送状況 4/中～下
+            - generic [ref=e2135]: 納期 2026年04月 下旬
+            - generic [ref=e2136]:
+              - generic [ref=e2137]: 小型機用
+              - generic [ref=e2138]: 電子商品
+              - generic [ref=e2139]: クォーター
+              - generic [ref=e2140]: ラクチャレキュート景品
+              - generic [ref=e2141]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2142]:
+              - text: 発注者確認
+              - generic [ref=e2144]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2145]:
+            - img "画像エラー" [ref=e2147]
+            - generic [ref=e2148]: 整理ID 1449338
+            - generic [ref=e2149]: カート番号 160526
+            - generic [ref=e2150]:
+              - text: 発送
+              - generic [ref=e2151]: 準備中
+            - generic [ref=e2152]:
+              - text: 出荷日
+              - generic [ref=e2153]: 未設定
+            - generic [ref=e2154]: 発注日時 2026-02-01 23:54
+            - generic [ref=e2155]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2156]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2157]:
+              - text: 請求先
+              - generic [ref=e2158]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2159]: 商品コード VS518
+            - generic [ref=e2160]: 【大人気小物】コンパクトボイスチェンジャー～Sweet～ 240入(ハーフ/クォーター+1000円)【サイズ:約6.7cm OPP袋入】
+            - generic [ref=e2161]:
+              - text: 単価(税別)
+              - generic [ref=e2162]: 56,000円
+              - generic [ref=e2163]: "@233円"
+            - generic [ref=e2164]: 入数 1
+            - generic [ref=e2165]: 受注数 1 箱
+            - generic [ref=e2166]: 合計金額(税別) 56,000円
+            - generic [ref=e2167]: 合計金額(税込) 61,600円
+            - generic [ref=e2168]: 送料(税別) 0円
+            - generic [ref=e2169]: 発送状況 4/下
+            - generic [ref=e2170]: 納期 2026年04月 下旬
+            - generic [ref=e2171]:
+              - generic [ref=e2172]: 小型機用
+              - generic [ref=e2173]: 電子商品
+              - generic [ref=e2174]: クォーター
+              - generic [ref=e2175]: ラクチャレW景品（下部）
+              - generic [ref=e2176]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2177]:
+              - text: 発注者確認
+              - generic [ref=e2179]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2180]:
+            - img "画像エラー" [ref=e2182]
+            - generic [ref=e2183]: 整理ID 1449284
+            - generic [ref=e2184]: カート番号 160416
+            - generic [ref=e2185]:
+              - text: 発送
+              - generic [ref=e2186]: 準備中
+            - generic [ref=e2187]:
+              - text: 出荷日
+              - generic [ref=e2188]: 未設定
+            - generic [ref=e2189]: 発注日時 2026-02-01 22:51
+            - generic [ref=e2190]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2191]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e2192]:
+              - text: 請求先
+              - generic [ref=e2193]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2194]: 商品コード VS518
+            - generic [ref=e2195]: 【大人気小物】コンパクトボイスチェンジャー～Sweet～ 240入(ハーフ/クォーター+1000円)【サイズ:約6.7cm OPP袋入】
+            - generic [ref=e2196]:
+              - text: 単価(税別)
+              - generic [ref=e2197]: 56,000円
+              - generic [ref=e2198]: "@233円"
+            - generic [ref=e2199]: 入数 1
+            - generic [ref=e2200]: 受注数 1 箱
+            - generic [ref=e2201]: 合計金額(税別) 56,000円
+            - generic [ref=e2202]: 合計金額(税込) 61,600円
+            - generic [ref=e2203]: 送料(税別) 0円
+            - generic [ref=e2204]: 発送状況 4/下
+            - generic [ref=e2205]: 納期 2026年04月 下旬
+            - generic [ref=e2206]:
+              - generic [ref=e2207]: 小型機用
+              - generic [ref=e2208]: 電子商品
+              - generic [ref=e2209]: クォーター
+              - generic [ref=e2210]: ラクチャレW景品（下部）
+              - generic [ref=e2211]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2212]:
+              - text: 発注者確認
+              - generic [ref=e2214]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2215]:
+            - img "画像エラー" [ref=e2217]
+            - generic [ref=e2218]: 整理ID 1449283
+            - generic [ref=e2219]: カート番号 160416
+            - generic [ref=e2220]:
+              - text: 発送
+              - generic [ref=e2221]: 準備中
+            - generic [ref=e2222]:
+              - text: 出荷日
+              - generic [ref=e2223]: 未設定
+            - generic [ref=e2224]: 発注日時 2026-02-01 22:51
+            - generic [ref=e2225]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2226]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e2227]:
+              - text: 請求先
+              - generic [ref=e2228]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2229]: 商品コード VH973
+            - generic [ref=e2230]: 【大人気！】コンパクトボイスチェンジャー～Metal 2～ 192入＠328(ハーフ/クォーター+1000円)【サイズ:約5.5x5x6.7cm 個別OPP袋入】
+            - generic [ref=e2231]:
+              - text: 単価(税別)
+              - generic [ref=e2232]: 63,000円
+              - generic [ref=e2233]: "@328円"
+            - generic [ref=e2234]: 入数 1
+            - generic [ref=e2235]: 受注数 1 箱
+            - generic [ref=e2236]: 合計金額(税別) 63,000円
+            - generic [ref=e2237]: 合計金額(税込) 69,300円
+            - generic [ref=e2238]: 送料(税別) 0円
+            - generic [ref=e2239]: 発送状況 4/中～下
+            - generic [ref=e2240]: 納期 2026年04月 下旬
+            - generic [ref=e2241]:
+              - generic [ref=e2242]: 小型機用
+              - generic [ref=e2243]: 電子商品
+              - generic [ref=e2244]: クォーター
+              - generic [ref=e2245]: ラクチャレキュート景品
+              - generic [ref=e2246]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2247]:
+              - text: 発注者確認
+              - generic [ref=e2249]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2250]:
+            - img "画像エラー" [ref=e2252]
+            - generic [ref=e2253]: 整理ID 1449277
+            - generic [ref=e2254]: カート番号 160416
+            - generic [ref=e2255]:
+              - text: 発送
+              - generic [ref=e2256]: 準備中
+            - generic [ref=e2257]:
+              - text: 出荷日
+              - generic [ref=e2258]: 未設定
+            - generic [ref=e2259]: 発注日時 2026-02-01 22:51
+            - generic [ref=e2260]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2261]: MEGAドン・キホーテ飯塚店内ゲームコーナー
+            - generic [ref=e2262]:
+              - text: 請求先
+              - generic [ref=e2263]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2264]: 商品コード UF161
+            - generic [ref=e2265]: ぶるにゃん でらっくす 240入 (ハーフ/クォーター+1000円)【サイズ:約6.6cm 個別OPP袋入】
+            - generic [ref=e2266]:
+              - text: 単価(税別)
+              - generic [ref=e2267]: 45,500円
+              - generic [ref=e2268]: "@190円"
+            - generic [ref=e2269]: 入数 1
+            - generic [ref=e2270]: 受注数 1 箱
+            - generic [ref=e2271]: 合計金額(税別) 45,500円
+            - generic [ref=e2272]: 合計金額(税込) 50,050円
+            - generic [ref=e2273]: 送料(税別) 0円
+            - generic [ref=e2274]: 発送状況 4/下
+            - generic [ref=e2275]: 納期 2026年04月 下旬
+            - generic [ref=e2276]:
+              - generic [ref=e2277]: 電子商品
+              - generic [ref=e2278]: クォーター
+              - generic [ref=e2279]: ラクチャレキュート景品
+              - generic [ref=e2280]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2281]:
+              - text: 発注者確認
+              - generic [ref=e2283]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2284]:
+            - img "画像エラー" [ref=e2286]
+            - generic [ref=e2287]: 整理ID 1438931
+            - generic [ref=e2288]: カート番号 159527
+            - generic [ref=e2289]:
+              - text: 発送
+              - generic [ref=e2290]: 準備中
+            - generic [ref=e2291]:
+              - text: 出荷日
+              - generic [ref=e2292]: 未設定
+            - generic [ref=e2293]: 発注日時 2026-01-29 23:17
+            - generic [ref=e2294]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2295]: 株式会社change
+            - generic [ref=e2296]:
+              - text: 請求先
+              - generic [ref=e2297]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2298]: 商品コード VR403
+            - generic [ref=e2299]: 【再販】サンリオ チャーム付きスイーツBC Ver.1【4.5×4.5×4㎝】
+            - generic [ref=e2300]:
+              - text: 単価(税別)
+              - generic [ref=e2301]: 380円
+            - generic [ref=e2302]: 入数 180
+            - generic [ref=e2303]: 受注数 1 箱
+            - generic [ref=e2304]: 合計金額(税別) 68,400円
+            - generic [ref=e2305]: 合計金額(税込) 75,240円
+            - generic [ref=e2306]: 送料(税別) 0円
+            - generic [ref=e2307]: 発送状況 発注受付
+            - generic [ref=e2308]: 納期 2026年04月 下旬
+            - generic [ref=e2309]:
+              - generic [ref=e2310]: 小型機用
+              - generic [ref=e2311]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2312]:
+              - text: 発注者確認
+              - generic [ref=e2314]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2315]:
+            - img "画像エラー" [ref=e2317]
+            - generic [ref=e2318]: 整理ID 1425599
+            - generic [ref=e2319]: カート番号 158489
+            - generic [ref=e2320]:
+              - text: 発送
+              - generic [ref=e2321]: 準備中
+            - generic [ref=e2322]:
+              - text: 出荷日
+              - generic [ref=e2323]: 未設定
+            - generic [ref=e2324]: 発注日時 2026-01-20 20:42
+            - generic [ref=e2325]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2326]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2327]:
+              - text: 請求先
+              - generic [ref=e2328]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2329]: 商品コード VI506
+            - generic [ref=e2330]: 1/22〆切 ハローキティ 90sタイルシール3種アソート 【パッケージサイズ15×6.5×0.5㎝】
+            - generic [ref=e2331]:
+              - text: 単価(税別)
+              - generic [ref=e2332]: 293円
+            - generic [ref=e2333]: 入数 144
+            - generic [ref=e2334]: 受注数 1 箱
+            - generic [ref=e2335]: 合計金額(税別) 42,192円
+            - generic [ref=e2336]: 合計金額(税込) 46,411円
+            - generic [ref=e2337]: 送料(税別) 0円
+            - generic [ref=e2338]: 発送状況 発注受付 3/18 納期遅延連絡済み 4月伝票変更 納期変更前：3月 納期変更後：4月中旬~下旬
+            - generic [ref=e2339]: 納期 2026年03月 下旬
+            - generic [ref=e2340]:
+              - generic [ref=e2341]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+              - generic [ref=e2342]: SNS・流行り物
+            - generic [ref=e2343]:
+              - text: 発注者確認
+              - generic [ref=e2345]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2346]:
+            - img "画像エラー" [ref=e2348]
+            - generic [ref=e2349]: 整理ID 1425602
+            - generic [ref=e2350]: カート番号 158489
+            - generic [ref=e2351]:
+              - text: 発送
+              - generic [ref=e2352]: 準備中
+            - generic [ref=e2353]:
+              - text: 出荷日
+              - generic [ref=e2354]: 未設定
+            - generic [ref=e2355]: 発注日時 2026-01-20 20:42
+            - generic [ref=e2356]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2357]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2358]:
+              - text: 請求先
+              - generic [ref=e2359]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2360]: 商品コード VA263
+            - generic [ref=e2361]: ハローキティ シャワーサンダル【商品サイズ:約11×26×12㎝】☆
+            - generic [ref=e2362]:
+              - text: 単価(税別)
+              - generic [ref=e2363]: 1,000円
+            - generic [ref=e2364]: 入数 60
+            - generic [ref=e2365]: 受注数 1 箱
+            - generic [ref=e2366]: 合計金額(税別) 60,000円
+            - generic [ref=e2367]: 合計金額(税込) 66,000円
+            - generic [ref=e2368]: 送料(税別) 0円
+            - generic [ref=e2369]: 発送状況 発注受付
+            - generic [ref=e2370]: 納期 2026年04月 中旬～下旬
+            - generic [ref=e2371]:
+              - generic [ref=e2372]: 箱物系
+              - generic [ref=e2373]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2374]:
+              - text: 発注者確認
+              - generic [ref=e2376]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2377]:
+            - img "画像エラー" [ref=e2379]
+            - generic [ref=e2380]: 整理ID 1390353
+            - generic [ref=e2381]: カート番号 155450
+            - generic [ref=e2382]:
+              - text: 発送
+              - generic [ref=e2383]: 準備中
+            - generic [ref=e2384]:
+              - text: 出荷日
+              - generic [ref=e2385]: 未設定
+            - generic [ref=e2386]: 発注日時 2025-12-31 20:25
+            - generic [ref=e2387]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2388]: 株式会社change 霧島
+            - generic [ref=e2389]:
+              - text: 請求先
+              - generic [ref=e2390]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2391]: 商品コード VF890
+            - generic [ref=e2392]: ﾓﾝﾁｯﾁ ﾌﾚﾝｽﾞﾏｽｺｯﾄ【パッケージPP サイズ：約10*7*6ｃｍ】モンチッチ フレンズマスコット
+            - generic [ref=e2393]:
+              - text: 単価(税別)
+              - generic [ref=e2394]: 520円
+            - generic [ref=e2395]: 入数 96
+            - generic [ref=e2396]: 受注数 1 箱
+            - generic [ref=e2397]: 合計金額(税別) 49,920円
+            - generic [ref=e2398]: 合計金額(税込) 54,912円
+            - generic [ref=e2399]: 送料(税別) 0円
+            - generic [ref=e2400]: 発送状況 4/下 J5101241
+            - generic [ref=e2401]: 納期 2026年04月 下旬
+            - generic [ref=e2404]:
+              - text: 発注者確認
+              - generic [ref=e2406]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2407]:
+            - img "画像エラー" [ref=e2409]
+            - generic [ref=e2410]: 整理ID 1390354
+            - generic [ref=e2411]: カート番号 155450
+            - generic [ref=e2412]:
+              - text: 発送
+              - generic [ref=e2413]: 準備中
+            - generic [ref=e2414]:
+              - text: 出荷日
+              - generic [ref=e2415]: 未設定
+            - generic [ref=e2416]: 発注日時 2025-12-31 20:25
+            - generic [ref=e2417]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2418]: 株式会社change 霧島
+            - generic [ref=e2419]:
+              - text: 請求先
+              - generic [ref=e2420]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2421]: 商品コード UX539
+            - generic [ref=e2422]: ジャグラーサウンドフラッシュボタンＤＸ(クリアラメ)【商品サイズ:約16.7×10.4×6.8㎝】☆
+            - generic [ref=e2423]:
+              - text: 単価(税別)
+              - generic [ref=e2424]: 1,000円
+            - generic [ref=e2425]: 入数 60
+            - generic [ref=e2426]: 受注数 1 箱
+            - generic [ref=e2427]: 合計金額(税別) 60,000円
+            - generic [ref=e2428]: 合計金額(税込) 66,000円
+            - generic [ref=e2429]: 送料(税別) 0円
+            - generic [ref=e2430]: 発送状況 発注受付
+            - generic [ref=e2431]: 納期 2026年04月 中旬～下旬
+            - generic [ref=e2432]:
+              - generic [ref=e2433]: 電子商品
+              - generic [ref=e2434]: 箱物系
+              - generic [ref=e2435]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2436]:
+              - text: 発注者確認
+              - generic [ref=e2438]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2439]:
+            - img "画像エラー" [ref=e2441]
+            - generic [ref=e2442]: 整理ID 1390348
+            - generic [ref=e2443]: カート番号 155224
+            - generic [ref=e2444]:
+              - text: 発送
+              - generic [ref=e2445]: 準備中
+            - generic [ref=e2446]:
+              - text: 出荷日
+              - generic [ref=e2447]: 未設定
+            - generic [ref=e2448]: 発注日時 2025-12-31 20:20
+            - generic [ref=e2449]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2450]: スポガ久留米 卓球ゲームコーナー
+            - generic [ref=e2451]:
+              - text: 請求先
+              - generic [ref=e2452]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2453]: 商品コード VF889
+            - generic [ref=e2454]: ﾓﾝﾁｯﾁ ﾌﾚﾝｽﾞぬいぐるみ【パッケージPP サイズ：約30ｃｍ】※通常送料＋別途送料 （発注数×3000円）モンチッチ フレンズぬいぐるみ
+            - generic [ref=e2455]:
+              - text: 単価(税別)
+              - generic [ref=e2456]: 1,000円
+            - generic [ref=e2457]: 入数 48
+            - generic [ref=e2458]: 受注数 0.5 箱
+            - generic [ref=e2459]: 合計金額(税別) 24,000円
+            - generic [ref=e2460]: 合計金額(税込) 26,400円
+            - generic [ref=e2461]: 送料(税別) 1,500円
+            - generic [ref=e2462]: 発送状況 4/下 J5101233
+            - generic [ref=e2463]: 納期 2026年04月 下旬
+            - generic [ref=e2465]: ぬいぐるみ
+            - generic [ref=e2466]:
+              - text: 発注者確認
+              - generic [ref=e2468]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2469]:
+            - img "画像エラー" [ref=e2471]
+            - generic [ref=e2472]: 整理ID 1387861
+            - generic [ref=e2473]: カート番号 155153
+            - generic [ref=e2474]:
+              - text: 発送
+              - generic [ref=e2475]: 準備中
+            - generic [ref=e2476]:
+              - text: 出荷日
+              - generic [ref=e2477]: 未設定
+            - generic [ref=e2478]: 発注日時 2025-12-29 08:26
+            - generic [ref=e2479]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2480]: 株式会社change
+            - generic [ref=e2481]:
+              - text: 請求先
+              - generic [ref=e2482]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2483]: 商品コード VF890
+            - generic [ref=e2484]: ﾓﾝﾁｯﾁ ﾌﾚﾝｽﾞﾏｽｺｯﾄ【パッケージPP サイズ：約10*7*6ｃｍ】モンチッチ フレンズマスコット
+            - generic [ref=e2485]:
+              - text: 単価(税別)
+              - generic [ref=e2486]: 520円
+            - generic [ref=e2487]: 入数 96
+            - generic [ref=e2488]: 受注数 1 箱
+            - generic [ref=e2489]: 合計金額(税別) 49,920円
+            - generic [ref=e2490]: 合計金額(税込) 54,912円
+            - generic [ref=e2491]: 送料(税別) 0円
+            - generic [ref=e2492]: 発送状況 4/下 J5100493
+            - generic [ref=e2493]: 納期 2026年04月 下旬
+            - generic [ref=e2496]:
+              - text: 発注者確認
+              - generic [ref=e2498]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2499]:
+            - img "画像エラー" [ref=e2501]
+            - generic [ref=e2502]: 整理ID 1360474
+            - generic [ref=e2503]: カート番号 152129
+            - generic [ref=e2504]:
+              - text: 発送
+              - generic [ref=e2505]: 準備中
+            - generic [ref=e2506]:
+              - text: 出荷日
+              - generic [ref=e2507]: 未設定
+            - generic [ref=e2508]: 発注日時 2025-12-08 19:15
+            - generic [ref=e2509]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2510]: 株式会社change
+            - generic [ref=e2511]:
+              - text: 請求先
+              - generic [ref=e2512]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2513]: 商品コード VA689
+            - generic [ref=e2514]: ●12/9締切 400 アミューズ不可 バンダイ サンリオキャラクターズ 平成ギャルチャーム
+            - generic [ref=e2515]:
+              - text: 単価(税別)
+              - generic [ref=e2516]: 240円
+            - generic [ref=e2517]: 入数 30
+            - generic [ref=e2518]: 受注数 4 袋
+            - generic [ref=e2519]: 合計金額(税別) 28,800円
+            - generic [ref=e2520]: 合計金額(税込) 31,680円
+            - generic [ref=e2521]: 送料(税別) 0円
+            - generic [ref=e2522]: 発送状況 発注受付
+            - generic [ref=e2523]: 納期 2026年04月 ３週目
+            - generic [ref=e2525]: ガチャ景品
+            - generic [ref=e2526]:
+              - text: 発注者確認
+              - generic [ref=e2528]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2529]:
+            - img "画像エラー" [ref=e2531]
+            - generic [ref=e2532]: 整理ID 1360473
+            - generic [ref=e2533]: カート番号 152129
+            - generic [ref=e2534]:
+              - text: 発送
+              - generic [ref=e2535]: 準備中
+            - generic [ref=e2536]:
+              - text: 出荷日
+              - generic [ref=e2537]: 未設定
+            - generic [ref=e2538]: 発注日時 2025-12-08 19:15
+            - generic [ref=e2539]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2540]: 株式会社change
+            - generic [ref=e2541]:
+              - text: 請求先
+              - generic [ref=e2542]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2543]: 商品コード VA688
+            - generic [ref=e2544]: ●12/9締切 400 アミューズ不可 バンダイ サンリオキャラクターズ きらきらビーズチャーム
+            - generic [ref=e2545]:
+              - text: 単価(税別)
+              - generic [ref=e2546]: 240円
+            - generic [ref=e2547]: 入数 30
+            - generic [ref=e2548]: 受注数 4 袋
+            - generic [ref=e2549]: 合計金額(税別) 28,800円
+            - generic [ref=e2550]: 合計金額(税込) 31,680円
+            - generic [ref=e2551]: 送料(税別) 0円
+            - generic [ref=e2552]: 発送状況 発注受付
+            - generic [ref=e2553]: 納期 2026年04月 ２週目
+            - generic [ref=e2555]: ガチャ景品
+            - generic [ref=e2556]:
+              - text: 発注者確認
+              - generic [ref=e2558]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2559]:
+            - img "画像エラー" [ref=e2561]
+            - generic [ref=e2562]: 整理ID 1360472
+            - generic [ref=e2563]: カート番号 152129
+            - generic [ref=e2564]:
+              - text: 発送
+              - generic [ref=e2565]: 準備中
+            - generic [ref=e2566]:
+              - text: 出荷日
+              - generic [ref=e2567]: 未設定
+            - generic [ref=e2568]: 発注日時 2025-12-08 19:15
+            - generic [ref=e2569]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2570]: 株式会社change
+            - generic [ref=e2571]:
+              - text: 請求先
+              - generic [ref=e2572]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2573]: 商品コード VA636
+            - generic [ref=e2574]: ●12/9締切 300 アミューズ不可 バンダイ サンリオキャラクターズ ボンボンドロップミニチュアチャーム
+            - generic [ref=e2575]:
+              - text: 単価(税別)
+              - generic [ref=e2576]: 180円
+            - generic [ref=e2577]: 入数 40
+            - generic [ref=e2578]: 受注数 4 袋
+            - generic [ref=e2579]: 合計金額(税別) 28,800円
+            - generic [ref=e2580]: 合計金額(税込) 31,680円
+            - generic [ref=e2581]: 送料(税別) 0円
+            - generic [ref=e2582]: 発送状況 発注受付
+            - generic [ref=e2583]: 納期 2026年04月 １週目
+            - generic [ref=e2585]: ガチャ景品
+            - generic [ref=e2586]:
+              - text: 発注者確認
+              - generic [ref=e2588]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2589]:
+            - img "画像エラー" [ref=e2591]
+            - generic [ref=e2592]: 整理ID 1360471
+            - generic [ref=e2593]: カート番号 152129
+            - generic [ref=e2594]:
+              - text: 発送
+              - generic [ref=e2595]: 準備中
+            - generic [ref=e2596]:
+              - text: 出荷日
+              - generic [ref=e2597]: 未設定
+            - generic [ref=e2598]: 発注日時 2025-12-08 19:15
+            - generic [ref=e2599]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2600]: 株式会社change
+            - generic [ref=e2601]:
+              - text: 請求先
+              - generic [ref=e2602]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2603]: 商品コード VA508
+            - generic [ref=e2604]: ●12/9締切 500 夢屋 サンリオ ハローキティトートバッグ
+            - generic [ref=e2605]:
+              - text: 単価(税別)
+              - generic [ref=e2606]: 300円
+            - generic [ref=e2607]: 入数 20
+            - generic [ref=e2608]: 受注数 2 袋
+            - generic [ref=e2609]: 合計金額(税別) 12,000円
+            - generic [ref=e2610]: 合計金額(税込) 13,200円
+            - generic [ref=e2611]: 送料(税別) 0円
+            - generic [ref=e2612]: 発送状況 発注受付 ⇒４月延期
+            - generic [ref=e2613]: 納期 2026年03月 中旬
+            - generic [ref=e2615]: ガチャ景品
+            - generic [ref=e2616]:
+              - text: 発注者確認
+              - generic [ref=e2618]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2619]:
+            - img "画像エラー" [ref=e2621]
+            - generic [ref=e2622]: 整理ID 1357915
+            - generic [ref=e2623]: カート番号 151936
+            - generic [ref=e2624]:
+              - text: 発送
+              - generic [ref=e2625]: 準備中
+            - generic [ref=e2626]:
+              - text: 出荷日
+              - generic [ref=e2627]: 未設定
+            - generic [ref=e2628]: 発注日時 2025-12-07 16:14
+            - generic [ref=e2629]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2630]: 株式会社change
+            - generic [ref=e2631]:
+              - text: 請求先
+              - generic [ref=e2632]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2633]: 商品コード VA629
+            - generic [ref=e2634]: ●12/9締切 300 アミューズ不可 バンダイ それいけ！アンパンマン いたずらいっぱいアンパンマン10
+            - generic [ref=e2635]:
+              - text: 単価(税別)
+              - generic [ref=e2636]: 180円
+            - generic [ref=e2637]: 入数 40
+            - generic [ref=e2638]: 受注数 2 袋
+            - generic [ref=e2639]: 合計金額(税別) 14,400円
+            - generic [ref=e2640]: 合計金額(税込) 15,840円
+            - generic [ref=e2641]: 送料(税別) 0円
+            - generic [ref=e2642]: 発送状況 発注受付
+            - generic [ref=e2643]: 納期 2026年04月 ２週目
+            - generic [ref=e2645]: ガチャ景品
+            - generic [ref=e2646]:
+              - text: 発注者確認
+              - generic [ref=e2648]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2649]:
+            - img "画像エラー" [ref=e2651]
+            - generic [ref=e2652]: 整理ID 1357914
+            - generic [ref=e2653]: カート番号 151936
+            - generic [ref=e2654]:
+              - text: 発送
+              - generic [ref=e2655]: 準備中
+            - generic [ref=e2656]:
+              - text: 出荷日
+              - generic [ref=e2657]: 未設定
+            - generic [ref=e2658]: 発注日時 2025-12-07 16:14
+            - generic [ref=e2659]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2660]: 株式会社change
+            - generic [ref=e2661]:
+              - text: 請求先
+              - generic [ref=e2662]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2663]: 商品コード VA628
+            - generic [ref=e2664]: ●12/9締切 300 アミューズ不可 バンダイ それいけ！アンパンマン かちゃかちゃコンセント7
+            - generic [ref=e2665]:
+              - text: 単価(税別)
+              - generic [ref=e2666]: 180円
+            - generic [ref=e2667]: 入数 40
+            - generic [ref=e2668]: 受注数 2 袋
+            - generic [ref=e2669]: 合計金額(税別) 14,400円
+            - generic [ref=e2670]: 合計金額(税込) 15,840円
+            - generic [ref=e2671]: 送料(税別) 0円
+            - generic [ref=e2672]: 発送状況 発注受付
+            - generic [ref=e2673]: 納期 2026年04月 １週目
+            - generic [ref=e2675]: ガチャ景品
+            - generic [ref=e2676]:
+              - text: 発注者確認
+              - generic [ref=e2678]: 納品前
+            - text: 賞味期限
+          - generic [ref=e2679]:
+            - img "画像エラー" [ref=e2681]
+            - generic [ref=e2682]: 整理ID 1331934
+            - generic [ref=e2683]: カート番号 150068
+            - generic [ref=e2684]:
+              - text: 発送
+              - generic [ref=e2685]: 準備中
+            - generic [ref=e2686]:
+              - text: 出荷日
+              - generic [ref=e2687]: 未設定
+            - generic [ref=e2688]: 発注日時 2025-11-27 08:08
+            - generic [ref=e2689]: 発注者 【フォロー】achieve（アミューズ）
+            - generic [ref=e2690]: 株式会社change
+            - generic [ref=e2691]:
+              - text: 請求先
+              - generic [ref=e2692]: 【フォロー】株式会社change（旧achieve）
+            - generic [ref=e2693]: 商品コード UX539
+            - generic [ref=e2694]: ジャグラーサウンドフラッシュボタンＤＸ(クリアラメ)【商品サイズ:約16.7×10.4×6.8㎝】☆
+            - generic [ref=e2695]:
+              - text: 単価(税別)
+              - generic [ref=e2696]: 1,000円
+            - generic [ref=e2697]: 入数 60
+            - generic [ref=e2698]: 受注数 3 箱
+            - generic [ref=e2699]: 合計金額(税別) 180,000円
+            - generic [ref=e2700]: 合計金額(税込) 198,000円
+            - generic [ref=e2701]: 送料(税別) 0円
+            - generic [ref=e2702]: 発送状況 発注受付
+            - generic [ref=e2703]: 納期 2026年04月 中旬～下旬
+            - generic [ref=e2704]:
+              - generic [ref=e2705]: 電子商品
+              - generic [ref=e2706]: 箱物系
+              - generic [ref=e2707]: 送料無料（ハーフ別途料金）北海道・沖縄・離島除く
+            - generic [ref=e2708]:
+              - text: 発注者確認
+              - generic [ref=e2710]: 納品前
+            - text: 賞味期限
+  - text: 状態 商品画像 商品コード 商品名 管理者 登録日 更新日 発注締切日 納期 在庫数 単価(税別) 単価原価(税別) 入数 価格(税別) 仕入(税別) カテゴリー ジャンル 管理者用備考 状態 商品画像 商品コード 商品名 管理者 登録日 更新日 発注締切日 納期 在庫数 単価(税別) 単価原価(税別) 入数 価格(税別) 仕入(税別) カテゴリー ジャンル 管理者用備考 整理ID カート番号 発送 出荷日 受注日時 発注者 発送先 商品コード 仕入先 単価(税別) 単価原価(税別) 入数 受注数 合計金額(税別) 仕入合計金額(税別) 合計金額(税込) 仕入合計金額(税込) 発送状況 伝票月 商品管理者 整理ID カート番号 発注者 商品コード 仕入先 単価(税別) 単価原価(税別) 入数 受注数 合計金額(税別) 仕入合計金額(税別) 合計金額(税込) 仕入合計金額(税込) 送料(税別) 送料(税込) 送料原価(税別) 送料原価(税込) 商品管理者 内容 整理ID カート番号 発注者 請求先 商品コード 単価(税別) 入数 受注数 合計金額(税別) 合計金額(税込) 発送状況 納期 発注者確認 整理ID 商品コード 仕入先 単価(税別) 単価原価(税別) 入数 入庫数 合計金額(税別) 仕入合計金額(税別) 合計金額(税込) 仕入合計金額(税込) 備考 商品管理者
+  - generic [ref=e306]:
+    - link:
+      - /url: "#"
+    - generic [ref=e308]:
+      - generic [ref=e309]: KEIHIN FORM
+      - generic [ref=e310]: ©Copyright FIVE all right reserved.

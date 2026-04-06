@@ -34,12 +34,6 @@ const TestDataImport = lazy(() => import('./pages/TestDataImport'))
 const AuditLog = lazy(() => import('./pages/AuditLog'))
 const AuditSummary = lazy(() => import('./pages/AuditSummary'))
 
-// 遅延ロード — 棚卸し
-const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard'))
-const InventoryReceive = lazy(() => import('./pages/inventory/InventoryReceive'))
-const InventoryTransfer = lazy(() => import('./pages/inventory/InventoryTransfer'))
-const InventoryCount = lazy(() => import('./pages/inventory/InventoryCount'))
-const InventoryMatch = lazy(() => import('./pages/inventory/InventoryMatch'))
 
 // ローディングスピナー（Suspense フォールバック）
 function PageLoader() {
@@ -99,12 +93,6 @@ export default function App() {
       <Route path="/admin/setup-sheets" element={<AdminRoute><SetupSheets /></AdminRoute>} />
       <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
 
-      {/* 棚卸し — patrol以上 */}
-      <Route path="/inventory" element={<PatrolRoute><InventoryDashboard /></PatrolRoute>} />
-      <Route path="/inventory/receive" element={<PatrolRoute><InventoryReceive /></PatrolRoute>} />
-      <Route path="/inventory/transfer" element={<PatrolRoute><InventoryTransfer /></PatrolRoute>} />
-      <Route path="/inventory/count" element={<PatrolRoute><InventoryCount /></PatrolRoute>} />
-      <Route path="/inventory/match" element={<ManagerRoute><InventoryMatch /></ManagerRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

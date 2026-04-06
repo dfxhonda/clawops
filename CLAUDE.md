@@ -113,3 +113,10 @@ curl -d "作業が完了しました" ntfy.sh/clawops-hiro-0328
 - `docs/lists/`   — 設置希望リスト等のスキャン画像
 - `docs/photos/`  — 現調写真
 - `docs/images/`  — その他画像
+
+## データ出力ルール
+- CSV・JSON・HTMLなどのデータエクスポートは必ず `data/exports/` に出力すること
+- ホームディレクトリやプロジェクトルートに直接出力しない
+- ファイル名には日付を含める推奨: `YYYYMMDD_内容.csv`
+- `data/exports/` は `.gitignore` 済み（.gitkeepのみ追跡）
+- 一時インポート用HTMLも `data/exports/` に置く

@@ -66,10 +66,6 @@ export default function MainInput() {
               className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
               QR
             </button>
-            <button onClick={() => navigate('/inventory')}
-              className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
-              在庫
-            </button>
             {storeId && (
               <button onClick={() => navigate(`/ranking/${storeId}`)}
                 className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">

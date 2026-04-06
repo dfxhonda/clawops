@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 🎮
+  - heading "ClawOps" [level=1] [ref=e3]
+  - paragraph [ref=e4]: クレーンゲーム運営管理
+  - generic [ref=e18]:
+    - link "🚶 巡回アプリ メーター入力・売上・棚卸し" [ref=e19] [cursor=pointer]:
+      - /url: /login
+      - generic [ref=e20]: 🚶
+      - generic [ref=e21]: 巡回アプリ
+      - generic [ref=e22]: メーター入力・売上・棚卸し
+    - link "🏆 景品マスタ 景品の登録・検索" [ref=e23] [cursor=pointer]:
+      - /url: prizes.html
+      - generic [ref=e24]: 🏆
+      - generic [ref=e25]: 景品マスタ
+      - generic [ref=e26]: 景品の登録・検索
+    - link "📋 発注管理 発注・入荷チェック" [ref=e27] [cursor=pointer]:
+      - /url: orders.html
+      - generic [ref=e28]: 📋
+      - generic [ref=e29]: 発注管理
+      - generic [ref=e30]: 発注・入荷チェック
+    - link "📦 在庫管理 在庫確認・移動" [ref=e31] [cursor=pointer]:
+      - /url: inventory.html
+      - generic [ref=e32]: 📦
+      - generic [ref=e33]: 在庫管理
+      - generic [ref=e34]: 在庫確認・移動
+    - link "📬 景品案内 仕入先からの新商品" [ref=e35] [cursor=pointer]:
+      - /url: announcements.html
+      - generic [ref=e36]: 📬
+      - generic [ref=e37]: 景品案内
+      - generic [ref=e38]: 仕入先からの新商品
+    - link "💰 集金帳票 店舗別・印刷対応" [ref=e39] [cursor=pointer]:
+      - /url: billing.html
+      - generic [ref=e40]: 💰
+      - generic [ref=e41]: 集金帳票
+      - generic [ref=e42]: 店舗別・印刷対応
+    - link "📊 売上分析 ランキング・推移・出率" [ref=e43] [cursor=pointer]:
+      - /url: analytics.html
+      - generic [ref=e44]: 📊
+      - generic [ref=e45]: 売上分析
+      - generic [ref=e46]: ランキング・推移・出率
+    - link "🖼️ 画像マッチング 景品写真の紐付け" [ref=e47] [cursor=pointer]:
+      - /url: image-match.html
+      - generic [ref=e48]: 🖼️
+      - generic [ref=e49]: 画像マッチング
+      - generic [ref=e50]: 景品写真の紐付け
+    - link "⚙️ 管理・ツール マスタ設定・Excel出力" [ref=e51] [cursor=pointer]:
+      - /url: admin.html
+      - generic [ref=e52]: ⚙️
+      - generic [ref=e53]: 管理・ツール
+      - generic [ref=e54]: マスタ設定・Excel出力
+  - generic [ref=e13]: ClawOps v1.0
