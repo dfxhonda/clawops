@@ -315,7 +315,7 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
     >
       {/* R1: ブース名 + 履歴 + 景品名 + 単価 */}
       <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
-        <span className="text-xs font-bold text-accent shrink-0">{booth.booth_code}</span>
+        <span className="text-xs font-bold text-accent shrink-0">{booth.booth_number ?? booth.booth_code}</span>
         <button onClick={() => navigate(`/edit/${booth.booth_id}`)}
           className="text-[10px] text-muted/60 hover:text-accent shrink-0">履歴</button>
         <input ref={getRef(booth.booth_id, 'prize_name')}

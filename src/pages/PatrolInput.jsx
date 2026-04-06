@@ -74,7 +74,7 @@ export default function PatrolInput() {
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => navigate('/patrol')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-accent">{booth.booth_code}</h2>
+            <h2 className="text-lg font-bold text-accent">{booth.booth_number ?? booth.booth_code}</h2>
             <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName}</p>
           </div>
           <LogoutButton />
