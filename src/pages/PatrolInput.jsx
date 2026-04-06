@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { usePatrolInput, STATUS_OPTIONS } from '../hooks/usePatrolInput'
 import LogoutButton from '../components/LogoutButton'
 import ErrorDisplay from '../components/ErrorDisplay'
+import AnomalyBanner from '../components/AnomalyBanner'
+import PatrolConfirmModal from '../components/PatrolConfirmModal'
 
 export default function PatrolInput() {
   const { state } = useLocation()
@@ -188,18 +190,11 @@ export default function PatrolInput() {
               </div>
             )}
 
-            {/* 異常値アラートバナー */}
-            {hasAnomaly && (
-              <div className="mb-4 bg-accent2/10 border border-accent2/30 rounded-lg px-3 py-2 text-[11px] text-accent2 font-bold">
-                ⚠️ 異常値を検出
-                {inAbnormal  && <span className="ml-1">· IN異常値</span>}
-                {inZero      && <span className="ml-1">· INゼロ</span>}
-                {inTriple    && <span className="ml-1">· IN差分3倍</span>}
-                {outAbnormal && <span className="ml-1">· OUT異常値</span>}
-                {payoutHigh  && <span className="ml-1">· 出率高(≥30%)</span>}
-                {payoutLow   && <span className="ml-1">· 出率低(&lt;5%)</span>}
-              </div>
-            )}
+            <AnomalyBanner
+              inAbnormal={inAbnormal} outAbnormal={outAbnormal}
+              inZero={inZero} inTriple={inTriple}
+              payoutHigh={payoutHigh} payoutLow={payoutLow}
+            />
 
             {/* 景品 */}
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -237,60 +232,15 @@ export default function PatrolInput() {
       )}
       </div>{/* スクロール領域終了 */}
 
-      {/* 保存確認モーダル */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowConfirmModal(false)}>
-          <div className="w-full max-w-lg bg-bg border-t border-border rounded-t-2xl p-5 pb-8 space-y-4"
-            onClick={e => e.stopPropagation()}>
-            <div className="text-sm font-bold text-center">保存確認</div>
-            <div className="bg-surface2 rounded-xl p-3 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">ブース</span>
-                <span className="font-mono text-xs">{booth.full_booth_code}</span>
-              </div>
-              {inDiff !== null && (
-                <div className="flex justify-between">
-                  <span className="text-muted">IN差分</span>
-                  <span className={`font-bold ${inDiff === 0 || inAbnormal || inTriple ? 'text-accent2' : 'text-accent'}`}>
-                    {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}回　¥{(inDiff * price).toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {outDiff !== null && (
-                <div className="flex justify-between">
-                  <span className="text-muted">OUT差分</span>
-                  <span className={`font-bold ${outAbnormal ? 'text-accent2' : 'text-accent'}`}>
-                    {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}回
-                  </span>
-                </div>
-              )}
-              {payoutRate !== null && (
-                <div className="flex justify-between">
-                  <span className="text-muted">出率</span>
-                  <span className={`font-bold ${payoutHigh || payoutLow ? 'text-accent2' : 'text-accent3'}`}>
-                    {payoutRate.toFixed(1)}%
-                  </span>
-                </div>
-              )}
-              {hasAnomaly && (
-                <div className="mt-1 pt-2 border-t border-border text-accent2 text-xs font-bold">
-                  ⚠️ 異常値あり —— 確認してから保存してください
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-3 rounded-xl border border-border text-sm text-muted active:scale-[0.98]">
-                戻る
-              </button>
-              <button onClick={doSave}
-                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm active:scale-[0.98]">
-                保存する
-              </button>
-            </div>
-          </div>
-        </div>
+        <PatrolConfirmModal
+          boothCode={booth.full_booth_code}
+          inDiff={inDiff} outDiff={outDiff} payoutRate={payoutRate} price={price}
+          inAbnormal={inAbnormal} inZero={inZero} inTriple={inTriple}
+          outAbnormal={outAbnormal} payoutHigh={payoutHigh} payoutLow={payoutLow}
+          hasAnomaly={hasAnomaly}
+          onSave={doSave} onClose={() => setShowConfirmModal(false)}
+        />
       )}
     </div>
   )
