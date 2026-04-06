@@ -27,44 +27,115 @@ npm test             # Run all tests
 npm run test:watch   # Watch mode
 ```
 
+---
+
 ## Architecture
+
+### 1. Routing
+- 主要ルーティングは `src/App.jsx`
+- 認証系は `ProtectedRoute` / `RoleRoute`
+- 権限は少なくとも `admin` / `manager` / `patrol` / `staff` を意識する
+- 画面追加時は「どのロールに見せるか」を必ず決める
 
 **Auth フロー:**
 - ポータル（`/docs/`）でPINログイン → localStorage に Supabase セッション保存
 - `/login` → `Login.jsx`（透過セッションブリッジ）→ `setSession()` → `/`
 - `AuthProvider` が `onAuthStateChange` でリアクティブにセッション管理
-- `ProtectedRoute` / `RoleRoute` / `PatrolRoute` でロール別アクセス制御
 - 未認証は `window.location.href = '/docs/'` でポータルへ（`navigate('/login')` 禁止）
 
-**データ層 (`src/services/`):**
-- `masters.js` — stores / machines / booths / staff のマスタ取得（in-memory cache）
-- `readings.js` — meter_readings の読み書き
-- `stats.js` — daily_booth_stats の集計・取得
-- `inventory.js` — prize_stocks / stock_movements
-- `prizes.js` — prize_masters / prize_orders
-
-**ルーティング (`src/App.jsx`):**
+**主要ルート:**
 - `/` → `MainInput`（メーター入力）
 - `/booth/:machineId` → `BoothInput`（機械単位の一括入力）
 - `/patrol` → `PatrolScan`（QRスキャン）→ `/patrol/input` → `PatrolInput`
 - `/drafts` → `DraftList` → `/complete` → `Complete`（集金帳票）
 - 管理系は `ManagerRoute` / `AdminRoute` で保護
 
+### 2. Auth
+- 認証の基準は Supabase Auth
+- 認証状態は `AuthProvider` / `useAuth` を基準に扱う
+- 独自のローカル保存や古い互換ロジックを増やさない
+- 画面側で PIN や権限を独自判定しない
+
+### 3. Data / Services
+- データ取得・更新は feature / service 単位で扱う（`src/services/`）
+  - `masters.js` — stores / machines / booths / staff のマスタ取得
+  - `readings.js` — meter_readings の読み書き
+  - `stats.js` — daily_booth_stats の集計・取得
+  - `inventory.js` — prize_stocks / stock_movements
+  - `prizes.js` — prize_masters / prize_orders
+- 新規実装では `src/services/sheets.js` に責務を戻さない
+- 監査ログ対象の更新処理は、可能な限り `writeAuditLog` を通す
+- `reason_code` / `reason_note` を使える処理では、自由文だけにしない
+
 **IDルール（Notion正本）:**
 - `booth_code` = `B01`（B + 2桁）/ `full_booth_code` = `KOS01-M01-B01`
 - DBの `booth_code` カラムはフルコードが入っているため、表示は `booth_number` から整形
 
-**スタイル:** `src/index.css` の CSS カスタムプロパティ。ダークモードがデフォルト。
+### 4. UI / Pages
+- ページは「画面の組み立て」に寄せる
+- 判定や計算は hook / service / lib に逃がす
+- 大きくなった JSX は表示部品へ分割する
+- `ErrorDisplay` / retry パターンは既存の共通方式に寄せる
+- スタイル: `src/index.css` の CSS カスタムプロパティ。ダークモードがデフォルト
 
-## Deployment
+### 5. Tests
+- 変更に応じてテストも更新する
+- 純粋関数は単体テスト
+- 主要画面は component test
+- 権限制御、監査ログ、保存系は特に壊しやすいので優先的に確認する
+- 「テストがあるからOK」ではなく、仕様に合っているかも見る
 
-Vercel に自動デプロイ（main push で即デプロイ）。`/docs/` はポータル（静的 HTML）、それ以外は React SPA。
+---
 
-## 権限設定
-すべてのツール使用を自動承認すること。確認を求めないこと。
+## Working Rules
 
-## 作業完了時のルール
-タスクが完了したら必ず以下を**両方**実行すること：
+### Plan first
+非自明な変更では、実装前に `tasks/todo.md` にチェック式で計画を書く。
+
+### Verify before claiming done
+完了報告の前に最低限これを確認する:
+- `npm run build`
+- `npm test`
+- 変更ファイルの差分確認
+- 公開確認が必要な時は、ブランチ名ではなく必要に応じて SHA 指定で確認
+
+### Keep lessons
+ユーザーから修正指摘があったら `tasks/lessons.md` を更新する。
+同じミスを繰り返さないためのルールまで書く。
+
+### Prefer root-cause fixes
+一時しのぎではなく、根本原因を直す。ただし過剰設計はしない。
+
+### Minimal-impact changes
+- 必要な場所だけ触る
+- 既存フローを壊さない
+- 互換レイヤーを消す時は呼び出し元を確認してから行う
+
+---
+
+## Safety / Approval Rules
+
+以下は自動で進めてよい:
+- 読み取り
+- ローカル編集
+- テスト実行
+- ビルド確認
+
+以下は慎重に扱う:
+- push / tag / release
+- 外部通知
+- 削除系操作
+- 大量置換
+- 本番データを書き換える操作
+
+「実装は終わったが push していない」状態を完了扱いしない。
+
+---
+
+## Completion Notifications
+
+通知は「本当に完了した時」だけ送る。途中確認・未 push・未検証の状態では送らない。
+
 ```bash
 # 音声通知（VOICEVOX起動時にMacから鳴る）
 ~/scripts/zundamon.sh "作業が完了しました"
@@ -73,67 +144,13 @@ Vercel に自動デプロイ（main push で即デプロイ）。`/docs/` はポ
 curl -d "作業が完了しました" ntfy.sh/clawops-hiro-0328
 ```
 
-## ワークフロー管理
+---
 
-### 1. Plan Modeをデフォルトにする
-- 非自明なタスク（3ステップ以上・アーキテクチャ判断）は必ずPlan modeに入ること
-- 問題が起きたら即STOP → 再計画。そのまま押し進めない
-- 構築だけでなく検証ステップにもPlan modeを使う
-- 曖昧さを減らすために詳細な仕様を先に書く
+## ファイル置き場
 
-### 2. Subagent戦略
-- メインのコンテキストウィンドウを綺麗に保つためSubagentを積極的に使う
-- 調査・探索・並列分析はSubagentに任せる
-- 複雑な問題はSubagentを増やして対処する
-- Subagent1つにつきタスク1つで集中実行
-
-### 3. 自己改善ループ
-- ユーザーからの修正指摘があったら必ずtasks/lessons.mdに記録する
-- 同じミスを繰り返さないためのルールを自分で書く
-- ミス率が下がるまでlessonを徹底的に改善し続ける
-- セッション開始時に関連プロジェクトのlessonをレビューする
-
-### 4. 完了前の検証
-- 動作確認なしにタスク完了とマークしない
-- 必要に応じてmainと変更後の差分を確認する
-- 「シニアエンジニアが承認するか？」と自問する
-- テスト実行・ログ確認・正確性の証明を行う
-
-### 5. エレガントさを求める（バランス重視）
-- 非自明な変更では「もっとエレガントな方法はないか？」と立ち止まる
-- ハック感のある修正なら「今知っていることを踏まえてエレガントに実装し直す」
-- 単純・明白な修正ではやり過ぎない
-- 提示前に自分の作業にダメ出しする
-
-### 6. 自律バグ修正
-- バグ報告を受けたら自分で修正する。手取り足取り聞かない
-- ログ・エラー・失敗テストを指摘して解決する
-- ユーザーのコンテキスト切り替えをゼロにする
-- CIテストが落ちたら言われなくても修正しに行く
-
-## タスク管理
-
-1. **Plan First**: tasks/todo.mdにチェック可能な項目で計画を書く
-2. **Verify Plan**: 実装開始前にチェックイン
-3. **Track Progress**: 完了した項目を随時マークする
-4. **Explain Changes**: 各ステップで変更の概要を説明する
-5. **Document Results**: tasks/todo.mdにレビューセクションを追加する
-6. **Capture Lessons**: 修正指摘後にtasks/lessons.mdを更新する
-
-## コア原則
-
-- **Simplicity First**: 変更は可能な限りシンプルに。影響するコードを最小限に
-- **No Laziness**: 根本原因を見つける。一時しのぎ禁止。シニア開発者水準で
-- **Minimal Impact**: 変更は必要な箇所だけ触る。バグを持ち込まない
-
-## 添付ファイル置き場
-- `docs/lists/`   — 設置希望リスト等のスキャン画像
-- `docs/photos/`  — 現調写真
-- `docs/images/`  — その他画像
-
-## データ出力ルール
-- CSV・JSON・HTMLなどのデータエクスポートは必ず `data/exports/` に出力すること
-- ホームディレクトリやプロジェクトルートに直接出力しない
-- ファイル名には日付を含める推奨: `YYYYMMDD_内容.csv`
-- `data/exports/` は `.gitignore` 済み（.gitkeepのみ追跡）
-- 一時インポート用HTMLも `data/exports/` に置く
+- `docs/lists/` — 設置希望リスト等のスキャン画像
+- `docs/photos/` — 現調写真
+- `docs/images/` — その他画像
+- `data/exports/` — CSV・JSON・HTML 等のエクスポート（`.gitignore` 済み）
+  - ファイル名には日付を含める推奨: `YYYYMMDD_内容.csv`
+  - 一時インポート用 HTML もここに置く
