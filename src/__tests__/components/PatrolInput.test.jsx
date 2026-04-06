@@ -129,8 +129,8 @@ describe('PatrolInput — 保存確認モーダル', () => {
     renderPatrolInput()
     fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
-    // ヘッダーとモーダルの両方にブースコードが出る
-    expect(screen.getAllByText('KOS01-M01-B01').length).toBeGreaterThanOrEqual(2)
+    // モーダルにフルブースコードが表示される（ヘッダーは booth_code のみ）
+    expect(screen.getByText('KOS01-M01-B01')).toBeTruthy()
   })
 
   it('モーダルの「戻る」で閉じ handleSave が呼ばれない', () => {

@@ -74,8 +74,8 @@ export default function PatrolInput() {
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => navigate('/patrol')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-accent">{booth.full_booth_code}</h2>
-            <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName || booth.booth_code}</p>
+            <h2 className="text-lg font-bold text-accent">{booth.booth_code}</h2>
+            <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName}</p>
           </div>
           <LogoutButton />
         </div>
@@ -159,34 +159,41 @@ export default function PatrolInput() {
               </div>
             )}
 
-            {/* INメーター */}
-            <div className="mb-4">
-              <div className="text-xs text-muted mb-1">
-                INメーター *
-                {!inMeter && latestIn !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
-              </div>
-              <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
-                placeholder={latestIn !== null ? String(latestIn) : '0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
-              {inDiff !== null && (
-                <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${inAbnormal || inZero || inTriple ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
-                  差分: {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}回 / ¥{(inDiff * price).toLocaleString()}
+            {/* IN / OUT 2カラム */}
+            <div className="flex gap-2 mb-4">
+              {/* IN */}
+              <div className="flex-1">
+                <div className="text-xs text-muted mb-1">
+                  IN（売上）*
+                  {!inMeter && latestIn !== null && <span className="text-[10px] text-amber-500 block leading-tight">前回値で保存</span>}
                 </div>
-              )}
-            </div>
-
-            {/* OUTメーター */}
-            <div className="mb-4">
-              <div className="text-xs text-muted mb-1">
-                OUTメーター
-                {!outMeter && latestOut !== null && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
-              </div>
-              <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
-                placeholder={latestOut !== null ? String(latestOut) : '0000000'} value={outMeter} onChange={e => setOutMeter(e.target.value)} />
-              {outDiff !== null && (
-                <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
-                  差分: {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}回
+                <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
+                  placeholder={latestIn !== null ? String(latestIn) : '0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
+                <div className="min-h-[40px] mt-1">
+                  {inDiff !== null && (
+                    <div className={`text-center text-sm font-bold py-1.5 rounded-lg ${inAbnormal || inZero || inTriple ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                      {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}<br/>
+                      <span className="text-xs">¥{(inDiff * price).toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              {/* OUT */}
+              <div className="flex-1">
+                <div className="text-xs text-muted mb-1">
+                  OUT（払出）
+                  {!outMeter && latestOut !== null && <span className="text-[10px] text-amber-500 block leading-tight">前回値で保存</span>}
+                </div>
+                <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
+                  placeholder={latestOut !== null ? String(latestOut) : '0000000'} value={outMeter} onChange={e => setOutMeter(e.target.value)} />
+                <div className="min-h-[40px] mt-1">
+                  {outDiff !== null && (
+                    <div className={`text-center text-sm font-bold py-1.5 rounded-lg ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                      {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* 出率 */}
