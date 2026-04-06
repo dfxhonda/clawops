@@ -332,6 +332,7 @@ async function parseKeihinFormCSVs() {
       const caseSize = safeNum(r[11]);
       const qty = safeNum(r[12]);
       const totalExTax = safeNum(r[14]);
+      const totalTaxIncluded = r.length > 15 ? safeNum(r[15]) : 0;
       const shipping = safeNum(r[16]);
       const deliveryStatus = safeStr(r[17]);
       const rawExpDate = r.length > 18 ? safeStr(r[18]) : '';
@@ -360,6 +361,8 @@ async function parseKeihinFormCSVs() {
         case_quantity: bp.caseSize || caseSize || 1,
         case_count: Math.max(1, Math.round(qty)),
         unit_cost: bp.realUnitPrice, case_cost: bp.realUnitPrice * (bp.caseSize || caseSize || 1),
+        pieces_per_case: caseSize || null,
+        total_tax_included: totalTaxIncluded || null,
         notes: noteParts.join('; ') || null, status: 'ordered',
         order_source: 'csv_import', source_file: file.name,
         order_date_source: 'csv_order_datetime',
@@ -755,7 +758,8 @@ async function main() {
   console.log(`prize_masters: ${masterMap.size} unique`);
 
   const masters = Array.from(masterMap.values()).map(m => ({
-    prize_id: m.prize_id, prize_name: m.prize_name, original_cost: m.original_cost,
+    prize_id: m.prize_id, prize_name: m.prize_name, short_name: m.prize_name,
+    original_cost: m.original_cost,
     supplier_name: m.supplier_name, aliases: JSON.stringify(Array.from(m.aliases).slice(0, 10)),
     category: m.category, status: m.status
   }));
@@ -799,7 +803,9 @@ async function main() {
       source_file: o.source_file, order_date_source: o.order_date_source,
       shipping_cost: o.shipping_cost || 0,
       shipping_allocation_method: o.shipping_allocation_method,
-      destination: o.destination || null
+      destination: o.destination || null,
+      pieces_per_case: o.pieces_per_case || null,
+      total_tax_included: o.total_tax_included || null,
     };
   });
 
