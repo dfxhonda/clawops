@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { updateReading } from '../services/readings'
 import { parseNum } from '../services/utils'
 import { supabase } from '../lib/supabase'
+import ReasonSelect from '../components/ReasonSelect'
+import { formatReason } from '../services/audit'
 
 export default function EditReading() {
   const { boothId } = useParams()
@@ -13,6 +15,7 @@ export default function EditReading() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [reason, setReason] = useState({ code: '', note: '' })
 
   useEffect(() => { loadReadings() }, [])
 
@@ -53,8 +56,13 @@ export default function EditReading() {
         prize_restock_count: val('prize_restock_count'),
         prize_stock_count: val('prize_stock_count'),
         prize_name: val('prize_name'),
-      }, { before: original })
-      setEditing(null); setOriginal(null)
+      }, {
+        before: original,
+        reason: reason.code ? formatReason(reason.code, reason.note) : undefined,
+        reason_code: reason.code || undefined,
+        reason_note: reason.note || undefined,
+      })
+      setEditing(null); setOriginal(null); setReason({ code: '', note: '' })
       await loadReadings()
     } catch (e) {
       setError('保存エラー: ' + e.message)
@@ -117,12 +125,15 @@ export default function EditReading() {
                     value={editing.prize_name}
                     onChange={e => setEditing({...editing,prize_name:e.target.value})} />
                 </div>
+                <div className="mb-3">
+                  <ReasonSelect value={reason} onChange={setReason} reasons={['INPUT_FIX', 'RECOUNT', 'OTHER']} />
+                </div>
                 <div className="flex gap-2">
                   <button onClick={handleSave} disabled={saving}
                     className="flex-1 bg-blue-600 text-white font-bold py-2.5 rounded-lg disabled:opacity-50">
                     {saving?'保存中...':'✅ 保存'}
                   </button>
-                  <button onClick={() => { setEditing(null); setOriginal(null) }}
+                  <button onClick={() => { setEditing(null); setOriginal(null); setReason({ code: '', note: '' }) }}
                     className="flex-1 bg-surface2 border border-border text-text py-2.5 rounded-lg">
                     キャンセル
                   </button>

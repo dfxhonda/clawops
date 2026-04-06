@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getStores } from '../services/masters'
 import { parseNum } from '../services/utils'
+import { useAsync } from '../hooks/useAsync'
 import LogoutButton from '../components/LogoutButton'
 import ErrorDisplay from '../components/ErrorDisplay'
 
@@ -11,9 +12,8 @@ export default function DataSearch() {
   const [allReadings, setAllReadings] = useState([])
   const [stores, setStores] = useState([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
-  const [error, setError] = useState(null)
+  const { loading: saving, execute, errorProps } = useAsync()
   const [filterStore, setFilterStore] = useState(() => sessionStorage.getItem('clawops_selected_store') || '')
   const [filterBooth, setFilterBooth] = useState('')
   const [filterPrize, setFilterPrize] = useState('')
@@ -117,8 +117,8 @@ export default function DataSearch() {
     const editEntries = Object.entries(edits)
     const deleteEntries = [...deletes]
     if (!editEntries.length && !deleteEntries.length) return
-    setSaving(true); setSuccessMsg(''); setError(null)
-    try {
+    setSuccessMsg('')
+    const result = await execute(async () => {
       for (const idx of deleteEntries) {
         const row = allReadings[idx]
         if (!row?.reading_id) continue
@@ -140,9 +140,11 @@ export default function DataSearch() {
           if (error) throw new Error('更新エラー: ' + error.message)
         }
       }
-      // 同じSupabaseクエリでデータを再取得
       const { data } = await supabase.from('meter_readings').select('*').like('full_booth_code', `${filterStore}-%`).order('read_time', { ascending: true })
-      const fresh = (data || []).map(r => ({
+      return { editCount: editEntries.length, deleteCount: deleteEntries.length, data }
+    })
+    if (result) {
+      const fresh = (result.data || []).map(r => ({
         reading_id: r.reading_id, booth_id: r.booth_id || '', full_booth_code: r.full_booth_code || '',
         read_time: r.read_time || '', in_meter: r.in_meter != null ? String(r.in_meter) : '',
         out_meter: r.out_meter != null ? String(r.out_meter) : '',
@@ -152,9 +154,8 @@ export default function DataSearch() {
         set_r: r.set_r || '', set_o: r.set_o || '', note: r.note || '', source: r.source || 'manual',
       }))
       setAllReadings(fresh); setEdits({}); setDeletes(new Set()); setEditingRow(null)
-      setSuccessMsg(`編集${editEntries.length}件・削除${deleteEntries.length}件 完了`); setError(null)
-    } catch(e) { setError(e.message) }
-    setSaving(false)
+      setSuccessMsg(`編集${result.editCount}件・削除${result.deleteCount}件 完了`)
+    }
   }
 
   const editCount = Object.keys(edits).length
@@ -186,7 +187,7 @@ export default function DataSearch() {
           <LogoutButton />
         </div>
 
-        {error && <ErrorDisplay error={error} onRetry={saveAll} onDismiss={() => setError(null)} />}
+        {errorProps && <ErrorDisplay {...errorProps} />}
         {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-3 text-sm">{successMsg}</div>}
 
         {/* 店舗選択グリッド（店舗未選択時） */}

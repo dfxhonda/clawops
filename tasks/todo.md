@@ -1,20 +1,19 @@
-# 実装計画: 結合テスト + Release/Changelog整備
+# 実装計画: useAsync統一 + reason_code/reason_note UI
 
-## Task 1: テスト基盤
-- [x] Step 1a: Supabaseステートフルモック (`src/__tests__/helpers/supabaseMock.js`)
-- [x] Step 1b: テストデータファクトリ (`src/__tests__/helpers/fixtures.js`)
+## Task 1: useAsync統一
+- [x] Step 1a: InventoryTransfer.jsx
+- [x] Step 1b: InventoryCount.jsx
+- [x] Step 1c: InventoryReceive.jsx
+- [x] Step 1d: DataSearch.jsx
 
-## Task 2: 結合テスト
-- [x] Step 2a: メーター入力→保存 (`src/__tests__/integration/meter-flow.test.js`) — 6テスト
-- [x] Step 2b: 棚卸し→差分→確定 (`src/__tests__/integration/count-flow.test.js`) — 6テスト
-- [x] Step 2c: 在庫移動→履歴反映 (`src/__tests__/integration/transfer-flow.test.js`) — 10テスト
-
-## Task 3: Release/Changelog整備
-- [x] Step 3a: リリーススクリプト (`scripts/release.sh`)
-- [x] Step 3b: package.json に release スクリプト追加
-- [x] Step 3c: CHANGELOG.md 更新（Auth一本化+監査ログ+ErrorDisplay+テスト追加を反映）
-- [ ] Step 3d: バージョン整合 + 初回タグ v1.0.0（コミット後に実施）
+## Task 2: reason_code/reason_note UI
+- [x] Step 2a: ReasonSelect コンポーネント作成
+- [x] Step 2b: サービス関数の拡張（transferStock, countStock, updateReading, markOrderArrived）
+- [x] Step 2c: InventoryTransfer.jsx にReasonSelect追加
+- [x] Step 2d: InventoryCount.jsx にReasonSelect追加
+- [x] Step 2e: EditReading.jsx にReasonSelect追加
+- [x] Step 2f: InventoryReceive.jsx にReasonSelect追加
 
 ## 検証
-- [x] `npm test` 全パス（9ファイル 108テスト）
+- [x] `npm test` 全パス (108/108)
 - [x] `npm run build` 成功

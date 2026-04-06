@@ -4,9 +4,12 @@ import { getLocations, getStores, getMachines, getBooths } from '../../services/
 import { getPrizeStocksExtended } from '../../services/inventory'
 import { transferStock, getStockMovements } from '../../services/movements'
 import { getStaffMap } from '../../services/readings'
+import { useAsync } from '../../hooks/useAsync'
 import NumberInput from '../../components/NumberInput'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
+import ReasonSelect from '../../components/ReasonSelect'
+import { formatReason } from '../../services/audit'
 
 const TRANSFER_TYPES = [
   { key: 'loc2loc',   label: '拠点間移管',     icon: '🏢→🏢',  desc: '拠点から別の拠点へ' },
@@ -22,9 +25,8 @@ export default function InventoryTransfer() {
   const [stocks, setStocks] = useState([])
   const [recentTransfers, setRecentTransfers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
-  const [error, setError] = useState(null)
+  const { loading: saving, error, execute, errorProps, clearError } = useAsync()
 
   const [transferType, setTransferType] = useState('')
   const [fromId, setFromId] = useState('')
@@ -32,6 +34,7 @@ export default function InventoryTransfer() {
   const [selectedStock, setSelectedStock] = useState(null)
   const [quantity, setQuantity] = useState('')
   const [note, setNote] = useState('')
+  const [reason, setReason] = useState({ code: '', note: '' })
 
   // 担当者リスト（在庫からユニークに抽出）
   const [staffList, setStaffList] = useState([])
@@ -75,49 +78,51 @@ export default function InventoryTransfer() {
   // --- 通常移管 ---
   async function handleSubmit() {
     if (!selectedStock || !toId || !quantity) {
-      setError('景品・移動先・数量を入力してください')
+      clearError(); execute(() => { throw new Error('景品・移動先・数量を入力してください') })
       return
     }
     const qty = parseInt(quantity)
     if (qty > selectedStock.quantity) {
-      setError(`在庫不足です（現在 ${selectedStock.quantity} 個）`)
+      clearError(); execute(() => { throw new Error(`在庫不足です（現在 ${selectedStock.quantity} 個）`) })
       return
     }
-    setSaving(true)
-    try {
+    const result = await execute(async () => {
       await transferStock({
         prizeId: selectedStock.prize_id,
         prizeName: selectedStock.prize_name,
         fromOwnerType, fromOwnerId: fromId,
         toOwnerType, toOwnerId: toId,
-        quantity: qty, note: note || '', createdBy: ''
+        quantity: qty, note: note || '', createdBy: '',
+        reason: reason.code ? formatReason(reason.code, reason.note) : undefined,
+        reason_code: reason.code || undefined,
+        reason_note: reason.note || undefined,
       })
-      setSuccessMsg(`${selectedStock.prize_name} ×${qty} を移管しました`); setError(null)
+      return true
+    })
+    if (result) {
+      setSuccessMsg(`${selectedStock.prize_name} ×${qty} を移管しました`)
       setSelectedStock(null)
       setQuantity('')
       setNote('')
+      setReason({ code: '', note: '' })
       await refreshData()
-    } catch (e) {
-      setError('移管失敗: ' + e.message)
     }
-    setSaving(false)
   }
 
   // --- アソート一括配分 ---
   async function handleAssortSubmit() {
     if (!selectedStock) {
-      setError('景品を選択してください'); return
+      clearError(); execute(() => { throw new Error('景品を選択してください') }); return
     }
     const validAllocs = assortAllocations.filter(a => a.staffName && parseInt(a.quantity) > 0)
     if (validAllocs.length === 0) {
-      setError('配分先を最低1件入力してください'); return
+      clearError(); execute(() => { throw new Error('配分先を最低1件入力してください') }); return
     }
     const totalAlloc = validAllocs.reduce((s, a) => s + parseInt(a.quantity), 0)
     if (totalAlloc > selectedStock.quantity) {
-      setError(`合計 ${totalAlloc}個 > 在庫 ${selectedStock.quantity}個 です`); return
+      clearError(); execute(() => { throw new Error(`合計 ${totalAlloc}個 > 在庫 ${selectedStock.quantity}個 です`) }); return
     }
-    setSaving(true)
-    try {
+    const result = await execute(async () => {
       for (const alloc of validAllocs) {
         await transferStock({
           prizeId: selectedStock.prize_id,
@@ -126,18 +131,22 @@ export default function InventoryTransfer() {
           toOwnerType: 'staff', toOwnerId: alloc.staffName,
           quantity: parseInt(alloc.quantity),
           note: `アソート配分${note ? ': ' + note : ''}`,
-          createdBy: ''
+          createdBy: '',
+          reason: reason.code ? formatReason(reason.code, reason.note) : undefined,
+          reason_code: reason.code || undefined,
+          reason_note: reason.note || undefined,
         })
       }
-      setSuccessMsg(`${selectedStock.prize_name} を ${validAllocs.length}名に配分しました（計${totalAlloc}個）`); setError(null)
+      return { count: validAllocs.length, total: totalAlloc }
+    })
+    if (result) {
+      setSuccessMsg(`${selectedStock.prize_name} を ${result.count}名に配分しました（計${result.total}個）`)
       setSelectedStock(null)
       setAssortAllocations([])
       setNote('')
+      setReason({ code: '', note: '' })
       await refreshData()
-    } catch (e) {
-      setError('アソート配分失敗: ' + e.message)
     }
-    setSaving(false)
   }
 
   async function refreshData() {
@@ -181,7 +190,7 @@ export default function InventoryTransfer() {
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
 
-      {error && <ErrorDisplay error={error} onRetry={transferType === 'assort' ? handleAssortSubmit : handleSubmit} onDismiss={() => setError(null)} />}
+      {errorProps && <ErrorDisplay {...errorProps} />}
       {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-4 text-sm">{successMsg}</div>}
 
       {/* 移管タイプ選択 */}
@@ -303,10 +312,13 @@ export default function InventoryTransfer() {
                 </div>
               </div>
 
-              <div className="bg-surface border border-border rounded-xl p-4 mb-3">
-                <label className="text-xs text-muted block mb-2">メモ</label>
-                <input type="text" value={note} onChange={e => setNote(e.target.value)}
-                  placeholder="任意" className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+              <div className="bg-surface border border-border rounded-xl p-4 mb-3 space-y-3">
+                <div>
+                  <label className="text-xs text-muted block mb-2">メモ</label>
+                  <input type="text" value={note} onChange={e => setNote(e.target.value)}
+                    placeholder="任意" className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                </div>
+                <ReasonSelect value={reason} onChange={setReason} reasons={['TRANSFER', 'REPLENISH', 'OTHER']} />
               </div>
 
               <button onClick={handleAssortSubmit} disabled={saving || assortTotal === 0 || assortTotal > selectedStock.quantity}
@@ -345,20 +357,25 @@ export default function InventoryTransfer() {
                 )}
               </div>
 
-              {/* 数量・メモ */}
+              {/* 数量・メモ・理由 */}
               {selectedStock && (
-                <div className="bg-surface border border-border rounded-xl p-4 mb-4 flex gap-3">
-                  <div className="flex-1">
-                    <label className="text-xs text-muted block mb-2">移管数量（最大{selectedStock.quantity}）</label>
-                    <NumberInput value={quantity} onChange={setQuantity}
-                      min={1} max={selectedStock.quantity} />
+                <>
+                  <div className="bg-surface border border-border rounded-xl p-4 mb-3 flex gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs text-muted block mb-2">移管数量（最大{selectedStock.quantity}）</label>
+                      <NumberInput value={quantity} onChange={setQuantity}
+                        min={1} max={selectedStock.quantity} />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-muted block mb-2">メモ</label>
+                      <input type="text" value={note} onChange={e => setNote(e.target.value)}
+                        placeholder="任意" className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <label className="text-xs text-muted block mb-2">メモ</label>
-                    <input type="text" value={note} onChange={e => setNote(e.target.value)}
-                      placeholder="任意" className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
+                  <div className="bg-surface border border-border rounded-xl p-4 mb-4">
+                    <ReasonSelect value={reason} onChange={setReason} reasons={['TRANSFER', 'REPLENISH', 'OTHER']} />
                   </div>
-                </div>
+                </>
               )}
 
               {selectedStock && (

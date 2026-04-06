@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { getLocations } from '../../services/masters'
 import { transferStock, getStockMovements } from '../../services/movements'
 import { getPrizes, getPrizeOrders, markOrderArrived } from '../../services/prizes'
+import { useAsync } from '../../hooks/useAsync'
 import NumberInput from '../../components/NumberInput'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
+import ReasonSelect from '../../components/ReasonSelect'
+import { formatReason } from '../../services/audit'
 
 export default function InventoryReceive() {
   const navigate = useNavigate()
@@ -16,9 +19,8 @@ export default function InventoryReceive() {
   const [recentArrivals, setRecentArrivals] = useState([])
   const [pendingOrders, setPendingOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
-  const [error, setError] = useState(null)
+  const { loading: saving, execute, errorProps, clearError } = useAsync()
   const [tab, setTab] = useState('orders') // 'orders' | 'manual'
 
   // 手動入力フォーム
@@ -29,6 +31,7 @@ export default function InventoryReceive() {
   const [searchText, setSearchText] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [reason, setReason] = useState({ code: '', note: '' })
 
   useEffect(() => {
     async function load() {
@@ -58,12 +61,11 @@ export default function InventoryReceive() {
 
   async function handleSubmit() {
     if (!selectedPrize || !selectedLocation || !quantity) {
-      setError('景品・入庫先・数量を入力してください')
+      clearError(); execute(() => { throw new Error('景品・入庫先・数量を入力してください') })
       return
     }
-    setSaving(true)
-    try {
-      const prize = prizes.find(p => p.prize_id === selectedPrize)
+    const prize = prizes.find(p => p.prize_id === selectedPrize)
+    const result = await execute(async () => {
       await transferStock({
         prizeId: selectedPrize,
         prizeName: prize?.prize_name || '',
@@ -71,26 +73,31 @@ export default function InventoryReceive() {
         toOwnerType: 'location', toOwnerId: selectedLocation,
         quantity: parseInt(quantity),
         note: note || '入庫チェック',
-        createdBy: staffId || ''
+        createdBy: staffId || '',
+        reason: reason.code ? formatReason(reason.code, reason.note) : undefined,
+        reason_code: reason.code || undefined,
+        reason_note: reason.note || undefined,
       })
-      setSuccessMsg(`${prize?.prize_name} ×${quantity} を入庫しました`); setError(null)
+      return true
+    })
+    if (result) {
+      setSuccessMsg(`${prize?.prize_name} ×${quantity} を入庫しました`)
       setSelectedPrize('')
       setQuantity('')
       setNote('')
       setSearchText('')
+      setReason({ code: '', note: '' })
       const mv = await getStockMovements(true)
       setRecentArrivals(mv.filter(m => m.movement_type === 'arrival').slice(-10).reverse())
-    } catch (e) {
-      setError('入庫に失敗: ' + e.message)
     }
-    setSaving(false)
   }
 
   // 発注データからの入庫確認
   async function handleOrderArrival(order, locationId) {
-    if (!locationId) { setError('入庫先を選択してください'); return }
-    setSaving(true)
-    try {
+    if (!locationId) {
+      clearError(); execute(() => { throw new Error('入庫先を選択してください') }); return
+    }
+    const result = await execute(async () => {
       const qty = parseInt(order.order_quantity) || 1
       const staff = staffId || ''
       // 先にステータス更新（失敗しても在庫は変わらない。逆順だと在庫二重加算リスク）
@@ -105,18 +112,18 @@ export default function InventoryReceive() {
           note: `発注入荷: 発注ID ${order.order_id}`,
           createdBy: staff
         })
-        setSuccessMsg(`${order.prize_name} ×${qty} を入庫しました`); setError(null)
-        setPendingOrders(prev => prev.filter(o => o.order_id !== order.order_id))
+        return { ok: true, qty, orderId: order.order_id, prizeName: order.prize_name }
       } catch (stockErr) {
-        // 在庫追加失敗: ステータスは入荷済みだが在庫未反映。リストに残して再操作可能にする
-        setError(`入荷ステータス更新済みですが在庫追加に失敗しました。手動で在庫を追加してください: ${stockErr.message}`)
+        // 在庫追加失敗: ステータスは入荷済みだが在庫未反映
+        throw new Error(`入荷ステータス更新済みですが在庫追加に失敗しました。手動で在庫を追加してください: ${stockErr.message}`)
       }
-      const mv = await getStockMovements(true)
-      setRecentArrivals(mv.filter(m => m.movement_type === 'arrival').slice(-10).reverse())
-    } catch (e) {
-      setError('入庫失敗: ' + e.message)
+    })
+    if (result) {
+      setSuccessMsg(`${result.prizeName} ×${result.qty} を入庫しました`)
+      setPendingOrders(prev => prev.filter(o => o.order_id !== result.orderId))
     }
-    setSaving(false)
+    const mv = await getStockMovements(true)
+    setRecentArrivals(mv.filter(m => m.movement_type === 'arrival').slice(-10).reverse())
   }
 
   if (loading) return <div className="min-h-screen bg-bg text-muted flex items-center justify-center">読み込み中...</div>
@@ -131,7 +138,7 @@ export default function InventoryReceive() {
           <LogoutButton />
         </div>
 
-        {error && <ErrorDisplay error={error} onDismiss={() => setError(null)} />}
+        {errorProps && <ErrorDisplay {...errorProps} />}
         {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-3 text-sm">{successMsg}</div>}
 
         {/* タブ切り替え */}
@@ -253,6 +260,10 @@ export default function InventoryReceive() {
               <input type="text" value={note} onChange={e => setNote(e.target.value)}
                 placeholder="任意" className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text" />
             </div>
+          </div>
+
+          <div className="bg-surface border border-border rounded-xl p-4 mb-4">
+            <ReasonSelect value={reason} onChange={setReason} reasons={['ARRIVAL', 'REPLENISH', 'OTHER']} />
           </div>
 
           <button onClick={handleSubmit} disabled={saving}

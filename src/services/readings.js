@@ -88,7 +88,7 @@ export async function saveReading(r) {
   })
 }
 
-export async function updateReading(readingId, r, { before, reason } = {}) {
+export async function updateReading(readingId, r, { before, reason, reason_code, reason_note } = {}) {
   const { error } = await supabase.from('meter_readings').update({
     in_meter: r.in_meter ? parseFloat(r.in_meter) : null,
     out_meter: r.out_meter ? parseFloat(r.out_meter) : null,
@@ -114,5 +114,7 @@ export async function updateReading(readingId, r, { before, reason } = {}) {
     before_data: before ? { in_meter: before.in_meter, out_meter: before.out_meter, prize_name: before.prize_name } : undefined,
     after_data: { in_meter: r.in_meter, out_meter: r.out_meter, prize_name: r.prize_name },
     reason: reason || undefined,
+    reason_code: reason_code || undefined,
+    reason_note: reason_note || undefined,
   })
 }

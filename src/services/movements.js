@@ -62,7 +62,7 @@ export async function addStockMovement(mv) {
   return data.movement_id
 }
 
-export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy, reason }) {
+export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy, reason, reason_code, reason_note }) {
   const qty = parseInt(quantity)
   if (!Number.isFinite(qty) || qty <= 0) throw new Error(`無効な数量: ${quantity}`)
   quantity = qty
@@ -105,17 +105,20 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
       transferred: quantity,
     },
     reason: reason || undefined,
+    reason_code: reason_code || undefined,
+    reason_note: reason_note || undefined,
   })
 
   return addStockMovement({
     prize_id: prizeId, movement_type: movementType,
     from_owner_type: fromOwnerType||'', from_owner_id: fromOwnerId||'',
     to_owner_type: toOwnerType, to_owner_id: toOwnerId,
-    quantity, note: note||'', created_by: createdBy||''
+    quantity, note: note||'', reason: reason || undefined,
+    created_by: createdBy||''
   })
 }
 
-export async function countStock({ prizeId, prizeName, ownerType, ownerId, actualQuantity, note, createdBy, reason }) {
+export async function countStock({ prizeId, prizeName, ownerType, ownerId, actualQuantity, note, createdBy, reason, reason_code, reason_note }) {
   const qty = parseInt(actualQuantity)
   if (!Number.isFinite(qty) || qty < 0) throw new Error(`無効な数量: ${actualQuantity}`)
   actualQuantity = qty
@@ -149,6 +152,8 @@ export async function countStock({ prizeId, prizeName, ownerType, ownerId, actua
     before_data: { quantity: currentQty, prize_id: prizeId, owner_type: ownerType, owner_id: ownerId },
     after_data: { quantity: actualQuantity, diff },
     reason: reason || undefined,
+    reason_code: reason_code || undefined,
+    reason_note: reason_note || undefined,
   })
 
   await addStockMovement({

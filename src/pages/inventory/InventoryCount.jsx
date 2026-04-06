@@ -4,9 +4,12 @@ import { getLocations } from '../../services/masters'
 import { getPrizeStocksExtended } from '../../services/inventory'
 import { countStock, getStockMovements, transferStock } from '../../services/movements'
 import { getStaffMap } from '../../services/readings'
+import { useAsync } from '../../hooks/useAsync'
 import NumberInput from '../../components/NumberInput'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
+import ReasonSelect from '../../components/ReasonSelect'
+import { formatReason } from '../../services/audit'
 
 export default function InventoryCount() {
   const navigate = useNavigate()
@@ -14,9 +17,9 @@ export default function InventoryCount() {
   const [stocks, setStocks] = useState([])
   const [staffMap, setStaffMap] = useState({})
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
-  const [error, setError] = useState(null)
+  const countAsync = useAsync()
+  const moveAsync = useAsync()
 
   const [ownerType, setOwnerType] = useState('location')
   const [ownerId, setOwnerId] = useState('')
@@ -29,6 +32,7 @@ export default function InventoryCount() {
   // フィルタ・表示
   const [searchText, setSearchText] = useState('')
   const [showOnlyDiff, setShowOnlyDiff] = useState(false)
+  const [reason, setReason] = useState({ code: '', note: '' })
 
   // 最近の棚卸し履歴
   const [recentCounts, setRecentCounts] = useState([])
@@ -39,7 +43,7 @@ export default function InventoryCount() {
   const [moveToId, setMoveToId] = useState('')
   const [moveQty, setMoveQty] = useState('')
   const [moveNote, setMoveNote] = useState('')
-  const [moveSaving, setMoveSaving] = useState(false)
+  const activeErrorProps = countAsync.errorProps || moveAsync.errorProps
 
   useEffect(() => {
     async function load() {
@@ -115,35 +119,38 @@ export default function InventoryCount() {
       }))
 
     if (entries.length === 0) {
-      setError('実数を入力してください')
+      countAsync.clearError()
+      countAsync.execute(() => { throw new Error('実数を入力してください') })
       return
     }
 
-    setSaving(true)
-    const res = []
-    try {
+    const result = await countAsync.execute(async () => {
+      const res = []
       for (const entry of entries) {
         const r = await countStock({
           prizeId: entry.stock.prize_id,
           prizeName: entry.stock.prize_name,
           ownerType, ownerId,
           actualQuantity: entry.actualQuantity,
-          note: '', createdBy: ''
+          note: '', createdBy: '',
+          reason: reason.code ? formatReason(reason.code, reason.note) : undefined,
+          reason_code: reason.code || undefined,
+          reason_note: reason.note || undefined,
         })
         res.push({ ...r, prizeName: entry.stock.prize_name })
       }
-      setResults(res)
-      const diffCount = res.filter(r => r.diff !== 0).length
-      setSuccessMsg(`${entries.length}件の棚卸し完了（差異: ${diffCount}件）`); setError(null)
-      // リフレッシュ
+      return res
+    })
+    if (result) {
+      setResults(result)
+      const diffCount = result.filter(r => r.diff !== 0).length
+      setSuccessMsg(`${entries.length}件の棚卸し完了（差異: ${diffCount}件）`)
+      setReason({ code: '', note: '' })
       const [s, mv] = await Promise.all([getPrizeStocksExtended(true), getStockMovements(true)])
       setStocks(s)
       setCountInputs({})
       setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
-    } catch (e) {
-      setError('棚卸し保存失敗: ' + e.message)
     }
-    setSaving(false)
   }
 
   function openMoveModal(stock) {
@@ -156,15 +163,16 @@ export default function InventoryCount() {
 
   async function handleMove() {
     if (!moveTarget || !moveToId || !moveQty) {
-      setError('移動先と数量を入力してください'); return
+      moveAsync.clearError()
+      moveAsync.execute(() => { throw new Error('移動先と数量を入力してください') }); return
     }
     const qty = parseInt(moveQty)
     if (qty <= 0 || qty > moveTarget.quantity) {
-      setError(`数量は1〜${moveTarget.quantity}の範囲で入力`); return
+      moveAsync.clearError()
+      moveAsync.execute(() => { throw new Error(`数量は1〜${moveTarget.quantity}の範囲で入力`) }); return
     }
     const toOwner = moveType.endsWith('staff') ? 'staff' : 'location'
-    setMoveSaving(true)
-    try {
+    const result = await moveAsync.execute(async () => {
       await transferStock({
         prizeId: moveTarget.prize_id,
         prizeName: moveTarget.prize_name,
@@ -172,17 +180,17 @@ export default function InventoryCount() {
         toOwnerType: toOwner, toOwnerId: moveToId,
         quantity: qty, note: moveNote || '', createdBy: ''
       })
-      setSuccessMsg(`${moveTarget.prize_name} x${qty} を移動しました`); setError(null)
+      return true
+    })
+    if (result) {
+      setSuccessMsg(`${moveTarget.prize_name} x${qty} を移動しました`)
       setMoveTarget(null)
       const [s, mv] = await Promise.all([getPrizeStocksExtended(true), getStockMovements(true)])
       setStocks(s)
       const sIds = [...new Set(s.filter(x => x.owner_type === 'staff').map(x => x.owner_id))].filter(Boolean)
       setStaffList(sIds)
       setRecentCounts(mv.filter(m => m.movement_type === 'count' || m.movement_type === 'adjust').slice(-8).reverse())
-    } catch (e) {
-      setError('移動失敗: ' + e.message)
     }
-    setMoveSaving(false)
   }
 
   const moveToOptions = useMemo(() => {
@@ -205,7 +213,7 @@ export default function InventoryCount() {
       </div>
       <div className="flex-1 overflow-y-auto p-4 pt-0 pb-24">
 
-      {error && <ErrorDisplay error={error} onRetry={handleSubmitAll} onDismiss={() => setError(null)} />}
+      {activeErrorProps && <ErrorDisplay {...activeErrorProps} />}
       {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-4 text-sm">{successMsg}</div>}
 
       {/* 対象選択 */}
@@ -323,10 +331,15 @@ export default function InventoryCount() {
         </div>
       )}
 
+      {ownerId && targetStocks.length > 0 && summary.filled > 0 && (
+        <div className="bg-surface border border-border rounded-xl p-4 mb-3">
+          <ReasonSelect value={reason} onChange={setReason} reasons={['COUNT_DIFF', 'RECOUNT', 'DAMAGE', 'OTHER']} />
+        </div>
+      )}
       {ownerId && targetStocks.length > 0 && (
-        <button onClick={handleSubmitAll} disabled={saving || summary.filled === 0}
+        <button onClick={handleSubmitAll} disabled={countAsync.loading || summary.filled === 0}
           className="w-full bg-accent text-black font-bold rounded-xl py-3 text-sm disabled:opacity-50 mb-6">
-          {saving ? '保存中...' : `棚卸し結果を保存する（${summary.filled}件）`}
+          {countAsync.loading ? '保存中...' : `棚卸し結果を保存する（${summary.filled}件）`}
         </button>
       )}
 
@@ -453,9 +466,9 @@ export default function InventoryCount() {
                 className="flex-1 bg-surface2 text-muted rounded-xl py-3 text-sm font-bold">
                 キャンセル
               </button>
-              <button onClick={handleMove} disabled={moveSaving || !moveToId || !moveQty}
+              <button onClick={handleMove} disabled={moveAsync.loading || !moveToId || !moveQty}
                 className="flex-1 bg-accent text-black rounded-xl py-3 text-sm font-bold disabled:opacity-50">
-                {moveSaving ? '移動中...' : '移動する'}
+                {moveAsync.loading ? '移動中...' : '移動する'}
               </button>
             </div>
           </div>
