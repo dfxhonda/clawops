@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import LogoutButton from '../components/LogoutButton'
+import { buildLabel } from '../lib/buildInfo'
 
 const DOCS_BASE = '/docs/'
 
@@ -46,7 +47,7 @@ export default function AdminMenu() {
         <LogoutButton />
       </div>
 
-      {SECTIONS.map(sec => (
+{SECTIONS.map(sec => (
         <div key={sec.title}>
           <div className="text-[10px] text-muted font-bold uppercase tracking-wider px-4 pt-4 pb-1">
             {sec.title}
@@ -85,6 +86,9 @@ export default function AdminMenu() {
           </div>
         </div>
       ))}
+      <div className="px-4 py-6 text-center text-[10px] text-muted/30">
+        {buildLabel()}
+      </div>
     </div>
   )
 }
