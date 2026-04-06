@@ -4,6 +4,8 @@ import { parseNum } from '../services/utils'
 import { useBoothInput } from '../hooks/useBoothInput'
 import LogoutButton from '../components/LogoutButton'
 import ErrorDisplay from '../components/ErrorDisplay'
+import PrizeSearchModal from '../components/PrizeSearchModal'
+import { getPrizes } from '../services/prizes'
 
 // 設定値の定義（5種類）
 const SETTINGS = [
@@ -26,6 +28,16 @@ export default function BoothInput() {
     setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff,
   } = useBoothInput(machineId, state)
   const [error, setError] = useState(null)
+  const [searchModalBooth, setSearchModalBooth] = useState(null)
+  const [prizes, setPrizes] = useState(null)
+
+  async function openSearchModal(boothId) {
+    if (!prizes) {
+      const data = await getPrizes()
+      setPrizes(data)
+    }
+    setSearchModalBooth(boothId)
+  }
 
   async function onSave() {
     setError(null)
@@ -147,10 +159,20 @@ export default function BoothInput() {
             navigate={navigate}
             getRef={getRef}
             handleKeyDown={handleKeyDown}
+            onOpenSearch={openSearchModal}
           />
         ))}
       </div>
       </div>{/* スクロール領域終了 */}
+
+      {searchModalBooth && (
+        <PrizeSearchModal
+          prizes={prizes}
+          vehicleStocks={vehicleStocks}
+          onSelect={name => setInp(searchModalBooth, 'prize_name', name)}
+          onClose={() => setSearchModalBooth(null)}
+        />
+      )}
 
       {/* 固定フッター */}
       <div className="fixed bottom-0 left-0 right-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2.5 z-50">
@@ -172,7 +194,7 @@ export default function BoothInput() {
 }
 
 // 個別ブースカード（表示のみ）
-function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate }) {
+function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate, onOpenSearch }) {
   const { latest, last } = readingsMap[booth.booth_id] || {}
   const price = parseNum(booth.play_price || '100')
 
@@ -208,6 +230,9 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
           value={inp.prize_name || ''}
           onChange={e => setInp(booth.booth_id, 'prize_name', e.target.value)}
           onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_name')} />
+        <button onClick={() => onOpenSearch(booth.booth_id)}
+          className="text-base shrink-0 text-muted/60 hover:text-accent active:scale-90 transition-all px-0.5"
+          title="景品を画像検索">🔍</button>
         <span className="text-[11px] text-muted shrink-0">¥{price}</span>
       </div>
 

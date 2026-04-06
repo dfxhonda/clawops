@@ -16,6 +16,7 @@ export async function getPrizes() {
     supplier_name: supName(r.supplier_id), supplier_id: r.supplier_id || '',
     supplier_contact: '', is_active: r.status === 'active' ? 'TRUE' : 'FALSE',
     created_at: r.created_at || '', updated_at: r.updated_at || '',
+    image_url: r.image_url || null,
     short_name: r.short_name || r.prize_name || '', item_size: r.size || '', category: r.category || '',
     order_at: r.order_date || '', arrival_at: r.expected_date || '',
     restock_count: '', stock_count: '',
