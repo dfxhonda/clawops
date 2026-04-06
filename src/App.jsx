@@ -32,6 +32,7 @@ const ImportSlips = lazy(() => import('./pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./pages/SetupSheets'))
 const TestDataImport = lazy(() => import('./pages/TestDataImport'))
 const AuditLog = lazy(() => import('./pages/AuditLog'))
+const AuditSummary = lazy(() => import('./pages/AuditSummary'))
 
 // 遅延ロード — 棚卸し
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard'))
@@ -87,6 +88,7 @@ export default function App() {
 
       {/* 監査ログ — manager以上 */}
       <Route path="/admin/audit" element={<ManagerRoute><AuditLog /></ManagerRoute>} />
+      <Route path="/admin/audit-summary" element={<ManagerRoute><AuditSummary /></ManagerRoute>} />
 
       {/* データ検索・修正 — manager以上 */}
       <Route path="/datasearch" element={<ManagerRoute><DataSearch /></ManagerRoute>} />
