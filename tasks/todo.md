@@ -1,10 +1,7 @@
-# 実装計画: 発注詳細モーダル + DB拡張
+# 実装計画: 権限制御を含む画面テスト
 
-## Task 4: 発注詳細表示・編集
-- [x] Step 0: DB カラム追加（Supabase MCP）
-- [x] Step 1: サービス関数追加（updateOrder, updatePrizeMaster, getPrizeOrders拡張）
-- [x] Step 2: InventoryReceive.jsx に詳細モーダル追加
+- [x] Step 1: RoleAccess.test.jsx 作成（RoleRoute/RoleGuard/ProtectedRoute 19テス���）
 
 ## 検証
-- [x] `npm test` 全パス (117 tests)
+- [x] `npm test` 全パス (136 tests)
 - [x] `npm run build` 成功
