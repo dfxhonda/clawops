@@ -7,6 +7,10 @@ export default defineConfig({
     tailwindcss(),
     react()
   ],
+  test: {
+    globals: true,
+    setupFiles: ['./src/__tests__/setup.js'],
+  },
   build: {
     rollupOptions: {
       output: {

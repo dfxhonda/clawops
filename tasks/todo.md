@@ -1,19 +1,12 @@
-# 実装計画: useAsync統一 + reason_code/reason_note UI
+# 実���計画: @testing-library/react 画面���スト
 
-## Task 1: useAsync統一
-- [x] Step 1a: InventoryTransfer.jsx
-- [x] Step 1b: InventoryCount.jsx
-- [x] Step 1c: InventoryReceive.jsx
-- [x] Step 1d: DataSearch.jsx
-
-## Task 2: reason_code/reason_note UI
-- [x] Step 2a: ReasonSelect コンポーネント作成
-- [x] Step 2b: サービス関数の拡張（transferStock, countStock, updateReading, markOrderArrived）
-- [x] Step 2c: InventoryTransfer.jsx にReasonSelect追加
-- [x] Step 2d: InventoryCount.jsx にReasonSelect追加
-- [x] Step 2e: EditReading.jsx にReasonSelect追加
-- [x] Step 2f: InventoryReceive.jsx にReasonSelect追加
+## Task 3: コンポーネントテスト追加
+- [x] Step 0: 依存パッケージ + vitest設定 + setup.js
+- [x] Step 1: renderPage ヘルパー作成
+- [x] Step 2: InventoryTransfer.test.jsx (3テスト)
+- [x] Step 3: InventoryCount.test.jsx (3テスト)
+- [x] Step 4: InventoryReceive.test.jsx (3テスト)
 
 ## 検証
-- [x] `npm test` 全パス (108/108)
+- [x] `npm test` 全パス (117テスト)
 - [x] `npm run build` 成功
