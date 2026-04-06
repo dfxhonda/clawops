@@ -575,7 +575,7 @@ async function loadDestData(dest) {
   try {
     const fetches = [
       sbGet('prize_orders',
-        'select=order_id,prize_id,prize_name_raw,supplier_id,order_source,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,destination,status,source_file,notes' +
+        'select=order_id,prize_id,prize_name_raw,prize_name_short,supplier_id,order_source,order_date,expected_date,case_quantity,case_count,unit_cost,case_cost,shipping_cost,total_tax_included,destination,status,source_file,notes' +
         '&destination=eq.' + encodeURIComponent(dest) +
         '&order=order_date.desc')
     ];
@@ -1163,6 +1163,11 @@ ${(() => { const mImgPath = o.prize_id ? IMG_MAP[String(o.prize_id)] : null; con
       ? `<input type="text" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}" placeholder="例：ぬいぐるみ○○" oninput="markDirtyMobile()">`
       : `<div class="field-readonly">${esc(o.prize_name_raw || '—')}</div><input type="hidden" id="mfPrizeName" value="${esc(o.prize_name_raw||'')}">`}
   </div>
+  ${o.prize_name_short ? `
+  <div class="field">
+    <label>短縮名</label>
+    <div class="field-readonly">${esc(o.prize_name_short)}</div>
+  </div>` : ''}
   <div class="field">
     <label>仕入先</label>
     <select id="mfSupplierId" onchange="markDirtyMobile()">
@@ -1208,6 +1213,11 @@ ${(() => { const mImgPath = o.prize_id ? IMG_MAP[String(o.prize_id)] : null; con
       <select id="mfStatus" onchange="markDirtyMobile()">${statusOpts}</select>
     </div>
   </div>
+  ${(o.total_tax_included != null || o.shipping_cost != null) ? `
+  <div class="field-row">
+    ${o.total_tax_included != null ? `<div class="field"><label>合計金額(税込)</label><div class="field-readonly" style="font-weight:bold;color:var(--accent)">¥${Number(o.total_tax_included).toLocaleString()}</div></div>` : ''}
+    ${o.shipping_cost != null ? `<div class="field"><label>送料</label><div class="field-readonly">¥${Number(o.shipping_cost).toLocaleString()}</div></div>` : ''}
+  </div>` : ''}
   <div class="field-row">
     <div class="field">
       <label>入荷先</label>
