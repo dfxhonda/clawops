@@ -2,12 +2,13 @@
 // useBoothInput: BoothInput ページのビジネスロジック
 // データ取得・入力・保存・車在庫管理を分離
 // ============================================
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { getBooths, getMachines } from '../services/masters'
 import { getLastReadingsMap } from '../services/readings'
 import { parseNum } from '../services/utils'
 import { getStocksByOwner, getPrizeStocksExtended } from '../services/inventory'
 import { transferStock, MOVEMENT_TYPES } from '../services/movements'
+import { getDailyBoothStats } from '../services/stats'
 import { useAuth } from '../lib/auth/AuthProvider'
 
 // BoothInput は clawops_drafts（配列形式）を使う（MainInput の v2 とは別）
@@ -36,6 +37,7 @@ export function useBoothInput(machineId, storeInfo) {
   const [showVehiclePanel, setShowVehiclePanel] = useState(false)
   const [staffId, setStaffIdState] = useState(() => authStaffId || '')
   const [filter, setFilter] = useState('all')
+  const [monthlyStatsMap, setMonthlyStatsMap] = useState({})
 
   // ref管理
   const refsMap = useRef({})
@@ -81,6 +83,39 @@ export function useBoothInput(machineId, storeInfo) {
         if (m) setMachineName(m.machine_name)
       }
       setLoading(false)
+
+      // 月次統計（非blocking: loadingをブロックしない）
+      if (storeInfo?.storeId) {
+        try {
+          const today = new Date()
+          const yr = today.getFullYear()
+          const mo = today.getMonth() + 1
+          const currFrom = `${yr}-${String(mo).padStart(2, '0')}-01`
+          const prevMo = mo === 1 ? 12 : mo - 1
+          const prevYr = mo === 1 ? yr - 1 : yr
+          const prevFrom = `${prevYr}-${String(prevMo).padStart(2, '0')}-01`
+          // new Date(yr, mo-1, 0) = 前月末日（monthは0-indexed, day=0=前月末）
+          const prevTo = new Date(yr, mo - 1, 0).toISOString().slice(0, 10)
+
+          const [curr, prev] = await Promise.all([
+            getDailyBoothStats({ storeId: storeInfo.storeId, dateFrom: currFrom }),
+            getDailyBoothStats({ storeId: storeInfo.storeId, dateFrom: prevFrom, dateTo: prevTo }),
+          ])
+
+          const statsMap = {}
+          for (const r of curr) {
+            if (!statsMap[r.booth_code]) statsMap[r.booth_code] = { curr: { plays: 0, revenue: 0 }, prev: { plays: 0, revenue: 0 } }
+            statsMap[r.booth_code].curr.plays   += r.play_count || 0
+            statsMap[r.booth_code].curr.revenue += Number(r.revenue) || 0
+          }
+          for (const r of prev) {
+            if (!statsMap[r.booth_code]) statsMap[r.booth_code] = { curr: { plays: 0, revenue: 0 }, prev: { plays: 0, revenue: 0 } }
+            statsMap[r.booth_code].prev.plays   += r.play_count || 0
+            statsMap[r.booth_code].prev.revenue += Number(r.revenue) || 0
+          }
+          setMonthlyStatsMap(statsMap)
+        } catch { /* ignore */ }
+      }
     }
     load()
   }, [machineId])
@@ -97,6 +132,32 @@ export function useBoothInput(machineId, storeInfo) {
     : filter === 'todo' ? booths.filter(b => !isEntered(b))
     : booths.filter(b => isEntered(b))
 
+  // 異常値ブース数（確認モーダル用）
+  const anomalyCount = useMemo(() => {
+    return booths.filter(b => {
+      const inp = inputs[b.booth_id] || {}
+      if (!inp.in_meter) return false
+      const { latest, last } = readingsMap[b.booth_id] || {}
+      const inVal = parseNum(inp.in_meter)
+      const outVal = inp.out_meter ? parseNum(inp.out_meter) : null
+      const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
+      const lastIn   = last?.in_meter   ? parseNum(last.in_meter)   : null
+      const lastOut  = last?.out_meter  ? parseNum(last.out_meter)  : null
+      const inDiff  = lastIn !== null ? inVal - lastIn : null
+      const outDiff = outVal !== null && lastOut !== null ? outVal - lastOut : null
+      const prevInDiff = latestIn !== null && lastIn !== null ? latestIn - lastIn : null
+      const payoutRate = outDiff !== null && outDiff >= 0 && inDiff && inDiff > 0
+        ? outDiff / inDiff * 100 : null
+      return (
+        (inDiff !== null && (inDiff < 0 || inDiff > 50000)) ||
+        (outDiff !== null && (outDiff < 0 || outDiff > 50000)) ||
+        inDiff === 0 ||
+        (prevInDiff !== null && prevInDiff > 50 && inDiff !== null && inDiff > prevInDiff * 3) ||
+        (payoutRate !== null && (payoutRate >= 30 || payoutRate < 5))
+      )
+    }).length
+  }, [booths, inputs, readingsMap])
+
   // Enter → 次フィールド（filteredBooths ベース）
   function handleKeyDown(e, boothId, fieldName) {
     if (e.key !== 'Enter') return
@@ -111,6 +172,12 @@ export function useBoothInput(machineId, storeInfo) {
       refsMap.current[nextBoothId]?.['in_meter']?.focus()
       refsMap.current[nextBoothId]?.['in_meter']?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
+  }
+
+  // 指定ブースへスクロール（スワイプ切り替え用）
+  function scrollToBooth(boothId) {
+    const el = refsMap.current[boothId]?.['in_meter']
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   // ===== 担当者管理 =====
@@ -196,12 +263,12 @@ export function useBoothInput(machineId, storeInfo) {
 
   return {
     // データ
-    booths, machineName, readingsMap, inputs, vehicleStocks,
+    booths, machineName, readingsMap, inputs, vehicleStocks, monthlyStatsMap,
     // 選択・フィルタ
-    readDate, setReadDate, filter, setFilter, filteredBooths, inputCount,
+    readDate, setReadDate, filter, setFilter, filteredBooths, inputCount, anomalyCount,
     // UI
     loading, showVehiclePanel, setShowVehiclePanel, staffId,
     // 操作
-    setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff,
+    setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff, scrollToBooth,
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { parseNum } from '../services/utils'
 import { useBoothInput } from '../hooks/useBoothInput'
@@ -22,12 +22,15 @@ export default function BoothInput() {
   const navigate = useNavigate()
 
   const {
-    booths, machineName, readingsMap, inputs, vehicleStocks,
-    readDate, setReadDate, filter, setFilter, filteredBooths, inputCount,
+    booths, machineName, readingsMap, inputs, vehicleStocks, monthlyStatsMap,
+    readDate, setReadDate, filter, setFilter, filteredBooths, inputCount, anomalyCount,
     loading, showVehiclePanel, setShowVehiclePanel, staffId,
-    setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff,
+    setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff, scrollToBooth,
   } = useBoothInput(machineId, state)
+
   const [error, setError] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [searchModalBooth, setSearchModalBooth] = useState(null)
   const [prizes, setPrizes] = useState(null)
 
@@ -39,15 +42,37 @@ export default function BoothInput() {
     setSearchModalBooth(boothId)
   }
 
-  async function onSave() {
+  // 保存確認モーダルを開く
+  function onSave() {
+    setError(null)
+    if (inputCount === 0) {
+      setError({ message: 'まだINメーターが入力されていません。\nブースのIN欄に売上メーター値を入力してください。', type: 'validation' })
+      return
+    }
+    setShowConfirmModal(true)
+  }
+
+  // 確認後に実際に保存
+  async function doSave() {
+    setShowConfirmModal(false)
+    setSaving(true)
     setError(null)
     const result = await handleSaveAll()
+    setSaving(false)
     if (!result.ok) { setError({ message: result.message, type: 'validation' }); return }
     if (result.failedItems?.length > 0) {
       const details = result.failedItems.map(f => `・${f.prizeName}: ${f.error}`).join('\n')
       setError({ message: `補充処理でエラーが発生しました。棚卸し画面で在庫を確認してください。\n${details}`, type: 'stock_insufficient' })
     }
     navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })
+  }
+
+  // スワイプによるブース切り替え
+  function handleSwipe(boothId, direction) {
+    const idx = filteredBooths.findIndex(b => b.booth_id === boothId)
+    const targetIdx = direction === 'next' ? idx + 1 : idx - 1
+    if (targetIdx < 0 || targetIdx >= filteredBooths.length) return
+    scrollToBooth(filteredBooths[targetIdx].booth_id)
   }
 
   if (loading) return (
@@ -160,6 +185,8 @@ export default function BoothInput() {
             getRef={getRef}
             handleKeyDown={handleKeyDown}
             onOpenSearch={openSearchModal}
+            onSwipe={handleSwipe}
+            monthlyStats={monthlyStatsMap[booth.booth_id] || monthlyStatsMap[booth.booth_code] || null}
           />
         ))}
       </div>
@@ -174,15 +201,55 @@ export default function BoothInput() {
         />
       )}
 
+      {/* 保存確認モーダル */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowConfirmModal(false)}>
+          <div className="w-full max-w-lg bg-bg border-t border-border rounded-t-2xl p-5 pb-8 space-y-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-bold text-center">保存確認</div>
+            <div className="bg-surface2 rounded-xl p-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted">入力済みブース</span>
+                <span className="font-bold text-accent">{inputCount} / {booths.length} 件</span>
+              </div>
+              {booths.length - inputCount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted">未入力</span>
+                  <span className="text-accent2">{booths.length - inputCount} 件</span>
+                </div>
+              )}
+              {anomalyCount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted">異常値あり</span>
+                  <span className="font-bold text-accent2">⚠️ {anomalyCount} 台</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-3 rounded-xl border border-border text-sm text-muted active:scale-[0.98]">
+                戻る
+              </button>
+              <button onClick={doSave}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm active:scale-[0.98]">
+                保存する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 固定フッター */}
       <div className="fixed bottom-0 left-0 right-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2.5 z-50">
         <div className="max-w-lg mx-auto">
-          <button onClick={onSave}
-            className={`w-full text-white font-bold py-3.5 rounded-xl transition-all min-h-[48px] active:scale-[0.98]
+          <button onClick={onSave} disabled={saving}
+            className={`w-full text-white font-bold py-3.5 rounded-xl transition-all min-h-[48px] active:scale-[0.98] disabled:opacity-50
               ${inputCount > 0 && inputCount >= booths.length
                 ? 'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/30 animate-pulse'
                 : 'bg-blue-600 hover:bg-blue-700'}`}>
-            {inputCount >= booths.length
+            {saving ? '保存中...'
+              : inputCount >= booths.length
               ? `全${inputCount}件を下書き保存 → 確認へ`
               : inputCount > 0 ? `${inputCount}件を下書き保存 → 確認へ`
               : '入力してください'}
@@ -194,31 +261,58 @@ export default function BoothInput() {
 }
 
 // 個別ブースカード（表示のみ）
-function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate, onOpenSearch }) {
+function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate, onOpenSearch, onSwipe, monthlyStats }) {
   const { latest, last } = readingsMap[booth.booth_id] || {}
   const price = parseNum(booth.play_price || '100')
 
-  const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
+  const latestIn  = latest?.in_meter  ? parseNum(latest.in_meter)  : null
   const latestOut = latest?.out_meter ? parseNum(latest.out_meter) : null
-  const lastIn = last?.in_meter ? parseNum(last.in_meter) : null
-  const lastOut = last?.out_meter ? parseNum(last.out_meter) : null
+  const lastIn    = last?.in_meter    ? parseNum(last.in_meter)    : null
+  const lastOut   = last?.out_meter   ? parseNum(last.out_meter)   : null
 
-  const inVal = inp.in_meter ? parseNum(inp.in_meter) : null
+  const inVal  = inp.in_meter  ? parseNum(inp.in_meter)  : null
   const outVal = inp.out_meter ? parseNum(inp.out_meter) : null
-  const inDiff = inVal !== null && lastIn !== null ? inVal - lastIn : null
+  const inDiff  = inVal  !== null && lastIn  !== null ? inVal  - lastIn  : null
   const outDiff = outVal !== null && lastOut !== null ? outVal - lastOut : null
-  const inAbnormal = inDiff !== null && (inDiff < 0 || inDiff > 50000)
+
+  // 現行の異常値（範囲外）
+  const inAbnormal  = inDiff  !== null && (inDiff  < 0 || inDiff  > 50000)
   const outAbnormal = outDiff !== null && (outDiff < 0 || outDiff > 50000)
+
+  // 追加異常値
+  const prevInDiff = latestIn !== null && lastIn !== null ? latestIn - lastIn : null
+  const inZero   = inDiff !== null && inVal !== null && inDiff === 0
+  const inTriple = prevInDiff !== null && prevInDiff > 50 && inDiff !== null && inDiff > prevInDiff * 3
 
   const payout = outDiff !== null && outDiff >= 0 ? outDiff : null
   const payoutRate = payout !== null && inDiff !== null && inDiff > 0
     ? ((payout / inDiff) * 100).toFixed(1) : null
 
+  // 出率アラート
+  const payoutHigh = payoutRate !== null && Number(payoutRate) >= 30
+  const payoutLow  = payoutRate !== null && Number(payoutRate) < 5
+
   const hasInput = inp.in_meter && inp.in_meter !== ''
   const inputCls = "w-full p-2 text-sm text-center rounded border bg-surface2 text-text outline-none focus:border-accent transition-colors"
 
+  // スワイプ検知
+  const txRef = useRef(null)
+  const tyRef = useRef(null)
+
   return (
-    <div className={`bg-surface border rounded-lg overflow-hidden ${hasInput ? 'border-accent/30' : 'border-border'}`}>
+    <div
+      className={`bg-surface border rounded-lg overflow-hidden ${hasInput ? 'border-accent/30' : 'border-border'}`}
+      onTouchStart={e => { txRef.current = e.touches[0].clientX; tyRef.current = e.touches[0].clientY }}
+      onTouchEnd={e => {
+        if (txRef.current === null) return
+        const dx = e.changedTouches[0].clientX - txRef.current
+        const dy = e.changedTouches[0].clientY - tyRef.current
+        txRef.current = null
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          onSwipe(booth.booth_id, dx > 0 ? 'prev' : 'next')
+        }
+      }}
+    >
       {/* R1: ブース名 + 履歴 + 景品名 + 単価 */}
       <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
         <span className="text-xs font-bold text-accent shrink-0">{booth.booth_code}</span>
@@ -251,8 +345,8 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
             onChange={e => setInp(booth.booth_id, 'in_meter', e.target.value)}
             onKeyDown={e => handleKeyDown(e, booth.booth_id, 'in_meter')} />
           {inDiff !== null && (
-            <div className={`text-center text-xs font-bold mt-0.5 ${inAbnormal ? 'text-accent2' : 'text-accent'}`}>
-              +{inDiff.toLocaleString()} (¥{(inDiff * price).toLocaleString()})
+            <div className={`text-center text-xs font-bold mt-0.5 ${inAbnormal || inZero || inTriple ? 'text-accent2' : 'text-accent'}`}>
+              {inDiff === 0 ? '±0' : `+${inDiff.toLocaleString()}`} (¥{(inDiff * price).toLocaleString()})
             </div>
           )}
         </div>
@@ -313,18 +407,38 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
         ))}
         {payoutRate !== null && (
           <div className={`ml-auto text-xs font-bold shrink-0 px-1.5 py-0.5 rounded
-            ${Number(payoutRate) > 30 ? 'text-accent2 bg-accent2/10' :
-              Number(payoutRate) < 5 ? 'text-blue-400 bg-blue-900/20' :
+            ${payoutHigh ? 'text-accent2 bg-accent2/10' :
+              payoutLow  ? 'text-blue-400 bg-blue-900/20' :
               'text-accent3 bg-accent3/10'}`}>
             {payoutRate}%
           </div>
         )}
       </div>
 
-      {/* 異常値アラート */}
-      {(inAbnormal || outAbnormal) && (
+      {/* 月次統計行（daily_booth_stats からのデータ） */}
+      {monthlyStats && (monthlyStats.curr.revenue > 0 || monthlyStats.prev.revenue > 0) && (
+        <div className="flex items-center gap-2 px-2.5 py-1 border-t border-border/30 bg-surface2/30">
+          <span className="text-[9px] text-muted">今月</span>
+          <span className="text-[10px] font-semibold text-accent3">
+            ¥{monthlyStats.curr.revenue.toLocaleString()}
+          </span>
+          <span className="text-[9px] text-muted ml-1">前月</span>
+          <span className="text-[10px] text-muted">
+            ¥{monthlyStats.prev.revenue.toLocaleString()}
+          </span>
+        </div>
+      )}
+
+      {/* 異常値アラートバナー */}
+      {(inAbnormal || outAbnormal || inZero || inTriple || payoutHigh || payoutLow) && (
         <div className="bg-accent2/10 px-2.5 py-1 text-[10px] text-accent2 border-t border-accent2/20">
-          ⚠️ 異常値の可能性（{inAbnormal && 'IN'}{inAbnormal && outAbnormal && '・'}{outAbnormal && 'OUT'}）
+          ⚠️
+          {inAbnormal && ' IN異常値'}
+          {inZero     && ' INゼロ'}
+          {inTriple   && ' IN差分3倍'}
+          {outAbnormal && ' OUT異常値'}
+          {payoutHigh && ' 出率高(≥30%)'}
+          {payoutLow  && ' 出率低(<5%)'}
         </div>
       )}
     </div>
