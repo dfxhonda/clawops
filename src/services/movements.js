@@ -62,7 +62,7 @@ export async function addStockMovement(mv) {
   return data.movement_id
 }
 
-export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy, reason, reason_code, reason_note }) {
+export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwnerId, toOwnerType, toOwnerId, quantity, note, createdBy, reason, reason_code, reason_note, movementType: movementTypeOverride }) {
   const qty = parseInt(quantity)
   if (!Number.isFinite(qty) || qty <= 0) throw new Error(`無効な数量: ${quantity}`)
   quantity = qty
@@ -87,7 +87,7 @@ export async function transferStock({ prizeId, prizeName, fromOwnerType, fromOwn
     await addPrizeStock({ prize_id: prizeId, quantity, owner_type: toOwnerType, owner_id: toOwnerId, updated_by: createdBy })
   }
 
-  const movementType = fromOwnerType ? MOVEMENT_TYPES.TRANSFER : MOVEMENT_TYPES.ARRIVAL
+  const movementType = movementTypeOverride || (fromOwnerType ? MOVEMENT_TYPES.TRANSFER : MOVEMENT_TYPES.ARRIVAL)
 
   // 監査ログ
   writeAuditLog({

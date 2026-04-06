@@ -6,8 +6,8 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { getBooths, getMachines } from '../services/masters'
 import { getLastReadingsMap } from '../services/readings'
 import { parseNum } from '../services/utils'
-import { getStocksByOwner, adjustPrizeStockQuantity, getPrizeStocksExtended } from '../services/inventory'
-import { addStockMovement, MOVEMENT_TYPES } from '../services/movements'
+import { getStocksByOwner, getPrizeStocksExtended } from '../services/inventory'
+import { transferStock, MOVEMENT_TYPES } from '../services/movements'
 import { useAuth } from '../lib/auth/AuthProvider'
 
 // BoothInput は clawops_drafts（配列形式）を使う（MainInput の v2 とは別）
@@ -167,14 +167,16 @@ export function useBoothInput(machineId, storeInfo) {
         const stock = allStocks.find(s => s.owner_type === 'staff' && s.owner_id === staffId && s.prize_name === item.prizeName)
         if (!stock) { failedItems.push({ ...item, error: '車在庫に該当景品なし' }); continue }
         try {
-          await addStockMovement({
-            prize_id: stock.prize_id, movement_type: MOVEMENT_TYPES.REPLENISH,
-            from_owner_type: 'staff', from_owner_id: staffId,
-            to_owner_type: 'booth', to_owner_id: item.boothCode,
-            quantity: item.quantity, note: `巡回補充: ${item.prizeName} → ${item.boothCode}`,
-            created_by: staffId
+          await transferStock({
+            prizeId: stock.prize_id, prizeName: item.prizeName,
+            fromOwnerType: 'staff', fromOwnerId: staffId,
+            toOwnerType: 'booth', toOwnerId: item.boothCode,
+            quantity: item.quantity,
+            note: `巡回補充: ${item.prizeName} → ${item.boothCode}`,
+            createdBy: staffId,
+            movementType: MOVEMENT_TYPES.REPLENISH,
+            reason_code: 'REPLENISH',
           })
-          await adjustPrizeStockQuantity(stock.stock_id, -item.quantity, staffId)
         } catch (e) {
           failedItems.push({ ...item, error: e.message })
         }
