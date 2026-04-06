@@ -7,7 +7,7 @@ import { logout } from '../lib/auth/session'
 export default function LogoutButton({ className }) {
   async function handleLogout() {
     await logout()
-    window.location.href = '/login'
+    window.location.href = '/docs/'
   }
 
   return (
