@@ -31,6 +31,7 @@ const PatrolInput = lazy(() => import('./pages/PatrolInput'))
 const ImportSlips = lazy(() => import('./pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./pages/SetupSheets'))
 const TestDataImport = lazy(() => import('./pages/TestDataImport'))
+const AuditLog = lazy(() => import('./pages/AuditLog'))
 
 // 遅延ロード — 棚卸し
 const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard'))
@@ -83,6 +84,9 @@ export default function App() {
       {/* 巡回QR — patrol以上 */}
       <Route path="/patrol" element={<PatrolRoute><PatrolScan /></PatrolRoute>} />
       <Route path="/patrol/input" element={<PatrolRoute><PatrolInput /></PatrolRoute>} />
+
+      {/* 監査ログ — manager以上 */}
+      <Route path="/admin/audit" element={<ManagerRoute><AuditLog /></ManagerRoute>} />
 
       {/* データ検索・修正 — manager以上 */}
       <Route path="/datasearch" element={<ManagerRoute><DataSearch /></ManagerRoute>} />

@@ -55,7 +55,19 @@ export function createMockSupabase(initialData = {}, sessionData = null) {
         return builder
       },
       eq(col, val) {
-        filters.push({ col, val })
+        filters.push({ type: 'eq', col, val })
+        return builder
+      },
+      gte(col, val) {
+        filters.push({ type: 'gte', col, val })
+        return builder
+      },
+      lte(col, val) {
+        filters.push({ type: 'lte', col, val })
+        return builder
+      },
+      ilike(col, pattern) {
+        filters.push({ type: 'ilike', col, val: pattern })
         return builder
       },
       order(col, opts) {
@@ -83,6 +95,17 @@ export function createMockSupabase(initialData = {}, sessionData = null) {
       },
     }
 
+    function applyFilter(rows, f) {
+      if (f.type === 'eq') return rows.filter(r => r[f.col] === f.val)
+      if (f.type === 'gte') return rows.filter(r => r[f.col] >= f.val)
+      if (f.type === 'lte') return rows.filter(r => r[f.col] <= f.val)
+      if (f.type === 'ilike') {
+        const pat = (f.val || '').replace(/%/g, '').toLowerCase()
+        return rows.filter(r => (r[f.col] || '').toLowerCase().includes(pat))
+      }
+      return rows
+    }
+
     function executeQuery() {
       const table = getTable(tableName)
 
@@ -107,7 +130,7 @@ export function createMockSupabase(initialData = {}, sessionData = null) {
         // Apply filters
         let targets = table
         for (const f of filters) {
-          targets = targets.filter(r => r[f.col] === f.val)
+          targets = applyFilter(targets, f)
         }
         // Patch matching rows in-place
         for (const row of targets) {
@@ -120,7 +143,7 @@ export function createMockSupabase(initialData = {}, sessionData = null) {
         let rows = [...table]
         // Apply filters
         for (const f of filters) {
-          rows = rows.filter(r => r[f.col] === f.val)
+          rows = applyFilter(rows, f)
         }
         // Order
         if (orderCol) {

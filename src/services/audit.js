@@ -5,6 +5,20 @@
 import { supabase } from '../lib/supabase'
 import { getAuthSession, extractMeta } from '../lib/auth/session'
 
+/** 操作種別の定型ラベル */
+export const AUDIT_ACTIONS = {
+  reading_create: 'メーター入力',
+  reading_update: 'メーター修正',
+  stock_transfer: '在庫移管',
+  stock_count_adjust: '棚卸し(差異)',
+  stock_count_match: '棚卸し(一致)',
+  stock_adjust: '在庫調整',
+  master_create: '景品登録',
+  master_update: 'マスタ編集',
+  order_arrived: '入荷確認',
+  order_update: '発注編集',
+}
+
 /** 変更理由の定型区分 */
 export const AUDIT_REASONS = {
   COUNT_DIFF: '棚卸し差分',
@@ -69,4 +83,24 @@ export async function writeAuditLog(entry) {
     // 監査ログの書き込み失敗は本体処理を止めない
     console.warn('監査ログ書き込み失敗:', err.message)
   }
+}
+
+/**
+ * 監査ログを検索・取得する
+ * @param {object} filters
+ * @param {number} [offset=0]
+ * @param {number} [limit=100]
+ */
+export async function getAuditLogs(filters = {}, offset = 0, limit = 100) {
+  let q = supabase.from('audit_logs').select('*')
+  if (filters.dateFrom) q = q.gte('created_at', filters.dateFrom)
+  if (filters.dateTo) q = q.lte('created_at', filters.dateTo + 'T23:59:59')
+  if (filters.staffId) q = q.eq('staff_id', filters.staffId)
+  if (filters.action) q = q.eq('action', filters.action)
+  if (filters.reasonCode) q = q.eq('reason_code', filters.reasonCode)
+  if (filters.searchText) q = q.ilike('detail', `%${filters.searchText}%`)
+  q = q.order('created_at', { ascending: false }).range(offset, offset + limit - 1)
+  const { data, error } = await q
+  if (error) throw new Error('監査ログ取得エラー: ' + error.message)
+  return data || []
 }
