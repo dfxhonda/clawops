@@ -70,6 +70,11 @@ export function createMockSupabase(initialData = {}, sessionData = null) {
         filters.push({ type: 'ilike', col, val: pattern })
         return builder
       },
+      or(query) {
+        // "col.ilike.%text%,col2.ilike.%text%" 形式をパース
+        filters.push({ type: 'or', query })
+        return builder
+      },
       order(col, opts) {
         orderCol = col
         orderAsc = opts?.ascending !== false
@@ -102,6 +107,15 @@ export function createMockSupabase(initialData = {}, sessionData = null) {
       if (f.type === 'ilike') {
         const pat = (f.val || '').replace(/%/g, '').toLowerCase()
         return rows.filter(r => (r[f.col] || '').toLowerCase().includes(pat))
+      }
+      if (f.type === 'or') {
+        // parse "col.ilike.%text%,col2.ilike.%text%"
+        const parts = f.query.split(',').map(p => p.trim())
+        return rows.filter(row => parts.some(part => {
+          const m = part.match(/^(\w+)\.ilike\.%?(.+?)%?$/)
+          if (!m) return false
+          return (row[m[1]] || '').toLowerCase().includes(m[2].toLowerCase())
+        }))
       }
       return rows
     }

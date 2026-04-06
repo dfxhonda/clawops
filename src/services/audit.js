@@ -98,7 +98,10 @@ export async function getAuditLogs(filters = {}, offset = 0, limit = 100) {
   if (filters.staffId) q = q.eq('staff_id', filters.staffId)
   if (filters.action) q = q.eq('action', filters.action)
   if (filters.reasonCode) q = q.eq('reason_code', filters.reasonCode)
-  if (filters.searchText) q = q.ilike('detail', `%${filters.searchText}%`)
+  if (filters.searchText) {
+    const t = filters.searchText.replace(/'/g, "''")
+    q = q.or(`detail.ilike.%${t}%,target_id.ilike.%${t}%,reason_note.ilike.%${t}%`)
+  }
   q = q.order('created_at', { ascending: false }).range(offset, offset + limit - 1)
   const { data, error } = await q
   if (error) throw new Error('監査ログ取得エラー: ' + error.message)
