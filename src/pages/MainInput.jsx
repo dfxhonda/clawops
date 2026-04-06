@@ -229,6 +229,7 @@ export default function MainInput() {
                   <span className="text-purple-400 font-bold text-[10px]">A<span className="text-[7px] text-purple-400/60 ml-0.5">ｱｼｽﾄ</span></span>
                   <input
                     className="w-7 p-0.5 text-[10px] text-center rounded border border-border bg-bg text-purple-300 outline-none focus:border-purple-400"
+                    inputMode="numeric"
                     placeholder={latest?.set_a || '-'}
                     value={inp.set_a || ''}
                     onChange={e => setInp(booth.booth_id, 'set_a', e.target.value)}

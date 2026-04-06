@@ -286,7 +286,7 @@ export default function DataSearch() {
                     {[['in_meter','INメーター'],['out_meter','OUTメーター'],['prize_restock_count','景品補充数'],['prize_stock_count','景品投入残']].map(([key,label]) => (
                       <div key={key}>
                         <div className="text-[10px] text-muted uppercase tracking-wider mb-1">{label}</div>
-                        <input className={inputCls} type="number" value={edit?.[key]||''} placeholder={r[key]||'0'}
+                        <input className={inputCls} type="number" inputMode="numeric" value={edit?.[key]||''} placeholder={r[key]||'0'}
                           onChange={e=>updateEdit(r._idx,key,e.target.value)} />
                       </div>
                     ))}
