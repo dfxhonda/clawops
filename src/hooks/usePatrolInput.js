@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { findMachineById, findStoreById } from '../services/masters'
 import { getLastReadingsMap } from '../services/readings'
 import { parseNum } from '../services/utils'
+import { getDailyBoothStats } from '../services/stats'
 
 const DRAFT_KEY = 'clawops_drafts'
 function getDrafts() { try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '[]') } catch { return [] } }
@@ -32,6 +33,7 @@ export function usePatrolInput(booth, navigateToPatrol) {
   const [storeName, setStoreName] = useState('')
   const [readDate, setReadDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [saved, setSaved] = useState(false)
+  const [monthlyStats, setMonthlyStats] = useState(null)
 
   // フォーム入力
   const [inMeter, setInMeter] = useState('')
@@ -55,15 +57,60 @@ export function usePatrolInput(booth, navigateToPatrol) {
         setPrizeName(draft.prize_name || ''); setNote(draft.note || '')
         if (draft.machine_status) setMachineStatus(draft.machine_status)
       }
+      let storeCode = null
       try {
         const machine = await findMachineById(booth.machine_id)
         if (machine) {
           setMachineName(machine.machine_name)
+          storeCode = machine.store_id // store_id フィールドは store_code 文字列
           const store = await findStoreById(machine.store_id)
           if (store) setStoreName(store.store_name)
         }
       } catch { /* ignore */ }
       setLoading(false)
+
+      // 月次統計（非blocking: loadingをブロックしない）
+      if (storeCode && booth.booth_id) {
+        try {
+          const today = new Date()
+          const yr = today.getFullYear()
+          const mo = today.getMonth() + 1
+          const currFrom = `${yr}-${String(mo).padStart(2, '0')}-01`
+          const prevMo = mo === 1 ? 12 : mo - 1
+          const prevYr = mo === 1 ? yr - 1 : yr
+          const prevFrom = `${prevYr}-${String(prevMo).padStart(2, '0')}-01`
+          const prevTo = new Date(yr, mo - 1, 0).toISOString().slice(0, 10)
+
+          const [curr, prev] = await Promise.all([
+            getDailyBoothStats({ storeId: storeCode, dateFrom: currFrom }),
+            getDailyBoothStats({ storeId: storeCode, dateFrom: prevFrom, dateTo: prevTo }),
+          ])
+
+          const bCode = booth.booth_id
+          const aggCurr = curr
+            .filter(r => r.booth_code === bCode)
+            .reduce((a, r) => ({
+              plays: a.plays + (r.play_count || 0),
+              revenue: a.revenue + Number(r.revenue || 0),
+              outTotal: a.outTotal + (r.prize_out_count || 0),
+            }), { plays: 0, revenue: 0, outTotal: 0 })
+          const aggPrev = prev
+            .filter(r => r.booth_code === bCode)
+            .reduce((a, r) => ({
+              plays: a.plays + (r.play_count || 0),
+              revenue: a.revenue + Number(r.revenue || 0),
+              outTotal: a.outTotal + (r.prize_out_count || 0),
+            }), { plays: 0, revenue: 0, outTotal: 0 })
+
+          const currPayout = aggCurr.plays > 0 ? Math.round(aggCurr.outTotal / aggCurr.plays * 100) : null
+          const prevPayout = aggPrev.plays > 0 ? Math.round(aggPrev.outTotal / aggPrev.plays * 100) : null
+
+          setMonthlyStats({
+            curr: { ...aggCurr, payoutRate: currPayout },
+            prev: { ...aggPrev, payoutRate: prevPayout },
+          })
+        } catch { /* ignore */ }
+      }
     }
     load()
   }, [booth?.booth_id])
@@ -71,16 +118,29 @@ export function usePatrolInput(booth, navigateToPatrol) {
   // メーター差分計算
   const { latest, last } = readingsMap[booth?.booth_id] || {}
   const price = parseNum(booth?.play_price || '100')
-  const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
+  const latestIn  = latest?.in_meter  ? parseNum(latest.in_meter)  : null
   const latestOut = latest?.out_meter ? parseNum(latest.out_meter) : null
-  const lastIn = last?.in_meter ? parseNum(last.in_meter) : null
-  const lastOut = last?.out_meter ? parseNum(last.out_meter) : null
-  const inVal = inMeter !== '' ? parseNum(inMeter) : null
+  const lastIn    = last?.in_meter    ? parseNum(last.in_meter)    : null
+  const lastOut   = last?.out_meter   ? parseNum(last.out_meter)   : null
+  const inVal  = inMeter  !== '' ? parseNum(inMeter)  : null
   const outVal = outMeter !== '' ? parseNum(outMeter) : null
-  const inDiff = inVal !== null && lastIn !== null ? inVal - lastIn : null
+  const inDiff  = inVal  !== null && lastIn  !== null ? inVal  - lastIn  : null
   const outDiff = outVal !== null && lastOut !== null ? outVal - lastOut : null
-  const inAbnormal = inDiff !== null && (inDiff < 0 || inDiff > 50000)
+
+  // 基本異常値（範囲外）
+  const inAbnormal  = inDiff  !== null && (inDiff  < 0 || inDiff  > 50000)
   const outAbnormal = outDiff !== null && (outDiff < 0 || outDiff > 50000)
+
+  // 追加異常値
+  const prevInDiff = latestIn !== null && lastIn !== null ? latestIn - lastIn : null
+  const inZero     = inDiff !== null && inDiff === 0
+  const inTriple   = prevInDiff !== null && prevInDiff > 50 && inDiff !== null && inDiff > prevInDiff * 3
+
+  // 出率
+  const payoutRate = outDiff !== null && outDiff >= 0 && inDiff !== null && inDiff > 0
+    ? outDiff / inDiff * 100 : null
+  const payoutHigh = payoutRate !== null && payoutRate >= 30
+  const payoutLow  = payoutRate !== null && payoutRate < 5
 
   function handleSave() {
     const finalIn = inMeter || (latestIn !== null ? String(latestIn) : '')
@@ -91,6 +151,9 @@ export function usePatrolInput(booth, navigateToPatrol) {
     saveDraft({
       read_date: readDate, booth_id: booth.booth_id, full_booth_code: booth.full_booth_code,
       in_meter: finalIn, out_meter: finalOut,
+      prev_in_meter:  lastIn  !== null ? String(lastIn)  : '',
+      prev_out_meter: lastOut !== null ? String(lastOut) : '',
+      play_price: price,
       prize_restock_count: prizeRestock, prize_stock_count: prizeStock,
       prize_name: prizeName || latest?.prize_name || '', note: noteWithStatus, machine_status: machineStatus,
     })
@@ -107,11 +170,15 @@ export function usePatrolInput(booth, navigateToPatrol) {
     // メーター
     inMeter, setInMeter, outMeter, setOutMeter,
     latestIn, latestOut, lastIn, lastOut, inDiff, outDiff, inAbnormal, outAbnormal, price,
+    // 追加異常値
+    inZero, inTriple, prevInDiff, payoutRate, payoutHigh, payoutLow,
     latest, last,
     // 景品
     prizeRestock, setPrizeRestock, prizeStock, setPrizeStock, prizeName, setPrizeName,
     // その他
     note, setNote, machineStatus, setMachineStatus,
+    // 月次統計
+    monthlyStats,
     // 操作
     handleSave, draftCount,
   }

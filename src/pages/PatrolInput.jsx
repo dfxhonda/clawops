@@ -14,13 +14,16 @@ export default function PatrolInput() {
     readDate, setReadDate,
     inMeter, setInMeter, outMeter, setOutMeter,
     latestIn, latestOut, inDiff, outDiff, inAbnormal, outAbnormal, price,
+    inZero, inTriple, payoutRate, payoutHigh, payoutLow,
     latest, last,
     prizeRestock, setPrizeRestock, prizeStock, setPrizeStock, prizeName, setPrizeName,
     note, setNote, machineStatus, setMachineStatus,
+    monthlyStats,
     handleSave,
   } = usePatrolInput(booth, () => navigate('/patrol'))
 
   const [error, setError] = useState(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   if (!booth) return null
 
@@ -33,8 +36,19 @@ export default function PatrolInput() {
     </div>
   )
 
+  const hasAnomaly = inAbnormal || outAbnormal || inZero || inTriple || payoutHigh || payoutLow
+
   function onSave() {
     setError(null)
+    if (!inMeter && latestIn === null) {
+      setError({ message: 'INメーターを入力してください', type: 'validation' })
+      return
+    }
+    setShowConfirmModal(true)
+  }
+
+  function doSave() {
+    setShowConfirmModal(false)
     const result = handleSave()
     if (!result.ok) setError({ message: result.message, type: 'validation' })
   }
@@ -84,6 +98,21 @@ export default function PatrolInput() {
               <span className="text-[10px] text-accent2 font-bold">過去日付</span>}
           </div>
 
+          {/* 月次統計 */}
+          {monthlyStats && (monthlyStats.curr.revenue > 0 || monthlyStats.prev.revenue > 0) && (
+            <div className="flex items-center gap-3 px-3 py-2 mb-3 bg-surface rounded-lg border border-border text-xs">
+              <span className="text-muted shrink-0">今月</span>
+              <span className="font-semibold text-accent3">¥{monthlyStats.curr.revenue.toLocaleString()}</span>
+              {monthlyStats.curr.payoutRate !== null &&
+                <span className="text-muted">出率 {monthlyStats.curr.payoutRate}%</span>}
+              <span className="text-border">|</span>
+              <span className="text-muted shrink-0">前月</span>
+              <span className="text-muted">¥{monthlyStats.prev.revenue.toLocaleString()}</span>
+              {monthlyStats.prev.payoutRate !== null &&
+                <span className="text-muted">出率 {monthlyStats.prev.payoutRate}%</span>}
+            </div>
+          )}
+
           {/* 機械状態 */}
           <div className="bg-surface border border-border rounded-xl p-3.5 mb-3">
             <div className="text-xs text-muted mb-2">機械状態</div>
@@ -128,9 +157,8 @@ export default function PatrolInput() {
               <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
                 placeholder={latestIn !== null ? String(latestIn) : '0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
               {inDiff !== null && (
-                <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${inAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${inAbnormal || inZero || inTriple ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
                   差分: {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}回 / ¥{(inDiff * price).toLocaleString()}
-                  {inAbnormal && <div className="text-xs mt-1">⚠️ 異常値の可能性</div>}
                 </div>
               )}
             </div>
@@ -146,10 +174,32 @@ export default function PatrolInput() {
               {outDiff !== null && (
                 <div className={`mt-1.5 text-center text-2xl font-bold p-2 rounded-lg ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
                   差分: {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}回
-                  {outAbnormal && <div className="text-xs mt-1">⚠️ 異常値の可能性</div>}
                 </div>
               )}
             </div>
+
+            {/* 出率 */}
+            {payoutRate !== null && (
+              <div className={`mb-4 text-center text-sm font-bold py-2 px-3 rounded-lg
+                ${payoutHigh ? 'text-accent2 bg-accent2/10' : payoutLow ? 'text-blue-400 bg-blue-900/20' : 'text-accent3 bg-accent3/10'}`}>
+                出率: {payoutRate.toFixed(1)}%
+                {payoutHigh && ' ⚠️ 高'}
+                {payoutLow  && ' ⚠️ 低'}
+              </div>
+            )}
+
+            {/* 異常値アラートバナー */}
+            {hasAnomaly && (
+              <div className="mb-4 bg-accent2/10 border border-accent2/30 rounded-lg px-3 py-2 text-[11px] text-accent2 font-bold">
+                ⚠️ 異常値を検出
+                {inAbnormal  && <span className="ml-1">· IN異常値</span>}
+                {inZero      && <span className="ml-1">· INゼロ</span>}
+                {inTriple    && <span className="ml-1">· IN差分3倍</span>}
+                {outAbnormal && <span className="ml-1">· OUT異常値</span>}
+                {payoutHigh  && <span className="ml-1">· 出率高(≥30%)</span>}
+                {payoutLow   && <span className="ml-1">· 出率低(&lt;5%)</span>}
+              </div>
+            )}
 
             {/* 景品 */}
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -186,6 +236,62 @@ export default function PatrolInput() {
         </>
       )}
       </div>{/* スクロール領域終了 */}
+
+      {/* 保存確認モーダル */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowConfirmModal(false)}>
+          <div className="w-full max-w-lg bg-bg border-t border-border rounded-t-2xl p-5 pb-8 space-y-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-bold text-center">保存確認</div>
+            <div className="bg-surface2 rounded-xl p-3 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted">ブース</span>
+                <span className="font-mono text-xs">{booth.full_booth_code}</span>
+              </div>
+              {inDiff !== null && (
+                <div className="flex justify-between">
+                  <span className="text-muted">IN差分</span>
+                  <span className={`font-bold ${inDiff === 0 || inAbnormal || inTriple ? 'text-accent2' : 'text-accent'}`}>
+                    {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}回　¥{(inDiff * price).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {outDiff !== null && (
+                <div className="flex justify-between">
+                  <span className="text-muted">OUT差分</span>
+                  <span className={`font-bold ${outAbnormal ? 'text-accent2' : 'text-accent'}`}>
+                    {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}回
+                  </span>
+                </div>
+              )}
+              {payoutRate !== null && (
+                <div className="flex justify-between">
+                  <span className="text-muted">出率</span>
+                  <span className={`font-bold ${payoutHigh || payoutLow ? 'text-accent2' : 'text-accent3'}`}>
+                    {payoutRate.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+              {hasAnomaly && (
+                <div className="mt-1 pt-2 border-t border-border text-accent2 text-xs font-bold">
+                  ⚠️ 異常値あり —— 確認してから保存してください
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-3 rounded-xl border border-border text-sm text-muted active:scale-[0.98]">
+                戻る
+              </button>
+              <button onClick={doSave}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm active:scale-[0.98]">
+                保存する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
