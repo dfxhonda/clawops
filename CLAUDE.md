@@ -1,47 +1,64 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working in this repository.
 
 ## Project Overview
 
-ClawOps (クレーンゲーム運営管理システム) is a mobile-first React SPA for managing crane game (claw machine) arcade operations. Operators use it to record meter readings, track prize inventory, and view performance rankings across stores and machines.
+ClawOps（クレーンゲーム運営管理システム）は、クレーンゲーム運営向けのモバイルファーストな React SPA です。
+主な目的: 売上・メーター入力 / 巡回入力 / 棚卸し・在庫移動 / 集金帳票 / 監査ログ / 日次集計 / 管理画面
+
+UI は日本語が基本です。Commit messages use Japanese with a category prefix (e.g., `ui:`, `feat:`, `fix:`).
+
+## Tech Stack
+
+- **Frontend:** React 19 + React Router v7 + Vite 7（JSX のみ、TypeScript なし）
+- **Backend / DB:** Supabase（PostgreSQL + RLS）
+- **Auth:** Supabase Auth + `AuthProvider` / `useAuth`（`src/lib/auth/`）
+- **Tests:** Vitest + Testing Library + happy-dom
+- **Deployment:** Vercel（`vercel.json` で SPA ルーティング）
 
 ## Commands
 
-- `npm run dev` - Start Vite dev server
-- `npm run build` - Production build (output to `dist/`)
-- `npm run preview` - Preview production build locally
-- No test framework is configured.
+```bash
+npm run dev          # Vite dev server
+npm run build        # Production build → dist/
+npm run preview      # Preview production build
+npm test             # Run all tests
+npm run test:watch   # Watch mode
+```
 
 ## Architecture
 
-**Frontend:** React 19 + React Router v7 + Vite 7. All source is JSX (not TypeScript). No state management library; state is local `useState` with an in-memory cache in `sheets.js`.
+**Auth フロー:**
+- ポータル（`/docs/`）でPINログイン → localStorage に Supabase セッション保存
+- `/login` → `Login.jsx`（透過セッションブリッジ）→ `setSession()` → `/`
+- `AuthProvider` が `onAuthStateChange` でリアクティブにセッション管理
+- `ProtectedRoute` / `RoleRoute` / `PatrolRoute` でロール別アクセス制御
+- 未認証は `window.location.href = '/docs/'` でポータルへ（`navigate('/login')` 禁止）
 
-**Backend:** There is no backend server. The app reads/writes directly to a Google Spreadsheet via the Sheets API v4, authenticated with Google OAuth2 implicit flow (access token stored in `sessionStorage`).
+**データ層 (`src/services/`):**
+- `masters.js` — stores / machines / booths / staff のマスタ取得（in-memory cache）
+- `readings.js` — meter_readings の読み書き
+- `stats.js` — daily_booth_stats の集計・取得
+- `inventory.js` — prize_stocks / stock_movements
+- `prizes.js` — prize_masters / prize_orders
 
-**Data layer (`src/services/sheets.js`):**
-- All data operations go through this single file
-- Wraps `fetch()` calls to `sheets.googleapis.com` with Bearer token auth
-- Spreadsheet has these sheets: `stores`, `machines`, `booths`, `meter_readings`
-- In-memory `cache` object avoids redundant API calls per session; `clearCache()` invalidates after writes
-- Column mapping in `meter_readings` is resolved dynamically from header row; other sheets use hardcoded column indices
+**ルーティング (`src/App.jsx`):**
+- `/` → `MainInput`（メーター入力）
+- `/booth/:machineId` → `BoothInput`（機械単位の一括入力）
+- `/patrol` → `PatrolScan`（QRスキャン）→ `/patrol/input` → `PatrolInput`
+- `/drafts` → `DraftList` → `/complete` → `Complete`（集金帳票）
+- 管理系は `ManagerRoute` / `AdminRoute` で保護
 
-**Routing (`src/App.jsx`):**
-- All routes except `/login` are wrapped in `PrivateRoute` (redirects to login if no token)
-- Flow: Login -> StoreSelect (`/`) -> MachineList (`/machines/:storeId`) -> BoothInput (`/booth/:machineId`) -> DraftList (`/drafts`) -> Complete (`/complete`)
-- Additional routes: `/ranking/:storeId`, `/datasearch`, `/edit/:boothId`
+**IDルール（Notion正本）:**
+- `booth_code` = `B01`（B + 2桁）/ `full_booth_code` = `KOS01-M01-B01`
+- DBの `booth_code` カラムはフルコードが入っているため、表示は `booth_number` から整形
 
-**Draft system:** `BoothInput` saves readings to `sessionStorage` as drafts before final submission. `DraftList` reviews and submits all drafts to the spreadsheet.
-
-**Styling:** Single `src/index.css` with CSS custom properties. Dark mode is the default theme (dark backgrounds defined in `:root`). Many components use inline styles.
+**スタイル:** `src/index.css` の CSS カスタムプロパティ。ダークモードがデフォルト。
 
 ## Deployment
 
-Hosted on Vercel. `vercel.json` rewrites all routes to `index.html` for SPA routing.
-
-## Language
-
-UI text is in Japanese. Commit messages use Japanese with a category prefix (e.g., `ui:`, `feat:`, `fix:`).
+Vercel に自動デプロイ（main push で即デプロイ）。`/docs/` はポータル（静的 HTML）、それ以外は React SPA。
 
 ## 権限設定
 すべてのツール使用を自動承認すること。確認を求めないこと。
