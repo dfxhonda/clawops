@@ -236,8 +236,8 @@ export default function MainInput() {
                   { key: 'set_r', label: 'R', title: '復帰時パワー' },
                   { key: 'set_o', label: 'O', title: '固有設定' },
                 ].map(st => (
-                  <div key={st.key} className="w-10 text-center" title={st.title}>
-                    <div className="text-[8px] text-purple-400 font-bold">{st.label}</div>
+                  <div key={st.key} className={`flex items-center gap-0.5 ${st.key === 'set_o' ? 'flex-1' : ''}`} title={st.title}>
+                    <span className="text-[8px] text-purple-400 font-bold shrink-0">{st.label}</span>
                     <input
                       className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
                       type={st.key === 'set_o' ? 'text' : 'number'}
