@@ -124,15 +124,23 @@ export default function MainInput() {
 
           return (
             <div key={booth.booth_id} className="mb-1.5">
-              {/* メイン入力行: コード | IN | OUT | 残 | 補 */}
-              <div className={`grid grid-cols-[42px_1fr_1fr_60px_60px] gap-1.5 items-end p-1.5 rounded-lg border
+              {/* 1行目: ブース番号 + 景品名 */}
+              <div className={`flex items-center gap-2 px-2 pt-1.5 pb-1 rounded-t-lg border-x border-t
                 ${hasInput ? 'bg-surface border-green-800/50' : 'bg-surface border-border'}`}>
+                <span className="text-[13px] font-extrabold text-blue-400 shrink-0">
+                  {booth.booth_number != null ? `B${String(booth.booth_number).padStart(2,'0')}` : booth.booth_code}
+                </span>
+                <input
+                  className="flex-1 min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-muted/50 truncate"
+                  placeholder={latest?.prize_name || '景品名'}
+                  value={inp.prize_name || ''}
+                  onChange={e => setInp(booth.booth_id, 'prize_name', e.target.value)}
+                />
+              </div>
 
-                {/* ブースコード */}
-                <div className="text-center">
-                  <div className="text-[13px] font-extrabold text-blue-400">{booth.booth_code}</div>
-                  <div className="text-[7px] text-muted/50 truncate">{latest?.prize_name?.slice(0, 4) || ''}</div>
-                </div>
+              {/* メイン入力行: IN | OUT | 残 | 補 */}
+              <div className={`grid grid-cols-[1fr_1fr_60px_60px] gap-1.5 items-end px-1.5 pb-1.5 border-x border-b
+                ${hasInput ? 'bg-surface border-green-800/50' : 'bg-surface border-border'}`}>
 
                 {/* IN */}
                 <div>
@@ -258,15 +266,6 @@ export default function MainInput() {
                       />
                     </div>
                   ))}
-                  <div className="flex-1">
-                    <div className="text-[8px] text-muted font-bold">景品名</div>
-                    <input
-                      className="w-full p-1 text-[11px] rounded border border-border bg-bg text-text outline-none focus:border-blue-500"
-                      placeholder={latest?.prize_name || '景品名'}
-                      value={inp.prize_name || ''}
-                      onChange={e => setInp(booth.booth_id, 'prize_name', e.target.value)}
-                    />
-                  </div>
                 </div>
             </div>
           )
