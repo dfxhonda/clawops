@@ -154,49 +154,47 @@ export default function MainInput() {
                 <div>
                   <div className="flex justify-between px-0.5 mb-0.5">
                     <span className="text-[9px] text-muted font-bold">IN（売上）</span>
-                    <span className="text-[8px] text-muted/50">{s.prevIn !== null ? s.prevIn.toLocaleString() : ''}</span>
+                    {s.inDiff !== null
+                      ? <span className={`text-[9px] font-bold ${s.inDiff < 0 || s.inDiff > 50000 ? 'text-accent2' : 'text-green-400'}`}>
+                          +{s.inDiff.toLocaleString()} ¥{s.sales?.toLocaleString()}
+                        </span>
+                      : <span className="text-[8px] text-muted/50">{s.prevIn !== null ? s.prevIn.toLocaleString() : ''}</span>
+                    }
                   </div>
                   <input ref={getRef(booth.booth_id, 'in_meter')}
                     type="number" inputMode="numeric"
-                    className={`w-full p-2 text-[16px] font-semibold text-center rounded-md border outline-none transition-colors
+                    className={`w-full py-1 px-2 text-[14px] font-semibold text-center rounded-md border outline-none transition-colors
                       bg-bg text-text
                       ${hasInput ? 'border-green-700/60' : 'border-border'}
                       focus:border-blue-500`}
-                    placeholder={s.prevIn !== null ? String(s.prevIn) : '売上メーター値'}
+                    placeholder={s.prevIn !== null ? String(s.prevIn) : '売上メーター'}
                     value={inp.in_meter || ''}
                     onChange={e => setInp(booth.booth_id, 'in_meter', e.target.value)}
                     onKeyDown={e => handleKeyDown(e, booth.booth_id, 'in_meter')}
                   />
-                  {s.inDiff !== null && (
-                    <div className={`text-[9px] font-bold text-center mt-0.5
-                      ${s.inDiff < 0 || s.inDiff > 50000 ? 'text-accent2' : 'text-green-400'}`}>
-                      +{s.inDiff.toLocaleString()} ¥{s.sales?.toLocaleString()}
-                    </div>
-                  )}
                 </div>
 
                 {/* OUT */}
                 <div>
                   <div className="flex justify-between px-0.5 mb-0.5">
                     <span className="text-[9px] text-muted font-bold">OUT（払出）</span>
-                    <span className="text-[8px] text-muted/50">{s.prevOut !== null ? s.prevOut.toLocaleString() : ''}</span>
+                    {s.outDiff !== null
+                      ? <span className={`text-[9px] font-bold ${s.outDiff < 0 ? 'text-accent2' : 'text-green-400'}`}>
+                          +{s.outDiff.toLocaleString()}
+                        </span>
+                      : <span className="text-[8px] text-muted/50">{s.prevOut !== null ? s.prevOut.toLocaleString() : ''}</span>
+                    }
                   </div>
                   <input ref={getRef(booth.booth_id, 'out_meter')}
                     type="number" inputMode="numeric"
-                    className={`w-full p-2 text-[16px] font-semibold text-center rounded-md border outline-none transition-colors
+                    className={`w-full py-1 px-2 text-[14px] font-semibold text-center rounded-md border outline-none transition-colors
                       bg-bg text-text border-border focus:border-blue-500
                       ${inp.out_meter ? 'border-green-700/60' : ''}`}
-                    placeholder={s.prevOut !== null ? String(s.prevOut) : '払出メーター値'}
+                    placeholder={s.prevOut !== null ? String(s.prevOut) : '払出メーター'}
                     value={inp.out_meter || ''}
                     onChange={e => setInp(booth.booth_id, 'out_meter', e.target.value)}
                     onKeyDown={e => handleKeyDown(e, booth.booth_id, 'out_meter')}
                   />
-                  {s.outDiff !== null && (
-                    <div className={`text-[9px] font-bold text-center mt-0.5
-                      ${s.outDiff < 0 ? 'text-accent2' : 'text-green-400'}`}>
-                      +{s.outDiff.toLocaleString()}
-                    </div>
-                  )}
                 </div>
 
                 {/* 残 */}
@@ -204,7 +202,7 @@ export default function MainInput() {
                   <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残数</div>
                   <input ref={getRef(booth.booth_id, 'prize_stock')}
                     type="number" inputMode="numeric"
-                    className="w-full p-2 text-[14px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
+                    className="w-full py-1 px-1 text-[12px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
                     placeholder={latest?.prize_stock_count || '0'}
                     title="景品残数"
                     value={inp.prize_stock || ''}
@@ -218,7 +216,7 @@ export default function MainInput() {
                   <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補充</div>
                   <input ref={getRef(booth.booth_id, 'prize_restock')}
                     type="number" inputMode="numeric"
-                    className="w-full p-2 text-[14px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
+                    className="w-full py-1 px-1 text-[12px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
                     placeholder="0"
                     title="景品補充数"
                     value={inp.prize_restock || ''}
