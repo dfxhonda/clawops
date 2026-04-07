@@ -136,6 +136,14 @@ export default function MainInput() {
                   value={inp.prize_name || ''}
                   onChange={e => setInp(booth.booth_id, 'prize_name', e.target.value)}
                 />
+                {s.payoutRate !== null && (
+                  <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded
+                    ${Number(s.payoutRate) > 30 ? 'bg-red-900/20 text-accent2' :
+                      Number(s.payoutRate) < 5 ? 'bg-blue-900/20 text-blue-400' :
+                      'bg-green-900/20 text-green-400'}`}>
+                    {s.payoutRate}%
+                  </span>
+                )}
               </div>
 
               {/* メイン入力行: IN | OUT | 残 | 補 */}
@@ -220,53 +228,35 @@ export default function MainInput() {
                 </div>
               </div>
 
-              {/* 自動計算行 + A設定 + 展開ボタン */}
-              <div className="flex items-center gap-2 px-2 py-0.5 text-[10px]">
-                <span className="text-muted/60">
-                  {s.sales !== null ? `¥${s.sales.toLocaleString()}` : '---'}
-                </span>
-                {s.payoutRate !== null && (
-                  <span className={`px-1.5 py-0.5 rounded-md font-bold
-                    ${Number(s.payoutRate) > 30 ? 'bg-red-900/20 text-accent2' :
-                      Number(s.payoutRate) < 5 ? 'bg-blue-900/20 text-blue-400' :
-                      'bg-green-900/20 text-green-400'}`}>
-                    {s.payoutRate}%
-                  </span>
-                )}
-                <div className="flex items-center gap-1 ml-1" title="アシスト回数（A設定）">
-                  <span className="text-purple-400 font-bold text-[10px]">A<span className="text-[7px] text-purple-400/60 ml-0.5">ｱｼｽﾄ</span></span>
-                  <input
-                    className="w-7 p-0.5 text-[10px] text-center rounded border border-border bg-bg text-purple-300 outline-none focus:border-purple-400"
-                    inputMode="numeric"
-                    placeholder={latest?.set_a || '-'}
-                    value={inp.set_a || ''}
-                    onChange={e => setInp(booth.booth_id, 'set_a', e.target.value)}
-                    title="アシスト回数"
-                  />
+              {/* 自動計算行 */}
+              {s.sales !== null && (
+                <div className="px-2 py-0.5 text-[10px] text-muted/60">
+                  ¥{s.sales.toLocaleString()}
                 </div>
-              </div>
+              )}
 
-              {/* C/L/R/O + 景品名 */}
+              {/* ACLRO設定値 */}
               <div className="flex gap-1.5 px-2 pb-1.5 items-end">
-                  {[
-                    { key: 'set_c', label: 'C', fullName: 'ｷｬｯﾁ', title: 'キャッチ時パワー' },
-                    { key: 'set_l', label: 'L', fullName: 'ﾕﾙ', title: '緩和時パワー' },
-                    { key: 'set_r', label: 'R', fullName: 'ﾘﾀｰﾝ', title: '復帰時パワー' },
-                    { key: 'set_o', label: 'O', fullName: 'ｿﾉ他', title: '固有設定' },
-                  ].map(st => (
-                    <div key={st.key} className="w-10 text-center" title={st.title}>
-                      <div className="text-[8px] text-purple-400 font-bold">{st.label}<span className="text-[6px] text-purple-400/60 block">{st.fullName}</span></div>
-                      <input
-                        className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
-                        type={st.key === 'set_o' ? 'text' : 'number'}
-                        inputMode={st.key === 'set_o' ? 'text' : 'numeric'}
-                        placeholder={latest?.[st.key] || '-'}
-                        value={inp[st.key] || ''}
-                        onChange={e => setInp(booth.booth_id, st.key, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
+                {[
+                  { key: 'set_a', label: 'A', title: 'アシスト回数' },
+                  { key: 'set_c', label: 'C', title: 'キャッチ時パワー' },
+                  { key: 'set_l', label: 'L', title: '緩和時パワー' },
+                  { key: 'set_r', label: 'R', title: '復帰時パワー' },
+                  { key: 'set_o', label: 'O', title: '固有設定' },
+                ].map(st => (
+                  <div key={st.key} className="w-10 text-center" title={st.title}>
+                    <div className="text-[8px] text-purple-400 font-bold">{st.label}</div>
+                    <input
+                      className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
+                      type={st.key === 'set_o' ? 'text' : 'number'}
+                      inputMode={st.key === 'set_o' ? 'text' : 'numeric'}
+                      placeholder={latest?.[st.key] || '-'}
+                      value={inp[st.key] || ''}
+                      onChange={e => setInp(booth.booth_id, st.key, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )
         })}
