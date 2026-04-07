@@ -7,11 +7,11 @@ import AnomalyBanner from '../components/AnomalyBanner'
 import PatrolConfirmModal from '../components/PatrolConfirmModal'
 
 const SETTINGS = [
-  { key: 'a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数', isText: false },
-  { key: 'c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー', isText: false },
-  { key: 'l', label: 'L', shortName: 'ﾕﾙ',   title: '緩和時パワー',    isText: false },
-  { key: 'r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー',   isText: false },
-  { key: 'o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定',       isText: true  },
+  { key: 'a', label: 'A', disp: 'アシスト', title: 'アシスト回数', isText: false },
+  { key: 'c', label: 'C', disp: 'キャッチ', title: 'キャッチ時パワー', isText: false },
+  { key: 'l', label: 'L', disp: '緩和',     title: '緩和時パワー',    isText: false },
+  { key: 'r', label: 'R', disp: '復帰',     title: '復帰時パワー',   isText: false },
+  { key: 'o', label: 'O', disp: 'その他',   title: '固有設定',       isText: true  },
 ]
 
 export default function PatrolInput() {
@@ -66,6 +66,9 @@ export default function PatrolInput() {
 
   const lastIn = last?.in_meter ? Number(last.in_meter) : null
   const inputCls = "w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent"
+  const boothLabel = booth.booth_number != null
+    ? `B${String(booth.booth_number).padStart(2,'0')}`
+    : (booth.full_booth_code ?? booth.booth_code).split('-').pop()
 
   return (
     <div className="h-screen flex flex-col max-w-lg mx-auto">
@@ -75,7 +78,7 @@ export default function PatrolInput() {
           <button onClick={() => navigate('/patrol')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-accent">
-              {booth.booth_number != null ? `B${String(booth.booth_number).padStart(2,'0')}` : booth.booth_code}
+              {boothLabel}
             </h2>
             <p className="text-xs text-muted">{storeName && `${storeName} · `}{machineName}</p>
           </div>
@@ -89,8 +92,9 @@ export default function PatrolInput() {
       {saved ? (
         <div className="bg-surface border border-border rounded-xl text-center p-8">
           <div className="text-5xl mb-3">✅</div>
-          <h3 className="text-accent3 font-bold text-lg mb-2">下書き保存完了</h3>
-          <p className="text-muted text-sm mb-6">{booth.full_booth_code} のデータを保存しました</p>
+          <h3 className="text-accent3 font-bold text-lg mb-2">保存完了</h3>
+          <p className="text-muted text-sm mb-1">{boothLabel} のデータを保存しました</p>
+          <p className="text-muted text-xs mb-6">データはまとめて集計送信されます</p>
           <button onClick={() => navigate('/patrol')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors mb-2">
             次のブースをスキャン
@@ -167,7 +171,7 @@ export default function PatrolInput() {
               <div className="flex-1">
                 <div className="text-xs text-muted mb-1">
                   IN（売上）*
-                  {!inMeter && latestIn !== null && <span className="text-[10px] text-amber-500 block leading-tight">前回値で保存</span>}
+                  {!inMeter && latestIn !== null && <span className="text-[10px] text-amber-500 block leading-tight">空欄 = 前回値を引き継ぐ</span>}
                 </div>
                 <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
                   placeholder={latestIn !== null ? String(latestIn) : '0000000'} value={inMeter} onChange={e => setInMeter(e.target.value)} />
@@ -184,7 +188,7 @@ export default function PatrolInput() {
               <div className="flex-1">
                 <div className="text-xs text-muted mb-1">
                   OUT（払出）
-                  {!outMeter && latestOut !== null && <span className="text-[10px] text-amber-500 block leading-tight">前回値で保存</span>}
+                  {!outMeter && latestOut !== null && <span className="text-[10px] text-amber-500 block leading-tight">空欄 = 前回値を引き継ぐ</span>}
                 </div>
                 <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`} type="number" inputMode="numeric"
                   placeholder={latestOut !== null ? String(latestOut) : '0000000'} value={outMeter} onChange={e => setOutMeter(e.target.value)} />
@@ -216,15 +220,15 @@ export default function PatrolInput() {
 
             {/* 設定値 ACLRO */}
             <div className="mb-4">
-              <div className="text-xs text-muted mb-2">設定値</div>
+              <div className="text-xs text-muted mb-2 font-semibold">⚙️ クレーン設定値</div>
               <div className="flex gap-1.5">
                 {SETTINGS.map(s => {
                   const vals = { a: setA, c: setC, l: setL, r: setR, o: setO }
                   const setters = { a: setSetA, c: setSetC, l: setSetL, r: setSetR, o: setSetO }
                   return (
                     <div key={s.key} className="flex-1" title={s.title}>
-                      <div className="text-[9px] text-accent4 text-center font-bold leading-tight mb-0.5">
-                        {s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span>
+                      <div className="text-[10px] text-accent4 text-center font-bold leading-tight mb-0.5">
+                        {s.label}<span className="text-[9px] text-accent4/70 block font-normal">{s.disp}</span>
                       </div>
                       <input
                         className="w-full p-1.5 text-xs text-center rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
@@ -242,6 +246,7 @@ export default function PatrolInput() {
             </div>
 
             {/* 景品 */}
+            <div className="text-xs text-muted mb-2 font-semibold">🎁 景品情報</div>
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div>
                 <div className="text-xs text-muted mb-1">景品補充数</div>
@@ -255,7 +260,7 @@ export default function PatrolInput() {
             <div className="mb-4">
               <div className="text-xs text-muted mb-1">
                 景品名
-                {!prizeName && latest?.prize_name && <span className="text-[11px] text-amber-500 ml-1.5">※未入力時は前回値で保存</span>}
+                {!prizeName && latest?.prize_name && <span className="text-[10px] text-amber-500 block leading-tight">空欄 = 前回値を引き継ぐ</span>}
               </div>
               <input className={inputCls + ' !text-left !text-base'} type="text"
                 placeholder={latest?.prize_name || '景品名を入力'} value={prizeName} onChange={e => setPrizeName(e.target.value)} />
@@ -263,14 +268,14 @@ export default function PatrolInput() {
 
             {/* メモ */}
             <div className="mb-4">
-              <div className="text-xs text-muted mb-1">メモ・備考</div>
+              <div className="text-xs text-muted mb-1 font-semibold">📝 メモ・備考</div>
               <textarea className={inputCls + ' !text-left !text-sm resize-y min-h-12'} rows={2}
                 placeholder="特記事項があれば入力" value={note} onChange={e => setNote(e.target.value)} />
             </div>
 
             <button onClick={onSave}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors">
-              下書き保存 → 次のスキャンへ
+              保存して次のブースへ
             </button>
           </div>
         </>
@@ -279,7 +284,7 @@ export default function PatrolInput() {
 
       {showConfirmModal && (
         <PatrolConfirmModal
-          boothCode={booth.full_booth_code}
+          boothCode={boothLabel}
           inDiff={inDiff} outDiff={outDiff} payoutRate={payoutRate} price={price}
           inAbnormal={inAbnormal} inZero={inZero} inTriple={inTriple}
           outAbnormal={outAbnormal} payoutHigh={payoutHigh} payoutLow={payoutLow}

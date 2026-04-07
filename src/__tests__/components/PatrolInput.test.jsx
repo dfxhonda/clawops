@@ -127,17 +127,17 @@ describe('PatrolInput — 保存確認モーダル', () => {
       inMeter: '5100', inDiff: 100,
     }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
-    // モーダルにフルブースコードが表示される（ヘッダーは booth_code のみ）
-    expect(screen.getByText('KOS01-M01-B01')).toBeTruthy()
+    // モーダルにブース番号が表示される（店舗コード・機械コードを除外）
+    expect(screen.getAllByText('B01').length).toBeGreaterThanOrEqual(1)
   })
 
   it('モーダルの「戻る」で閉じ handleSave が呼ばれない', () => {
     const handleSave = vi.fn()
     usePatrolInput.mockReturnValue(makeHookReturn({ inMeter: '5100', inDiff: 100, handleSave }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '戻る' }))
     expect(screen.queryByText('保存確認')).toBeNull()
@@ -148,7 +148,7 @@ describe('PatrolInput — 保存確認モーダル', () => {
     const handleSave = vi.fn().mockReturnValue({ ok: true })
     usePatrolInput.mockReturnValue(makeHookReturn({ inMeter: '5100', inDiff: 100, handleSave }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
     fireEvent.click(screen.getByRole('button', { name: '保存する' }))
     expect(handleSave).toHaveBeenCalledOnce()
   })
@@ -158,7 +158,7 @@ describe('PatrolInput — 保存確認モーダル', () => {
       inMeter: '5100', inDiff: 100, inZero: false, inTriple: true,
     }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
     expect(screen.getByText(/異常値あり/)).toBeTruthy()
   })
 })

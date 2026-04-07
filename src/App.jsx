@@ -2,8 +2,12 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider } from './lib/auth/AuthProvider'
+import { useAuth } from './hooks/useAuth'
 import ProtectedRoute, { AdminRoute, ManagerRoute, PatrolRoute } from './components/ProtectedRoute'
 import TabBar from './components/TabBar'
+import UpdateBanner from './components/UpdateBanner'
+import { useVersionCheck } from './hooks/useVersionCheck'
+import { buildLabel } from './lib/buildInfo'
 
 // ===== 遅延読み込み =====
 // 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
@@ -57,12 +61,19 @@ function WithTabs({ children }) {
   )
 }
 
-export default function App() {
+function AppInner() {
+  const { isLoggedIn } = useAuth()
+  const { updateAvailable, dismiss } = useVersionCheck()
   return (
-    <AuthProvider>
     <ErrorBoundary>
-    <Suspense fallback={<PageLoader />}>
-    <Routes>
+      {updateAvailable && isLoggedIn && <UpdateBanner onDismiss={dismiss} />}
+      {isLoggedIn && (
+        <div className="fixed bottom-1 right-1 z-[90] text-[8px] text-muted/20 pointer-events-none select-none">
+          {buildLabel()}
+        </div>
+      )}
+      <Suspense fallback={<PageLoader />}>
+      <Routes>
       <Route path="/login" element={<Login />} />
 
       {/* メイン3タブ — 全ロール */}
@@ -100,6 +111,13 @@ export default function App() {
     </Routes>
     </Suspense>
     </ErrorBoundary>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
     </AuthProvider>
   )
 }

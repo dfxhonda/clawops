@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { execSync } from 'child_process'
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 let gitSha = 'unknown'
@@ -19,7 +19,13 @@ export default defineConfig({
   },
   plugins: [
     tailwindcss(),
-    react()
+    react(),
+    {
+      name: 'version-json',
+      writeBundle() {
+        writeFileSync('dist/version.json', JSON.stringify({ sha: gitSha, buildNumber, version: pkg.version }))
+      }
+    },
   ],
   test: {
     globals: true,

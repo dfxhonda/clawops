@@ -11,6 +11,7 @@ export default function PatrolConfirmModal({
       <div className="w-full max-w-lg bg-bg border-t border-border rounded-t-2xl p-5 pb-8 space-y-4"
         onClick={e => e.stopPropagation()}>
         <div className="text-sm font-bold text-center">保存確認</div>
+        <div className="text-xs text-muted text-center -mt-2">この内容で一時保存します。巡回終了後にまとめて送信されます</div>
         <div className="bg-surface2 rounded-xl p-3 space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted">ブース</span>

@@ -236,15 +236,10 @@ export default function MainInput() {
                     title="アシスト回数"
                   />
                 </div>
-                <button onClick={() => setExpandedSettings(prev => ({ ...prev, [booth.booth_id]: !prev[booth.booth_id] }))}
-                  className="ml-auto text-muted/40 hover:text-muted transition-colors">
-                  {expanded ? '設定 ▲' : 'C/L/R/O ▼'}
-                </button>
               </div>
 
-              {/* 展開: C/L/R/O + 景品名 */}
-              {expanded && (
-                <div className="flex gap-1.5 px-2 pb-1.5 items-end">
+              {/* C/L/R/O + 景品名 */}
+              <div className="flex gap-1.5 px-2 pb-1.5 items-end">
                   {[
                     { key: 'set_c', label: 'C', fullName: 'ｷｬｯﾁ', title: 'キャッチ時パワー' },
                     { key: 'set_l', label: 'L', fullName: 'ﾕﾙ', title: '緩和時パワー' },
@@ -273,7 +268,6 @@ export default function MainInput() {
                     />
                   </div>
                 </div>
-              )}
             </div>
           )
         })}

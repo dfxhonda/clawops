@@ -75,7 +75,7 @@ export default function PatrolScan() {
           <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
           <div className="flex-1">
             <h2 className="text-lg font-bold">巡回スキャン</h2>
-            <p className="text-xs text-muted">ブースQRコードを読み取り</p>
+            <p className="text-xs text-muted">① QRをかざす → ② データ入力</p>
           </div>
           <LogoutButton />
         </div>
@@ -83,11 +83,12 @@ export default function PatrolScan() {
       <div className="flex-1 overflow-y-auto px-4 pb-10">
 
       {/* QRスキャナー */}
-      <div className="bg-surface border border-border rounded-xl overflow-hidden mb-3">
-        <div id="qr-reader" className="w-full min-h-[300px] bg-black relative" />
+      <div className="bg-surface border border-border rounded-xl overflow-hidden mb-3 relative">
+        <div id="qr-reader" className="w-full min-h-[300px] bg-black" />
         {!scanning && !resolving && !error && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-muted text-sm">
-            カメラ起動中...
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full mx-auto mb-2" />
+            <p className="text-muted text-sm">カメラ起動中...</p>
           </div>
         )}
       </div>
@@ -104,7 +105,10 @@ export default function PatrolScan() {
       )}
 
       {resolving && (
-        <div className="text-center py-5 text-accent text-base">ブース検索中...</div>
+        <div className="text-center py-5">
+          <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full mx-auto mb-2" />
+          <p className="text-accent text-sm">ブース検索中...</p>
+        </div>
       )}
 
       {/* 手動入力 */}

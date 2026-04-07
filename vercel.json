@@ -13,6 +13,10 @@
       "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
     },
     {
+      "source": "/version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
@@ -40,6 +44,6 @@
     { "source": "/edit/:path*", "destination": "/index.html" },
     { "source": "/db/:path*", "destination": "/index.html" },
     { "source": "/sb/:path*", "destination": "/index.html" },
-    { "source": "/((?!docs|assets|_next).*)", "destination": "/docs/index.html" }
+    { "source": "/((?!docs|assets|version\\.json|_next).*)", "destination": "/docs/index.html" }
   ]
 }

@@ -83,7 +83,8 @@ echo "✅ package.json / CHANGELOG.md / tag 整合OK"
 git add package.json CHANGELOG.md
 git commit -m "release: ${TAG}"
 git tag "${TAG}"
-echo "✅ コミット + タグ作成: ${TAG}"
+RELEASE_SHA=$(git rev-parse --short HEAD)
+echo "✅ コミット + タグ作成: ${TAG} (${RELEASE_SHA})"
 
 # 6. push指示
 echo ""
@@ -94,4 +95,7 @@ echo "  git push origin main --tags"
 echo ""
 echo "GitHub Release 作成:"
 echo "  gh release create ${TAG} --title \"${TAG}\""
+echo ""
+echo "デプロイ後の確認 (sha=${RELEASE_SHA}):"
+echo "  curl -s https://clawops.vercel.app/version.json | jq ."
 echo "=========================================="
