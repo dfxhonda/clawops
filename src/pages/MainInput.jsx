@@ -226,12 +226,6 @@ export default function MainInput() {
                 </div>
               </div>
 
-              {/* 自動計算行 */}
-              {s.sales !== null && (
-                <div className="px-2 py-0.5 text-[10px] text-muted/60">
-                  ¥{s.sales.toLocaleString()}
-                </div>
-              )}
 
               {/* ACLRO設定値 */}
               <div className="flex gap-1.5 px-2 pb-1.5 items-end">
