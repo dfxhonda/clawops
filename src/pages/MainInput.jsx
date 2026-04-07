@@ -230,13 +230,13 @@ export default function MainInput() {
               {/* ACLRO設定値 */}
               <div className="flex gap-1.5 px-2 pb-1.5 items-end">
                 {[
-                  { key: 'set_a', label: 'A', title: 'アシスト回数' },
-                  { key: 'set_c', label: 'C', title: 'キャッチ時パワー' },
-                  { key: 'set_l', label: 'L', title: '緩和時パワー' },
-                  { key: 'set_r', label: 'R', title: '復帰時パワー' },
-                  { key: 'set_o', label: 'O', title: '固有設定' },
+                  { key: 'set_a', label: 'A', title: 'アシスト回数',  w: 'w-[46px]' },
+                  { key: 'set_c', label: 'C', title: 'キャッチ時パワー', w: 'w-[34px]' },
+                  { key: 'set_l', label: 'L', title: '緩和時パワー',   w: 'w-[34px]' },
+                  { key: 'set_r', label: 'R', title: '復帰時パワー',   w: 'w-[34px]' },
+                  { key: 'set_o', label: 'O', title: '固有設定',       w: 'flex-1'   },
                 ].map(st => (
-                  <div key={st.key} className={`flex items-center gap-0.5 ${st.key === 'set_o' ? 'flex-1' : ''}`} title={st.title}>
+                  <div key={st.key} className={`flex items-center gap-0.5 ${st.w}`} title={st.title}>
                     <span className="text-[8px] text-purple-400 font-bold shrink-0">{st.label}</span>
                     <input
                       className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
