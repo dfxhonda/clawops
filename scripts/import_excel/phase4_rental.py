@@ -123,7 +123,7 @@ def generate_events_sql(events):
         last_day = calendar.monthrange(month_date.year, month_date.month)[1]
         period_from = month_date.replace(day=1)
         period_to = month_date.replace(day=last_day)
-        machine_json = json.dumps(data['machines'], ensure_ascii=False).replace("'", "''")
+        machine_json = json.dumps(data['machines'], ensure_ascii=False)
         lines.append(
             f"INSERT INTO billing_events "
             f"(billing_id, store_code, billing_date, period_from, period_to, "
@@ -131,7 +131,7 @@ def generate_events_sql(events):
             f"({sq(bid)}, {sq(store_code)}, {sql_date(period_to)}, "
             f"{sql_date(period_from)}, {sql_date(period_to)}, "
             f"{data['total_sales']}, 'draft', "
-            f"'{machine_json}', "
+            f"{sq(machine_json)}, "
             f"{sq(IMPORT_TAG)}, NOW(), {sq(IMPORT_TAG)}) "
             f"ON CONFLICT DO NOTHING;"
         )
