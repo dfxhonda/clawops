@@ -54,10 +54,11 @@
   async function sbPatch(table, id, idCol, body) {
     const r = await fetch(SB_REST + '/' + table + '?' + idCol + '=eq.' + encodeURIComponent(id), {
       method: 'PATCH',
-      headers: { ...headers(), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      headers: { ...headers(), 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify(body)
     });
     if (!r.ok) throw new Error(await r.text());
+    return r.json();
   }
 
   async function sbPost(table, body) {

@@ -1,8 +1,9 @@
 // ============================================
-// 店舗・機械・ブース・ロケーション（マスター参照）
+// 店舗・機械・ブース・ロケーション（マスター参照・追加）
 // ============================================
 import { supabase } from '../lib/supabase'
-import { parseNum, getCache, setCache } from './utils'
+import { parseNum, getCache, setCache, clearCache } from './utils'
+import { writeAuditLog } from './audit'
 
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
@@ -30,6 +31,17 @@ export async function getStores() {
   return result
 }
 
+export async function getMachineTypes() {
+  if (getCache('machine_types')) return getCache('machine_types')
+  const { data, error } = await supabase
+    .from('machine_types')
+    .select('type_id, type_name, category')
+    .order('type_id')
+  if (error) { console.error('machine_types取得エラー:', error.message); return [] }
+  setCache('machine_types', data)
+  return data
+}
+
 export async function getMachines(storeId) {
   const ckey = `machines_${storeId}`
   if (getCache(ckey)) return getCache(ckey)
@@ -46,7 +58,7 @@ export async function getMachines(storeId) {
     machine_code: r.machine_code,
     machine_name: r.machine_name || '',
     machine_model: r.model_id || '',
-    machine_type: '',
+    machine_type: r.type_id || '',
     booth_count: '',
     default_price: parseNum(r.play_price || '100'),
     meter_layout: '',
@@ -116,6 +128,143 @@ export async function findMachineById(machineId) {
 export async function findStoreById(storeId) {
   const stores = await getStores()
   return stores.find(s => String(s.store_id) === String(storeId)) || null
+}
+
+export async function getNextMachineCode(storeCode) {
+  const { data } = await supabase
+    .from('machines')
+    .select('machine_code')
+    .eq('store_code', storeCode)
+    .order('machine_code', { ascending: false })
+    .limit(1)
+  if (!data || data.length === 0) return `${storeCode}-M01`
+  const last = data[0].machine_code
+  const m = last.match(/-M(\d+)$/)
+  const n = m ? parseInt(m[1], 10) + 1 : 1
+  return `${storeCode}-M${String(n).padStart(2, '0')}`
+}
+
+export async function getNextBoothNumber(machineCode) {
+  const { data } = await supabase
+    .from('booths')
+    .select('booth_number')
+    .eq('machine_code', machineCode)
+    .order('booth_number', { ascending: false })
+    .limit(1)
+  if (!data || data.length === 0) return 1
+  return (data[0].booth_number || 0) + 1
+}
+
+export async function addMachine(m) {
+  const { data, error } = await supabase
+    .from('machines')
+    .insert({
+      machine_code: m.machine_code,
+      store_code: m.store_code,
+      machine_name: m.machine_name,
+      machine_number: m.machine_number || null,
+      model_id: m.model_id || null,
+      type_id: m.type_id || null,
+      play_price: m.play_price || 100,
+      notes: m.notes || null,
+      is_active: true,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_create',
+    target_table: 'machines',
+    target_id: data.machine_code,
+    detail: `機械追加: ${data.machine_name} (${data.machine_code})`,
+    after_data: data,
+  })
+  return data
+}
+
+export async function addBooth(b) {
+  const machineCodeSuffix = b.machine_code.split('-').slice(1).join('-')
+  const boothCode = `${b.store_code}-${machineCodeSuffix}-B${String(b.booth_number).padStart(2, '0')}`
+  const { data, error } = await supabase
+    .from('booths')
+    .insert({
+      booth_code: boothCode,
+      machine_code: b.machine_code,
+      booth_number: b.booth_number,
+      play_price: b.play_price || null,
+      meter_in_number: b.meter_in_number || 7,
+      meter_out_number: b.meter_out_number || 7,
+      is_active: true,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_create',
+    target_table: 'booths',
+    target_id: data.booth_code,
+    detail: `ブース追加: ${data.booth_code} (B${String(b.booth_number).padStart(2, '0')})`,
+    after_data: data,
+  })
+  return data
+}
+
+export async function updateMachine(machineCode, updates) {
+  const { data: before } = await supabase
+    .from('machines')
+    .select('machine_name, model_id, type_id, play_price, notes, store_code')
+    .eq('machine_code', machineCode)
+    .single()
+  const { data: updated, error } = await supabase
+    .from('machines')
+    .update({
+      machine_name: updates.machine_name ?? before?.machine_name,
+      model_id: updates.model_id ?? before?.model_id,
+      type_id: 'type_id' in updates ? (updates.type_id || null) : before?.type_id,
+      play_price: updates.play_price ?? before?.play_price,
+      notes: updates.notes ?? before?.notes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('machine_code', machineCode)
+    .select()
+  if (error) throw new Error(error.message)
+  if (!updated || updated.length === 0) throw new Error('更新できませんでした（権限不足の可能性があります）')
+  clearCache()
+  await writeAuditLog({
+    action: 'master_update',
+    target_table: 'machines',
+    target_id: machineCode,
+    detail: `機械情報更新: ${updates.machine_name || machineCode}`,
+    before_data: before,
+    after_data: updates,
+  })
+}
+
+export async function deleteMachine(machineCode) {
+  const { data: before } = await supabase
+    .from('machines')
+    .select('machine_name, store_code')
+    .eq('machine_code', machineCode)
+    .single()
+  const { data: updated, error } = await supabase
+    .from('machines')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('machine_code', machineCode)
+    .select()
+  if (error) throw new Error(error.message)
+  if (!updated || updated.length === 0) throw new Error('削除できませんでした（権限不足の可能性があります）')
+  clearCache()
+  await writeAuditLog({
+    action: 'master_deactivate',
+    target_table: 'machines',
+    target_id: machineCode,
+    detail: `機械無効化: ${before?.machine_name || machineCode}`,
+    reason_code: 'machine_deactivate',
+    before_data: before,
+    after_data: { is_active: false },
+  })
 }
 
 export async function getLocations(forceRefresh = false) {

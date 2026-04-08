@@ -27,6 +27,11 @@ const Complete = lazy(() => import('./pages/Complete'))
 const RankingView = lazy(() => import('./pages/RankingView'))
 const MachineList = lazy(() => import('./pages/MachineList'))
 
+// 遅延ロード — マスタ追加
+const AddMachine = lazy(() => import('./pages/AddMachine'))
+const AddBooth = lazy(() => import('./pages/AddBooth'))
+const MachineSetup = lazy(() => import('./pages/MachineSetup'))
+
 // 遅延ロード — 管理系
 const EditReading = lazy(() => import('./pages/EditReading'))
 const DataSearch = lazy(() => import('./pages/DataSearch'))
@@ -99,6 +104,11 @@ function AppInner() {
       {/* データ検索・修正 — manager以上 */}
       <Route path="/datasearch" element={<ManagerRoute><DataSearch /></ManagerRoute>} />
       <Route path="/edit/:boothId" element={<ManagerRoute><EditReading /></ManagerRoute>} />
+
+      {/* マスタ追加 — manager以上 */}
+      <Route path="/admin/add-machine" element={<ManagerRoute><AddMachine /></ManagerRoute>} />
+      <Route path="/admin/add-booth" element={<ManagerRoute><AddBooth /></ManagerRoute>} />
+      <Route path="/admin/machine-setup" element={<ManagerRoute><MachineSetup /></ManagerRoute>} />
 
       {/* 管理ツール — admin のみ */}
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />

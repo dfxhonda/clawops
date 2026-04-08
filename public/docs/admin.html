@@ -56,8 +56,8 @@ main{padding:var(--space-lg)}
 .btn-add{background:var(--accent);border:none;border-radius:8px;color:var(--white);font-size:13px;font-weight:700;padding:8px 16px;min-height:var(--btn-min-h);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s}
 .btn-add:hover{background:var(--accent2)}
 
-.table-wrap{border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.table-wrap{border-radius:var(--radius);border:1px solid var(--border);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
 th{background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tr:last-child td{border-bottom:none}
@@ -121,6 +121,10 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
 @media(min-width:768px){
   main{max-width:960px;margin:0 auto}
   .modal{max-width:520px}
+}
+@media(max-width:480px){
+  table{font-size:11px}
+  th,td{padding:5px 6px}
 }
 </style>
 </head>
@@ -213,9 +217,9 @@ async function loadAll(){
   document.getElementById('mainContent').innerHTML='<div class="empty">⏳ 読み込み中...</div>';
   try{
     const [s,m,b,mt,mc,sup,ot,tt,ps]=await Promise.all([
-      sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&order=store_code.asc'),
-      sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&order=machine_code.asc'),
-      sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&order=booth_code.asc'),
+      sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&is_active=eq.true&order=store_code.asc'),
+      sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
+      sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&is_active=eq.true&order=booth_code.asc'),
       sbGet('machine_types','select=*&order=type_id.asc'),
       sbGet('machine_categories','select=*&order=sort_order.asc'),
       sbGet('suppliers','select=*&order=supplier_id.asc'),
@@ -504,7 +508,11 @@ async function saveSimple(tableName, pkCol, isNew, pkVal) {
   closeModal(); showLoading();
   try {
     if (isNew) { await sbPost(tableName, payload); showToast('追加しました'); }
-    else { await sbPatch(tableName, pkVal, pkCol, payload); showToast('保存しました'); }
+    else {
+      const rows = await sbPatch(tableName, pkVal, pkCol, payload);
+      if (!rows || rows.length === 0) throw new Error('更新できませんでした（権限不足の可能性があります）');
+      showToast('保存しました');
+    }
     await loadAll();
   } catch(e) { showToast('エラー: ' + e.message, false); }
   finally { hideLoading(); }
@@ -539,13 +547,32 @@ function renderTools(){
       <span style="font-size:28px">🖼️</span>
       <div><div style="font-weight:700;font-size:15px">画像マッチング</div><div style="font-size:12px;color:var(--text2)">景品写真と景品マスタの手動紐付け</div></div>
     </a>
-    <div style="margin-top:8px;font-weight:700;font-size:15px;color:var(--text2)">Excel出力</div>
+    <div style="margin-top:8px;font-weight:700;font-size:15px;color:var(--text2)">Excel出力 — マスタ</div>
+    <button onclick="exportExcel('stores')" style="${btnStyle}"><span style="font-size:22px">🏪</span>店舗マスタ</button>
+    <button onclick="exportExcel('machines')" style="${btnStyle}"><span style="font-size:22px">🕹️</span>機械マスタ</button>
+    <button onclick="exportExcel('booths')" style="${btnStyle}"><span style="font-size:22px">📦</span>ブースマスタ</button>
+    <div style="margin-top:8px;font-weight:700;font-size:15px;color:var(--text2)">Excel出力 — 運営データ</div>
     <button onclick="exportExcel('prizes')" style="${btnStyle}"><span style="font-size:22px">📊</span>景品マスタ</button>
     <button onclick="exportExcel('orders')" style="${btnStyle}"><span style="font-size:22px">📦</span>発注履歴</button>
     <button onclick="exportExcel('stocks')" style="${btnStyle}"><span style="font-size:22px">📋</span>在庫一覧</button>
     <button onclick="exportExcel('movements')" style="${btnStyle}"><span style="font-size:22px">🔄</span>在庫移動履歴</button>
     <button onclick="exportExcel('suppliers')" style="${btnStyle}"><span style="font-size:22px">🚚</span>仕入先一覧</button>
     <button onclick="exportExcel('readings')" style="${btnStyle}"><span style="font-size:22px">📈</span>メーター読取履歴</button>
+    <div style="margin-top:8px;font-weight:700;font-size:15px;color:var(--text2)">Excel取込 — マスタ更新</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">上記でエクスポートしたExcelを手動編集後に再取込みできます。主キー列が一致する行は上書き更新されます。</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="import_table" style="flex:1;min-width:120px;padding:10px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px">
+        <option value="stores">店舗マスタ</option>
+        <option value="machines">機械マスタ</option>
+        <option value="booths">ブースマスタ</option>
+      </select>
+      <label style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--text)">
+        📂 ファイル選択
+        <input type="file" id="import_file" accept=".xlsx,.xls" style="display:none" onchange="previewImport()">
+      </label>
+    </div>
+    <div id="import_preview" style="display:none;margin-top:8px;font-size:12px"></div>
+    <button id="import_btn" onclick="doImport()" style="display:none;margin-top:8px;width:100%;padding:12px;background:var(--blue);border:none;border-radius:var(--radius);color:#fff;font-size:14px;font-weight:700;cursor:pointer">取込実行</button>
   </div>`;
 }
 
@@ -590,6 +617,21 @@ async function exportExcel(type){
       headers = {reading_id:'読取ID',booth_id:'ブースID',full_booth_code:'フルコード',read_time:'読取日時',in_meter:'INメーター',out_meter:'OUTメーター',prize_restock_count:'補充数',prize_stock_count:'残数',prize_name:'景品名',set_a:'設定A',set_c:'設定C',set_l:'設定L',set_r:'設定R',set_o:'設定O',note:'メモ',source:'ソース',created_at:'作成日時'};
       data = raw; fileName = `ClawOps_メーター読取_${today}`;
     }
+    else if (type === 'stores') {
+      const raw = await sbGet('stores','select=store_code,store_name,brand_name,region,notes&is_active=eq.true&order=store_code.asc');
+      headers = {store_code:'店舗コード',store_name:'店舗名',brand_name:'ブランド',region:'地域',notes:'備考'};
+      data = raw; fileName = `ClawOps_店舗マスタ_${today}`;
+    }
+    else if (type === 'machines') {
+      const raw = await sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,notes&is_active=eq.true&order=machine_code.asc');
+      headers = {machine_code:'機械コード',store_code:'店舗コード',machine_name:'機械名',play_price:'遊技価格',floor:'フロア',zone:'ゾーン',notes:'備考'};
+      data = raw; fileName = `ClawOps_機械マスタ_${today}`;
+    }
+    else if (type === 'booths') {
+      const raw = await sbGet('booths','select=booth_code,machine_code,store_code,booth_number,notes&is_active=eq.true&order=booth_code.asc');
+      headers = {booth_code:'ブースコード',machine_code:'機械コード',store_code:'店舗コード',booth_number:'ブース番号',notes:'備考'};
+      data = raw; fileName = `ClawOps_ブースマスタ_${today}`;
+    }
 
     // ヘッダーキー順でデータを整形
     const keys = Object.keys(headers);
@@ -604,6 +646,79 @@ async function exportExcel(type){
   } catch(e) {
     showToast('Excel出力エラー: ' + e.message, false);
   } finally { hideLoading(); }
+}
+
+// ─── EXCEL IMPORT ─────────────────────────────────────────────────────────────
+const IMPORT_CONFIGS = {
+  stores:   { table:'stores',   pk:'store_code',   headers:{store_code:'店舗コード',store_name:'店舗名',brand_name:'ブランド',region:'地域',notes:'備考'} },
+  machines: { table:'machines', pk:'machine_code', headers:{machine_code:'機械コード',store_code:'店舗コード',machine_name:'機械名',play_price:'遊技価格',floor:'フロア',zone:'ゾーン',notes:'備考'} },
+  booths:   { table:'booths',   pk:'booth_code',   headers:{booth_code:'ブースコード',machine_code:'機械コード',store_code:'店舗コード',booth_number:'ブース番号',notes:'備考'} },
+};
+let importData = null, importConfig = null;
+
+async function previewImport(){
+  const file = document.getElementById('import_file').files[0];
+  if (!file) return;
+  const tableKey = document.getElementById('import_table').value;
+  importConfig = IMPORT_CONFIGS[tableKey];
+  const ab = await file.arrayBuffer();
+  const wb = XLSX.read(ab, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  importData = XLSX.utils.sheet_to_json(ws, {defval:''});
+  const preview = document.getElementById('import_preview');
+  const btn = document.getElementById('import_btn');
+  if (!importData.length) {
+    preview.innerHTML = '<div style="color:var(--red)">データが見つかりません</div>';
+    preview.style.display = 'block'; btn.style.display = 'none'; return;
+  }
+  const reverseH = Object.fromEntries(Object.entries(importConfig.headers).map(([k,v])=>[v,k]));
+  const cols = Object.keys(importConfig.headers);
+  const display = importData.slice(0,5);
+  let html = `<div style="color:var(--text2);margin-bottom:4px">${importData.length}行 検出（先頭5行）</div>`;
+  html += '<div style="overflow-x:auto"><table style="font-size:11px;border-collapse:collapse;width:100%">';
+  html += '<tr>'+cols.map(c=>`<th style="border:1px solid var(--border);padding:3px 6px;background:var(--surface2);white-space:nowrap">${importConfig.headers[c]}</th>`).join('')+'</tr>';
+  display.forEach(row=>{
+    html += '<tr>'+cols.map(c=>`<td style="border:1px solid var(--border);padding:3px 6px;white-space:nowrap">${esc(String(row[importConfig.headers[c]]??row[c]??''))}</td>`).join('')+'</tr>';
+  });
+  html += '</table></div>';
+  preview.innerHTML = html; preview.style.display = 'block';
+  btn.textContent = `取込実行 (${importData.length}行)`;
+  btn.style.display = 'block';
+}
+
+async function doImport(){
+  if (!importData || !importConfig) return;
+  if (!confirm(`${importData.length}行を取込みます。主キーが一致する行は上書きされます。続行しますか？`)) return;
+  showLoading();
+  try {
+    const reverseH = Object.fromEntries(Object.entries(importConfig.headers).map(([k,v])=>[v,k]));
+    const cols = Object.keys(importConfig.headers);
+    const rows = importData.map(row=>{
+      const r={};
+      cols.forEach(c=>{
+        const val = row[importConfig.headers[c]]!==undefined ? row[importConfig.headers[c]] : row[c];
+        if (val!==undefined && val!=='') r[c]=val;
+      });
+      return r;
+    }).filter(r=>r[importConfig.pk]);
+    if (!rows.length) { showToast('取込可能な行がありません（主キー列が空）', false); return; }
+    const BATCH=100;
+    for (let i=0;i<rows.length;i+=BATCH){
+      const r = await fetch(CLAWOPS_CONFIG.SUPABASE_REST+'/'+importConfig.table+'?on_conflict='+importConfig.pk,{
+        method:'POST',
+        headers:{...CLAWOPS_CONFIG.headers(),'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify(rows.slice(i,i+BATCH))
+      });
+      if (!r.ok) throw new Error(await r.text());
+    }
+    showToast(`${rows.length}行を取込みました`);
+    importData=null; importConfig=null;
+    document.getElementById('import_preview').style.display='none';
+    document.getElementById('import_btn').style.display='none';
+    document.getElementById('import_file').value='';
+    await loadAll();
+  } catch(e) { showToast('取込エラー: '+e.message, false); }
+  finally { hideLoading(); }
 }
 
 function switchTab(tab){
@@ -683,17 +798,19 @@ async function saveEditStore(code){
   };
   closeModal();showLoading();
   try{
-    await sbPatch('stores',code,'store_code',payload);
+    const rows=await sbPatch('stores',code,'store_code',payload);
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
     showToast('保存しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
   finally{hideLoading();}
 }
 async function delStore(code){
-  if(!confirm('この店舗を削除しますか？'))return;
+  if(!confirm('この店舗を無効化しますか？'))return;
   closeModal();showLoading();
   try{
-    await sbDelete('stores','store_code',code);
+    const rows=await sbPatch('stores',code,'store_code',{is_active:false});
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
     showToast('削除しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -753,17 +870,19 @@ async function saveEditMachine(code){
   };
   closeModal();showLoading();
   try{
-    await sbPatch('machines',code,'machine_code',payload);
+    const rows=await sbPatch('machines',code,'machine_code',payload);
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
     showToast('保存しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
   finally{hideLoading();}
 }
 async function delMachine(code){
-  if(!confirm('この機械を削除しますか？'))return;
+  if(!confirm('この機械を無効化しますか？'))return;
   closeModal();showLoading();
   try{
-    await sbDelete('machines','machine_code',code);
+    const rows=await sbPatch('machines',code,'machine_code',{is_active:false});
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
     showToast('削除しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -782,12 +901,13 @@ function addBooth(){
 async function saveNewBooth(){
   const mCode=document.getElementById('f_machine').value;
   const m=machines.find(x=>x.machine_code===mCode);
-  const code=document.getElementById('f_code').value.trim()||genId('B');
+  const num=parseInt(document.getElementById('f_num').value)||1;
+  const code=document.getElementById('f_code').value.trim()||(mCode+'-B'+String(num).padStart(2,'0'));
   const payload={
     booth_code:code,
     machine_code:mCode,
     store_code:m?m.store_code:null,
-    booth_number:parseInt(document.getElementById('f_num').value)||1,
+    booth_number:num,
     is_active:true
   };
   closeModal();showLoading();
@@ -817,7 +937,8 @@ async function saveEditBooth(code){
   };
   closeModal();showLoading();
   try{
-    await sbPatch('booths',code,'booth_code',payload);
+    const rows=await sbPatch('booths',code,'booth_code',payload);
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
     showToast('保存しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
@@ -827,7 +948,8 @@ async function delBooth(code){
   if(!confirm('このブースを削除しますか？'))return;
   closeModal();showLoading();
   try{
-    await sbDelete('booths','booth_code',code);
+    const rows=await sbPatch('booths',code,'booth_code',{is_active:false});
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
     showToast('削除しました');
     await loadAll();
   }catch(e){showToast('エラー: '+e.message,false);}
