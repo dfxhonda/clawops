@@ -26,6 +26,10 @@ ClawOps はクレーンゲーム運営向けの React アプリです。
 - happy-dom
 - Vercel
 
+## Effort
+
+このプロジェクトでは常に `/effort high` で作業すること。
+
 ## Commands
 
 ```bash
