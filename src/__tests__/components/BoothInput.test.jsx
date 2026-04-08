@@ -25,7 +25,7 @@ import { useBoothInput } from '../../hooks/useBoothInput'
 import BoothInput from '../../pages/BoothInput'
 
 const BOOTH = {
-  booth_id: 'B01', booth_code: 'B01', full_booth_code: 'KOS01-M01-B01', play_price: '100',
+  booth_code: 'KOS01-M01-B01', booth_number: 1, play_price: '100',
 }
 
 function makeHookReturn(overrides = {}) {
@@ -81,7 +81,7 @@ describe('BoothInput — 保存確認モーダル', () => {
   })
 
   it('inputCount>0 のとき保存ボタン押下で確認モーダルが表示される', () => {
-    useBoothInput.mockReturnValue(makeHookReturn({ inputCount: 1, inputs: { B01: { in_meter: '5100' } } }))
+    useBoothInput.mockReturnValue(makeHookReturn({ inputCount: 1, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } } }))
     renderBoothInput()
     fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
@@ -91,7 +91,7 @@ describe('BoothInput — 保存確認モーダル', () => {
   it('モーダルの「戻る」押下でモーダルが閉じ handleSaveAll は呼ばれない', () => {
     const handleSaveAll = vi.fn()
     useBoothInput.mockReturnValue(makeHookReturn({
-      inputCount: 1, inputs: { B01: { in_meter: '5100' } },
+      inputCount: 1, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
       handleSaveAll,
     }))
     renderBoothInput()
@@ -105,7 +105,7 @@ describe('BoothInput — 保存確認モーダル', () => {
   it('モーダルの「保存する」押下で handleSaveAll が呼ばれ /drafts に遷移', async () => {
     const handleSaveAll = vi.fn().mockResolvedValue({ ok: true, count: 1, failedItems: [] })
     useBoothInput.mockReturnValue(makeHookReturn({
-      inputCount: 1, inputs: { B01: { in_meter: '5100' } },
+      inputCount: 1, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
       handleSaveAll,
     }))
     renderBoothInput()
@@ -119,7 +119,7 @@ describe('BoothInput — 保存確認モーダル', () => {
 
   it('anomalyCount>0 のときモーダルに異常値台数が表示される', () => {
     useBoothInput.mockReturnValue(makeHookReturn({
-      inputCount: 1, anomalyCount: 2, inputs: { B01: { in_meter: '5100' } },
+      inputCount: 1, anomalyCount: 2, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
     }))
     renderBoothInput()
     fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
@@ -131,9 +131,9 @@ describe('BoothInput — 異常値アラートバナー', () => {
   it('inDiff=0 のとき INゼロ バナーが表示される', () => {
     useBoothInput.mockReturnValue(makeHookReturn({
       inputCount: 1,
-      inputs: { B01: { in_meter: '5000' } },
+      inputs: { 'KOS01-M01-B01': { in_meter: '5000' } },
       readingsMap: {
-        B01: {
+        'KOS01-M01-B01': {
           latest: { in_meter: '5000', out_meter: '3000' },
           last:   { in_meter: '5000', out_meter: '3000' },
         },
@@ -147,9 +147,9 @@ describe('BoothInput — 異常値アラートバナー', () => {
     // prevInDiff = 1100 - 1000 = 100 (>50), inDiff = 1400 - 1000 = 400 > 100*3
     useBoothInput.mockReturnValue(makeHookReturn({
       inputCount: 1,
-      inputs: { B01: { in_meter: '1400' } },
+      inputs: { 'KOS01-M01-B01': { in_meter: '1400' } },
       readingsMap: {
-        B01: {
+        'KOS01-M01-B01': {
           latest: { in_meter: '1100', out_meter: '600' },
           last:   { in_meter: '1000', out_meter: '500' },
         },

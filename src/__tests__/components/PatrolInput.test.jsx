@@ -12,8 +12,8 @@ vi.mock('react-router-dom', async () => {
     useLocation: () => ({
       state: {
         booth: {
-          booth_id: 'B01', booth_code: 'B01', full_booth_code: 'KOS01-M01-B01',
-          machine_id: 'M01', play_price: '100',
+          booth_code: 'KOS01-M01-B01', booth_number: 1,
+          machine_code: 'KOS01-M01', play_price: '100',
         },
       },
     }),
@@ -28,8 +28,8 @@ import { usePatrolInput } from '../../hooks/usePatrolInput'
 import PatrolInput from '../../pages/PatrolInput'
 
 const BOOTH = {
-  booth_id: 'B01', booth_code: 'B01', full_booth_code: 'KOS01-M01-B01',
-  machine_id: 'M01', play_price: '100',
+  booth_code: 'KOS01-M01-B01', booth_number: 1,
+  machine_code: 'KOS01-M01', play_price: '100',
 }
 
 function makeHookReturn(overrides = {}) {

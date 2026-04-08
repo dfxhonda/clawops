@@ -18,16 +18,16 @@ export default function MachineList() {
         getMachines(storeId), getStores(), getAllMeterReadings()
       ])
       setMachines(allMachines)
-      const store = stores.find(x => String(x.store_id) === String(storeId))
+      const store = stores.find(x => String(x.store_code) === String(storeId))
       if (store) setStoreName(store.store_name)
 
-      const allBooths = await Promise.all(allMachines.map(m => getBooths(m.machine_id)))
+      const allBooths = await Promise.all(allMachines.map(m => getBooths(m.machine_code)))
       const stats = {}
       allMachines.forEach((m, i) => {
         const booths = allBooths[i]
         let totalDiff = 0, inputCount = 0
         for (const booth of booths) {
-          const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_id))
+          const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_code))
           if (br.length >= 2) {
             const prev = parseNum(br[br.length-2].in_meter)
             const curr = parseNum(br[br.length-1].in_meter)
@@ -37,8 +37,8 @@ export default function MachineList() {
             }
           } else if (br.length === 1) inputCount++
         }
-        const lastRead = booths[0] && allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_id)).slice(-1)[0]
-        stats[m.machine_id] = {
+        const lastRead = booths[0] && allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_code)).slice(-1)[0]
+        stats[m.machine_code] = {
           inputCount, totalBooths: booths.length,
           totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100),
           lastReadTime: lastRead?.read_time?.slice(0,10)||''
@@ -83,16 +83,16 @@ export default function MachineList() {
       {/* 機械リスト */}
       <div className="space-y-2">
         {machines.map(m => {
-          const stat = machineStats[m.machine_id]
+          const stat = machineStats[m.machine_code]
           const done = stat?.inputCount || 0
           const total = stat?.totalBooths || Number(m.booth_count)
           const allDone = done >= total
           const sales = stat?.totalSales || 0
           const diff = stat?.totalDiff || 0
           return (
-            <button key={m.machine_id}
+            <button key={m.machine_code}
               className="w-full bg-surface border border-border rounded-xl p-4 text-left hover:border-accent/40 transition-colors active:scale-[0.98]"
-              onClick={() => navigate(`/booth/${m.machine_id}`, { state: { storeName, storeId } })}
+              onClick={() => navigate(`/booth/${m.machine_code}`, { state: { storeName, storeId } })}
             >
               <div className="flex justify-between items-center">
                 <div>

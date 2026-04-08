@@ -69,10 +69,10 @@ export default function BoothInput() {
 
   // スワイプによるブース切り替え
   function handleSwipe(boothId, direction) {
-    const idx = filteredBooths.findIndex(b => b.booth_id === boothId)
+    const idx = filteredBooths.findIndex(b => b.booth_code === boothId)
     const targetIdx = direction === 'next' ? idx + 1 : idx - 1
     if (targetIdx < 0 || targetIdx >= filteredBooths.length) return
-    scrollToBooth(filteredBooths[targetIdx].booth_id)
+    scrollToBooth(filteredBooths[targetIdx].booth_code)
   }
 
   if (loading) return (
@@ -176,17 +176,17 @@ export default function BoothInput() {
       <div className="space-y-1.5">
         {filteredBooths.map((booth) => (
           <BoothCard
-            key={booth.booth_id}
+            key={booth.booth_code}
             booth={booth}
             readingsMap={readingsMap}
-            inp={inputs[booth.booth_id] || {}}
+            inp={inputs[booth.booth_code] || {}}
             setInp={setInp}
             navigate={navigate}
             getRef={getRef}
             handleKeyDown={handleKeyDown}
             onOpenSearch={openSearchModal}
             onSwipe={handleSwipe}
-            monthlyStats={monthlyStatsMap[booth.booth_id] || monthlyStatsMap[booth.booth_code] || null}
+            monthlyStats={monthlyStatsMap[booth.booth_code] || monthlyStatsMap[booth.booth_code] || null}
           />
         ))}
       </div>
@@ -262,7 +262,7 @@ export default function BoothInput() {
 
 // 個別ブースカード（表示のみ）
 function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate, onOpenSearch, onSwipe, monthlyStats }) {
-  const { latest, last } = readingsMap[booth.booth_id] || {}
+  const { latest, last } = readingsMap[booth.booth_code] || {}
   const price = parseNum(booth.play_price || '100')
 
   const latestIn  = latest?.in_meter  ? parseNum(latest.in_meter)  : null
@@ -309,7 +309,7 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
         const dy = e.changedTouches[0].clientY - tyRef.current
         txRef.current = null
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          onSwipe(booth.booth_id, dx > 0 ? 'prev' : 'next')
+          onSwipe(booth.booth_code, dx > 0 ? 'prev' : 'next')
         }
       }}
     >
@@ -318,15 +318,15 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
         <span className="text-xs font-bold text-accent shrink-0">
           {booth.booth_number != null ? `B${String(booth.booth_number).padStart(2,'0')}` : booth.booth_code}
         </span>
-        <button onClick={() => navigate(`/edit/${booth.booth_id}`)}
+        <button onClick={() => navigate(`/edit/${booth.booth_code}`)}
           className="text-[10px] text-muted/60 hover:text-accent shrink-0">履歴</button>
-        <input ref={getRef(booth.booth_id, 'prize_name')}
+        <input ref={getRef(booth.booth_code, 'prize_name')}
           className="flex-1 min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-muted/60 truncate"
           type="text" placeholder={latest?.prize_name || '景品名'}
           value={inp.prize_name || ''}
-          onChange={e => setInp(booth.booth_id, 'prize_name', e.target.value)}
-          onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_name')} />
-        <button onClick={() => onOpenSearch(booth.booth_id)}
+          onChange={e => setInp(booth.booth_code, 'prize_name', e.target.value)}
+          onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_name')} />
+        <button onClick={() => onOpenSearch(booth.booth_code)}
           className="text-base shrink-0 text-muted/60 hover:text-accent active:scale-90 transition-all px-0.5"
           title="景品を画像検索">🔍</button>
         <span className="text-[11px] text-muted shrink-0">¥{price}</span>
@@ -339,13 +339,13 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
             <span className="text-[10px] text-muted">IN（売上）</span>
             <span className="text-[10px] text-muted/60">{latestIn !== null ? latestIn.toLocaleString() : '-'}</span>
           </div>
-          <input ref={getRef(booth.booth_id, 'in_meter')}
+          <input ref={getRef(booth.booth_code, 'in_meter')}
             className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : inp.in_meter ? 'border-accent/40' : 'border-border'}`}
             type="number" inputMode="numeric"
             placeholder={latestIn !== null ? String(latestIn) : '売上メーター値'}
             value={inp.in_meter || ''}
-            onChange={e => setInp(booth.booth_id, 'in_meter', e.target.value)}
-            onKeyDown={e => handleKeyDown(e, booth.booth_id, 'in_meter')} />
+            onChange={e => setInp(booth.booth_code, 'in_meter', e.target.value)}
+            onKeyDown={e => handleKeyDown(e, booth.booth_code, 'in_meter')} />
           {inDiff !== null && (
             <div className={`text-center text-xs font-bold mt-0.5 ${inAbnormal || inZero || inTriple ? 'text-accent2' : 'text-accent'}`}>
               {inDiff === 0 ? '±0' : `+${inDiff.toLocaleString()}`} (¥{(inDiff * price).toLocaleString()})
@@ -357,13 +357,13 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
             <span className="text-[10px] text-muted">OUT（払出）</span>
             <span className="text-[10px] text-muted/60">{latestOut !== null ? latestOut.toLocaleString() : '-'}</span>
           </div>
-          <input ref={getRef(booth.booth_id, 'out_meter')}
+          <input ref={getRef(booth.booth_code, 'out_meter')}
             className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : inp.out_meter ? 'border-accent/40' : 'border-border'}`}
             type="number" inputMode="numeric"
             placeholder={latestOut !== null ? String(latestOut) : '払出メーター値'}
             value={inp.out_meter || ''}
-            onChange={e => setInp(booth.booth_id, 'out_meter', e.target.value)}
-            onKeyDown={e => handleKeyDown(e, booth.booth_id, 'out_meter')} />
+            onChange={e => setInp(booth.booth_code, 'out_meter', e.target.value)}
+            onKeyDown={e => handleKeyDown(e, booth.booth_code, 'out_meter')} />
           {outDiff !== null && (
             <div className={`text-center text-xs font-bold mt-0.5 ${outAbnormal ? 'text-accent2' : 'text-accent'}`}>
               +{outDiff.toLocaleString()}
@@ -376,34 +376,34 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
       <div className="flex items-center gap-1 px-2.5 pb-2">
         <div className="w-[48px] md:w-[56px]">
           <div className="text-[9px] text-muted text-center">残</div>
-          <input ref={getRef(booth.booth_id, 'prize_stock')}
+          <input ref={getRef(booth.booth_code, 'prize_stock')}
             className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent"
             type="number" inputMode="numeric" placeholder={latest?.prize_stock_count || '0'}
             value={inp.prize_stock || ''}
-            onChange={e => setInp(booth.booth_id, 'prize_stock', e.target.value)}
-            onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_stock')} />
+            onChange={e => setInp(booth.booth_code, 'prize_stock', e.target.value)}
+            onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_stock')} />
         </div>
         <div className="w-[48px] md:w-[56px]">
           <div className="text-[9px] text-muted text-center">補</div>
-          <input ref={getRef(booth.booth_id, 'prize_restock')}
+          <input ref={getRef(booth.booth_code, 'prize_restock')}
             className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent"
             type="number" inputMode="numeric" placeholder="0"
             value={inp.prize_restock || ''}
-            onChange={e => setInp(booth.booth_id, 'prize_restock', e.target.value)}
-            onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_restock')} />
+            onChange={e => setInp(booth.booth_code, 'prize_restock', e.target.value)}
+            onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_restock')} />
         </div>
         <div className="w-px h-5 bg-border mx-0.5" />
         {SETTINGS.map(s => (
           <div key={s.key} className="w-[36px] md:w-[44px]" title={s.title}>
             <div className="text-[9px] text-accent4 text-center font-bold leading-tight">{s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span></div>
-            <input ref={getRef(booth.booth_id, s.key)}
+            <input ref={getRef(booth.booth_code, s.key)}
               className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
               type={s.key === 'set_o' ? 'text' : 'number'}
               inputMode={s.key === 'set_o' ? 'text' : 'numeric'}
               placeholder={latest?.[s.key] || '-'}
               value={inp[s.key] || ''}
-              onChange={e => setInp(booth.booth_id, s.key, e.target.value)}
-              onKeyDown={e => handleKeyDown(e, booth.booth_id, s.key)}
+              onChange={e => setInp(booth.booth_code, s.key, e.target.value)}
+              onKeyDown={e => handleKeyDown(e, booth.booth_code, s.key)}
               title={s.title} />
           </div>
         ))}

@@ -54,9 +54,9 @@ export function usePatrolInput(booth, navigateToPatrol) {
     if (!booth) { navigateToPatrol?.(); return }
     async function load() {
       setLoading(true)
-      const map = await getLastReadingsMap([booth.booth_id])
+      const map = await getLastReadingsMap([booth.booth_code])
       setReadingsMap(map)
-      const draft = getDrafts().find(d => String(d.booth_id) === String(booth.booth_id))
+      const draft = getDrafts().find(d => String(d.booth_id) === String(booth.booth_code))
       if (draft) {
         setInMeter(draft.in_meter || ''); setOutMeter(draft.out_meter || '')
         setPrizeRestock(draft.prize_restock_count || ''); setPrizeStock(draft.prize_stock_count || '')
@@ -67,18 +67,18 @@ export function usePatrolInput(booth, navigateToPatrol) {
       }
       let storeCode = null
       try {
-        const machine = await findMachineById(booth.machine_id)
+        const machine = await findMachineById(booth.machine_code)
         if (machine) {
           setMachineName(machine.machine_name)
-          storeCode = machine.store_id // store_id フィールドは store_code 文字列
-          const store = await findStoreById(machine.store_id)
+          storeCode = machine.store_code
+          const store = await findStoreById(machine.store_code)
           if (store) setStoreName(store.store_name)
         }
       } catch { /* ignore */ }
       setLoading(false)
 
       // 月次統計（非blocking: loadingをブロックしない）
-      if (storeCode && booth.booth_id) {
+      if (storeCode && booth.booth_code) {
         try {
           const today = new Date()
           const yr = today.getFullYear()
@@ -94,7 +94,7 @@ export function usePatrolInput(booth, navigateToPatrol) {
             getDailyBoothStats({ storeId: storeCode, dateFrom: prevFrom, dateTo: prevTo }),
           ])
 
-          const bCode = booth.booth_id
+          const bCode = booth.booth_code
           const aggCurr = curr
             .filter(r => r.booth_code === bCode)
             .reduce((a, r) => ({
@@ -121,10 +121,10 @@ export function usePatrolInput(booth, navigateToPatrol) {
       }
     }
     load()
-  }, [booth?.booth_id])
+  }, [booth?.booth_code])
 
   // メーター差分計算
-  const { latest, last } = readingsMap[booth?.booth_id] || {}
+  const { latest, last } = readingsMap[booth?.booth_code] || {}
   const price = parseNum(booth?.play_price || '100')
   const latestIn  = latest?.in_meter  ? parseNum(latest.in_meter)  : null
   const latestOut = latest?.out_meter ? parseNum(latest.out_meter) : null
@@ -157,7 +157,7 @@ export function usePatrolInput(booth, navigateToPatrol) {
     const statusLabel = STATUS_OPTIONS.find(s => s.key === machineStatus)?.label || ''
     const noteWithStatus = machineStatus !== 'ok' ? `[${statusLabel}] ${note}`.trim() : note
     saveDraft({
-      read_date: readDate, booth_id: booth.booth_id, full_booth_code: booth.full_booth_code,
+      read_date: readDate, booth_id: booth.booth_code, full_booth_code: booth.booth_code,
       in_meter: finalIn, out_meter: finalOut,
       prev_in_meter:  lastIn  !== null ? String(lastIn)  : '',
       prev_out_meter: lastOut !== null ? String(lastOut) : '',

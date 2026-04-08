@@ -28,7 +28,7 @@ export default function MainInput() {
     </div>
   )
 
-  const machineIdx = machines.findIndex(m => m.machine_id === machineId)
+  const machineIdx = machines.findIndex(m => m.machine_code === machineId)
 
   return (
     <div className="min-h-screen pb-32"
@@ -47,7 +47,7 @@ export default function MainInput() {
             className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[160px] truncate [color-scheme:dark]">
             <option value="">店舗を選択</option>
             {stores.map(s => (
-              <option key={s.store_id} value={s.store_id}>{s.store_name}</option>
+              <option key={s.store_code} value={s.store_code}>{s.store_name}</option>
             ))}
           </select>
           <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
@@ -55,7 +55,7 @@ export default function MainInput() {
           <div className="flex items-center gap-1 ml-auto">
             <LogoutButton />
             <button onClick={() => {
-                const mid = machines[0]?.machine_id
+                const mid = machines[0]?.machine_code
                 if (storeId && mid) navigate(`/booth/${mid}`, { state: { storeId, storeName: currentStore?.store_name } })
                 else navigate('/patrol')
               }}
@@ -93,8 +93,8 @@ export default function MainInput() {
                 <div className="text-sm font-bold text-blue-400">{cur.machine_code} {cur.machine_name?.slice(0, 8)}</div>
                 <div className="flex justify-center gap-1 mt-0.5">
                   {machines.map((m, i) => (
-                    <div key={m.machine_id}
-                      onClick={() => setMachineId(m.machine_id)}
+                    <div key={m.machine_code}
+                      onClick={() => setMachineId(m.machine_code)}
                       className={`w-1.5 h-1.5 rounded-full cursor-pointer ${i === machineIdx ? 'bg-blue-400' : 'bg-muted/30'}`} />
                   ))}
                 </div>
@@ -117,13 +117,13 @@ export default function MainInput() {
       <div className="px-2 pt-1.5" style={{ display: storeId ? 'block' : 'none' }}>
         {booths.map((booth) => {
           const s = calcBoothStats(booth)
-          const inp = inputs[booth.booth_id] || {}
-          const { latest } = readingsMap[booth.booth_id] || {}
+          const inp = inputs[booth.booth_code] || {}
+          const { latest } = readingsMap[booth.booth_code] || {}
           const hasInput = !!inp.in_meter
-          const expanded = expandedSettings[booth.booth_id]
+          const expanded = expandedSettings[booth.booth_code]
 
           return (
-            <div key={booth.booth_id} className="mb-1.5">
+            <div key={booth.booth_code} className="mb-1.5">
               {/* 1行目: ブース番号 + 景品名 */}
               <div className={`flex items-center gap-2 px-2 pt-1.5 pb-1 rounded-t-lg border-x border-t
                 ${hasInput ? 'bg-surface border-green-800/50' : 'bg-surface border-border'}`}>
@@ -134,7 +134,7 @@ export default function MainInput() {
                   className="flex-1 min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-muted/50 truncate"
                   placeholder={latest?.prize_name || '景品名'}
                   value={inp.prize_name || ''}
-                  onChange={e => setInp(booth.booth_id, 'prize_name', e.target.value)}
+                  onChange={e => setInp(booth.booth_code, 'prize_name', e.target.value)}
                 />
                 {s.payoutRate !== null && (
                   <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded
@@ -161,7 +161,7 @@ export default function MainInput() {
                       : <span className="text-[8px] text-muted/50">{s.prevIn !== null ? s.prevIn.toLocaleString() : ''}</span>
                     }
                   </div>
-                  <input ref={getRef(booth.booth_id, 'in_meter')}
+                  <input ref={getRef(booth.booth_code, 'in_meter')}
                     type="number" inputMode="numeric"
                     className={`w-full py-1 px-2 text-[14px] font-semibold text-center rounded-md border outline-none transition-colors
                       bg-bg text-text
@@ -169,8 +169,8 @@ export default function MainInput() {
                       focus:border-blue-500`}
                     placeholder={s.prevIn !== null ? String(s.prevIn) : '売上メーター'}
                     value={inp.in_meter || ''}
-                    onChange={e => setInp(booth.booth_id, 'in_meter', e.target.value)}
-                    onKeyDown={e => handleKeyDown(e, booth.booth_id, 'in_meter')}
+                    onChange={e => setInp(booth.booth_code, 'in_meter', e.target.value)}
+                    onKeyDown={e => handleKeyDown(e, booth.booth_code, 'in_meter')}
                   />
                 </div>
 
@@ -185,43 +185,43 @@ export default function MainInput() {
                       : <span className="text-[8px] text-muted/50">{s.prevOut !== null ? s.prevOut.toLocaleString() : ''}</span>
                     }
                   </div>
-                  <input ref={getRef(booth.booth_id, 'out_meter')}
+                  <input ref={getRef(booth.booth_code, 'out_meter')}
                     type="number" inputMode="numeric"
                     className={`w-full py-1 px-2 text-[14px] font-semibold text-center rounded-md border outline-none transition-colors
                       bg-bg text-text border-border focus:border-blue-500
                       ${inp.out_meter ? 'border-green-700/60' : ''}`}
                     placeholder={s.prevOut !== null ? String(s.prevOut) : '払出メーター'}
                     value={inp.out_meter || ''}
-                    onChange={e => setInp(booth.booth_id, 'out_meter', e.target.value)}
-                    onKeyDown={e => handleKeyDown(e, booth.booth_id, 'out_meter')}
+                    onChange={e => setInp(booth.booth_code, 'out_meter', e.target.value)}
+                    onKeyDown={e => handleKeyDown(e, booth.booth_code, 'out_meter')}
                   />
                 </div>
 
                 {/* 残 */}
                 <div>
                   <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残数</div>
-                  <input ref={getRef(booth.booth_id, 'prize_stock')}
+                  <input ref={getRef(booth.booth_code, 'prize_stock')}
                     type="number" inputMode="numeric"
                     className="w-full py-1 px-1 text-[12px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
                     placeholder={latest?.prize_stock_count || '0'}
                     title="景品残数"
                     value={inp.prize_stock || ''}
-                    onChange={e => setInp(booth.booth_id, 'prize_stock', e.target.value)}
-                    onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_stock')}
+                    onChange={e => setInp(booth.booth_code, 'prize_stock', e.target.value)}
+                    onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_stock')}
                   />
                 </div>
 
                 {/* 補 */}
                 <div>
                   <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補充</div>
-                  <input ref={getRef(booth.booth_id, 'prize_restock')}
+                  <input ref={getRef(booth.booth_code, 'prize_restock')}
                     type="number" inputMode="numeric"
                     className="w-full py-1 px-1 text-[12px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
                     placeholder="0"
                     title="景品補充数"
                     value={inp.prize_restock || ''}
-                    onChange={e => setInp(booth.booth_id, 'prize_restock', e.target.value)}
-                    onKeyDown={e => handleKeyDown(e, booth.booth_id, 'prize_restock')}
+                    onChange={e => setInp(booth.booth_code, 'prize_restock', e.target.value)}
+                    onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_restock')}
                   />
                 </div>
               </div>
@@ -244,7 +244,7 @@ export default function MainInput() {
                       inputMode={st.key === 'set_o' ? 'text' : 'numeric'}
                       placeholder={latest?.[st.key] || '-'}
                       value={inp[st.key] || ''}
-                      onChange={e => setInp(booth.booth_id, st.key, e.target.value)}
+                      onChange={e => setInp(booth.booth_code, st.key, e.target.value)}
                     />
                   </div>
                 ))}

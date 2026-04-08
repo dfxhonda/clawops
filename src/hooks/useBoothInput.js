@@ -52,15 +52,15 @@ export function useBoothInput(machineId, storeInfo) {
       setLoading(true)
       const bs = await getBooths(machineId)
       setBooths(bs)
-      const map = await getLastReadingsMap(bs.map(b => b.booth_id))
+      const map = await getLastReadingsMap(bs.map(b => b.booth_code))
       setReadingsMap(map)
       // ドラフト復元
       const drafts = getDrafts()
       const restored = {}
       for (const b of bs) {
-        const draft = drafts.find(d => String(d.booth_id) === String(b.booth_id))
+        const draft = drafts.find(d => String(d.booth_id) === String(b.booth_code))
         if (draft) {
-          restored[b.booth_id] = {
+          restored[b.booth_code] = {
             in_meter: draft.in_meter, out_meter: draft.out_meter,
             prize_restock: draft.prize_restock_count, prize_stock: draft.prize_stock_count,
             prize_name: draft.prize_name,
@@ -79,7 +79,7 @@ export function useBoothInput(machineId, storeInfo) {
       }
       if (storeInfo?.storeId) {
         const machines = await getMachines(storeInfo.storeId)
-        const m = machines.find(x => String(x.machine_id) === String(machineId))
+        const m = machines.find(x => String(x.machine_code) === String(machineId))
         if (m) setMachineName(m.machine_name)
       }
       setLoading(false)
@@ -126,7 +126,7 @@ export function useBoothInput(machineId, storeInfo) {
   }
 
   // フィルタリング
-  const isEntered = (b) => !!(inputs[b.booth_id]?.in_meter)
+  const isEntered = (b) => !!(inputs[b.booth_code]?.in_meter)
   const inputCount = booths.filter(isEntered).length
   const filteredBooths = filter === 'all' ? booths
     : filter === 'todo' ? booths.filter(b => !isEntered(b))
@@ -135,9 +135,9 @@ export function useBoothInput(machineId, storeInfo) {
   // 異常値ブース数（確認モーダル用）
   const anomalyCount = useMemo(() => {
     return booths.filter(b => {
-      const inp = inputs[b.booth_id] || {}
+      const inp = inputs[b.booth_code] || {}
       if (!inp.in_meter) return false
-      const { latest, last } = readingsMap[b.booth_id] || {}
+      const { latest, last } = readingsMap[b.booth_code] || {}
       const inVal = parseNum(inp.in_meter)
       const outVal = inp.out_meter ? parseNum(inp.out_meter) : null
       const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
@@ -162,13 +162,13 @@ export function useBoothInput(machineId, storeInfo) {
   function handleKeyDown(e, boothId, fieldName) {
     if (e.key !== 'Enter') return
     e.preventDefault()
-    const boothIdx = filteredBooths.findIndex(b => b.booth_id === boothId)
+    const boothIdx = filteredBooths.findIndex(b => b.booth_code === boothId)
     const fieldIdx = FIELD_ORDER.indexOf(fieldName)
     if (fieldIdx < FIELD_ORDER.length - 1) {
       const nextField = FIELD_ORDER[fieldIdx + 1]
       refsMap.current[boothId]?.[nextField]?.focus()
     } else if (boothIdx < filteredBooths.length - 1) {
-      const nextBoothId = filteredBooths[boothIdx + 1].booth_id
+      const nextBoothId = filteredBooths[boothIdx + 1].booth_code
       refsMap.current[nextBoothId]?.['in_meter']?.focus()
       refsMap.current[nextBoothId]?.['in_meter']?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
@@ -194,8 +194,8 @@ export function useBoothInput(machineId, storeInfo) {
     let count = 0
     const replenishItems = []
     for (const booth of booths) {
-      const inp = inputs[booth.booth_id] || {}
-      const { latest } = readingsMap[booth.booth_id] || {}
+      const inp = inputs[booth.booth_code] || {}
+      const { latest } = readingsMap[booth.booth_code] || {}
       const latestIn = latest?.in_meter ? parseNum(latest.in_meter) : null
       const latestOut = latest?.out_meter ? parseNum(latest.out_meter) : null
       const finalIn = inp.in_meter || (latestIn !== null ? String(latestIn) : '')
@@ -205,7 +205,7 @@ export function useBoothInput(machineId, storeInfo) {
       const prizeName = inp.prize_name || latest?.prize_name || ''
       saveDraftItem({
         read_date: readDate,
-        booth_id: booth.booth_id, full_booth_code: booth.full_booth_code,
+        booth_id: booth.booth_code, full_booth_code: booth.booth_code,
         in_meter: finalIn, out_meter: finalOut,
         prev_in_meter:  latestIn  !== null ? String(latestIn)  : '',
         prev_out_meter: latestOut !== null ? String(latestOut) : '',
@@ -222,7 +222,7 @@ export function useBoothInput(machineId, storeInfo) {
       })
       count++
       if (restockCount > 0 && staffId && prizeName) {
-        replenishItems.push({ boothCode: booth.full_booth_code, prizeName, quantity: restockCount })
+        replenishItems.push({ boothCode: booth.booth_code, prizeName, quantity: restockCount })
       }
     }
     if (count === 0) {

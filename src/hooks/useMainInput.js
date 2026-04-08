@@ -53,7 +53,7 @@ export function useMainInput() {
     setBooths([])
     getMachines(storeId).then(ms => {
       setMachines(ms)
-      if (ms.length > 0) setMachineId(ms[0].machine_id)
+      if (ms.length > 0) setMachineId(ms[0].machine_code)
       else setMachineId(null)
     })
     getAllMeterReadings().then(r => setAllReadings(r))
@@ -66,13 +66,13 @@ export function useMainInput() {
     async function load() {
       const bs = await getBooths(machineId)
       setBooths(bs)
-      const map = await getLastReadingsMap(bs.map(b => b.booth_id))
+      const map = await getLastReadingsMap(bs.map(b => b.booth_code))
       setReadingsMap(map)
       // ドラフト復元
       const drafts = getDrafts()
       const restored = {}
       for (const b of bs) {
-        if (drafts[b.booth_id]) restored[b.booth_id] = drafts[b.booth_id]
+        if (drafts[b.booth_code]) restored[b.booth_code] = drafts[b.booth_code]
       }
       setInputs(restored)
     }
@@ -94,13 +94,13 @@ export function useMainInput() {
   function handleKeyDown(e, boothId, field) {
     if (e.key !== 'Enter') return
     e.preventDefault()
-    const bIdx = booths.findIndex(b => b.booth_id === boothId)
+    const bIdx = booths.findIndex(b => b.booth_code === boothId)
     const fIdx = FIELD_ORDER.indexOf(field)
     if (fIdx < FIELD_ORDER.length - 1) {
       const next = FIELD_ORDER[fIdx + 1]
       refsMap.current[boothId]?.[next]?.focus()
     } else if (bIdx < booths.length - 1) {
-      const nextBooth = booths[bIdx + 1].booth_id
+      const nextBooth = booths[bIdx + 1].booth_code
       refsMap.current[nextBooth]?.['in_meter']?.focus()
       refsMap.current[nextBooth]?.['in_meter']?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
@@ -111,13 +111,13 @@ export function useMainInput() {
   async function handleSave() {
     const toSave = []
     for (const booth of booths) {
-      const inp = inputs[booth.booth_id] || {}
-      const { latest } = readingsMap[booth.booth_id] || {}
+      const inp = inputs[booth.booth_code] || {}
+      const { latest } = readingsMap[booth.booth_code] || {}
       if (!inp.in_meter) continue
       toSave.push({
         read_date: readDate,
-        booth_id: booth.booth_id,
-        full_booth_code: booth.full_booth_code,
+        booth_id: booth.booth_code,
+        full_booth_code: booth.booth_code,
         in_meter: inp.in_meter,
         out_meter: inp.out_meter || '',
         prize_restock_count: inp.prize_restock || '',
@@ -146,7 +146,7 @@ export function useMainInput() {
       // readings更新
       const fresh = await getAllMeterReadings(true)
       setAllReadings(fresh)
-      const map = await getLastReadingsMap(booths.map(b => b.booth_id))
+      const map = await getLastReadingsMap(booths.map(b => b.booth_code))
       setReadingsMap(map)
       setSaving(false)
       return { ok: true, count: toSave.length }
@@ -158,12 +158,12 @@ export function useMainInput() {
 
   // ===== 集計 =====
 
-  const currentMachine = machines.find(m => m.machine_id === machineId)
+  const currentMachine = machines.find(m => m.machine_code === machineId)
   const defaultPrice = currentMachine ? parseNum(currentMachine.default_price) || 100 : 100
 
   function calcBoothStats(booth) {
-    const inp = inputs[booth.booth_id] || {}
-    const { latest, last } = readingsMap[booth.booth_id] || {}
+    const inp = inputs[booth.booth_code] || {}
+    const { latest, last } = readingsMap[booth.booth_code] || {}
     const price = parseNum(booth.play_price || defaultPrice)
     const prevIn = latest?.in_meter ? parseNum(latest.in_meter) : null
     const prevOut = latest?.out_meter ? parseNum(latest.out_meter) : null
@@ -182,7 +182,7 @@ export function useMainInput() {
     for (const booth of booths) {
       const s = calcBoothStats(booth)
       if (s.sales !== null && s.sales >= 0) { totalSales += s.sales; count++ }
-      const { latest, last } = readingsMap[booth.booth_id] || {}
+      const { latest, last } = readingsMap[booth.booth_code] || {}
       if (latest && last) {
         const d = parseNum(latest.in_meter) - parseNum(last.in_meter)
         if (!isNaN(d) && d >= 0) prevTotalSales += d * s.price
@@ -193,14 +193,14 @@ export function useMainInput() {
 
   // 機械切替（スワイプ）
   function switchMachine(direction) {
-    const idx = machines.findIndex(m => m.machine_id === machineId)
-    if (direction === 'next' && idx < machines.length - 1) setMachineId(machines[idx + 1].machine_id)
-    if (direction === 'prev' && idx > 0) setMachineId(machines[idx - 1].machine_id)
+    const idx = machines.findIndex(m => m.machine_code === machineId)
+    if (direction === 'next' && idx < machines.length - 1) setMachineId(machines[idx + 1].machine_code)
+    if (direction === 'prev' && idx > 0) setMachineId(machines[idx - 1].machine_code)
   }
 
-  const inputCount = booths.filter(b => inputs[b.booth_id]?.in_meter).length
+  const inputCount = booths.filter(b => inputs[b.booth_code]?.in_meter).length
   const machineSub = getMachineSubtotal()
-  const currentStore = stores.find(s => s.store_id === storeId)
+  const currentStore = stores.find(s => s.store_code === storeId)
 
   return {
     // データ

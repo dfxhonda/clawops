@@ -18,11 +18,11 @@ export default function RankingView() {
   async function loadStats() {
     setLoading(true)
     const [machines, allReadings] = await Promise.all([getMachines(storeId), getAllMeterReadings()])
-    const allBooths = await Promise.all(machines.map(m => getBooths(m.machine_id)))
+    const allBooths = await Promise.all(machines.map(m => getBooths(m.machine_code)))
     const stats = []
     machines.forEach((m, mi) => {
       allBooths[mi].forEach(b => {
-        const br = allReadings.filter(r => String(r.booth_id) === String(b.booth_id))
+        const br = allReadings.filter(r => String(r.booth_id) === String(b.booth_code))
         const price = parseNum(b.play_price||'100')
         let prevDiff = 0, prevSales = 0, prevNoData = true
         if (br.length >= 2) {
@@ -41,7 +41,7 @@ export default function RankingView() {
           }
         }
         stats.push({
-          full_booth_code: b.full_booth_code, machine_name: m.machine_name,
+          booth_code: b.booth_code, machine_name: m.machine_name,
           prize_name: br.length ? (br[br.length-1].prize_name||'-') : '-',
           since_date: br.length ? br[0].read_time?.slice(0,10) : '-',
           prevDiff, prevSales, prevNoData, totalDiff, totalSales, totalNoData,
@@ -115,10 +115,10 @@ export default function RankingView() {
           <h3 className="text-base font-bold text-green-400 mb-2">🏆 TOP3</h3>
           <div className="space-y-2">
             {top3.map((b,i) => (
-              <div key={b.full_booth_code} className={`bg-surface border border-border rounded-xl p-3.5 border-l-4 ${medalBorders[i]}`}>
+              <div key={b.booth_code} className={`bg-surface border border-border rounded-xl p-3.5 border-l-4 ${medalBorders[i]}`}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="font-bold">{medals[i]} {b.full_booth_code}</div>
+                    <div className="font-bold">{medals[i]} {b.booth_code}</div>
                     <div className="text-xs text-muted mt-0.5">{b.machine_name} · {b.prize_name}</div>
                   </div>
                   <div className="text-right">
@@ -138,10 +138,10 @@ export default function RankingView() {
           <h3 className="text-base font-bold text-accent2 mb-2">⚠️ WORST3（入替候補）</h3>
           <div className="space-y-2">
             {worst3.map(b => (
-              <div key={b.full_booth_code} className="bg-surface border border-border rounded-xl p-3.5 border-l-4 border-l-accent2">
+              <div key={b.booth_code} className="bg-surface border border-border rounded-xl p-3.5 border-l-4 border-l-accent2">
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="font-bold">{b.full_booth_code}</div>
+                    <div className="font-bold">{b.booth_code}</div>
                     <div className="text-xs text-muted mt-0.5">{b.machine_name} · {b.prize_name}</div>
                   </div>
                   <div className="text-right">
@@ -159,10 +159,10 @@ export default function RankingView() {
       <h3 className="text-base font-bold mb-2">📋 全ブース（機械順）</h3>
       <div className="space-y-1.5">
         {boothStats.map(b => (
-          <div key={b.full_booth_code} className={`bg-surface border border-border rounded-xl px-4 py-2.5 ${getNoData(b)?'opacity-50':''}`}>
+          <div key={b.booth_code} className={`bg-surface border border-border rounded-xl px-4 py-2.5 ${getNoData(b)?'opacity-50':''}`}>
             <div className="flex justify-between items-center">
               <div>
-                <div className="font-bold text-sm">{b.full_booth_code}</div>
+                <div className="font-bold text-sm">{b.booth_code}</div>
                 <div className="text-xs text-muted">{b.prize_name}</div>
               </div>
               <div className="text-right">

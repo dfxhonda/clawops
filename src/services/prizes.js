@@ -12,7 +12,7 @@ export async function getPrizes() {
   const result = (data || []).map(r => ({
     _id: r.prize_id,
     prize_id: r.prize_id, prize_name: r.prize_name, jan_code: r.jan_code || '',
-    barcode_value: r.jan_code || '', unit_cost: String(r.original_cost || '0'),
+    unit_cost: String(r.original_cost || '0'),
     supplier_name: supName(r.supplier_id), supplier_id: r.supplier_id || '',
     supplier_contact: '', is_active: r.status === 'active' ? 'TRUE' : 'FALSE',
     created_at: r.created_at || '', updated_at: r.updated_at || '',
@@ -64,7 +64,7 @@ export async function getPrizeOrders() {
   const result = (data || []).map(r => ({
     _id: r.order_id,
     order_id: r.order_id, prize_id: r.prize_id || '', prize_name: r.prize_name_raw || '',
-    ordered_at: r.order_date || '', order_quantity: String(r.case_quantity || ''),
+    order_date: r.order_date || '', order_quantity: String(r.case_quantity || ''),
     arrived_at: r.arrived_at || '', arrival_quantity: String(r.received_quantity || ''),
     unit_cost_at_order: String(r.unit_cost || '0'),
     total_cost: String((r.unit_cost || 0) * (r.case_quantity || 0)),

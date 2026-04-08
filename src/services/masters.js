@@ -16,13 +16,12 @@ export async function getStores() {
   if (storeCodes.length === 0) return []
   const { data, error } = await supabase
     .from('stores')
-    .select('store_code, store_id, store_name, is_active')
+    .select('store_code, store_name, is_active')
     .in('store_code', storeCodes)
     .eq('is_active', true)
     .order('store_name')
   if (error) { console.error('stores取得エラー:', error.message); return [] }
   const result = data.map(r => ({
-    store_id: r.store_code,
     store_code: r.store_code,
     store_name: r.store_name,
     active_flag: r.is_active ? 1 : 0,
@@ -53,17 +52,12 @@ export async function getMachines(storeId) {
     .order('machine_code')
   if (error) { console.error('machines取得エラー:', error.message); return [] }
   const result = data.map(r => ({
-    machine_id: r.machine_code,
-    store_id: r.store_code,
     machine_code: r.machine_code,
+    store_code: r.store_code,
     machine_name: r.machine_name || '',
-    machine_model: r.model_id || '',
     machine_type: r.type_id || '',
-    booth_count: '',
     default_price: parseNum(r.play_price || '100'),
-    meter_layout: '',
     rental_code: r.machine_number || '',
-    monthly_advance: 0,
     location_note: r.notes || '',
     active_flag: r.is_active ? '1' : '0',
   }))
@@ -82,13 +76,11 @@ export async function getBooths(machineId) {
     .order('booth_number')
   if (error) { console.error('booths取得エラー:', error.message); return [] }
   const result = data.map(r => ({
-    booth_id: r.booth_code,
-    machine_id: r.machine_code,
     booth_code: r.booth_code,
+    machine_code: r.machine_code,
     booth_number: r.booth_number,
-    full_booth_code: r.booth_code,
-    meter_in_digit: r.meter_in_number || '7',
-    meter_out_digit: r.meter_out_number || '7',
+    meter_in_number: r.meter_in_number || '7',
+    meter_out_number: r.meter_out_number || '7',
     play_price: r.play_price,
   }))
   setCache(ckey, result)
@@ -105,11 +97,11 @@ export async function findBoothByCode(fullBoothCode) {
     .single()
   if (error || !data) return null
   return {
-    booth_id: data.booth_code, machine_id: data.machine_code,
-    booth_code: data.booth_code, booth_number: data.booth_number,
-    full_booth_code: data.booth_code,
-    meter_in_digit: data.meter_in_number || '7',
-    meter_out_digit: data.meter_out_number || '7',
+    booth_code: data.booth_code,
+    machine_code: data.machine_code,
+    booth_number: data.booth_number,
+    meter_in_number: data.meter_in_number || '7',
+    meter_out_number: data.meter_out_number || '7',
     play_price: data.play_price,
   }
 }
@@ -122,12 +114,12 @@ export async function findMachineById(machineId) {
     .limit(1)
     .single()
   if (error || !data) return null
-  return { machine_id: data.machine_code, store_id: data.store_code, machine_code: data.machine_code, machine_name: data.machine_name }
+  return { machine_code: data.machine_code, store_code: data.store_code, machine_name: data.machine_name }
 }
 
 export async function findStoreById(storeId) {
   const stores = await getStores()
-  return stores.find(s => String(s.store_id) === String(storeId)) || null
+  return stores.find(s => String(s.store_code) === String(storeId)) || null
 }
 
 export async function getNextMachineCode(storeCode) {
@@ -277,11 +269,11 @@ export async function getLocations(forceRefresh = false) {
     .order('location_name')
   if (error) { console.error('locations取得エラー:', error.message); return [] }
   const result = data.map(r => ({
-    location_id: r.location_id, name: r.location_name || '',
+    location_id: r.location_id,
     location_name: r.location_name || '',
     parent_location_id: r.parent_location_id || '',
     store_code: r.store_code || '', location_type: r.location_type || '',
-    note: r.notes || '', notes: r.notes || '',
+    notes: r.notes || '',
     active_flag: r.is_active ? '1' : '0', is_active: r.is_active,
     operator_id: r.operator_id || '',
     capacity_note: r.capacity_note || '', is_full: r.is_full || false,

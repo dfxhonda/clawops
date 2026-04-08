@@ -68,7 +68,7 @@ export default function PatrolInput() {
   const inputCls = "w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent"
   const boothLabel = booth.booth_number != null
     ? `B${String(booth.booth_number).padStart(2,'0')}`
-    : (booth.full_booth_code ?? booth.booth_code).split('-').pop()
+    : booth.booth_code.split('-').pop()
 
   return (
     <div className="h-screen flex flex-col max-w-lg mx-auto">

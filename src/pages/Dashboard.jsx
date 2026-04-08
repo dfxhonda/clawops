@@ -16,7 +16,7 @@ export default function Dashboard() {
   useEffect(() => {
     getStores().then(s => {
       setStores(s)
-      if (s.length > 0) setStoreId(s[0].store_id)
+      if (s.length > 0) setStoreId(s[0].store_code)
       setLoading(false)
     })
   }, [])
@@ -27,7 +27,7 @@ export default function Dashboard() {
       const [machines, allReadings] = await Promise.all([
         getMachines(storeId), getAllMeterReadings()
       ])
-      const allBooths = await Promise.all(machines.map(m => getBooths(m.machine_id)))
+      const allBooths = await Promise.all(machines.map(m => getBooths(m.machine_code)))
 
       let totalSales = 0, totalPrev = 0, boothRankings = [], inputCount = 0, totalBooths = 0
 
@@ -37,7 +37,7 @@ export default function Dashboard() {
         totalBooths += mBooths.length
 
         for (const booth of mBooths) {
-          const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_id))
+          const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_code))
           if (br.length >= 2) {
             const curr = parseNum(br[br.length-1].in_meter)
             const prev = parseNum(br[br.length-2].in_meter)
@@ -51,7 +51,7 @@ export default function Dashboard() {
               const outDiff = (!isNaN(outCurr) && !isNaN(outPrev)) ? outCurr - outPrev : 0
               const rate = diff > 0 ? ((outDiff / diff) * 100).toFixed(1) : '0'
               boothRankings.push({
-                code: booth.full_booth_code || `${m.machine_code}-${booth.booth_code}`,
+                code: booth.booth_code,
                 prize: br[br.length-1].prize_name || '',
                 machine: m.machine_name,
                 sales, diff, rate,
@@ -94,9 +94,9 @@ export default function Dashboard() {
       {/* 店舗チップ */}
       <div className="flex gap-1.5 px-2.5 py-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
         {stores.map(s => (
-          <button key={s.store_id} onClick={() => setStoreId(s.store_id)}
+          <button key={s.store_code} onClick={() => setStoreId(s.store_code)}
             className={`shrink-0 px-3 py-1 rounded-2xl text-xs font-semibold border transition-all
-              ${s.store_id === storeId
+              ${s.store_code === storeId
                 ? 'bg-blue-600 border-blue-600 text-white'
                 : 'bg-surface border-border text-muted'}`}>
             {s.store_name}
