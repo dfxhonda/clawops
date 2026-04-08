@@ -146,6 +146,7 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <select class="tab-select" onchange="if(this.value){switchTab(this.value)}" id="settingsSelect">
       <option value="">⚙️設定▼</option>
       <option value="machine_types">🏷️ タイプ</option>
+      <option value="machine_models">🔧 機種</option>
       <option value="categories">📂 カテゴリ</option>
       <option value="ownership">📋 所有形態</option>
       <option value="transfers">🔄 移管タイプ</option>
@@ -193,7 +194,7 @@ function doLogout(){if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未�
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let stores=[], machines=[], booths=[];
-let machineTypes=[], machineCategories=[], suppliers=[], ownershipTypes=[], transferTypes=[], patrolStatuses=[];
+let machineTypes=[], machineCategories=[], machineModels=[], suppliers=[], ownershipTypes=[], transferTypes=[], patrolStatuses=[];
 let currentTab='stores';
 let filterStore='', filterMachine='';
 let searchQ='';
@@ -217,19 +218,20 @@ async function loadAll(){
   showLoading();
   document.getElementById('mainContent').innerHTML='<div class="empty">⏳ 読み込み中...</div>';
   try{
-    const [s,m,b,mt,mc,sup,ot,tt,ps]=await Promise.all([
+    const [s,m,b,mt,mc,mm,sup,ot,tt,ps]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&is_active=eq.true&order=store_code.asc'),
       sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
       sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&is_active=eq.true&order=booth_code.asc'),
       sbGet('machine_types','select=*&order=type_id.asc'),
       sbGet('machine_categories','select=*&order=sort_order.asc'),
+      sbGet('machine_models','select=*&order=model_id.asc'),
       sbGet('suppliers','select=*&order=supplier_id.asc'),
       sbGet('ownership_types','select=*&order=sort_order.asc'),
       sbGet('transfer_types','select=*&order=sort_order.asc'),
       sbGet('patrol_statuses','select=*&order=sort_order.asc')
     ]);
     stores=s; machines=m; booths=b;
-    machineTypes=mt; machineCategories=mc; suppliers=sup; ownershipTypes=ot; transferTypes=tt; patrolStatuses=ps;
+    machineTypes=mt; machineCategories=mc; machineModels=mm; suppliers=sup; ownershipTypes=ot; transferTypes=tt; patrolStatuses=ps;
     render();
   }catch(e){
     document.getElementById('mainContent').innerHTML=
@@ -312,6 +314,7 @@ function render(){
   else if(currentTab==='machines')el.innerHTML=renderMachines();
   else if(currentTab==='booths')el.innerHTML=renderBooths();
   else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category','locker_slots','notes'],'machine_types','type_id');
+  else if(currentTab==='machine_models')el.innerHTML=renderSimpleList('機種マスタ',machineModels,'model_id',['model_id','model_name','type_id','manufacturer','booth_count','meter_count','meter_unit_price','notes'],'machine_models','model_id');
   else if(currentTab==='categories')el.innerHTML=renderSimpleList('カテゴリ',machineCategories,'category_id',['category_id','category_name','sort_order'],'machine_categories','category_id');
   else if(currentTab==='suppliers')el.innerHTML=renderSimpleList('仕入先',suppliers,'supplier_id',['supplier_id','supplier_name','supplier_type','is_active'],'suppliers','supplier_id');
   else if(currentTab==='ownership')el.innerHTML=renderSimpleList('所有形態',ownershipTypes,'type_id',['type_id','type_name','sort_order'],'ownership_types','type_id');
@@ -423,7 +426,9 @@ function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
   document.getElementById('headerBadge').textContent = list.length + '件';
 
   const colLabels = {
-    type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', locker_slots:'ロッカー数', notes:'メモ',
+    type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', locker_slots:'ロッカー数',
+    model_id:'機種ID', model_name:'機種名', manufacturer:'メーカー', booth_count:'ブース数', meter_count:'メーター数', meter_unit_price:'単価(円)',
+    notes:'メモ',
     category_id:'カテゴリID', category_name:'カテゴリ名',
     sort_order:'表示順', supplier_id:'仕入先ID', supplier_name:'仕入先名', supplier_type:'タイプ', is_active:'有効',
     status_id:'ステータスID', status_name:'ステータス名', color:'色'
@@ -450,13 +455,14 @@ function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
 }
 
 function getSimpleData(tableName) {
-  const map = {machine_types:machineTypes, machine_categories:machineCategories, suppliers:suppliers, ownership_types:ownershipTypes, transfer_types:transferTypes, patrol_statuses:patrolStatuses};
+  const map = {machine_types:machineTypes, machine_categories:machineCategories, machine_models:machineModels, suppliers:suppliers, ownership_types:ownershipTypes, transfer_types:transferTypes, patrol_statuses:patrolStatuses};
   return map[tableName] || [];
 }
 
 function getSimpleFields(tableName) {
   const map = {
-    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ',required:true,type:'select',options:['crane','gacha','locker']},{key:'locker_slots',label:'ロッカー数',type:'number'},{key:'notes',label:'メモ'}],
+    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ',required:true,type:'select',options:['crane','gacha','locker','other']},{key:'locker_slots',label:'ロッカー数',type:'number'},{key:'notes',label:'メモ'}],
+    machine_models: [{key:'model_id',label:'機種ID',required:true},{key:'model_name',label:'機種名',required:true},{key:'type_id',label:'タイプ',type:'dynamic_select',source:'machine_types',valueKey:'type_id',labelKey:'type_name'},{key:'manufacturer',label:'メーカー'},{key:'booth_count',label:'ブース数',type:'number'},{key:'meter_count',label:'メーター数',type:'number'},{key:'meter_unit_price',label:'単価(円)',type:'number'},{key:'notes',label:'メモ'}],
     machine_categories: [{key:'category_id',label:'カテゴリID',required:true},{key:'category_name',label:'カテゴリ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
     suppliers: [{key:'supplier_id',label:'仕入先ID',required:true},{key:'supplier_name',label:'仕入先名',required:true},{key:'supplier_type',label:'タイプ'},{key:'is_active',label:'有効',type:'bool'}],
     ownership_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
@@ -471,6 +477,7 @@ function addSimple(tableName, pkCol) {
   const formHtml = fields.map(f => {
     if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true">はい</option><option value="false">いいえ</option></select></div>';
     if (f.type === 'select') return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><select id="sf_' + f.key + '">' + f.options.map(o => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('') + '</select></div>';
+    if (f.type === 'dynamic_select') { const src=getSimpleData(f.source); return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><select id="sf_' + f.key + '"><option value="">—</option>' + src.map(o => '<option value="' + esc(o[f.valueKey]) + '">' + esc(o[f.labelKey]) + '</option>').join('') + '</select></div>'; }
     return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '"' + (f.type === 'number' ? ' type="number"' : '') + '></div>';
   }).join('');
   showModal('<div class="modal-title">追加</div>' + formHtml
@@ -486,6 +493,7 @@ function editSimple(tableName, pkCol, pkVal) {
     const val = item[f.key];
     if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true"' + (val !== false ? ' selected' : '') + '>はい</option><option value="false"' + (val === false ? ' selected' : '') + '>いいえ</option></select></div>';
     if (f.type === 'select') return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><select id="sf_' + f.key + '">' + f.options.map(o => '<option value="' + esc(o) + '"' + (val === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></div>';
+    if (f.type === 'dynamic_select') { const src=getSimpleData(f.source); return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><select id="sf_' + f.key + '"><option value="">—</option>' + src.map(o => '<option value="' + esc(o[f.valueKey]) + '"' + (val === o[f.valueKey] ? ' selected' : '') + '>' + esc(o[f.labelKey]) + '</option>').join('') + '</select></div>'; }
     return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '" value="' + esc(val != null ? val : '') + '"' + (f.type === 'number' ? ' type="number"' : '') + (f.key === pkCol ? ' disabled style="opacity:.5"' : '') + '></div>';
   }).join('');
   showModal('<div class="modal-title">編集</div>' + formHtml
@@ -730,7 +738,7 @@ function switchTab(tab){
   currentTab=tab;filterStore='';filterMachine='';searchQ='';
   document.getElementById('searchInput').value='';
   // タブボタンのactive制御
-  const settingsTabs=['machine_types','categories','ownership','transfers','patrols'];
+  const settingsTabs=['machine_types','machine_models','categories','ownership','transfers','patrols'];
   const isSettings=settingsTabs.includes(tab);
   document.querySelectorAll('.tab-btn').forEach(b => {
     const tabName = b.getAttribute('onclick')?.match(/switchTab\('(.+?)'\)/)?.[1];
