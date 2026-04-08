@@ -49,6 +49,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 
 main{padding:var(--space-lg)}
 
+.table-controls{position:sticky;top:var(--header-h,140px);background:var(--bg);z-index:20;padding-top:var(--space-sm)}
 .filter-row{display:flex;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap}
 .filter-row select{flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;outline:none;cursor:pointer}
 .filter-row select:focus{border-color:var(--accent)}
@@ -56,9 +57,9 @@ main{padding:var(--space-lg)}
 .btn-add{background:var(--accent);border:none;border-radius:8px;color:var(--white);font-size:13px;font-weight:700;padding:8px 16px;min-height:var(--btn-min-h);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s}
 .btn-add:hover{background:var(--accent2)}
 
-.table-wrap{border-radius:var(--radius);border:1px solid var(--border);overflow-x:auto}
+.table-wrap{border-radius:var(--radius);border:1px solid var(--border);overflow:auto;max-height:calc(100dvh - var(--table-top,260px) - var(--nav-h) - 32px)}
 table{width:100%;border-collapse:collapse;min-width:640px}
-th{background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+th{background:var(--surface2);color:var(--text2);font-size:12px;font-weight:600;padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:sticky;top:0;z-index:10}
 td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(124,106,255,.06)}
@@ -310,13 +311,14 @@ function render(){
   if(currentTab==='stores')el.innerHTML=renderStores();
   else if(currentTab==='machines')el.innerHTML=renderMachines();
   else if(currentTab==='booths')el.innerHTML=renderBooths();
-  else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category'],'machine_types','type_id');
+  else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category','locker_slots','notes'],'machine_types','type_id');
   else if(currentTab==='categories')el.innerHTML=renderSimpleList('カテゴリ',machineCategories,'category_id',['category_id','category_name','sort_order'],'machine_categories','category_id');
   else if(currentTab==='suppliers')el.innerHTML=renderSimpleList('仕入先',suppliers,'supplier_id',['supplier_id','supplier_name','supplier_type','is_active'],'suppliers','supplier_id');
   else if(currentTab==='ownership')el.innerHTML=renderSimpleList('所有形態',ownershipTypes,'type_id',['type_id','type_name','sort_order'],'ownership_types','type_id');
   else if(currentTab==='transfers')el.innerHTML=renderSimpleList('移管タイプ',transferTypes,'type_id',['type_id','type_name','sort_order'],'transfer_types','type_id');
   else if(currentTab==='patrols')el.innerHTML=renderSimpleList('巡回ステータス',patrolStatuses,'status_id',['status_id','status_name','color','sort_order'],'patrol_statuses','status_id');
   else if(currentTab==='tools') el.innerHTML=renderTools();
+  requestAnimationFrame(updateTableTop);
 }
 function th(tab,col,label){
   return'<th class="th-sort" onclick="toggleSort(\''+tab+'\',\''+col+'\')">'+label+sortArrow(tab,col)+'</th>';
@@ -339,8 +341,8 @@ function renderStores(){
       +'<td><button class="btn-edit" onclick="editStore(\''+esc(s.store_code)+'\')">編集</button></td>'
       +'</tr>';
   }).join('');
-  return'<div class="count-row"><span class="count-text">'+sorted.length+'/'+stores.length+'店舗</span>'
-    +'<button class="btn-add" onclick="addStore()">＋ 店舗追加</button></div>'
+  return'<div class="table-controls"><div class="count-row"><span class="count-text">'+sorted.length+'/'+stores.length+'店舗</span>'
+    +'<button class="btn-add" onclick="addStore()">＋ 店舗追加</button></div></div>'
     +'<div class="table-wrap"><table>'
     +'<colgroup><col style="width:22%"><col style="width:12%"><col style="width:12%"><col style="width:17%"><col style="width:9%"><col style="width:9%"><col style="width:19%"></colgroup>'
     +'<thead><tr>'+th('stores','store_name','店舗名')+th('stores','region','地域')+th('stores','store_code','コード')+th('stores','opened_at','営業開始日')+'<th>状態</th>'+th('stores','machine_count','機械数')+'<th>操作</th></tr></thead>'
@@ -368,10 +370,10 @@ function renderMachines(){
       +'<td><button class="btn-edit" onclick="editMachine(\''+esc(m.machine_code)+'\')">編集</button></td>'
       +'</tr>';
   }).join('');
-  return'<div class="filter-row">'
+  return'<div class="table-controls"><div class="filter-row">'
     +'<select onchange="filterStore=this.value;render()"><option value="">全店舗</option>'+storeOpts+'</select>'
     +'<button class="btn-add" onclick="addMachine()">＋ 機械追加</button></div>'
-    +'<div class="count-row"><span class="count-text">'+sorted.length+'台</span></div>'
+    +'<div class="count-row"><span class="count-text">'+sorted.length+'台</span></div></div>'
     +'<div class="table-wrap"><table>'
     +'<colgroup><col style="width:28%"><col style="width:18%"><col style="width:14%"><col style="width:16%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>'
     +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+'<th>備考</th><th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
@@ -402,11 +404,11 @@ function renderBooths(){
       +'<td><button class="btn-edit" onclick="editBooth(\''+esc(b.booth_code)+'\')">編集</button></td>'
       +'</tr>';
   }).join('');
-  return'<div class="filter-row">'
+  return'<div class="table-controls"><div class="filter-row">'
     +'<select onchange="filterStore=this.value;filterMachine=\'\';render()"><option value="">全店舗</option>'+storeOpts+'</select>'
     +'<select onchange="filterMachine=this.value;render()"><option value="">全機械</option>'+machOpts+'</select>'
     +'<button class="btn-add" onclick="addBooth()">＋ ブース追加</button></div>'
-    +'<div class="count-row"><span class="count-text">'+sorted.length+'ブース</span></div>'
+    +'<div class="count-row"><span class="count-text">'+sorted.length+'ブース</span></div></div>'
     +'<div class="table-wrap"><table>'
     +'<colgroup><col style="width:14%"><col style="width:18%"><col style="width:30%"><col style="width:12%"><col style="width:10%"><col style="width:16%"></colgroup>'
     +'<thead><tr>'+th('booths','booth_code','コード')+th('booths','store_name','店舗')+th('booths','machine_name','機械')+th('booths','booth_number','番号')+'<th>状態</th>'+'<th>操作</th></tr></thead>'
@@ -421,7 +423,8 @@ function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
   document.getElementById('headerBadge').textContent = list.length + '件';
 
   const colLabels = {
-    type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', category_id:'カテゴリID', category_name:'カテゴリ名',
+    type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', locker_slots:'ロッカー数', notes:'メモ',
+    category_id:'カテゴリID', category_name:'カテゴリ名',
     sort_order:'表示順', supplier_id:'仕入先ID', supplier_name:'仕入先名', supplier_type:'タイプ', is_active:'有効',
     status_id:'ステータスID', status_name:'ステータス名', color:'色'
   };
@@ -438,8 +441,8 @@ function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
     return '<tr>' + cells + '<td><button class="btn-edit" onclick="editSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\',\'' + esc(item[pkField]) + '\')">編集</button></td></tr>';
   }).join('');
 
-  return '<div class="count-row"><span class="count-text">' + list.length + '/' + data.length + '件</span>'
-    + '<button class="btn-add" onclick="addSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\')">＋ 追加</button></div>'
+  return '<div class="table-controls"><div class="count-row"><span class="count-text">' + list.length + '/' + data.length + '件</span>'
+    + '<button class="btn-add" onclick="addSimple(\'' + esc(tableName) + '\',\'' + esc(pkCol) + '\')">＋ 追加</button></div></div>'
     + '<div class="table-wrap"><table>'
     + '<thead><tr>' + headerCols + '</tr></thead>'
     + '<tbody>' + (rows || '<tr><td colspan="' + (columns.length + 1) + '"><div class="empty">データがありません</div></td></tr>') + '</tbody>'
@@ -453,7 +456,7 @@ function getSimpleData(tableName) {
 
 function getSimpleFields(tableName) {
   const map = {
-    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ'}],
+    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ',required:true,type:'select',options:['crane','gacha','locker']},{key:'locker_slots',label:'ロッカー数',type:'number'},{key:'notes',label:'メモ'}],
     machine_categories: [{key:'category_id',label:'カテゴリID',required:true},{key:'category_name',label:'カテゴリ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
     suppliers: [{key:'supplier_id',label:'仕入先ID',required:true},{key:'supplier_name',label:'仕入先名',required:true},{key:'supplier_type',label:'タイプ'},{key:'is_active',label:'有効',type:'bool'}],
     ownership_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
@@ -467,6 +470,7 @@ function addSimple(tableName, pkCol) {
   const fields = getSimpleFields(tableName);
   const formHtml = fields.map(f => {
     if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true">はい</option><option value="false">いいえ</option></select></div>';
+    if (f.type === 'select') return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><select id="sf_' + f.key + '">' + f.options.map(o => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('') + '</select></div>';
     return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '"' + (f.type === 'number' ? ' type="number"' : '') + '></div>';
   }).join('');
   showModal('<div class="modal-title">追加</div>' + formHtml
@@ -481,6 +485,7 @@ function editSimple(tableName, pkCol, pkVal) {
   const formHtml = fields.map(f => {
     const val = item[f.key];
     if (f.type === 'bool') return '<div class="form-group"><label>' + f.label + '</label><select id="sf_' + f.key + '"><option value="true"' + (val !== false ? ' selected' : '') + '>はい</option><option value="false"' + (val === false ? ' selected' : '') + '>いいえ</option></select></div>';
+    if (f.type === 'select') return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><select id="sf_' + f.key + '">' + f.options.map(o => '<option value="' + esc(o) + '"' + (val === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></div>';
     return '<div class="form-group"><label>' + f.label + (f.required ? ' *' : '') + '</label><input id="sf_' + f.key + '" value="' + esc(val != null ? val : '') + '"' + (f.type === 'number' ? ' type="number"' : '') + (f.key === pkCol ? ' disabled style="opacity:.5"' : '') + '></div>';
   }).join('');
   showModal('<div class="modal-title">編集</div>' + formHtml
@@ -957,7 +962,17 @@ async function delBooth(code){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+function updateTableTop(){
+  const hh=document.querySelector('header')?.offsetHeight||140;
+  document.documentElement.style.setProperty('--header-h',hh+'px');
+  const controls=document.querySelector('#mainContent .table-controls');
+  const ch=controls?.offsetHeight||0;
+  // --table-top = header + main-top-padding(16) + controls; used in max-height calc
+  document.documentElement.style.setProperty('--table-top',(hh+16+ch)+'px');
+}
 loadAll();
+window.addEventListener('resize',updateTableTop);
+requestAnimationFrame(updateTableTop);
 </script>
 </body>
 </html>

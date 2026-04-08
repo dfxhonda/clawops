@@ -6,6 +6,7 @@ import { getStores, getMachines, getBooths, getMachineTypes, updateMachine, dele
 const CATEGORY_COLOR = {
   crane:  'border-blue-500 text-blue-400 bg-blue-900/20',
   gacha:  'border-purple-500 text-purple-400 bg-purple-900/20',
+  locker: 'border-green-500 text-green-400 bg-green-900/20',
   other:  'border-amber-500 text-amber-400 bg-amber-900/20',
 }
 

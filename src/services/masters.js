@@ -35,7 +35,7 @@ export async function getMachineTypes() {
   if (getCache('machine_types')) return getCache('machine_types')
   const { data, error } = await supabase
     .from('machine_types')
-    .select('type_id, type_name, category')
+    .select('type_id, type_name, category, locker_slots, notes')
     .order('type_id')
   if (error) { console.error('machine_types取得エラー:', error.message); return [] }
   setCache('machine_types', data)
