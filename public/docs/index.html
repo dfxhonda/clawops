@@ -234,7 +234,7 @@ async function init(){
     return;
   }
 
-  STAFF=await sbGet('staff_public','select=staff_id,name,has_pin&is_active=eq.true&order=name');
+  STAFF=await sbGet('staff_public','select=staff_id,name,has_pin&is_active=eq.true&order=staff_id');
   const sel=document.getElementById('staffSelect');
   sel.innerHTML='<option value="">-- 選択してください --</option>'+
     STAFF.map(s=>`<option value="${s.staff_id}">${s.name}</option>`).join('');
