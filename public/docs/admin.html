@@ -145,8 +145,10 @@ input[type="number"],input[type="text"],input[type="tel"],input[type="date"],sel
     <button class="tab-btn" onclick="switchTab('suppliers')">🚚仕入先</button>
     <select class="tab-select" onchange="if(this.value){switchTab(this.value)}" id="settingsSelect">
       <option value="">⚙️設定▼</option>
+      <option value="staff">👤 スタッフ</option>
+      <option value="locations">📍 拠点</option>
       <option value="machine_types">🏷️ タイプ</option>
-      <option value="machine_models">🔧 機種</option>
+
       <option value="categories">📂 カテゴリ</option>
       <option value="ownership">📋 所有形態</option>
       <option value="transfers">🔄 移管タイプ</option>
@@ -194,13 +196,16 @@ function doLogout(){if(typeof isDirty!=='undefined'&&isDirty){if(!confirm('未�
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let stores=[], machines=[], booths=[];
-let machineTypes=[], machineCategories=[], machineModels=[], suppliers=[], ownershipTypes=[], transferTypes=[], patrolStatuses=[];
+let machineTypes=[], machineCategories=[], suppliers=[], ownershipTypes=[], transferTypes=[], patrolStatuses=[];
+let staffList=[], locationList=[];
 let currentTab='stores';
 let filterStore='', filterMachine='';
 let searchQ='';
 let storeSort={col:null,dir:'desc'};
 let machineSort={col:null,dir:'desc'};
 let boothSort={col:null,dir:'desc'};
+let staffSort={col:null,dir:'desc'};
+let locationSort={col:null,dir:'desc'};
 let _loadingCount=0, _toastTimer=null;
 
 // ─── LOADING / TOAST ─────────────────────────────────────────────────────────
@@ -218,20 +223,22 @@ async function loadAll(){
   showLoading();
   document.getElementById('mainContent').innerHTML='<div class="empty">⏳ 読み込み中...</div>';
   try{
-    const [s,m,b,mt,mc,mm,sup,ot,tt,ps]=await Promise.all([
+    const [s,m,b,mt,mc,sup,ot,tt,ps,st,loc]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&is_active=eq.true&order=store_code.asc'),
       sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
       sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&is_active=eq.true&order=booth_code.asc'),
       sbGet('machine_types','select=*&order=type_id.asc'),
       sbGet('machine_categories','select=*&order=sort_order.asc'),
-      sbGet('machine_models','select=*&order=model_id.asc'),
       sbGet('suppliers','select=*&order=supplier_id.asc'),
       sbGet('ownership_types','select=*&order=sort_order.asc'),
       sbGet('transfer_types','select=*&order=sort_order.asc'),
-      sbGet('patrol_statuses','select=*&order=sort_order.asc')
+      sbGet('patrol_statuses','select=*&order=sort_order.asc'),
+      sbGet('staff','select=staff_id,name,email,phone,role,operator_id,store_code,has_vehicle_stock,is_active,joined_at,notes&order=name.asc'),
+      sbGet('locations','select=*&order=location_name.asc')
     ]);
     stores=s; machines=m; booths=b;
-    machineTypes=mt; machineCategories=mc; machineModels=mm; suppliers=sup; ownershipTypes=ot; transferTypes=tt; patrolStatuses=ps;
+    machineTypes=mt; machineCategories=mc; suppliers=sup; ownershipTypes=ot; transferTypes=tt; patrolStatuses=ps;
+    staffList=st; locationList=loc;
     render();
   }catch(e){
     document.getElementById('mainContent').innerHTML=
@@ -262,14 +269,17 @@ function matchSearch(text){
 }
 
 // ─── SORT ─────────────────────────────────────────────────────────────────────
+function _sortState(tab){
+  return tab==='stores'?storeSort:tab==='machines'?machineSort:tab==='booths'?boothSort:tab==='staff'?staffSort:locationSort;
+}
 function toggleSort(tab,col){
-  const s=tab==='stores'?storeSort:tab==='machines'?machineSort:boothSort;
+  const s=_sortState(tab);
   if(s.col===col)s.dir=s.dir==='desc'?'asc':'desc';
   else{s.col=col;s.dir='desc';}
   render();
 }
 function sortArrow(tab,col){
-  const s=tab==='stores'?storeSort:tab==='machines'?machineSort:boothSort;
+  const s=_sortState(tab);
   if(s.col!==col)return'<span class="sort-arrow" style="opacity:.3">⇅</span>';
   return s.dir==='desc'
     ?'<span class="sort-arrow" style="color:var(--accent)">↓</span>'
@@ -313,8 +323,9 @@ function render(){
   if(currentTab==='stores')el.innerHTML=renderStores();
   else if(currentTab==='machines')el.innerHTML=renderMachines();
   else if(currentTab==='booths')el.innerHTML=renderBooths();
-  else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category','locker_slots','notes'],'machine_types','type_id');
-  else if(currentTab==='machine_models')el.innerHTML=renderSimpleList('機種マスタ',machineModels,'model_id',['model_id','model_name','type_id','manufacturer','booth_count','meter_count','meter_unit_price','notes'],'machine_models','model_id');
+  else if(currentTab==='staff')el.innerHTML=renderStaff();
+  else if(currentTab==='locations')el.innerHTML=renderLocations();
+  else if(currentTab==='machine_types')el.innerHTML=renderSimpleList('マシンタイプ',machineTypes,'type_id',['type_id','type_name','category','locker_slots','manufacturer','booth_count','meter_count','meter_unit_price','notes'],'machine_types','type_id');
   else if(currentTab==='categories')el.innerHTML=renderSimpleList('カテゴリ',machineCategories,'category_id',['category_id','category_name','sort_order'],'machine_categories','category_id');
   else if(currentTab==='suppliers')el.innerHTML=renderSimpleList('仕入先',suppliers,'supplier_id',['supplier_id','supplier_name','supplier_type','is_active'],'suppliers','supplier_id');
   else if(currentTab==='ownership')el.innerHTML=renderSimpleList('所有形態',ownershipTypes,'type_id',['type_id','type_name','sort_order'],'ownership_types','type_id');
@@ -427,7 +438,7 @@ function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
 
   const colLabels = {
     type_id:'タイプID', type_name:'タイプ名', category:'カテゴリ', locker_slots:'ロッカー数',
-    model_id:'機種ID', model_name:'機種名', manufacturer:'メーカー', booth_count:'ブース数', meter_count:'メーター数', meter_unit_price:'単価(円)',
+    manufacturer:'メーカー',
     notes:'メモ',
     category_id:'カテゴリID', category_name:'カテゴリ名',
     sort_order:'表示順', supplier_id:'仕入先ID', supplier_name:'仕入先名', supplier_type:'タイプ', is_active:'有効',
@@ -455,14 +466,13 @@ function renderSimpleList(title, data, pkField, columns, tableName, pkCol) {
 }
 
 function getSimpleData(tableName) {
-  const map = {machine_types:machineTypes, machine_categories:machineCategories, machine_models:machineModels, suppliers:suppliers, ownership_types:ownershipTypes, transfer_types:transferTypes, patrol_statuses:patrolStatuses};
+  const map = {machine_types:machineTypes, machine_categories:machineCategories, suppliers:suppliers, ownership_types:ownershipTypes, transfer_types:transferTypes, patrol_statuses:patrolStatuses};
   return map[tableName] || [];
 }
 
 function getSimpleFields(tableName) {
   const map = {
-    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ',required:true,type:'select',options:['crane','gacha','locker','other']},{key:'locker_slots',label:'ロッカー数',type:'number'},{key:'notes',label:'メモ'}],
-    machine_models: [{key:'model_id',label:'機種ID',required:true},{key:'model_name',label:'機種名',required:true},{key:'type_id',label:'タイプ',type:'dynamic_select',source:'machine_types',valueKey:'type_id',labelKey:'type_name'},{key:'manufacturer',label:'メーカー'},{key:'booth_count',label:'ブース数',type:'number'},{key:'meter_count',label:'メーター数',type:'number'},{key:'meter_unit_price',label:'単価(円)',type:'number'},{key:'notes',label:'メモ'}],
+    machine_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'category',label:'カテゴリ',required:true,type:'select',options:['crane','gacha','locker','other']},{key:'locker_slots',label:'ロッカー数',type:'number'},{key:'manufacturer',label:'メーカー'},{key:'booth_count',label:'ブース数',type:'number'},{key:'meter_count',label:'メーター数',type:'number'},{key:'meter_unit_price',label:'単価(円)',type:'number'},{key:'notes',label:'メモ'}],
     machine_categories: [{key:'category_id',label:'カテゴリID',required:true},{key:'category_name',label:'カテゴリ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
     suppliers: [{key:'supplier_id',label:'仕入先ID',required:true},{key:'supplier_name',label:'仕入先名',required:true},{key:'supplier_type',label:'タイプ'},{key:'is_active',label:'有効',type:'bool'}],
     ownership_types: [{key:'type_id',label:'タイプID',required:true},{key:'type_name',label:'タイプ名',required:true},{key:'sort_order',label:'表示順',type:'number'}],
@@ -540,6 +550,236 @@ async function delSimple(tableName, pkCol, pkVal) {
     await loadAll();
   } catch(e) { showToast('エラー: ' + e.message, false); }
   finally { hideLoading(); }
+}
+
+// ─── STAFF ───────────────────────────────────────────────────────────────────
+function roleBadge(r){
+  const map={admin:'badge-blue',manager:'badge-cyan',patrol:'badge-yellow',staff:'badge-green'};
+  return'<span class="badge '+(map[r]||'badge-blue')+'">'+esc(r||'—')+'</span>';
+}
+function renderStaff(){
+  let list=staffList;
+  if(searchQ)list=list.filter(s=>matchSearch(s.name)||matchSearch(s.role)||matchSearch(s.staff_id)||matchSearch(storeName(s.store_code)));
+  document.getElementById('headerBadge').textContent=list.length+'人';
+  const s=staffSort;
+  const sorted=list.slice().sort((a,b)=>{
+    if(!s.col)return String(a.name||'').localeCompare(String(b.name||''),'ja');
+    if(s.col==='store_name')return cmp(storeName(a.store_code),storeName(b.store_code),s.dir);
+    return cmp(a[s.col],b[s.col],s.dir);
+  });
+  const rows=sorted.map(s=>{
+    const hasPin=s.has_pin!==undefined?s.has_pin:(s.pin_hash?true:false);
+    return'<tr>'
+      +'<td><strong>'+esc(s.name)+'</strong></td>'
+      +'<td>'+roleBadge(s.role)+'</td>'
+      +'<td>'+esc(storeName(s.store_code))+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+esc(s.staff_id)+'</td>'
+      +'<td>'+(s.is_active!==false?'<span class="badge badge-green">稼働</span>':'<span class="badge badge-red">停止</span>')+'</td>'
+      +'<td><button class="btn-edit" onclick="editStaff(\''+esc(s.staff_id)+'\')">編集</button></td>'
+      +'</tr>';
+  }).join('');
+  return'<div class="table-controls"><div class="count-row"><span class="count-text">'+sorted.length+'/'+staffList.length+'人</span>'
+    +'<button class="btn-add" onclick="addStaff()">＋ スタッフ追加</button></div></div>'
+    +'<div class="table-wrap"><table>'
+    +'<colgroup><col style="width:24%"><col style="width:14%"><col style="width:22%"><col style="width:20%"><col style="width:10%"><col style="width:10%"></colgroup>'
+    +'<thead><tr>'
+    +['name','role','store_name','staff_id'].map((c,i)=>th('staff',c,['名前','役割','店舗','スタッフID'][i])).join('')
+    +'<th>状態</th><th>操作</th></tr></thead>'
+    +'<tbody>'+(rows||'<tr><td colspan="6"><div class="empty">スタッフがいません</div></td></tr>')+'</tbody>'
+    +'</table></div>';
+}
+function staffStoreOpts(cur){
+  return stores.map(s=>'<option value="'+esc(s.store_code)+'"'+(cur===s.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
+}
+function staffRoleOpts(cur){
+  return['admin','manager','patrol','staff'].map(r=>'<option value="'+r+'"'+(cur===r?' selected':'')+'>'+r+'</option>').join('');
+}
+function addStaff(){
+  showModal('<div class="modal-title">スタッフ追加</div>'
+    +'<div class="form-group"><label>スタッフID *</label><input id="sf_staff_id" placeholder="例: ST001"></div>'
+    +'<div class="form-group"><label>名前 *</label><input id="sf_name"></div>'
+    +'<div class="form-group"><label>役割</label><select id="sf_role"><option value="">—</option>'+staffRoleOpts('')+'</select></div>'
+    +'<div class="form-group"><label>店舗</label><select id="sf_store_code" style="color-scheme:dark"><option value="">—</option>'+staffStoreOpts('')+'</select></div>'
+    +'<div class="form-group"><label>メール</label><input id="sf_email" type="email"></div>'
+    +'<div class="form-group"><label>電話</label><input id="sf_phone" type="tel"></div>'
+    +'<div class="form-group"><label>備考</label><input id="sf_notes"></div>'
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditStaff(null)">追加</button></div>');
+}
+function editStaff(id){
+  const s=staffList.find(x=>x.staff_id===id);if(!s)return;
+  showModal('<div class="modal-title">スタッフ編集</div>'
+    +'<div class="form-group"><label>スタッフID</label><div style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:14px">'+esc(s.staff_id)+'</div></div>'
+    +'<div class="form-group"><label>名前 *</label><input id="sf_name" value="'+esc(s.name)+'"></div>'
+    +'<div class="form-group"><label>役割</label><select id="sf_role" style="color-scheme:dark"><option value="">—</option>'+staffRoleOpts(s.role)+'</select></div>'
+    +'<div class="form-group"><label>店舗</label><select id="sf_store_code" style="color-scheme:dark"><option value="">—</option>'+staffStoreOpts(s.store_code)+'</select></div>'
+    +'<div class="form-group"><label>メール</label><input id="sf_email" value="'+esc(s.email||'')+'"></div>'
+    +'<div class="form-group"><label>電話</label><input id="sf_phone" value="'+esc(s.phone||'')+'"></div>'
+    +'<div class="form-group"><label>備考</label><input id="sf_notes" value="'+esc(s.notes||'')+'"></div>'
+    +'<div class="form-group"><label>有効</label><select id="sf_is_active" style="color-scheme:dark"><option value="true"'+(s.is_active!==false?' selected':'')+'>はい</option><option value="false"'+(s.is_active===false?' selected':'')+'>いいえ</option></select></div>'
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditStaff(\''+esc(id)+'\')">保存</button></div>'
+    +'<button class="btn-del-modal" onclick="delStaff(\''+esc(id)+'\')">無効化</button>');
+}
+async function saveEditStaff(id){
+  const name=document.getElementById('sf_name')?.value.trim();
+  if(!name){alert('名前は必須です');return;}
+  const payload={
+    name,
+    role:document.getElementById('sf_role')?.value||null,
+    store_code:document.getElementById('sf_store_code')?.value||null,
+    email:document.getElementById('sf_email')?.value.trim()||null,
+    phone:document.getElementById('sf_phone')?.value.trim()||null,
+    notes:document.getElementById('sf_notes')?.value.trim()||null,
+    updated_at:new Date().toISOString(),
+  };
+  const isNew=!id;
+  if(isNew){
+    const sid=document.getElementById('sf_staff_id')?.value.trim();
+    if(!sid){alert('スタッフIDは必須です');return;}
+    payload.staff_id=sid;
+    payload.is_active=true;
+  } else {
+    payload.is_active=document.getElementById('sf_is_active')?.value==='true';
+  }
+  closeModal();showLoading();
+  try{
+    if(isNew){
+      await sbPost('staff',payload);showToast('スタッフを追加しました');
+    } else {
+      const rows=await sbPatch('staff',id,'staff_id',payload);
+      if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
+      showToast('保存しました');
+    }
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
+}
+async function delStaff(id){
+  if(!confirm('このスタッフを無効化しますか？'))return;
+  closeModal();showLoading();
+  try{
+    const rows=await sbPatch('staff',id,'staff_id',{is_active:false,updated_at:new Date().toISOString()});
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
+    showToast('無効化しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
+}
+
+// ─── LOCATIONS ────────────────────────────────────────────────────────────────
+function locTypeBadge(t){
+  const map={store:'badge-green',warehouse:'badge-cyan'};
+  const label={store:'店舗',warehouse:'倉庫'};
+  return'<span class="badge '+(map[t]||'badge-blue')+'">'+(label[t]||esc(t||'—'))+'</span>';
+}
+function renderLocations(){
+  let list=locationList;
+  if(searchQ)list=list.filter(l=>matchSearch(l.location_name)||matchSearch(l.location_type)||matchSearch(storeName(l.store_code)));
+  document.getElementById('headerBadge').textContent=list.length+'拠点';
+  const s=locationSort;
+  const sorted=list.slice().sort((a,b)=>{
+    if(!s.col)return String(a.location_name||'').localeCompare(String(b.location_name||''),'ja');
+    if(s.col==='store_name')return cmp(storeName(a.store_code),storeName(b.store_code),s.dir);
+    return cmp(a[s.col],b[s.col],s.dir);
+  });
+  const rows=sorted.map(l=>{
+    return'<tr>'
+      +'<td><strong>'+esc(l.location_name)+'</strong></td>'
+      +'<td>'+locTypeBadge(l.location_type)+'</td>'
+      +'<td>'+esc(storeName(l.store_code))+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+esc(l.location_id)+'</td>'
+      +'<td>'+(l.is_full?'<span class="badge badge-red">満杯</span>':'')+'</td>'
+      +'<td>'+(l.is_active!==false?'<span class="badge badge-green">稼働</span>':'<span class="badge badge-red">停止</span>')+'</td>'
+      +'<td><button class="btn-edit" onclick="editLocation(\''+esc(l.location_id)+'\')">編集</button></td>'
+      +'</tr>';
+  }).join('');
+  return'<div class="table-controls"><div class="count-row"><span class="count-text">'+sorted.length+'/'+locationList.length+'拠点</span>'
+    +'<button class="btn-add" onclick="addLocation()">＋ 拠点追加</button></div></div>'
+    +'<div class="table-wrap"><table>'
+    +'<colgroup><col style="width:26%"><col style="width:12%"><col style="width:20%"><col style="width:18%"><col style="width:10%"><col style="width:8%"><col style="width:6%"></colgroup>'
+    +'<thead><tr>'
+    +['location_name','location_type','store_name','location_id'].map((c,i)=>th('locations',c,['拠点名','種別','店舗','ID'][i])).join('')
+    +'<th>満杯</th><th>状態</th><th>操作</th></tr></thead>'
+    +'<tbody>'+(rows||'<tr><td colspan="7"><div class="empty">拠点がありません</div></td></tr>')+'</tbody>'
+    +'</table></div>';
+}
+function locStoreOpts(cur){
+  return stores.map(s=>'<option value="'+esc(s.store_code)+'"'+(cur===s.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
+}
+function locParentOpts(cur,selfId){
+  return locationList.filter(l=>l.location_id!==selfId).map(l=>'<option value="'+esc(l.location_id)+'"'+(cur===l.location_id?' selected':'')+'>'+esc(l.location_name)+'</option>').join('');
+}
+function addLocation(){
+  showModal('<div class="modal-title">拠点追加</div>'
+    +'<div class="form-group"><label>拠点ID *</label><input id="lf_id" placeholder="例: LOC001"></div>'
+    +'<div class="form-group"><label>拠点名 *</label><input id="lf_name"></div>'
+    +'<div class="form-group"><label>種別</label><select id="lf_type" style="color-scheme:dark"><option value="">—</option><option value="store">店舗</option><option value="warehouse">倉庫</option></select></div>'
+    +'<div class="form-group"><label>店舗</label><select id="lf_store" style="color-scheme:dark"><option value="">—</option>'+locStoreOpts('')+'</select></div>'
+    +'<div class="form-group"><label>親拠点</label><select id="lf_parent" style="color-scheme:dark"><option value="">—</option>'+locParentOpts('',null)+'</select></div>'
+    +'<div class="form-group"><label>備考</label><input id="lf_notes"></div>'
+    +'<div class="form-group"><label>容量メモ</label><input id="lf_capacity"></div>'
+    +'<div class="form-group"><label>満杯</label><select id="lf_full" style="color-scheme:dark"><option value="false">いいえ</option><option value="true">はい</option></select></div>'
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditLocation(null)">追加</button></div>');
+}
+function editLocation(id){
+  const l=locationList.find(x=>x.location_id===id);if(!l)return;
+  showModal('<div class="modal-title">拠点編集</div>'
+    +'<div class="form-group"><label>拠点ID</label><div style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:14px">'+esc(l.location_id)+'</div></div>'
+    +'<div class="form-group"><label>拠点名 *</label><input id="lf_name" value="'+esc(l.location_name)+'"></div>'
+    +'<div class="form-group"><label>種別</label><select id="lf_type" style="color-scheme:dark"><option value="">—</option><option value="store"'+(l.location_type==='store'?' selected':'')+'>店舗</option><option value="warehouse"'+(l.location_type==='warehouse'?' selected':'')+'>倉庫</option></select></div>'
+    +'<div class="form-group"><label>店舗</label><select id="lf_store" style="color-scheme:dark"><option value="">—</option>'+locStoreOpts(l.store_code)+'</select></div>'
+    +'<div class="form-group"><label>親拠点</label><select id="lf_parent" style="color-scheme:dark"><option value="">—</option>'+locParentOpts(l.parent_location_id,id)+'</select></div>'
+    +'<div class="form-group"><label>備考</label><input id="lf_notes" value="'+esc(l.notes||'')+'"></div>'
+    +'<div class="form-group"><label>容量メモ</label><input id="lf_capacity" value="'+esc(l.capacity_note||'')+'"></div>'
+    +'<div class="form-group"><label>満杯</label><select id="lf_full" style="color-scheme:dark"><option value="false"'+(l.is_full?'':' selected')+'>いいえ</option><option value="true"'+(l.is_full?' selected':'')+'>はい</option></select></div>'
+    +'<div class="form-group"><label>有効</label><select id="lf_active" style="color-scheme:dark"><option value="true"'+(l.is_active!==false?' selected':'')+'>はい</option><option value="false"'+(l.is_active===false?' selected':'')+'>いいえ</option></select></div>'
+    +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditLocation(\''+esc(id)+'\')">保存</button></div>'
+    +'<button class="btn-del-modal" onclick="delLocation(\''+esc(id)+'\')">無効化</button>');
+}
+async function saveEditLocation(id){
+  const name=document.getElementById('lf_name')?.value.trim();
+  if(!name){alert('拠点名は必須です');return;}
+  const payload={
+    location_name:name,
+    location_type:document.getElementById('lf_type')?.value||null,
+    store_code:document.getElementById('lf_store')?.value||null,
+    parent_location_id:document.getElementById('lf_parent')?.value||null,
+    notes:document.getElementById('lf_notes')?.value.trim()||null,
+    capacity_note:document.getElementById('lf_capacity')?.value.trim()||null,
+    is_full:document.getElementById('lf_full')?.value==='true',
+    updated_at:new Date().toISOString(),
+  };
+  const isNew=!id;
+  if(isNew){
+    const lid=document.getElementById('lf_id')?.value.trim();
+    if(!lid){alert('拠点IDは必須です');return;}
+    payload.location_id=lid;
+    payload.is_active=true;
+  } else {
+    payload.is_active=document.getElementById('lf_active')?.value==='true';
+  }
+  closeModal();showLoading();
+  try{
+    if(isNew){
+      await sbPost('locations',payload);showToast('拠点を追加しました');
+    } else {
+      const rows=await sbPatch('locations',id,'location_id',payload);
+      if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
+      showToast('保存しました');
+    }
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
+}
+async function delLocation(id){
+  if(!confirm('この拠点を無効化しますか？'))return;
+  closeModal();showLoading();
+  try{
+    const rows=await sbPatch('locations',id,'location_id',{is_active:false,updated_at:new Date().toISOString()});
+    if(!rows||rows.length===0)throw new Error('更新できませんでした（権限不足の可能性があります）');
+    showToast('無効化しました');
+    await loadAll();
+  }catch(e){showToast('エラー: '+e.message,false);}
+  finally{hideLoading();}
 }
 
 // ─── TAB SWITCH ───────────────────────────────────────────────────────────────
@@ -738,7 +978,7 @@ function switchTab(tab){
   currentTab=tab;filterStore='';filterMachine='';searchQ='';
   document.getElementById('searchInput').value='';
   // タブボタンのactive制御
-  const settingsTabs=['machine_types','machine_models','categories','ownership','transfers','patrols'];
+  const settingsTabs=['staff','locations','machine_types','categories','ownership','transfers','patrols'];
   const isSettings=settingsTabs.includes(tab);
   document.querySelectorAll('.tab-btn').forEach(b => {
     const tabName = b.getAttribute('onclick')?.match(/switchTab\('(.+?)'\)/)?.[1];
