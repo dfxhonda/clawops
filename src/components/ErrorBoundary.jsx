@@ -6,7 +6,25 @@ export default class ErrorBoundary extends Component {
     this.state = { hasError: false, error: null }
   }
 
+  componentDidMount() {
+    // 正常起動したらリロードフラグをクリア
+    sessionStorage.removeItem('chunk-reload')
+  }
+
   static getDerivedStateFromError(error) {
+    // チャンク読み込み失敗（デプロイ後の旧キャッシュ）→ 自動リロード
+    const msg = error?.message || ''
+    if (
+      error?.name === 'ChunkLoadError' ||
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('error loading dynamically imported module')
+    ) {
+      if (!sessionStorage.getItem('chunk-reload')) {
+        sessionStorage.setItem('chunk-reload', '1')
+        window.location.reload()
+      }
+    }
     return { hasError: true, error }
   }
 
