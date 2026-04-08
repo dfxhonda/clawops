@@ -127,13 +127,14 @@ export async function getNextMachineCode(storeCode) {
     .from('machines')
     .select('machine_code')
     .eq('store_code', storeCode)
-    .order('machine_code', { ascending: false })
-    .limit(1)
   if (!data || data.length === 0) return `${storeCode}-M01`
-  const last = data[0].machine_code
-  const m = last.match(/-M(\d+)$/)
-  const n = m ? parseInt(m[1], 10) + 1 : 1
-  return `${storeCode}-M${String(n).padStart(2, '0')}`
+  const prefix = `${storeCode}-M`
+  const max = data.reduce((acc, { machine_code }) => {
+    if (!machine_code.startsWith(prefix)) return acc
+    const n = parseInt(machine_code.slice(prefix.length), 10)
+    return isNaN(n) ? acc : Math.max(acc, n)
+  }, 0)
+  return `${storeCode}-M${String(max + 1).padStart(2, '0')}`
 }
 
 export async function getNextBoothNumber(machineCode) {
