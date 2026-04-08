@@ -1092,10 +1092,21 @@ function addMachine(){
     +'<div class="form-group"><label>備考</label><input id="f_notes" placeholder="メモ"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewMachine()">追加</button></div>');
 }
+async function nextMachineCodeForStore(storeCode){
+  const rows=await sbGet('machines','select=machine_code&store_code=eq.'+encodeURIComponent(storeCode));
+  const prefix=storeCode+'-M';
+  const max=rows.reduce((acc,r)=>{
+    if(!r.machine_code.startsWith(prefix))return acc;
+    const n=parseInt(r.machine_code.slice(prefix.length),10);
+    return isNaN(n)?acc:Math.max(acc,n);
+  },0);
+  return storeCode+'-M'+String(max+1).padStart(2,'0');
+}
 async function saveNewMachine(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){alert('機械名を入力してください');return;}
-  const code=document.getElementById('f_code').value.trim()||genId('M');
+  const storeCode=document.getElementById('f_store').value;
+  const code=document.getElementById('f_code').value.trim()||(await nextMachineCodeForStore(storeCode));
   const payload={
     machine_code:code,
     store_code:document.getElementById('f_store').value,
