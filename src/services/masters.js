@@ -214,7 +214,7 @@ export async function addBooth(b) {
 export async function updateMachine(machineCode, updates) {
   const { data: before } = await supabase
     .from('machines')
-    .select('machine_name, model_id, type_id, play_price, notes, store_code')
+    .select('machine_name, model_id, type_id, machine_number, play_price, notes, store_code')
     .eq('machine_code', machineCode)
     .single()
   const { data: updated, error } = await supabase
@@ -223,6 +223,7 @@ export async function updateMachine(machineCode, updates) {
       machine_name: updates.machine_name ?? before?.machine_name,
       model_id: updates.model_id ?? before?.model_id,
       type_id: 'type_id' in updates ? (updates.type_id || null) : before?.type_id,
+      machine_number: 'machine_number' in updates ? (updates.machine_number || null) : before?.machine_number,
       play_price: updates.play_price ?? before?.play_price,
       notes: updates.notes ?? before?.notes,
       updated_at: new Date().toISOString(),

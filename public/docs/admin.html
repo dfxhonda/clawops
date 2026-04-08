@@ -225,7 +225,7 @@ async function loadAll(){
   try{
     const [s,m,b,mt,mc,sup,ot,tt,ps,st,loc]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&is_active=eq.true&order=store_code.asc'),
-      sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
+      sbGet('machines','select=machine_code,store_code,machine_name,machine_number,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
       sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&is_active=eq.true&order=booth_code.asc'),
       sbGet('machine_types','select=*&order=type_id.asc'),
       sbGet('machine_categories','select=*&order=sort_order.asc'),
@@ -304,6 +304,14 @@ function applySortMachines(list){
   return list.slice().sort((a,b)=>{
     if(s.col==='booth_count')return cmp(booths.filter(x=>x.machine_code===a.machine_code).length,booths.filter(x=>x.machine_code===b.machine_code).length,s.dir);
     if(s.col==='store_name')return cmp(storeName(a.store_code),storeName(b.store_code),s.dir);
+    if(s.col==='machine_number'){
+      // レンタルコードなし → 末尾
+      const av=a.machine_number||'', bv=b.machine_number||'';
+      if(!av&&!bv)return 0;
+      if(!av)return s.dir==='asc'?1:-1;
+      if(!bv)return s.dir==='asc'?-1:1;
+      return cmp(av,bv,s.dir);
+    }
     return cmp(a[s.col],b[s.col],s.dir);
   });
 }
@@ -367,7 +375,7 @@ function renderStores(){
 function renderMachines(){
   let list=machines;
   if(filterStore)list=list.filter(m=>m.store_code===filterStore);
-  if(searchQ)list=list.filter(m=>matchSearch(m.machine_name)||matchSearch(m.machine_code)||matchSearch(storeName(m.store_code))||matchSearch(m.notes));
+  if(searchQ)list=list.filter(m=>matchSearch(m.machine_name)||matchSearch(m.machine_code)||matchSearch(m.machine_number)||matchSearch(storeName(m.store_code))||matchSearch(m.notes));
   document.getElementById('headerBadge').textContent=list.length+'台';
   const storeOpts=stores.slice().sort((a,b)=>String(a.store_code||'').localeCompare(String(b.store_code||'')))
     .map(s=>'<option value="'+s.store_code+'"'+(filterStore===s.store_code?' selected':'')+'>'+esc(s.store_name)+'</option>').join('');
@@ -378,6 +386,7 @@ function renderMachines(){
       +'<td><strong>'+esc(m.machine_name)+'</strong></td>'
       +'<td>'+esc(storeName(m.store_code))+'</td>'
       +'<td><code style="font-size:11px;color:var(--text2)">'+esc(m.machine_code)+'</code></td>'
+      +(m.machine_number?'<td><span class="badge badge-blue" style="font-size:11px;padding:2px 8px">'+esc(m.machine_number)+'</span></td>':'<td style="color:var(--text2);font-size:11px">—</td>')
       +'<td style="font-size:11px;color:var(--text2)">'+esc(m.notes||'—')+'</td>'
       +'<td>'+activeBadge(m.is_active)+'</td>'
       +'<td>'+bc+'台</td>'
@@ -389,8 +398,8 @@ function renderMachines(){
     +'<button class="btn-add" onclick="addMachine()">＋ 機械追加</button></div>'
     +'<div class="count-row"><span class="count-text">'+sorted.length+'台</span></div></div>'
     +'<div class="table-wrap"><table>'
-    +'<colgroup><col style="width:28%"><col style="width:18%"><col style="width:14%"><col style="width:16%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>'
-    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+'<th>備考</th><th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
+    +'<colgroup><col style="width:24%"><col style="width:16%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:7%"><col style="width:7%"><col style="width:8%"></colgroup>'
+    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+th('machines','machine_number','レンタルコード')+'<th>備考</th><th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
     +'<tbody>'+(rows||'<tr><td colspan="7"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
     +'</table></div>';
 }
@@ -1078,8 +1087,9 @@ function addMachine(){
     +'<div class="form-group"><label>店舗</label><select id="f_store">'+storeOpts+'</select></div>'
     +'<div class="form-group"><label>機械名</label><input id="f_name" placeholder="例：BUZZ＃１" autofocus></div>'
     +'<div class="form-group"><label>機械コード</label><input id="f_code" placeholder="空白で自動生成"></div>'
+    +'<div class="form-group"><label>レンタルコード</label><input id="f_rental" placeholder="例：R2001"></div>'
     +'<div class="form-group"><label>フロア</label><input id="f_floor" placeholder="例：1F"></div>'
-    +'<div class="form-group"><label>備考</label><input id="f_notes" placeholder="レンタルNoなど"></div>'
+    +'<div class="form-group"><label>備考</label><input id="f_notes" placeholder="メモ"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveNewMachine()">追加</button></div>');
 }
 async function saveNewMachine(){
@@ -1090,6 +1100,7 @@ async function saveNewMachine(){
     machine_code:code,
     store_code:document.getElementById('f_store').value,
     machine_name:name,
+    machine_number:document.getElementById('f_rental').value.trim()||null,
     floor:document.getElementById('f_floor').value.trim()||null,
     is_active:true,
     notes:document.getElementById('f_notes').value.trim()||null
@@ -1109,6 +1120,7 @@ function editMachine(code){
   showModal('<div class="modal-title">機械編集</div>'
     +'<div class="form-group"><label>店舗</label><select id="f_store">'+storeOpts+'</select></div>'
     +'<div class="form-group"><label>機械名</label><input id="f_name" value="'+esc(m.machine_name)+'" autofocus></div>'
+    +'<div class="form-group"><label>レンタルコード</label><input id="f_rental" value="'+esc(m.machine_number||'')+'"></div>'
     +'<div class="form-group"><label>フロア</label><input id="f_floor" value="'+esc(m.floor||'')+'"></div>'
     +'<div class="form-group"><label>備考</label><input id="f_notes" value="'+esc(m.notes||'')+'"></div>'
     +'<div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">キャンセル</button><button class="btn-save" onclick="saveEditMachine(\''+esc(code)+'\')">保存</button></div>'
@@ -1118,6 +1130,7 @@ async function saveEditMachine(code){
   const payload={
     store_code:document.getElementById('f_store').value,
     machine_name:document.getElementById('f_name').value.trim()||undefined,
+    machine_number:document.getElementById('f_rental').value.trim()||null,
     floor:document.getElementById('f_floor').value.trim()||null,
     notes:document.getElementById('f_notes').value.trim()||null
   };

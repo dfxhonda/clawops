@@ -13,6 +13,7 @@ const CATEGORY_COLOR = {
 function MachineCard({ machine, boothCount, machineTypes }) {
   const [name, setName]       = useState(machine.machine_name || '')
   const [type, setType]       = useState(machine.machine_type || '')
+  const [rental, setRental]   = useState(machine.rental_code || '')
   const [price, setPrice]     = useState(String(machine.default_price || 100))
   const [notes, setNotes]     = useState(machine.location_note || '')
   const [saving, setSaving]   = useState(false)
@@ -22,6 +23,7 @@ function MachineCard({ machine, boothCount, machineTypes }) {
 
   const dirty = name !== (machine.machine_name || '') ||
     type !== (machine.machine_type || '') ||
+    rental !== (machine.rental_code || '') ||
     price !== String(machine.default_price || 100) ||
     notes !== (machine.location_note || '')
 
@@ -49,6 +51,7 @@ function MachineCard({ machine, boothCount, machineTypes }) {
       await updateMachine(machine.machine_code, {
         machine_name: name.trim(),
         type_id: type || null,
+        machine_number: rental.trim() || null,
         play_price: p,
         notes: notes.trim() || null,
       })
@@ -66,24 +69,41 @@ function MachineCard({ machine, boothCount, machineTypes }) {
   return (
     <div className={`bg-surface border rounded-xl p-3.5 space-y-3 ${dirty ? 'border-accent/50' : 'border-border'}`}>
       {/* ヘッダー行 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="font-mono text-xs bg-surface2 px-2 py-0.5 rounded text-muted">
           {machine.machine_code}
         </span>
+        {machine.rental_code && !dirty && (
+          <span className="font-mono text-xs bg-accent/10 border border-accent/30 text-accent px-2 py-0.5 rounded">
+            {machine.rental_code}
+          </span>
+        )}
         <span className="text-xs text-muted">{boothCount}ブース</span>
         {dirty && <span className="text-[10px] text-accent ml-auto">未保存</span>}
       </div>
 
-      {/* 機械名 */}
-      <div>
-        <div className="text-[11px] text-muted mb-1">機械名 *</div>
-        <input
-          className={inputCls}
-          type="text"
-          placeholder="例: BUZZ4 1号機、ガチャコロ #1"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
+      {/* 機械名 + レンタルコード */}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <div className="text-[11px] text-muted mb-1">機械名 *</div>
+          <input
+            className={inputCls}
+            type="text"
+            placeholder="例: BUZZ4 1号機"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </div>
+        <div className="w-24">
+          <div className="text-[11px] text-muted mb-1">レンタルコード</div>
+          <input
+            className={inputCls}
+            type="text"
+            placeholder="R2001"
+            value={rental}
+            onChange={e => setRental(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* 種類 */}
