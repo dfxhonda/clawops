@@ -31,6 +31,7 @@ const MachineList = lazy(() => import('./pages/MachineList'))
 const AddMachine = lazy(() => import('./pages/AddMachine'))
 const AddBooth = lazy(() => import('./pages/AddBooth'))
 const MachineSetup = lazy(() => import('./pages/MachineSetup'))
+const BoothQrPrint = lazy(() => import('./pages/BoothQrPrint'))
 
 // 遅延ロード — 管理系
 const EditReading = lazy(() => import('./pages/EditReading'))
@@ -109,6 +110,7 @@ function AppInner() {
       <Route path="/admin/add-machine" element={<ManagerRoute><AddMachine /></ManagerRoute>} />
       <Route path="/admin/add-booth" element={<ManagerRoute><AddBooth /></ManagerRoute>} />
       <Route path="/admin/machine-setup" element={<ManagerRoute><MachineSetup /></ManagerRoute>} />
+      <Route path="/admin/qr-print" element={<ManagerRoute><BoothQrPrint /></ManagerRoute>} />
 
       {/* 管理ツール — admin のみ */}
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />

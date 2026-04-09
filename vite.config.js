@@ -40,6 +40,8 @@ export default defineConfig({
           supabase: ['@supabase/supabase-js'],
           // QRスキャンは巡回画面でしか使わない
           qrscanner: ['html5-qrcode'],
+          // QRコード生成はQR印刷画面専用
+          qrcode: ['qrcode'],
         }
       }
     }
