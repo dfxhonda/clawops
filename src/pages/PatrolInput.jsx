@@ -15,9 +15,6 @@ const SETTINGS = [
   { key: 'o', label: 'O', disp: 'その他',   title: '固有設定',       isText: true  },
 ]
 
-const inputCls = "w-full p-3 text-lg text-center rounded-lg border-2 border-border bg-surface2 text-text outline-none focus:border-accent"
-const smallInputCls = "w-full p-2 text-sm text-center rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent"
-
 function boothLabel(booth) {
   if (!booth) return ''
   return booth.booth_number != null
@@ -43,6 +40,7 @@ export default function PatrolInput() {
     savedSet, savedCount, draftCount,
   } = usePatrolInput(booth, () => navigate('/patrol'))
 
+  const [activeTab, setActiveTab] = useState('prev')
   const [error, setError] = useState(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showOcr, setShowOcr] = useState(false)
@@ -52,21 +50,27 @@ export default function PatrolInput() {
   if (!booth) return null
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="h-dvh flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
-        <p className="text-muted text-sm">前回データを取得しています...</p>
+        <p className="text-muted text-sm">読み込み中...</p>
       </div>
     </div>
   )
 
   const label = boothLabel(currentBooth)
-  const monthlyStats = currentBooth ? monthlyStatsMap[currentBooth.booth_code] : null
   const isSaved = currentBooth ? savedSet.has(currentBooth.booth_code) : false
   const allSaved = booths.length > 0 && savedCount === booths.length
   const hasAnomaly = inAbnormal || outAbnormal || inZero || inTriple || payoutHigh || payoutLow
+  const monthlyStats = currentBooth ? monthlyStatsMap[currentBooth.booth_code] : null
 
-  // スワイプ検出
+  // 当日付変更件数（タブバッジ用）
+  const mr = currentInp._meterReplace || {}
+  const pc = currentInp._prizeChange || {}
+  const sc = currentInp._settingsChange || {}
+  const changeCount = (mr.enabled ? 1 : 0) + (pc.enabled ? 1 : 0) + (sc.enabled ? 1 : 0)
+
+  // スワイプでブース切り替え
   function onTouchStart(e) {
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
@@ -75,11 +79,10 @@ export default function PatrolInput() {
     if (touchStartX.current === null) return
     const dx = e.changedTouches[0].clientX - touchStartX.current
     const dy = e.changedTouches[0].clientY - touchStartY.current
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
       switchBooth(dx < 0 ? 'next' : 'prev')
     }
-    touchStartX.current = null
-    touchStartY.current = null
+    touchStartX.current = null; touchStartY.current = null
   }
 
   function onSave() {
@@ -94,175 +97,181 @@ export default function PatrolInput() {
   async function doSave() {
     setShowConfirm(false)
     const result = await handleSave()
-    if (!result.ok) {
-      setError({ message: result.message, type: 'validation' })
-      return
-    }
-    // 次の未保存ブースへ自動移動
+    if (!result.ok) { setError({ message: result.message, type: 'validation' }); return }
     const nextIdx = booths.findIndex((b, i) => i > currentIndex && !savedSet.has(b.booth_code))
     if (nextIdx >= 0) {
-      // setCurrentIndex is not directly returned but switchBooth handles nav
-      const steps = nextIdx - currentIndex
-      for (let i = 0; i < steps; i++) switchBooth('next')
+      for (let i = 0; i < nextIdx - currentIndex; i++) switchBooth('next')
     }
   }
 
-  // 当日付変更セクション
-  const mr = currentInp._meterReplace || {}
-  const pc = currentInp._prizeChange || {}
-  const sc = currentInp._settingsChange || {}
+  // 入力フィールドのスタイル（16px保証はCSSで済み、UIにはp-2.5/rounded-lg/border）
+  const inp = "w-full px-3 py-2.5 rounded-lg border-2 border-border bg-surface2 text-text text-center outline-none focus:border-accent transition-colors"
+  const inpSm = "w-full px-2 py-2 rounded-lg border border-border bg-surface2 text-text text-center outline-none focus:border-accent transition-colors"
 
   return (
-    <div className="h-screen flex flex-col max-w-lg mx-auto">
-      {/* ヘッダー */}
-      <div className="shrink-0 px-4 pt-4 pb-2">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/patrol')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+    <div
+      className="h-dvh flex flex-col max-w-lg mx-auto select-none"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* ━━━ ヘッダー ━━━ */}
+      <div className="shrink-0 px-3 pt-3 pb-1">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/patrol')}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted active:bg-surface2 transition-colors text-xl">
+            ←
+          </button>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-accent leading-tight">
-              {label}
-              {isSaved && <span className="ml-2 text-xs text-accent3 font-normal">✅ 保存済み</span>}
-            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold text-accent">{label}</span>
+              {isSaved && <span className="text-[11px] text-accent3 bg-accent3/15 px-1.5 py-0.5 rounded-full">✓保存済</span>}
+              {hasAnomaly && !isSaved && <span className="text-[11px] text-accent2 bg-accent2/15 px-1.5 py-0.5 rounded-full">⚠️異常値</span>}
+            </div>
             <p className="text-xs text-muted truncate">{storeName && `${storeName} · `}{machineName}</p>
           </div>
           <LogoutButton />
         </div>
+
         {/* ナビドット */}
         {booths.length > 1 && (
-          <div className="flex justify-center gap-1.5 mt-2">
+          <div className="flex justify-center gap-1.5 mt-1.5">
             {booths.map((b, i) => {
-              const saved = savedSet.has(b.booth_code)
-              const hasInput = !!inputs[b.booth_code]?.in_meter
+              const sv = savedSet.has(b.booth_code)
+              const hi = !!inputs[b.booth_code]?.in_meter
               return (
-                <button
-                  key={b.booth_code}
-                  onClick={() => {
-                    const diff = i - currentIndex
-                    if (diff !== 0) switchBooth(diff > 0 ? 'next' : 'prev')
-                  }}
-                  className={`rounded-full transition-all ${
-                    i === currentIndex ? 'w-4 h-2' : 'w-2 h-2'
-                  } ${
-                    saved ? 'bg-accent3' : hasInput ? 'bg-accent' : 'bg-border'
-                  }`}
-                />
+                <button key={b.booth_code}
+                  onClick={() => { const d = i - currentIndex; if (d !== 0) switchBooth(d > 0 ? 'next' : 'prev') }}
+                  className={`rounded-full transition-all ${i === currentIndex ? 'w-5 h-2.5' : 'w-2 h-2'} ${sv ? 'bg-accent3' : hi ? 'bg-accent' : 'bg-border'}`} />
               )
             })}
           </div>
         )}
+
+        {/* タブ */}
+        <div className="flex mt-2 bg-surface2 rounded-xl p-0.5 gap-0.5">
+          <button
+            onClick={() => setActiveTab('prev')}
+            className={`flex-1 py-2 rounded-[10px] text-sm font-bold transition-all ${activeTab === 'prev' ? 'bg-accent text-bg' : 'text-muted active:bg-surface3'}`}>
+            📋 前日付
+          </button>
+          <button
+            onClick={() => setActiveTab('today')}
+            className={`flex-1 py-2 rounded-[10px] text-sm font-bold transition-all relative ${activeTab === 'today' ? 'bg-accent text-bg' : 'text-muted active:bg-surface3'}`}>
+            📅 当日付変更
+            {changeCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent2 text-white text-[10px] rounded-full flex items-center justify-center">{changeCount}</span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* スクロール本体 */}
-      <div
-        className="flex-1 overflow-y-auto px-4 pb-4 space-y-3"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        {error && <ErrorDisplay error={error.message} type={error.type} onDismiss={() => setError(null)} />}
+      {/* ━━━ エラー ━━━ */}
+      {error && (
+        <div className="shrink-0 px-3">
+          <ErrorDisplay error={error.message} type={error.type} onDismiss={() => setError(null)} />
+        </div>
+      )}
 
-        {/* ━━━ 前日付セクション ━━━ */}
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
-          {/* セクションヘッダー */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-surface2 border-b border-border">
-            <span className="text-xs font-bold text-accent">📋 前日付メーター読み</span>
-            <input type="date" value={prevDayDate} onChange={e => setPrevDayDate(e.target.value)}
-              className="ml-auto bg-surface3 border border-border text-text text-xs px-2 py-1 rounded-md [color-scheme:dark]" />
-            {prevDayDate !== new Date(Date.now() - 86400000).toISOString().slice(0, 10) &&
-              <span className="text-[10px] text-accent2 font-bold">前日以外</span>}
-          </div>
+      {/* ━━━ コンテンツ ━━━ */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-2">
 
-          <div className="p-3.5 space-y-3">
+        {/* ===== 前日付タブ ===== */}
+        {activeTab === 'prev' && (
+          <div className="space-y-2 py-2">
+
             {/* 機械状態 */}
-            <div>
-              <div className="text-xs text-muted mb-1.5">機械状態</div>
-              <div className="flex gap-1.5 flex-wrap">
-                {STATUS_OPTIONS.map(s => (
-                  <button key={s.key} onClick={() => setInp('machineStatus', s.key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all
-                      ${(currentInp.machineStatus || 'ok') === s.key
-                        ? `${s.color} bg-surface3`
-                        : 'border-border text-muted bg-surface'}`}>
-                    {s.icon} {s.label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-1 flex-wrap">
+              {STATUS_OPTIONS.map(s => (
+                <button key={s.key}
+                  onClick={() => setInp('machineStatus', s.key)}
+                  className={`flex-1 min-w-[60px] py-2 rounded-lg text-xs font-bold border-2 transition-all active:scale-95
+                    ${(currentInp.machineStatus || 'ok') === s.key
+                      ? `${s.color} bg-surface3`
+                      : 'border-border text-muted bg-surface'}`}>
+                  {s.icon}<br/><span className="text-[10px]">{s.label}</span>
+                </button>
+              ))}
             </div>
 
-            {/* 前回値 */}
-            {latest && (
-              <div className="bg-surface2 rounded-lg p-2.5 text-sm">
-                <div className="text-muted text-xs mb-1">前回値（最新）</div>
-                <div>IN: <strong>{latestIn !== null ? latestIn.toLocaleString() : '-'}</strong>　OUT: <strong>{latestOut !== null ? latestOut.toLocaleString() : '-'}</strong></div>
-                {latest.prize_name && <div className="mt-0.5 text-xs">景品: {latest.prize_name}</div>}
-                <div className="text-muted text-[11px] mt-0.5">{latest.read_time?.slice(0, 10)}</div>
-              </div>
-            )}
+            {/* 前回値 + 日付 コンパクト1行 */}
+            <div className="flex items-center gap-2 px-2.5 py-2 bg-surface rounded-lg border border-border text-xs">
+              <span className="text-muted shrink-0">前回</span>
+              {latest ? (
+                <>
+                  <span>IN <strong>{latestIn?.toLocaleString() ?? '-'}</strong></span>
+                  <span>OUT <strong>{latestOut?.toLocaleString() ?? '-'}</strong></span>
+                  {latest.prize_name && <span className="text-muted truncate">{latest.prize_name}</span>}
+                  <span className="text-muted ml-auto shrink-0">{latest.read_time?.slice(5, 10)}</span>
+                </>
+              ) : <span className="text-muted">データなし</span>}
+            </div>
+
+            {/* 差分基準（last ≠ latest のとき） */}
             {last && last !== latest && (
-              <div className="bg-surface3 rounded-lg px-3 py-1.5 text-xs text-accent">
-                差分基準: IN {lastIn !== null ? lastIn.toLocaleString() : '-'} ({last.read_time?.slice(0, 10)})
-              </div>
-            )}
-            {!last && (
-              <div className="bg-accent/10 rounded-lg px-3 py-1.5 text-xs text-accent">
-                ⚠️ 差分計算できる過去データがありません
+              <div className="px-2.5 py-1.5 bg-surface3 rounded-lg text-xs text-accent">
+                差分基準: IN {lastIn?.toLocaleString() ?? '-'} ({last.read_time?.slice(5, 10)})
               </div>
             )}
 
-            {/* OCR */}
+            {/* 入力日付 */}
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-surface rounded-lg border border-border">
+              <span className="text-xs text-muted shrink-0">入力日付</span>
+              <input type="date" value={prevDayDate}
+                onChange={e => setPrevDayDate(e.target.value)}
+                className="flex-1 bg-transparent text-text text-xs outline-none [color-scheme:dark]" />
+              {prevDayDate !== new Date(Date.now() - 86400000).toISOString().slice(0, 10) &&
+                <span className="text-[10px] text-accent2 font-bold shrink-0">前日以外</span>}
+            </div>
+
+            {/* OCRボタン */}
             <button onClick={() => setShowOcr(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-accent/50 text-accent hover:bg-accent/10 transition-colors text-sm font-medium">
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-accent/40 text-accent active:bg-accent/10 transition-colors text-sm">
               📷 カメラで読取
-              {currentInp.inputMethod === 'ocr' && <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">OCR適用済み</span>}
+              {currentInp.inputMethod === 'ocr' && <span className="text-xs bg-accent/20 px-2 py-0.5 rounded-full">OCR適用済</span>}
             </button>
 
-            {/* IN / OUT */}
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <div className="text-xs text-muted mb-1">
-                  IN（売上）*
-                  {!currentInp.in_meter && latestIn !== null && <span className="text-[10px] text-amber-500 block leading-tight">空欄 = 前回値を引き継ぐ</span>}
-                </div>
-                <input className={`${inputCls} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`}
+            {/* IN / OUT 2カラム */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">IN（売上）<span className="text-accent2">*</span></div>
+                <input className={`${inp} ${inAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`}
                   type="number" inputMode="numeric"
-                  placeholder={latestIn !== null ? String(latestIn) : '0000000'}
+                  placeholder={latestIn !== null ? String(latestIn) : '---'}
                   value={currentInp.in_meter || ''}
                   onChange={e => setInp('in_meter', e.target.value)} />
-                <div className="min-h-[38px] mt-1">
-                  {inDiff !== null && (
-                    <div className={`text-center text-sm font-bold py-1.5 rounded-lg ${inAbnormal || inZero || inTriple ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
-                      {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}<br/>
-                      <span className="text-xs">¥{(inDiff * price).toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
               </div>
-              <div className="flex-1">
-                <div className="text-xs text-muted mb-1">
-                  OUT（払出）
-                  {!currentInp.out_meter && latestOut !== null && <span className="text-[10px] text-amber-500 block leading-tight">空欄 = 前回値を引き継ぐ</span>}
-                </div>
-                <input className={`${inputCls} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`}
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">OUT（払出）</div>
+                <input className={`${inp} ${outAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`}
                   type="number" inputMode="numeric"
-                  placeholder={latestOut !== null ? String(latestOut) : '0000000'}
+                  placeholder={latestOut !== null ? String(latestOut) : '---'}
                   value={currentInp.out_meter || ''}
                   onChange={e => setInp('out_meter', e.target.value)} />
-                <div className="min-h-[38px] mt-1">
-                  {outDiff !== null && (
-                    <div className={`text-center text-sm font-bold py-1.5 rounded-lg ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
-                      {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
-            {/* 出率 */}
-            {payoutRate !== null && (
-              <div className={`text-center text-sm font-bold py-2 px-3 rounded-lg
-                ${payoutHigh ? 'text-accent2 bg-accent2/10' : payoutLow ? 'text-blue-400 bg-blue-900/20' : 'text-accent3 bg-accent3/10'}`}>
-                出率: {payoutRate.toFixed(1)}%
-                {payoutHigh && ' ⚠️ 高'}
-                {payoutLow  && ' ⚠️ 低'}
+            {/* 差分 + 出率 コンパクト表示 */}
+            {(inDiff !== null || outDiff !== null || payoutRate !== null) && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {inDiff !== null && (
+                  <div className={`py-1.5 rounded-lg text-center text-xs font-bold ${inAbnormal || inZero || inTriple ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                    IN {inDiff >= 0 ? '+' : ''}{inDiff.toLocaleString()}
+                    <div className="text-[10px] opacity-80">¥{(inDiff * price).toLocaleString()}</div>
+                  </div>
+                )}
+                {outDiff !== null && (
+                  <div className={`py-1.5 rounded-lg text-center text-xs font-bold ${outAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                    OUT {outDiff >= 0 ? '+' : ''}{outDiff.toLocaleString()}
+                  </div>
+                )}
+                {payoutRate !== null && (
+                  <div className={`py-1.5 rounded-lg text-center text-xs font-bold ${payoutHigh || payoutLow ? 'text-accent2 bg-accent2/10' : 'text-accent3 bg-accent3/10'}`}>
+                    出率 {payoutRate.toFixed(1)}%
+                    {payoutHigh && <div className="text-[10px]">⚠️高</div>}
+                    {payoutLow && <div className="text-[10px]">⚠️低</div>}
+                  </div>
+                )}
               </div>
             )}
 
@@ -272,235 +281,228 @@ export default function PatrolInput() {
               payoutHigh={payoutHigh} payoutLow={payoutLow}
             />
 
-            {/* 月次統計 */}
+            {/* 月次統計（データあり時のみ） */}
             {monthlyStats && (monthlyStats.curr.revenue > 0 || monthlyStats.prev.revenue > 0) && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-surface2 rounded-lg text-xs flex-wrap">
-                <span className="text-muted shrink-0">今月</span>
+              <div className="flex items-center gap-2 px-2.5 py-1.5 bg-surface rounded-lg border border-border text-xs flex-wrap">
+                <span className="text-muted">今月</span>
                 <span className="font-semibold text-accent3">¥{monthlyStats.curr.revenue.toLocaleString()}</span>
-                {monthlyStats.curr.payoutRate != null &&
-                  <span className="text-muted">出率 {monthlyStats.curr.payoutRate}%</span>}
+                {monthlyStats.curr.payoutRate != null && <span className="text-muted">出率{monthlyStats.curr.payoutRate}%</span>}
                 <span className="text-border">|</span>
-                <span className="text-muted shrink-0">前月</span>
+                <span className="text-muted">前月</span>
                 <span className="text-muted">¥{monthlyStats.prev.revenue.toLocaleString()}</span>
-                {monthlyStats.prev.payoutRate != null &&
-                  <span className="text-muted">出率 {monthlyStats.prev.payoutRate}%</span>}
+                {monthlyStats.prev.payoutRate != null && <span className="text-muted">出率{monthlyStats.prev.payoutRate}%</span>}
               </div>
             )}
 
-            {/* 景品情報 */}
+            {/* 景品名 */}
             <div>
-              <div className="text-xs text-muted mb-1.5 font-semibold">🎁 景品情報</div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                  <div className="text-xs text-muted mb-1">景品補充数</div>
-                  <input className={inputCls} type="number" inputMode="numeric" placeholder="0"
-                    value={currentInp.prize_restock || ''}
-                    onChange={e => setInp('prize_restock', e.target.value)} />
-                </div>
-                <div>
-                  <div className="text-xs text-muted mb-1">景品投入残</div>
-                  <input className={inputCls} type="number" inputMode="numeric" placeholder="0"
-                    value={currentInp.prize_stock || ''}
-                    onChange={e => setInp('prize_stock', e.target.value)} />
-                </div>
+              <div className="text-xs text-muted mb-1 px-0.5">
+                景品名
+                {!currentInp.prize_name && latest?.prize_name && <span className="text-[10px] text-amber-500 ml-1">空欄=前回引継</span>}
+              </div>
+              <input className={inp + ' !text-left'} type="text"
+                placeholder={latest?.prize_name || '景品名を入力'}
+                value={currentInp.prize_name || ''}
+                onChange={e => setInp('prize_name', e.target.value)} />
+            </div>
+
+            {/* 補充数 / 残数 */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">景品補充数</div>
+                <input className={inp} type="number" inputMode="numeric" placeholder="0"
+                  value={currentInp.prize_restock || ''}
+                  onChange={e => setInp('prize_restock', e.target.value)} />
               </div>
               <div>
-                <div className="text-xs text-muted mb-1">
-                  景品名
-                  {!currentInp.prize_name && latest?.prize_name && <span className="text-[10px] text-amber-500 block leading-tight">空欄 = 前回値を引き継ぐ</span>}
-                </div>
-                <input className={inputCls + ' !text-left !text-base'} type="text"
-                  placeholder={latest?.prize_name || '景品名を入力'}
-                  value={currentInp.prize_name || ''}
-                  onChange={e => setInp('prize_name', e.target.value)} />
+                <div className="text-xs text-muted mb-1 px-0.5">景品投入残</div>
+                <input className={inp} type="number" inputMode="numeric" placeholder="0"
+                  value={currentInp.prize_stock || ''}
+                  onChange={e => setInp('prize_stock', e.target.value)} />
               </div>
             </div>
 
             {/* メモ */}
             <div>
-              <div className="text-xs text-muted mb-1 font-semibold">📝 メモ・備考</div>
-              <textarea className={inputCls + ' !text-left !text-sm resize-y min-h-12'} rows={2}
+              <div className="text-xs text-muted mb-1 px-0.5">メモ</div>
+              <textarea className={inp + ' !text-left resize-none'} rows={2}
                 placeholder="特記事項があれば入力"
                 value={currentInp.note || ''}
                 onChange={e => setInp('note', e.target.value)} />
             </div>
           </div>
-        </div>
+        )}
 
-        {/* ━━━ 当日付変更セクション ━━━ */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-xs font-bold text-muted">📅 当日付変更記録</span>
-            <span className="text-[10px] text-muted bg-surface2 px-2 py-0.5 rounded-full border border-border">{todayDate}</span>
-          </div>
+        {/* ===== 当日付変更タブ ===== */}
+        {activeTab === 'today' && (
+          <div className="space-y-2 py-2">
+            <div className="flex items-center gap-2 px-0.5">
+              <span className="text-xs text-muted font-semibold">当日付で記録</span>
+              <span className="text-[10px] text-muted bg-surface2 px-2 py-0.5 rounded-full border border-border">{todayDate}</span>
+            </div>
 
-          {/* メーター取り替え */}
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleChange('_meterReplace')}
-              className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors ${mr.enabled ? 'bg-accent/10' : ''}`}>
-              <span className={`w-4 h-4 rounded border-2 flex items-center justify-center text-[10px] shrink-0 ${mr.enabled ? 'border-accent bg-accent text-white' : 'border-border'}`}>
-                {mr.enabled ? '✓' : ''}
-              </span>
-              <span className="text-sm font-bold">🔄 メーター取り替え</span>
-              <span className="text-xs text-muted ml-auto">取り替え後の値を入力</span>
-            </button>
-            {mr.enabled && (
-              <div className="px-3 pb-3 pt-1 border-t border-border grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-xs text-muted mb-1">新IN値</div>
-                  <input className={smallInputCls} type="number" inputMode="numeric" placeholder="0"
-                    value={mr.in_meter || ''}
-                    onChange={e => setInpChange('_meterReplace', 'in_meter', e.target.value)} />
+            {/* メーター取り替え */}
+            <div className={`bg-surface border rounded-xl overflow-hidden transition-colors ${mr.enabled ? 'border-accent/50' : 'border-border'}`}>
+              <button onClick={() => toggleChange('_meterReplace')}
+                className={`w-full flex items-center gap-3 px-3 py-3 active:bg-surface2 transition-colors`}>
+                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 transition-colors
+                  ${mr.enabled ? 'border-accent bg-accent text-bg' : 'border-border'}`}>
+                  {mr.enabled && '✓'}
+                </span>
+                <div className="text-left">
+                  <div className="text-sm font-bold">🔄 メーター取り替え</div>
+                  <div className="text-xs text-muted">取り替え後の新しい値を入力</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted mb-1">新OUT値</div>
-                  <input className={smallInputCls} type="number" inputMode="numeric" placeholder="0"
-                    value={mr.out_meter || ''}
-                    onChange={e => setInpChange('_meterReplace', 'out_meter', e.target.value)} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 景品変更 */}
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleChange('_prizeChange')}
-              className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors ${pc.enabled ? 'bg-accent/10' : ''}`}>
-              <span className={`w-4 h-4 rounded border-2 flex items-center justify-center text-[10px] shrink-0 ${pc.enabled ? 'border-accent bg-accent text-white' : 'border-border'}`}>
-                {pc.enabled ? '✓' : ''}
-              </span>
-              <span className="text-sm font-bold">🎁 景品変更</span>
-              <span className="text-xs text-muted ml-auto">景品を入れ替えた場合</span>
-            </button>
-            {pc.enabled && (
-              <div className="px-3 pb-3 pt-1 border-t border-border space-y-2">
-                <div>
-                  <div className="text-xs text-muted mb-1">新景品名 *</div>
-                  <input className={smallInputCls + ' !text-left'} type="text" placeholder="景品名を入力"
-                    value={pc.prize_name || ''}
-                    onChange={e => setInpChange('_prizeChange', 'prize_name', e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+              </button>
+              {mr.enabled && (
+                <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-border pt-2">
                   <div>
-                    <div className="text-xs text-muted mb-1">投入数</div>
-                    <input className={smallInputCls} type="number" inputMode="numeric" placeholder="0"
-                      value={pc.prize_stock || ''}
-                      onChange={e => setInpChange('_prizeChange', 'prize_stock', e.target.value)} />
+                    <div className="text-xs text-muted mb-1">新IN値</div>
+                    <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
+                      value={mr.in_meter || ''} onChange={e => setInpChange('_meterReplace', 'in_meter', e.target.value)} />
                   </div>
                   <div>
-                    <div className="text-xs text-muted mb-1">補充数</div>
-                    <input className={smallInputCls} type="number" inputMode="numeric" placeholder="0"
-                      value={pc.prize_restock || ''}
-                      onChange={e => setInpChange('_prizeChange', 'prize_restock', e.target.value)} />
+                    <div className="text-xs text-muted mb-1">新OUT値</div>
+                    <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
+                      value={mr.out_meter || ''} onChange={e => setInpChange('_meterReplace', 'out_meter', e.target.value)} />
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* 設定変更 */}
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <button
-              onClick={() => toggleChange('_settingsChange')}
-              className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors ${sc.enabled ? 'bg-accent/10' : ''}`}>
-              <span className={`w-4 h-4 rounded border-2 flex items-center justify-center text-[10px] shrink-0 ${sc.enabled ? 'border-accent bg-accent text-white' : 'border-border'}`}>
-                {sc.enabled ? '✓' : ''}
-              </span>
-              <span className="text-sm font-bold">⚙️ 設定変更</span>
-              <span className="text-xs text-muted ml-auto">クレーン設定を変更した場合</span>
-            </button>
-            {sc.enabled && (
-              <div className="px-3 pb-3 pt-1 border-t border-border">
-                <div className="flex gap-1.5">
-                  {SETTINGS.map(s => (
-                    <div key={s.key} className="flex-1" title={s.title}>
-                      <div className="text-[10px] text-accent4 text-center font-bold leading-tight mb-0.5">
-                        {s.label}<span className="text-[9px] text-accent4/70 block font-normal">{s.disp}</span>
-                      </div>
-                      <input
-                        className="w-full p-1.5 text-xs text-center rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
-                        type={s.isText ? 'text' : 'number'}
-                        inputMode={s.isText ? 'text' : 'numeric'}
-                        placeholder={latest?.[`set_${s.key}`] || '-'}
-                        value={sc[`set_${s.key}`] || ''}
-                        onChange={e => setInpChange('_settingsChange', `set_${s.key}`, e.target.value)}
-                        title={s.title}
-                      />
+            {/* 景品変更 */}
+            <div className={`bg-surface border rounded-xl overflow-hidden transition-colors ${pc.enabled ? 'border-accent/50' : 'border-border'}`}>
+              <button onClick={() => toggleChange('_prizeChange')}
+                className="w-full flex items-center gap-3 px-3 py-3 active:bg-surface2 transition-colors">
+                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 transition-colors
+                  ${pc.enabled ? 'border-accent bg-accent text-bg' : 'border-border'}`}>
+                  {pc.enabled && '✓'}
+                </span>
+                <div className="text-left">
+                  <div className="text-sm font-bold">🎁 景品変更</div>
+                  <div className="text-xs text-muted">景品を入れ替えた場合</div>
+                </div>
+              </button>
+              {pc.enabled && (
+                <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
+                  <div>
+                    <div className="text-xs text-muted mb-1">新景品名 <span className="text-accent2">*</span></div>
+                    <input className={inpSm + ' !text-left'} type="text" placeholder="景品名を入力"
+                      value={pc.prize_name || ''} onChange={e => setInpChange('_prizeChange', 'prize_name', e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="text-xs text-muted mb-1">投入数</div>
+                      <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
+                        value={pc.prize_stock || ''} onChange={e => setInpChange('_prizeChange', 'prize_stock', e.target.value)} />
                     </div>
-                  ))}
+                    <div>
+                      <div className="text-xs text-muted mb-1">補充数</div>
+                      <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
+                        value={pc.prize_restock || ''} onChange={e => setInpChange('_prizeChange', 'prize_restock', e.target.value)} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* 設定変更 */}
+            <div className={`bg-surface border rounded-xl overflow-hidden transition-colors ${sc.enabled ? 'border-accent/50' : 'border-border'}`}>
+              <button onClick={() => toggleChange('_settingsChange')}
+                className="w-full flex items-center gap-3 px-3 py-3 active:bg-surface2 transition-colors">
+                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 transition-colors
+                  ${sc.enabled ? 'border-accent bg-accent text-bg' : 'border-border'}`}>
+                  {sc.enabled && '✓'}
+                </span>
+                <div className="text-left">
+                  <div className="text-sm font-bold">⚙️ 設定変更</div>
+                  <div className="text-xs text-muted">クレーン設定を変更した場合</div>
+                </div>
+              </button>
+              {sc.enabled && (
+                <div className="px-3 pb-3 border-t border-border pt-2">
+                  <div className="flex gap-1.5">
+                    {SETTINGS.map(s => (
+                      <div key={s.key} className="flex-1" title={s.title}>
+                        <div className="text-[10px] text-accent4 text-center font-bold leading-tight mb-1">
+                          {s.label}<span className="block text-[9px] font-normal opacity-70">{s.disp}</span>
+                        </div>
+                        <input
+                          className="w-full py-2 text-center rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent4/60 text-xs"
+                          type={s.isText ? 'text' : 'number'}
+                          inputMode={s.isText ? 'text' : 'numeric'}
+                          placeholder={latest?.[`set_${s.key}`] || '-'}
+                          value={sc[`set_${s.key}`] || ''}
+                          onChange={e => setInpChange('_settingsChange', `set_${s.key}`, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* フッター */}
-      <div className="shrink-0 px-4 pt-2 pb-4 border-t border-border bg-bg space-y-2">
-        {/* ブース切り替え + 保存 */}
+      {/* ━━━ フッター ━━━ */}
+      <div className="shrink-0 px-3 pt-2 pb-4 border-t border-border bg-bg space-y-2">
+
+        {/* 保存/送信ボタン（単独行 - 押し間違い防止） */}
+        {allSaved ? (
+          <button
+            onClick={() => navigate('/drafts')}
+            className="w-full py-3.5 rounded-xl bg-accent3 text-bg font-bold text-base active:scale-[0.98] transition-all">
+            まとめて送信 ({savedCount}件) →
+          </button>
+        ) : isSaved ? (
+          <button
+            onClick={() => switchBooth('next')}
+            className="w-full py-3.5 rounded-xl bg-surface2 border border-border text-accent3 font-bold active:scale-[0.98]">
+            ✅ 保存済み — 次へ →
+          </button>
+        ) : (
+          <button
+            onClick={onSave}
+            className="w-full py-3.5 rounded-xl bg-blue-600 active:bg-blue-700 text-white font-bold text-base active:scale-[0.98] transition-all">
+            {label} を保存
+          </button>
+        )}
+
+        {/* ブース切り替え（保存ボタンと別行） */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => switchBooth('prev')}
             disabled={currentIndex === 0}
-            className="px-4 py-3 rounded-xl border border-border text-muted disabled:opacity-30 active:scale-95 transition-all text-lg">
+            className="w-12 h-10 flex items-center justify-center rounded-xl border border-border text-muted text-xl disabled:opacity-25 active:bg-surface2 transition-all">
             ‹
           </button>
-
-          {allSaved ? (
-            <button
-              onClick={() => navigate('/drafts')}
-              className="flex-1 py-3 rounded-xl bg-accent3 text-white font-bold text-sm active:scale-[0.98] transition-all">
-              まとめて送信 ({savedCount}件) →
-            </button>
-          ) : isSaved ? (
-            <button
-              onClick={() => switchBooth('next')}
-              className="flex-1 py-3 rounded-xl bg-surface2 border border-border text-accent3 font-bold text-sm active:scale-[0.98]">
-              ✅ 保存済み — 次へ →
-            </button>
-          ) : (
-            <button
-              onClick={onSave}
-              className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm active:scale-[0.98] transition-all">
-              {label} を保存
-            </button>
-          )}
-
-          <button
-            onClick={() => switchBooth('next')}
-            disabled={currentIndex === booths.length - 1}
-            className="px-4 py-3 rounded-xl border border-border text-muted disabled:opacity-30 active:scale-95 transition-all text-lg">
-            ›
-          </button>
-        </div>
-
-        {/* 進捗 + DraftList */}
-        {booths.length > 1 && (
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span>{currentIndex + 1} / {booths.length} ブース　保存済 {savedCount}</span>
+          <div className="flex-1 text-center text-xs text-muted">
+            {currentIndex + 1} / {booths.length}
+            {booths.length > 1 && <span className="ml-2 text-accent3">✓{savedCount}</span>}
             {draftCount > 0 && (
-              <button onClick={() => navigate('/drafts')}
-                className="text-accent underline">
-                下書き {draftCount}件
+              <button onClick={() => navigate('/drafts')} className="ml-3 text-accent underline">
+                下書き{draftCount}件
               </button>
             )}
           </div>
-        )}
+          <button
+            onClick={() => switchBooth('next')}
+            disabled={currentIndex === booths.length - 1}
+            className="w-12 h-10 flex items-center justify-center rounded-xl border border-border text-muted text-xl disabled:opacity-25 active:bg-surface2 transition-all">
+            ›
+          </button>
+        </div>
       </div>
 
       {/* OCRモーダル */}
       {showOcr && currentBooth && (
         <MeterOcr
           boothCode={currentBooth.booth_code}
-          lastIn={lastIn}
-          lastOut={lastOut}
+          lastIn={lastIn} lastOut={lastOut}
           onApply={({ inMeter, outMeter, confidence }) => {
-            setInp('in_meter', inMeter)
-            setInp('out_meter', outMeter)
-            setInp('inputMethod', 'ocr')
-            setInp('ocrConfidence', confidence)
+            setInp('in_meter', inMeter); setInp('out_meter', outMeter)
+            setInp('inputMethod', 'ocr'); setInp('ocrConfidence', confidence)
             setShowOcr(false)
           }}
           onClose={() => setShowOcr(false)}

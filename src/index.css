@@ -14,6 +14,14 @@
   --color-muted: #888899;
 }
 
+html, body, #root {
+  height: 100%;
+  /* SPAではウィンドウ全体のスクロールを禁止し、各ページ内スクロールのみ許可 */
+  overflow: hidden;
+  /* プルトゥリフレッシュ・バウンスを抑制 */
+  overscroll-behavior: none;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--color-bg);
