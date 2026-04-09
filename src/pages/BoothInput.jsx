@@ -7,7 +7,6 @@ import ErrorDisplay from '../components/ErrorDisplay'
 import PrizeSearchModal from '../components/PrizeSearchModal'
 import { getPrizes } from '../services/prizes'
 
-// 設定値の定義（5種類）
 const SETTINGS = [
   { key: 'set_a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数' },
   { key: 'set_c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー' },
@@ -23,26 +22,41 @@ export default function BoothInput() {
 
   const {
     booths, machineName, readingsMap, inputs, vehicleStocks, monthlyStatsMap,
-    readDate, setReadDate, filter, setFilter, filteredBooths, inputCount, anomalyCount,
-    loading, showVehiclePanel, setShowVehiclePanel, staffId,
-    setInp, handleKeyDown, handleSaveAll, getRef, setStaffId, clearStaff, scrollToBooth,
+    prevDayDate, setPrevDayDate, todayDate,
+    loading, showVehiclePanel, setShowVehiclePanel,
+    currentIndex, setCurrentIndex, currentBooth,
+    inputCount, changeCount, anomalyCount,
+    setInp, setInpChange, toggleChange, handleKeyDown, handleSaveAll, getRef, switchBooth,
   } = useBoothInput(machineId, state)
 
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [searchModalBooth, setSearchModalBooth] = useState(null)
+  const [searchModal, setSearchModal] = useState(null) // { boothCode, section }
   const [prizes, setPrizes] = useState(null)
 
-  async function openSearchModal(boothId) {
-    if (!prizes) {
-      const data = await getPrizes()
-      setPrizes(data)
-    }
-    setSearchModalBooth(boothId)
+  async function openSearchModal(boothCode, section = 'main') {
+    if (!prizes) setPrizes(await getPrizes())
+    setSearchModal({ boothCode, section })
   }
 
-  // 保存確認モーダルを開く
+  // スワイプによるブース切り替え
+  const txRef = useRef(null)
+  const tyRef = useRef(null)
+  function onTouchStart(e) {
+    txRef.current = e.touches[0].clientX
+    tyRef.current = e.touches[0].clientY
+  }
+  function onTouchEnd(e) {
+    if (txRef.current === null) return
+    const dx = e.changedTouches[0].clientX - txRef.current
+    const dy = e.changedTouches[0].clientY - tyRef.current
+    txRef.current = null
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      switchBooth(dx > 0 ? 'prev' : 'next')
+    }
+  }
+
   function onSave() {
     setError(null)
     if (inputCount === 0) {
@@ -52,7 +66,6 @@ export default function BoothInput() {
     setShowConfirmModal(true)
   }
 
-  // 確認後に実際に保存
   async function doSave() {
     setShowConfirmModal(false)
     setSaving(true)
@@ -64,15 +77,12 @@ export default function BoothInput() {
       const details = result.failedItems.map(f => `・${f.prizeName}: ${f.error}`).join('\n')
       setError({ message: `補充処理でエラーが発生しました。棚卸し画面で在庫を確認してください。\n${details}`, type: 'stock_insufficient' })
     }
-    navigate('/drafts', { state: { storeName: state?.storeName, storeId: state?.storeId } })
-  }
-
-  // スワイプによるブース切り替え
-  function handleSwipe(boothId, direction) {
-    const idx = filteredBooths.findIndex(b => b.booth_code === boothId)
-    const targetIdx = direction === 'next' ? idx + 1 : idx - 1
-    if (targetIdx < 0 || targetIdx >= filteredBooths.length) return
-    scrollToBooth(filteredBooths[targetIdx].booth_code)
+    navigate('/complete', { state: {
+      storeName: state?.storeName,
+      storeId:   state?.storeId,
+      savedDrafts: result.savedDrafts,
+      savedAt:   Date.now(),
+    }})
   }
 
   if (loading) return (
@@ -88,116 +98,99 @@ export default function BoothInput() {
     <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
       <div className="shrink-0 px-3 pt-3">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-1.5">
           <button onClick={() => navigate(-1)} className="text-xl text-muted hover:text-accent">←</button>
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-bold truncate">{machineName || '機械'}</h2>
-            <p className="text-[11px] text-muted">{state?.storeName} ・{booths.length}ブース</p>
+            <p className="text-[11px] text-muted">{state?.storeName}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
-              className="bg-surface2 border border-border text-text text-xs px-1.5 py-1 rounded [color-scheme:dark] w-[120px]" />
-            <div className="text-center">
-              <div className="text-sm font-bold text-accent">{inputCount}/{booths.length}</div>
-            </div>
-          </div>
+          <input type="date" value={prevDayDate} onChange={e => setPrevDayDate(e.target.value)}
+            className="bg-surface2 border border-border text-text text-xs px-1.5 py-1 rounded [color-scheme:dark] w-[110px]" />
+          <div className="text-sm font-bold text-accent whitespace-nowrap">{inputCount}/{booths.length}</div>
           <LogoutButton />
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-3 pb-24">
 
-      {readDate !== new Date().toISOString().slice(0, 10) &&
-        <div className="text-[10px] text-accent2 font-bold text-center mb-1">⚠️ 過去日付で入力中</div>}
-
-      {/* 担当者 & 車在庫パネル */}
-      <div className="mb-2">
-        <div className="flex items-center gap-2">
-          {!staffId ? (
-            <div className="flex-1 flex items-center gap-2">
-              <input type="text" placeholder="担当者ID（例: テストA）" id="_staffInput"
-                className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text"
-                onKeyDown={e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) setStaffId(v) } }} />
-              <button onClick={() => { const v = document.getElementById('_staffInput')?.value?.trim(); if (v) setStaffId(v) }}
-                className="bg-accent/20 text-accent text-xs px-3 py-1.5 rounded-lg font-bold">設定</button>
-            </div>
-          ) : (
+        {/* 車在庫パネル */}
+        {vehicleStocks.length > 0 && (
+          <div className="mb-1.5">
             <button onClick={() => setShowVehiclePanel(p => !p)}
-              className={`flex-1 flex items-center justify-between px-3 py-1.5 rounded-lg text-xs ${showVehiclePanel ? 'bg-accent4/20 border border-accent4/40' : 'bg-surface2 border border-border'}`}>
-              <span className="font-bold text-accent4">🚗 {staffId}</span>
-              <span className="text-muted">{vehicleStocks.length}品 / {vehicleStocks.reduce((s, x) => s + x.quantity, 0)}個</span>
+              className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs
+                ${showVehiclePanel ? 'bg-accent4/20 border border-accent4/40' : 'bg-surface2 border border-border'}`}>
+              <span className="font-bold text-accent4">🚗 車在庫</span>
+              <span className="text-muted">
+                {vehicleStocks.length}品 / {vehicleStocks.reduce((s, x) => s + x.quantity, 0)}個
+              </span>
               <span className="text-muted">{showVehiclePanel ? '▲' : '▼'}</span>
             </button>
-          )}
-          {staffId && (
-            <button onClick={clearStaff}
-              className="text-[10px] text-muted hover:text-accent2">×</button>
-          )}
-        </div>
-
-        {showVehiclePanel && vehicleStocks.length > 0 && (
-          <div className="mt-1.5 bg-surface2 border border-border rounded-lg p-2 max-h-32 overflow-y-auto">
-            {vehicleStocks.filter(s => s.quantity > 0).map(s => (
-              <div key={s.stock_id} className="flex justify-between text-xs py-0.5">
-                <span className="truncate text-text">{s.prize_name || s.prize_id}</span>
-                <span className={`font-bold shrink-0 ml-2 ${s.quantity <= 3 ? 'text-accent2' : 'text-accent3'}`}>×{s.quantity}</span>
+            {showVehiclePanel && (
+              <div className="mt-1 bg-surface2 border border-border rounded-lg p-2 max-h-28 overflow-y-auto">
+                {vehicleStocks.filter(s => s.quantity > 0).map(s => (
+                  <div key={s.stock_id} className="flex justify-between text-xs py-0.5">
+                    <span className="truncate text-text">{s.prize_name || s.prize_id}</span>
+                    <span className={`font-bold shrink-0 ml-2 ${s.quantity <= 3 ? 'text-accent2' : 'text-accent3'}`}>
+                      ×{s.quantity}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {vehicleStocks.filter(s => s.quantity > 0).length === 0 && (
-              <div className="text-xs text-muted text-center py-1">車在庫なし</div>
             )}
           </div>
         )}
-        {showVehiclePanel && vehicleStocks.length === 0 && staffId && (
-          <div className="mt-1.5 text-xs text-muted text-center bg-surface2 border border-border rounded-lg p-2">
-            車在庫データなし（棚卸しアプリで在庫移管してください）
-          </div>
+      </div>
+
+      {/* スワイプ + スクロールエリア */}
+      <div className="flex-1 overflow-y-auto px-3 pb-4"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}>
+
+        {error && <ErrorDisplay error={error.message} type={error.type} onDismiss={() => setError(null)} />}
+
+        {currentBooth ? (
+          <>
+            {/* 前日付セクション */}
+            <div className="text-[10px] text-muted font-semibold mb-1 mt-1">
+              前日 {prevDayDate}
+            </div>
+            <BoothCard
+              booth={currentBooth}
+              readingsMap={readingsMap}
+              inp={inputs[currentBooth.booth_code] || {}}
+              setInp={setInp}
+              getRef={getRef}
+              handleKeyDown={handleKeyDown}
+              onOpenSearch={(code) => openSearchModal(code, 'main')}
+              monthlyStats={monthlyStatsMap[currentBooth.booth_code] || null}
+            />
+
+            {/* 当日付変更セクション */}
+            <TodayChanges
+              booth={currentBooth}
+              inp={inputs[currentBooth.booth_code] || {}}
+              todayDate={todayDate}
+              setInpChange={setInpChange}
+              toggleChange={toggleChange}
+              getRef={getRef}
+              onOpenPrizeSearch={(code) => openSearchModal(code, 'prize_change')}
+            />
+          </>
+        ) : (
+          <div className="text-center text-muted py-8 text-sm">ブースデータがありません</div>
         )}
       </div>
 
-      {/* フィルタータブ */}
-      <div className="flex bg-surface2 rounded-xl p-1 mb-2">
-        {[['all', '全て', booths.length], ['todo', '未入力', booths.length - inputCount], ['done', '入力済', inputCount]].map(([val, label, count]) => (
-          <button key={val} onClick={() => setFilter(val)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all
-              ${filter === val ? 'bg-surface text-accent shadow-sm' : 'text-muted'}`}>
-            {label}({count})
-          </button>
-        ))}
-      </div>
-
-      {error && <ErrorDisplay error={error.message} type={error.type} onDismiss={() => setError(null)} />}
-
-      {/* ブース一覧 */}
-      {filteredBooths.length === 0 ? (
-        <div className="text-center text-muted text-sm py-8">
-          {filter === 'todo' ? '全ブース入力済みです' : '入力済みのブースはありません'}
-        </div>
-      ) : null}
-      <div className="space-y-1.5">
-        {filteredBooths.map((booth) => (
-          <BoothCard
-            key={booth.booth_code}
-            booth={booth}
-            readingsMap={readingsMap}
-            inp={inputs[booth.booth_code] || {}}
-            setInp={setInp}
-            navigate={navigate}
-            getRef={getRef}
-            handleKeyDown={handleKeyDown}
-            onOpenSearch={openSearchModal}
-            onSwipe={handleSwipe}
-            monthlyStats={monthlyStatsMap[booth.booth_code] || monthlyStatsMap[booth.booth_code] || null}
-          />
-        ))}
-      </div>
-      </div>{/* スクロール領域終了 */}
-
-      {searchModalBooth && (
+      {/* 景品検索モーダル */}
+      {searchModal && (
         <PrizeSearchModal
           prizes={prizes}
           vehicleStocks={vehicleStocks}
-          onSelect={name => setInp(searchModalBooth, 'prize_name', name)}
-          onClose={() => setSearchModalBooth(null)}
+          onSelect={name => {
+            if (searchModal.section === 'prize_change') {
+              setInpChange(searchModal.boothCode, '_prizeChange', 'prize_name', name)
+            } else {
+              setInp(searchModal.boothCode, 'prize_name', name)
+            }
+          }}
+          onClose={() => setSearchModal(null)}
         />
       )}
 
@@ -210,9 +203,15 @@ export default function BoothInput() {
             <div className="text-sm font-bold text-center">保存確認</div>
             <div className="bg-surface2 rounded-xl p-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted">入力済みブース</span>
-                <span className="font-bold text-accent">{inputCount} / {booths.length} 件</span>
+                <span className="text-muted">前日付 入力済み</span>
+                <span className="font-bold text-accent">{inputCount} / {booths.length} ブース</span>
               </div>
+              {changeCount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted">当日付 変更記録</span>
+                  <span className="font-bold text-blue-400">{changeCount} 件</span>
+                </div>
+              )}
               {booths.length - inputCount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted">未入力</span>
@@ -240,18 +239,43 @@ export default function BoothInput() {
         </div>
       )}
 
-      {/* 固定フッター */}
-      <div className="fixed bottom-0 left-0 right-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2.5 z-50">
+      {/* フッター：ブースナビゲーション + 保存ボタン */}
+      <div className="shrink-0 bg-bg/95 backdrop-blur border-t border-border px-3 py-2.5 z-50">
         <div className="max-w-lg mx-auto">
+          {/* ブース切り替え */}
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => switchBooth('prev')} disabled={currentIndex === 0}
+              className="text-sm text-muted hover:text-accent disabled:opacity-30 px-2 py-1 active:scale-95">
+              ← 前
+            </button>
+            <div className="flex gap-1 overflow-hidden flex-wrap justify-center max-w-[200px]">
+              {booths.slice(0, 20).map((b, i) => (
+                <button key={b.booth_code} onClick={() => setCurrentIndex(i)}
+                  className={`w-2 h-2 rounded-full shrink-0 transition-all
+                    ${i === currentIndex
+                      ? 'bg-accent scale-125'
+                      : inputs[b.booth_code]?.in_meter ? 'bg-accent/50' : 'bg-border'}`} />
+              ))}
+              {booths.length > 20 && (
+                <span className="text-[10px] text-muted ml-1">+{booths.length - 20}</span>
+              )}
+            </div>
+            <button onClick={() => switchBooth('next')} disabled={currentIndex === booths.length - 1}
+              className="text-sm text-muted hover:text-accent disabled:opacity-30 px-2 py-1 active:scale-95">
+              次 →
+            </button>
+          </div>
+          {/* 保存ボタン */}
           <button onClick={onSave} disabled={saving}
-            className={`w-full text-white font-bold py-3.5 rounded-xl transition-all min-h-[48px] active:scale-[0.98] disabled:opacity-50
+            className={`w-full text-white font-bold py-3 rounded-xl transition-all min-h-[44px] active:scale-[0.98] disabled:opacity-50
               ${inputCount > 0 && inputCount >= booths.length
                 ? 'bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/30 animate-pulse'
                 : 'bg-blue-600 hover:bg-blue-700'}`}>
             {saving ? '保存中...'
               : inputCount >= booths.length
-              ? `全${inputCount}件を下書き保存 → 確認へ`
-              : inputCount > 0 ? `${inputCount}件を下書き保存 → 確認へ`
+              ? `全${inputCount}件を保存`
+              : inputCount > 0
+              ? `${inputCount}件を保存${changeCount > 0 ? ` (+変更${changeCount}件)` : ''}`
               : '入力してください'}
           </button>
         </div>
@@ -260,8 +284,10 @@ export default function BoothInput() {
   )
 }
 
-// 個別ブースカード（表示のみ）
-function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, navigate, onOpenSearch, onSwipe, monthlyStats }) {
+// ─────────────────────────────────────
+// 前日付 ブースカード（既存レイアウト維持）
+// ─────────────────────────────────────
+function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, onOpenSearch, monthlyStats }) {
   const { latest, last } = readingsMap[booth.booth_code] || {}
   const price = parseNum(booth.play_price || '100')
 
@@ -275,51 +301,26 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
   const inDiff  = inVal  !== null && lastIn  !== null ? inVal  - lastIn  : null
   const outDiff = outVal !== null && lastOut !== null ? outVal - lastOut : null
 
-  // 現行の異常値（範囲外）
   const inAbnormal  = inDiff  !== null && (inDiff  < 0 || inDiff  > 50000)
   const outAbnormal = outDiff !== null && (outDiff < 0 || outDiff > 50000)
-
-  // 追加異常値
   const prevInDiff = latestIn !== null && lastIn !== null ? latestIn - lastIn : null
-  const inZero   = inDiff !== null && inVal !== null && inDiff === 0
+  const inZero   = inDiff !== null && inDiff === 0
   const inTriple = prevInDiff !== null && prevInDiff > 50 && inDiff !== null && inDiff > prevInDiff * 3
 
-  const payout = outDiff !== null && outDiff >= 0 ? outDiff : null
-  const payoutRate = payout !== null && inDiff !== null && inDiff > 0
-    ? ((payout / inDiff) * 100).toFixed(1) : null
-
-  // 出率アラート
+  const payoutRate = outDiff !== null && outDiff >= 0 && inDiff !== null && inDiff > 0
+    ? ((outDiff / inDiff) * 100).toFixed(1) : null
   const payoutHigh = payoutRate !== null && Number(payoutRate) >= 30
   const payoutLow  = payoutRate !== null && Number(payoutRate) < 5
 
-  const hasInput = inp.in_meter && inp.in_meter !== ''
   const inputCls = "w-full p-2 text-sm text-center rounded border bg-surface2 text-text outline-none focus:border-accent transition-colors"
 
-  // スワイプ検知
-  const txRef = useRef(null)
-  const tyRef = useRef(null)
-
   return (
-    <div
-      className={`bg-surface border rounded-lg overflow-hidden ${hasInput ? 'border-accent/30' : 'border-border'}`}
-      onTouchStart={e => { txRef.current = e.touches[0].clientX; tyRef.current = e.touches[0].clientY }}
-      onTouchEnd={e => {
-        if (txRef.current === null) return
-        const dx = e.changedTouches[0].clientX - txRef.current
-        const dy = e.changedTouches[0].clientY - tyRef.current
-        txRef.current = null
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          onSwipe(booth.booth_code, dx > 0 ? 'prev' : 'next')
-        }
-      }}
-    >
-      {/* R1: ブース名 + 履歴 + 景品名 + 単価 */}
+    <div className={`bg-surface border rounded-lg overflow-hidden ${inp.in_meter ? 'border-accent/30' : 'border-border'}`}>
+      {/* R1: ブース名 + 景品名 + 単価 */}
       <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-1">
         <span className="text-xs font-bold text-accent shrink-0">
-          {booth.booth_number != null ? `B${String(booth.booth_number).padStart(2,'0')}` : booth.booth_code}
+          {booth.booth_number != null ? `B${String(booth.booth_number).padStart(2, '0')}` : booth.booth_code}
         </span>
-        <button onClick={() => navigate(`/edit/${booth.booth_code}`)}
-          className="text-[10px] text-muted/60 hover:text-accent shrink-0">履歴</button>
         <input ref={getRef(booth.booth_code, 'prize_name')}
           className="flex-1 min-w-0 bg-transparent text-sm text-text outline-none placeholder:text-muted/60 truncate"
           type="text" placeholder={latest?.prize_name || '景品名'}
@@ -327,12 +328,13 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
           onChange={e => setInp(booth.booth_code, 'prize_name', e.target.value)}
           onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_name')} />
         <button onClick={() => onOpenSearch(booth.booth_code)}
-          className="text-base shrink-0 text-muted/60 hover:text-accent active:scale-90 transition-all px-0.5"
-          title="景品を画像検索">🔍</button>
+          className="text-base shrink-0 text-muted/60 hover:text-accent active:scale-90 transition-all px-0.5">
+          🔍
+        </button>
         <span className="text-[11px] text-muted shrink-0">¥{price}</span>
       </div>
 
-      {/* R2: IN / OUT 入力 */}
+      {/* R2: IN / OUT */}
       <div className="flex gap-1.5 px-2.5 pb-1">
         <div className="flex-1">
           <div className="flex items-center gap-1 mb-0.5">
@@ -372,9 +374,9 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
         </div>
       </div>
 
-      {/* R3: 残 / 補 / 設定値5種 / 出率 */}
+      {/* R3: 残 / 補 / 設定5種 / 出率 */}
       <div className="flex items-center gap-1 px-2.5 pb-2">
-        <div className="w-[48px] md:w-[56px]">
+        <div className="w-[48px]">
           <div className="text-[9px] text-muted text-center">残</div>
           <input ref={getRef(booth.booth_code, 'prize_stock')}
             className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent"
@@ -383,7 +385,7 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
             onChange={e => setInp(booth.booth_code, 'prize_stock', e.target.value)}
             onKeyDown={e => handleKeyDown(e, booth.booth_code, 'prize_stock')} />
         </div>
-        <div className="w-[48px] md:w-[56px]">
+        <div className="w-[48px]">
           <div className="text-[9px] text-muted text-center">補</div>
           <input ref={getRef(booth.booth_code, 'prize_restock')}
             className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent"
@@ -394,8 +396,10 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
         </div>
         <div className="w-px h-5 bg-border mx-0.5" />
         {SETTINGS.map(s => (
-          <div key={s.key} className="w-[36px] md:w-[44px]" title={s.title}>
-            <div className="text-[9px] text-accent4 text-center font-bold leading-tight">{s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span></div>
+          <div key={s.key} className="w-[36px]" title={s.title}>
+            <div className="text-[9px] text-accent4 text-center font-bold leading-tight">
+              {s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span>
+            </div>
             <input ref={getRef(booth.booth_code, s.key)}
               className="w-full p-1 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
               type={s.key === 'set_o' ? 'text' : 'number'}
@@ -409,15 +413,13 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
         ))}
         {payoutRate !== null && (
           <div className={`ml-auto text-xs font-bold shrink-0 px-1.5 py-0.5 rounded
-            ${payoutHigh ? 'text-accent2 bg-accent2/10' :
-              payoutLow  ? 'text-blue-400 bg-blue-900/20' :
-              'text-accent3 bg-accent3/10'}`}>
+            ${payoutHigh ? 'text-accent2 bg-accent2/10' : payoutLow ? 'text-blue-400 bg-blue-900/20' : 'text-accent3 bg-accent3/10'}`}>
             {payoutRate}%
           </div>
         )}
       </div>
 
-      {/* 月次統計行（daily_booth_stats からのデータ） */}
+      {/* 月次統計 */}
       {monthlyStats && (monthlyStats.curr.revenue > 0 || monthlyStats.prev.revenue > 0) && (
         <div className="flex items-center gap-2 px-2.5 py-1 border-t border-border/30 bg-surface2/30">
           <span className="text-[9px] text-muted">今月</span>
@@ -435,14 +437,141 @@ function BoothCard({ booth, readingsMap, inp, setInp, getRef, handleKeyDown, nav
       {(inAbnormal || outAbnormal || inZero || inTriple || payoutHigh || payoutLow) && (
         <div className="bg-accent2/10 px-2.5 py-1 text-[10px] text-accent2 border-t border-accent2/20">
           ⚠️
-          {inAbnormal && ' IN異常値'}
-          {inZero     && ' INゼロ'}
-          {inTriple   && ' IN差分3倍'}
+          {inAbnormal  && ' IN異常値'}
+          {inZero      && ' INゼロ'}
+          {inTriple    && ' IN差分3倍'}
           {outAbnormal && ' OUT異常値'}
-          {payoutHigh && ' 出率高(≥30%)'}
-          {payoutLow  && ' 出率低(<5%)'}
+          {payoutHigh  && ' 出率高(≥30%)'}
+          {payoutLow   && ' 出率低(<5%)'}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────
+// 当日付 変更セクション（3パネル）
+// ─────────────────────────────────────
+function TodayChanges({ booth, inp, todayDate, setInpChange, toggleChange, getRef, onOpenPrizeSearch }) {
+  const mr = inp._meterReplace   || {}
+  const pc = inp._prizeChange    || {}
+  const sc = inp._settingsChange || {}
+
+  const inputCls = "w-full p-2 text-sm text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent"
+
+  function ToggleBtn({ enabled, type }) {
+    return (
+      <button onClick={() => toggleChange(booth.booth_code, type)}
+        className={`text-xs px-2.5 py-0.5 rounded-full font-semibold transition-all
+          ${enabled ? 'bg-blue-600 text-white' : 'bg-surface2 border border-border text-muted'}`}>
+        {enabled ? 'ON' : 'OFF'}
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-2.5 space-y-2">
+      <div className="text-[10px] text-muted font-semibold">当日の変更（{todayDate}・任意）</div>
+
+      {/* メーター取り替え */}
+      <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        <button className="flex items-center justify-between w-full px-3 py-2.5"
+          onClick={() => toggleChange(booth.booth_code, '_meterReplace')}>
+          <span className="text-sm font-semibold">🔄 メーター取り替え</span>
+          <ToggleBtn enabled={mr.enabled} type="_meterReplace" />
+        </button>
+        {mr.enabled && (
+          <div className="px-3 pb-3 grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-xs text-muted mb-1">新INメーター</div>
+              <input ref={getRef(booth.booth_code, '_mr_in')}
+                className={inputCls} type="number" inputMode="numeric"
+                placeholder="取り替え後の値"
+                value={mr.in_meter || ''}
+                onChange={e => setInpChange(booth.booth_code, '_meterReplace', 'in_meter', e.target.value)} />
+            </div>
+            <div>
+              <div className="text-xs text-muted mb-1">新OUTメーター</div>
+              <input ref={getRef(booth.booth_code, '_mr_out')}
+                className={inputCls} type="number" inputMode="numeric"
+                placeholder="取り替え後の値"
+                value={mr.out_meter || ''}
+                onChange={e => setInpChange(booth.booth_code, '_meterReplace', 'out_meter', e.target.value)} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 景品変更 */}
+      <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        <button className="flex items-center justify-between w-full px-3 py-2.5"
+          onClick={() => toggleChange(booth.booth_code, '_prizeChange')}>
+          <span className="text-sm font-semibold">🎁 景品変更</span>
+          <ToggleBtn enabled={pc.enabled} type="_prizeChange" />
+        </button>
+        {pc.enabled && (
+          <div className="px-3 pb-3 space-y-2">
+            <div>
+              <div className="text-xs text-muted mb-1">新景品名</div>
+              <div className="flex gap-1">
+                <input ref={getRef(booth.booth_code, '_pc_name')}
+                  className="flex-1 p-2 text-sm rounded border border-border bg-surface2 text-text outline-none focus:border-accent"
+                  type="text" placeholder="景品名を入力"
+                  value={pc.prize_name || ''}
+                  onChange={e => setInpChange(booth.booth_code, '_prizeChange', 'prize_name', e.target.value)} />
+                <button onClick={() => onOpenPrizeSearch(booth.booth_code)}
+                  className="text-base text-muted/60 hover:text-accent px-1.5 active:scale-90">
+                  🔍
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-muted mb-1">残数</div>
+                <input className={inputCls} type="number" inputMode="numeric" placeholder="0"
+                  value={pc.prize_stock || ''}
+                  onChange={e => setInpChange(booth.booth_code, '_prizeChange', 'prize_stock', e.target.value)} />
+              </div>
+              <div>
+                <div className="text-xs text-muted mb-1">補充数</div>
+                <input className={inputCls} type="number" inputMode="numeric" placeholder="0"
+                  value={pc.prize_restock || ''}
+                  onChange={e => setInpChange(booth.booth_code, '_prizeChange', 'prize_restock', e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 設定変更 */}
+      <div className="bg-surface border border-border rounded-lg overflow-hidden">
+        <button className="flex items-center justify-between w-full px-3 py-2.5"
+          onClick={() => toggleChange(booth.booth_code, '_settingsChange')}>
+          <span className="text-sm font-semibold">⚙️ 設定変更</span>
+          <ToggleBtn enabled={sc.enabled} type="_settingsChange" />
+        </button>
+        {sc.enabled && (
+          <div className="px-3 pb-3">
+            <div className="flex gap-1.5 justify-between">
+              {SETTINGS.map(s => (
+                <div key={s.key} className="flex-1" title={s.title}>
+                  <div className="text-[9px] text-accent4 text-center font-bold leading-tight">
+                    {s.label}<span className="text-[6px] text-accent4/60 block">{s.shortName}</span>
+                  </div>
+                  <input
+                    className="w-full p-1.5 text-xs text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
+                    type={s.key === 'set_o' ? 'text' : 'number'}
+                    inputMode={s.key === 'set_o' ? 'text' : 'numeric'}
+                    placeholder="-"
+                    value={sc[s.key] || ''}
+                    onChange={e => setInpChange(booth.booth_code, '_settingsChange', s.key, e.target.value)}
+                    title={s.title} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -37,24 +37,25 @@ function makeHookReturn(overrides = {}) {
     inputs: {},
     vehicleStocks: [],
     monthlyStatsMap: {},
-    readDate: '2026-04-06',
-    setReadDate: vi.fn(),
-    filter: 'all',
-    setFilter: vi.fn(),
-    filteredBooths: [BOOTH],
-    inputCount: 0,
-    anomalyCount: 0,
+    prevDayDate: '2026-04-08',
+    setPrevDayDate: vi.fn(),
+    todayDate: '2026-04-09',
     loading: false,
     showVehiclePanel: false,
     setShowVehiclePanel: vi.fn(),
-    staffId: null,
+    currentIndex: 0,
+    setCurrentIndex: vi.fn(),
+    currentBooth: BOOTH,
+    inputCount: 0,
+    changeCount: 0,
+    anomalyCount: 0,
     setInp: vi.fn(),
+    setInpChange: vi.fn(),
+    toggleChange: vi.fn(),
     handleKeyDown: vi.fn(),
-    handleSaveAll: vi.fn().mockResolvedValue({ ok: true, count: 1, failedItems: [] }),
+    handleSaveAll: vi.fn().mockResolvedValue({ ok: true, totalCount: 1, prevCount: 1, savedDrafts: [], failedItems: [] }),
     getRef: mockGetRef,
-    setStaffId: vi.fn(),
-    clearStaff: vi.fn(),
-    scrollToBooth: vi.fn(),
+    switchBooth: vi.fn(),
     ...overrides,
   }
 }
@@ -81,49 +82,69 @@ describe('BoothInput — 保存確認モーダル', () => {
   })
 
   it('inputCount>0 のとき保存ボタン押下で確認モーダルが表示される', () => {
-    useBoothInput.mockReturnValue(makeHookReturn({ inputCount: 1, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } } }))
+    useBoothInput.mockReturnValue(makeHookReturn({
+      inputCount: 1,
+      inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
+    }))
     renderBoothInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /1件を保存/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
-    expect(screen.getByText('1 / 1 件')).toBeTruthy()
+    expect(screen.getByText('1 / 1 ブース')).toBeTruthy()
   })
 
   it('モーダルの「戻る」押下でモーダルが閉じ handleSaveAll は呼ばれない', () => {
     const handleSaveAll = vi.fn()
     useBoothInput.mockReturnValue(makeHookReturn({
-      inputCount: 1, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
+      inputCount: 1,
+      inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
       handleSaveAll,
     }))
     renderBoothInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /1件を保存/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '戻る' }))
     expect(screen.queryByText('保存確認')).toBeNull()
     expect(handleSaveAll).not.toHaveBeenCalled()
   })
 
-  it('モーダルの「保存する」押下で handleSaveAll が呼ばれ /drafts に遷移', async () => {
-    const handleSaveAll = vi.fn().mockResolvedValue({ ok: true, count: 1, failedItems: [] })
+  it('モーダルの「保存する」押下で handleSaveAll が呼ばれ /complete に遷移', async () => {
+    const handleSaveAll = vi.fn().mockResolvedValue({
+      ok: true, totalCount: 1, prevCount: 1, savedDrafts: [], failedItems: [],
+    })
     useBoothInput.mockReturnValue(makeHookReturn({
-      inputCount: 1, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
+      inputCount: 1,
+      inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
       handleSaveAll,
     }))
     renderBoothInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /1件を保存/ }))
     fireEvent.click(screen.getByRole('button', { name: '保存する' }))
     await waitFor(() => {
       expect(handleSaveAll).toHaveBeenCalledOnce()
-      expect(mockNavigate).toHaveBeenCalledWith('/drafts', expect.any(Object))
+      expect(mockNavigate).toHaveBeenCalledWith('/complete', expect.any(Object))
     })
   })
 
   it('anomalyCount>0 のときモーダルに異常値台数が表示される', () => {
     useBoothInput.mockReturnValue(makeHookReturn({
-      inputCount: 1, anomalyCount: 2, inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
+      inputCount: 1, anomalyCount: 2,
+      inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
     }))
     renderBoothInput()
-    fireEvent.click(screen.getByRole('button', { name: /下書き保存/ }))
+    fireEvent.click(screen.getByRole('button', { name: /1件を保存/ }))
     expect(screen.getByText(/⚠️.*2.*台/)).toBeTruthy()
+  })
+
+  it('changeCount>0 のときモーダルに変更件数が表示される', () => {
+    const BOOTH2 = { booth_code: 'KOS01-M01-B02', booth_number: 2, play_price: '100' }
+    useBoothInput.mockReturnValue(makeHookReturn({
+      booths: [BOOTH, BOOTH2],
+      inputCount: 1, changeCount: 2,
+      inputs: { 'KOS01-M01-B01': { in_meter: '5100' } },
+    }))
+    renderBoothInput()
+    fireEvent.click(screen.getByRole('button', { name: /1件を保存.*変更2件/ }))
+    expect(screen.getByText('2 件')).toBeTruthy()
   })
 })
 

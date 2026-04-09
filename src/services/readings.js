@@ -73,7 +73,7 @@ export async function saveReading(r) {
     set_a: r.set_a || null, set_c: r.set_c || null, set_l: r.set_l || null,
     set_r: r.set_r || null, set_o: r.set_o || null,
     note: r.note || null,
-    source: r.input_method === 'ocr' ? 'ocr' : 'manual',
+    source: r.source || (r.input_method === 'ocr' ? 'ocr' : 'manual'),
     input_method: r.input_method || 'manual',
     ocr_confidence: r.ocr_confidence != null ? parseFloat(r.ocr_confidence) : null,
     created_at: now,
