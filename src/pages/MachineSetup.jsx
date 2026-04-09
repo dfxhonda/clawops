@@ -14,6 +14,7 @@ function MachineCard({ machine, boothCount, machineTypes }) {
   const [name, setName]       = useState(machine.machine_name || '')
   const [type, setType]       = useState(machine.machine_type || '')
   const [rental, setRental]   = useState(machine.rental_code || '')
+  const [modelId, setModelId] = useState(machine.model_id || '')
   const [price, setPrice]     = useState(String(machine.default_price || 100))
   const [notes, setNotes]     = useState(machine.location_note || '')
   const [saving, setSaving]   = useState(false)
@@ -24,6 +25,7 @@ function MachineCard({ machine, boothCount, machineTypes }) {
   const dirty = name !== (machine.machine_name || '') ||
     type !== (machine.machine_type || '') ||
     rental !== (machine.rental_code || '') ||
+    modelId !== (machine.model_id || '') ||
     price !== String(machine.default_price || 100) ||
     notes !== (machine.location_note || '')
 
@@ -52,6 +54,7 @@ function MachineCard({ machine, boothCount, machineTypes }) {
         machine_name: name.trim(),
         type_id: type || null,
         machine_number: rental.trim() || null,
+        model_id: modelId.trim() || null,
         play_price: p,
         notes: notes.trim() || null,
       })
@@ -104,6 +107,18 @@ function MachineCard({ machine, boothCount, machineTypes }) {
             onChange={e => setRental(e.target.value)}
           />
         </div>
+      </div>
+
+      {/* 型番 */}
+      <div>
+        <div className="text-[11px] text-muted mb-1">型番</div>
+        <input
+          className={inputCls}
+          type="text"
+          placeholder="例: ABC-123"
+          value={modelId}
+          onChange={e => setModelId(e.target.value)}
+        />
       </div>
 
       {/* 種類 */}

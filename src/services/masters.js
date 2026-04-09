@@ -58,6 +58,7 @@ export async function getMachines(storeId) {
     machine_type: r.type_id || '',
     default_price: parseNum(r.play_price || '100'),
     rental_code: r.machine_number || '',
+    model_id: r.model_id || '',
     location_note: r.notes || '',
     active_flag: r.is_active ? '1' : '0',
   }))
