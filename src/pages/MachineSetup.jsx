@@ -1,46 +1,37 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LogoutButton from '../components/LogoutButton'
 import { getStores, getMachines, getBooths, getMachineTypes, updateMachine, deleteMachine } from '../services/masters'
 
 const CATEGORY_COLOR = {
-  crane:  'border-blue-500 text-blue-400 bg-blue-900/20',
-  gacha:  'border-purple-500 text-purple-400 bg-purple-900/20',
-  locker: 'border-green-500 text-green-400 bg-green-900/20',
-  other:  'border-amber-500 text-amber-400 bg-amber-900/20',
+  crane:  'bg-blue-900/30 text-blue-400 border-blue-700',
+  gacha:  'bg-purple-900/30 text-purple-400 border-purple-700',
+  locker: 'bg-green-900/30 text-green-400 border-green-700',
+  other:  'bg-amber-900/30 text-amber-400 border-amber-700',
 }
 
-function MachineCard({ machine, boothCount, machineTypes }) {
-  const [name, setName]       = useState(machine.machine_name || '')
-  const [type, setType]       = useState(machine.machine_type || '')
-  const [rental, setRental]   = useState(machine.rental_code || '')
-  const [modelId, setModelId] = useState(machine.model_id || '')
-  const [price, setPrice]     = useState(String(machine.default_price || 100))
-  const [notes, setNotes]     = useState(machine.location_note || '')
-  const [saving, setSaving]   = useState(false)
-  const [saved, setSaved]     = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError]     = useState(null)
+const inputCls = "w-full p-2 text-sm rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent"
 
-  const dirty = name !== (machine.machine_name || '') ||
-    type !== (machine.machine_type || '') ||
-    rental !== (machine.rental_code || '') ||
-    modelId !== (machine.model_id || '') ||
-    price !== String(machine.default_price || 100) ||
-    notes !== (machine.location_note || '')
+function MachineRow({ machine, machineTypes, onSaved, onDeleted }) {
+  const [editing, setEditing]   = useState(false)
+  const [name, setName]         = useState('')
+  const [type, setType]         = useState('')
+  const [rental, setRental]     = useState('')
+  const [modelId, setModelId]   = useState('')
+  const [price, setPrice]       = useState('')
+  const [notes, setNotes]       = useState('')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState(null)
 
-  async function handleDelete() {
-    if (!window.confirm(`「${name}」を無効化しますか？\nブースデータは残りますが、一覧から非表示になります。`)) return
-    setDeleting(true)
+  function startEdit() {
+    setName(machine.machine_name || '')
+    setType(machine.machine_type || '')
+    setRental(machine.rental_code || '')
+    setModelId(machine.model_id || '')
+    setPrice(String(machine.default_price || 100))
+    setNotes(machine.location_note || '')
     setError(null)
-    try {
-      await deleteMachine(machine.machine_code)
-      window.location.reload()
-    } catch (e) {
-      setError(e.message || '削除に失敗しました')
-    } finally {
-      setDeleting(false)
-    }
+    setEditing(true)
   }
 
   async function handleSave() {
@@ -58,8 +49,8 @@ function MachineCard({ machine, boothCount, machineTypes }) {
         play_price: p,
         notes: notes.trim() || null,
       })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      setEditing(false)
+      onSaved()
     } catch (e) {
       setError(e.message || '保存に失敗しました')
     } finally {
@@ -67,100 +58,101 @@ function MachineCard({ machine, boothCount, machineTypes }) {
     }
   }
 
-  const inputCls = "w-full p-2.5 text-sm rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent"
+  async function handleDelete() {
+    if (!window.confirm(`「${machine.machine_name}」を無効化しますか？\nブースデータは残りますが、一覧から非表示になります。`)) return
+    setSaving(true)
+    try {
+      await deleteMachine(machine.machine_code)
+      onDeleted()
+    } catch (e) {
+      setError(e.message || '削除に失敗しました')
+      setSaving(false)
+    }
+  }
+
+  const typeInfo = machineTypes.find(t => t.type_id === machine.machine_type)
+
+  if (!editing) {
+    return (
+      <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+            <span className="font-mono text-[11px] text-muted">{machine.machine_code}</span>
+            {typeInfo && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${CATEGORY_COLOR[typeInfo.category] || 'bg-surface2 text-muted border-border'}`}>
+                {typeInfo.type_name}
+              </span>
+            )}
+            <span className="text-[10px] text-muted">{machine.boothCount}ブース</span>
+          </div>
+          <div className="text-sm font-medium truncate">{machine.machine_name || <span className="text-muted italic">名称未設定</span>}</div>
+          <div className="text-[11px] text-muted mt-0.5 flex gap-2">
+            {machine.rental_code && <span>{machine.rental_code}</span>}
+            <span>¥{machine.default_price}</span>
+            {machine.model_id && <span className="text-muted/60">{machine.model_id}</span>}
+          </div>
+        </div>
+        <button
+          onClick={startEdit}
+          className="shrink-0 px-3 py-2 rounded-lg text-xs font-bold bg-surface2 border border-border text-muted hover:text-text hover:border-accent/40 transition-colors"
+        >
+          編集
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div className={`bg-surface border rounded-xl p-3.5 space-y-3 ${dirty ? 'border-accent/50' : 'border-border'}`}>
-      {/* ヘッダー行 */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-mono text-xs bg-surface2 px-2 py-0.5 rounded text-muted">
-          {machine.machine_code}
-        </span>
-        {machine.rental_code && !dirty && (
-          <span className="font-mono text-xs bg-accent/10 border border-accent/30 text-accent px-2 py-0.5 rounded">
-            {machine.rental_code}
-          </span>
-        )}
-        <span className="text-xs text-muted">{boothCount}ブース</span>
-        {dirty && <span className="text-[10px] text-accent ml-auto">未保存</span>}
+    <div className="bg-surface border-2 border-accent/40 rounded-xl p-3.5 space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-xs text-muted">{machine.machine_code}</span>
+        <span className="text-[10px] text-accent font-bold ml-auto">編集中</span>
       </div>
 
-      {/* 機械名 + レンタルコード */}
       <div className="flex gap-2">
         <div className="flex-1">
           <div className="text-[11px] text-muted mb-1">機械名 *</div>
-          <input
-            className={inputCls}
-            type="text"
-            placeholder="例: BUZZ4 1号機"
-            value={name}
-            onChange={e => setName(e.target.value)}
-          />
+          <input className={inputCls} type="text" placeholder="例: BUZZ4 1号機" value={name} onChange={e => setName(e.target.value)} />
         </div>
         <div className="w-24">
           <div className="text-[11px] text-muted mb-1">レンタルコード</div>
-          <input
-            className={inputCls}
-            type="text"
-            placeholder="R2001"
-            value={rental}
-            onChange={e => setRental(e.target.value)}
-          />
+          <input className={inputCls} type="text" placeholder="R2001" value={rental} onChange={e => setRental(e.target.value)} />
         </div>
       </div>
 
-      {/* 型番 */}
       <div>
         <div className="text-[11px] text-muted mb-1">型番</div>
-        <input
-          className={inputCls}
-          type="text"
-          placeholder="例: ABC-123"
-          value={modelId}
-          onChange={e => setModelId(e.target.value)}
-        />
+        <input className={inputCls} type="text" placeholder="例: ABC-123" value={modelId} onChange={e => setModelId(e.target.value)} />
       </div>
 
-      {/* 種類 */}
-      <div>
-        <div className="text-[11px] text-muted mb-1.5">種類</div>
-        <div className="flex flex-wrap gap-1.5">
-          {machineTypes.map(t => (
-            <button
-              key={t.type_id}
-              onClick={() => setType(type === t.type_id ? '' : t.type_id)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all
-                ${type === t.type_id
-                  ? (CATEGORY_COLOR[t.category] || 'border-accent text-accent bg-accent/10')
-                  : 'border-border text-muted'}`}
-            >
-              {t.type_name}
-            </button>
-          ))}
+      {machineTypes.length > 0 && (
+        <div>
+          <div className="text-[11px] text-muted mb-1.5">種類</div>
+          <div className="flex flex-wrap gap-1.5">
+            {machineTypes.map(t => (
+              <button
+                key={t.type_id}
+                onClick={() => setType(type === t.type_id ? '' : t.type_id)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all
+                  ${type === t.type_id
+                    ? (CATEGORY_COLOR[t.category] || 'border-accent text-accent bg-accent/10')
+                    : 'border-border text-muted'}`}
+              >
+                {t.type_name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 料金 + メモ */}
       <div className="flex gap-2">
         <div className="w-24">
           <div className="text-[11px] text-muted mb-1">料金(円)</div>
-          <input
-            className={inputCls}
-            type="number"
-            inputMode="numeric"
-            value={price}
-            onChange={e => setPrice(e.target.value)}
-          />
+          <input className={inputCls} type="number" inputMode="numeric" value={price} onChange={e => setPrice(e.target.value)} />
         </div>
         <div className="flex-1">
           <div className="text-[11px] text-muted mb-1">メモ</div>
-          <input
-            className={inputCls}
-            type="text"
-            placeholder="フロア・ゾーン等"
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-          />
+          <input className={inputCls} type="text" placeholder="フロア・ゾーン等" value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
       </div>
 
@@ -169,21 +161,25 @@ function MachineCard({ machine, boothCount, machineTypes }) {
       <div className="flex gap-2">
         <button
           onClick={handleSave}
-          disabled={saving || !dirty}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors
-            ${saved ? 'bg-green-700 text-white' :
-              dirty ? 'bg-blue-600 hover:bg-blue-700 text-white' :
-              'bg-surface2 text-muted cursor-not-allowed'}`}
+          disabled={saving}
+          className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white transition-colors"
         >
-          {saving ? '保存中...' : saved ? '✅ 保存済み' : dirty ? '保存' : '変更なし'}
+          {saving ? '保存中...' : '保存'}
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          disabled={saving}
+          className="px-4 py-2.5 rounded-xl text-sm font-bold bg-surface2 border border-border text-muted disabled:opacity-40"
+        >
+          キャンセル
         </button>
         <button
           onClick={handleDelete}
-          disabled={deleting || saving}
-          className="px-3 py-2.5 rounded-xl text-sm font-bold border border-red-800 text-red-400 hover:bg-red-900/20 transition-colors disabled:opacity-40"
-          title="この機械を無効化"
+          disabled={saving}
+          className="px-3 py-2.5 rounded-xl text-sm border border-red-800 text-red-400 hover:bg-red-900/20 disabled:opacity-40 transition-colors"
+          title="無効化"
         >
-          {deleting ? '…' : '🗑'}
+          🗑
         </button>
       </div>
     </div>
@@ -192,12 +188,18 @@ function MachineCard({ machine, boothCount, machineTypes }) {
 
 export default function MachineSetup() {
   const navigate = useNavigate()
-  const [groups, setGroups] = useState([])
+  const [groups, setGroups]         = useState([])
   const [machineTypes, setMachineTypes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]       = useState(true)
+  const [loadError, setLoadError]   = useState('')
+  const [filterText, setFilterText] = useState('')
+  const [filterType, setFilterType] = useState('')
+  const [filterStore, setFilterStore] = useState('')
 
-  useEffect(() => {
-    async function load() {
+  async function load() {
+    setLoading(true)
+    setLoadError('')
+    try {
       const [stores, types] = await Promise.all([getStores(), getMachineTypes()])
       setMachineTypes(types)
       const result = await Promise.all(
@@ -213,10 +215,33 @@ export default function MachineSetup() {
         })
       )
       setGroups(result.filter(g => g.machines.length > 0))
+    } catch {
+      setLoadError('読み込みに失敗しました')
+    } finally {
       setLoading(false)
     }
-    load()
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
+
+  const stores = useMemo(() => groups.map(g => g.store), [groups])
+
+  const allMachines = useMemo(() =>
+    groups.flatMap(g => g.machines.map(m => ({ ...m, store_name: g.store.store_name }))),
+    [groups]
+  )
+
+  const filtered = useMemo(() => {
+    const text = filterText.toLowerCase()
+    return allMachines.filter(m => {
+      if (filterStore && m.store_code !== filterStore) return false
+      if (filterType && m.machine_type !== filterType) return false
+      if (text && !m.machine_name.toLowerCase().includes(text) && !m.machine_code.toLowerCase().includes(text)) return false
+      return true
+    })
+  }, [allMachines, filterText, filterType, filterStore])
+
+  const hasFilter = filterText || filterType || filterStore
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -229,29 +254,79 @@ export default function MachineSetup() {
 
   return (
     <div className="min-h-screen max-w-lg mx-auto px-4 pt-4 pb-16">
-      <div className="flex items-center gap-3 mb-5">
+
+      <div className="flex items-center gap-3 mb-4">
         <button onClick={() => navigate('/admin')} className="text-2xl text-muted hover:text-accent">←</button>
         <div className="flex-1">
           <h2 className="text-lg font-bold">機械設定</h2>
-          <p className="text-xs text-muted">各機械の名前・種類・料金を設定してください</p>
+          <p className="text-xs text-muted">{allMachines.length}台登録済み</p>
         </div>
         <LogoutButton />
       </div>
 
-      <div className="space-y-6">
-        {groups.map(({ store, machines }) => (
-          <div key={store.store_code}>
-            <div className="text-xs text-muted font-bold uppercase tracking-wider mb-2 px-1">
-              {store.store_name}
-            </div>
-            <div className="space-y-3">
-              {machines.map(m => (
-                <MachineCard key={m.machine_code} machine={m} boothCount={m.boothCount} machineTypes={machineTypes} />
-              ))}
-            </div>
-          </div>
-        ))}
+      {/* フィルター */}
+      <div className="bg-surface border border-border rounded-xl p-3 mb-3 space-y-2">
+        <input
+          type="text"
+          placeholder="機械名・コードで絞り込み"
+          value={filterText}
+          onChange={e => setFilterText(e.target.value)}
+          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent"
+        />
+        <div className="flex gap-2">
+          <select
+            value={filterStore}
+            onChange={e => setFilterStore(e.target.value)}
+            className="flex-1 bg-surface2 border border-border rounded-lg px-2.5 py-2 text-sm text-text outline-none focus:border-accent"
+          >
+            <option value="">全店舗</option>
+            {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
+          </select>
+          <select
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+            className="flex-1 bg-surface2 border border-border rounded-lg px-2.5 py-2 text-sm text-text outline-none focus:border-accent"
+          >
+            <option value="">全種類</option>
+            {machineTypes.map(t => <option key={t.type_id} value={t.type_id}>{t.type_name}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted">{filtered.length}件</span>
+          {hasFilter && (
+            <button
+              onClick={() => { setFilterText(''); setFilterType(''); setFilterStore('') }}
+              className="text-xs text-accent"
+            >
+              リセット
+            </button>
+          )}
+        </div>
       </div>
+
+      {loadError && (
+        <div className="bg-accent2/15 border border-accent2 rounded-xl p-3 mb-3">
+          <p className="text-accent2 text-sm">{loadError}</p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {filtered.map(m => (
+          <MachineRow
+            key={m.machine_code}
+            machine={m}
+            machineTypes={machineTypes}
+            onSaved={load}
+            onDeleted={load}
+          />
+        ))}
+        {filtered.length === 0 && (
+          <div className="text-center py-16 text-muted text-sm">
+            {hasFilter ? '該当する機械がありません' : '機械が登録されていません'}
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
