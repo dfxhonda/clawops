@@ -11,17 +11,24 @@ const CATEGORY_COLOR = {
 }
 
 const inputCls = "w-full p-2 text-sm rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent"
+const selectCls = "w-full p-2 text-sm rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent"
+
+const SORT_KEYS = [
+  { key: 'code',   label: 'コード' },
+  { key: 'name',   label: '名前' },
+  { key: 'rental', label: 'レンタル' },
+]
 
 function MachineRow({ machine, machineTypes, onSaved, onDeleted }) {
-  const [editing, setEditing]   = useState(false)
-  const [name, setName]         = useState('')
-  const [type, setType]         = useState('')
-  const [rental, setRental]     = useState('')
-  const [modelId, setModelId]   = useState('')
-  const [price, setPrice]       = useState('')
-  const [notes, setNotes]       = useState('')
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [name, setName]       = useState('')
+  const [type, setType]       = useState('')
+  const [rental, setRental]   = useState('')
+  const [modelId, setModelId] = useState('')
+  const [price, setPrice]     = useState('')
+  const [notes, setNotes]     = useState('')
+  const [saving, setSaving]   = useState(false)
+  const [error, setError]     = useState(null)
 
   function startEdit() {
     setName(machine.machine_name || '')
@@ -85,7 +92,9 @@ function MachineRow({ machine, machineTypes, onSaved, onDeleted }) {
             )}
             <span className="text-[10px] text-muted">{machine.boothCount}ブース</span>
           </div>
-          <div className="text-sm font-medium truncate">{machine.machine_name || <span className="text-muted italic">名称未設定</span>}</div>
+          <div className="text-sm font-medium truncate">
+            {machine.machine_name || <span className="text-muted italic">名称未設定</span>}
+          </div>
           <div className="text-[11px] text-muted mt-0.5 flex gap-2">
             {machine.rental_code && <span>{machine.rental_code}</span>}
             <span>¥{machine.default_price}</span>
@@ -120,30 +129,21 @@ function MachineRow({ machine, machineTypes, onSaved, onDeleted }) {
         </div>
       </div>
 
-      <div>
-        <div className="text-[11px] text-muted mb-1">型番</div>
-        <input className={inputCls} type="text" placeholder="例: ABC-123" value={modelId} onChange={e => setModelId(e.target.value)} />
-      </div>
-
-      {machineTypes.length > 0 && (
-        <div>
-          <div className="text-[11px] text-muted mb-1.5">種類</div>
-          <div className="flex flex-wrap gap-1.5">
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <div className="text-[11px] text-muted mb-1">種類</div>
+          <select className={selectCls} value={type} onChange={e => setType(e.target.value)}>
+            <option value="">— 未設定 —</option>
             {machineTypes.map(t => (
-              <button
-                key={t.type_id}
-                onClick={() => setType(type === t.type_id ? '' : t.type_id)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all
-                  ${type === t.type_id
-                    ? (CATEGORY_COLOR[t.category] || 'border-accent text-accent bg-accent/10')
-                    : 'border-border text-muted'}`}
-              >
-                {t.type_name}
-              </button>
+              <option key={t.type_id} value={t.type_id}>{t.type_name}</option>
             ))}
-          </div>
+          </select>
         </div>
-      )}
+        <div className="w-28">
+          <div className="text-[11px] text-muted mb-1">型番</div>
+          <input className={inputCls} type="text" placeholder="ABC-123" value={modelId} onChange={e => setModelId(e.target.value)} />
+        </div>
+      </div>
 
       <div className="flex gap-2">
         <div className="w-24">
@@ -188,13 +188,24 @@ function MachineRow({ machine, machineTypes, onSaved, onDeleted }) {
 
 export default function MachineSetup() {
   const navigate = useNavigate()
-  const [groups, setGroups]         = useState([])
+  const [groups, setGroups]           = useState([])
   const [machineTypes, setMachineTypes] = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [loadError, setLoadError]   = useState('')
-  const [filterText, setFilterText] = useState('')
-  const [filterType, setFilterType] = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [loadError, setLoadError]     = useState('')
+  const [filterText, setFilterText]   = useState('')
+  const [filterType, setFilterType]   = useState('')
   const [filterStore, setFilterStore] = useState('')
+  const [sortKey, setSortKey]         = useState('code')
+  const [sortDir, setSortDir]         = useState('asc')
+
+  function handleSort(key) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   async function load() {
     setLoading(true)
@@ -233,13 +244,23 @@ export default function MachineSetup() {
 
   const filtered = useMemo(() => {
     const text = filterText.toLowerCase()
-    return allMachines.filter(m => {
+    const list = allMachines.filter(m => {
       if (filterStore && m.store_code !== filterStore) return false
       if (filterType && m.machine_type !== filterType) return false
       if (text && !m.machine_name.toLowerCase().includes(text) && !m.machine_code.toLowerCase().includes(text)) return false
       return true
     })
-  }, [allMachines, filterText, filterType, filterStore])
+    return [...list].sort((a, b) => {
+      const av = sortKey === 'name' ? a.machine_name
+               : sortKey === 'rental' ? (a.rental_code || '')
+               : a.machine_code
+      const bv = sortKey === 'name' ? b.machine_name
+               : sortKey === 'rental' ? (b.rental_code || '')
+               : b.machine_code
+      const cmp = av.localeCompare(bv, 'ja')
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [allMachines, filterText, filterType, filterStore, sortKey, sortDir])
 
   const hasFilter = filterText || filterType || filterStore
 
@@ -253,64 +274,85 @@ export default function MachineSetup() {
   )
 
   return (
-    <div className="min-h-screen max-w-lg mx-auto px-4 pt-4 pb-16">
+    <div className="min-h-screen pb-16">
 
-      <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate('/admin')} className="text-2xl text-muted hover:text-accent">←</button>
-        <div className="flex-1">
-          <h2 className="text-lg font-bold">機械設定</h2>
-          <p className="text-xs text-muted">{allMachines.length}台登録済み</p>
-        </div>
-        <LogoutButton />
-      </div>
+      {/* 固定ヘッダー + フィルター + ソート */}
+      <div className="sticky top-0 z-20 bg-bg border-b border-border">
+        <div className="max-w-lg mx-auto px-4 pt-3 pb-2 space-y-2">
 
-      {/* フィルター */}
-      <div className="bg-surface border border-border rounded-xl p-3 mb-3 space-y-2">
-        <input
-          type="text"
-          placeholder="機械名・コードで絞り込み"
-          value={filterText}
-          onChange={e => setFilterText(e.target.value)}
-          className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent"
-        />
-        <div className="flex gap-2">
-          <select
-            value={filterStore}
-            onChange={e => setFilterStore(e.target.value)}
-            className="flex-1 bg-surface2 border border-border rounded-lg px-2.5 py-2 text-sm text-text outline-none focus:border-accent"
-          >
-            <option value="">全店舗</option>
-            {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-          </select>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="flex-1 bg-surface2 border border-border rounded-lg px-2.5 py-2 text-sm text-text outline-none focus:border-accent"
-          >
-            <option value="">全種類</option>
-            {machineTypes.map(t => <option key={t.type_id} value={t.type_id}>{t.type_name}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted">{filtered.length}件</span>
-          {hasFilter && (
-            <button
-              onClick={() => { setFilterText(''); setFilterType(''); setFilterStore('') }}
-              className="text-xs text-accent"
+          {/* ナビ */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/admin')} className="text-2xl text-muted hover:text-accent">←</button>
+            <div className="flex-1">
+              <h2 className="text-base font-bold">機械設定</h2>
+            </div>
+            <LogoutButton />
+          </div>
+
+          {/* テキスト検索 */}
+          <input
+            type="text"
+            placeholder="機械名・コードで絞り込み"
+            value={filterText}
+            onChange={e => setFilterText(e.target.value)}
+            className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-accent"
+          />
+
+          {/* 店舗・種類フィルター */}
+          <div className="flex gap-2">
+            <select
+              value={filterStore}
+              onChange={e => setFilterStore(e.target.value)}
+              className="flex-1 bg-surface2 border border-border rounded-lg px-2.5 py-1.5 text-sm text-text outline-none focus:border-accent"
             >
-              リセット
-            </button>
-          )}
+              <option value="">全店舗</option>
+              {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
+            </select>
+            <select
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+              className="flex-1 bg-surface2 border border-border rounded-lg px-2.5 py-1.5 text-sm text-text outline-none focus:border-accent"
+            >
+              <option value="">全種類</option>
+              {machineTypes.map(t => <option key={t.type_id} value={t.type_id}>{t.type_name}</option>)}
+            </select>
+          </div>
+
+          {/* ソート + 件数 */}
+          <div className="flex items-center gap-1.5">
+            {SORT_KEYS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => handleSort(key)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors
+                  ${sortKey === key
+                    ? 'bg-accent/15 text-accent border-accent/40'
+                    : 'bg-surface2 text-muted border-border'}`}
+              >
+                {label}{sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+              </button>
+            ))}
+            <span className="text-[11px] text-muted ml-auto">{filtered.length}件</span>
+            {hasFilter && (
+              <button
+                onClick={() => { setFilterText(''); setFilterType(''); setFilterStore('') }}
+                className="text-[11px] text-accent"
+              >
+                リセット
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
 
-      {loadError && (
-        <div className="bg-accent2/15 border border-accent2 rounded-xl p-3 mb-3">
-          <p className="text-accent2 text-sm">{loadError}</p>
-        </div>
-      )}
-
-      <div className="space-y-2">
+      {/* リスト */}
+      <div className="max-w-lg mx-auto px-4 pt-3 space-y-2">
+        {loadError && (
+          <div className="bg-accent2/15 border border-accent2 rounded-xl p-3">
+            <p className="text-accent2 text-sm">{loadError}</p>
+          </div>
+        )}
         {filtered.map(m => (
           <MachineRow
             key={m.machine_code}
