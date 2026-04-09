@@ -303,7 +303,7 @@ async function handleLogin(){
       token_type:'bearer',
       user:{
         id:'',email:'',
-        user_metadata:{staff_id:data.staff.staff_id,name:data.staff.name,role:data.staff.role}
+        user_metadata:{staff_id:data.staff.staff_id,name:data.staff.name,role:data.staff.role,store_code:data.staff.store_code||null}
       }
     }));
     msg.className='login-msg ok';msg.textContent='ログイン成功';

@@ -9,7 +9,7 @@ export default function MainInput() {
   const {
     stores, machines, booths, readingsMap, inputs,
     storeId, setStoreId, machineId, setMachineId, readDate, setReadDate,
-    loading, saving, expandedSettings, setExpandedSettings,
+    loading, saving, expandedSettings, setExpandedSettings, isFieldStaff,
     setInp, handleKeyDown, handleSave, getRef, switchMachine,
     calcBoothStats, machineSub, inputCount, currentMachine, currentStore,
   } = useMainInput()
@@ -43,13 +43,19 @@ export default function MainInput() {
       {/* ===== トップバー ===== */}
       <div className="sticky top-0 z-50 bg-bg border-b border-border">
         <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-1">
-          <select value={storeId || ''} onChange={e => setStoreId(e.target.value)}
-            className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[160px] truncate [color-scheme:dark]">
-            <option value="">店舗を選択</option>
-            {stores.map(s => (
-              <option key={s.store_code} value={s.store_code}>{s.store_name}</option>
-            ))}
-          </select>
+          {isFieldStaff ? (
+            <span className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg max-w-[160px] truncate">
+              {stores.find(s => s.store_code === storeId)?.store_name || '—'}
+            </span>
+          ) : (
+            <select value={storeId || ''} onChange={e => setStoreId(e.target.value)}
+              className="bg-surface2 border border-border text-text text-xs font-bold px-2 py-1.5 rounded-lg outline-none focus:border-blue-500 max-w-[160px] truncate [color-scheme:dark]">
+              <option value="">店舗を選択</option>
+              {stores.map(s => (
+                <option key={s.store_code} value={s.store_code}>{s.store_name}</option>
+              ))}
+            </select>
+          )}
           <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
             className="bg-surface2 border border-border text-text text-xs px-1.5 py-1.5 rounded-lg [color-scheme:dark] w-[115px]" />
           <div className="flex items-center gap-1 ml-auto">

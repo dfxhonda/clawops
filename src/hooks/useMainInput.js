@@ -3,12 +3,16 @@
 // データ取得・入力管理・保存・集計を分離
 // ============================================
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useAuth } from './useAuth'
 import { getStores, getMachines, getBooths } from '../services/masters'
 import { getLastReadingsMap, getAllMeterReadings, saveReading } from '../services/readings'
 import { parseNum } from '../services/utils'
 import { getDrafts, setDrafts, clearDraftBooths, saveDraftBooth } from './useDrafts'
 
 export function useMainInput() {
+  const { staffRole, staffStoreCode } = useAuth()
+  const isFieldStaff = staffRole === 'staff' || staffRole === 'patrol'
+
   // マスタデータ
   const [stores, setStores] = useState([])
   const [machines, setMachines] = useState([])
@@ -38,13 +42,16 @@ export function useMainInput() {
 
   // ===== データ取得 =====
 
-  // 初回ロード: 店舗一覧
+  // 初回ロード: 店舗一覧（staff/patrolは自店舗を自動選択）
   useEffect(() => {
     getStores().then(s => {
       setStores(s)
+      if (isFieldStaff && staffStoreCode) {
+        setStoreId(staffStoreCode)
+      }
       setLoading(false)
     }).catch(() => { setLoading(false) })
-  }, [])
+  }, [isFieldStaff, staffStoreCode])
 
   // 店舗変更 → 機械一覧取得
   useEffect(() => {
@@ -208,7 +215,7 @@ export function useMainInput() {
     // 選択
     storeId, setStoreId, machineId, setMachineId, readDate, setReadDate,
     // UI状態
-    loading, saving, expandedSettings, setExpandedSettings,
+    loading, saving, expandedSettings, setExpandedSettings, isFieldStaff,
     // 操作
     setInp, handleKeyDown, handleSave, getRef, switchMachine,
     // 集計

@@ -12,12 +12,13 @@ export async function getAuthSession() {
 }
 
 export function extractMeta(session) {
-  if (!session) return { staffId: null, staffName: '', staffRole: 'staff', accessToken: null }
+  if (!session) return { staffId: null, staffName: '', staffRole: 'staff', staffStoreCode: null, accessToken: null }
   const meta = session.user?.user_metadata || {}
   return {
     staffId: meta.staff_id || null,
     staffName: meta.name || '',
     staffRole: meta.role || 'staff',
+    staffStoreCode: meta.store_code || null,
     accessToken: session.access_token,
   }
 }
