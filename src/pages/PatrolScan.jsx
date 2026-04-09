@@ -14,6 +14,7 @@ export default function PatrolScan() {
   const [manualCode, setManualCode] = useState('')
   const [resolving, setResolving] = useState(false)
   const scannerRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   // ドロップダウン用
   const [stores, setStores] = useState([])
@@ -88,6 +89,21 @@ export default function PatrolScan() {
     await startScanner()
   }
 
+  async function handleFileSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    await stopScanner()
+    setResolving(true); setError(null)
+    try {
+      const code = await Html5Qrcode.scanFile(file, false)
+      await resolveBooth(code.trim())
+    } catch {
+      setError('QRコードが読み取れませんでした。画像を確認してください。')
+      setResolving(false)
+    }
+  }
+
   async function handleDropdownStart() {
     if (!selMachine) { setDropError('機械を選択してください'); return }
     setDropError(null); setResolving(true)
@@ -138,7 +154,15 @@ export default function PatrolScan() {
               <p className="text-muted text-sm">カメラ起動中...</p>
             </div>
           )}
+          {/* ギャラリーボタン（右下に重ねて表示） */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={resolving}
+            className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm disabled:opacity-40 transition-colors">
+            🖼️ ギャラリー
+          </button>
         </div>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
 
         {/* エラー */}
         {error && (
