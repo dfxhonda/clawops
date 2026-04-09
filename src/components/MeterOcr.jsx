@@ -65,6 +65,7 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
   const [editOut, setEditOut] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const fileRef = useRef(null)
+  const galleryRef = useRef(null)
   const mountedRef = useRef(true)
 
   const side = getBoothSide(boothCode)
@@ -122,6 +123,7 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
     setEditIn(''); setEditOut('')
     setPhase('idle')
     if (fileRef.current) fileRef.current.value = ''
+    if (galleryRef.current) galleryRef.current.value = ''
   }
 
   const warnings = ocrData ? validateOcr(
@@ -142,24 +144,38 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
 
         {/* idle: 撮影ボタン */}
         {phase === 'idle' && (
-          <div className="text-center py-6">
-            <p className="text-sm text-muted mb-2">
+          <div className="text-center py-4">
+            <p className="text-sm text-muted mb-1">
               メーターパネル全体を撮影してください
             </p>
-            <p className="text-xs text-accent mb-6">
+            <p className="text-xs text-accent mb-5">
               ブース {boothCode?.split('-').pop()} → {side === 'left' ? '左側' : '右側'}メーターを読み取ります
             </p>
-            <label className="inline-block cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl text-lg transition-colors">
-              📸 撮影する
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFile}
-              />
-            </label>
+            <div className="flex gap-3 justify-center">
+              <label className="flex-1 max-w-[160px] cursor-pointer bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-xl text-base transition-colors flex flex-col items-center gap-1">
+                <span className="text-2xl">📸</span>
+                <span>撮影する</span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+              </label>
+              <label className="flex-1 max-w-[160px] cursor-pointer bg-surface2 border-2 border-border hover:border-accent active:bg-surface3 text-text font-bold py-4 rounded-xl text-base transition-colors flex flex-col items-center gap-1">
+                <span className="text-2xl">🖼️</span>
+                <span className="text-sm">ギャラリー</span>
+                <input
+                  ref={galleryRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFile}
+                />
+              </label>
+            </div>
           </div>
         )}
 

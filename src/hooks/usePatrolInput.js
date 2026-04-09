@@ -218,8 +218,9 @@ export function usePatrolInput(initialBooth, navigateToPatrol) {
       prize_stock_count:   inp.prize_stock   || '',
       prize_name: prizeName,
       note: noteWithStatus, machine_status: inp.machineStatus || 'ok',
-      set_a: latest?.set_a || '', set_c: latest?.set_c || '',
-      set_l: latest?.set_l || '', set_r: latest?.set_r || '', set_o: latest?.set_o || '',
+      set_a: inp.set_a || latest?.set_a || '', set_c: inp.set_c || latest?.set_c || '',
+      set_l: inp.set_l || latest?.set_l || '', set_r: inp.set_r || latest?.set_r || '',
+      set_o: inp.set_o || latest?.set_o || '',
       input_method: inp.inputMethod || 'manual',
       ocr_confidence: inp.ocrConfidence || null,
     })

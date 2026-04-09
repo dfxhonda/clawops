@@ -7,12 +7,21 @@ import AnomalyBanner from '../components/AnomalyBanner'
 import PatrolConfirmModal from '../components/PatrolConfirmModal'
 import MeterOcr from '../components/MeterOcr'
 
-const SETTINGS = [
-  { key: 'a', label: 'A', disp: 'アシスト', title: 'アシスト回数', isText: false },
-  { key: 'c', label: 'C', disp: 'キャッチ', title: 'キャッチ時パワー', isText: false },
-  { key: 'l', label: 'L', disp: '緩和',     title: '緩和時パワー',    isText: false },
-  { key: 'r', label: 'R', disp: '復帰',     title: '復帰時パワー',   isText: false },
-  { key: 'o', label: 'O', disp: 'その他',   title: '固有設定',       isText: true  },
+// 前日付タブ用（set_a〜o キーで直接保存）
+const SETTINGS_PREV = [
+  { key: 'set_a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数',    isText: false },
+  { key: 'set_c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー', isText: false },
+  { key: 'set_l', label: 'L', shortName: 'ﾕﾙ',   title: '緩和時パワー',    isText: false },
+  { key: 'set_r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー',    isText: false },
+  { key: 'set_o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定',        isText: true  },
+]
+// 当日付変更タブ用（_settingsChange.set_a〜o）
+const SETTINGS_CHANGE = [
+  { key: 'a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数',    isText: false },
+  { key: 'c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー', isText: false },
+  { key: 'l', label: 'L', shortName: 'ﾕﾙ',   title: '緩和時パワー',    isText: false },
+  { key: 'r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー',    isText: false },
+  { key: 'o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定',        isText: true  },
 ]
 
 function boothLabel(booth) {
@@ -164,6 +173,26 @@ export default function PatrolInput() {
             )}
           </button>
         </div>
+
+        {/* 入力日付 + カメラボタン（タブの直下・固定） */}
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex-1 flex items-center gap-2 px-2.5 py-2 bg-surface rounded-lg border border-border min-w-0">
+            <span className="text-xs text-muted shrink-0">入力日付</span>
+            <input type="date" value={prevDayDate}
+              onChange={e => setPrevDayDate(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent text-text text-xs outline-none [color-scheme:dark]" />
+            {prevDayDate !== new Date(Date.now() - 86400000).toISOString().slice(0, 10) &&
+              <span className="text-[10px] text-accent2 font-bold shrink-0">前日以外</span>}
+          </div>
+          <button
+            onClick={() => setShowOcr(true)}
+            className="shrink-0 h-10 px-3 flex items-center gap-1.5 bg-surface border border-border rounded-lg text-accent active:bg-accent/10 transition-colors">
+            <span className="text-base">📷</span>
+            {currentInp.inputMethod === 'ocr'
+              ? <span className="text-[10px] bg-accent/20 px-1.5 py-0.5 rounded text-accent">OCR済</span>
+              : <span className="text-xs text-muted">読取</span>}
+          </button>
+        </div>
       </div>
 
       {/* ━━━ エラー ━━━ */}
@@ -213,23 +242,6 @@ export default function PatrolInput() {
                 差分基準: IN {lastIn?.toLocaleString() ?? '-'} ({last.read_time?.slice(5, 10)})
               </div>
             )}
-
-            {/* 入力日付 */}
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-surface rounded-lg border border-border">
-              <span className="text-xs text-muted shrink-0">入力日付</span>
-              <input type="date" value={prevDayDate}
-                onChange={e => setPrevDayDate(e.target.value)}
-                className="flex-1 bg-transparent text-text text-xs outline-none [color-scheme:dark]" />
-              {prevDayDate !== new Date(Date.now() - 86400000).toISOString().slice(0, 10) &&
-                <span className="text-[10px] text-accent2 font-bold shrink-0">前日以外</span>}
-            </div>
-
-            {/* OCRボタン */}
-            <button onClick={() => setShowOcr(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-accent/40 text-accent active:bg-accent/10 transition-colors text-sm">
-              📷 カメラで読取
-              {currentInp.inputMethod === 'ocr' && <span className="text-xs bg-accent/20 px-2 py-0.5 rounded-full">OCR適用済</span>}
-            </button>
 
             {/* IN / OUT 2カラム */}
             <div className="grid grid-cols-2 gap-2">
@@ -306,19 +318,42 @@ export default function PatrolInput() {
                 onChange={e => setInp('prize_name', e.target.value)} />
             </div>
 
-            {/* 補充数 / 残数 */}
+            {/* 投入残 / 補充数（左右入れ替え済） */}
             <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">景品投入残</div>
+                <input className={inp} type="number" inputMode="numeric" placeholder="0"
+                  value={currentInp.prize_stock || ''}
+                  onChange={e => setInp('prize_stock', e.target.value)} />
+              </div>
               <div>
                 <div className="text-xs text-muted mb-1 px-0.5">景品補充数</div>
                 <input className={inp} type="number" inputMode="numeric" placeholder="0"
                   value={currentInp.prize_restock || ''}
                   onChange={e => setInp('prize_restock', e.target.value)} />
               </div>
-              <div>
-                <div className="text-xs text-muted mb-1 px-0.5">景品投入残</div>
-                <input className={inp} type="number" inputMode="numeric" placeholder="0"
-                  value={currentInp.prize_stock || ''}
-                  onChange={e => setInp('prize_stock', e.target.value)} />
+            </div>
+
+            {/* ACLRO設定値 */}
+            <div>
+              <div className="text-xs text-muted mb-1.5 px-0.5">⚙️ 設定値 (A/C/L/R/O)</div>
+              <div className="flex gap-1.5">
+                {SETTINGS_PREV.map(s => (
+                  <div key={s.key} className="w-[36px] shrink-0" title={s.title}>
+                    <div className="text-[9px] text-accent4 text-center font-bold leading-tight mb-0.5">
+                      {s.label}<span className="block text-[6px] text-accent4/60 font-normal">{s.shortName}</span>
+                    </div>
+                    <input
+                      className="w-full p-1 text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
+                      type={s.isText ? 'text' : 'number'}
+                      inputMode={s.isText ? 'text' : 'numeric'}
+                      placeholder={latest?.[s.key] || '-'}
+                      value={currentInp[s.key] || ''}
+                      onChange={e => setInp(s.key, e.target.value)}
+                      title={s.title}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -422,13 +457,13 @@ export default function PatrolInput() {
               {sc.enabled && (
                 <div className="px-3 pb-3 border-t border-border pt-2">
                   <div className="flex gap-1.5">
-                    {SETTINGS.map(s => (
-                      <div key={s.key} className="flex-1" title={s.title}>
-                        <div className="text-[10px] text-accent4 text-center font-bold leading-tight mb-1">
-                          {s.label}<span className="block text-[9px] font-normal opacity-70">{s.disp}</span>
+                    {SETTINGS_CHANGE.map(s => (
+                      <div key={s.key} className="w-[36px] shrink-0" title={s.title}>
+                        <div className="text-[9px] text-accent4 text-center font-bold leading-tight mb-0.5">
+                          {s.label}<span className="block text-[6px] text-accent4/60 font-normal">{s.shortName}</span>
                         </div>
                         <input
-                          className="w-full py-2 text-center rounded-lg border border-border bg-surface2 text-text outline-none focus:border-accent4/60 text-xs"
+                          className="w-full p-1 text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
                           type={s.isText ? 'text' : 'number'}
                           inputMode={s.isText ? 'text' : 'numeric'}
                           placeholder={latest?.[`set_${s.key}`] || '-'}
