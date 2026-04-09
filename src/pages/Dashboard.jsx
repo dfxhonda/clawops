@@ -4,9 +4,12 @@ import { getStores, getMachines, getBooths } from '../services/masters'
 import { getAllMeterReadings } from '../services/readings'
 import { parseNum } from '../services/utils'
 import LogoutButton from '../components/LogoutButton'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { staffRole, staffStoreCode } = useAuth()
+  const isFieldStaff = staffRole === 'staff' || staffRole === 'patrol'
   const [stores, setStores] = useState([])
   const [storeId, setStoreId] = useState(null)
   const [rankings, setRankings] = useState([])
@@ -16,10 +19,11 @@ export default function Dashboard() {
   useEffect(() => {
     getStores().then(s => {
       setStores(s)
-      if (s.length > 0) setStoreId(s[0].store_code)
+      if (isFieldStaff && staffStoreCode) setStoreId(staffStoreCode)
+      else if (s.length > 0) setStoreId(s[0].store_code)
       setLoading(false)
     })
-  }, [])
+  }, [isFieldStaff, staffStoreCode])
 
   useEffect(() => {
     if (!storeId) return
@@ -92,18 +96,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 店舗チップ */}
-      <div className="flex gap-1.5 px-2.5 py-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
-        {stores.map(s => (
-          <button key={s.store_code} onClick={() => setStoreId(s.store_code)}
-            className={`shrink-0 px-3 py-1 rounded-2xl text-xs font-semibold border transition-all
-              ${s.store_code === storeId
-                ? 'bg-blue-600 border-blue-600 text-white'
-                : 'bg-surface border-border text-muted'}`}>
-            {s.store_name}
-          </button>
-        ))}
-      </div>
+      {/* 店舗チップ（manager以上のみ切り替え可） */}
+      {isFieldStaff ? (
+        <div className="px-3 py-2 text-xs font-semibold text-muted">
+          {stores.find(s => s.store_code === storeId)?.store_name || '—'}
+        </div>
+      ) : (
+        <div className="flex gap-1.5 px-2.5 py-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
+          {stores.map(s => (
+            <button key={s.store_code} onClick={() => setStoreId(s.store_code)}
+              className={`shrink-0 px-3 py-1 rounded-2xl text-xs font-semibold border transition-all
+                ${s.store_code === storeId
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'bg-surface border-border text-muted'}`}>
+              {s.store_name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* サマリーカード */}
       {storeSummary && (
