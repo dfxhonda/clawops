@@ -45,12 +45,9 @@ const SECTIONS = [
     ]
   },
   {
-    title: 'マスタ追加',
+    title: 'QR印刷',
     minRole: 'manager',
     items: [
-      { icon: '🏭', title: '機械設定', desc: '機械名・種類・料金を一覧編集', path: '/admin/machine-setup', highlight: true },
-      { icon: '🔧', title: '機械追加', desc: '新しい機械をマスタに登録', path: '/admin/add-machine' },
-      { icon: '📦', title: 'ブース追加', desc: '機械にブースを追加登録', path: '/admin/add-booth' },
       { icon: '🏷️', title: 'QRコード印刷', desc: 'ブースQRラベルを生成・印刷', path: '/admin/qr-print' },
     ]
   },
