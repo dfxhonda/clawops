@@ -4,7 +4,6 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider } from './lib/auth/AuthProvider'
 import { useAuth } from './hooks/useAuth'
 import ProtectedRoute, { AdminRoute, ManagerRoute, PatrolRoute } from './components/ProtectedRoute'
-import TabBar from './components/TabBar'
 import UpdateBanner from './components/UpdateBanner'
 import { useVersionCheck } from './hooks/useVersionCheck'
 import { buildLabel } from './lib/buildInfo'
@@ -58,15 +57,6 @@ function PageLoader() {
   )
 }
 
-function WithTabs({ children }) {
-  return (
-    <>
-      {children}
-      <TabBar />
-    </>
-  )
-}
-
 function AppInner() {
   const { isLoggedIn } = useAuth()
   const { updateAvailable, dismiss } = useVersionCheck()
@@ -82,10 +72,10 @@ function AppInner() {
       <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* メイン3タブ — 全ロール */}
-      <Route path="/" element={<ProtectedRoute><WithTabs><MainInput /></WithTabs></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><WithTabs><Dashboard /></WithTabs></ProtectedRoute>} />
-      <Route path="/admin" element={<ManagerRoute><WithTabs><AdminMenu /></WithTabs></ManagerRoute>} />
+      {/* メインタブ — 全ロール */}
+      <Route path="/" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
@@ -119,7 +109,7 @@ function AppInner() {
       <Route path="/admin/daily-stats" element={<AdminRoute><DailyStatsAdmin /></AdminRoute>} />
 
 
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to="/admin" />} />
     </Routes>
     </Suspense>
     </ErrorBoundary>

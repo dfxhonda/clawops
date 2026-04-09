@@ -53,6 +53,10 @@ export default function MainInput() {
           <input type="date" value={readDate} onChange={e => setReadDate(e.target.value)}
             className="bg-surface2 border border-border text-text text-xs px-1.5 py-1.5 rounded-lg [color-scheme:dark] w-[115px]" />
           <div className="flex items-center gap-1 ml-auto">
+            <button onClick={() => navigate('/admin')}
+              className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
+              ☰
+            </button>
             <LogoutButton />
             <button onClick={() => {
                 const mid = machines[0]?.machine_code

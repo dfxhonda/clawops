@@ -83,10 +83,11 @@ export default function Dashboard() {
   )
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-4">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5">
-        <div className="flex items-center justify-between">
-          <div className="text-base font-bold">ダッシュボード</div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/admin')} className="text-2xl text-muted hover:text-accent">←</button>
+          <div className="flex-1 text-base font-bold">ダッシュボード</div>
           <LogoutButton />
         </div>
       </div>
