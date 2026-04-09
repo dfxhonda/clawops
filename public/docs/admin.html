@@ -225,7 +225,7 @@ async function loadAll(){
   try{
     const [s,m,b,mt,mc,sup,ot,tt,ps,st,loc]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&is_active=eq.true&order=store_code.asc'),
-      sbGet('machines','select=machine_code,store_code,machine_name,machine_number,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
+      sbGet('machines','select=machine_code,store_code,machine_name,machine_number,type_id,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
       sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&is_active=eq.true&order=booth_code.asc'),
       sbGet('machine_types','select=*&order=type_id.asc'),
       sbGet('machine_categories','select=*&order=sort_order.asc'),
@@ -252,6 +252,13 @@ async function loadAll(){
 function storeName(code){const s=stores.find(x=>x.store_code===code);return s?s.store_name:code||'—';}
 function machineName(code){const m=machines.find(x=>x.machine_code===code);return m?m.machine_name:code||'—';}
 function machineStore(code){const m=machines.find(x=>x.machine_code===code);return m?m.store_code:'';}
+function machineTypeBadge(typeId){
+  if(!typeId)return'<span style="color:var(--text2);font-size:11px">—</span>';
+  const t=machineTypes.find(x=>x.type_id===typeId);
+  if(!t)return'<span style="color:var(--text2);font-size:11px">'+esc(typeId)+'</span>';
+  const color={crane:'badge-blue',gacha:'badge-cyan',locker:'badge-green',other:'badge-yellow'}[t.category]||'badge-blue';
+  return'<span class="badge '+color+'" style="font-size:10px;padding:2px 6px">'+esc(t.type_name)+'</span>';
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function genId(prefix){return prefix+Date.now().toString(36).toUpperCase();}
 function regionBadge(r){
@@ -304,6 +311,7 @@ function applySortMachines(list){
   return list.slice().sort((a,b)=>{
     if(s.col==='booth_count')return cmp(booths.filter(x=>x.machine_code===a.machine_code).length,booths.filter(x=>x.machine_code===b.machine_code).length,s.dir);
     if(s.col==='store_name')return cmp(storeName(a.store_code),storeName(b.store_code),s.dir);
+    if(s.col==='play_price')return cmp(a.play_price??-1,b.play_price??-1,s.dir);
     if(s.col==='machine_number'){
       // レンタルコードなし → 末尾
       const av=a.machine_number||'', bv=b.machine_number||'';
@@ -387,7 +395,8 @@ function renderMachines(){
       +'<td>'+esc(storeName(m.store_code))+'</td>'
       +'<td><code style="font-size:11px;color:var(--text2)">'+esc(m.machine_code)+'</code></td>'
       +(m.machine_number?'<td><span class="badge badge-blue" style="font-size:11px;padding:2px 8px">'+esc(m.machine_number)+'</span></td>':'<td style="color:var(--text2);font-size:11px">—</td>')
-      +'<td style="font-size:11px;color:var(--text2)">'+esc(m.notes||'—')+'</td>'
+      +'<td>'+machineTypeBadge(m.type_id)+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(m.play_price!=null?'¥'+m.play_price:'—')+'</td>'
       +'<td>'+activeBadge(m.is_active)+'</td>'
       +'<td>'+bc+'台</td>'
       +'<td><button class="btn-edit" onclick="editMachine(\''+esc(m.machine_code)+'\')">編集</button></td>'
@@ -398,9 +407,9 @@ function renderMachines(){
     +'<button class="btn-add" onclick="addMachine()">＋ 機械追加</button></div>'
     +'<div class="count-row"><span class="count-text">'+sorted.length+'台</span></div></div>'
     +'<div class="table-wrap"><table>'
-    +'<colgroup><col style="width:24%"><col style="width:16%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:7%"><col style="width:7%"><col style="width:8%"></colgroup>'
-    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+th('machines','machine_number','レンタルコード')+'<th>備考</th><th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
-    +'<tbody>'+(rows||'<tr><td colspan="7"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
+    +'<colgroup><col style="width:20%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:8%"></colgroup>'
+    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+th('machines','machine_number','レンタル')+'<th>タイプ</th>'+th('machines','play_price','料金')+'<th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
+    +'<tbody>'+(rows||'<tr><td colspan="9"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
     +'</table></div>';
 }
 
