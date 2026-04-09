@@ -225,7 +225,7 @@ async function loadAll(){
   try{
     const [s,m,b,mt,mc,sup,ot,tt,ps,st,loc]=await Promise.all([
       sbGet('stores','select=store_code,store_name,brand_name,region,is_active,opened_at,notes&is_active=eq.true&order=store_code.asc'),
-      sbGet('machines','select=machine_code,store_code,machine_name,machine_number,type_id,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
+      sbGet('machines','select=machine_code,store_code,machine_name,machine_number,type_id,model_id,play_price,floor,zone,is_active,notes&is_active=eq.true&order=machine_code.asc'),
       sbGet('booths','select=booth_code,machine_code,store_code,booth_number,payout_setting,current_phase,is_active,notes&is_active=eq.true&order=booth_code.asc'),
       sbGet('machine_types','select=*&order=type_id.asc'),
       sbGet('machine_categories','select=*&order=sort_order.asc'),
@@ -390,13 +390,16 @@ function renderMachines(){
   const sorted=applySortMachines(list);
   const rows=sorted.map(m=>{
     const bc=booths.filter(b=>b.machine_code===m.machine_code).length;
+    const location=[m.floor,m.zone].filter(Boolean).join(' / ');
     return'<tr>'
-      +'<td><strong>'+esc(m.machine_name)+'</strong></td>'
+      +'<td><strong>'+esc(m.machine_name)+'</strong>'+(m.notes?'<div style="font-size:10px;color:var(--text2);margin-top:1px">'+esc(m.notes)+'</div>':'')+'</td>'
       +'<td>'+esc(storeName(m.store_code))+'</td>'
       +'<td><code style="font-size:11px;color:var(--text2)">'+esc(m.machine_code)+'</code></td>'
       +(m.machine_number?'<td><span class="badge badge-blue" style="font-size:11px;padding:2px 8px">'+esc(m.machine_number)+'</span></td>':'<td style="color:var(--text2);font-size:11px">—</td>')
       +'<td>'+machineTypeBadge(m.type_id)+'</td>'
       +'<td style="font-size:11px;color:var(--text2)">'+(m.play_price!=null?'¥'+m.play_price:'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(m.model_id?esc(m.model_id):'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--text2)">'+(location||'—')+'</td>'
       +'<td>'+activeBadge(m.is_active)+'</td>'
       +'<td>'+bc+'台</td>'
       +'<td><button class="btn-edit" onclick="editMachine(\''+esc(m.machine_code)+'\')">編集</button></td>'
@@ -407,9 +410,9 @@ function renderMachines(){
     +'<button class="btn-add" onclick="addMachine()">＋ 機械追加</button></div>'
     +'<div class="count-row"><span class="count-text">'+sorted.length+'台</span></div></div>'
     +'<div class="table-wrap"><table>'
-    +'<colgroup><col style="width:20%"><col style="width:13%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:7%"><col style="width:6%"><col style="width:6%"><col style="width:8%"></colgroup>'
-    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+th('machines','machine_number','レンタル')+'<th>タイプ</th>'+th('machines','play_price','料金')+'<th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
-    +'<tbody>'+(rows||'<tr><td colspan="9"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
+    +'<colgroup><col style="width:18%"><col style="width:11%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:6%"><col style="width:8%"><col style="width:8%"><col style="width:5%"><col style="width:5%"><col style="width:7%"></colgroup>'
+    +'<thead><tr>'+th('machines','machine_name','機械名')+th('machines','store_name','店舗')+th('machines','machine_code','コード')+th('machines','machine_number','レンタル')+'<th>タイプ</th>'+th('machines','play_price','料金')+'<th>型番</th><th>場所</th><th>状態</th>'+th('machines','booth_count','ブース')+'<th>操作</th></tr></thead>'
+    +'<tbody>'+(rows||'<tr><td colspan="11"><div class="empty">機械がありません</div></td></tr>')+'</tbody>'
     +'</table></div>';
 }
 
