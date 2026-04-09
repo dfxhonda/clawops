@@ -73,7 +73,9 @@ export async function saveReading(r) {
     set_a: r.set_a || null, set_c: r.set_c || null, set_l: r.set_l || null,
     set_r: r.set_r || null, set_o: r.set_o || null,
     note: r.note || null,
-    source: 'manual',
+    source: r.input_method === 'ocr' ? 'ocr' : 'manual',
+    input_method: r.input_method || 'manual',
+    ocr_confidence: r.ocr_confidence != null ? parseFloat(r.ocr_confidence) : null,
     created_at: now,
     created_by: r.created_by || null,
   })
@@ -83,7 +85,7 @@ export async function saveReading(r) {
     action: 'reading_create',
     target_table: 'meter_readings',
     target_id: r.booth_id,
-    detail: `メーター入力: IN=${r.in_meter || '-'} OUT=${r.out_meter || '-'} (${r.full_booth_code || r.booth_id})`,
+    detail: `メーター入力: IN=${r.in_meter || '-'} OUT=${r.out_meter || '-'} (${r.full_booth_code || r.booth_id})${r.input_method === 'ocr' ? ` [OCR: ${r.ocr_confidence != null ? (r.ocr_confidence * 100).toFixed(0) + '%' : '-'}]` : ''}`,
     staff_id: r.created_by || undefined,
   })
 }

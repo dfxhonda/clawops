@@ -49,6 +49,9 @@ export function usePatrolInput(booth, navigateToPatrol) {
   const [setL, setSetL] = useState('')
   const [setR, setSetR] = useState('')
   const [setO, setSetO] = useState('')
+  // OCR
+  const [inputMethod, setInputMethod] = useState('manual')
+  const [ocrConfidence, setOcrConfidence] = useState(null)
 
   useEffect(() => {
     if (!booth) { navigateToPatrol?.(); return }
@@ -169,6 +172,8 @@ export function usePatrolInput(booth, navigateToPatrol) {
       set_l: setL || latest?.set_l || '',
       set_r: setR || latest?.set_r || '',
       set_o: setO || latest?.set_o || '',
+      input_method: inputMethod,
+      ocr_confidence: ocrConfidence,
     })
     setSaved(true)
     return { ok: true }
@@ -194,6 +199,8 @@ export function usePatrolInput(booth, navigateToPatrol) {
     note, setNote, machineStatus, setMachineStatus,
     // 月次統計
     monthlyStats,
+    // OCR
+    inputMethod, setInputMethod, ocrConfidence, setOcrConfidence,
     // 操作
     handleSave, draftCount,
   }

@@ -5,6 +5,7 @@ import LogoutButton from '../components/LogoutButton'
 import ErrorDisplay from '../components/ErrorDisplay'
 import AnomalyBanner from '../components/AnomalyBanner'
 import PatrolConfirmModal from '../components/PatrolConfirmModal'
+import MeterOcr from '../components/MeterOcr'
 
 const SETTINGS = [
   { key: 'a', label: 'A', disp: 'アシスト', title: 'アシスト回数', isText: false },
@@ -30,11 +31,13 @@ export default function PatrolInput() {
     note, setNote, machineStatus, setMachineStatus,
     setA, setSetA, setC, setSetC, setL, setSetL, setR, setSetR, setO, setSetO,
     monthlyStats,
+    inputMethod, setInputMethod, setOcrConfidence,
     handleSave,
   } = usePatrolInput(booth, () => navigate('/patrol'))
 
   const [error, setError] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showOcr, setShowOcr] = useState(false)
 
   if (!booth) return null
 
@@ -165,6 +168,15 @@ export default function PatrolInput() {
               </div>
             )}
 
+            {/* OCR読取ボタン */}
+            <button
+              onClick={() => setShowOcr(true)}
+              className="w-full mb-4 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-accent/50 text-accent hover:bg-accent/10 transition-colors text-sm font-medium"
+            >
+              📷 カメラで読取
+              {inputMethod === 'ocr' && <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">OCR適用済み</span>}
+            </button>
+
             {/* IN / OUT 2カラム */}
             <div className="flex gap-2 mb-4">
               {/* IN */}
@@ -281,6 +293,22 @@ export default function PatrolInput() {
         </>
       )}
       </div>{/* スクロール領域終了 */}
+
+      {showOcr && (
+        <MeterOcr
+          boothCode={booth.booth_code}
+          lastIn={last?.in_meter ? Number(last.in_meter) : null}
+          lastOut={last?.out_meter ? Number(last.out_meter) : null}
+          onApply={({ inMeter, outMeter, confidence }) => {
+            setInMeter(inMeter)
+            setOutMeter(outMeter)
+            setInputMethod('ocr')
+            setOcrConfidence(confidence)
+            setShowOcr(false)
+          }}
+          onClose={() => setShowOcr(false)}
+        />
+      )}
 
       {showConfirmModal && (
         <PatrolConfirmModal
