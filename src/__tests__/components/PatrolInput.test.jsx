@@ -35,29 +35,33 @@ const BOOTH = {
 function makeHookReturn(overrides = {}) {
   return {
     loading: false,
-    saved: false,
     machineName: 'テスト機',
     storeName: 'テスト店',
-    readDate: '2026-04-06',
-    setReadDate: vi.fn(),
-    inMeter: '', setInMeter: vi.fn(),
-    outMeter: '', setOutMeter: vi.fn(),
+    booths: [BOOTH],
+    currentIndex: 0,
+    currentBooth: BOOTH,
+    inputs: {},
+    monthlyStatsMap: {},
+    prevDayDate: '2026-04-08',
+    setPrevDayDate: vi.fn(),
+    todayDate: '2026-04-09',
+    currentInp: {},
+    price: 100,
+    latest: { in_meter: '5000', out_meter: '3000', prize_name: 'テスト景品', read_time: '2026-04-05' },
+    last: { in_meter: '5000', out_meter: '3000', read_time: '2026-04-04' },
     latestIn: 5000, latestOut: 3000,
     lastIn: 5000, lastOut: 3000,
     inDiff: null, outDiff: null,
     inAbnormal: false, outAbnormal: false,
     inZero: false, inTriple: false,
-    prevInDiff: null, payoutRate: null, payoutHigh: false, payoutLow: false,
-    latest: { in_meter: '5000', out_meter: '3000', prize_name: 'テスト景品', read_time: '2026-04-05' },
-    last: { in_meter: '5000', out_meter: '3000', read_time: '2026-04-04' },
-    price: 100,
-    prizeRestock: '', setPrizeRestock: vi.fn(),
-    prizeStock: '', setPrizeStock: vi.fn(),
-    prizeName: '', setPrizeName: vi.fn(),
-    note: '', setNote: vi.fn(),
-    machineStatus: 'ok', setMachineStatus: vi.fn(),
-    monthlyStats: null,
-    handleSave: vi.fn().mockReturnValue({ ok: true }),
+    payoutRate: null, payoutHigh: false, payoutLow: false,
+    setInp: vi.fn(),
+    setInpChange: vi.fn(),
+    toggleChange: vi.fn(),
+    switchBooth: vi.fn(),
+    handleSave: vi.fn().mockResolvedValue({ ok: true }),
+    savedSet: new Set(),
+    savedCount: 0,
     draftCount: 0,
     ...overrides,
   }
@@ -79,7 +83,7 @@ beforeEach(() => {
 describe('PatrolInput — 異常値アラートバナー', () => {
   it('inZero=true のとき INゼロ バナーが表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5000', inDiff: 0, inZero: true,
+      currentInp: { in_meter: '5000' }, inDiff: 0, inZero: true,
     }))
     renderPatrolInput()
     expect(screen.getByText(/INゼロ/)).toBeTruthy()
@@ -88,7 +92,7 @@ describe('PatrolInput — 異常値アラートバナー', () => {
 
   it('inTriple=true のとき IN差分3倍 バナーが表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5400', inDiff: 400, inTriple: true,
+      currentInp: { in_meter: '5400' }, inDiff: 400, inTriple: true,
     }))
     renderPatrolInput()
     expect(screen.getByText(/IN差分3倍/)).toBeTruthy()
@@ -96,7 +100,8 @@ describe('PatrolInput — 異常値アラートバナー', () => {
 
   it('payoutHigh=true のとき 出率高 バナーが表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5100', outMeter: '3100', inDiff: 100, outDiff: 40,
+      currentInp: { in_meter: '5100', out_meter: '3100' },
+      inDiff: 100, outDiff: 40,
       payoutRate: 40, payoutHigh: true, payoutLow: false,
     }))
     renderPatrolInput()
@@ -105,7 +110,8 @@ describe('PatrolInput — 異常値アラートバナー', () => {
 
   it('payoutLow=true のとき 出率低 バナーが表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5100', outMeter: '3002', inDiff: 100, outDiff: 2,
+      currentInp: { in_meter: '5100', out_meter: '3002' },
+      inDiff: 100, outDiff: 2,
       payoutRate: 2, payoutHigh: false, payoutLow: true,
     }))
     renderPatrolInput()
@@ -114,7 +120,7 @@ describe('PatrolInput — 異常値アラートバナー', () => {
 
   it('異常値なしのときバナーが表示されない', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5100', inDiff: 100,
+      currentInp: { in_meter: '5100' }, inDiff: 100,
     }))
     renderPatrolInput()
     expect(screen.queryByText(/異常値を検出/)).toBeNull()
@@ -124,41 +130,44 @@ describe('PatrolInput — 異常値アラートバナー', () => {
 describe('PatrolInput — 保存確認モーダル', () => {
   it('保存ボタン押下で確認モーダルが表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5100', inDiff: 100,
+      currentInp: { in_meter: '5100' }, inDiff: 100,
     }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
+    fireEvent.click(screen.getByRole('button', { name: /B01 を保存/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
-    // モーダルにブース番号が表示される（店舗コード・機械コードを除外）
     expect(screen.getAllByText('B01').length).toBeGreaterThanOrEqual(1)
   })
 
   it('モーダルの「戻る」で閉じ handleSave が呼ばれない', () => {
     const handleSave = vi.fn()
-    usePatrolInput.mockReturnValue(makeHookReturn({ inMeter: '5100', inDiff: 100, handleSave }))
+    usePatrolInput.mockReturnValue(makeHookReturn({
+      currentInp: { in_meter: '5100' }, inDiff: 100, handleSave,
+    }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
+    fireEvent.click(screen.getByRole('button', { name: /B01 を保存/ }))
     expect(screen.getByText('保存確認')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '戻る' }))
     expect(screen.queryByText('保存確認')).toBeNull()
     expect(handleSave).not.toHaveBeenCalled()
   })
 
-  it('モーダルの「保存する」で handleSave が呼ばれる', () => {
-    const handleSave = vi.fn().mockReturnValue({ ok: true })
-    usePatrolInput.mockReturnValue(makeHookReturn({ inMeter: '5100', inDiff: 100, handleSave }))
+  it('モーダルの「保存する」で handleSave が呼ばれる', async () => {
+    const handleSave = vi.fn().mockResolvedValue({ ok: true })
+    usePatrolInput.mockReturnValue(makeHookReturn({
+      currentInp: { in_meter: '5100' }, inDiff: 100, handleSave,
+    }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
+    fireEvent.click(screen.getByRole('button', { name: /B01 を保存/ }))
     fireEvent.click(screen.getByRole('button', { name: '保存する' }))
-    expect(handleSave).toHaveBeenCalledOnce()
+    await waitFor(() => expect(handleSave).toHaveBeenCalledOnce())
   })
 
   it('異常値ありのときモーダルに警告が表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      inMeter: '5100', inDiff: 100, inZero: false, inTriple: true,
+      currentInp: { in_meter: '5100' }, inDiff: 100, inTriple: true,
     }))
     renderPatrolInput()
-    fireEvent.click(screen.getByRole('button', { name: /保存して次のブースへ/ }))
+    fireEvent.click(screen.getByRole('button', { name: /B01 を保存/ }))
     expect(screen.getByText(/異常値あり/)).toBeTruthy()
   })
 })
@@ -166,9 +175,11 @@ describe('PatrolInput — 保存確認モーダル', () => {
 describe('PatrolInput — 月次統計', () => {
   it('monthlyStats あり → 今月/前月売上が表示される', () => {
     usePatrolInput.mockReturnValue(makeHookReturn({
-      monthlyStats: {
-        curr: { plays: 500, revenue: 50000, outTotal: 150, payoutRate: 30 },
-        prev: { plays: 400, revenue: 40000, outTotal: 100, payoutRate: 25 },
+      monthlyStatsMap: {
+        'KOS01-M01-B01': {
+          curr: { plays: 500, revenue: 50000, outTotal: 150, payoutRate: 30 },
+          prev: { plays: 400, revenue: 40000, outTotal: 100, payoutRate: 25 },
+        },
       },
     }))
     renderPatrolInput()
@@ -177,7 +188,7 @@ describe('PatrolInput — 月次統計', () => {
   })
 
   it('monthlyStats なし → 統計行が表示されない', () => {
-    usePatrolInput.mockReturnValue(makeHookReturn({ monthlyStats: null }))
+    usePatrolInput.mockReturnValue(makeHookReturn({ monthlyStatsMap: {} }))
     renderPatrolInput()
     expect(screen.queryByText('今月')).toBeNull()
   })
