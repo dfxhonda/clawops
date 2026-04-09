@@ -1021,7 +1021,8 @@ function addStore(){
 async function saveNewStore(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){alert('店舗名を入力してください');return;}
-  const code=document.getElementById('f_code').value.trim()||genId('S');
+  const code=document.getElementById('f_code').value.trim();
+  if(!code){alert('店舗コードを入力してください（例：KOS01）');return;}
   const payload={
     store_code:code,
     store_name:name,
