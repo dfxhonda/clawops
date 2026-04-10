@@ -1,60 +1,75 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMachineTypes, addMachineType, updateMachineType, deleteMachineType } from '../../services/masters'
+import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../../components/AdminNav'
 
 const EMPTY_FORM = {
-  type_name: '',
+  model_name: '',
   manufacturer: '',
   booth_count: '',
-  meter_count: '',
+  in_meter_count: '',
+  out_meter_count: '',
   meter_unit_price: '',
+  size_info: '',
+  weight_kg: '',
+  power_w: '',
+  image_url: '',
+  notes: '',
 }
 
 export default function ModelList() {
   const navigate = useNavigate()
-  const [types, setTypes] = useState([])
+  const [models, setModels] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(EMPTY_FORM)
   const [editId, setEditId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [specCandidate, setSpecCandidate] = useState(null)
   const formRef = useRef(null)
 
-  const loadTypes = async () => {
+  const loadModels = async () => {
     setLoading(true)
     try {
-      const data = await getMachineTypes()
-      setTypes(data)
+      const data = await getMachineModels()
+      setModels(data)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { loadTypes() }, [])
+  useEffect(() => { loadModels() }, [])
 
   const handleChange = (field, value) => {
     setForm(f => {
       const next = { ...f, [field]: value }
-      // booth_count 変更時、meter_count が空ならデフォルト補完
-      if (field === 'booth_count' && !f.meter_count) {
-        next.meter_count = value
+      if (field === 'booth_count') {
+        if (!f.in_meter_count) next.in_meter_count = value
+        if (!f.out_meter_count) next.out_meter_count = value
       }
       return next
     })
   }
 
-  const startEdit = t => {
-    setEditId(t.type_id)
+  const startEdit = m => {
+    setEditId(m.model_id)
     setForm({
-      type_name: t.type_name || '',
-      manufacturer: t.manufacturer || '',
-      booth_count: t.booth_count ?? '',
-      meter_count: t.meter_count ?? '',
-      meter_unit_price: t.meter_unit_price ?? '',
+      model_name: m.model_name || '',
+      manufacturer: m.manufacturer || '',
+      booth_count: m.booth_count ?? '',
+      in_meter_count: m.in_meter_count ?? '',
+      out_meter_count: m.out_meter_count ?? '',
+      meter_unit_price: m.meter_unit_price ?? '',
+      size_info: m.size_info || '',
+      weight_kg: m.weight_kg ?? '',
+      power_w: m.power_w ?? '',
+      image_url: m.image_url || '',
+      notes: m.notes || '',
     })
     setError('')
+    setSpecCandidate(null)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
@@ -62,16 +77,17 @@ export default function ModelList() {
     setEditId(null)
     setForm(EMPTY_FORM)
     setError('')
+    setSpecCandidate(null)
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
-    if (!form.type_name.trim()) { setError('機種名は必須です'); return }
+    if (!form.model_name.trim()) { setError('機種名は必須です'); return }
 
     if (!editId) {
-      const dup = types.find(t => t.type_name === form.type_name.trim())
+      const dup = models.find(m => m.model_name === form.model_name.trim())
       if (dup) {
-        if (!window.confirm(`「${form.type_name}」は既に登録されています。続けますか？`)) return
+        if (!window.confirm(`「${form.model_name}」は既に登録されています。続けますか？`)) return
       }
     }
 
@@ -79,13 +95,14 @@ export default function ModelList() {
     setError('')
     try {
       if (editId) {
-        await updateMachineType(editId, form)
+        await updateMachineModel(editId, form)
         setEditId(null)
       } else {
-        await addMachineType(form)
+        await addMachineModel(form)
       }
       setForm(EMPTY_FORM)
-      await loadTypes()
+      setSpecCandidate(null)
+      await loadModels()
     } catch (err) {
       setError(err.message || '保存に失敗しました')
     } finally {
@@ -93,25 +110,81 @@ export default function ModelList() {
     }
   }
 
-  const handleDelete = async t => {
-    if (!window.confirm(`「${t.type_name}」を削除しますか？\nこの操作は取り消せません。`)) return
+  const handleDelete = async m => {
+    if (!window.confirm(`「${m.model_name}」を削除しますか？\nこの操作は取り消せません。`)) return
     try {
-      await deleteMachineType(t.type_id)
-      if (editId === t.type_id) cancelEdit()
-      await loadTypes()
+      await deleteMachineModel(m.model_id)
+      if (editId === m.model_id) cancelEdit()
+      await loadModels()
     } catch (err) {
       alert(err.message || '削除に失敗しました')
     }
   }
 
-  const handleSpecSearch = () => {
-    const q = form.type_name.trim()
+  const handleSpecSearch = async () => {
+    const q = form.model_name.trim()
     if (!q) return
-    window.open(
-      `https://www.google.com/search?q=${encodeURIComponent(q + ' 仕様 スペック アーケード')}`,
-      '_blank',
-      'noopener,noreferrer'
-    )
+
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+    if (!apiKey) {
+      alert('.env.local に VITE_ANTHROPIC_API_KEY を設定してください')
+      return
+    }
+
+    setSearching(true)
+    setSpecCandidate(null)
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'interleaved-thinking-2025-05-14',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{
+            role: 'user',
+            content: `アーケードゲーム機「${q}」の製品仕様を調べてください。\n以下の情報をJSON形式のみで返してください（説明文不要）:\n{\n  "manufacturer": "メーカー名",\n  "size_info": "W×D×H mm形式",\n  "weight_kg": 数値,\n  "power_w": 数値,\n  "image_url": "製品画像のURL"\n}\n情報が不明な場合はnullを入れてください。`,
+          }],
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err?.error?.message || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const textBlock = data.content?.find(b => b.type === 'text')
+      if (!textBlock) throw new Error('レスポンスにテキストが含まれていません')
+
+      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('仕様情報を抽出できませんでした')
+
+      setSpecCandidate(JSON.parse(jsonMatch[0]))
+    } catch (e) {
+      console.error('仕様検索エラー:', e)
+      alert('検索に失敗しました: ' + e.message)
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const applySpecCandidate = () => {
+    if (!specCandidate) return
+    setForm(f => ({
+      ...f,
+      manufacturer: specCandidate.manufacturer ?? f.manufacturer,
+      size_info: specCandidate.size_info ?? f.size_info,
+      weight_kg: specCandidate.weight_kg != null ? String(specCandidate.weight_kg) : f.weight_kg,
+      power_w: specCandidate.power_w != null ? String(specCandidate.power_w) : f.power_w,
+      image_url: specCandidate.image_url ?? f.image_url,
+    }))
+    setSpecCandidate(null)
   }
 
   return (
@@ -131,7 +204,7 @@ export default function ModelList() {
       {/* ━━━ 登録済み一覧 ━━━ */}
       <div className="px-4 mt-4">
         <p className="text-[11px] font-bold text-muted uppercase tracking-wide mb-2">
-          登録済み機種 {!loading && `（${types.length}件）`}
+          登録済み機種 {!loading && `（${models.length}件）`}
         </p>
 
         {loading ? (
@@ -139,7 +212,7 @@ export default function ModelList() {
             <div className="animate-spin w-5 h-5 border-2 border-accent border-t-transparent rounded-full" />
             <span className="text-muted text-sm">読み込み中...</span>
           </div>
-        ) : types.length === 0 ? (
+        ) : models.length === 0 ? (
           <div className="text-center py-10 text-muted text-sm border border-border border-dashed rounded-xl">
             登録された機種がありません
           </div>
@@ -159,36 +232,36 @@ export default function ModelList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {types.map(t => (
+                  {models.map(m => (
                     <tr
-                      key={t.type_id}
+                      key={m.model_id}
                       className={`border-t border-border transition-colors ${
-                        editId === t.type_id ? 'bg-accent/5' : 'hover:bg-surface2/50'
+                        editId === m.model_id ? 'bg-accent/5' : 'hover:bg-surface2/50'
                       }`}
                     >
                       <td className="px-3 py-2.5 font-medium">
-                        {t.type_name}
-                        {t.notes && (
-                          <span className="block text-[10px] text-muted font-normal">{t.notes}</span>
+                        {m.model_name}
+                        {m.size_info && (
+                          <span className="block text-[10px] text-muted font-normal">{m.size_info}</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-muted">{t.manufacturer || '—'}</td>
-                      <td className="px-2 py-2.5 text-center text-xs">{t.booth_count ?? '—'}</td>
-                      <td className="px-2 py-2.5 text-center text-xs">{t.meter_count ?? '—'}</td>
-                      <td className="px-2 py-2.5 text-center text-xs">{t.meter_count ?? '—'}</td>
+                      <td className="px-3 py-2.5 text-xs text-muted">{m.manufacturer || '—'}</td>
+                      <td className="px-2 py-2.5 text-center text-xs">{m.booth_count ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-center text-xs">{m.in_meter_count ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-center text-xs">{m.out_meter_count ?? '—'}</td>
                       <td className="px-3 py-2.5 text-right text-xs">
-                        {t.meter_unit_price != null ? `¥${t.meter_unit_price}` : '—'}
+                        {m.meter_unit_price != null ? `¥${m.meter_unit_price}` : '—'}
                       </td>
                       <td className="px-2 py-2.5">
                         <div className="flex gap-1 justify-end">
                           <button
-                            onClick={() => startEdit(t)}
+                            onClick={() => startEdit(m)}
                             className="text-[11px] text-accent border border-border rounded px-2 py-1 hover:bg-surface2 transition-colors"
                           >
                             編集
                           </button>
                           <button
-                            onClick={() => handleDelete(t)}
+                            onClick={() => handleDelete(m)}
                             className="text-[11px] text-accent2 border border-border rounded px-2 py-1 hover:bg-surface2 transition-colors"
                           >
                             削除
@@ -220,21 +293,57 @@ export default function ModelList() {
             <div className="flex gap-2">
               <input
                 type="text"
-                value={form.type_name}
-                onChange={e => handleChange('type_name', e.target.value)}
+                value={form.model_name}
+                onChange={e => handleChange('model_name', e.target.value)}
                 placeholder="例: バズクレ4"
                 className="flex-1 bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
               />
               <button
                 type="button"
                 onClick={handleSpecSearch}
-                disabled={!form.type_name.trim()}
+                disabled={!form.model_name.trim() || searching}
                 className="shrink-0 px-3 py-2 rounded-lg border border-border text-xs font-bold text-muted bg-surface2 hover:bg-bg disabled:opacity-40 transition-colors whitespace-nowrap"
               >
-                仕様を検索
+                {searching ? '検索中...' : '仕様を検索'}
               </button>
             </div>
           </div>
+
+          {/* 仕様検索結果 */}
+          {specCandidate && (
+            <div className="rounded-xl border border-border bg-surface2 p-3 text-xs space-y-1.5">
+              <p className="font-bold text-muted uppercase tracking-wide text-[10px]">検索結果（参考）</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <span className="text-muted">メーカー</span>
+                <span className="font-medium">{specCandidate.manufacturer ?? '—'}</span>
+                <span className="text-muted">サイズ</span>
+                <span className="font-medium">{specCandidate.size_info ?? '—'}</span>
+                <span className="text-muted">重量</span>
+                <span className="font-medium">{specCandidate.weight_kg != null ? `${specCandidate.weight_kg} kg` : '—'}</span>
+                <span className="text-muted">消費電力</span>
+                <span className="font-medium">{specCandidate.power_w != null ? `${specCandidate.power_w} W` : '—'}</span>
+              </div>
+              {specCandidate.image_url && (
+                <img src={specCandidate.image_url} alt="製品画像" className="mt-2 rounded-lg max-h-32 object-contain border border-border" />
+              )}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={applySpecCandidate}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg text-xs transition-colors"
+                >
+                  全てフォームに反映
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpecCandidate(null)}
+                  className="px-3 bg-surface border border-border text-muted font-bold py-1.5 rounded-lg text-xs"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* メーカー */}
           <div>
@@ -262,17 +371,12 @@ export default function ModelList() {
               />
             </div>
             <div>
-              <label className="block text-xs text-muted mb-1">
-                INメーター数
-                {form.booth_count && !form.meter_count && (
-                  <span className="ml-1 text-muted/60">（デフォルト: {form.booth_count}）</span>
-                )}
-              </label>
+              <label className="block text-xs text-muted mb-1">INメーター数</label>
               <input
                 type="number"
                 min="1"
-                value={form.meter_count}
-                onChange={e => handleChange('meter_count', e.target.value)}
+                value={form.in_meter_count}
+                onChange={e => handleChange('in_meter_count', e.target.value)}
                 placeholder={form.booth_count || '例: 7'}
                 className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
               />
@@ -282,11 +386,10 @@ export default function ModelList() {
               <input
                 type="number"
                 min="1"
-                value={form.meter_count}
-                readOnly
-                tabIndex={-1}
-                placeholder="INと同じ"
-                className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none opacity-50 cursor-not-allowed"
+                value={form.out_meter_count}
+                onChange={e => handleChange('out_meter_count', e.target.value)}
+                placeholder={form.in_meter_count || '例: 7'}
+                className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
               />
             </div>
             <div>
@@ -300,6 +403,58 @@ export default function ModelList() {
                 className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
               />
             </div>
+          </div>
+
+          {/* スペック情報 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="block text-xs text-muted mb-1">サイズ（W×D×H mm）</label>
+              <input
+                type="text"
+                value={form.size_info}
+                onChange={e => handleChange('size_info', e.target.value)}
+                placeholder="例: 900×900×1800 mm"
+                className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">重量（kg）</label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={form.weight_kg}
+                onChange={e => handleChange('weight_kg', e.target.value)}
+                placeholder="例: 120"
+                className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">消費電力（W）</label>
+              <input
+                type="number"
+                min="0"
+                value={form.power_w}
+                onChange={e => handleChange('power_w', e.target.value)}
+                placeholder="例: 350"
+                className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+
+          {/* 画像URL */}
+          <div>
+            <label className="block text-xs text-muted mb-1">画像URL</label>
+            <input
+              type="url"
+              value={form.image_url}
+              onChange={e => handleChange('image_url', e.target.value)}
+              placeholder="https://..."
+              className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+            {form.image_url && (
+              <img src={form.image_url} alt="プレビュー" className="mt-2 rounded-lg max-h-32 object-contain border border-border" />
+            )}
           </div>
 
           {error && <p className="text-accent2 text-xs">{error}</p>}

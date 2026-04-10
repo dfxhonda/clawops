@@ -264,6 +264,99 @@ export async function getAllStores() {
   return data.map(r => ({ store_code: r.store_code, store_name: r.store_name }))
 }
 
+// ============================================
+// machine_models CRUD
+// ============================================
+export async function getMachineModels() {
+  if (getCache('machine_models')) return getCache('machine_models')
+  const { data, error } = await supabase
+    .from('machine_models')
+    .select('model_id, model_name, type_id, manufacturer, booth_count, in_meter_count, out_meter_count, meter_unit_price, size_info, weight_kg, power_w, image_url, notes')
+    .order('model_id')
+  if (error) { console.error('machine_models取得エラー:', error.message); return [] }
+  setCache('machine_models', data)
+  return data
+}
+
+export async function addMachineModel(m) {
+  const { data, error } = await supabase
+    .from('machine_models')
+    .insert({
+      model_name: m.model_name,
+      type_id: m.type_id || null,
+      manufacturer: m.manufacturer || null,
+      booth_count: m.booth_count ? Number(m.booth_count) : null,
+      in_meter_count: m.in_meter_count ? Number(m.in_meter_count) : null,
+      out_meter_count: m.out_meter_count ? Number(m.out_meter_count) : null,
+      meter_unit_price: m.meter_unit_price ? Number(m.meter_unit_price) : null,
+      size_info: m.size_info || null,
+      weight_kg: m.weight_kg ? Number(m.weight_kg) : null,
+      power_w: m.power_w ? Number(m.power_w) : null,
+      image_url: m.image_url || null,
+      notes: m.notes || null,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_create',
+    target_table: 'machine_models',
+    target_id: String(data.model_id),
+    detail: `機種追加: ${data.model_name}`,
+    after_data: data,
+  })
+  return data
+}
+
+export async function updateMachineModel(modelId, updates) {
+  const { data, error } = await supabase
+    .from('machine_models')
+    .update({
+      model_name: updates.model_name,
+      type_id: updates.type_id || null,
+      manufacturer: updates.manufacturer || null,
+      booth_count: updates.booth_count ? Number(updates.booth_count) : null,
+      in_meter_count: updates.in_meter_count ? Number(updates.in_meter_count) : null,
+      out_meter_count: updates.out_meter_count ? Number(updates.out_meter_count) : null,
+      meter_unit_price: updates.meter_unit_price ? Number(updates.meter_unit_price) : null,
+      size_info: updates.size_info || null,
+      weight_kg: updates.weight_kg ? Number(updates.weight_kg) : null,
+      power_w: updates.power_w ? Number(updates.power_w) : null,
+      image_url: updates.image_url || null,
+      notes: updates.notes || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('model_id', modelId)
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_update',
+    target_table: 'machine_models',
+    target_id: String(modelId),
+    detail: `機種更新: ${updates.model_name}`,
+    after_data: updates,
+  })
+  return data
+}
+
+export async function deleteMachineModel(modelId) {
+  const { error } = await supabase
+    .from('machine_models')
+    .delete()
+    .eq('model_id', modelId)
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_delete',
+    target_table: 'machine_models',
+    target_id: String(modelId),
+    detail: `機種削除: model_id=${modelId}`,
+  })
+}
+
 export async function addMachineType(t) {
   const { data, error } = await supabase
     .from('machine_types')
