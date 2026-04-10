@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel, getMachineTypes } from '../../services/masters'
+import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
 import { supabase } from '../../lib/supabase'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../../components/AdminNav'
@@ -30,7 +30,6 @@ export default function ModelList() {
   const [error, setError] = useState('')
   const [searching, setSearching] = useState(false)
   const [specCandidate, setSpecCandidate] = useState(null)
-  const [machineTypes, setMachineTypes] = useState([])
   const formRef = useRef(null)
 
   const loadModels = async () => {
@@ -43,10 +42,7 @@ export default function ModelList() {
     }
   }
 
-  useEffect(() => {
-    loadModels()
-    getMachineTypes().then(data => setMachineTypes(data || []))
-  }, [])
+  useEffect(() => { loadModels() }, [])
 
   const handleChange = (field, value) => {
     setForm(f => {
@@ -331,16 +327,10 @@ export default function ModelList() {
               onChange={e => handleChange('type_id', e.target.value)}
               className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
             >
-              <option value="">選択してください</option>
-              {machineTypes.filter(t => t.category === 'crane').map(t => (
-                <option key={t.type_id} value={t.type_id}>クレーン: {t.type_name}</option>
-              ))}
-              {machineTypes.filter(t => t.category === 'gacha').map(t => (
-                <option key={t.type_id} value={t.type_id}>ガチャ: {t.type_name}</option>
-              ))}
-              {machineTypes.filter(t => t.category !== 'crane' && t.category !== 'gacha').map(t => (
-                <option key={t.type_id} value={t.type_id}>{t.category ? `${t.category}: ` : ''}{t.type_name}</option>
-              ))}
+              <option value="">カテゴリを選択</option>
+              <option value="crane">クレーン</option>
+              <option value="gacha">ガチャ</option>
+              <option value="other">その他</option>
             </select>
           </div>
 
