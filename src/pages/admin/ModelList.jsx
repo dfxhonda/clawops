@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
+import { supabase } from '../../lib/supabase'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../../components/AdminNav'
 
@@ -125,47 +126,15 @@ export default function ModelList() {
     const q = form.model_name.trim()
     if (!q) return
 
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!apiKey) {
-      alert('.env.local に VITE_ANTHROPIC_API_KEY を設定してください')
-      return
-    }
-
     setSearching(true)
     setSpecCandidate(null)
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'interleaved-thinking-2025-05-14',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          messages: [{
-            role: 'user',
-            content: `アーケードゲーム機「${q}」の製品仕様を調べてください。\n以下の情報をJSON形式のみで返してください（説明文不要）:\n{\n  "manufacturer": "メーカー名",\n  "size_info": "W×D×H mm形式",\n  "weight_kg": 数値,\n  "power_w": 数値,\n  "image_url": "製品画像のURL"\n}\n情報が不明な場合はnullを入れてください。`,
-          }],
-        }),
+      const { data, error } = await supabase.functions.invoke('model-spec-search', {
+        body: { modelName: q },
       })
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        throw new Error(err?.error?.message || `HTTP ${response.status}`)
-      }
-
-      const data = await response.json()
-      const textBlock = data.content?.find(b => b.type === 'text')
-      if (!textBlock) throw new Error('レスポンスにテキストが含まれていません')
-
-      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) throw new Error('仕様情報を抽出できませんでした')
-
-      setSpecCandidate(JSON.parse(jsonMatch[0]))
+      if (error) throw error
+      if (!data?.spec) throw new Error('仕様情報を取得できませんでした')
+      setSpecCandidate(data.spec)
     } catch (e) {
       console.error('仕様検索エラー:', e)
       alert('検索に失敗しました: ' + e.message)
