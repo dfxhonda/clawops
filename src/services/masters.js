@@ -177,6 +177,7 @@ export async function addBooth(b) {
     .insert({
       booth_code: boothCode,
       machine_code: b.machine_code,
+      store_code: b.store_code,
       booth_number: b.booth_number,
       play_price: b.play_price || null,
       meter_in_number: b.meter_in_number || 7,
