@@ -282,6 +282,7 @@ export async function addMachineModel(m) {
   const { data, error } = await supabase
     .from('machine_models')
     .insert({
+      model_id: crypto.randomUUID(),
       model_name: m.model_name,
       type_id: m.type_id || null,
       manufacturer: m.manufacturer || null,
