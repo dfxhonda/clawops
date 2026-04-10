@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
+import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel, getMachineTypes } from '../../services/masters'
 import { supabase } from '../../lib/supabase'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../../components/AdminNav'
 
 const EMPTY_FORM = {
   model_name: '',
+  type_id: '',
   manufacturer: '',
   booth_count: '',
   in_meter_count: '',
@@ -29,6 +30,7 @@ export default function ModelList() {
   const [error, setError] = useState('')
   const [searching, setSearching] = useState(false)
   const [specCandidate, setSpecCandidate] = useState(null)
+  const [machineTypes, setMachineTypes] = useState([])
   const formRef = useRef(null)
 
   const loadModels = async () => {
@@ -41,7 +43,10 @@ export default function ModelList() {
     }
   }
 
-  useEffect(() => { loadModels() }, [])
+  useEffect(() => {
+    loadModels()
+    getMachineTypes().then(data => setMachineTypes(data || []))
+  }, [])
 
   const handleChange = (field, value) => {
     setForm(f => {
@@ -58,6 +63,7 @@ export default function ModelList() {
     setEditId(m.model_id)
     setForm({
       model_name: m.model_name || '',
+      type_id: m.type_id || '',
       manufacturer: m.manufacturer || '',
       booth_count: m.booth_count ?? '',
       in_meter_count: m.in_meter_count ?? '',
@@ -84,6 +90,7 @@ export default function ModelList() {
   const handleSubmit = async e => {
     e.preventDefault()
     if (!form.model_name.trim()) { setError('機種名は必須です'); return }
+    if (!form.type_id) { setError('カテゴリを選択してください'); return }
 
     if (!editId) {
       const dup = models.find(m => m.model_name === form.model_name.trim())
@@ -313,6 +320,29 @@ export default function ModelList() {
               </div>
             </div>
           )}
+
+          {/* カテゴリ（type_id） */}
+          <div>
+            <label className="block text-xs text-muted mb-1">
+              カテゴリ <span className="text-accent2">*</span>
+            </label>
+            <select
+              value={form.type_id}
+              onChange={e => handleChange('type_id', e.target.value)}
+              className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+            >
+              <option value="">選択してください</option>
+              {machineTypes.filter(t => t.category === 'crane').map(t => (
+                <option key={t.type_id} value={t.type_id}>クレーン: {t.type_name}</option>
+              ))}
+              {machineTypes.filter(t => t.category === 'gacha').map(t => (
+                <option key={t.type_id} value={t.type_id}>ガチャ: {t.type_name}</option>
+              ))}
+              {machineTypes.filter(t => t.category !== 'crane' && t.category !== 'gacha').map(t => (
+                <option key={t.type_id} value={t.type_id}>{t.category ? `${t.category}: ` : ''}{t.type_name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* メーカー */}
           <div>
