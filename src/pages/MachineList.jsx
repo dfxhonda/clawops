@@ -3,21 +3,24 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getMachines, getStores, getBooths } from '../services/masters'
 import { getAllMeterReadings } from '../services/readings'
 import { parseNum } from '../services/utils'
+import { getPublishedModelIds } from '../services/manuals'
 
 export default function MachineList() {
   const { storeId } = useParams()
   const [machines, setMachines] = useState([])
   const [storeName, setStoreName] = useState('')
   const [machineStats, setMachineStats] = useState({})
+  const [publishedModelIds, setPublishedModelIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
     async function load() {
-      const [allMachines, stores, allReadings] = await Promise.all([
-        getMachines(storeId), getStores(), getAllMeterReadings()
+      const [allMachines, stores, allReadings, pubIds] = await Promise.all([
+        getMachines(storeId), getStores(), getAllMeterReadings(), getPublishedModelIds()
       ])
       setMachines(allMachines)
+      setPublishedModelIds(pubIds)
       const store = stores.find(x => String(x.store_code) === String(storeId))
       if (store) setStoreName(store.store_name)
 
@@ -90,25 +93,36 @@ export default function MachineList() {
           const sales = stat?.totalSales || 0
           const diff = stat?.totalDiff || 0
           return (
-            <button key={m.machine_code}
-              className="w-full bg-surface border border-border rounded-xl p-4 text-left hover:border-accent/40 transition-colors active:scale-[0.98]"
-              onClick={() => navigate(`/booth/${m.machine_code}`, { state: { storeName, storeId } })}
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="font-bold text-base">{m.machine_name}</div>
+            <div key={m.machine_code} className="flex items-stretch gap-2">
+              <button
+                className="flex-1 bg-surface border border-border rounded-xl p-4 text-left hover:border-accent/40 transition-colors active:scale-[0.98]"
+                onClick={() => navigate(`/booth/${m.machine_code}`, { state: { storeName, storeId } })}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-base">{m.machine_name}</div>
+                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${allDone ? 'bg-green-900/30 text-green-400' : 'bg-blue-900/30 text-blue-400'}`}>
+                    {allDone ? `✅ ${stat?.lastReadTime||''}` : `${done}/${total}入力済`}
+                  </span>
                 </div>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${allDone ? 'bg-green-900/30 text-green-400' : 'bg-blue-900/30 text-blue-400'}`}>
-                  {allDone ? `✅ ${stat?.lastReadTime||''}` : `${done}/${total}入力済`}
-                </span>
-              </div>
-              {diff > 0 && (
-                <div className="mt-2.5 pt-2.5 border-t border-border flex justify-between">
-                  <span className="text-sm text-muted">前回差分: +{diff.toLocaleString()}回</span>
-                  <span className="text-base font-bold text-blue-400">¥{sales.toLocaleString()}</span>
-                </div>
+                {diff > 0 && (
+                  <div className="mt-2.5 pt-2.5 border-t border-border flex justify-between">
+                    <span className="text-sm text-muted">前回差分: +{diff.toLocaleString()}回</span>
+                    <span className="text-base font-bold text-blue-400">¥{sales.toLocaleString()}</span>
+                  </div>
+                )}
+              </button>
+              {publishedModelIds.has(m.model_id) && (
+                <button
+                  className="bg-surface border border-border rounded-xl px-3 text-xl hover:border-accent/40 transition-colors active:scale-[0.98]"
+                  onClick={() => navigate(`/manual/${m.model_id}`)}
+                  title="マニュアルを見る"
+                >
+                  📖
+                </button>
               )}
-            </button>
+            </div>
           )
         })}
       </div>
