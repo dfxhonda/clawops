@@ -12,10 +12,10 @@ import { buildLabel } from './lib/buildInfo'
 // 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
 
 // 即時ロード（初回表示に必要）
-import MainInput from './pages/MainInput'
 import Login from './pages/Login'
 
 // 遅延ロード — メインタブ
+const MainInput = lazy(() => import('./pages/MainInput'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const AdminMenu = lazy(() => import('./pages/AdminMenu'))
 const AdminTop = lazy(() => import('./pages/admin/AdminTop'))
@@ -77,8 +77,9 @@ function AppInner() {
       <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* メインタブ — 全ロール */}
-      <Route path="/" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
+      {/* ホーム = 巡回アプリ（全ロール） */}
+      <Route path="/" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
+      <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
@@ -90,10 +91,10 @@ function AppInner() {
       <Route path="/ranking/:storeId" element={<ProtectedRoute><RankingView /></ProtectedRoute>} />
       <Route path="/machines/:storeId" element={<ProtectedRoute><MachineList /></ProtectedRoute>} />
 
-      {/* 巡回QR — patrol以上 */}
+      {/* 巡回 — 全ロール（overview）+ patrol以上（入力系） */}
+      <Route path="/patrol/overview" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
       <Route path="/patrol" element={<PatrolRoute><PatrolScan /></PatrolRoute>} />
       <Route path="/patrol/input" element={<PatrolRoute><PatrolInput /></PatrolRoute>} />
-      <Route path="/patrol/overview" element={<PatrolRoute><PatrolOverview /></PatrolRoute>} />
       <Route path="/patrol/booth" element={<PatrolRoute><BoothInput /></PatrolRoute>} />
 
       {/* 監査ログ — manager以上 */}
