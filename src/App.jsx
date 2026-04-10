@@ -80,7 +80,7 @@ function AppInner() {
       {/* メインタブ — 全ロール */}
       <Route path="/" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/admin" element={<AdminRoute><AdminTop /></AdminRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}
