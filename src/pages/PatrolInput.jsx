@@ -15,14 +15,6 @@ const SETTINGS_PREV = [
   { key: 'set_r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー',    isText: false },
   { key: 'set_o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定',        isText: true  },
 ]
-// 当日付変更タブ用（_settingsChange.set_a〜o）
-const SETTINGS_CHANGE = [
-  { key: 'a', label: 'A', shortName: 'ｱｼｽﾄ', title: 'アシスト回数',    isText: false },
-  { key: 'c', label: 'C', shortName: 'ｷｬｯﾁ', title: 'キャッチ時パワー', isText: false },
-  { key: 'l', label: 'L', shortName: 'ﾕﾙ',   title: '緩和時パワー',    isText: false },
-  { key: 'r', label: 'R', shortName: 'ﾘﾀｰﾝ', title: '復帰時パワー',    isText: false },
-  { key: 'o', label: 'O', shortName: 'ｿﾉ他', title: '固有設定',        isText: true  },
-]
 
 function boothLabel(booth) {
   if (!booth) return ''
@@ -45,7 +37,9 @@ export default function PatrolInput() {
     latestIn, latestOut, lastIn, lastOut,
     inDiff, outDiff, inAbnormal, outAbnormal,
     inZero, inTriple, payoutRate, payoutHigh, payoutLow,
-    setInp, setInpChange, toggleChange, switchBooth, handleSave,
+    todayInDiff, todayOutDiff, todayInAbnormal, todayOutAbnormal,
+    todayInZero, todayPayoutRate, todayPayoutHigh, todayPayoutLow,
+    setInp, switchBooth, handleSave,
     savedSet, savedCount, draftCount,
   } = usePatrolInput(booth, () => navigate('/patrol'))
 
@@ -71,13 +65,9 @@ export default function PatrolInput() {
   const isSaved = currentBooth ? savedSet.has(currentBooth.booth_code) : false
   const allSaved = booths.length > 0 && savedCount === booths.length
   const hasAnomaly = inAbnormal || outAbnormal || inZero || inTriple || payoutHigh || payoutLow
+  const todayHasAnomaly = todayInAbnormal || todayOutAbnormal || todayInZero || todayPayoutHigh || todayPayoutLow
   const monthlyStats = currentBooth ? monthlyStatsMap[currentBooth.booth_code] : null
-
-  // 当日付変更件数（タブバッジ用）
-  const mr = currentInp._meterReplace || {}
-  const pc = currentInp._prizeChange || {}
-  const sc = currentInp._settingsChange || {}
-  const changeCount = (mr.enabled ? 1 : 0) + (pc.enabled ? 1 : 0) + (sc.enabled ? 1 : 0)
+  const todayHasInput = !!currentInp.today_in_meter
 
   // スワイプでブース切り替え
   function onTouchStart(e) {
@@ -115,7 +105,6 @@ export default function PatrolInput() {
 
   // 入力フィールドのスタイル（16px保証はCSSで済み、UIにはp-2.5/rounded-lg/border）
   const inp = "w-full px-3 py-2.5 rounded-lg border-2 border-border bg-surface2 text-text text-center outline-none focus:border-accent transition-colors"
-  const inpSm = "w-full px-2 py-2 rounded-lg border border-border bg-surface2 text-text text-center outline-none focus:border-accent transition-colors"
 
   return (
     <div
@@ -167,28 +156,34 @@ export default function PatrolInput() {
           <button
             onClick={() => setActiveTab('today')}
             className={`flex-1 py-2 rounded-[10px] text-sm font-bold transition-all relative ${activeTab === 'today' ? 'bg-accent text-bg' : 'text-muted active:bg-surface3'}`}>
-            📅 当日付変更
-            {changeCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent2 text-white text-[10px] rounded-full flex items-center justify-center">{changeCount}</span>
+            📅 当日付
+            {todayHasInput && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent rounded-full" />
             )}
           </button>
         </div>
 
-        {/* 入力日付 + カメラボタン（タブの直下・固定） */}
+        {/* 入力日付 + カメラボタン（タブ連動・固定） */}
         <div className="flex items-center gap-2 mt-2">
           <div className="flex-1 flex items-center gap-2 px-2.5 py-2 bg-surface rounded-lg border border-border min-w-0">
             <span className="text-xs text-muted shrink-0">入力日付</span>
-            <input type="date" value={prevDayDate}
-              onChange={e => setPrevDayDate(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent text-text text-xs outline-none [color-scheme:dark]" />
-            {prevDayDate !== new Date(Date.now() - 86400000).toISOString().slice(0, 10) &&
-              <span className="text-[10px] text-accent2 font-bold shrink-0">前日以外</span>}
+            {activeTab === 'prev' ? (
+              <>
+                <input type="date" value={prevDayDate}
+                  onChange={e => setPrevDayDate(e.target.value)}
+                  className="flex-1 min-w-0 bg-transparent text-text text-xs outline-none [color-scheme:dark]" />
+                {prevDayDate !== new Date(Date.now() - 86400000).toISOString().slice(0, 10) &&
+                  <span className="text-[10px] text-accent2 font-bold shrink-0">前日以外</span>}
+              </>
+            ) : (
+              <span className="text-xs text-text font-medium">{todayDate} <span className="text-accent3 text-[10px]">当日</span></span>
+            )}
           </div>
           <button
             onClick={() => setShowOcr(true)}
             className="shrink-0 h-10 px-3 flex items-center gap-1.5 bg-surface border border-border rounded-lg text-accent active:bg-accent/10 transition-colors">
             <span className="text-base">📷</span>
-            {currentInp.inputMethod === 'ocr'
+            {(activeTab === 'prev' ? currentInp.inputMethod : currentInp.today_inputMethod) === 'ocr'
               ? <span className="text-[10px] bg-accent/20 px-1.5 py-0.5 rounded text-accent">OCR済</span>
               : <span className="text-xs text-muted">読取</span>}
           </button>
@@ -368,113 +363,152 @@ export default function PatrolInput() {
           </div>
         )}
 
-        {/* ===== 当日付変更タブ ===== */}
+        {/* ===== 当日付タブ（前日付と同構成・today_プレフィックス） ===== */}
         {activeTab === 'today' && (
           <div className="space-y-2 py-2">
-            <div className="flex items-center gap-2 px-0.5">
-              <span className="text-xs text-muted font-semibold">当日付で記録</span>
-              <span className="text-[10px] text-muted bg-surface2 px-2 py-0.5 rounded-full border border-border">{todayDate}</span>
+
+            {/* 機械状態 */}
+            <div className="flex gap-1 flex-wrap">
+              {STATUS_OPTIONS.map(s => (
+                <button key={s.key}
+                  onClick={() => setInp('today_machineStatus', s.key)}
+                  className={`flex-1 min-w-[60px] py-2 rounded-lg text-xs font-bold border-2 transition-all active:scale-95
+                    ${(currentInp.today_machineStatus || 'ok') === s.key
+                      ? `${s.color} bg-surface3`
+                      : 'border-border text-muted bg-surface'}`}>
+                  {s.icon}<br/><span className="text-[10px]">{s.label}</span>
+                </button>
+              ))}
             </div>
 
-            {/* メーター取り替え */}
-            <div className={`bg-surface border rounded-xl overflow-hidden transition-colors ${mr.enabled ? 'border-accent/50' : 'border-border'}`}>
-              <button onClick={() => toggleChange('_meterReplace')}
-                className={`w-full flex items-center gap-3 px-3 py-3 active:bg-surface2 transition-colors`}>
-                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 transition-colors
-                  ${mr.enabled ? 'border-accent bg-accent text-bg' : 'border-border'}`}>
-                  {mr.enabled && '✓'}
-                </span>
-                <div className="text-left">
-                  <div className="text-sm font-bold">🔄 メーター取り替え</div>
-                  <div className="text-xs text-muted">取り替え後の新しい値を入力</div>
-                </div>
-              </button>
-              {mr.enabled && (
-                <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-border pt-2">
-                  <div>
-                    <div className="text-xs text-muted mb-1">新IN値</div>
-                    <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
-                      value={mr.in_meter || ''} onChange={e => setInpChange('_meterReplace', 'in_meter', e.target.value)} />
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted mb-1">新OUT値</div>
-                    <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
-                      value={mr.out_meter || ''} onChange={e => setInpChange('_meterReplace', 'out_meter', e.target.value)} />
-                  </div>
-                </div>
-              )}
+            {/* 前回値（前日付入力値 or latestIn/Out） */}
+            <div className="flex items-center gap-2 px-2.5 py-2 bg-surface rounded-lg border border-border text-xs">
+              <span className="text-muted shrink-0">基準</span>
+              <span>IN <strong>{(currentInp.in_meter ? parseFloat(currentInp.in_meter) : latestIn)?.toLocaleString() ?? '-'}</strong></span>
+              <span>OUT <strong>{(currentInp.out_meter ? parseFloat(currentInp.out_meter) : latestOut)?.toLocaleString() ?? '-'}</strong></span>
+              <span className="text-muted ml-auto text-[10px]">前日付入力値</span>
             </div>
 
-            {/* 景品変更 */}
-            <div className={`bg-surface border rounded-xl overflow-hidden transition-colors ${pc.enabled ? 'border-accent/50' : 'border-border'}`}>
-              <button onClick={() => toggleChange('_prizeChange')}
-                className="w-full flex items-center gap-3 px-3 py-3 active:bg-surface2 transition-colors">
-                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 transition-colors
-                  ${pc.enabled ? 'border-accent bg-accent text-bg' : 'border-border'}`}>
-                  {pc.enabled && '✓'}
-                </span>
-                <div className="text-left">
-                  <div className="text-sm font-bold">🎁 景品変更</div>
-                  <div className="text-xs text-muted">景品を入れ替えた場合</div>
-                </div>
-              </button>
-              {pc.enabled && (
-                <div className="px-3 pb-3 space-y-2 border-t border-border pt-2">
-                  <div>
-                    <div className="text-xs text-muted mb-1">新景品名 <span className="text-accent2">*</span></div>
-                    <input className={inpSm + ' !text-left'} type="text" placeholder="景品名を入力"
-                      value={pc.prize_name || ''} onChange={e => setInpChange('_prizeChange', 'prize_name', e.target.value)} />
+            {/* IN / OUT */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">IN（売上）<span className="text-accent2">*</span></div>
+                <input className={`${inp} ${todayInAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`}
+                  type="number" inputMode="numeric" placeholder="---"
+                  value={currentInp.today_in_meter || ''}
+                  onChange={e => setInp('today_in_meter', e.target.value)} />
+              </div>
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">OUT（払出）</div>
+                <input className={`${inp} ${todayOutAbnormal ? '!border-accent2 !bg-accent2/10' : ''}`}
+                  type="number" inputMode="numeric" placeholder="---"
+                  value={currentInp.today_out_meter || ''}
+                  onChange={e => setInp('today_out_meter', e.target.value)} />
+              </div>
+            </div>
+
+            {/* 差分 + 出率 */}
+            {(todayInDiff !== null || todayOutDiff !== null || todayPayoutRate !== null) && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {todayInDiff !== null && (
+                  <div className={`py-1.5 rounded-lg text-center text-xs font-bold ${todayInAbnormal || todayInZero ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                    IN {todayInDiff >= 0 ? '+' : ''}{todayInDiff.toLocaleString()}
+                    <div className="text-[10px] opacity-80">¥{(todayInDiff * price).toLocaleString()}</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-xs text-muted mb-1">投入数</div>
-                      <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
-                        value={pc.prize_stock || ''} onChange={e => setInpChange('_prizeChange', 'prize_stock', e.target.value)} />
+                )}
+                {todayOutDiff !== null && (
+                  <div className={`py-1.5 rounded-lg text-center text-xs font-bold ${todayOutAbnormal ? 'text-accent2 bg-accent2/10' : 'text-accent bg-accent/10'}`}>
+                    OUT {todayOutDiff >= 0 ? '+' : ''}{todayOutDiff.toLocaleString()}
+                  </div>
+                )}
+                {todayPayoutRate !== null && (
+                  <div className={`py-1.5 rounded-lg text-center text-xs font-bold ${todayPayoutHigh || todayPayoutLow ? 'text-accent2 bg-accent2/10' : 'text-accent3 bg-accent3/10'}`}>
+                    出率 {todayPayoutRate.toFixed(1)}%
+                    {todayPayoutHigh && <div className="text-[10px]">⚠️高</div>}
+                    {todayPayoutLow  && <div className="text-[10px]">⚠️低</div>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <AnomalyBanner
+              inAbnormal={todayInAbnormal} outAbnormal={todayOutAbnormal}
+              inZero={todayInZero} inTriple={false}
+              payoutHigh={todayPayoutHigh} payoutLow={todayPayoutLow}
+            />
+
+            {/* 月次統計 */}
+            {monthlyStats && (monthlyStats.curr.revenue > 0 || monthlyStats.prev.revenue > 0) && (
+              <div className="flex items-center gap-2 px-2.5 py-1.5 bg-surface rounded-lg border border-border text-xs flex-wrap">
+                <span className="text-muted">今月</span>
+                <span className="font-semibold text-accent3">¥{monthlyStats.curr.revenue.toLocaleString()}</span>
+                {monthlyStats.curr.payoutRate != null && <span className="text-muted">出率{monthlyStats.curr.payoutRate}%</span>}
+                <span className="text-border">|</span>
+                <span className="text-muted">前月</span>
+                <span className="text-muted">¥{monthlyStats.prev.revenue.toLocaleString()}</span>
+                {monthlyStats.prev.payoutRate != null && <span className="text-muted">出率{monthlyStats.prev.payoutRate}%</span>}
+              </div>
+            )}
+
+            {/* 景品名 */}
+            <div>
+              <div className="text-xs text-muted mb-1 px-0.5">
+                景品名
+                {!currentInp.today_prize_name && (currentInp.prize_name || latest?.prize_name) &&
+                  <span className="text-[10px] text-amber-500 ml-1">空欄=前日付引継</span>}
+              </div>
+              <input className={inp + ' !text-left'} type="text"
+                placeholder={currentInp.prize_name || latest?.prize_name || '景品名を入力'}
+                value={currentInp.today_prize_name || ''}
+                onChange={e => setInp('today_prize_name', e.target.value)} />
+            </div>
+
+            {/* 投入残 / 補充数 */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">景品投入残</div>
+                <input className={inp} type="number" inputMode="numeric" placeholder="0"
+                  value={currentInp.today_prize_stock || ''}
+                  onChange={e => setInp('today_prize_stock', e.target.value)} />
+              </div>
+              <div>
+                <div className="text-xs text-muted mb-1 px-0.5">景品補充数</div>
+                <input className={inp} type="number" inputMode="numeric" placeholder="0"
+                  value={currentInp.today_prize_restock || ''}
+                  onChange={e => setInp('today_prize_restock', e.target.value)} />
+              </div>
+            </div>
+
+            {/* ACLRO設定値 */}
+            <div>
+              <div className="text-xs text-muted mb-1.5 px-0.5">⚙️ 設定値 (A/C/L/R/O)</div>
+              <div className="flex gap-1.5">
+                {SETTINGS_PREV.map(s => (
+                  <div key={s.key} className="w-[36px] shrink-0" title={s.title}>
+                    <div className="text-[9px] text-accent4 text-center font-bold leading-tight mb-0.5">
+                      {s.label}<span className="block text-[6px] text-accent4/60 font-normal">{s.shortName}</span>
                     </div>
-                    <div>
-                      <div className="text-xs text-muted mb-1">補充数</div>
-                      <input className={inpSm} type="number" inputMode="numeric" placeholder="0"
-                        value={pc.prize_restock || ''} onChange={e => setInpChange('_prizeChange', 'prize_restock', e.target.value)} />
-                    </div>
+                    <input
+                      className="w-full p-1 text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
+                      type={s.isText ? 'text' : 'number'}
+                      inputMode={s.isText ? 'text' : 'numeric'}
+                      placeholder={currentInp[s.key] || latest?.[s.key] || '-'}
+                      value={currentInp[`today_${s.key}`] || ''}
+                      onChange={e => setInp(`today_${s.key}`, e.target.value)}
+                      title={s.title}
+                    />
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
 
-            {/* 設定変更 */}
-            <div className={`bg-surface border rounded-xl overflow-hidden transition-colors ${sc.enabled ? 'border-accent/50' : 'border-border'}`}>
-              <button onClick={() => toggleChange('_settingsChange')}
-                className="w-full flex items-center gap-3 px-3 py-3 active:bg-surface2 transition-colors">
-                <span className={`w-5 h-5 rounded border-2 flex items-center justify-center text-xs shrink-0 transition-colors
-                  ${sc.enabled ? 'border-accent bg-accent text-bg' : 'border-border'}`}>
-                  {sc.enabled && '✓'}
-                </span>
-                <div className="text-left">
-                  <div className="text-sm font-bold">⚙️ 設定変更</div>
-                  <div className="text-xs text-muted">クレーン設定を変更した場合</div>
-                </div>
-              </button>
-              {sc.enabled && (
-                <div className="px-3 pb-3 border-t border-border pt-2">
-                  <div className="flex gap-1.5">
-                    {SETTINGS_CHANGE.map(s => (
-                      <div key={s.key} className="w-[36px] shrink-0" title={s.title}>
-                        <div className="text-[9px] text-accent4 text-center font-bold leading-tight mb-0.5">
-                          {s.label}<span className="block text-[6px] text-accent4/60 font-normal">{s.shortName}</span>
-                        </div>
-                        <input
-                          className="w-full p-1 text-center rounded border border-border bg-surface2 text-text outline-none focus:border-accent4/60"
-                          type={s.isText ? 'text' : 'number'}
-                          inputMode={s.isText ? 'text' : 'numeric'}
-                          placeholder={latest?.[`set_${s.key}`] || '-'}
-                          value={sc[`set_${s.key}`] || ''}
-                          onChange={e => setInpChange('_settingsChange', `set_${s.key}`, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* メモ */}
+            <div>
+              <div className="text-xs text-muted mb-1 px-0.5">メモ</div>
+              <textarea className={inp + ' !text-left resize-none'} rows={2}
+                placeholder="特記事項があれば入力"
+                value={currentInp.today_note || ''}
+                onChange={e => setInp('today_note', e.target.value)} />
             </div>
           </div>
         )}
@@ -536,8 +570,9 @@ export default function PatrolInput() {
           boothCode={currentBooth.booth_code}
           lastIn={lastIn} lastOut={lastOut}
           onApply={({ inMeter, outMeter, confidence }) => {
-            setInp('in_meter', inMeter); setInp('out_meter', outMeter)
-            setInp('inputMethod', 'ocr'); setInp('ocrConfidence', confidence)
+            const p = activeTab === 'today' ? 'today_' : ''
+            setInp(p + 'in_meter', inMeter); setInp(p + 'out_meter', outMeter)
+            setInp(p + 'inputMethod', 'ocr'); setInp(p + 'ocrConfidence', confidence)
             setShowOcr(false)
           }}
           onClose={() => setShowOcr(false)}

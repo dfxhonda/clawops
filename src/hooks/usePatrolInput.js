@@ -190,6 +190,21 @@ export function usePatrolInput(initialBooth, navigateToPatrol) {
   const payoutHigh = payoutRate !== null && payoutRate >= 30
   const payoutLow  = payoutRate !== null && payoutRate < 5
 
+  // 当日付差分計算（前日付入力値 or latestIn を基準とする）
+  const todayBaseIn  = inVal  !== null ? inVal  : latestIn
+  const todayBaseOut = outVal !== null ? outVal : latestOut
+  const todayInVal   = currentInp.today_in_meter  ? parseNum(currentInp.today_in_meter)  : null
+  const todayOutVal  = currentInp.today_out_meter ? parseNum(currentInp.today_out_meter) : null
+  const todayInDiff  = todayInVal  !== null && todayBaseIn  !== null ? todayInVal  - todayBaseIn  : null
+  const todayOutDiff = todayOutVal !== null && todayBaseOut !== null ? todayOutVal - todayBaseOut : null
+  const todayInAbnormal  = todayInDiff  !== null && (todayInDiff  < 0 || todayInDiff  > 50000)
+  const todayOutAbnormal = todayOutDiff !== null && (todayOutDiff < 0 || todayOutDiff > 50000)
+  const todayInZero      = todayInDiff  !== null && todayInDiff  === 0
+  const todayPayoutRate  = todayOutDiff !== null && todayOutDiff >= 0 && todayInDiff !== null && todayInDiff > 0
+    ? todayOutDiff / todayInDiff * 100 : null
+  const todayPayoutHigh  = todayPayoutRate !== null && todayPayoutRate >= 30
+  const todayPayoutLow   = todayPayoutRate !== null && todayPayoutRate < 5
+
   const savedCount = savedSet.size
 
   // ===== 保存 =====
@@ -225,41 +240,32 @@ export function usePatrolInput(initialBooth, navigateToPatrol) {
       ocr_confidence: inp.ocrConfidence || null,
     })
 
-    // 当日付変更 → DB に直接保存
-    try {
-      const mr = inp._meterReplace
-      if (mr?.enabled && mr.in_meter) {
-        await saveReading({
-          read_date: todayDate, booth_id: currentBooth.booth_code, full_booth_code: currentBooth.booth_code,
-          in_meter: mr.in_meter, out_meter: mr.out_meter || '',
-          prize_name: prizeName, source: 'meter_replace',
-        })
-      }
-      const pc = inp._prizeChange
-      if (pc?.enabled && pc.prize_name) {
-        await saveReading({
-          read_date: todayDate, booth_id: currentBooth.booth_code, full_booth_code: currentBooth.booth_code,
-          in_meter: latestIn !== null ? String(latestIn) : '',
-          out_meter: latestOut !== null ? String(latestOut) : '',
-          prize_name: pc.prize_name,
-          prize_stock_count: pc.prize_stock || '', prize_restock_count: pc.prize_restock || '',
-          source: 'prize_change',
-        })
-      }
-      const sc = inp._settingsChange
-      if (sc?.enabled && (sc.set_a || sc.set_c || sc.set_l || sc.set_r || sc.set_o)) {
-        await saveReading({
-          read_date: todayDate, booth_id: currentBooth.booth_code, full_booth_code: currentBooth.booth_code,
-          in_meter: latestIn !== null ? String(latestIn) : '',
-          out_meter: latestOut !== null ? String(latestOut) : '',
-          prize_name: prizeName,
-          set_a: sc.set_a || '', set_c: sc.set_c || '', set_l: sc.set_l || '',
-          set_r: sc.set_r || '', set_o: sc.set_o || '',
-          source: 'settings_change',
-        })
-      }
-    } catch (e) {
-      return { ok: false, message: '変更記録の保存に失敗しました: ' + e.message }
+    // 当日付メーター読み → DraftList に追加（入力がある場合のみ）
+    if (inp.today_in_meter) {
+      const todayPrizeName = inp.today_prize_name || prizeName
+      const todayStatusLabel = STATUS_OPTIONS.find(s => s.key === (inp.today_machineStatus || 'ok'))?.label || ''
+      const todayNote = (inp.today_machineStatus || 'ok') !== 'ok'
+        ? `[${todayStatusLabel}] ${inp.today_note || ''}`.trim()
+        : (inp.today_note || '')
+      saveToDraftList({
+        read_date: todayDate,
+        booth_id: currentBooth.booth_code, full_booth_code: currentBooth.booth_code,
+        in_meter: inp.today_in_meter,
+        out_meter: inp.today_out_meter || finalIn,
+        prev_in_meter: finalIn, prev_out_meter: finalOut,
+        play_price: price,
+        prize_restock_count: inp.today_prize_restock || '',
+        prize_stock_count:   inp.today_prize_stock   || '',
+        prize_name: todayPrizeName,
+        note: todayNote, machine_status: inp.today_machineStatus || 'ok',
+        set_a: inp.today_set_a || inp.set_a || latest?.set_a || '',
+        set_c: inp.today_set_c || inp.set_c || latest?.set_c || '',
+        set_l: inp.today_set_l || inp.set_l || latest?.set_l || '',
+        set_r: inp.today_set_r || inp.set_r || latest?.set_r || '',
+        set_o: inp.today_set_o || inp.set_o || latest?.set_o || '',
+        input_method: inp.today_inputMethod || 'manual',
+        ocr_confidence: inp.today_ocrConfidence || null,
+      })
     }
 
     setSavedSet(prev => new Set([...prev, currentBooth.booth_code]))
@@ -279,8 +285,11 @@ export function usePatrolInput(initialBooth, navigateToPatrol) {
     latestIn, latestOut, lastIn, lastOut,
     inDiff, outDiff, inAbnormal, outAbnormal,
     inZero, inTriple, payoutRate, payoutHigh, payoutLow,
+    // 当日付計算値
+    todayInDiff, todayOutDiff, todayInAbnormal, todayOutAbnormal,
+    todayInZero, todayPayoutRate, todayPayoutHigh, todayPayoutLow,
     // 操作
-    setInp, setInpChange, toggleChange, switchBooth, handleSave,
+    setInp, switchBooth, handleSave,
     // 状態
     savedSet, savedCount, draftCount,
   }
