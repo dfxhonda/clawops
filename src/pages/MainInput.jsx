@@ -61,7 +61,7 @@ export default function MainInput() {
           <div className="flex items-center gap-1 ml-auto">
             <button onClick={() => navigate('/admin')}
               className="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-surface border border-border text-muted active:scale-95">
-              ☰
+              ⚙️
             </button>
             <LogoutButton />
             <button onClick={() => {

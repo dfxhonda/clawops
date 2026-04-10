@@ -15,7 +15,7 @@ const SECTIONS = [
     title: '現場作業',
     minRole: 'staff',
     items: [
-      { icon: '🚶', title: '巡回入力', desc: '売上・メーターデータ入力', path: '/' },
+      { icon: '🚶', title: '巡回入力', desc: '売上・メーターデータ入力', path: '/patrol/overview' },
       { icon: '📊', title: 'ダッシュボード', desc: '今日の売上サマリ', path: '/dashboard' },
     ]
   },
@@ -65,6 +65,17 @@ const SECTIONS = [
     ]
   },
   {
+    title: 'マスタ管理',
+    minRole: 'admin',
+    items: [
+      { icon: '🔐', title: 'ロッカー登録', desc: 'ガチャ機のロッカー設定', path: '/admin/lockers' },
+      { icon: '🎮', title: '機種マスタ', desc: '機種の登録・編集・削除', path: '/admin/models' },
+      { icon: '🕹️', title: '機械登録', desc: '機械の追加・ブース自動生成', path: '/admin/machines' },
+      { icon: '📦', title: 'ブース一覧', desc: 'ブース設定の確認・編集', path: '/admin/booths' },
+      { icon: '📖', title: 'マニュアル管理', desc: '機種マニュアルの作成・編集・公開', path: '/admin/manuals' },
+    ]
+  },
+  {
     title: '開発ツール',
     minRole: 'admin',
     items: [
@@ -81,11 +92,12 @@ export default function AdminMenu() {
   const visibleSections = SECTIONS.filter(sec => canAccess(staffRole, sec.minRole ?? 'staff'))
 
   return (
-    <div className="min-h-screen pb-16">
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between">
+    <div className="h-screen flex flex-col">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between shrink-0">
         <div className="text-base font-bold">メニュー</div>
         <LogoutButton />
       </div>
+      <div className="flex-1 overflow-y-auto pb-16">
 
       {visibleSections.map(sec => (
         <div key={sec.title}>
@@ -127,6 +139,7 @@ export default function AdminMenu() {
       ))}
       <div className="px-4 py-6 text-center text-[10px] text-muted/30">
         {buildLabel()}
+      </div>
       </div>
     </div>
   )

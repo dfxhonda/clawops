@@ -7,17 +7,9 @@ import { writeAuditLog } from './audit'
 
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
-  const { data: machineStores, error: mErr } = await supabase
-    .from('machines')
-    .select('store_code')
-    .eq('is_active', true)
-  if (mErr) { console.error('machines取得エラー:', mErr.message); return [] }
-  const storeCodes = [...new Set(machineStores.map(m => m.store_code).filter(Boolean))]
-  if (storeCodes.length === 0) return []
   const { data, error } = await supabase
     .from('stores')
     .select('store_code, store_name, is_active')
-    .in('store_code', storeCodes)
     .eq('is_active', true)
     .order('store_name')
   if (error) { console.error('stores取得エラー:', error.message); return [] }
@@ -260,6 +252,110 @@ export async function deleteMachine(machineCode) {
     before_data: before,
     after_data: { is_active: false },
   })
+}
+
+export async function getAllStores() {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('store_code, store_name, is_active')
+    .eq('is_active', true)
+    .order('store_code')
+  if (error) { console.error('stores取得エラー:', error.message); return [] }
+  return data.map(r => ({ store_code: r.store_code, store_name: r.store_name }))
+}
+
+export async function addMachineType(t) {
+  const { data, error } = await supabase
+    .from('machine_types')
+    .insert({
+      type_name: t.type_name,
+      category: t.category || null,
+      manufacturer: t.manufacturer || null,
+      booth_count: t.booth_count ? Number(t.booth_count) : null,
+      meter_count: t.meter_count ? Number(t.meter_count) : null,
+      meter_unit_price: t.meter_unit_price ? Number(t.meter_unit_price) : null,
+      locker_slots: t.locker_slots ? Number(t.locker_slots) : null,
+      notes: t.notes || null,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_create',
+    target_table: 'machine_types',
+    target_id: String(data.type_id),
+    detail: `機種追加: ${data.type_name}`,
+    after_data: data,
+  })
+  return data
+}
+
+export async function updateMachineType(typeId, updates) {
+  const { data, error } = await supabase
+    .from('machine_types')
+    .update({
+      type_name: updates.type_name,
+      category: updates.category || null,
+      manufacturer: updates.manufacturer || null,
+      booth_count: updates.booth_count ? Number(updates.booth_count) : null,
+      meter_count: updates.meter_count ? Number(updates.meter_count) : null,
+      meter_unit_price: updates.meter_unit_price ? Number(updates.meter_unit_price) : null,
+      locker_slots: updates.locker_slots ? Number(updates.locker_slots) : null,
+      notes: updates.notes || null,
+    })
+    .eq('type_id', typeId)
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_update',
+    target_table: 'machine_types',
+    target_id: String(typeId),
+    detail: `機種更新: ${updates.type_name}`,
+    after_data: updates,
+  })
+  return data
+}
+
+export async function deleteMachineType(typeId) {
+  const { error } = await supabase
+    .from('machine_types')
+    .delete()
+    .eq('type_id', typeId)
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_delete',
+    target_table: 'machine_types',
+    target_id: String(typeId),
+    detail: `機種削除: type_id=${typeId}`,
+  })
+}
+
+export async function updateBooth(boothCode, updates) {
+  const { data, error } = await supabase
+    .from('booths')
+    .update({
+      play_price: updates.play_price !== undefined ? (updates.play_price || null) : undefined,
+      meter_in_number: updates.meter_in_number !== undefined ? (Number(updates.meter_in_number) || 7) : undefined,
+      meter_out_number: updates.meter_out_number !== undefined ? (Number(updates.meter_out_number) || 7) : undefined,
+      is_active: updates.is_active !== undefined ? updates.is_active : undefined,
+    })
+    .eq('booth_code', boothCode)
+    .select()
+    .single()
+  if (error) throw error
+  clearCache()
+  await writeAuditLog({
+    action: 'master_update',
+    target_table: 'booths',
+    target_id: boothCode,
+    detail: `ブース更新: ${boothCode}`,
+    after_data: updates,
+  })
+  return data
 }
 
 export async function getLocations(forceRefresh = false) {
