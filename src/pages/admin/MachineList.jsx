@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getAllStores,
-  getMachineTypes,
+  getMachineModels,
   getMachines,
   addMachine,
   updateMachine,
@@ -15,14 +15,16 @@ import AdminNav from '../../components/AdminNav'
 
 const EMPTY_FORM = {
   machine_name: '',
-  type_id: '',
-  play_price: '',
-  machine_number: '',
   model_id: '',
+  play_price: '100',
+  machine_number: '',
+  booth_count: '',
+  in_meter_count: '',
+  out_meter_count: '',
   notes: '',
 }
 
-function MachineFields({ form, onChange, machineTypes, hideType = false }) {
+function MachineFields({ form, onChange, machineModels, hideModel = false }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div className="sm:col-span-2">
@@ -35,17 +37,20 @@ function MachineFields({ form, onChange, machineTypes, hideType = false }) {
           className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
         />
       </div>
-      {!hideType && (
+      {!hideModel && (
         <div className="sm:col-span-2">
-          <label className="block text-xs text-muted mb-1">機種</label>
+          <label className="block text-xs text-muted mb-1">機種 <span className="text-accent2">*</span></label>
           <select
-            value={form.type_id}
-            onChange={e => onChange('type_id', e.target.value)}
+            value={form.model_id}
+            onChange={e => onChange('model_id', e.target.value)}
+            required
             className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
           >
-            <option value="">— 機種を選択 —</option>
-            {machineTypes.map(t => (
-              <option key={t.type_id} value={String(t.type_id)}>{t.type_name}</option>
+            <option value="">機種を選択してください</option>
+            {machineModels.map(m => (
+              <option key={m.model_id} value={m.model_id}>
+                {m.model_name}（{m.manufacturer || 'メーカー不明'}）
+              </option>
             ))}
           </select>
         </div>
@@ -71,16 +76,6 @@ function MachineFields({ form, onChange, machineTypes, hideType = false }) {
         />
       </div>
       <div>
-        <label className="block text-xs text-muted mb-1">モデルID</label>
-        <input
-          type="text"
-          value={form.model_id}
-          onChange={e => onChange('model_id', e.target.value)}
-          placeholder="任意"
-          className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
-        />
-      </div>
-      <div>
         <label className="block text-xs text-muted mb-1">備考</label>
         <input
           type="text"
@@ -101,7 +96,7 @@ export default function AdminMachineList() {
   const [storeCode, setStoreCode] = useState(
     () => sessionStorage.getItem('admin_machine_store') || ''
   )
-  const [machineTypes, setMachineTypes] = useState([])
+  const [machineModels, setMachineModels] = useState([])
   const [machines, setMachines] = useState([])
   const [loading, setLoading] = useState(false)
   const [nextCode, setNextCode] = useState('')
@@ -112,13 +107,11 @@ export default function AdminMachineList() {
   const [editForm, setEditForm] = useState({})
   const [editError, setEditError] = useState('')
 
-  // Bootstrap: load stores + machine types once
   useEffect(() => {
     getAllStores().then(setStores).catch(() => {})
-    getMachineTypes().then(setMachineTypes).catch(() => {})
+    getMachineModels().then(setMachineModels).catch(() => {})
   }, [])
 
-  // Reload machines + next code when store changes
   useEffect(() => {
     if (!storeCode) {
       setMachines([])
@@ -156,11 +149,13 @@ export default function AdminMachineList() {
   const handleFormChange = (field, value) => {
     setForm(f => {
       const next = { ...f, [field]: value }
-      // auto-fill play_price from type.meter_unit_price when type_id changes
-      if (field === 'type_id' && value) {
-        const t = machineTypes.find(mt => String(mt.type_id) === String(value))
-        if (t && t.meter_unit_price != null) {
-          next.play_price = String(t.meter_unit_price)
+      if (field === 'model_id' && value) {
+        const m = machineModels.find(m => m.model_id === value)
+        if (m) {
+          next.booth_count = String(m.booth_count || '')
+          next.in_meter_count = String(m.in_meter_count || '')
+          next.out_meter_count = String(m.out_meter_count || '')
+          next.play_price = String(m.meter_unit_price || '100')
         }
       }
       return next
@@ -169,8 +164,6 @@ export default function AdminMachineList() {
 
   const handleEditChange = (field, value) =>
     setEditForm(f => ({ ...f, [field]: value }))
-
-  const selectedType = machineTypes.find(t => String(t.type_id) === String(form.type_id))
 
   const handleAdd = async e => {
     e.preventDefault()
@@ -182,25 +175,21 @@ export default function AdminMachineList() {
         machine_code: nextCode,
         store_code: storeCode,
         machine_name: form.machine_name.trim(),
-        type_id: form.type_id || null,
+        model_id: form.model_id || null,
         play_price: form.play_price ? Number(form.play_price) : 100,
         machine_number: form.machine_number || null,
-        model_id: form.model_id || null,
         notes: form.notes || null,
       })
 
-      const boothCount = selectedType?.booth_count || 0
-      const meterCount = selectedType?.meter_count || 7
-      const playPrice = form.play_price ? Number(form.play_price) : 100
-
+      const boothCount = Number(form.booth_count) || 0
       for (let i = 0; i < boothCount; i++) {
         await addBooth({
           store_code: storeCode,
           machine_code: machine.machine_code,
           booth_number: i + 1,
-          play_price: playPrice,
-          meter_in_number: meterCount,
-          meter_out_number: meterCount,
+          play_price: form.play_price ? Number(form.play_price) : 100,
+          meter_in_number: Number(form.in_meter_count) || 7,
+          meter_out_number: Number(form.out_meter_count) || 7,
         })
       }
 
@@ -219,7 +208,6 @@ export default function AdminMachineList() {
       machine_name: m.machine_name || '',
       play_price: m.default_price != null ? String(m.default_price) : '',
       machine_number: m.rental_code || '',
-      model_id: m.model_id || '',
       notes: m.location_note || '',
     })
     setEditError('')
@@ -234,7 +222,6 @@ export default function AdminMachineList() {
         machine_name: editForm.machine_name.trim(),
         play_price: editForm.play_price ? Number(editForm.play_price) : undefined,
         machine_number: editForm.machine_number || null,
-        model_id: editForm.model_id || null,
         notes: editForm.notes || null,
       })
       setEditCode(null)
@@ -256,11 +243,7 @@ export default function AdminMachineList() {
     }
   }
 
-  const typeName = typeId => {
-    if (!typeId) return null
-    const t = machineTypes.find(mt => String(mt.type_id) === String(typeId))
-    return t ? t.type_name : null
-  }
+  const selectedModel = machineModels.find(m => m.model_id === form.model_id)
 
   return (
     <div className="min-h-screen pb-16">
@@ -308,11 +291,11 @@ export default function AdminMachineList() {
             <MachineFields
               form={form}
               onChange={handleFormChange}
-              machineTypes={machineTypes}
+              machineModels={machineModels}
             />
-            {selectedType?.booth_count > 0 && (
+            {selectedModel && Number(form.booth_count) > 0 && (
               <p className="text-xs text-accent3">
-                保存時にブースを {selectedType.booth_count} 個自動生成します
+                保存時にブースを {form.booth_count} 個自動生成します（IN: {form.in_meter_count} / OUT: {form.out_meter_count}）
               </p>
             )}
             {formError && <p className="text-accent2 text-xs">{formError}</p>}
@@ -350,8 +333,8 @@ export default function AdminMachineList() {
               <MachineFields
                 form={editForm}
                 onChange={handleEditChange}
-                machineTypes={machineTypes}
-                hideType
+                machineModels={machineModels}
+                hideModel
               />
               {editError && <p className="text-accent2 text-xs">{editError}</p>}
               <div className="flex gap-2">
@@ -378,7 +361,6 @@ export default function AdminMachineList() {
                 </div>
                 <div className="font-bold text-text text-sm">{m.machine_name}</div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-                  {typeName(m.machine_type) && <span>{typeName(m.machine_type)}</span>}
                   {m.default_price != null && <span>¥{m.default_price}</span>}
                   {m.rental_code && <span>レンタル: {m.rental_code}</span>}
                   {m.location_note && <span>{m.location_note}</span>}
