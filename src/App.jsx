@@ -18,6 +18,7 @@ import Login from './pages/Login'
 // 遅延ロード — メインタブ
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const AdminMenu = lazy(() => import('./pages/AdminMenu'))
+const AdminTop = lazy(() => import('./pages/admin/AdminTop'))
 
 // 遅延ロード — 巡回入力
 const BoothInput = lazy(() => import('./pages/BoothInput'))
@@ -28,12 +29,19 @@ const MachineList = lazy(() => import('./pages/MachineList'))
 
 // 遅延ロード — マスタ追加
 const BoothQrPrint = lazy(() => import('./pages/BoothQrPrint'))
+const AdminModelList = lazy(() => import('./pages/admin/ModelList'))
+const AdminMachineList = lazy(() => import('./pages/admin/MachineList'))
+const AdminBoothList = lazy(() => import('./pages/admin/BoothList'))
+const ManualEditor = lazy(() => import('./pages/admin/ManualEditor'))
+const ManualView = lazy(() => import('./pages/ManualView'))
 
 // 遅延ロード — 管理系
 const EditReading = lazy(() => import('./pages/EditReading'))
 const DataSearch = lazy(() => import('./pages/DataSearch'))
 const PatrolScan = lazy(() => import('./pages/PatrolScan'))
 const PatrolInput = lazy(() => import('./pages/PatrolInput'))
+const PatrolOverview = lazy(() => import('./pages/PatrolOverview'))
+const LockerList = lazy(() => import('./pages/admin/LockerList'))
 const ImportSlips = lazy(() => import('./pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./pages/SetupSheets'))
 const TestDataImport = lazy(() => import('./pages/TestDataImport'))
@@ -72,7 +80,8 @@ function AppInner() {
       {/* メインタブ — 全ロール */}
       <Route path="/" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
+      <Route path="/admin" element={<AdminRoute><AdminTop /></AdminRoute>} />
+      <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
@@ -84,6 +93,8 @@ function AppInner() {
       {/* 巡回QR — patrol以上 */}
       <Route path="/patrol" element={<PatrolRoute><PatrolScan /></PatrolRoute>} />
       <Route path="/patrol/input" element={<PatrolRoute><PatrolInput /></PatrolRoute>} />
+      <Route path="/patrol/overview" element={<PatrolRoute><PatrolOverview /></PatrolRoute>} />
+      <Route path="/patrol/booth" element={<PatrolRoute><BoothInput /></PatrolRoute>} />
 
       {/* 監査ログ — manager以上 */}
       <Route path="/admin/audit" element={<ManagerRoute><AuditLog /></ManagerRoute>} />
@@ -96,6 +107,15 @@ function AppInner() {
       {/* QR印刷 — manager以上 */}
       <Route path="/admin/qr-print" element={<ManagerRoute><BoothQrPrint /></ManagerRoute>} />
 
+      {/* マスタ管理 — admin のみ */}
+      <Route path="/admin/lockers" element={<AdminRoute><LockerList /></AdminRoute>} />
+      <Route path="/admin/models" element={<AdminRoute><AdminModelList /></AdminRoute>} />
+      <Route path="/admin/machines" element={<AdminRoute><AdminMachineList /></AdminRoute>} />
+      <Route path="/admin/booths" element={<AdminRoute><AdminBoothList /></AdminRoute>} />
+      {/* マニュアル — admin管理 + 全ロール閲覧 */}
+      <Route path="/admin/manuals" element={<AdminRoute><ManualEditor /></AdminRoute>} />
+      <Route path="/manual/:modelId" element={<ProtectedRoute><ManualView /></ProtectedRoute>} />
+
       {/* 管理ツール — admin のみ */}
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />
       <Route path="/admin/setup-sheets" element={<AdminRoute><SetupSheets /></AdminRoute>} />
@@ -103,7 +123,7 @@ function AppInner() {
       <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
 
 
-      <Route path="*" element={<Navigate to="/admin" />} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
     </Suspense>
     </ErrorBoundary>

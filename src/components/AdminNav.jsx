@@ -12,12 +12,12 @@ export default function AdminNav() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   return (
-    <div className="sticky top-[45px] z-40 flex border-b border-border bg-bg print:hidden">
+    <div className="sticky top-[45px] z-40 flex overflow-x-auto border-b border-border bg-bg print:hidden">
       {TABS.map(tab => (
         <button
           key={tab.path}
           onClick={() => navigate(tab.path)}
-          className={`flex-1 flex flex-col items-center py-1.5 gap-0.5 text-[10px] font-bold transition-colors
+          className={`flex-none w-[72px] flex flex-col items-center py-1.5 gap-0.5 text-[10px] font-bold transition-colors shrink-0
             ${pathname === tab.path ? 'text-accent border-b-2 border-accent' : 'text-muted'}`}
         >
           <span className="text-base leading-none">{tab.icon}</span>
