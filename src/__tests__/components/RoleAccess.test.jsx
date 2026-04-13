@@ -117,7 +117,7 @@ describe('RoleRoute コンポーネント描画テスト', () => {
     it('未認証はポータルへリダイレクト', () => {
       renderWithRoutes(AdminRoute, { isLoggedIn: false })
       expect(screen.queryByText('SECRET')).not.toBeInTheDocument()
-      expect(locationHref).toBe('/docs/')
+      expect(locationHref).toBe('/login')
     })
 
     it('loading中は認証中を表示', () => {
@@ -189,9 +189,9 @@ describe('ProtectedRoute コンポーネント描画テスト', () => {
     expect(screen.getByText('SECRET')).toBeInTheDocument()
   })
 
-  it('未認証でポータルへリダイレクト', () => {
+  it('未認証でログインへリダイレクト', () => {
     renderWithRoutes(ProtectedRoute, { isLoggedIn: false })
     expect(screen.queryByText('SECRET')).not.toBeInTheDocument()
-    expect(locationHref).toBe('/docs/')
+    expect(locationHref).toBe('/login')
   })
 })

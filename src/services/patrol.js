@@ -12,7 +12,7 @@ export async function getPatrolMachines(storeCode) {
     .select(`
       machine_code, machine_name, store_code, type_id, model_id, billing_order,
       machine_types!type_id(category),
-      booths(booth_code, booth_number, play_price, meter_in_number, meter_out_number, is_active),
+      booths(booth_code, booth_number, play_price, meter_in_number, meter_out_number, is_active, machine_code),
       machine_lockers(locker_id, locker_number, slot_count, lock_type, is_active)
     `)
     .eq('store_code', storeCode)

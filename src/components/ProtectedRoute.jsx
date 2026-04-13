@@ -7,7 +7,7 @@ import { useAuth } from '../lib/auth/AuthProvider'
 
 // 未認証時はポータルへフルリダイレクト（/login は旧画面のため使わない）
 function redirectToPortal() {
-  window.location.href = '/docs/'
+  window.location.href = '/login'
   return null
 }
 
