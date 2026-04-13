@@ -594,7 +594,7 @@ export default function PatrolPage() {
         dateOpts={dateOpts} readDate={readDate} onDateChange={setReadDate}
         machineName={machineInfo?.machineName || ''}
         boothLabel={boothLabel}
-        badge={pattern === 'B' ? 'その他' : pattern.startsWith('D') ? 'ガチャ' : undefined}
+        badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
         playPrice={machineInfo?.playPrice}
         onBack={() => navigate('/')}
       />
