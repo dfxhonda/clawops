@@ -131,7 +131,7 @@ export default function PatrolPage() {
   }
 
   const boothLabel = `B${String(booth.booth_number || '').padStart(2, '0')}`
-  const hasLocker = machineInfo?.hasLocker && lockers.length > 0
+  const hasLocker = lockers.length > 0
 
   async function handleSave() {
     setSaveError(null)
