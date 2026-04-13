@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { detectAlerts } from '../utils/patrolAlerts'
 import { usePatrolForm } from '../hooks/usePatrolForm'
 import { useLockerState } from '../hooks/useLockerState'
 import { getMachineLockers } from '../services/patrol'
@@ -9,6 +10,7 @@ import PatrolHeader    from '../components/patrol/PatrolHeader'
 import PrevRow         from '../components/patrol/PrevRow'
 import MeterInputRow   from '../components/patrol/MeterInputRow'
 import CalcBar         from '../components/patrol/CalcBar'
+import AlertBar        from '../components/patrol/AlertBar'
 import PrizeRow        from '../components/patrol/PrizeRow'
 import SettingRow      from '../components/patrol/SettingRow'
 import OutGroupRow     from '../components/patrol/OutGroupRow'
@@ -71,6 +73,8 @@ export default function PatrolPage() {
       currRate: totalIn > 0 ? (totalOut / totalIn * 100) : null,
     }
   }, [form.hist])
+
+  const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc, form.outCount])
 
   // guard
   if (!booth) {
@@ -608,6 +612,9 @@ export default function PatrolPage() {
 
         {/* パターン別入力 */}
         {renderPatrolContent()}
+
+        {/* 異常値アラート */}
+        <AlertBar alerts={alerts} />
 
         {/* 入替/設定変更 区切り */}
         <ChangeZoneHeader

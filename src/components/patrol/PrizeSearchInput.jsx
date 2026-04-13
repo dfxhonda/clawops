@@ -16,6 +16,7 @@ export default function PrizeSearchInput({ value, inputStyle, onChange, onSelect
   const [show, setShow] = useState(false)
   const allRef = useRef(null)  // 全件キャッシュ（コンポーネントローカル）
   const containerRef = useRef(null)
+  const touchStartY = useRef(null)
 
   async function load() {
     if (allRef.current) return allRef.current
@@ -77,7 +78,11 @@ export default function PrizeSearchInput({ value, inputStyle, onChange, onSelect
                 borderBottom: i < candidates.length - 1 ? '1px solid #1a1a2e' : 'none',
               }}
               onMouseDown={e => { e.preventDefault(); handleSelect(p) }}
-              onTouchEnd={e => { e.preventDefault(); handleSelect(p) }}
+              onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
+              onTouchEnd={e => {
+                const moved = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+                if (moved < 8) { e.preventDefault(); handleSelect(p) }
+              }}
             >
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.prize_name}
