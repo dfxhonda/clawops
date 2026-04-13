@@ -23,12 +23,7 @@
   function requireAuth() {
     const token = getAuthToken();
     if (token) return token;
-    // On login page, don't redirect
-    if (location.pathname.endsWith('index.html') || location.pathname.endsWith('/docs/')) {
-      return SB_KEY; // fallback to anon for login page
-    }
-    // Redirect to login
-    location.href = '/docs/';
+    location.href = '/login';
     throw new Error('認証が必要です');
   }
 

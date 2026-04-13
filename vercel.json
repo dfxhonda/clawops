@@ -9,29 +9,9 @@
       "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
     }
   ],
-  "redirects": [
-    { "source": "/", "destination": "/docs/index.html", "permanent": false }
-  ],
   "rewrites": [
     { "source": "/docs/:path*", "destination": "/docs/:path*" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
-    { "source": "/app/:path*", "destination": "/index.html" },
-    { "source": "/booth/:path*", "destination": "/index.html" },
-    { "source": "/patrol/:path*", "destination": "/index.html" },
-    { "source": "/patrol", "destination": "/index.html" },
-    { "source": "/inventory/:path*", "destination": "/index.html" },
-    { "source": "/inventory", "destination": "/index.html" },
-    { "source": "/ranking/:path*", "destination": "/index.html" },
-    { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/admin/:path*", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/index.html" },
-    { "source": "/login", "destination": "/index.html" },
-    { "source": "/datasearch", "destination": "/index.html" },
-    { "source": "/drafts", "destination": "/index.html" },
-    { "source": "/complete", "destination": "/index.html" },
-    { "source": "/edit/:path*", "destination": "/index.html" },
-    { "source": "/db/:path*", "destination": "/index.html" },
-    { "source": "/sb/:path*", "destination": "/index.html" },
-    { "source": "/((?!docs|assets|version\\.json|_next).*)", "destination": "/docs/index.html" }
+    { "source": "/((?!docs|assets|version\\.json|_next).*)", "destination": "/index.html" }
   ]
 }

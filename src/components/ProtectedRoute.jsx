@@ -5,7 +5,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth/AuthProvider'
 
-// 未認証時はポータルへフルリダイレクト（/login は旧画面のため使わない）
+// 未認証時は React ログイン画面へリダイレクト
 function redirectToPortal() {
   window.location.href = '/login'
   return null

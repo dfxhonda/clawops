@@ -134,7 +134,7 @@ export default function PatrolOverview() {
             if (!window.confirm('ログアウトしますか？')) return
             await logout()
             sessionStorage.removeItem('clawops_staff')
-            window.location.replace('/docs/')
+            window.location.replace('/login')
           }}
           className="text-[10px] text-muted hover:text-accent2"
         >
