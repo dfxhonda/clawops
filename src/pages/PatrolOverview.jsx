@@ -113,7 +113,6 @@ export default function PatrolOverview() {
 
       {/* ━━━ ヘッダー ━━━ */}
       <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2">
-        <button onClick={() => navigate(-1)} className="text-2xl text-muted leading-none px-1">←</button>
         <h1 className="flex-1 font-bold text-base">巡回状況</h1>
         <button
           onClick={() => navigate('/admin')}
