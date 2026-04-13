@@ -6,6 +6,7 @@ import { usePatrolForm } from '../hooks/usePatrolForm'
 import { useLockerState } from '../hooks/useLockerState'
 import { getMachineLockers } from '../services/patrol'
 
+import MeterOcr        from '../components/MeterOcr'
 import PatrolHeader    from '../components/patrol/PatrolHeader'
 import PrevRow         from '../components/patrol/PrevRow'
 import MeterInputRow   from '../components/patrol/MeterInputRow'
@@ -44,6 +45,7 @@ export default function PatrolPage() {
 
   const [lockers, setLockers] = useState([])
   const [lockerView, setLockerView] = useState(null) // null | 'check' | 'edit'
+  const [showOcr, setShowOcr] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -136,6 +138,12 @@ export default function PatrolPage() {
   const boothLabel = `B${String(booth.booth_number || '').padStart(2, '0')}`
   const hasLocker = lockers.length > 0
 
+  function handleOcrApply({ inMeter, outMeter }) {
+    if (inMeter) setPatrolIn(inMeter)
+    if (outMeter) setPatrolOut(0, 'meter', outMeter)
+    setShowOcr(false)
+  }
+
   async function handleSave() {
     setSaveError(null)
     setSaving(true)
@@ -166,7 +174,7 @@ export default function PatrolPage() {
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
                 inDiff={c?.inDiff} showDiff
-                onChange={setPatrolIn} onCamera={() => {}} />
+                onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
@@ -190,7 +198,7 @@ export default function PatrolPage() {
           <>
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <button onClick={() => {}} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
                 <input type="text" inputMode="numeric"
@@ -253,7 +261,7 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={calc?.inDiff} showDiff
-              onChange={setPatrolIn} onCamera={() => {}} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             {/* OUT-A/B/C */}
             {p.outs.map((o, i) => (
@@ -288,7 +296,7 @@ export default function PatrolPage() {
           <>
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <button onClick={() => {}} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              <button onClick={() => setShowOcr(true)} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
                 <input type="text" inputMode="numeric"
@@ -351,7 +359,7 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={c?.inDiff} showDiff
-              onChange={setPatrolIn} onCamera={() => {}} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             {/* OUT-A(上段)/B(下段) */}
             {p.outs.map((o, i) => (
@@ -652,6 +660,16 @@ export default function PatrolPage() {
         >
           {saving ? '保存中...' : `${boothLabel} を保存`}
         </button>
+      )}
+
+      {showOcr && (
+        <MeterOcr
+          boothCode={booth.booth_code}
+          lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
+          lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
+          onApply={handleOcrApply}
+          onClose={() => setShowOcr(false)}
+        />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
