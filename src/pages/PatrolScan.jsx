@@ -69,8 +69,15 @@ export default function PatrolScan() {
     await resolveBooth(decodedText.trim())
   }
 
-  async function resolveBooth(code) {
+  async function resolveBooth(raw) {
     setResolving(true); setError(null)
+    let code = raw.trim()
+    // URLからboothパラメータを抽出（テプラQR対応）
+    try {
+      const url = new URL(code)
+      const param = url.searchParams.get('booth')
+      if (param) code = param.trim()
+    } catch {}
     try {
       const booth = await findBoothByCode(code)
       if (!booth) { setError(`ブース「${code}」が見つかりません`); setResolving(false); return }

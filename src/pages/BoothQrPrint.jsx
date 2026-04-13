@@ -1,24 +1,35 @@
 // BoothQrPrint: 店舗単位でブースQRコードを生成・印刷
-// QR内容: booth_code (e.g. KKY01-M01-B01) — PatrolScan と整合
+// QR内容: URL形式 (https://clawops-tau.vercel.app/patrol/scan?booth=BOOTH_CODE)
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
 import { getStores, getMachines, getBooths } from '../services/masters'
 import LogoutButton from '../components/LogoutButton'
 
+const BASE_URL = 'https://clawops-tau.vercel.app'
+
 function QrCard({ boothCode, machineName, machineCode }) {
   const [imgSrc, setImgSrc] = useState('')
   const [qrError, setQrError] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const boothUrl = `${BASE_URL}/patrol/scan?booth=${boothCode}`
 
   useEffect(() => {
-    QRCode.toDataURL(boothCode, {
+    QRCode.toDataURL(boothUrl, {
       width: 180,
       margin: 1,
       color: { dark: '#000000', light: '#ffffff' },
     }).then(url => setImgSrc(url)).catch(() => setQrError(true))
-  }, [boothCode])
+  }, [boothUrl])
 
   const boothNum = boothCode.split('-').pop() // "B01"
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(boothUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   return (
     <div className="qr-card border border-border rounded-xl p-3 text-center bg-white text-black flex flex-col items-center gap-1 print:border-dashed print:border-gray-400 print:rounded-none print:p-2">
@@ -31,6 +42,13 @@ function QrCard({ boothCode, machineName, machineCode }) {
       <div className="text-[11px] font-mono text-gray-500">{machineCode}</div>
       <div className="text-lg font-bold leading-tight">{boothNum}</div>
       <div className="text-[10px] text-gray-600 leading-tight max-w-[120px] truncate">{machineName}</div>
+      <button
+        onClick={handleCopy}
+        className="print:hidden mt-1 text-xs font-bold text-white"
+        style={{ background: copied ? '#27ae60' : '#5dade2', borderRadius: 8, padding: '8px 12px', fontWeight: 'bold' }}
+      >
+        {copied ? '✅ コピー済み' : 'URLコピー'}
+      </button>
     </div>
   )
 }
@@ -42,6 +60,7 @@ export default function BoothQrPrint() {
   const [groups, setGroups] = useState([]) // [{ machine, booths }]
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [allCopied, setAllCopied] = useState(false)
 
   useEffect(() => {
     getStores().then(s => {
@@ -80,6 +99,15 @@ export default function BoothQrPrint() {
   const totalBooths = groups.reduce((n, g) => n + g.booths.length, 0)
   const storeName = stores.find(s => s.store_code === storeCode)?.store_name || ''
 
+  async function handleCopyAll() {
+    const lines = groups.flatMap(({ machine, booths }) =>
+      booths.map(b => `${b.booth_code}\t${machine.machine_name}\t${BASE_URL}/patrol/scan?booth=${b.booth_code}`)
+    )
+    await navigator.clipboard.writeText(lines.join('\n'))
+    setAllCopied(true)
+    setTimeout(() => setAllCopied(false), 1500)
+  }
+
   return (
     <div className="min-h-screen pb-16 print:pb-0">
 
@@ -112,14 +140,23 @@ export default function BoothQrPrint() {
         </div>
 
         {storeCode && !loading && totalBooths > 0 && (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 justify-between">
             <span className="text-xs text-muted">{totalBooths} ブース / {groups.length} 機械</span>
-            <button
-              onClick={() => window.print()}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
-            >
-              🖨️ 印刷する
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCopyAll}
+                className="text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-colors"
+                style={{ background: allCopied ? '#27ae60' : '#5dade2', borderRadius: 8, fontWeight: 'bold' }}
+              >
+                {allCopied ? '✅ コピー済み' : '全URLコピー'}
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors"
+              >
+                🖨️ 印刷する
+              </button>
+            </div>
           </div>
         )}
       </div>
