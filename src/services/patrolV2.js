@@ -31,7 +31,7 @@ export async function getMachineInfo(machineCode) {
     storeName: store.store_name || '',
     storeCode: machine.store_code || '',
     category: type.category || 'crane',      // crane / gacha / other
-    outCount: model.out_meter_count || 1,    // 1 / 2 / 3
+    outCount: model.out_meter_count || 1,    // ブースあたりOUT本数: crane=1, gacha_st2=2, barber=3
     hasLocker: (type.locker_slots || 0) > 0,
     playPrice: model.meter_unit_price || null,
   }
