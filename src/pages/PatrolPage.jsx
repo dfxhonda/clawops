@@ -516,7 +516,7 @@ export default function PatrolPage() {
 
   // ── メイン描画 ─────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100dvh', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}>
 
       {/* ヘッダー */}
       <PatrolHeader
