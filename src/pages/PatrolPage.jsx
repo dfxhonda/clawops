@@ -521,6 +521,7 @@ export default function PatrolPage() {
         machineName={machineInfo?.machineName || ''}
         boothLabel={boothLabel}
         badge={pattern === 'B' ? 'その他' : pattern.startsWith('D') ? 'ガチャ' : undefined}
+        onBack={() => navigate('/')}
       />
 
       {/* 巡回ゾーン */}

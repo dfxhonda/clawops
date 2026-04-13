@@ -1,8 +1,11 @@
 // 日付ドロップダウン + 機械名ヘッダー
-export default function PatrolHeader({ dateOpts, readDate, onDateChange, machineName, boothLabel, badge }) {
+export default function PatrolHeader({ dateOpts, readDate, onDateChange, machineName, boothLabel, badge, onBack }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {onBack && (
+          <button onClick={onBack} style={{ fontSize: 22, color: '#8888a8', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>←</button>
+        )}
         <span style={{ fontSize: 11, color: '#8888a8' }}>📅</span>
         <select
           value={readDate}
