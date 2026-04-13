@@ -44,5 +44,10 @@ export function useLockerState(lockers = []) {
     await refresh()
   }, [refresh])
 
-  return { slotsByLocker, loading, refresh, summary, wonSlot, fillSlot, removeSlot }
+  const swapSlot = useCallback(async (slotId, { name, value }, staffId) => {
+    await updateLockerSlot(slotId, { prizeName: name, prizeValue: value, status: 'filled', staffId, action: 'swap' })
+    await refresh()
+  }, [refresh])
+
+  return { slotsByLocker, loading, refresh, summary, wonSlot, fillSlot, removeSlot, swapSlot }
 }

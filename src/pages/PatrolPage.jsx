@@ -126,6 +126,7 @@ export default function PatrolPage() {
         onWon={(id) => lockerState.wonSlot(id, staffId)}
         onFill={(id, data) => lockerState.fillSlot(id, data, staffId)}
         onRemove={(id) => lockerState.removeSlot(id, staffId)}
+        onSwap={(id, data) => lockerState.swapSlot(id, data, staffId)}
       />
     )
   }

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 const S = {
   overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,.75)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' },
@@ -10,35 +10,45 @@ const S = {
   label: { fontSize: 11, color: '#8888a8', display: 'block', marginBottom: 4 },
 }
 
-// mode: 'won' | 'fill' | 'action'
-export default function LockerModal({ slot, onClose, onWon, onFill, onRemove }) {
-  const [name, setName] = useState('')
-  const [value, setValue] = useState('')
-  const filled = slot?.status === 'filled' && slot?.prize_name
+export default function LockerModal({ slot, onClose, onWon, onFill, onRemove, onSwap }) {
+  const [name, setName] = useState(slot?.prize_name || '')
+  const [value, setValue] = useState(slot?.prize_value ? String(slot.prize_value) : '')
+  const [editing, setEditing] = useState(false)
 
   if (!slot) return null
 
+  const filled = slot.status === 'filled' && slot.prize_name
   function handleOverlay(e) { if (e.target === e.currentTarget) onClose() }
 
-  // 空きスロット → 補充フォーム
-  if (!filled) {
+  // 空きスロット or 入替編集モード → 入力フォーム
+  if (!filled || editing) {
     return (
       <div style={S.overlay} onClick={handleOverlay}>
         <div style={S.box}>
           <div style={S.title}>
-            #{slot.slot_number} に補充
+            {filled ? `#${slot.slot_number} 景品変更` : `#${slot.slot_number} に補充`}
             <button style={S.close} onClick={onClose}>✕</button>
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>景品名</label>
-            <input style={S.inp} type="text" placeholder="景品マスタから検索..." value={name} onChange={e => setName(e.target.value)} onFocus={e => e.target.select()} />
+            <input style={S.inp} type="text" placeholder="景品名を入力"
+              value={name} onChange={e => setName(e.target.value)} onFocus={e => e.target.select()} />
             <label style={S.label}>金額</label>
-            <input style={S.inp} type="text" inputMode="numeric" placeholder="¥" value={value} onChange={e => setValue(e.target.value)} onFocus={e => e.target.select()} />
+            <input style={S.inp} type="text" inputMode="numeric" placeholder="¥"
+              value={value} onChange={e => setValue(e.target.value)} onFocus={e => e.target.select()} />
           </div>
-          <button style={{ ...S.btn, background: 'rgba(46,204,113,.1)', color: '#2ecc71', borderColor: '#2ecc71' }}
-            onClick={() => { onFill?.(slot.slot_id, { name, value: parseInt(value) || 0 }); onClose() }}>
-            ➕ 補充する
+          <button
+            style={{ ...S.btn, background: 'rgba(46,204,113,.1)', color: '#2ecc71', borderColor: '#2ecc71' }}
+            onClick={() => {
+              const payload = { name, value: parseInt(value) || 0 }
+              filled ? onSwap?.(slot.slot_id, payload) : onFill?.(slot.slot_id, payload)
+              onClose()
+            }}>
+            {filled ? '🔄 変更する' : '➕ 補充する'}
           </button>
+          {editing && (
+            <button style={{ ...S.btn, color: '#8888a8' }} onClick={() => setEditing(false)}>← 戻る</button>
+          )}
         </div>
       </div>
     )
@@ -52,10 +62,16 @@ export default function LockerModal({ slot, onClose, onWon, onFill, onRemove }) 
           #{slot.slot_number} {slot.prize_name}
           <button style={S.close} onClick={onClose}>✕</button>
         </div>
-        <div style={{ fontSize: 12, color: '#8888a8', marginBottom: 14 }}>¥{String(slot.prize_value || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
+        <div style={{ fontSize: 12, color: '#8888a8', marginBottom: 14 }}>
+          ¥{String(slot.prize_value || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+        </div>
         <button style={{ ...S.btn, background: 'rgba(255,107,107,.12)', color: '#ff6b6b', borderColor: '#ff6b6b' }}
           onClick={() => { onWon?.(slot.slot_id); onClose() }}>
           🎯 当たり — 空にする
+        </button>
+        <button style={{ ...S.btn, background: 'rgba(93,173,226,.1)', color: '#5dade2', borderColor: '#5dade2' }}
+          onClick={() => setEditing(true)}>
+          🔄 景品を変更
         </button>
         <button style={S.btn} onClick={onClose}>↩ キャンセル</button>
         <button style={{ ...S.btn, color: '#ff6b6b', marginBottom: 0 }}

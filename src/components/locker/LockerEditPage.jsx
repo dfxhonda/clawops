@@ -3,7 +3,7 @@ import SlotCard from './SlotCard'
 import LockerModal from './LockerModal'
 import { fmtYen } from '../../utils/format'
 
-export default function LockerEditPage({ machineName, lockers, slotsByLocker, onBack, onWon, onFill, onRemove }) {
+export default function LockerEditPage({ machineName, lockers, slotsByLocker, onBack, onWon, onFill, onRemove, onSwap }) {
   const [modalSlot, setModalSlot] = useState(null)
 
   const allSlots = Object.values(slotsByLocker).flat()
@@ -54,7 +54,8 @@ export default function LockerEditPage({ machineName, lockers, slotsByLocker, on
         <LockerModal slot={modalSlot} onClose={() => setModalSlot(null)}
           onWon={(id) => { onWon?.(id); setModalSlot(null) }}
           onFill={(id, data) => { onFill?.(id, data); setModalSlot(null) }}
-          onRemove={(id) => { onRemove?.(id); setModalSlot(null) }} />
+          onRemove={(id) => { onRemove?.(id); setModalSlot(null) }}
+          onSwap={(id, data) => { onSwap?.(id, data); setModalSlot(null) }} />
       )}
     </div>
   )
