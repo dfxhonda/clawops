@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { usePatrolForm } from '../hooks/usePatrolForm'
@@ -87,6 +87,16 @@ export default function PatrolPage() {
     calc, changeCalc, changeType, machineInfo,
     save,
   } = form
+
+  const { currRevenue, currRate } = useMemo(() => {
+    if (!hist || hist.length === 0) return { currRevenue: null, currRate: null }
+    const totalIn = hist.reduce((s, r) => s + (r.in_diff ?? 0), 0)
+    const totalOut = hist.reduce((s, r) => s + (r.out_diff_1 ?? 0), 0)
+    return {
+      currRevenue: hist.reduce((s, r) => s + (r.revenue ?? (r.in_diff ?? 0) * (r.play_price || 100)), 0),
+      currRate: totalIn > 0 ? (totalOut / totalIn * 100) : null,
+    }
+  }, [hist])
 
   const today = new Date().toISOString().slice(0, 10)
   const changeDateLabel = today.slice(5).replace('-', '/')
@@ -548,20 +558,10 @@ export default function PatrolPage() {
         {renderChangeContent()}
 
         {/* 月次サマリー */}
-        {(() => {
-          const totalIn = hist?.reduce((s, r) => s + (r.in_diff ?? 0), 0) ?? 0
-          const totalOut = hist?.reduce((s, r) => s + (r.out_diff_1 ?? 0), 0) ?? 0
-          const currRevenue = hist && hist.length > 0
-            ? hist.reduce((s, r) => s + (r.revenue ?? (r.in_diff ?? 0) * (r.play_price || 100)), 0)
-            : null
-          const currRate = totalIn > 0 ? (totalOut / totalIn * 100) : null
-          return (
-            <MonthlySummary
-              currRevenue={currRevenue}
-              currRate={currRate}
-              histRows={hist} />
-          )
-        })()}
+        <MonthlySummary
+          currRevenue={currRevenue}
+          currRate={currRate}
+          histRows={hist} />
       </div>
 
       {/* エラー */}
