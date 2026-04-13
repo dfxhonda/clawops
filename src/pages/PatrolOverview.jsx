@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores } from '../services/masters'
 import { getPatrolMachines, getTodayReadings, getTodayLockerLogs } from '../services/patrol'
-import LogoutButton from '../components/LogoutButton'
+import { logout } from '../lib/auth/session'
 
 function isGacha(machine) {
   return (
@@ -128,7 +128,12 @@ export default function PatrolOverview() {
         >
           🔄
         </button>
-        <LogoutButton />
+        <button
+          onClick={async () => { await logout(); window.location.href = '/login' }}
+          className="text-[10px] text-muted hover:text-accent2"
+        >
+          ログアウト
+        </button>
       </div>
 
       {/* ━━━ 店舗セレクター + 日付 ━━━ */}
