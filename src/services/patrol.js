@@ -178,3 +178,12 @@ export async function activateLocker(lockerId) {
   const { error } = await supabase.from('machine_lockers').update({ is_active: true }).eq('locker_id', lockerId)
   if (error) throw new Error('有効化エラー: ' + error.message)
 }
+
+// ロッカー更新（スロット数・ロック種別）
+export async function updateLocker(lockerId, { slotCount, lockType }) {
+  const { error } = await supabase
+    .from('machine_lockers')
+    .update({ slot_count: slotCount, lock_type: lockType })
+    .eq('locker_id', lockerId)
+  if (error) throw new Error('更新エラー: ' + error.message)
+}
