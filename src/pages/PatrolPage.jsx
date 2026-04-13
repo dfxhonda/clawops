@@ -103,7 +103,7 @@ export default function PatrolPage() {
   } = form
 
   const today = new Date().toISOString().slice(0, 10)
-  const changeDateLabel = today.slice(5).replace('-', '/')
+  const changeDateLabel = readDate.slice(5).replace('-', '/')
   const outLabels = pattern === 'B' ? OUT_LABELS_B : OUT_LABELS_D2
 
   // ロッカービュー
