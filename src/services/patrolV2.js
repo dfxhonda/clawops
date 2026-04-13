@@ -21,8 +21,9 @@ export async function getMachineInfo(machineCode) {
     getStores(),
   ])
 
-  const type = types.find(t => t.type_id === machine.type_id) || {}
   const model = models.find(m => m.model_id === machine.model_id) || {}
+  const typeId = machine.type_id || model.type_id  // machine優先、なければmodelのtype継承
+  const type = types.find(t => t.type_id === typeId) || {}
   const store = stores.find(s => s.store_code === machine.store_code) || {}
 
   return {
