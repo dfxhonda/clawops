@@ -595,7 +595,7 @@ export default function PatrolPage() {
 
       {/* ヘッダー */}
       <PatrolHeader
-        dateOpts={dateOpts} readDate={readDate} onDateChange={setReadDate}
+        readDate={readDate} onDateChange={setReadDate}
         machineName={machineInfo?.machineName || ''}
         boothLabel={boothLabel}
         badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
