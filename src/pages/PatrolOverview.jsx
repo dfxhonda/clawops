@@ -131,6 +131,7 @@ export default function PatrolOverview() {
         </button>
         <button
           onClick={async () => {
+            if (!window.confirm('ログアウトしますか？')) return
             await logout()
             navigate('/login', { replace: true })
           }}
