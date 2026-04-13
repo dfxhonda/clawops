@@ -548,10 +548,20 @@ export default function PatrolPage() {
         {renderChangeContent()}
 
         {/* 月次サマリー */}
-        <MonthlySummary
-          currRevenue={null}
-          currRate={null}
-          histRows={hist} />
+        {(() => {
+          const totalIn = hist?.reduce((s, r) => s + (r.in_diff ?? 0), 0) ?? 0
+          const totalOut = hist?.reduce((s, r) => s + (r.out_diff_1 ?? 0), 0) ?? 0
+          const currRevenue = hist && hist.length > 0
+            ? hist.reduce((s, r) => s + (r.revenue ?? (r.in_diff ?? 0) * (r.play_price || 100)), 0)
+            : null
+          const currRate = totalIn > 0 ? (totalOut / totalIn * 100) : null
+          return (
+            <MonthlySummary
+              currRevenue={currRevenue}
+              currRate={currRate}
+              histRows={hist} />
+          )
+        })()}
       </div>
 
       {/* エラー */}

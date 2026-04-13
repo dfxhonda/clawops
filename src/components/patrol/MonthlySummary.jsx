@@ -1,12 +1,16 @@
 import { fmtYen } from '../../utils/format'
 
-export default function MonthlySummary({ currRevenue, currRate, prevRevenue, prevRate, histRows }) {
+export default function MonthlySummary({ currRevenue, currRate, histRows }) {
   return (
     <>
       <div style={{ display: 'flex', gap: 2, padding: '4px 4px', fontSize: 11, background: '#1a1a2e', borderRadius: 4, marginBottom: 4, marginTop: 8, borderTop: '1px solid #2a2a44', paddingTop: 8 }}>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <span style={{ fontSize: 9, color: '#8888a8', display: 'block' }}>今月売上</span>
           <span style={{ fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#f0c040' }}>{fmtYen(currRevenue)}</span>
+        </div>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <span style={{ fontSize: 9, color: '#8888a8', display: 'block' }}>今月予測</span>
+          <span style={{ fontWeight: 700, fontFamily: "'Courier New', monospace", color: '#e8e8f0' }}>—</span>
         </div>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <span style={{ fontSize: 9, color: '#8888a8', display: 'block' }}>景品代</span>
@@ -25,6 +29,8 @@ export default function MonthlySummary({ currRevenue, currRate, prevRevenue, pre
               <tr>
                 <th style={{ fontSize: 9, color: '#8888a8', fontWeight: 400, textAlign: 'left', padding: '3px 4px', borderBottom: '1px solid #2a2a44' }}>日付</th>
                 <th style={{ fontSize: 9, color: '#8888a8', fontWeight: 400, textAlign: 'right', padding: '3px 4px', borderBottom: '1px solid #2a2a44' }}>売上</th>
+                <th style={{ fontSize: 9, color: '#8888a8', fontWeight: 400, textAlign: 'right', padding: '3px 4px', borderBottom: '1px solid #2a2a44' }}>払出数</th>
+                <th style={{ fontSize: 9, color: '#8888a8', fontWeight: 400, textAlign: 'right', padding: '3px 4px', borderBottom: '1px solid #2a2a44' }}>払出金額</th>
                 <th style={{ fontSize: 9, color: '#8888a8', fontWeight: 400, textAlign: 'right', padding: '3px 4px', borderBottom: '1px solid #2a2a44' }}>日売平均</th>
               </tr>
             </thead>
@@ -37,6 +43,8 @@ export default function MonthlySummary({ currRevenue, currRate, prevRevenue, pre
                   <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>
                     {r.in_diff != null ? fmtYen(r.revenue ?? r.in_diff * (r.play_price || 100)) : '—'}
                   </td>
+                  <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>—</td>
+                  <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>—</td>
                   <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>—</td>
                 </tr>
               ))}
