@@ -37,7 +37,7 @@ function resizeImage(file, maxPx = 1024) {
   })
 }
 
-const OCR_CONFIDENCE_THRESHOLD = 0.8
+const OCR_CONFIDENCE_THRESHOLD = 0.65
 
 function validateOcr(ocr, lastIn, lastOut) {
   const warnings = []
