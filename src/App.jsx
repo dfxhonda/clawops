@@ -40,6 +40,7 @@ const EditReading = lazy(() => import('./pages/EditReading'))
 const DataSearch = lazy(() => import('./pages/DataSearch'))
 const PatrolScan = lazy(() => import('./pages/PatrolScan'))
 const PatrolInput = lazy(() => import('./pages/PatrolInput'))
+const PatrolPage  = lazy(() => import('./pages/PatrolPage'))
 const PatrolOverview = lazy(() => import('./pages/PatrolOverview'))
 const LockerList = lazy(() => import('./pages/admin/LockerList'))
 const ImportSlips = lazy(() => import('./pages/ImportSlips'))
@@ -91,11 +92,12 @@ function AppInner() {
       <Route path="/ranking/:storeId" element={<ProtectedRoute><RankingView /></ProtectedRoute>} />
       <Route path="/machines/:storeId" element={<ProtectedRoute><MachineList /></ProtectedRoute>} />
 
-      {/* 巡回 — 全ロール（overview）+ patrol以上（入力系） */}
+      {/* 巡回 — 全ロール */}
       <Route path="/patrol/overview" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
-      <Route path="/patrol" element={<PatrolRoute><PatrolScan /></PatrolRoute>} />
-      <Route path="/patrol/input" element={<PatrolRoute><PatrolInput /></PatrolRoute>} />
-      <Route path="/patrol/booth" element={<PatrolRoute><BoothInput /></PatrolRoute>} />
+      <Route path="/patrol" element={<ProtectedRoute><PatrolScan /></ProtectedRoute>} />
+      <Route path="/patrol/input" element={<ProtectedRoute><PatrolPage /></ProtectedRoute>} />
+      <Route path="/patrol/input-legacy" element={<ProtectedRoute><PatrolInput /></ProtectedRoute>} />
+      <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
 
       {/* 監査ログ — manager以上 */}
       <Route path="/admin/audit" element={<ManagerRoute><AuditLog /></ManagerRoute>} />
