@@ -1,19 +1,15 @@
 // ============================================
-// LogoutButton: ログアウトボタン（共通）
-// sessionStorage.clear() の散在を解消
+// HomeButton: メニュー（PatrolOverview）に戻るボタン
+// 全ページの共通ヘッダー右端に配置
 // ============================================
-import { logout } from '../lib/auth/session'
+import { useNavigate } from 'react-router-dom'
 
 export default function LogoutButton({ className }) {
-  async function handleLogout() {
-    await logout()
-    window.location.href = '/'
-  }
-
+  const navigate = useNavigate()
   return (
-    <button onClick={handleLogout}
-      className={className || 'text-[10px] text-muted hover:text-accent2'}>
-      ログアウト
+    <button onClick={() => navigate('/')}
+      className={className || 'text-[10px] text-muted hover:text-accent'}>
+      ⌂ メニュー
     </button>
   )
 }
