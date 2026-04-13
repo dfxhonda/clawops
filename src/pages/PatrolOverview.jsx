@@ -133,6 +133,7 @@ export default function PatrolOverview() {
           onClick={async () => {
             if (!window.confirm('ログアウトしますか？')) return
             await logout()
+            sessionStorage.removeItem('clawops_staff')
             window.location.replace('/docs/')
           }}
           className="text-[10px] text-muted hover:text-accent2"
