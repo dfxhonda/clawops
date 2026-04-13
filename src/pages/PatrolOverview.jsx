@@ -82,7 +82,7 @@ export default function PatrolOverview() {
 
   function navigateToBooth(machine, booth) {
     const gacha = isGacha(machine)
-    navigate('/patrol/booth', {
+    navigate('/patrol/input', {
       state: {
         booth,
         machine,
