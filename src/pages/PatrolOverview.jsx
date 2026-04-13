@@ -133,7 +133,7 @@ export default function PatrolOverview() {
           onClick={async () => {
             if (!window.confirm('ログアウトしますか？')) return
             await logout()
-            navigate('/login', { replace: true })
+            window.location.replace('/docs/')
           }}
           className="text-[10px] text-muted hover:text-accent2"
         >
