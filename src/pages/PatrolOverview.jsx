@@ -115,7 +115,7 @@ export default function PatrolOverview() {
       <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2">
         <h1 className="flex-1 font-bold text-base">巡回状況</h1>
         <button
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate('/admin/menu')}
           className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors"
         >
           ⚙️ 管理
