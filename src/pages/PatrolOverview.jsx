@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores } from '../services/masters'
-import { getPatrolMachines, getTodayReadings, getTodayLockerLogs } from '../services/patrol'
+import { getPatrolMachines, getTodayReadings } from '../services/patrol'
 import { logout } from '../lib/auth/session'
 
 function isGacha(machine) {
@@ -24,7 +24,6 @@ export default function PatrolOverview() {
   const [selStore, setSelStore] = useState(() => sessionStorage.getItem('patrol_overview_store') || '')
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
-  const [lockerLogsMap, setLockerLogsMap] = useState({})
   const [loading, setLoading] = useState(false)
   const intervalRef = useRef(null)
 
@@ -46,19 +45,9 @@ export default function PatrolOverview() {
     try {
       const machineList = await getPatrolMachines(selStore)
       const allBoothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
-      const [todayReadings, lockerMaps] = await Promise.all([
-        getTodayReadings(allBoothCodes),
-        Promise.all(
-          machineList.map(m =>
-            isGacha(m) && m.machine_lockers.length > 0
-              ? getTodayLockerLogs(m.machine_code).then(r => [m.machine_code, r])
-              : Promise.resolve([m.machine_code, {}])
-          )
-        ),
-      ])
+      const todayReadings = await getTodayReadings(allBoothCodes)
       setMachines(machineList)
       setTodayMap(todayReadings)
-      setLockerLogsMap(Object.fromEntries(lockerMaps))
     } finally {
       setLoading(false)
     }
@@ -69,7 +58,6 @@ export default function PatrolOverview() {
     if (!selStore) {
       setMachines([])
       setTodayMap({})
-      setLockerLogsMap({})
       return
     }
     load()
@@ -81,15 +69,12 @@ export default function PatrolOverview() {
   }, [selStore]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function navigateToBooth(machine, booth) {
-    const gacha = isGacha(machine)
     navigate('/patrol/input', {
       state: {
         booth,
         machine,
         storeCode: selStore,
         storeName: stores.find(s => s.store_code === selStore)?.store_name || '',
-        lockers: gacha ? machine.machine_lockers : [],
-        isGacha: gacha,
       },
     })
   }
@@ -213,7 +198,6 @@ export default function PatrolOverview() {
 
         {!loading && machines.map(machine => {
           const gacha = isGacha(machine)
-          const lockerLogs = lockerLogsMap[machine.machine_code] || {}
 
           return (
             <div
@@ -263,27 +247,6 @@ export default function PatrolOverview() {
                 )
               })}
 
-              {/* ロッカー行（ガチャのみ） */}
-              {gacha && machine.machine_lockers.map(locker => {
-                const lockerDone = !!lockerLogs[locker.locker_id]
-                return (
-                  <div
-                    key={locker.locker_id}
-                    className={`flex items-center gap-3 px-4 py-3 border-t border-border
-                      ${lockerDone ? 'bg-accent3/5' : ''}`}
-                  >
-                    <span className="text-base w-5">{lockerDone ? '✅' : '🔐'}</span>
-                    <span className="flex-1 text-sm text-muted">
-                      ロッカー{locker.locker_number}
-                      （{locker.slot_count}スロット・{locker.lock_type === 'key' ? '鍵式' : '暗証番号'}）
-                    </span>
-                    {lockerDone
-                      ? <span className="text-xs text-accent3">補充済み</span>
-                      : <span className="text-xs text-muted">未補充</span>
-                    }
-                  </div>
-                )
-              })}
             </div>
           )
         })}
