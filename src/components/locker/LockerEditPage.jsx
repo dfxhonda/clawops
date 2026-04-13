@@ -23,7 +23,7 @@ export default function LockerEditPage({ machineName, lockers, slotsByLocker, on
         return (
           <div key={locker.locker_id} style={{ background: '#12121e', border: '1px solid #2a2a44', borderRadius: 8, padding: 12, marginBottom: 8 }}>
             <div style={{ fontSize: 13, color: '#ff6b6b', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>🔐 {locker.label || `ロッカー${locker.locker_number}`} — 入替/補充</span>
+              <span>🔐 ロッカー{locker.locker_number}（{locker.slot_count}スロット・{locker.lock_type === 'key' ? '鍵式' : '暗証番号'}）{locker.posLabel} — 入替/補充</span>
               <span style={{ fontSize: 10, color: '#f0c040' }}>{fmtYen(lockerTotal)}</span>
             </div>
             <div style={{ fontSize: 9, color: '#8888a8', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid #2a2a44' }}>
