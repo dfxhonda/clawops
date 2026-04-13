@@ -285,7 +285,9 @@ export default function PatrolPage() {
 
             {/* 景品 + @単価 + O */}
             <PrizeRow prize={o0.prize} cost={o0.cost} setO={p.setO}
-              prizeRO costRO showO
+              showO
+              onPrize={v => setPatrolOut(0, 'prize', v)}
+              onCost={v => setPatrolOut(0, 'cost', v)}
               onSetO={v => setPatrolSet('O', v)} />
 
             {/* ロッカーボタン (確認) */}
@@ -315,10 +317,11 @@ export default function PatrolPage() {
                 out={o} touched={p.touchedOuts[i]}
                 prevOut={i === 0 ? prev?.outMeter : prev?.outMeter2}
                 outDiff={c?.outs[i]?.diff}
-                readonly
                 onMeter={v => setPatrolOut(i, 'meter', v)}
                 onZan={v => setPatrolZan(i, v)}
-                onHo={v => setPatrolOut(i, 'ho', v)} />
+                onHo={v => setPatrolOut(i, 'ho', v)}
+                onPrize={v => setPatrolOut(i, 'prize', v)}
+                onCost={v => setPatrolOut(i, 'cost', v)} />
             ))}
 
             <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginBottom: 6 }}>
@@ -521,6 +524,7 @@ export default function PatrolPage() {
         machineName={machineInfo?.machineName || ''}
         boothLabel={boothLabel}
         badge={pattern === 'B' ? 'その他' : pattern.startsWith('D') ? 'ガチャ' : undefined}
+        playPrice={machineInfo?.playPrice}
         onBack={() => navigate('/')}
       />
 

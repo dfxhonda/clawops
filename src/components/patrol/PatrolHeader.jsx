@@ -1,5 +1,5 @@
 // 日付ドロップダウン + 機械名ヘッダー
-export default function PatrolHeader({ dateOpts, readDate, onDateChange, machineName, boothLabel, badge, onBack }) {
+export default function PatrolHeader({ dateOpts, readDate, onDateChange, machineName, boothLabel, badge, playPrice, onBack }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -25,6 +25,7 @@ export default function PatrolHeader({ dateOpts, readDate, onDateChange, machine
         )}
         {machineName}
         {boothLabel && <span style={{ color: '#8888a8', marginLeft: 4 }}>/ {boothLabel}</span>}
+        {playPrice && <span style={{ color: '#f0c040', marginLeft: 6, fontSize: 11, fontWeight: 400 }}>@{playPrice}円</span>}
       </div>
     </div>
   )

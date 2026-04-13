@@ -35,7 +35,7 @@ export default function MonthlySummary({ currRevenue, currRate, prevRevenue, pre
                     {r.read_time ? String(r.read_time).slice(5, 10).replace('-', '/') : '—'}
                   </td>
                   <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>
-                    {r.in_diff != null ? fmtYen(r.in_diff * 100) : '—'}
+                    {r.in_diff != null ? fmtYen(r.revenue ?? r.in_diff * (r.play_price || 100)) : '—'}
                   </td>
                   <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>—</td>
                 </tr>

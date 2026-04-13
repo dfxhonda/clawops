@@ -54,7 +54,8 @@ export function usePatrolForm(booth) {
       getBoothHistory(booth.booth_code),
     ]).then(([info, lastR, history]) => {
       const outCount = info?.outCount || 1
-      setMachineInfo(info)
+      const effectivePlayPrice = booth?.play_price || info?.playPrice || 100
+      setMachineInfo({ ...info, playPrice: effectivePlayPrice })
       setPrev(lastR)
       setHist(history)
 
@@ -288,13 +289,16 @@ export function usePatrolForm(booth) {
     if (!patrol.inMeter && calc?.prevIn == null) return { ok: false, message: 'INメーターを入力してください' }
 
     // 差分を付加して保存用データ構築
+    const playPrice = machineInfo?.playPrice || 100
     const patrolData = {
       ...patrol,
+      playPrice,
       inDiff: calc?.inDiff,
       outs: patrol.outs.map((o, i) => ({ ...o, diff: calc?.outs[i]?.diff })),
     }
     const changeData = changeType !== 'none' ? {
       ...change,
+      playPrice,
       entryType: changeType,
       inDiff: null,
     } : { entryType: 'none' }

@@ -1,21 +1,26 @@
-# 実装計画: 古い版を見続ける問題を仕組みで防ぐ
+# 実装計画: PatrolPage 機種別フォーム制御 + play_price パイプライン
 
-## 目的
+## Phase 1: play_price パイプライン接続（必須）
 
-コードを変えたのに古い画面を見続ける状態を減らす。
-確認手順ではなく仕組みで防ぐ。
+- [ ] 1.1 getMachineInfo() 戻り値に playPrice 追加 (patrolV2.js)
+- [ ] 1.2 getBoothHistory() SELECT に revenue, play_price 追加 (patrolV2.js)
+- [ ] 1.3 usePatrolForm で playPrice 解決（booth > model > 100）
+- [ ] 1.4 save() で patrolData / changeData に playPrice 注入
+- [ ] 1.5 PatrolHeader に @{playPrice}円 表示追加
+- [ ] 1.6 PatrolPage から PatrolHeader へ playPrice を渡す
+- [ ] 1.7 MonthlySummary の revenue 計算修正
 
-## 実装ステップ
+## Phase 2: ガチャ巡回ゾーン editable 化（推奨）
 
-- [x] Step 1: vite.config.js — ビルド時に dist/version.json を生成
-- [x] Step 2: vercel.json — /version.json に no-cache ヘッダー追加 + catch-all rewrite 除外
-- [x] Step 3: src/hooks/useVersionCheck.js — 10分ポーリング + visibilitychange フック
-- [x] Step 4: src/components/UpdateBanner.jsx — 更新通知バナー
-- [x] Step 5: src/App.jsx — AppInner に分離してバナー + ビルド情報を全ページに表示
-- [x] Step 6: scripts/release.sh — デプロイ後の SHA 確認コマンドを表示に追加
+- [ ] 2.1 D1 巡回ゾーン: PrizeRow prizeRO/costRO 除去 + ハンドラ追加
+- [ ] 2.2 D2 巡回ゾーン: OutGroupRow readonly 除去 + ハンドラ追加
+
+## Phase 3: クリーンアップ（オプション）
+
+- [ ] 3.1 PatrolOverview の isGacha() 簡素化（本番データ確認後）
+- [ ] 3.2 CalcBar に revenue 表示追加
 
 ## 検証
 
-- ビルド: PASS
-- テスト: 157/157 PASS
-- dist/version.json: {"sha":"e94ec3c","buildNumber":"391","version":"1.0.0"}
+- [ ] npm run build
+- [ ] npm test

@@ -32,6 +32,7 @@ export async function getMachineInfo(machineCode) {
     category: type.category || 'crane',      // crane / gacha / other
     outCount: model.out_meter_count || 1,    // 1 / 2 / 3
     hasLocker: (type.locker_slots || 0) > 0,
+    playPrice: model.meter_unit_price || null,
   }
 }
 
@@ -75,7 +76,7 @@ export async function getLastReadingV2(boothCode) {
 export async function getBoothHistory(boothCode, limit = 6) {
   const { data, error } = await supabase
     .from('meter_readings')
-    .select('reading_id, read_time, in_diff, out_diff_1, prize_name')
+    .select('reading_id, read_time, in_diff, out_diff_1, prize_name, play_price, revenue')
     .eq('full_booth_code', boothCode)
     .or('entry_type.eq.patrol,entry_type.is.null')
     .order('read_time', { ascending: false })
