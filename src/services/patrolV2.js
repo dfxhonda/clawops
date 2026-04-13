@@ -159,7 +159,7 @@ export async function saveReadingV2({ boothCode, patrol, change, outCount, staff
 }
 
 function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
-  const readTime = new Date(inp.readDate + 'T12:00:00').toISOString()
+  const now = new Date().toISOString()
   const parts = boothCode.split('-')
   const p = {
     reading_id: crypto.randomUUID(),
@@ -169,7 +169,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     store_code: parts[0],
     machine_code: parts.slice(0, 2).join('-'),
     booth_code: boothCode,
-    read_time: readTime,
+    read_time: now,
     entry_type: entryType,
     in_meter: inp.inMeter ? parseFloat(inp.inMeter) : null,
     out_meter: inp.outs?.[0]?.meter ? parseFloat(inp.outs[0].meter) : null,
@@ -185,7 +185,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     play_price: inp.playPrice || null,
     revenue: (inp.inDiff || 0) * (inp.playPrice || 100),
     source: 'manual',
-    created_at: readTime,
+    created_at: now,
     created_by: staffId || null,
   }
   if (outCount >= 2 && inp.outs?.[1]) {
