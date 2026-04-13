@@ -143,7 +143,7 @@ export default function PatrolPage() {
     setSaving(false)
     if (!result.ok) { setSaveError(result.message); return }
     setSaved(true)
-    setTimeout(() => navigate('/patrol'), 800)
+    setTimeout(() => navigate('/'), 800)
   }
 
   // ─── パターン別レンダリング ──────────────────────────────────
