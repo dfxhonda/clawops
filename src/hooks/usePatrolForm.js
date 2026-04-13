@@ -248,6 +248,7 @@ export function usePatrolForm(booth) {
         ...o,
         meter: prevOuts[i]?.meter != null ? String(prevOuts[i].meter) : '',
         zan: prevStocks[i] != null ? String((prevStocks[i]||0) + (prevRestocks[i]||0)) : '',
+        ho: 'ー',
         prize: prevOuts[i]?.prize || '',
         cost: prevOuts[i]?.cost != null ? String(prevOuts[i].cost) : '',
       }))
