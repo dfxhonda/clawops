@@ -52,7 +52,7 @@ export default function PatrolPage() {
     getMachineLockers(booth.machine_code).then(list => {
       setLockers(list.map((l, i) => ({
         ...l,
-        label: list.length > 1
+        label: list.length === 2
           ? (i === 0 ? '▲ 上段' : '▼ 下段')
           : undefined,
       })))
