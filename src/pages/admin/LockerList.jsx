@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores, getMachines } from '../../services/masters'
-import { getMachineLockers, addLocker, deleteLocker } from '../../services/patrol'
+import { getAllMachineLockers, addLocker, deleteLocker, activateLocker } from '../../services/patrol'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../../components/AdminNav'
 
@@ -47,7 +47,7 @@ export default function LockerList() {
     }
     sessionStorage.setItem('admin_locker_machine', machineCode)
     setLoading(true)
-    getMachineLockers(machineCode).then(data => {
+    getAllMachineLockers(machineCode).then(data => {
       setLockers(data)
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -55,10 +55,19 @@ export default function LockerList() {
 
   const reloadLockers = () => {
     setLoading(true)
-    getMachineLockers(machineCode).then(data => {
+    getAllMachineLockers(machineCode).then(data => {
       setLockers(data)
       setLoading(false)
     }).catch(() => setLoading(false))
+  }
+
+  const handleActivate = async (lockerId) => {
+    try {
+      await activateLocker(lockerId)
+      reloadLockers()
+    } catch (err) {
+      alert(err.message || '有効化に失敗しました')
+    }
   }
 
   const handleDelete = async (lockerId) => {
@@ -71,11 +80,15 @@ export default function LockerList() {
     }
   }
 
+  const nextLockerNumber = lockers.length > 0
+    ? Math.max(...lockers.map(l => l.locker_number)) + 1
+    : 1
+
   const handleAdd = async () => {
     setSaving(true)
     setFormError('')
     try {
-      const lockerNumber = lockers.length + 1
+      const lockerNumber = nextLockerNumber
       await addLocker({
         machineCode,
         storeCode,
@@ -154,21 +167,36 @@ export default function LockerList() {
       )}
 
       {machineCode && !loading && lockers.map(locker => (
-        <div key={locker.locker_id} className="bg-surface border border-border rounded-xl p-3.5 mx-4 mt-2">
+        <div key={locker.locker_id}
+          className={`bg-surface border border-border rounded-xl p-3.5 mx-4 mt-2 ${!locker.is_active ? 'opacity-40' : ''}`}>
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-text">ロッカー{locker.locker_number}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-bold text-sm text-text">ロッカー{locker.locker_number}</p>
+                {!locker.is_active && (
+                  <span className="text-[10px] text-muted border border-border rounded px-1">無効</span>
+                )}
+              </div>
               <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
                 <span>{locker.slot_count}スロット</span>
                 <span>{locker.lock_type === 'key' ? '鍵式' : '暗証番号'}</span>
               </div>
             </div>
-            <button
-              onClick={() => handleDelete(locker.locker_id)}
-              className="text-xs text-accent2 border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors shrink-0"
-            >
-              削除
-            </button>
+            {locker.is_active ? (
+              <button
+                onClick={() => handleDelete(locker.locker_id)}
+                className="text-xs text-accent2 border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors shrink-0"
+              >
+                削除
+              </button>
+            ) : (
+              <button
+                onClick={() => handleActivate(locker.locker_id)}
+                className="text-xs text-green-400 border border-green-400/40 rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors shrink-0"
+              >
+                有効化
+              </button>
+            )}
           </div>
         </div>
       ))}
@@ -180,7 +208,7 @@ export default function LockerList() {
           <div>
             <label className="block text-xs text-muted mb-1">ロッカー番号</label>
             <p className="text-sm text-text px-3 py-2 bg-surface2 border border-border rounded-lg">
-              ロッカー番号: {lockers.length + 1}
+              ロッカー番号: {nextLockerNumber}
             </p>
           </div>
 

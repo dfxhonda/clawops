@@ -18,7 +18,7 @@ export default function Login() {
       // まず既存セッションを確認（SDK ネイティブ読み込み）
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        navigate('/patrol/overview', { replace: true })
+        navigate('/', { replace: true })
         return
       }
 
@@ -31,7 +31,7 @@ export default function Login() {
             refresh_token: stored.refresh_token,
           })
           if (!error && data.session) {
-            navigate('/patrol/overview', { replace: true })
+            navigate('/', { replace: true })
             return
           }
         }

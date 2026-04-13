@@ -161,3 +161,20 @@ export async function deleteLocker(lockerId) {
   const { error } = await supabase.from('machine_lockers').update({ is_active: false }).eq('locker_id', lockerId)
   if (error) throw new Error('ロッカー削除エラー: ' + error.message)
 }
+
+// ロッカー全件取得（admin用 — is_active 問わず）
+export async function getAllMachineLockers(machineCode) {
+  const { data, error } = await supabase
+    .from('machine_lockers')
+    .select('*')
+    .eq('machine_code', machineCode)
+    .order('locker_number')
+  if (error) { console.error('getAllMachineLockers error:', error.message); return [] }
+  return data || []
+}
+
+// ロッカー有効化
+export async function activateLocker(lockerId) {
+  const { error } = await supabase.from('machine_lockers').update({ is_active: true }).eq('locker_id', lockerId)
+  if (error) throw new Error('有効化エラー: ' + error.message)
+}
