@@ -96,6 +96,21 @@ export async function getLockerSlots(lockerId) {
   return data || []
 }
 
+// スロット未作成のロッカー向け — 存在しなければ空スロットを自動生成
+export async function ensureLockerSlots(lockerId, slotCount) {
+  const existing = await getLockerSlots(lockerId)
+  if (existing.length > 0) return existing
+  const slots = Array.from({ length: slotCount }, (_, i) => ({
+    slot_id: crypto.randomUUID(),
+    locker_id: lockerId,
+    slot_number: i + 1,
+    status: 'empty',
+  }))
+  const { data, error } = await supabase.from('locker_slots').insert(slots).select()
+  if (error) { console.error('locker_slots init:', error.message); return [] }
+  return (data || []).sort((a, b) => a.slot_number - b.slot_number)
+}
+
 // スロット更新
 export async function updateLockerSlot(slotId, { prizeName, prizeValue, status, staffId, action }) {
   const now = new Date().toISOString()

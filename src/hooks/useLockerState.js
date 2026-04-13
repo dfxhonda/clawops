@@ -2,7 +2,7 @@
 // useLockerState: ロッカースロット状態管理
 // ============================================
 import { useCallback, useEffect, useState } from 'react'
-import { getLockerSlots, updateLockerSlot } from '../services/patrolV2'
+import { ensureLockerSlots, updateLockerSlot } from '../services/patrolV2'
 
 export function useLockerState(lockers = []) {
   // lockers: [{ locker_id, locker_number, slot_count, lock_type }]
@@ -12,7 +12,7 @@ export function useLockerState(lockers = []) {
   const refresh = useCallback(async () => {
     if (!lockers.length) return
     setLoading(true)
-    const results = await Promise.all(lockers.map(l => getLockerSlots(l.locker_id)))
+    const results = await Promise.all(lockers.map(l => ensureLockerSlots(l.locker_id, l.slot_count || 5)))
     const map = {}
     lockers.forEach((l, i) => { map[l.locker_id] = results[i] })
     setSlotsByLocker(map)

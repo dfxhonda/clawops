@@ -145,7 +145,7 @@ export async function getMachineLockers(machineCode) {
   return data || []
 }
 
-// ロッカー登録（admin用）
+// ロッカー登録（admin用）+ スロット自動初期化
 export async function addLocker({ machineCode, storeCode, lockerNumber, slotCount, lockType }) {
   const { data, error } = await supabase
     .from('machine_lockers')
@@ -153,6 +153,16 @@ export async function addLocker({ machineCode, storeCode, lockerNumber, slotCoun
     .select()
     .single()
   if (error) throw new Error('ロッカー登録エラー: ' + error.message)
+
+  // スロット行を即時作成
+  const slots = Array.from({ length: slotCount }, (_, i) => ({
+    slot_id: crypto.randomUUID(),
+    locker_id: data.locker_id,
+    slot_number: i + 1,
+    status: 'empty',
+  }))
+  await supabase.from('locker_slots').insert(slots)
+
   return data
 }
 

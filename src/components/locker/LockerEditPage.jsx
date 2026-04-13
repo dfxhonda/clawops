@@ -11,7 +11,7 @@ export default function LockerEditPage({ machineName, lockers, slotsByLocker, on
   const empty = allSlots.filter(sl => sl.status !== 'filled').length
 
   return (
-    <div style={{ background: '#0a0a12', minHeight: '100dvh', padding: 10, color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif" }}>
+    <div style={{ background: '#0a0a12', height: '100dvh', overflowY: 'auto', padding: 10, color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif" }}>
       <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 6px', fontSize: 14, color: '#5dade2', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 8 }}>
         ← 巡回画面に戻る
       </button>
