@@ -153,6 +153,33 @@ export default function PatrolPage() {
       // ── パターンA: クレーン基本形 ──────────────────────────────
       case 'A':
       case 'A0': {
+        // 複数OUTの機種（バーバーカット系クレーン等）
+        if (outCount >= 2) {
+          const displayCount = Math.min(outCount, 3)
+          const prevOuts = [prev?.outMeter, prev?.outMeter2, prev?.outMeter3]
+          return (
+            <>
+              <MeterInputRow
+                inMeter={p.inMeter} inTouched={p.inTouched}
+                inDiff={c?.inDiff} showDiff
+                onChange={setPatrolIn} onCamera={() => {}} />
+              {p.outs.slice(0, displayCount).map((o, i) => (
+                <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
+                  out={o} touched={p.touchedOuts[i]}
+                  prevOut={prevOuts[i]}
+                  outDiff={c?.outs[i]?.diff}
+                  readonly
+                  onMeter={v => setPatrolOut(i, 'meter', v)}
+                  onZan={v => setPatrolZan(i, v)}
+                  onHo={v => setPatrolOut(i, 'ho', v)} />
+              ))}
+              <SettingRow
+                setA={p.setA} setC={p.setC} setL={p.setL} setR={p.setR} setO={p.setO}
+                readonly
+                onSetO={v => setPatrolSet('O', v)} />
+            </>
+          )
+        }
         const o0 = p.outs[0] || { meter:'', zan:'', ho:'ー', prize:'', cost:'' }
         const t0 = p.touchedOuts[0] || {}
         return (
@@ -367,6 +394,39 @@ export default function PatrolPage() {
     switch (pattern) {
       case 'A':
       case 'A0': {
+        // 複数OUTの機種（入替ゾーン）
+        if (outCount >= 2) {
+          const displayCount = Math.min(outCount, 3)
+          return (
+            <>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+                  <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
+                  <input type="text" inputMode="numeric"
+                    style={inp(ch.inTouched)} value={ch.inMeter}
+                    onFocus={e => { if (!ch.inTouched) e.target.select() }}
+                    onChange={e => setChangeIn(e.target.value)} />
+                </div>
+              </div>
+              {ch.outs.slice(0, displayCount).map((o, i) => (
+                <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
+                  out={o} touched={ch.touchedOuts[i]}
+                  prevOut={null}
+                  outDiff={cc?.[i]?.diff}
+                  onMeter={v => setChangeOut(i, 'meter', v)}
+                  onZan={v => setChangeZan(i, v)}
+                  onHo={v => setChangeOut(i, 'ho', v)}
+                  onPrize={v => setChangeOut(i, 'prize', v)}
+                  onCost={v => setChangeOut(i, 'cost', v)} />
+              ))}
+              <SettingRow
+                setA={ch.setA} setC={ch.setC} setL={ch.setL} setR={ch.setR} setO={ch.setO}
+                onSetA={v => setChangeSet('A', v)} onSetC={v => setChangeSet('C', v)}
+                onSetL={v => setChangeSet('L', v)} onSetR={v => setChangeSet('R', v)}
+                onSetO={v => setChangeSet('O', v)} />
+            </>
+          )
+        }
         const o0 = ch.outs[0] || {}
         const t0 = ch.touchedOuts[0] || {}
         return (
