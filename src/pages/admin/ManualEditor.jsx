@@ -168,8 +168,8 @@ export default function ManualEditor() {
   // ════════════════════════════════════════════════
   if (selectedModel === null) {
     return (
-      <div className="min-h-screen pb-16">
-        <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
+      <div className="h-full flex flex-col">
+        <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
           <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
           <div className="flex-1">
             <h2 className="text-base font-bold">マニュアル管理</h2>
@@ -179,6 +179,7 @@ export default function ManualEditor() {
         </div>
         <AdminNav />
 
+        <div className="flex-1 overflow-y-auto pb-16">
         {modelsLoading && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full" />
@@ -210,6 +211,7 @@ export default function ManualEditor() {
             </div>
           </div>
         ))}
+        </div>
       </div>
     )
   }
@@ -220,10 +222,10 @@ export default function ManualEditor() {
   const activeSection = SECTION_TYPES.find(s => s.key === activeTab)
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="h-full flex flex-col">
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
+      <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
         <button onClick={handleBackToList} className="text-2xl text-muted">←</button>
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-bold truncate">{selectedModel.model_name}</h2>
@@ -233,6 +235,7 @@ export default function ManualEditor() {
       </div>
       <AdminNav />
 
+      <div className="flex-1 overflow-y-auto pb-16">
       {/* ── ヘッダー情報カード ── */}
       <div className="bg-surface border border-border rounded-xl p-4 mx-4 mt-4 space-y-3">
         <h3 className="text-sm font-bold text-accent">基本情報</h3>
@@ -386,6 +389,7 @@ export default function ManualEditor() {
         >
           {saving ? '保存中...' : '保存する'}
         </button>
+      </div>
       </div>
     </div>
   )

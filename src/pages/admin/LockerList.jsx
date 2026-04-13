@@ -130,9 +130,9 @@ export default function LockerList() {
   }
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="h-full flex flex-col">
 
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
+      <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
         <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
         <div className="flex-1">
           <h2 className="text-base font-bold">ロッカー登録</h2>
@@ -142,6 +142,7 @@ export default function LockerList() {
       </div>
       <AdminNav />
 
+      <div className="flex-1 overflow-y-auto pb-16">
       <div className="px-4 mt-4 space-y-3">
         <div>
           <label className="block text-xs text-muted mb-1">店舗</label>
@@ -326,6 +327,7 @@ export default function LockerList() {
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }
