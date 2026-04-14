@@ -141,6 +141,7 @@ header{
 .td-dest{color:var(--text2);font-size:12px}
 .badge{display:inline-block;font-size:var(--badge-fs);font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
 .badge-ordered{background:rgba(0,180,216,.15);color:var(--cyan);border:1px solid rgba(0,180,216,.3)}
+.badge-shipped{background:rgba(243,156,18,.15);color:#f39c12;border:1px solid rgba(243,156,18,.3)}
 .badge-arrived{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
 .badge-cancelled{background:rgba(231,76,60,.12);color:var(--red);border:1px solid rgba(231,76,60,.3)}
 .badge-confirmed{background:rgba(124,106,255,.15);color:var(--accent);border:1px solid rgba(124,106,255,.3)}
@@ -384,6 +385,7 @@ header{
   <select class="filter-select" id="statusFilter" onchange="setStatusFilter(this.value)">
     <option value="">すべて</option>
     <option value="ordered">発注済み</option>
+    <option value="shipped">発送済み</option>
     <option value="arrived">入荷済み</option>
     <option value="cancelled">取消</option>
   </select>
@@ -486,6 +488,7 @@ function fmt(n) { return Number(n||0).toLocaleString('ja-JP'); }
 
 function statusLabel(s) {
   if (s === 'ordered')   return '発注済み';
+  if (s === 'shipped')   return '発送済み';
   if (s === 'arrived')   return '入荷済み';
   if (s === 'cancelled') return '取消';
   if (s === 'confirmed') return '確定';
@@ -499,6 +502,7 @@ function prizeName(o) {
 
 function statusBadge(s) {
   if (s === 'ordered')   return '<span class="badge badge-ordered">発注済み</span>';
+  if (s === 'shipped')   return '<span class="badge badge-shipped">発送済み</span>';
   if (s === 'arrived')   return '<span class="badge badge-arrived">入荷済み</span>';
   if (s === 'cancelled') return '<span class="badge badge-cancelled">取消</span>';
   if (s === 'confirmed') return '<span class="badge badge-confirmed">確定</span>';
@@ -814,7 +818,7 @@ function renderDetail() {
   }
 
   const prizeOpts = buildPrizeOptions(o.prize_id);
-  const statusOpts = ['ordered','arrived','cancelled'].map(v =>
+  const statusOpts = ['ordered','shipped','arrived','cancelled'].map(v =>
     `<option value="${v}"${o.status===v?' selected':''}>${statusLabel(v)}</option>`
   ).join('');
 
@@ -914,7 +918,8 @@ ${imgSrc ? `<div style="text-align:center;padding:12px 12px 4px"><img src="${img
 </div>
 <div class="detail-actions">
   <button class="btn-save" id="btnSave" onclick="saveOrder()">保存</button>
-  ${!isNewMode && o.status !== 'arrived' ? `<button class="btn-arrive" onclick="setOrderStatus('arrived')">入荷済みにする</button>` : ''}
+  ${!isNewMode && o.status === 'shipped' ? `<button class="btn-arrive" onclick="setOrderStatus('arrived')">✅ 受け取り確認</button>` : ''}
+  ${!isNewMode && o.status !== 'arrived' && o.status !== 'shipped' ? `<button class="btn-arrive" onclick="setOrderStatus('arrived')">入荷済みにする</button>` : ''}
   ${!isNewMode && o.status !== 'cancelled' ? `<button class="btn-cancel" onclick="setOrderStatus('cancelled')">取消にする</button>` : ''}
   <button class="btn-revert" onclick="revertChanges()">変更を取り消す</button>
 </div>`;
@@ -1145,7 +1150,7 @@ function renderMobileDetailContent() {
   }
 
   const prizeOpts = buildPrizeOptions(o.prize_id);
-  const statusOpts = ['ordered','arrived','cancelled'].map(v =>
+  const statusOpts = ['ordered','shipped','arrived','cancelled'].map(v =>
     `<option value="${v}"${o.status===v?' selected':''}>${statusLabel(v)}</option>`
   ).join('');
   const titleText = isNewMode ? '新しい発注' : '発注詳細';
@@ -1246,7 +1251,8 @@ ${(() => { const mImgPath = o.prize_id ? IMG_MAP[String(o.prize_id)] : null; con
 </div>
 <div class="md-actions">
   <button class="btn-save" id="mfBtnSave" onclick="saveOrderMobile()" style="width:100%">保存</button>
-  ${!isNewMode && o.status !== 'arrived' ? `<button class="btn-arrive" onclick="setOrderStatusMobile('arrived')" style="width:100%">入荷済みにする</button>` : ''}
+  ${!isNewMode && o.status === 'shipped' ? `<button class="btn-arrive" onclick="setOrderStatusMobile('arrived')" style="width:100%">✅ 受け取り確認</button>` : ''}
+  ${!isNewMode && o.status !== 'arrived' && o.status !== 'shipped' ? `<button class="btn-arrive" onclick="setOrderStatusMobile('arrived')" style="width:100%">入荷済みにする</button>` : ''}
   ${!isNewMode && o.status !== 'cancelled' ? `<button class="btn-cancel" onclick="setOrderStatusMobile('cancelled')" style="width:100%">取消にする</button>` : ''}
 </div>`;
 }
