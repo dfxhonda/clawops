@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>D ティアラ</title>
+<style>
+:root{--bg:#0a0a12;--sf:#12121e;--sf2:#1a1a2e;--sf3:#222238;--bd:#2a2a44;--tx:#e8e8f0;--mu:#8888a8;--ac:#f0c040;--gn:#2ecc71;--bl:#5dade2;--pr:#a855f7;--rd:#ff6b6b;--inh:#d0d0e0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:var(--bg);color:var(--tx);padding:10px}
+.m{font-family:'Courier New',Courier,monospace;font-weight:bold}
+input,select{font-size:16px;background:var(--sf3);border:1px solid var(--bd);border-radius:4px;padding:0.4em;color:var(--inh);font-family:'Courier New',Courier,monospace;font-weight:bold;-webkit-appearance:none;appearance:none;line-height:1.2}
+input:focus,select:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 2px rgba(240,192,64,.15)}
+input[inputmode="numeric"]{text-align:right}
+input.active{color:var(--tx)}
+input.ro{color:var(--mu);background:rgba(18,18,30,.8);border-color:transparent;pointer-events:none}
+.page{display:none}.page.active{display:block}
+.date-sel{display:flex;align-items:center;gap:6px}
+.date-sel select{font-size:14px;color:var(--ac);background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:6px 10px;font-weight:700}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;margin-bottom:8px}
+.mname{font-size:13px;font-weight:700}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-right:4px;background:rgba(93,173,226,.15);color:var(--bl)}
+.zone{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:8px}
+.prev{display:flex;gap:8px;font-size:10px;padding:4px 8px;background:var(--sf2);border-radius:4px;margin-bottom:8px;color:var(--mu);flex-wrap:wrap;line-height:1.6}
+.prev b{color:#d8d8e8;font-family:'Courier New',monospace;font-weight:bold;margin-left:1px}
+.io{display:flex;gap:4px;align-items:center;margin-bottom:6px}
+.cam{width:36px;height:36px;border-radius:6px;background:var(--bl);color:#000;border:none;font-size:16px;flex-shrink:0;padding:0}
+.io .grp{flex:1;display:flex;align-items:center;gap:2px;min-width:0}
+.io .grp>span{font-size:10px;color:var(--mu);flex-shrink:0;width:18px;text-align:center}
+.io .grp input{flex:1;min-width:0;padding:0.4em 0.35em}
+.io .sm{flex:0 0 auto;display:flex;align-items:center;gap:2px}
+.io .sm>span{font-size:10px;color:var(--ac);font-weight:700}
+.io .sm input{width:48px;padding:0.4em 0.35em}
+.calc{display:flex;gap:2px;padding:4px 6px;font-size:11px;background:var(--sf2);border-radius:4px;margin-bottom:6px;align-items:center}
+.calc .c{flex:1;text-align:center;white-space:nowrap}
+.calc .cl{font-size:9px;color:var(--mu);display:block}
+.calc .cv{font-weight:700;color:var(--gn);font-family:'Courier New',monospace;font-size:12px}
+.rst{padding:5px 14px;border-radius:4px;background:var(--sf3);border:1px solid var(--bd);color:var(--mu);font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0}
+.rst:active{background:var(--rd);color:#fff;border-color:var(--rd)}
+.prize-row{display:flex;gap:3px;align-items:center;margin-bottom:6px}
+.prize-row>span{font-size:10px;color:var(--ac);font-weight:700;flex-shrink:0}
+.prize-row input.prize{flex:2;min-width:0}
+.prize-row input.w{width:60px}
+.prize-row input.o-in{flex:1.2;min-width:0}
+.chg-hdr{display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px;padding:8px 0 6px;border-top:2px solid var(--rd);opacity:.9}
+.chg-title{font-size:11px;color:var(--rd);font-weight:700}
+.chg-right{display:flex;gap:6px;align-items:center}
+.chg-type{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+.chg-type.replace{background:rgba(255,107,107,.15);color:var(--rd)}
+.chg-type.config{background:rgba(168,85,247,.15);color:var(--pr)}
+.chg-type.none{background:rgba(176,176,197,.1);color:var(--mu)}
+.hist table{width:100%;border-collapse:collapse;font-size:10px;font-family:'Courier New',monospace}
+.hist th{font-size:9px;color:var(--mu);font-weight:400;text-align:right;padding:3px 4px;border-bottom:1px solid var(--bd)}
+.hist th:first-child{text-align:left}
+.hist td{padding:3px 4px;text-align:right;color:var(--inh);border-bottom:1px solid rgba(42,42,68,.4)}
+.hist td:first-child{text-align:left;color:var(--mu)}
+.hist .total td{color:var(--ac);font-weight:700;border-top:1px solid var(--ac);border-bottom:none}
+.locker-btn{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--sf2);border:1px solid var(--bl);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .15s}
+.locker-btn:active{background:rgba(93,173,226,.15)}
+.locker-btn.edit{border-color:var(--rd)}
+.locker-btn.edit:active{background:rgba(255,107,107,.1)}
+.locker-btn .lk-icon{font-size:20px;margin-right:8px}
+.locker-btn .info{font-size:11px;color:var(--mu);line-height:1.4}
+.locker-btn .info b{color:var(--ac);font-family:'Courier New',monospace}
+.locker-btn .arrow{font-size:16px;opacity:.5}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 6px;font-size:14px;color:var(--bl);font-weight:700;cursor:pointer;margin-bottom:8px}
+.back-btn:active{opacity:.5}
+.locker-panel{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:8px}
+.locker-panel h3{font-size:13px;color:var(--bl);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.locker-panel h3 .price{font-size:10px;color:var(--ac);font-weight:400}
+.locker-panel .hint{font-size:9px;color:var(--mu);margin-bottom:8px;padding:4px 0;border-bottom:1px solid var(--bd)}
+.slot-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.slot{width:calc(50% - 3px);background:var(--sf3);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,opacity .3s}
+.slot:active{transform:scale(0.97)}
+.slot.filled{border-color:rgba(240,192,64,.25);background:linear-gradient(135deg,var(--sf3) 0%,rgba(26,26,46,.8) 100%)}
+.slot.empty{border-style:dashed;border-color:rgba(42,42,68,.6);background:var(--sf2)}
+.slot .sn{font-size:9px;color:var(--mu);font-weight:700;margin-bottom:2px}
+.slot .sp{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.slot .sv{font-size:11px;color:var(--ac);font-family:'Courier New',monospace;margin-top:2px}
+.slot.empty .sp{color:var(--mu);font-weight:400;font-size:20px;text-align:center;padding:2px 0}
+.slot.empty .sv{color:var(--mu);font-size:9px;text-align:center}
+.slot .swipe-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mu);opacity:.25}
+.locker-total{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;font-size:11px;color:var(--mu)}
+.locker-total .val{color:var(--ac);font-weight:700;font-family:'Courier New',monospace;font-size:13px}
+.locker-total.grand{border:1px solid rgba(240,192,64,.3);border-radius:6px;margin-top:8px;padding:8px 10px;background:rgba(240,192,64,.04)}
+.alert{padding:5px 8px;border-radius:4px;margin-top:6px;font-size:10px}
+.alert.ok{background:rgba(46,204,113,.08);color:var(--gn);border:1px solid rgba(46,204,113,.2)}
+.log-panel{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:8px}
+.log-panel h3{font-size:12px;color:var(--pr);margin-bottom:6px}
+.log-item{font-size:10px;color:var(--mu);padding:4px 0;border-bottom:1px solid rgba(42,42,68,.4)}
+.log-item:last-child{border-bottom:none}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--sf);border-radius:14px 14px 0 0;padding:20px 16px;width:100%;max-width:500px;box-shadow:0 -4px 30px rgba(0,0,0,.5)}
+.modal-box h3{font-size:15px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-box .close{background:none;border:none;color:var(--mu);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.modal-box .close:active{background:var(--sf3)}
+.mbtn{display:block;width:100%;padding:14px;border-radius:8px;border:1px solid var(--bd);background:var(--sf2);color:var(--tx);font-size:14px;margin-bottom:8px;text-align:left;cursor:pointer;transition:background .1s}
+.mbtn:active{background:var(--sf3)}
+.page-title{font-size:12px;color:var(--mu);margin-bottom:4px}
+</style></head>
+<body>
+
+<div class="page active" id="pg_patrol">
+  <div class="hdr">
+    <div class="date-sel"><span>📅</span><select><option selected>04-10</option><option>04-09</option><option>04-08</option></select></div>
+    <div class="mname"><span class="badge">ガチャ</span>ティアラ / B01</div>
+  </div>
+  <div class="zone">
+    <div class="prev"><span><b>04-03</b></span><span>in<b>9909</b></span><span>out<b>6800</b></span><span>残<b>180</b></span><span>補<b>50</b></span></div>
+    <div class="io">
+      <button class="cam">📷</button>
+      <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="p_in" class="m"></div>
+      <div class="grp"><span>OUT</span><input type="text" inputmode="numeric" id="p_out" class="m"></div>
+      <div class="sm"><span>残</span><input type="text" inputmode="numeric" maxlength="3" id="p_zan" class="m"></div>
+      <div class="sm"><span>補</span><input type="text" inputmode="numeric" maxlength="3" id="p_ho" class="m"></div>
+    </div>
+    <div class="calc">
+      <div class="c"><span class="cl">IN差</span><span class="cv" id="cv_in">+0</span></div>
+      <div class="c"><span class="cl">OUT差</span><span class="cv" id="cv_out">+0</span></div>
+      <div class="c"><span class="cl">理論残</span><span class="cv" id="cv_zan" style="color:var(--pr)">230</span></div>
+      <div class="c"><span class="cl">出率</span><span class="cv" id="cv_rate" style="color:var(--bl)">—</span></div>
+      <button class="rst" id="btn_resetP">↩</button>
+    </div>
+    <div class="prize-row">
+      <span>景</span><input type="text" id="p_prize" class="prize ro">
+      <span>@</span><input type="text" inputmode="numeric" id="p_cost" class="w m ro">
+      <span>O</span><input type="text" id="p_o" maxlength="6" class="o-in m">
+    </div>
+    <div class="locker-btn" id="btn_check">
+      <div style="display:flex;align-items:center"><span class="lk-icon">🔐</span><div class="info" id="locker_summary_check">ロッカー確認 — 総額<b style="color:var(--ac)">¥120,500</b> / 空き<b style="color:var(--ac)">1</b></div></div>
+      <span class="arrow" style="color:var(--bl)">▶</span>
+    </div>
+    <div class="chg-hdr">
+      <span class="chg-title">▼ 入替/設定変更 04-11</span>
+      <div class="chg-right"><span class="chg-type none" id="chgType">変更なし</span><button class="rst" id="btn_resetC">↩</button></div>
+    </div>
+    <div class="io">
+      <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="c_in" class="m"></div>
+      <div class="grp"><span>OUT</span><input type="text" inputmode="numeric" id="c_out" class="m"></div>
+      <div class="sm"><span>残</span><input type="text" inputmode="numeric" maxlength="3" id="c_zan" class="m"></div>
+      <div class="sm"><span>補</span><input type="text" inputmode="numeric" maxlength="3" id="c_ho" class="m" value="-" style="text-align:center"></div>
+    </div>
+    <div class="prize-row">
+      <span>景</span><input type="text" id="c_prize" class="prize">
+      <span>@</span><input type="text" inputmode="numeric" id="c_cost" class="w m">
+      <span>O</span><input type="text" id="c_o" maxlength="6" class="o-in m">
+    </div>
+    <div class="locker-btn edit" id="btn_edit">
+      <div style="display:flex;align-items:center"><span class="lk-icon">🔐</span><div class="info" id="locker_summary_edit" style="color:var(--rd)">ロッカー入替/補充 — 総額<b style="color:var(--ac)">¥120,500</b> / 空き<b style="color:var(--ac)">1</b></div></div>
+      <span class="arrow" style="color:var(--rd)">▶</span>
+    </div>
+    <div class="calc" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">
+      <div class="c"><span class="cl">今月売上</span><span class="cv" style="color:var(--ac)">¥55,000</span></div>
+      <div class="c"><span class="cl">今月予測</span><span class="cv" style="color:var(--pr)">¥165,000</span></div>
+      <div class="c"><span class="cl">景品代</span><span class="cv">¥19,350</span></div>
+      <div class="c"><span class="cl">出率</span><span class="cv" style="color:var(--bl)">35.2%</span></div>
+    </div>
+    <div class="hist"><table>
+      <tr><th>日付</th><th>売上</th><th>払出</th><th>払出額</th><th>日売平均</th></tr>
+      <tr><td>3/20</td><td>18,000</td><td>14</td><td>6,300</td><td>4,500</td></tr>
+      <tr><td>3/25</td><td>22,000</td><td>18</td><td>8,100</td><td>4,400</td></tr>
+      <tr><td>3/30</td><td>15,000</td><td>11</td><td>4,950</td><td>3,000</td></tr>
+      <tr class="total"><td>計</td><td>55,000</td><td>43</td><td>19,350</td><td>3,929</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<div class="page" id="pg_check">
+  <div class="back-btn" id="btn_back1">← 巡回画面に戻る</div>
+  <div class="page-title">ティアラ / B01</div>
+  <div class="locker-panel">
+    <h3>🔐 ロッカー確認<span class="price">当たりチェック</span></h3>
+    <div class="hint">← スワイプで空にする ｜ タップで詳細</div>
+    <div class="slot-grid" id="slots_check"></div>
+    <div class="locker-total"><span>総額</span><span class="val" id="total_check">—</span></div>
+    <div class="alert ok">✅ 利益見込あり</div>
+  </div>
+  <div class="log-panel"><h3>📝 当たり履歴</h3>
+    <div class="log-item">04-10 🎯 #5 スニーカー ¥18,000</div>
+    <div class="log-item">04-05 🎯 #3 AirPods ¥22,000</div>
+  </div>
+</div>
+
+<div class="page" id="pg_edit">
+  <div class="back-btn" id="btn_back2">← 巡回画面に戻る</div>
+  <div class="page-title">ティアラ / B01</div>
+  <div class="locker-panel">
+    <h3 style="color:var(--rd)">🔐 ロッカー入替/補充<span class="price">景品管理</span></h3>
+    <div class="hint">タップで補充 / 入替 / 移動</div>
+    <div class="slot-grid" id="slots_edit"></div>
+    <div class="locker-total"><span>総額</span><span class="val" id="total_edit">—</span></div>
+  </div>
+  <div class="log-panel"><h3>📝 変更履歴</h3>
+    <div class="log-item">04-10 ➕ #5 スニーカー ¥18,000 ← <span style="color:var(--gn)">補充</span></div>
+    <div class="log-item">04-08 🔄 #3 → AirPods ← <span style="color:var(--bl)">入替</span></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOv"><div class="modal-box" id="modalBox"></div></div>
+
+<script>
+(function(){
+  function showPage(id){var pp=document.querySelectorAll('.page');for(var i=0;i<pp.length;i++)pp[i].classList.remove('active');document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+  document.getElementById('btn_check').addEventListener('click',function(){refreshAll();showPage('pg_check');});
+  document.getElementById('btn_edit').addEventListener('click',function(){refreshAll();showPage('pg_edit');});
+  document.getElementById('btn_back1').addEventListener('click',function(){refreshAll();showPage('pg_patrol');});
+  document.getElementById('btn_back2').addEventListener('click',function(){refreshAll();showPage('pg_patrol');});
+
+  var PREV={inn:9909,out:6800,zan:180,ho:50,prize:'すみっコカプセル',cost:450,o:''};
+  function pn(v){return parseInt(String(v).replace(/[^0-9\-]/g,''),10)||0;}
+  function fmtYen(n){return '¥'+String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+
+  var zanIds=['p_zan','c_zan'];
+  var allInputs=document.querySelectorAll('#pg_patrol input:not(.ro)');
+  for(var i=0;i<allInputs.length;i++){
+    (function(el){
+      var isZan=zanIds.indexOf(el.id)!==-1;
+      el.addEventListener('focus',function(){if(!isZan&&!this.dataset.touched){this.dataset.touched='1';this.classList.add('active');}this.select();});
+      el.addEventListener('input',function(){this.dataset.touched='1';this.classList.add('active');recalc();});
+    })(allInputs[i]);
+  }
+
+  var p_in=document.getElementById('p_in'),p_out=document.getElementById('p_out');
+  var p_zan=document.getElementById('p_zan'),p_ho=document.getElementById('p_ho');
+  var p_prize=document.getElementById('p_prize'),p_cost=document.getElementById('p_cost'),p_o=document.getElementById('p_o');
+  var c_in=document.getElementById('c_in'),c_out=document.getElementById('c_out');
+  var c_zan=document.getElementById('c_zan'),c_ho=document.getElementById('c_ho');
+  var c_prize=document.getElementById('c_prize'),c_cost=document.getElementById('c_cost'),c_o=document.getElementById('c_o');
+
+  function init(){p_in.value=PREV.inn;p_out.value=PREV.out;p_zan.value=PREV.zan+PREV.ho;p_ho.value='-';p_prize.value=PREV.prize;p_cost.value=PREV.cost;p_o.value=PREV.o;recalc();}
+  function recalc(){
+    var inV=pn(p_in.value),outV=pn(p_out.value);var inDiff=inV-PREV.inn,outDiff=outV-PREV.out;
+    var theory=PREV.zan+PREV.ho-(outDiff>0?outDiff:0);
+    document.getElementById('cv_in').textContent=(inDiff>=0?'+':'')+inDiff;
+    document.getElementById('cv_out').textContent=(outDiff>=0?'+':'')+outDiff;
+    document.getElementById('cv_zan').textContent=Math.max(0,theory);
+    document.getElementById('cv_rate').textContent=inDiff>0?((outDiff/inDiff)*100).toFixed(1)+'%':'—';
+    if(!p_zan.dataset.touched)p_zan.value=Math.max(0,theory);syncC();
+  }
+  function syncC(){
+    if(!c_in.dataset.touched)c_in.value=p_in.value;if(!c_out.dataset.touched)c_out.value=p_out.value;
+    if(!c_zan.dataset.touched)c_zan.value=pn(p_zan.value)+pn(p_ho.value);
+    if(!c_prize.dataset.touched)c_prize.value=p_prize.value;if(!c_cost.dataset.touched)c_cost.value=p_cost.value;
+    if(!c_o.dataset.touched)c_o.value=p_o.value;
+    var pc=c_prize.dataset.touched&&c_prize.value!==p_prize.value;
+    var oc=c_o.dataset.touched&&c_o.value!==p_o.value;
+    var b=document.getElementById('chgType');
+    if(pc){b.textContent='景品入替';b.className='chg-type replace';}
+    else if(oc){b.textContent='設定変更';b.className='chg-type config';}
+    else{b.textContent='変更なし';b.className='chg-type none';}
+  }
+  document.getElementById('btn_resetP').addEventListener('click',function(){
+    var ids=[p_in,p_out,p_zan,p_ho,p_o];for(var i=0;i<ids.length;i++){delete ids[i].dataset.touched;ids[i].classList.remove('active');}init();
+  });
+  document.getElementById('btn_resetC').addEventListener('click',function(){
+    var ids=[c_in,c_out,c_zan,c_ho,c_prize,c_cost,c_o];for(var i=0;i<ids.length;i++){delete ids[i].dataset.touched;ids[i].classList.remove('active');}c_ho.value='-';syncC();
+  });
+
+  var SLOTS=[{n:1,p:'PS5',v:45000},{n:2,p:'ReFa',v:25000},{n:3,p:'AirPods',v:22000},{n:4,p:'A景品',v:3000},{n:5,p:'',v:0},{n:6,p:'スニーカー',v:18000},{n:7,p:'ボンドロx3',v:4500},{n:8,p:'A景品',v:3000}];
+  var modalOv=document.getElementById('modalOv'),modalBox=document.getElementById('modalBox');
+  function closeModal(){modalOv.classList.remove('show');}
+  modalOv.addEventListener('click',function(e){if(e.target===modalOv)closeModal();});
+
+  function updateSummary(){
+    var total=0,empty=0;for(var i=0;i<SLOTS.length;i++){if(SLOTS[i].p)total+=SLOTS[i].v;else empty++;}
+    var fmt=fmtYen(total);
+    document.getElementById('total_check').textContent=fmt;document.getElementById('total_edit').textContent=fmt;
+    document.getElementById('locker_summary_check').innerHTML='ロッカー確認 — 総額<b style="color:var(--ac)">'+fmt+'</b> / 空き<b style="color:var(--ac)">'+empty+'</b>';
+    document.getElementById('locker_summary_edit').innerHTML='ロッカー入替/補充 — 総額<b style="color:var(--ac)">'+fmt+'</b> / 空き<b style="color:var(--ac)">'+empty+'</b>';
+  }
+  function refreshAll(){buildSlots('slots_check','check');buildSlots('slots_edit','edit');updateSummary();}
+
+  function buildSlots(containerId,mode){
+    var container=document.getElementById(containerId);container.innerHTML='';
+    for(var i=0;i<SLOTS.length;i++){
+      (function(s,idx){
+        var div=document.createElement('div');var filled=!!s.p;
+        div.className='slot'+(filled?' filled':' empty');
+        if(filled){div.innerHTML='<div class="sn">#'+s.n+'</div><div class="sp">'+s.p+'</div><div class="sv">'+fmtYen(s.v)+'</div>'+(mode==='check'?'<span class="swipe-hint">←</span>':'');}
+        else{div.innerHTML='<div class="sn">#'+s.n+'</div><div class="sp">＋</div><div class="sv">'+(mode==='edit'?'タップで補充':'空き')+'</div>';}
+        if(mode==='check'&&filled){
+          var sx=0,moved=false;
+          div.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;moved=false;},{passive:true});
+          div.addEventListener('touchmove',function(e){var dx=e.touches[0].clientX-sx;if(dx<-15){this.style.transform='translateX('+dx+'px)';moved=true;}},{passive:true});
+          div.addEventListener('touchend',function(e){var dx=(e.changedTouches[0]?e.changedTouches[0].clientX:sx)-sx;var self=this;if(dx<-60){self.style.transition='all .2s';self.style.transform='translateX(-100%)';self.style.opacity='0';setTimeout(function(){showEmptyConfirm(self,idx);},250);}else{self.style.transform='';if(!moved)showSlotDetail(idx);}});
+          div.addEventListener('click',function(){showEmptyConfirm(null,idx);});
+        }
+        if(mode==='edit'){div.addEventListener('click',function(){showSlotAction(idx);});}
+        container.appendChild(div);
+      })(SLOTS[i],i);
+    }
+  }
+
+  function showEmptyConfirm(el,idx){var s=SLOTS[idx];if(!s.p)return;
+    modalBox.innerHTML='<h3>#'+s.n+' '+s.p+'<button class="close" id="mc">✕</button></h3><div style="font-size:12px;color:var(--mu);margin-bottom:14px">'+fmtYen(s.v)+'</div><button class="mbtn" id="m_empty" style="background:rgba(255,107,107,.12);color:var(--rd);border-color:var(--rd)">🎯 当たり — 空にする</button><button class="mbtn" id="m_cancel">↩ キャンセル</button>';
+    modalOv.classList.add('show');
+    document.getElementById('mc').addEventListener('click',function(){closeModal();if(el){el.style.transition='all .2s';el.style.transform='';el.style.opacity='1';}});
+    document.getElementById('m_empty').addEventListener('click',function(){SLOTS[idx]={n:s.n,p:'',v:0};closeModal();refreshAll();});
+    document.getElementById('m_cancel').addEventListener('click',function(){closeModal();if(el){el.style.transition='all .2s';el.style.transform='';el.style.opacity='1';}});
+  }
+  function showSlotDetail(idx){var s=SLOTS[idx];if(!s.p)return;
+    modalBox.innerHTML='<h3>#'+s.n+' '+s.p+'<button class="close" id="mc">✕</button></h3><div style="color:var(--mu);font-size:12px;margin-bottom:14px">'+fmtYen(s.v)+'</div><button class="mbtn" id="m_close">閉じる</button>';
+    modalOv.classList.add('show');document.getElementById('mc').addEventListener('click',closeModal);document.getElementById('m_close').addEventListener('click',closeModal);
+  }
+  function showSlotAction(idx){var s=SLOTS[idx];
+    if(!s.p){modalBox.innerHTML='<h3>#'+s.n+' に補充<button class="close" id="mc">✕</button></h3><div style="margin-bottom:14px"><label style="font-size:11px;color:var(--mu);display:block;margin-bottom:4px">景品名</label><input type="text" placeholder="景品マスタから検索..." style="width:100%;margin-bottom:10px" id="inp_p"><label style="font-size:11px;color:var(--mu);display:block;margin-bottom:4px">金額</label><input type="text" inputmode="numeric" placeholder="¥" style="width:100%" id="inp_v"></div><button class="mbtn" id="m_fill" style="background:rgba(46,204,113,.1);color:var(--gn);border-color:var(--gn)">➕ 補充する</button>';
+      modalOv.classList.add('show');document.getElementById('mc').addEventListener('click',closeModal);
+      document.getElementById('m_fill').addEventListener('click',function(){var np=document.getElementById('inp_p').value||'New景品';var nv=parseInt(document.getElementById('inp_v').value)||0;SLOTS[idx]={n:s.n,p:np,v:nv};closeModal();refreshAll();});
+    }else{modalBox.innerHTML='<h3>#'+s.n+' '+s.p+'<button class="close" id="mc">✕</button></h3><div style="font-size:12px;color:var(--mu);margin-bottom:14px">'+fmtYen(s.v)+'</div><button class="mbtn" id="m_swap">🔄 景品を入替える</button><button class="mbtn" id="m_move">↔️ 別スロットへ移動</button><button class="mbtn" id="m_remove" style="color:var(--rd)">🗑 撤去する</button>';
+      modalOv.classList.add('show');document.getElementById('mc').addEventListener('click',closeModal);document.getElementById('m_swap').addEventListener('click',closeModal);document.getElementById('m_move').addEventListener('click',closeModal);
+      document.getElementById('m_remove').addEventListener('click',function(){SLOTS[idx]={n:s.n,p:'',v:0};closeModal();refreshAll();});
+    }
+  }
+  refreshAll();init();
+})();
+</script>
+</body></html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>D ガチャコロST2</title>
+<style>
+:root{--bg:#0a0a12;--sf:#12121e;--sf2:#1a1a2e;--sf3:#222238;--bd:#2a2a44;--tx:#e8e8f0;--mu:#8888a8;--ac:#f0c040;--gn:#2ecc71;--bl:#5dade2;--pr:#a855f7;--rd:#ff6b6b;--inh:#d0d0e0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:var(--bg);color:var(--tx);padding:10px}
+.m{font-family:'Courier New',Courier,monospace;font-weight:bold}
+input,select{font-size:16px;background:var(--sf3);border:1px solid var(--bd);border-radius:4px;padding:0.4em;color:var(--inh);font-family:'Courier New',Courier,monospace;font-weight:bold;-webkit-appearance:none;appearance:none;line-height:1.2}
+input:focus,select:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 2px rgba(240,192,64,.15)}
+input[inputmode="numeric"]{text-align:right}
+input.active{color:var(--tx)}
+input.ro{color:var(--mu);background:rgba(18,18,30,.8);border-color:transparent;pointer-events:none}
+.page{display:none}.page.active{display:block}
+.date-sel{display:flex;align-items:center;gap:6px}
+.date-sel select{font-size:14px;color:var(--ac);background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:6px 10px;font-weight:700}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;margin-bottom:8px}
+.mname{font-size:13px;font-weight:700}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-right:4px;background:rgba(93,173,226,.15);color:var(--bl)}
+.zone{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:8px}
+.prev{display:flex;gap:8px;font-size:10px;padding:4px 8px;background:var(--sf2);border-radius:4px;margin-bottom:8px;color:var(--mu);flex-wrap:wrap;line-height:1.6}
+.prev b{color:#d8d8e8;font-family:'Courier New',monospace;font-weight:bold;margin-left:1px}
+.io{display:flex;gap:4px;align-items:center;margin-bottom:6px}
+.cam{width:36px;height:36px;border-radius:6px;background:var(--bl);color:#000;border:none;font-size:16px;flex-shrink:0;padding:0}
+.io .grp{flex:1;display:flex;align-items:center;gap:2px;min-width:0}
+.io .grp>span{font-size:10px;color:var(--mu);flex-shrink:0;width:18px;text-align:center}
+.io .grp input{flex:1;min-width:0;padding:0.4em 0.35em}
+.rst{padding:5px 14px;border-radius:4px;background:var(--sf3);border:1px solid var(--bd);color:var(--mu);font-size:15px;font-weight:700;cursor:pointer;flex-shrink:0}
+.rst:active{background:var(--rd);color:#fff;border-color:var(--rd)}
+/* OUTグループ */
+.og{display:flex;gap:3px;align-items:center;margin-bottom:5px;padding:5px 6px;background:var(--sf2);border-radius:4px;border-left:3px solid var(--pr)}
+.og.a{border-left-color:var(--gn)}.og.b{border-left-color:var(--bl)}
+.og>span.ol{font-size:10px;font-weight:700;flex-shrink:0;width:12px}
+.og.a>span.ol{color:var(--gn)}.og.b>span.ol{color:var(--bl)}
+.og input{padding:0.35em 0.3em;min-width:0}
+.og .out-in{width:72px;flex-shrink:0}.og .sm-in{width:38px;flex-shrink:0}.og .prize-in{flex:1;min-width:0}.og .cost-in{width:42px;flex-shrink:0}
+.og .dv{font-size:10px;font-weight:700;font-family:'Courier New',monospace;white-space:nowrap;flex-shrink:0;min-width:28px;text-align:right}
+.og.a .dv{color:var(--gn)}.og.b .dv{color:var(--bl)}
+.lbl{font-size:9px;color:var(--mu);flex-shrink:0}
+.set-o{display:flex;gap:3px;align-items:center;margin-bottom:6px}
+.set-o span{font-size:11px;color:var(--ac);font-weight:700;flex-shrink:0}
+.set-o input{flex:1;min-width:0}
+/* 入替区切り */
+.chg-hdr{display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px;padding:8px 0 6px;border-top:2px solid var(--rd);opacity:.9}
+.chg-title{font-size:11px;color:var(--rd);font-weight:700}
+.chg-right{display:flex;gap:6px;align-items:center}
+.chg-type{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+.chg-type.replace{background:rgba(255,107,107,.15);color:var(--rd)}
+.chg-type.config{background:rgba(168,85,247,.15);color:var(--pr)}
+.chg-type.none{background:rgba(176,176,197,.1);color:var(--mu)}
+/* サマリー */
+.calc{display:flex;gap:2px;padding:4px 6px;font-size:11px;background:var(--sf2);border-radius:4px;margin-bottom:4px}
+.calc .c{flex:1;text-align:center;white-space:nowrap}
+.calc .cl{font-size:9px;color:var(--mu);display:block}
+.calc .cv{font-weight:700;color:var(--gn);font-family:'Courier New',monospace;font-size:11px}
+/* 売上テーブル */
+.hist table{width:100%;border-collapse:collapse;font-size:10px;font-family:'Courier New',monospace}
+.hist th{font-size:9px;color:var(--mu);font-weight:400;text-align:right;padding:3px 4px;border-bottom:1px solid var(--bd)}
+.hist th:first-child{text-align:left}
+.hist td{padding:3px 4px;text-align:right;color:var(--inh);border-bottom:1px solid rgba(42,42,68,.4)}
+.hist td:first-child{text-align:left;color:var(--mu)}
+.hist .total td{color:var(--ac);font-weight:700;border-top:1px solid var(--ac);border-bottom:none}
+/* ロッカーボタン */
+.locker-btn{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--sf2);border:1px solid var(--bl);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .15s}
+.locker-btn:active{background:rgba(93,173,226,.15)}
+.locker-btn.edit{border-color:var(--rd)}
+.locker-btn.edit:active{background:rgba(255,107,107,.1)}
+.locker-btn .lk-icon{font-size:20px;margin-right:8px}
+.locker-btn .info{font-size:11px;color:var(--mu);line-height:1.4}
+.locker-btn .info b{color:var(--ac);font-family:'Courier New',monospace}
+.locker-btn .arrow{font-size:16px;opacity:.5}
+/* ロッカー別ページ */
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 6px;font-size:14px;color:var(--bl);font-weight:700;cursor:pointer;margin-bottom:8px}
+.back-btn:active{opacity:.5}
+.locker-panel{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:8px}
+.locker-panel h3{font-size:13px;color:var(--bl);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.locker-panel h3 .price{font-size:10px;color:var(--ac);font-weight:400}
+.locker-panel .hint{font-size:9px;color:var(--mu);margin-bottom:8px;padding:4px 0;border-bottom:1px solid var(--bd)}
+.locker-label{font-size:11px;font-weight:700;margin-bottom:6px;padding-left:2px}
+.locker-label.up{color:var(--gn)}.locker-label.dn{color:var(--bl)}
+/* スロットカード */
+.slot-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.slot{width:calc(50% - 3px);background:var(--sf3);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,opacity .3s}
+.slot:active{transform:scale(0.97)}
+.slot.filled{border-color:rgba(240,192,64,.25);background:linear-gradient(135deg,var(--sf3) 0%,rgba(26,26,46,.8) 100%)}
+.slot.empty{border-style:dashed;border-color:rgba(42,42,68,.6);background:var(--sf2)}
+.slot .sn{font-size:9px;color:var(--mu);font-weight:700;margin-bottom:2px}
+.slot .sp{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.slot .sv{font-size:11px;color:var(--ac);font-family:'Courier New',monospace;margin-top:2px}
+.slot.empty .sp{color:var(--mu);font-weight:400;font-size:20px;text-align:center;padding:2px 0}
+.slot.empty .sv{color:var(--mu);font-size:9px;text-align:center}
+.slot .swipe-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mu);opacity:.25}
+/* ロッカー合計 */
+.locker-total{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;font-size:11px;color:var(--mu)}
+.locker-total .val{color:var(--ac);font-weight:700;font-family:'Courier New',monospace;font-size:13px}
+.locker-total.grand{border:1px solid rgba(240,192,64,.3);border-radius:6px;margin-top:8px;padding:8px 10px;background:rgba(240,192,64,.04)}
+/* モーダル */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--sf);border-radius:14px 14px 0 0;padding:20px 16px;width:100%;max-width:500px;box-shadow:0 -4px 30px rgba(0,0,0,.5)}
+.modal-box h3{font-size:15px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal-box .close{background:none;border:none;color:var(--mu);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.modal-box .close:active{background:var(--sf3)}
+.mbtn{display:block;width:100%;padding:14px;border-radius:8px;border:1px solid var(--bd);background:var(--sf2);color:var(--tx);font-size:14px;margin-bottom:8px;text-align:left;cursor:pointer;transition:background .1s}
+.mbtn:active{background:var(--sf3)}
+.page-title{font-size:12px;color:var(--mu);margin-bottom:4px}
+</style></head>
+<body>
+
+<!-- 巡回画面 -->
+<div class="page active" id="pg_patrol">
+  <div class="hdr">
+    <div class="date-sel"><span>📅</span><select><option selected>04-10</option><option>04-09</option><option>04-08</option></select></div>
+    <div class="mname"><span class="badge">ガチャ</span>ガチャコロST2 / B01</div>
+  </div>
+  <div class="zone">
+    <div class="prev"><span><b>04-03</b></span><span>in<b>6742</b></span><span style="color:var(--gn)">A<b>3180</b> 残<b>100</b></span><span style="color:var(--bl)">B<b>1520</b> 残<b>80</b></span></div>
+    <div class="io">
+      <button class="cam">📷</button>
+      <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="p_in" class="m"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--gn);font-family:'Courier New',monospace;padding:0 6px;min-width:32px;text-align:right" id="cv_in">+0</div>
+      <button class="rst" id="btn_resetP">↩</button>
+    </div>
+    <div class="og a">
+      <span class="ol">A</span>
+      <input type="text" inputmode="numeric" id="p_oa" class="m out-in">
+      <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="p_za" class="m sm-in">
+      <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="p_ha" class="m sm-in">
+      <input type="text" id="p_pa" class="prize-in ro">
+      <span class="lbl">@</span><input type="text" inputmode="numeric" id="p_ca" class="m cost-in ro">
+      <span class="dv" id="cv_oa">+0</span>
+    </div>
+    <div class="og b">
+      <span class="ol">B</span>
+      <input type="text" inputmode="numeric" id="p_ob" class="m out-in">
+      <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="p_zb" class="m sm-in">
+      <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="p_hb" class="m sm-in">
+      <input type="text" id="p_pb" class="prize-in ro">
+      <span class="lbl">@</span><input type="text" inputmode="numeric" id="p_cb" class="m cost-in ro">
+      <span class="dv" id="cv_ob">+0</span>
+    </div>
+    <div class="set-o"><span>O</span><input type="text" id="p_o" maxlength="6" class="m" placeholder="設定"></div>
+
+    <div class="locker-btn" id="btn_check">
+      <div style="display:flex;align-items:center"><span class="lk-icon">🔐</span><div class="info" id="locker_summary_check">ロッカー確認 — 総額<b style="color:var(--ac)">¥120,500</b> / 空き<b style="color:var(--ac)">5</b></div></div>
+      <span class="arrow" style="color:var(--bl)">▶</span>
+    </div>
+
+    <div class="chg-hdr">
+      <span class="chg-title">▼ 入替/設定変更 04-11</span>
+      <div class="chg-right"><span class="chg-type none" id="chgType">変更なし</span><button class="rst" id="btn_resetC">↩</button></div>
+    </div>
+    <div class="io"><div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="c_in" class="m"></div></div>
+    <div class="og a">
+      <span class="ol">A</span>
+      <input type="text" inputmode="numeric" id="c_oa" class="m out-in">
+      <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="c_za" class="m sm-in">
+      <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="c_ha" class="m sm-in" value="-" style="text-align:center">
+      <input type="text" id="c_pa" class="prize-in">
+      <span class="lbl">@</span><input type="text" inputmode="numeric" id="c_ca" class="m cost-in">
+    </div>
+    <div class="og b">
+      <span class="ol">B</span>
+      <input type="text" inputmode="numeric" id="c_ob" class="m out-in">
+      <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="c_zb" class="m sm-in">
+      <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="c_hb" class="m sm-in" value="-" style="text-align:center">
+      <input type="text" id="c_pb" class="prize-in">
+      <span class="lbl">@</span><input type="text" inputmode="numeric" id="c_cb" class="m cost-in">
+    </div>
+    <div class="set-o"><span>O</span><input type="text" id="c_o" maxlength="6" class="m"></div>
+
+    <div class="locker-btn edit" id="btn_edit">
+      <div style="display:flex;align-items:center"><span class="lk-icon">🔐</span><div class="info" id="locker_summary_edit" style="color:var(--rd)">ロッカー入替/補充 — 総額<b style="color:var(--ac)">¥120,500</b> / 空き<b style="color:var(--ac)">5</b></div></div>
+      <span class="arrow" style="color:var(--rd)">▶</span>
+    </div>
+
+    <div class="calc" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">
+      <div class="c"><span class="cl">今月売上</span><span class="cv" style="color:var(--ac)">¥42,000</span></div>
+      <div class="c"><span class="cl">景品代</span><span class="cv">¥14,250</span></div>
+      <div class="c"><span class="cl">出率</span><span class="cv" style="color:var(--bl)">33.9%</span></div>
+    </div>
+    <div class="hist"><table>
+      <tr><th>日付</th><th>売上</th><th>A</th><th>B</th><th>日売平均</th></tr>
+      <tr><td>3/22</td><td>24,000</td><td>8</td><td>12</td><td>8,000</td></tr>
+      <tr><td>3/29</td><td>18,000</td><td>7</td><td>9</td><td>2,571</td></tr>
+      <tr class="total"><td>計</td><td>42,000</td><td>15</td><td>21</td><td>5,250</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<!-- ロッカー確認ページ -->
+<div class="page" id="pg_check">
+  <div class="back-btn" id="btn_back1">← 巡回画面に戻る</div>
+  <div class="page-title">ガチャコロST2 / B01</div>
+  <div class="locker-panel">
+    <h3>🔐 ロッカー確認<span class="price">当たりチェック</span></h3>
+    <div class="hint">← スワイプで空にする ｜ タップで詳細</div>
+    <div class="locker-label up">▲ 上段 ¥2,000（8スロット）</div>
+    <div class="slot-grid" id="sA_check"></div>
+    <div class="locker-total"><span>上段</span><span class="val" id="total_up_check">—</span></div>
+    <div class="locker-label dn" style="margin-top:10px">▼ 下段 ¥1,000（10スロット）</div>
+    <div class="slot-grid" id="sB_check"></div>
+    <div class="locker-total"><span>下段</span><span class="val" id="total_dn_check">—</span></div>
+    <div class="locker-total grand"><span style="color:var(--ac)">合計</span><span class="val" id="total_all_check">—</span></div>
+  </div>
+</div>
+
+<!-- ロッカー入替ページ -->
+<div class="page" id="pg_edit">
+  <div class="back-btn" id="btn_back2">← 巡回画面に戻る</div>
+  <div class="page-title">ガチャコロST2 / B01</div>
+  <div class="locker-panel">
+    <h3 style="color:var(--rd)">🔐 ロッカー入替/補充<span class="price">景品管理</span></h3>
+    <div class="hint">タップで補充 / 入替 / 移動</div>
+    <div class="locker-label up">▲ 上段 ¥2,000（8スロット）</div>
+    <div class="slot-grid" id="sA_edit"></div>
+    <div class="locker-total"><span>上段</span><span class="val" id="total_up_edit">—</span></div>
+    <div class="locker-label dn" style="margin-top:10px">▼ 下段 ¥1,000（10スロット）</div>
+    <div class="slot-grid" id="sB_edit"></div>
+    <div class="locker-total"><span>下段</span><span class="val" id="total_dn_edit">—</span></div>
+    <div class="locker-total grand"><span style="color:var(--ac)">合計</span><span class="val" id="total_all_edit">—</span></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOv"><div class="modal-box" id="modalBox"></div></div>
+
+<script>
+(function(){
+  function showPage(id){
+    var pp=document.querySelectorAll('.page');
+    for(var i=0;i<pp.length;i++) pp[i].classList.remove('active');
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+  document.getElementById('btn_check').addEventListener('click',function(){refreshAll();showPage('pg_check');});
+  document.getElementById('btn_edit').addEventListener('click',function(){refreshAll();showPage('pg_edit');});
+  document.getElementById('btn_back1').addEventListener('click',function(){refreshAll();showPage('pg_patrol');});
+  document.getElementById('btn_back2').addEventListener('click',function(){refreshAll();showPage('pg_patrol');});
+
+  var PREV={inn:6742,oa:3180,za:100,ha:0,pa:'高額カプセル',ca:2000,ob:1520,zb:80,hb:0,pb:'通常カプセル',cb:1000,o:''};
+
+  function pn(v){return parseInt(String(v).replace(/[^0-9\-]/g,''),10)||0;}
+  function fmtYen(n){return '¥'+String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+
+  var zanIds=['p_za','p_zb','c_za','c_zb'];
+  var allInputs=document.querySelectorAll('#pg_patrol input:not(.ro)');
+  for(var i=0;i<allInputs.length;i++){
+    (function(el){
+      var isZan=zanIds.indexOf(el.id)!==-1;
+      el.addEventListener('focus',function(){
+        if(!isZan&&!this.dataset.touched){this.dataset.touched='1';this.classList.add('active');}
+        this.select();
+      });
+      el.addEventListener('input',function(){this.dataset.touched='1';this.classList.add('active');recalc();});
+    })(allInputs[i]);
+  }
+
+  function init(){
+    document.getElementById('p_in').value=PREV.inn;
+    var keys=['a','b'];
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i];
+      document.getElementById('p_o'+k).value=PREV['o'+k];
+      document.getElementById('p_z'+k).value=PREV['z'+k]+PREV['h'+k];
+      document.getElementById('p_h'+k).value='-';
+      document.getElementById('p_p'+k).value=PREV['p'+k];
+      document.getElementById('p_c'+k).value=PREV['c'+k];
+    }
+    document.getElementById('p_o').value=PREV.o;
+    recalc();
+  }
+
+  function recalc(){
+    var inV=pn(document.getElementById('p_in').value),inDiff=inV-PREV.inn;
+    document.getElementById('cv_in').textContent=(inDiff>=0?'+':'')+inDiff;
+    var keys=['a','b'];
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i];
+      var outV=pn(document.getElementById('p_o'+k).value);
+      var outDiff=outV-PREV['o'+k];
+      document.getElementById('cv_o'+k).textContent=(outDiff>=0?'+':'')+outDiff;
+      var theory=PREV['z'+k]+PREV['h'+k]-(outDiff>0?outDiff:0);
+      var zEl=document.getElementById('p_z'+k);
+      if(!zEl.dataset.touched) zEl.value=Math.max(0,theory);
+    }
+    syncC();
+  }
+
+  function syncC(){
+    var cIn=document.getElementById('c_in');
+    if(!cIn.dataset.touched) cIn.value=document.getElementById('p_in').value;
+    var keys=['a','b'];
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i];
+      var co=document.getElementById('c_o'+k),cz=document.getElementById('c_z'+k);
+      var cp=document.getElementById('c_p'+k),cc=document.getElementById('c_c'+k);
+      if(!co.dataset.touched) co.value=document.getElementById('p_o'+k).value;
+      if(!cz.dataset.touched) cz.value=pn(document.getElementById('p_z'+k).value)+pn(document.getElementById('p_h'+k).value);
+      if(!cp.dataset.touched) cp.value=document.getElementById('p_p'+k).value;
+      if(!cc.dataset.touched) cc.value=document.getElementById('p_c'+k).value;
+    }
+    var cO=document.getElementById('c_o');
+    if(!cO.dataset.touched) cO.value=document.getElementById('p_o').value;
+    var pc=false;
+    for(var i=0;i<keys.length;i++){
+      var cpEl=document.getElementById('c_p'+keys[i]);
+      if(cpEl.dataset.touched&&cpEl.value!==document.getElementById('p_p'+keys[i]).value) pc=true;
+    }
+    var oc=cO.dataset.touched&&cO.value!==document.getElementById('p_o').value;
+    var b=document.getElementById('chgType');
+    if(pc){b.textContent='景品入替';b.className='chg-type replace';}
+    else if(oc){b.textContent='設定変更';b.className='chg-type config';}
+    else{b.textContent='変更なし';b.className='chg-type none';}
+  }
+
+  document.getElementById('btn_resetP').addEventListener('click',function(){
+    var ids=['p_in','p_oa','p_za','p_ha','p_ob','p_zb','p_hb','p_o'];
+    for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);delete el.dataset.touched;el.classList.remove('active');}
+    init();
+  });
+  document.getElementById('btn_resetC').addEventListener('click',function(){
+    var ids=['c_in','c_oa','c_za','c_ha','c_pa','c_ca','c_ob','c_zb','c_hb','c_pb','c_cb','c_o'];
+    for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);delete el.dataset.touched;el.classList.remove('active');}
+    document.getElementById('c_ha').value='-';
+    document.getElementById('c_hb').value='-';
+    syncC();
+  });
+
+  // ===== ロッカー =====
+  var SLOTS_UP=[
+    {n:1,p:'PS5',v:45000},{n:2,p:'ダイソン',v:30000},{n:3,p:'',v:0},{n:4,p:'AirPods Pro',v:22000},
+    {n:5,p:'',v:0},{n:6,p:'Apple Watch',v:42000},{n:7,p:'B景品x2',v:6000},{n:8,p:'',v:0}
+  ];
+  var SLOTS_DN=[
+    {n:1,p:'ちいかわ',v:3000},{n:2,p:'推しの子',v:2500},{n:3,p:'C景品',v:1500},{n:4,p:'',v:0},
+    {n:5,p:'ワンピ',v:4000},{n:6,p:'D景品x3',v:4500},{n:7,p:'',v:0},{n:8,p:'E景品',v:2000},
+    {n:9,p:'スマホケース',v:3500},{n:10,p:'',v:0}
+  ];
+
+  var modalOv=document.getElementById('modalOv');
+  var modalBox=document.getElementById('modalBox');
+  function closeModal(){modalOv.classList.remove('show');}
+  modalOv.addEventListener('click',function(e){if(e.target===modalOv)closeModal();});
+
+  function calcTotal(slots){var t=0,e=0;for(var i=0;i<slots.length;i++){if(slots[i].p)t+=slots[i].v;else e++;}return{total:t,empty:e};}
+
+  function updateSummary(){
+    var up=calcTotal(SLOTS_UP),dn=calcTotal(SLOTS_DN);
+    var grand=up.total+dn.total,allEmpty=up.empty+dn.empty;
+    var fmt=fmtYen(grand);
+    document.getElementById('total_up_check').textContent=fmtYen(up.total);
+    document.getElementById('total_dn_check').textContent=fmtYen(dn.total);
+    document.getElementById('total_all_check').textContent=fmt;
+    document.getElementById('total_up_edit').textContent=fmtYen(up.total);
+    document.getElementById('total_dn_edit').textContent=fmtYen(dn.total);
+    document.getElementById('total_all_edit').textContent=fmt;
+    document.getElementById('locker_summary_check').innerHTML='ロッカー確認 — 総額<b style="color:var(--ac)">'+fmt+'</b> / 空き<b style="color:var(--ac)">'+allEmpty+'</b>';
+    document.getElementById('locker_summary_edit').innerHTML='ロッカー入替/補充 — 総額<b style="color:var(--ac)">'+fmt+'</b> / 空き<b style="color:var(--ac)">'+allEmpty+'</b>';
+  }
+
+  function refreshAll(){
+    buildSlots('sA_check',SLOTS_UP,'check');
+    buildSlots('sB_check',SLOTS_DN,'check');
+    buildSlots('sA_edit',SLOTS_UP,'edit');
+    buildSlots('sB_edit',SLOTS_DN,'edit');
+    updateSummary();
+  }
+
+  function buildSlots(containerId,slots,mode){
+    var container=document.getElementById(containerId);
+    container.innerHTML='';
+    for(var i=0;i<slots.length;i++){
+      (function(s,idx){
+        var div=document.createElement('div');
+        var filled=!!s.p;
+        div.className='slot'+(filled?' filled':' empty');
+        div.dataset.idx=idx;
+        var isUp=containerId.indexOf('sA')!==-1;
+        var targetSlots=isUp?SLOTS_UP:SLOTS_DN;
+
+        if(filled){
+          div.innerHTML='<div class="sn">#'+s.n+'</div><div class="sp">'+s.p+'</div><div class="sv">'+fmtYen(s.v)+'</div>'+(mode==='check'?'<span class="swipe-hint">←</span>':'');
+        }else{
+          div.innerHTML='<div class="sn">#'+s.n+'</div><div class="sp">＋</div><div class="sv">'+(mode==='edit'?'タップで補充':'空き')+'</div>';
+        }
+
+        if(mode==='check'&&filled){
+          var sx=0,moved=false;
+          div.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;moved=false;},{passive:true});
+          div.addEventListener('touchmove',function(e){var dx=e.touches[0].clientX-sx;if(dx<-15){this.style.transform='translateX('+dx+'px)';moved=true;}},{passive:true});
+          div.addEventListener('touchend',function(e){var dx=(e.changedTouches[0]?e.changedTouches[0].clientX:sx)-sx;var self=this;if(dx<-60){self.style.transition='all .2s';self.style.transform='translateX(-100%)';self.style.opacity='0';setTimeout(function(){showEmptyConfirm(self,idx,targetSlots);},250);}else{self.style.transform='';if(!moved)showSlotDetail(idx,targetSlots);}});
+          div.addEventListener('click',function(){showEmptyConfirm(null,idx,targetSlots);});
+        }
+        if(mode==='edit'){
+          div.addEventListener('click',function(){showSlotAction(idx,targetSlots);});
+        }
+        container.appendChild(div);
+      })(slots[i],i);
+    }
+  }
+
+  function showEmptyConfirm(el,idx,slots){
+    var s=slots[idx];if(!s.p)return;
+    modalBox.innerHTML='<h3>#'+s.n+' '+s.p+'<button class="close" id="mc">✕</button></h3>'
+      +'<div style="font-size:12px;color:var(--mu);margin-bottom:14px">'+fmtYen(s.v)+'</div>'
+      +'<button class="mbtn" id="m_empty" style="background:rgba(255,107,107,.12);color:var(--rd);border-color:var(--rd)">🎯 当たり — 空にする</button>'
+      +'<button class="mbtn" id="m_cancel">↩ キャンセル</button>';
+    modalOv.classList.add('show');
+    document.getElementById('mc').addEventListener('click',function(){closeModal();if(el){el.style.transition='all .2s';el.style.transform='';el.style.opacity='1';}});
+    document.getElementById('m_empty').addEventListener('click',function(){slots[idx]={n:s.n,p:'',v:0};closeModal();refreshAll();});
+    document.getElementById('m_cancel').addEventListener('click',function(){closeModal();if(el){el.style.transition='all .2s';el.style.transform='';el.style.opacity='1';}});
+  }
+
+  function showSlotDetail(idx,slots){
+    var s=slots[idx];if(!s.p)return;
+    modalBox.innerHTML='<h3>#'+s.n+' '+s.p+'<button class="close" id="mc">✕</button></h3>'
+      +'<div style="color:var(--mu);font-size:12px;margin-bottom:14px">'+fmtYen(s.v)+'</div>'
+      +'<button class="mbtn" id="m_close">閉じる</button>';
+    modalOv.classList.add('show');
+    document.getElementById('mc').addEventListener('click',closeModal);
+    document.getElementById('m_close').addEventListener('click',closeModal);
+  }
+
+  function showSlotAction(idx,slots){
+    var s=slots[idx];
+    if(!s.p){
+      modalBox.innerHTML='<h3>#'+s.n+' に補充<button class="close" id="mc">✕</button></h3>'
+        +'<div style="margin-bottom:14px"><label style="font-size:11px;color:var(--mu);display:block;margin-bottom:4px">景品名</label>'
+        +'<input type="text" placeholder="景品マスタから検索..." style="width:100%;margin-bottom:10px" id="inp_p">'
+        +'<label style="font-size:11px;color:var(--mu);display:block;margin-bottom:4px">金額</label>'
+        +'<input type="text" inputmode="numeric" placeholder="¥" style="width:100%" id="inp_v"></div>'
+        +'<button class="mbtn" id="m_fill" style="background:rgba(46,204,113,.1);color:var(--gn);border-color:var(--gn)">➕ 補充する</button>';
+      modalOv.classList.add('show');
+      document.getElementById('mc').addEventListener('click',closeModal);
+      document.getElementById('m_fill').addEventListener('click',function(){
+        var np=document.getElementById('inp_p').value||'New景品';
+        var nv=parseInt(document.getElementById('inp_v').value)||0;
+        slots[idx]={n:s.n,p:np,v:nv};closeModal();refreshAll();
+      });
+    }else{
+      modalBox.innerHTML='<h3>#'+s.n+' '+s.p+'<button class="close" id="mc">✕</button></h3>'
+        +'<div style="font-size:12px;color:var(--mu);margin-bottom:14px">'+fmtYen(s.v)+'</div>'
+        +'<button class="mbtn" id="m_swap">🔄 景品を入替える</button>'
+        +'<button class="mbtn" id="m_move">↔️ 別スロットへ移動</button>'
+        +'<button class="mbtn" id="m_remove" style="color:var(--rd)">🗑 撤去する</button>';
+      modalOv.classList.add('show');
+      document.getElementById('mc').addEventListener('click',closeModal);
+      document.getElementById('m_swap').addEventListener('click',closeModal);
+      document.getElementById('m_move').addEventListener('click',closeModal);
+      document.getElementById('m_remove').addEventListener('click',function(){
+        slots[idx]={n:s.n,p:'',v:0};closeModal();refreshAll();
+      });
+    }
+  }
+
+  refreshAll();
+  init();
+})();
+</script>
+</body></html>

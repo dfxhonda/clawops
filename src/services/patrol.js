@@ -47,23 +47,6 @@ export async function getTodayReadings(boothCodes) {
   return map
 }
 
-// 当日のロッカー補充済み一覧 → Map<locker_id, {read_time}>
-export async function getTodayLockerLogs(machineCode) {
-  const today = new Date().toISOString().slice(0, 10)
-  const { data, error } = await supabase
-    .from('locker_restock_logs')
-    .select('locker_id, read_time')
-    .eq('machine_code', machineCode)
-    .gte('read_time', today + 'T00:00:00')
-    .lte('read_time', today + 'T23:59:59')
-  if (error) { console.error('getTodayLockerLogs error:', error.message); return {} }
-  const map = {}
-  for (const r of (data || [])) {
-    if (!map[r.locker_id]) map[r.locker_id] = { read_time: r.read_time }
-  }
-  return map
-}
-
 // ブースの直近読み値
 export async function getLastReading(boothCode) {
   const { data, error } = await supabase

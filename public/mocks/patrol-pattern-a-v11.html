@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>パターンA v11</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@600&display=swap');
+:root{--bg:#0a0a12;--sf:#12121e;--sf2:#1a1a2e;--sf3:#222238;--bd:#2a2a44;--tx:#e8e8f0;--mu:#b0b0c5;--ac:#f0c040;--gn:#2ecc71;--bl:#5dade2;--pr:#a855f7;--rd:#ff6b6b;--inh:#d0d0e0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-size:16px}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);padding:10px}
+.m{font-family:'JetBrains Mono',monospace}
+input,select{font-size:16px;background:var(--sf3);border:1px solid var(--bd);border-radius:4px;padding:0.45em 0.5em;color:var(--inh);font-family:'JetBrains Mono',monospace;-webkit-appearance:none;appearance:none;line-height:1.2}
+input:focus,select:focus{outline:none;border-color:var(--ac)}
+input[inputmode="numeric"]{text-align:right}
+input.active{color:var(--tx)}
+input.ro{color:var(--mu);background:rgba(18,18,30,.8);border-color:transparent;pointer-events:none}
+
+.date-sel{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.date-sel span{font-size:11px;color:var(--mu)}
+.date-sel select{font-size:14px;color:var(--ac);background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:6px 10px;font-weight:700;font-family:'Noto Sans JP',monospace}
+
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;margin-bottom:6px}
+.mname{font-size:14px;font-weight:700}
+
+.zone{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:10px;margin-bottom:8px}
+
+.prev{display:flex;gap:8px;font-size:12px;padding:4px 6px;background:var(--sf2);border-radius:4px;margin-bottom:6px;color:var(--mu);flex-wrap:wrap}
+.prev b{color:#d8d8e8;font-family:'JetBrains Mono',monospace;font-weight:600}
+
+.io{display:flex;gap:4px;align-items:center;margin-bottom:6px}
+.cam{width:38px;height:38px;border-radius:6px;background:var(--bl);color:#000;border:none;font-size:17px;flex-shrink:0;padding:0}
+.io .grp{flex:1;display:flex;align-items:center;gap:2px;min-width:0}
+.io .grp>span{font-size:10px;color:var(--mu);flex-shrink:0;width:18px;text-align:center}
+.io .grp input{flex:1;min-width:0;padding:0.45em 0.35em}
+.io .sm{flex:0 0 auto;display:flex;align-items:center;gap:2px}
+.io .sm>span{font-size:10px;color:var(--ac);font-weight:700}
+.io .sm input{width:48px;padding:0.45em 0.35em}
+
+.calc{display:flex;gap:2px;padding:4px;font-size:11px;background:var(--sf2);border-radius:4px;margin-bottom:6px;align-items:center}
+.calc .c{flex:1;text-align:center;white-space:nowrap}
+.calc .cl{font-size:9px;color:var(--mu);display:block}
+.calc .cv{font-weight:700;color:var(--gn);font-family:'JetBrains Mono',monospace;font-size:12px}
+
+.rst{padding:5px 14px;border-radius:4px;background:var(--sf3);border:1px solid var(--bd);color:var(--mu);font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0}
+.rst:active{background:var(--rd);color:#fff;border-color:var(--rd)}
+
+.cmp{display:flex;gap:4px;align-items:center;margin-bottom:6px}
+.cmp>span{font-size:11px;color:var(--ac);font-weight:700;flex-shrink:0}
+.cmp input.prize{flex:1;min-width:0}
+.cmp input.w{max-width:70px}
+
+.set{display:flex;gap:3px;margin-bottom:6px;align-items:center}
+.set .sb{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.set .sb span{font-size:11px;color:var(--ac);font-weight:700}
+.set .sb input{width:42px;text-align:center;padding:0.35em 2px}
+.set .so{flex:1;display:flex;align-items:center;gap:2px;min-width:0}
+.set .so span{font-size:11px;color:var(--ac);font-weight:700}
+.set .so input{flex:1;min-width:0}
+
+.chg-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-top:8px;border-top:1px dashed var(--bd)}
+.chg-title{font-size:11px;color:var(--rd);font-weight:700}
+.chg-right{display:flex;gap:6px;align-items:center}
+.chg-type{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+.chg-type.replace{background:rgba(255,107,107,.15);color:var(--rd)}
+.chg-type.config{background:rgba(168,85,247,.15);color:var(--pr)}
+.chg-type.none{background:rgba(176,176,197,.1);color:var(--mu)}
+
+/* 売上リストテーブル */
+.hist{margin-top:4px}
+.hist table{width:100%;border-collapse:collapse;font-size:11px;font-family:'JetBrains Mono',monospace}
+.hist th{font-size:9px;color:var(--mu);font-weight:400;text-align:right;padding:3px 4px;border-bottom:1px solid var(--bd)}
+.hist th:first-child{text-align:left}
+.hist td{padding:3px 4px;text-align:right;color:var(--inh);border-bottom:1px solid rgba(42,42,68,.5)}
+.hist td:first-child{text-align:left;color:var(--mu)}
+.hist tr:last-child td{border-bottom:none}
+.hist .total td{color:var(--ac);font-weight:700;border-top:1px solid var(--ac);border-bottom:none}
+</style></head>
+<body>
+
+<div class="hdr">
+  <div class="date-sel">
+    <span>📅</span>
+    <select id="dateSel">
+      <option value="2026-04-11">04-11</option>
+      <option value="2026-04-10" selected>04-10</option>
+      <option value="2026-04-09">04-09</option>
+      <option value="2026-04-08">04-08</option>
+      <option value="2026-04-07">04-07</option>
+      <option value="2026-04-06">04-06</option>
+      <option value="2026-04-05">04-05</option>
+    </select>
+  </div>
+  <div class="mname">BUZZ4-1号機 / B01</div>
+</div>
+
+<div class="zone">
+  <div class="prev">
+    <span>前回 <b>04-03</b></span>
+    <span>in <b>9852100</b></span>
+    <span>out <b>3531500</b></span>
+    <span>残 <b>680</b></span>
+    <span>補 <b>0</b></span>
+  </div>
+
+  <div class="io">
+    <button class="cam">📷</button>
+    <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="p_in" class="m"></div>
+    <div class="grp"><span>OUT</span><input type="text" inputmode="numeric" id="p_out" class="m"></div>
+    <div class="sm"><span>残</span><input type="text" inputmode="numeric" maxlength="3" id="p_zan" class="m"></div>
+    <div class="sm"><span>補</span><input type="text" inputmode="numeric" maxlength="3" id="p_ho" class="m"></div>
+  </div>
+
+  <div class="calc">
+    <div class="c"><span class="cl">IN差</span><span class="cv" id="cv_in">—</span></div>
+    <div class="c"><span class="cl">OUT差</span><span class="cv" id="cv_out">—</span></div>
+    <div class="c"><span class="cl">理論残</span><span class="cv" id="cv_zan" style="color:var(--pr)">—</span></div>
+    <div class="c"><span class="cl">出率</span><span class="cv" id="cv_rate" style="color:var(--bl)">—</span></div>
+    <button class="rst" onclick="resetPatrol()">↩</button>
+  </div>
+
+  <div class="cmp">
+    <span>景</span><input type="text" id="p_prize" class="prize ro">
+    <span>@</span><input type="text" inputmode="numeric" id="p_cost" class="w m ro">
+  </div>
+
+  <div class="set">
+    <div class="sb"><span>A</span><input type="text" id="p_a" class="m ro"></div>
+    <div class="sb"><span>C</span><input type="text" id="p_c" class="m ro"></div>
+    <div class="sb"><span>L</span><input type="text" id="p_l" class="m ro"></div>
+    <div class="sb"><span>R</span><input type="text" id="p_r" class="m ro"></div>
+    <div class="so"><span>O</span><input type="text" id="p_o"></div>
+  </div>
+
+  <!-- 入替/設定変更ゾーン -->
+  <div class="chg-hdr">
+    <span class="chg-title">▼ 入替/設定変更 04-11</span>
+    <div class="chg-right">
+      <span class="chg-type none" id="chgType">変更なし</span>
+      <button class="rst" onclick="resetChange()">↩</button>
+    </div>
+  </div>
+
+  <div class="io">
+    <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="c_in" class="m"></div>
+    <div class="grp"><span>OUT</span><input type="text" inputmode="numeric" id="c_out" class="m"></div>
+    <div class="sm"><span>残</span><input type="text" inputmode="numeric" maxlength="3" id="c_zan" class="m"></div>
+    <div class="sm"><span>補</span><input type="text" inputmode="numeric" maxlength="3" id="c_ho" class="m" value="-" style="text-align:center"></div>
+  </div>
+
+  <div class="cmp">
+    <span>景</span><input type="text" id="c_prize" class="prize">
+    <span>@</span><input type="text" inputmode="numeric" id="c_cost" class="w m">
+  </div>
+
+  <div class="set">
+    <div class="sb"><span>A</span><input type="text" inputmode="numeric" maxlength="3" id="c_a" class="m"></div>
+    <div class="sb"><span>C</span><input type="text" inputmode="numeric" maxlength="3" id="c_c" class="m"></div>
+    <div class="sb"><span>L</span><input type="text" inputmode="numeric" maxlength="3" id="c_l" class="m"></div>
+    <div class="sb"><span>R</span><input type="text" inputmode="numeric" maxlength="3" id="c_r" class="m"></div>
+    <div class="so"><span>O</span><input type="text" id="c_o"></div>
+  </div>
+
+  <!-- 今月サマリー（最下部に移動） -->
+  <div class="calc" style="margin-top:10px;border-top:1px solid var(--bd);padding-top:8px">
+    <div class="c"><span class="cl">今月売上</span><span class="cv" style="color:var(--ac)">¥40000</span></div>
+    <div class="c"><span class="cl">今月予測</span><span class="cv" style="color:var(--pr)">¥120000</span></div>
+    <div class="c"><span class="cl">景品代</span><span class="cv">¥5400</span></div>
+    <div class="c"><span class="cl">出率</span><span class="cv" style="color:var(--bl)">13.5%</span></div>
+  </div>
+
+  <!-- ブース売上リスト（集金区間） -->
+  <div class="hist">
+    <table>
+      <tr>
+        <th>日付</th>
+        <th>売上</th>
+        <th>払出数</th>
+        <th>払出金額</th>
+        <th>日売平均</th>
+      </tr>
+      <tr>
+        <td>3/20</td>
+        <td>13000</td>
+        <td>3</td>
+        <td>2700</td>
+        <td>3250</td>
+      </tr>
+      <tr>
+        <td>3/23</td>
+        <td>15000</td>
+        <td>2</td>
+        <td>1800</td>
+        <td>5000</td>
+      </tr>
+      <tr>
+        <td>3/27</td>
+        <td>12000</td>
+        <td>1</td>
+        <td>900</td>
+        <td>3000</td>
+      </tr>
+      <tr class="total">
+        <td>計</td>
+        <td>40000</td>
+        <td>6</td>
+        <td>5400</td>
+        <td>3750</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const PREV = {
+  in:9852100, out:3531500, zan:680, ho:0,
+  prize:'サンリオケープポーチ', cost:900,
+  a:50, c:80, l:40, r:60, o:''
+};
+
+const EL = {};
+['p_in','p_out','p_zan','p_ho','p_prize','p_cost','p_a','p_c','p_l','p_r','p_o',
+ 'c_in','c_out','c_zan','c_ho','c_prize','c_cost','c_a','c_c','c_l','c_r','c_o'
+].forEach(id => EL[id] = document.getElementById(id));
+
+function pn(v){ return parseInt(String(v).replace(/[^0-9-]/g,''),10)||0; }
+
+function init(){
+  EL.p_in.value = PREV.in;
+  EL.p_out.value = PREV.out;
+  // 残は理論残=前回残+前回補
+  EL.p_zan.value = PREV.zan + PREV.ho;
+  // 補はー（未補充）
+  EL.p_ho.value = '-';
+  EL.p_o.value = PREV.o;
+  EL.p_prize.value = PREV.prize;
+  EL.p_cost.value = PREV.cost;
+  EL.p_a.value = PREV.a;
+  EL.p_c.value = PREV.c;
+  EL.p_l.value = PREV.l;
+  EL.p_r.value = PREV.r;
+
+  const editableIds = ['p_in','p_out','p_zan','p_ho','p_o',
+    'c_in','c_out','c_zan','c_ho','c_prize','c_cost','c_a','c_c','c_l','c_r','c_o'];
+  const zanIds = ['p_zan','c_zan'];
+  editableIds.forEach(id => {
+    const el = EL[id];
+    const isZan = zanIds.includes(id);
+    el.addEventListener('focus', function(){
+      // 残欄はフォーカスだけではtouchedにしない
+      if(!isZan && !this.dataset.touched){
+        this.dataset.touched = '1';
+        this.classList.add('active');
+      }
+      this.select();
+    });
+    el.addEventListener('input', function(){
+      this.dataset.touched = '1';
+      this.classList.add('active');
+      recalc();
+    });
+  });
+  recalc();
+}
+
+function recalc(){
+  const inV = pn(EL.p_in.value);
+  const outV = pn(EL.p_out.value);
+  const inDiff = inV - PREV.in;
+  const outDiff = outV - PREV.out;
+  const theory = PREV.zan + PREV.ho - (outDiff > 0 ? outDiff : 0);
+
+  if(!EL.p_zan.dataset.touched) EL.p_zan.value = Math.max(0, theory);
+
+  // calcバー常時更新
+  document.getElementById('cv_in').textContent = (inDiff>=0?'+':'')+inDiff;
+  document.getElementById('cv_out').textContent = (outDiff>=0?'+':'')+outDiff;
+  document.getElementById('cv_zan').textContent = Math.max(0, theory);
+  document.getElementById('cv_rate').textContent = inDiff > 0 ? ((outDiff/inDiff)*100).toFixed(1)+'%' : '—';
+
+  syncChg();
+}
+
+function syncChg(){
+  const pZan = pn(EL.p_zan.value);
+  const pHo = pn(EL.p_ho.value);
+  if(!EL.c_in.dataset.touched) EL.c_in.value = EL.p_in.value;
+  if(!EL.c_out.dataset.touched) EL.c_out.value = EL.p_out.value;
+  if(!EL.c_zan.dataset.touched) EL.c_zan.value = pZan + pHo;
+  if(!EL.c_prize.dataset.touched) EL.c_prize.value = EL.p_prize.value;
+  if(!EL.c_cost.dataset.touched) EL.c_cost.value = EL.p_cost.value;
+  if(!EL.c_a.dataset.touched) EL.c_a.value = EL.p_a.value;
+  if(!EL.c_c.dataset.touched) EL.c_c.value = EL.p_c.value;
+  if(!EL.c_l.dataset.touched) EL.c_l.value = EL.p_l.value;
+  if(!EL.c_r.dataset.touched) EL.c_r.value = EL.p_r.value;
+  if(!EL.c_o.dataset.touched) EL.c_o.value = EL.p_o.value;
+  detectChange();
+}
+
+function detectChange(){
+  const prizeChanged = EL.c_prize.dataset.touched && EL.c_prize.value !== EL.p_prize.value;
+  const settingsChanged = ['a','c','l','r','o'].some(k => {
+    const el = EL['c_'+k];
+    return el.dataset.touched && el.value !== EL['p_'+k].value;
+  });
+  const badge = document.getElementById('chgType');
+  if(prizeChanged){
+    badge.textContent = '景品入替';
+    badge.className = 'chg-type replace';
+  } else if(settingsChanged){
+    badge.textContent = '設定変更';
+    badge.className = 'chg-type config';
+  } else {
+    badge.textContent = '変更なし';
+    badge.className = 'chg-type none';
+  }
+}
+
+function resetPatrol(){
+  ['p_in','p_out','p_zan','p_ho','p_o'].forEach(id => {
+    delete EL[id].dataset.touched;
+    EL[id].classList.remove('active');
+  });
+  EL.p_in.value = PREV.in;
+  EL.p_out.value = PREV.out;
+  EL.p_zan.value = PREV.zan + PREV.ho;
+  EL.p_ho.value = '-';
+  EL.p_o.value = PREV.o;
+  recalc();
+}
+
+function resetChange(){
+  ['c_in','c_out','c_zan','c_ho','c_prize','c_cost','c_a','c_c','c_l','c_r','c_o'].forEach(id => {
+    delete EL[id].dataset.touched;
+    EL[id].classList.remove('active');
+  });
+  EL.c_ho.value = '-';
+  syncChg();
+}
+
+init();
+</script>
+
+</body></html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>パターンB v5</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@600&display=swap');
+:root{--bg:#0a0a12;--sf:#12121e;--sf2:#1a1a2e;--sf3:#222238;--bd:#2a2a44;--tx:#e8e8f0;--mu:#b0b0c5;--ac:#f0c040;--gn:#2ecc71;--bl:#5dade2;--pr:#a855f7;--rd:#ff6b6b;--inh:#d0d0e0}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-size:16px}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);padding:10px}
+.m{font-family:'JetBrains Mono',monospace}
+input,select{font-size:16px;background:var(--sf3);border:1px solid var(--bd);border-radius:4px;padding:0.4em 0.4em;color:var(--inh);font-family:'JetBrains Mono',monospace;-webkit-appearance:none;appearance:none;line-height:1.2}
+input:focus,select:focus{outline:none;border-color:var(--ac)}
+input[inputmode="numeric"]{text-align:right}
+input.active{color:var(--tx)}
+input.ro{color:var(--mu);background:rgba(18,18,30,.8);border-color:transparent;pointer-events:none}
+
+.date-sel{display:flex;align-items:center;gap:6px}
+.date-sel span{font-size:11px;color:var(--mu)}
+.date-sel select{font-size:14px;color:var(--ac);background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:6px 10px;font-weight:700}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;margin-bottom:6px}
+.mname{font-size:13px;font-weight:700}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-right:4px;background:rgba(168,85,247,.15);color:var(--pr)}
+.zone{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:10px;margin-bottom:8px}
+
+/* 前回情報 1行 */
+.prev{display:flex;gap:6px;font-size:10px;padding:3px 6px;background:var(--sf2);border-radius:4px;margin-bottom:6px;color:var(--mu);flex-wrap:wrap;align-items:center}
+.prev b{color:#d8d8e8;font-family:'JetBrains Mono',monospace;font-weight:600}
+.prev .ga{color:var(--gn)}
+.prev .gb{color:var(--bl)}
+.prev .gc{color:var(--rd)}
+
+.in-row{display:flex;gap:4px;align-items:center;margin-bottom:6px}
+.cam{width:36px;height:36px;border-radius:6px;background:var(--bl);color:#000;border:none;font-size:16px;flex-shrink:0;padding:0}
+.in-row .grp{flex:1;display:flex;align-items:center;gap:2px;min-width:0}
+.in-row .grp>span{font-size:10px;color:var(--mu);flex-shrink:0}
+.in-row .grp input{flex:1;min-width:0;padding:0.4em 0.35em}
+.in-row .dv{font-size:11px;font-weight:700;color:var(--gn);font-family:'JetBrains Mono',monospace;white-space:nowrap;padding:0 4px}
+.rst{padding:4px 12px;border-radius:4px;background:var(--sf3);border:1px solid var(--bd);color:var(--mu);font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0}
+.rst:active{background:var(--rd);color:#fff;border-color:var(--rd)}
+
+.og{display:flex;gap:3px;align-items:center;margin-bottom:5px;padding:4px 6px;background:var(--sf2);border-radius:4px;border-left:3px solid var(--pr);flex-wrap:nowrap}
+.og.a{border-left-color:var(--gn)}
+.og.b{border-left-color:var(--bl)}
+.og.c{border-left-color:var(--rd)}
+.og>span.ol{font-size:9px;font-weight:700;flex-shrink:0;width:10px}
+.og.a>span.ol{color:var(--gn)}
+.og.b>span.ol{color:var(--bl)}
+.og.c>span.ol{color:var(--rd)}
+.og input{padding:0.35em 0.3em;min-width:0}
+.og .out-in{flex:1.5}
+.og .sm-in{width:36px}
+.og .prize-in{flex:2;min-width:0}
+.og .cost-in{width:48px}
+.og .dv{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap;flex-shrink:0}
+.og.a .dv{color:var(--gn)}
+.og.b .dv{color:var(--bl)}
+.og.c .dv{color:var(--rd)}
+.lbl{font-size:9px;color:var(--mu);flex-shrink:0}
+
+.set-o{display:flex;gap:3px;align-items:center;margin-bottom:6px}
+.set-o span{font-size:11px;color:var(--ac);font-weight:700;flex-shrink:0}
+.set-o input{flex:1;min-width:0}
+
+.chg-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-top:6px;border-top:1px dashed var(--bd)}
+.chg-title{font-size:11px;color:var(--rd);font-weight:700}
+.chg-right{display:flex;gap:6px;align-items:center}
+.chg-type{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+.chg-type.replace{background:rgba(255,107,107,.15);color:var(--rd)}
+.chg-type.config{background:rgba(168,85,247,.15);color:var(--pr)}
+.chg-type.none{background:rgba(176,176,197,.1);color:var(--mu)}
+
+.calc{display:flex;gap:2px;padding:3px 4px;font-size:11px;background:var(--sf2);border-radius:4px;margin-bottom:4px}
+.calc .c{flex:1;text-align:center;white-space:nowrap}
+.calc .cl{font-size:9px;color:var(--mu);display:block}
+.calc .cv{font-weight:700;color:var(--gn);font-family:'JetBrains Mono',monospace;font-size:11px}
+
+.hist table{width:100%;border-collapse:collapse;font-size:10px;font-family:'JetBrains Mono',monospace}
+.hist th{font-size:9px;color:var(--mu);font-weight:400;text-align:right;padding:2px 3px;border-bottom:1px solid var(--bd)}
+.hist th:first-child{text-align:left}
+.hist td{padding:2px 3px;text-align:right;color:var(--inh);border-bottom:1px solid rgba(42,42,68,.4)}
+.hist td:first-child{text-align:left;color:var(--mu)}
+.hist .total td{color:var(--ac);font-weight:700;border-top:1px solid var(--ac);border-bottom:none}
+</style></head>
+<body>
+
+<div class="hdr">
+  <div class="date-sel"><span>📅</span><select><option selected>04-10</option><option>04-09</option><option>04-08</option><option>04-07</option></select></div>
+  <div class="mname"><span class="badge">その他</span>バーバーカット / B01</div>
+</div>
+
+<div class="zone">
+  <!-- 前回情報 1行 -->
+  <div class="prev">
+    <span><b>04-03</b></span>
+    <span>in<b>8200</b></span>
+    <span class="ga">A<b>1200</b>残<b>12</b></span>
+    <span class="gb">B<b>560</b>残<b>5</b></span>
+    <span class="gc">C<b>87</b>残<b>2</b></span>
+  </div>
+
+  <div class="in-row">
+    <button class="cam">📷</button>
+    <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="p_in" class="m"></div>
+    <div class="dv" id="cv_in">—</div>
+    <button class="rst" onclick="resetPatrol()">↩</button>
+  </div>
+
+  <div class="og a">
+    <span class="ol">A</span>
+    <input type="text" inputmode="numeric" id="p_oa" class="m out-in">
+    <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="p_za" class="m sm-in">
+    <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="p_ha" class="m sm-in">
+    <input type="text" id="p_pa" class="prize-in ro">
+    <span class="lbl">@</span><input type="text" inputmode="numeric" id="p_ca" class="m cost-in ro">
+    <span class="dv" id="cv_oa">—</span>
+  </div>
+  <div class="og b">
+    <span class="ol">B</span>
+    <input type="text" inputmode="numeric" id="p_ob" class="m out-in">
+    <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="p_zb" class="m sm-in">
+    <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="p_hb" class="m sm-in">
+    <input type="text" id="p_pb" class="prize-in ro">
+    <span class="lbl">@</span><input type="text" inputmode="numeric" id="p_cb" class="m cost-in ro">
+    <span class="dv" id="cv_ob">—</span>
+  </div>
+  <div class="og c">
+    <span class="ol">C</span>
+    <input type="text" inputmode="numeric" id="p_oc" class="m out-in">
+    <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="p_zc" class="m sm-in">
+    <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="p_hc" class="m sm-in">
+    <input type="text" id="p_pc" class="prize-in ro">
+    <span class="lbl">@</span><input type="text" inputmode="numeric" id="p_cc" class="m cost-in ro">
+    <span class="dv" id="cv_oc">—</span>
+  </div>
+
+  <div class="set-o"><span>O</span><input type="text" id="p_o" placeholder="設定メモ"></div>
+
+  <div class="chg-hdr">
+    <span class="chg-title">▼ 入替/設定変更 04-11</span>
+    <div class="chg-right">
+      <span class="chg-type none" id="chgType">変更なし</span>
+      <button class="rst" onclick="resetChange()">↩</button>
+    </div>
+  </div>
+
+  <div class="in-row">
+    <div class="grp"><span>IN</span><input type="text" inputmode="numeric" id="c_in" class="m"></div>
+  </div>
+  <div class="og a">
+    <span class="ol">A</span>
+    <input type="text" inputmode="numeric" id="c_oa" class="m out-in">
+    <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="c_za" class="m sm-in">
+    <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="c_ha" class="m sm-in" value="-" style="text-align:center">
+    <input type="text" id="c_pa" class="prize-in">
+    <span class="lbl">@</span><input type="text" inputmode="numeric" id="c_ca" class="m cost-in">
+  </div>
+  <div class="og b">
+    <span class="ol">B</span>
+    <input type="text" inputmode="numeric" id="c_ob" class="m out-in">
+    <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="c_zb" class="m sm-in">
+    <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="c_hb" class="m sm-in" value="-" style="text-align:center">
+    <input type="text" id="c_pb" class="prize-in">
+    <span class="lbl">@</span><input type="text" inputmode="numeric" id="c_cb" class="m cost-in">
+  </div>
+  <div class="og c">
+    <span class="ol">C</span>
+    <input type="text" inputmode="numeric" id="c_oc" class="m out-in">
+    <span class="lbl">残</span><input type="text" inputmode="numeric" maxlength="3" id="c_zc" class="m sm-in">
+    <span class="lbl">補</span><input type="text" inputmode="numeric" maxlength="3" id="c_hc" class="m sm-in" value="-" style="text-align:center">
+    <input type="text" id="c_pc" class="prize-in">
+    <span class="lbl">@</span><input type="text" inputmode="numeric" id="c_cc" class="m cost-in">
+  </div>
+  <div class="set-o"><span>O</span><input type="text" id="c_o"></div>
+
+  <div class="calc" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
+    <div class="c"><span class="cl">今月売上</span><span class="cv" style="color:var(--ac)">¥125000</span></div>
+    <div class="c"><span class="cl">今月予測</span><span class="cv" style="color:var(--pr)">¥375000</span></div>
+    <div class="c"><span class="cl">景品代</span><span class="cv">¥52000</span></div>
+    <div class="c"><span class="cl">出率</span><span class="cv" style="color:var(--bl)">41.6%</span></div>
+  </div>
+  <div class="hist">
+    <table>
+      <tr><th>日付</th><th>売上</th><th>A</th><th>B</th><th>C</th><th>日売平均</th></tr>
+      <tr><td>3/20</td><td>25000</td><td>18</td><td>5</td><td>1</td><td>6250</td></tr>
+      <tr><td>3/23</td><td>32000</td><td>22</td><td>8</td><td>0</td><td>10667</td></tr>
+      <tr><td>3/27</td><td>18000</td><td>10</td><td>3</td><td>1</td><td>4500</td></tr>
+      <tr class="total"><td>計</td><td>75000</td><td>50</td><td>16</td><td>2</td><td>7028</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const PREV={in:8200,oa:1200,za:12,ha:0,pa:'ちいかわマスコット',ca:500,ob:560,zb:5,hb:0,pb:'推しの子アクスタ',cb:800,oc:87,zc:2,hc:0,pc:'限定フィギュア',cc:2500,o:''};
+
+function pn(v){return parseInt(String(v).replace(/[^0-9-]/g,''),10)||0;}
+function $(id){return document.getElementById(id);}
+
+// フォーカス→全選択＋active（A基本設計と同一）
+document.querySelectorAll('.zone input:not(.ro)').forEach(el=>{
+  const zanIds=['p_za','p_zb','p_zc','c_za','c_zb','c_zc'];
+  const isZan=zanIds.includes(el.id);
+  el.addEventListener('focus',function(){
+    if(!isZan&&!this.dataset.touched){this.dataset.touched='1';this.classList.add('active');}
+    this.select();
+  });
+  el.addEventListener('input',function(){
+    this.dataset.touched='1';this.classList.add('active');recalc();
+  });
+});
+
+function init(){
+  $('p_in').value=PREV.in;
+  ['a','b','c'].forEach(k=>{
+    $('p_o'+k).value=PREV['o'+k];
+    // 残は理論残=前回残+前回補
+    $('p_z'+k).value=PREV['z'+k]+PREV['h'+k];
+    // 補はー
+    $('p_h'+k).value='-';
+    $('p_p'+k).value=PREV['p'+k];$('p_c'+k).value=PREV['c'+k];
+  });
+  $('p_o').value=PREV.o;
+  recalc();
+}
+
+function recalc(){
+  const inV=pn($('p_in').value),inDiff=inV-PREV.in;
+  $('cv_in').textContent=(inDiff>=0?'+':'')+inDiff;
+  ['a','b','c'].forEach(k=>{
+    const outV=pn($('p_o'+k).value),outDiff=outV-PREV['o'+k];
+    $('cv_o'+k).textContent=(outDiff>=0?'+':'')+outDiff;
+    const theory=PREV['z'+k]+PREV['h'+k]-(outDiff>0?outDiff:0);
+    if(!$('p_z'+k).dataset.touched) $('p_z'+k).value=Math.max(0,theory);
+  });
+  syncChg();
+}
+
+function syncChg(){
+  if(!$('c_in').dataset.touched) $('c_in').value=$('p_in').value;
+  ['a','b','c'].forEach(k=>{
+    if(!$('c_o'+k).dataset.touched) $('c_o'+k).value=$('p_o'+k).value;
+    if(!$('c_z'+k).dataset.touched) $('c_z'+k).value=pn($('p_z'+k).value)+pn($('p_h'+k).value);
+    if(!$('c_p'+k).dataset.touched) $('c_p'+k).value=$('p_p'+k).value;
+    if(!$('c_c'+k).dataset.touched) $('c_c'+k).value=$('p_c'+k).value;
+  });
+  if(!$('c_o').dataset.touched) $('c_o').value=$('p_o').value;
+  detectChange();
+}
+
+function detectChange(){
+  const prizeChanged=['a','b','c'].some(k=>$('c_p'+k).dataset.touched&&$('c_p'+k).value!==$('p_p'+k).value);
+  const oChanged=$('c_o').dataset.touched&&$('c_o').value!==$('p_o').value;
+  const badge=$('chgType');
+  if(prizeChanged){badge.textContent='景品入替';badge.className='chg-type replace';}
+  else if(oChanged){badge.textContent='設定変更';badge.className='chg-type config';}
+  else{badge.textContent='変更なし';badge.className='chg-type none';}
+}
+
+function resetPatrol(){
+  ['p_in','p_oa','p_za','p_ha','p_ob','p_zb','p_hb','p_oc','p_zc','p_hc','p_o'].forEach(id=>{delete $(id).dataset.touched;$(id).classList.remove('active');});
+  $('cv_in').textContent='—';['a','b','c'].forEach(k=>$('cv_o'+k).textContent='—');init();
+}
+function resetChange(){
+  ['c_in','c_oa','c_za','c_ha','c_pa','c_ca','c_ob','c_zb','c_hb','c_pb','c_cb','c_oc','c_zc','c_hc','c_pc','c_cc','c_o'].forEach(id=>{delete $(id).dataset.touched;$(id).classList.remove('active');});
+  ['c_ha','c_hb','c_hc'].forEach(id=>{$(id).value='-';});syncChg();
+}
+
+init();
+</script>
+
+</body></html>
