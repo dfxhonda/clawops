@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/auth/AuthProvider'
-import { triggerDailyStatsCompute } from '../services/stats'
+import { useAuth } from '../../lib/auth/AuthProvider'
+import { triggerDailyStatsCompute } from '../../services/stats'
 
 function yesterday() {
   const d = new Date()

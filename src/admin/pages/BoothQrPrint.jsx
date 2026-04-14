@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
-import { getStores, getMachines, getBooths } from '../services/masters'
-import LogoutButton from '../components/LogoutButton'
+import { getStores, getMachines, getBooths } from '../../services/masters'
+import LogoutButton from '../../components/LogoutButton'
 
 const BASE_URL = 'https://clawops-tau.vercel.app'
 

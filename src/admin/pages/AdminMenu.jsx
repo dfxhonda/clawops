@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import LogoutButton from '../components/LogoutButton'
-import { buildLabel } from '../lib/buildInfo'
-import { useAuth } from '../hooks/useAuth'
+import LogoutButton from '../../components/LogoutButton'
+import { buildLabel } from '../../lib/buildInfo'
+import { useAuth } from '../../hooks/useAuth'
 
 const DOCS_BASE = '/docs/'
 

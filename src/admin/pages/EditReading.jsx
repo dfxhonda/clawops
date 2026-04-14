@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { updateReading } from '../services/readings'
-import { parseNum } from '../services/utils'
-import { supabase } from '../lib/supabase'
-import ReasonSelect from '../components/ReasonSelect'
-import { formatReason } from '../services/audit'
+import { updateReading } from '../../services/readings'
+import { parseNum } from '../../services/utils'
+import { supabase } from '../../lib/supabase'
+import ReasonSelect from '../../components/ReasonSelect'
+import { formatReason } from '../../services/audit'
 
 export default function EditReading() {
   const { boothId } = useParams()

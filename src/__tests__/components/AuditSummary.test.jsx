@@ -70,7 +70,7 @@ beforeEach(async () => {
     ],
   }, makeSession())
 
-  const mod = await import('../../pages/AuditSummary')
+  const mod = await import('../../admin/pages/AuditSummary')
   AuditSummary = mod.default
 })
 

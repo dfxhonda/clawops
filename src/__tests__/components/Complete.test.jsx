@@ -8,8 +8,8 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => vi.fn() }
 })
 
-import Complete from '../../pages/Complete'
-import { REPORT_KEY } from '../../pages/DraftList'
+import Complete from '../../patrol/pages/Complete'
+import { REPORT_KEY } from '../../patrol/pages/DraftList'
 
 function renderComplete(locationState = {}) {
   return render(

@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAuditLogs, AUDIT_ACTIONS, AUDIT_REASONS } from '../services/audit'
-import { getStaffMap } from '../services/readings'
-import { useAuth } from '../lib/auth/AuthProvider'
-import LogoutButton from '../components/LogoutButton'
-import ErrorDisplay from '../components/ErrorDisplay'
-import { useAsync } from '../hooks/useAsync'
+import { getAuditLogs, AUDIT_ACTIONS, AUDIT_REASONS } from '../../services/audit'
+import { getStaffMap } from '../../services/readings'
+import { useAuth } from '../../lib/auth/AuthProvider'
+import LogoutButton from '../../components/LogoutButton'
+import ErrorDisplay from '../../components/ErrorDisplay'
+import { useAsync } from '../../hooks/useAsync'
 
 const PAGE_SIZE = 100
 

@@ -32,7 +32,7 @@ vi.mock('../../components/LockerInput', () => ({ default: ({ onDone }) => (
 )}))
 
 import { getLastReading, saveBoothReading } from '../../services/patrol'
-import BoothInput from '../../pages/BoothInput'
+import BoothInput from '../../patrol/pages/BoothInput'
 
 const BOOTH = {
   booth_code: 'KOS01-M01-B01',

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStores, getMachines, getBooths } from '../services/masters'
-import { getAllMeterReadings } from '../services/readings'
-import { parseNum } from '../services/utils'
-import LogoutButton from '../components/LogoutButton'
-import { useAuth } from '../hooks/useAuth'
+import { getStores, getMachines, getBooths } from '../../services/masters'
+import { getAllMeterReadings } from '../../services/readings'
+import { parseNum } from '../../services/utils'
+import LogoutButton from '../../components/LogoutButton'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function Dashboard() {
   const navigate = useNavigate()

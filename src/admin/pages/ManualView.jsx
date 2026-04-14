@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
-import { getPublishedManual } from '../services/manuals'
+import { getPublishedManual } from '../../services/manuals'
 
 const SECTION_ORDER = ['error_codes', 'troubleshooting', 'settings']
 const SECTION_LABELS = {
