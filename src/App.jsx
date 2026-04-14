@@ -1,5 +1,16 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+
+// ===== ドメイン別ルーティング =====
+// patrol.clawops.app → 巡回アプリ専用（/admin へのアクセスは admin.clawops.app にリダイレクト）
+// admin.clawops.app  → 管理アプリ専用（/ へのアクセスは /admin にリダイレクト）
+// ※ Step 5（clawops-tau.vercel.app → 新ドメインへの旧URLリダイレクト）はドメイン取得後に追加
+const _host = window.location.hostname
+if (_host === 'patrol.clawops.app' && window.location.pathname.startsWith('/admin')) {
+  window.location.replace('https://admin.clawops.app' + window.location.pathname + window.location.search)
+} else if (_host === 'admin.clawops.app' && !window.location.pathname.startsWith('/admin') && window.location.pathname !== '/login') {
+  window.location.replace('/admin' + window.location.search)
+}
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider } from './lib/auth/AuthProvider'
 import { useAuth } from './hooks/useAuth'
