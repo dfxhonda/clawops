@@ -109,7 +109,7 @@ export default function AuditSummary() {
     <div className="min-h-screen bg-bg text-text max-w-lg mx-auto">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
+        <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
         <h1 className="flex-1 text-xl font-bold text-accent">監査サマリ</h1>
         <LogoutButton />
       </div>

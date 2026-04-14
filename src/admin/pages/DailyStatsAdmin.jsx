@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import { triggerDailyStatsCompute } from '../../services/stats'
+import LogoutButton from '../../components/LogoutButton'
 
 function yesterday() {
   const d = new Date()
@@ -39,8 +40,9 @@ export default function DailyStatsAdmin() {
   return (
     <div className="min-h-screen pb-16">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
-        <button onClick={() => navigate('/admin')} className="text-xl text-muted hover:text-accent">←</button>
+        <button onClick={() => navigate('/admin/menu')} className="text-xl text-muted hover:text-accent">←</button>
         <span className="font-bold text-sm flex-1">日次集計バッチ</span>
+        <LogoutButton />
       </div>
 
       <div className="px-4 py-6 max-w-md mx-auto space-y-6">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth/AuthProvider'
 import { clearCache } from '../../services/utils'
 import { getPrizes } from '../../services/prizes'
+import LogoutButton from '../../components/LogoutButton'
 
 const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 const SHEET_NAME = 'meter_readings'
@@ -299,11 +300,12 @@ export default function TestDataImport() {
   return (
     <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto pb-24">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
-        <div>
+        <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-accent">テストデータ投入</h1>
           <p className="text-xs text-muted">巡回データ＋棚卸しデータのシミュレーション</p>
         </div>
+        <LogoutButton />
       </div>
 
       {/* ===== 棚卸しテストデータ ===== */}

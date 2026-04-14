@@ -179,7 +179,7 @@ export default function DataSearch() {
       {/* 固定ヘッダー+検索セクション */}
       <div className="shrink-0 px-4 pt-4">
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => navigate('/')} className="bg-surface2 border border-border text-text rounded-lg px-3 py-1.5 text-base">←</button>
+          <button onClick={() => navigate('/admin/menu')} className="bg-surface2 border border-border text-text rounded-lg px-3 py-1.5 text-base">←</button>
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold">データ検索・修正</div>
             <div className="text-xs text-muted mt-0.5">{filterStore ? `${allReadings.length}件` : '店舗を選択してください'}</div>

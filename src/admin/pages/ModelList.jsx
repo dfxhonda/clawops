@@ -170,7 +170,7 @@ export default function ModelList() {
 
       {/* ━━━ ヘッダー ━━━ */}
       <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
-        <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
+        <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
         <div className="flex-1">
           <h2 className="text-base font-bold">機種マスタ</h2>
           <p className="text-[11px] text-muted">機種の登録・編集・削除</p>

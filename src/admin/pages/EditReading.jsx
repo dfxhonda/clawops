@@ -5,6 +5,7 @@ import { parseNum } from '../../services/utils'
 import { supabase } from '../../lib/supabase'
 import ReasonSelect from '../../components/ReasonSelect'
 import { formatReason } from '../../services/audit'
+import LogoutButton from '../../components/LogoutButton'
 
 export default function EditReading() {
   const { boothId } = useParams()
@@ -80,10 +81,11 @@ export default function EditReading() {
     <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
       <div className="flex items-center gap-3 mb-5">
         <button onClick={() => navigate(-1)} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
-        <div>
+        <div className="flex-1">
           <h2 className="text-lg font-bold">データ修正</h2>
           <p className="text-xs text-muted">{readings[0]?.full_booth_code}</p>
         </div>
+        <LogoutButton />
       </div>
 
       {error && (

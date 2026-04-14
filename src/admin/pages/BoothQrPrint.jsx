@@ -113,7 +113,7 @@ export default function BoothQrPrint() {
 
       {/* ヘッダー（印刷時非表示） */}
       <div className="print:hidden sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3">
-        <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
+        <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
         <div className="flex-1">
           <h2 className="text-base font-bold">QRコード印刷</h2>
           <p className="text-[11px] text-muted">ブースQRラベル生成</p>

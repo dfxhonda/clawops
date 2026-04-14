@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth/AuthProvider'
+import LogoutButton from '../../components/LogoutButton'
 
 const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'
 
@@ -214,8 +215,9 @@ export default function SetupSheets() {
   return (
     <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
-        <h1 className="text-xl font-bold text-accent">シートセットアップ</h1>
+        <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
+        <h1 className="flex-1 text-xl font-bold text-accent">シートセットアップ</h1>
+        <LogoutButton />
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-4 mb-4">
