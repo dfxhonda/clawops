@@ -61,6 +61,12 @@ const AuditLog = lazy(() => import('./admin/pages/AuditLog'))
 const AuditSummary = lazy(() => import('./admin/pages/AuditSummary'))
 const DailyStatsAdmin = lazy(() => import('./admin/pages/DailyStatsAdmin'))
 
+// 遅延ロード — 棚卸しアプリ（PIN認証）
+const StocktakeLogin = lazy(() => import('./stock/pages/StocktakeLogin'))
+const StocktakeTop = lazy(() => import('./stock/pages/StocktakeTop'))
+const StocktakeCount = lazy(() => import('./stock/pages/StocktakeCount'))
+const StocktakeSummary = lazy(() => import('./stock/pages/StocktakeSummary'))
+
 
 // ローディングスピナー（Suspense フォールバック）
 function PageLoader() {
@@ -136,6 +142,12 @@ function AppInner() {
       <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
       <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
 
+
+      {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
+      <Route path="/stock" element={<StocktakeLogin />} />
+      <Route path="/stock/top" element={<StocktakeTop />} />
+      <Route path="/stock/count/:sessionId" element={<StocktakeCount />} />
+      <Route path="/stock/summary/:sessionId" element={<StocktakeSummary />} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
