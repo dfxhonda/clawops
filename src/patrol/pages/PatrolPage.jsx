@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { detectAlerts } from '../../utils/patrolAlerts'
@@ -49,6 +49,37 @@ export default function PatrolPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
+
+  // スワイプナビゲーション
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
+  // machines から全ブースのフラットリストを作成 [{machine, booth}]
+  const allBooths = useMemo(() => {
+    const machines = state?.machines ?? []
+    return machines.flatMap(m => m.booths.map(b => ({ machine: m, booth: b })))
+  }, [state?.machines])
+  const currentIdx = allBooths.findIndex(x => x.booth.booth_code === booth?.booth_code)
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+  function handleTouchEnd(e) {
+    if (showOcr || lockerView) return
+    if (touchStartX.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    touchStartX.current = null
+    touchStartY.current = null
+    if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy)) return
+    const nextIdx = dx < 0 ? currentIdx + 1 : currentIdx - 1
+    if (nextIdx < 0 || nextIdx >= allBooths.length) return
+    const { machine, booth: nextBooth } = allBooths[nextIdx]
+    navigate('/patrol/input', {
+      replace: true,
+      state: { ...state, machine, booth: nextBooth },
+    })
+  }
 
   // ロッカー読み込み
   useEffect(() => {
@@ -599,7 +630,11 @@ export default function PatrolPage() {
 
   // ── メイン描画 ─────────────────────────────────────────────────
   return (
-    <div style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}>
+    <div
+      style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
 
       {/* ヘッダー */}
       <PatrolHeader

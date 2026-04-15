@@ -73,6 +73,7 @@ export default function PatrolOverview() {
       state: {
         booth,
         machine,
+        machines,
         storeCode: selStore,
         storeName: stores.find(s => s.store_code === selStore)?.store_name || '',
       },
