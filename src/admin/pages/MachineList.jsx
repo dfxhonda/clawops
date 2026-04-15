@@ -255,7 +255,7 @@ export default function AdminMachineList() {
           <h2 className="text-base font-bold">機械登録</h2>
           <p className="text-[11px] text-muted">機械の追加・編集</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
       <AdminNav />
 

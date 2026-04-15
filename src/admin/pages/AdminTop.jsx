@@ -16,7 +16,7 @@ export default function AdminTop() {
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3">
         <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
         <div className="flex-1 text-base font-bold">管理メニュー</div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
 
       <div className="px-4 pt-4 space-y-3">

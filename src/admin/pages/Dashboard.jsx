@@ -92,7 +92,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted hover:text-accent">←</button>
           <div className="flex-1 text-base font-bold">ダッシュボード</div>
-          <LogoutButton />
+          <LogoutButton to="/admin/menu" />
         </div>
       </div>
 

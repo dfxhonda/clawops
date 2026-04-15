@@ -127,7 +127,7 @@ export default function ImportSlips() {
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
         <h1 className="flex-1 text-xl font-bold text-accent">集金帳票インポート</h1>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-4 mb-4">

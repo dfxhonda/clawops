@@ -175,7 +175,7 @@ export default function ModelList() {
           <h2 className="text-base font-bold">機種マスタ</h2>
           <p className="text-[11px] text-muted">機種の登録・編集・削除</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
       <AdminNav />
 

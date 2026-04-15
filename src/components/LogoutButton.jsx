@@ -4,10 +4,10 @@
 // ============================================
 import { useNavigate } from 'react-router-dom'
 
-export default function LogoutButton({ className }) {
+export default function LogoutButton({ className, to = '/' }) {
   const navigate = useNavigate()
   return (
-    <button onClick={() => navigate('/')}
+    <button onClick={() => navigate(to)}
       className={className || 'text-[10px] text-muted hover:text-accent'}>
       ⌂ メニュー
     </button>

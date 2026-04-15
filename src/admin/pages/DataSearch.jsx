@@ -184,7 +184,7 @@ export default function DataSearch() {
             <div className="text-lg font-bold">データ検索・修正</div>
             <div className="text-xs text-muted mt-0.5">{filterStore ? `${allReadings.length}件` : '店舗を選択してください'}</div>
           </div>
-          <LogoutButton />
+          <LogoutButton to="/admin/menu" />
         </div>
 
         {errorProps && <ErrorDisplay {...errorProps} />}

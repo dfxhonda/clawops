@@ -118,7 +118,7 @@ export default function BoothQrPrint() {
           <h2 className="text-base font-bold">QRコード印刷</h2>
           <p className="text-[11px] text-muted">ブースQRラベル生成</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
 
       {/* 操作パネル（印刷時非表示） */}

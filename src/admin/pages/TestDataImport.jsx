@@ -305,7 +305,7 @@ export default function TestDataImport() {
           <h1 className="text-xl font-bold text-accent">テストデータ投入</h1>
           <p className="text-xs text-muted">巡回データ＋棚卸しデータのシミュレーション</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
 
       {/* ===== 棚卸しテストデータ ===== */}

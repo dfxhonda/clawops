@@ -96,7 +96,7 @@ export default function BoothList() {
           <h2 className="text-base font-bold">ブース一覧</h2>
           <p className="text-[11px] text-muted">ブース設定の確認・編集</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
       <AdminNav />
 

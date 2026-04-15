@@ -175,7 +175,7 @@ export default function ManualEditor() {
             <h2 className="text-base font-bold">マニュアル管理</h2>
             <p className="text-[11px] text-muted">機種マニュアルの作成・編集</p>
           </div>
-          <LogoutButton />
+          <LogoutButton to="/admin/menu" />
         </div>
         <AdminNav />
 
@@ -231,7 +231,7 @@ export default function ManualEditor() {
           <h2 className="text-base font-bold truncate">{selectedModel.model_name}</h2>
           <p className="text-[11px] text-muted">マニュアル編集</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
       <AdminNav />
 

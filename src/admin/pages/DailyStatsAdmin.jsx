@@ -42,7 +42,7 @@ export default function DailyStatsAdmin() {
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
         <button onClick={() => navigate('/admin/menu')} className="text-xl text-muted hover:text-accent">←</button>
         <span className="font-bold text-sm flex-1">日次集計バッチ</span>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
 
       <div className="px-4 py-6 max-w-md mx-auto space-y-6">

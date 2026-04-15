@@ -138,7 +138,7 @@ export default function LockerList() {
           <h2 className="text-base font-bold">ロッカー登録</h2>
           <p className="text-[11px] text-muted">ガチャ機のロッカー設定</p>
         </div>
-        <LogoutButton />
+        <LogoutButton to="/admin/menu" />
       </div>
       <AdminNav />
 
