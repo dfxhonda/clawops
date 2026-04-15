@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </head>
 <body>
 <div class="header no-print">
-  <a href="index.html" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
+  <a href="/admin/menu" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:16px;border:1px solid var(--border);text-decoration:none;flex-shrink:0">🏠</a>
   <h1>💰 集金帳票</h1>
   <button class="btn" style="background:var(--green);color:var(--white)" onclick="window.print()">🖨️ PDF</button>
   <button class="btn" style="background:var(--cyan);color:var(--white)" onclick="generateReport()">📤 報告</button>
@@ -360,7 +360,7 @@ function renderHistory(store){
 loadStores().catch(e=>{document.getElementById('content').innerHTML=`<div style="color:var(--red);padding:20px">エラー: ${esc(e.message)}</div>`});
 </script>
 <nav class="bottom-nav no-print">
-  <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div><div>ホーム</div></a>
+  <a class="nav-item" href="/admin/menu"><div class="nav-icon">🏠</div><div>ホーム</div></a>
   <a class="nav-item" href="prizes.html"><div class="nav-icon">🏆</div><div>景品</div></a>
   <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div><div>発注</div></a>
   <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div><div>在庫</div></a>
