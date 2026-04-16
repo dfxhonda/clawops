@@ -61,6 +61,10 @@ const AuditLog = lazy(() => import('./admin/pages/AuditLog'))
 const AuditSummary = lazy(() => import('./admin/pages/AuditSummary'))
 const DailyStatsAdmin = lazy(() => import('./admin/pages/DailyStatsAdmin'))
 
+// 遅延ロード — OCRアプリ
+const PatrolCameraPage  = lazy(() => import('./patrol/pages/PatrolCameraPage'))
+const PatrolBatchOcrPage = lazy(() => import('./patrol/pages/PatrolBatchOcrPage'))
+
 // 遅延ロード — 棚卸しアプリ（PIN認証）
 const StocktakeLogin = lazy(() => import('./stock/pages/StocktakeLogin'))
 const StocktakeTop = lazy(() => import('./stock/pages/StocktakeTop'))
@@ -142,6 +146,10 @@ function AppInner() {
       <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
       <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
 
+
+      {/* OCR巡回入力 — 全ロール */}
+      <Route path="/patrol/camera"    element={<ProtectedRoute><PatrolCameraPage /></ProtectedRoute>} />
+      <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
 
       {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
       <Route path="/stock" element={<StocktakeLogin />} />
