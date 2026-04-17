@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { getLastReading, saveBoothReading } from '../../services/patrol'
 import { parseNum } from '../../services/utils'
-import PrizeSearchModal from '../../components/PrizeSearchModal'
-import LockerInput from '../../components/LockerInput'
+import PrizeSearchModal from '../components/PrizeSearchModal'
+import LockerInput from '../components/LockerInput'
 
 export default function BoothInput() {
   const navigate = useNavigate()

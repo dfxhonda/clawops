@@ -1,7 +1,7 @@
 // MeterOcr: カメラ撮影 → Claude Vision OCR → 確認 → 適用
 // booth_code 末尾の奇数ブース(B01,B03)=左、偶数ブース(B02,B04)=右
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../lib/supabase'
 
 function getBoothSide(boothCode) {
   const match = boothCode?.match(/-B(\d+)$/)

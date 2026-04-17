@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { saveLockerRestocks } from '../services/patrol'
+import { saveLockerRestocks } from '../../services/patrol'
 
 export default function LockerInput({ lockers, machineCode, storeCode, staffId, onDone }) {
   const [counts, setCounts] = useState({})

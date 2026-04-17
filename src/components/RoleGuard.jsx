@@ -2,7 +2,7 @@
 // RoleGuard: ロールベースの表示制御（インラインガード）
 // ProtectedRoute とは異なり、リダイレクトではなく非表示にする
 // ============================================
-import { useAuth } from '../lib/auth/AuthProvider'
+import { useAuth } from '../hooks/useAuth'
 
 /**
  * 指定ロール以外は children を非表示にするラッパー

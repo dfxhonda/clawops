@@ -3,9 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { usePatrolInput, STATUS_OPTIONS } from '../../hooks/usePatrolInput'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
-import AnomalyBanner from '../../components/AnomalyBanner'
-import PatrolConfirmModal from '../../components/PatrolConfirmModal'
-import MeterOcr from '../../components/MeterOcr'
+import AnomalyBanner from '../components/AnomalyBanner'
+import PatrolConfirmModal from '../components/PatrolConfirmModal'
+import MeterOcr from '../components/MeterOcr'
 
 // 前日付タブ用（set_a〜o キーで直接保存）
 const SETTINGS_PREV = [

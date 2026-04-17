@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../lib/auth/AuthProvider'
+import { useAuth } from '../../hooks/useAuth'
 import { triggerDailyStatsCompute } from '../../services/stats'
 import LogoutButton from '../../components/LogoutButton'
 

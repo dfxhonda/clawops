@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
 import { supabase } from '../../lib/supabase'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../../components/AdminNav'
+import AdminNav from '../components/AdminNav'
 
 const EMPTY_FORM = {
   model_name: '',

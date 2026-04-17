@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import SlotCard from './SlotCard'
 import LockerModal from './LockerModal'
-import { fmtYen } from '../../utils/format'
+import { fmtYen } from '../../../utils/format'
 
 export default function LockerEditPage({ machineName, lockers, slotsByLocker, onBack, onWon, onFill, onRemove, onSwap }) {
   const [modalSlot, setModalSlot] = useState(null)

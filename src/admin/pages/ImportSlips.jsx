@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../lib/auth/AuthProvider'
+import { useAuth } from '../../hooks/useAuth'
 import LogoutButton from '../../components/LogoutButton'
 
 const SHEET_ID = '1PwjmDQqKjbVgeUeFc_cWWkOtjgWcBxwI7XeNmaasqVA'

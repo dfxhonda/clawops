@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import SlotCard from './SlotCard'
 import LockerModal from './LockerModal'
-import { fmtYen } from '../../utils/format'
+import { fmtYen } from '../../../utils/format'
 
 // lockers: [{ locker_id, locker_number, slot_count, lock_type, label? }]
 // slotsByLocker: { locker_id: Slot[] }

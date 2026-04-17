@@ -19,13 +19,13 @@ vi.mock('../../services/patrol', () => ({
   saveBoothReading: vi.fn().mockResolvedValue({}),
   saveLockerRestocks: vi.fn().mockResolvedValue({}),
 }))
-vi.mock('../../components/PrizeSearchModal', () => ({ default: ({ onSelect, onClose }) => (
+vi.mock('../../patrol/components/PrizeSearchModal', () => ({ default: ({ onSelect, onClose }) => (
   <div data-testid="prize-modal">
     <button onClick={() => onSelect({ prize_name: '選択景品' })}>select</button>
     <button onClick={onClose}>close</button>
   </div>
 )}))
-vi.mock('../../components/LockerInput', () => ({ default: ({ onDone }) => (
+vi.mock('../../patrol/components/LockerInput', () => ({ default: ({ onDone }) => (
   <div data-testid="locker-input">
     <button onClick={onDone}>locker-done</button>
   </div>

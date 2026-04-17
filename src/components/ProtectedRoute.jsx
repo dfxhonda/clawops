@@ -3,7 +3,7 @@
 // Supabase Auth onAuthStateChange でリアクティブに認証状態を検知
 // ============================================
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../lib/auth/AuthProvider'
+import { useAuth } from '../hooks/useAuth'
 
 // 未認証時は React ログイン画面へリダイレクト
 function redirectToPortal() {

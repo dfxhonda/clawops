@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores, getMachines, getBooths, updateBooth } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../../components/AdminNav'
+import AdminNav from '../components/AdminNav'
 
 export default function BoothList() {
   const navigate = useNavigate()

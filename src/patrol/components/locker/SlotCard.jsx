@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { fmtYen } from '../../utils/format'
+import { fmtYen } from '../../../utils/format'
 
 const S = {
   filled: {

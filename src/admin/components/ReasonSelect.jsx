@@ -1,4 +1,4 @@
-import { AUDIT_REASONS } from '../services/audit'
+import { AUDIT_REASONS } from '../../services/audit'
 
 /**
  * 変更理由の選択コンポーネント

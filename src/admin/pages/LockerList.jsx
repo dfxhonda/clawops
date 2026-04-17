@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getAllStores, getMachines } from '../../services/masters'
 import { getAllMachineLockers, addLocker, deleteLocker, activateLocker, updateLocker } from '../../services/patrol'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../../components/AdminNav'
+import AdminNav from '../components/AdminNav'
 
 export default function LockerList() {
   const navigate = useNavigate()

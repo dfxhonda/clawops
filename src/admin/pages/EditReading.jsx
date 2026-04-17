@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { updateReading } from '../../services/readings'
 import { parseNum } from '../../services/utils'
 import { supabase } from '../../lib/supabase'
-import ReasonSelect from '../../components/ReasonSelect'
+import ReasonSelect from '../components/ReasonSelect'
 import { formatReason } from '../../services/audit'
 import LogoutButton from '../../components/LogoutButton'
 

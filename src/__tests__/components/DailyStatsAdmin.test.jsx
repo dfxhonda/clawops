@@ -18,7 +18,7 @@ vi.mock('../../services/stats', () => ({
   triggerDailyStatsCompute: vi.fn(),
 }))
 
-import { useAuth } from '../../lib/auth/AuthProvider'
+import { useAuth } from '../../hooks/useAuth'
 import { triggerDailyStatsCompute } from '../../services/stats'
 import DailyStatsAdmin from '../../admin/pages/DailyStatsAdmin'
 

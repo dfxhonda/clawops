@@ -9,7 +9,7 @@ import {
   uploadManualImage,
 } from '../../services/manuals'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../../components/AdminNav'
+import AdminNav from '../components/AdminNav'
 
 const SECTION_TYPES = [
   { key: 'error_codes',     label: '⚠️ エラーコード', title: 'エラーコード一覧', sort_order: 0 },

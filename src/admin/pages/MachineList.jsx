@@ -11,7 +11,7 @@ import {
   addBooth,
 } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../../components/AdminNav'
+import AdminNav from '../components/AdminNav'
 
 const EMPTY_FORM = {
   machine_name: '',
