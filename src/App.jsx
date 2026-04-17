@@ -14,7 +14,7 @@ if (_host === 'patrol.clawops.app' && window.location.pathname.startsWith('/admi
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider } from './lib/auth/AuthProvider'
 import { useAuth } from './hooks/useAuth'
-import ProtectedRoute, { AdminRoute, ManagerRoute, PatrolRoute } from './components/ProtectedRoute'
+import ProtectedRoute, { AdminRoute, ManagerRoute } from './components/ProtectedRoute'
 import UpdateBanner from './components/UpdateBanner'
 import { useVersionCheck } from './hooks/useVersionCheck'
 import { buildLabel } from './lib/buildInfo'

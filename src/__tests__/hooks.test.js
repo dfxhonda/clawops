@@ -53,18 +53,9 @@ describe('useDrafts', () => {
 })
 
 // --- useMeterCalc テスト ---
+// calcMeterStats は services/utils の parseNum を使用
 describe('calcMeterStats', () => {
-  // parseNum のモック: sheets.js をモックする必要があるため直接テスト
-  // calcMeterStats は parseNum に依存しているが、内部でNumber変換する
   it('正常なメーター差分を計算する', async () => {
-    // parseNum を含む sheets.js をモック
-    vi.mock('../services/sheets', () => ({
-      parseNum: (v) => {
-        if (v === null || v === undefined || v === '') return NaN
-        const n = Number(String(v).replace(/,/g, ''))
-        return isNaN(n) ? NaN : n
-      }
-    }))
     const { calcMeterStats } = await import('../hooks/useMeterCalc')
 
     const result = calcMeterStats({

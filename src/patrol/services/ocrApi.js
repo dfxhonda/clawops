@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase'
-import { fileToBase64 } from '../utils/exifReader'
+import { fileToBase64, getPhotoTakenTime } from '../utils/exifReader'
 
 /**
  * 1枚の画像をOCR処理する
@@ -37,9 +37,6 @@ export async function callMeterOcrBatch(files, onProgress = null, concurrency = 
       const { file, index } = queue.shift()
       try {
         const { base64, mediaType } = await fileToBase64(file)
-
-        // EXIFから撮影時刻を取得
-        const { getPhotoTakenTime } = await import('../utils/exifReader')
         const takenAt = await getPhotoTakenTime(file)
 
         const result = await callMeterOcr(base64, null, mediaType)
