@@ -39,30 +39,21 @@ export default function PatrolBatchOcrPage() {
     setProgress({ done: 0, total: files.length })
     setPhase('processing')
 
-    // バッチOCR
-    const results = await callMeterOcrBatch(
-      files,
-      ({ index, total, item }) => {
-        setProgress(p => ({ ...p, done: p.done + 1 }))
-        setItems(prev => {
-          const next = [...prev]
-          next[index] = {
-            ...next[index],
-            result:  item.result,
-            takenAt: item.takenAt,
-            status:  item.status,
-          }
-          // 信頼度高くて問題なければ自動チェック
-          if (item.status === 'success' && item.result) {
-            const is2B = is2BoothType(item.result.machine_type_guess)
-            const { blocked } = validateMeterReading(item.result, null, is2B)
-            const ok = !blocked && (item.result.confidence ?? 0) >= 0.8 && !!item.result.machine_code
-            next[index].checked = ok
-          }
-          return next
-        })
-      },
-      3,
+    // バッチOCR（新API: onProgress なし、全完了後に結果を一括反映）
+    const results = await callMeterOcrBatch(files, 3)
+
+    setProgress({ done: results.length, total: files.length })
+    setItems(prev =>
+      results.map(r => {
+        const base = prev[r.index] ?? { imageUrl: '', checked: false }
+        const next = { ...base, file: r.file, result: r.result ?? null, takenAt: null, status: r.status }
+        if (r.status === 'success' && r.result) {
+          const is2B = is2BoothType(r.result.machine_type_guess)
+          const { blocked } = validateMeterReading(r.result, null, is2B)
+          next.checked = !blocked && (r.result.confidence ?? 0) >= 0.8 && !!r.result.machine_code
+        }
+        return next
+      })
     )
 
     setPhase('review')
