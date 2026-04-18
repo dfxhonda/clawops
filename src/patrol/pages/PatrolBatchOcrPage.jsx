@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { callMeterOcrBatch } from '../services/ocrApi'
@@ -20,6 +20,23 @@ export default function PatrolBatchOcrPage() {
   const [saving,   setSaving]   = useState(false)
   const [saveResult, setSaveResult] = useState(null)
   const [batchError, setBatchError] = useState(null)
+  const [debugLogs, setDebugLogs] = useState([])
+
+  useEffect(() => {
+    const origLog = console.log
+    const origError = console.error
+    const origWarn = console.warn
+    const push = (level, args) => {
+      const text = args.map(a => {
+        try { return typeof a === 'object' ? JSON.stringify(a) : String(a) } catch { return String(a) }
+      }).join(' ')
+      setDebugLogs(prev => [...prev.slice(-199), `[${level}] ${text}`])
+    }
+    console.log   = (...a) => { origLog(...a);   push('LOG',  a) }
+    console.error = (...a) => { origError(...a); push('ERR',  a) }
+    console.warn  = (...a) => { origWarn(...a);  push('WARN', a) }
+    return () => { console.log = origLog; console.error = origError; console.warn = origWarn }
+  }, [])
 
   async function handleFilesSelect(e) {
     const files = Array.from(e.target.files || [])
@@ -284,6 +301,22 @@ export default function PatrolBatchOcrPage() {
           >
             巡回状況に戻る
           </button>
+        </div>
+      )}
+      {/* デバッグログバナー（一時追加 — 確認後削除） */}
+      {debugLogs.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 h-[30vh] z-50 flex flex-col bg-black/90 border-t border-yellow-500">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-yellow-500/40">
+            <span className="text-yellow-400 text-[10px] font-bold">DEBUG LOG ({debugLogs.length})</span>
+            <button onClick={() => setDebugLogs([])} className="text-yellow-400 text-[10px] underline">クリア</button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 py-1">
+            {debugLogs.map((line, i) => (
+              <div key={i} className={`text-[10px] font-mono leading-tight whitespace-pre-wrap break-all ${line.startsWith('[ERR]') ? 'text-red-400' : line.startsWith('[WARN]') ? 'text-yellow-300' : 'text-green-300'}`}>
+                {line}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
