@@ -19,6 +19,7 @@ export default function PatrolBatchOcrPage() {
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [saving,   setSaving]   = useState(false)
   const [saveResult, setSaveResult] = useState(null)
+  const [batchError, setBatchError] = useState(null)
 
   async function handleFilesSelect(e) {
     const files = Array.from(e.target.files || [])
@@ -37,10 +38,19 @@ export default function PatrolBatchOcrPage() {
     }))
     setItems(initial)
     setProgress({ done: 0, total: files.length })
+    setBatchError(null)
     setPhase('processing')
 
     // バッチOCR（新API: onProgress なし、全完了後に結果を一括反映）
-    const results = await callMeterOcrBatch(files, 3)
+    let results
+    try {
+      results = await callMeterOcrBatch(files, 3)
+    } catch (err) {
+      console.error('[BatchOcr] 処理失敗:', err)
+      setBatchError(`OCR処理に失敗しました: ${err?.message || err}\nネットワークと画像形式を確認してください。`)
+      setPhase('pick')
+      return
+    }
 
     setProgress({ done: results.length, total: files.length })
     setItems(prev =>
@@ -175,6 +185,17 @@ export default function PatrolBatchOcrPage() {
       {/* ピックフェーズ */}
       {phase === 'pick' && (
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-5">
+          {batchError && (
+            <div className="w-full bg-red-900/40 border border-red-500 text-red-200 p-3 rounded-lg whitespace-pre-wrap text-sm">
+              {batchError}
+              <button
+                onClick={() => setBatchError(null)}
+                className="ml-2 underline"
+              >
+                閉じる
+              </button>
+            </div>
+          )}
           <div className="text-5xl">📁</div>
           <div className="text-base font-bold text-center">ギャラリーから複数枚選択</div>
           <div className="text-xs text-muted text-center">
