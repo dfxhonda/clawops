@@ -50,10 +50,19 @@ export default function DebugLogBanner() {
     };
 
     window.addEventListener('error', (e) => {
-      push('error', ['[window.error]', e.message, 'at', e.filename, ':', e.lineno]);
+      push('error', [
+        '[window.error]',
+        e.message,
+        `${e.filename}:${e.lineno}:${e.colno}`,
+        e.error?.stack ? `\nstack: ${e.error.stack}` : ''
+      ]);
     });
     window.addEventListener('unhandledrejection', (e) => {
-      push('error', ['[unhandled]', e.reason?.message || e.reason]);
+      push('error', [
+        '[unhandled]',
+        e.reason?.message || String(e.reason),
+        e.reason?.stack ? `\nstack: ${e.reason.stack}` : ''
+      ]);
     });
 
     return () => {

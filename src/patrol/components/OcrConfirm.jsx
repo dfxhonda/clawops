@@ -18,6 +18,12 @@ const INP = 'w-24 text-right bg-surface2 border border-border rounded-lg px-2 py
  *   onSaved     fn(savedCount)
  */
 export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadTime, staffId, onRetake, onManual, onSaved }) {
+  console.log('[OcrConfirm] レンダリング開始', {
+    hasOcrResult: !!ocrResult,
+    machineCode: ocrResult?.machine_code,
+    confidence: ocrResult?.confidence,
+    metersKeys: ocrResult?.meters ? Object.keys(ocrResult.meters) : null,
+  })
   const [machineCode,  setMachineCode]  = useState(ocrResult?.machine_code || '')
   const [typeGuess,    setTypeGuess]    = useState(ocrResult?.machine_type_guess || null)
   const [confidence,   setConfidence]   = useState(ocrResult?.confidence ?? 0)

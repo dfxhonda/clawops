@@ -32,6 +32,7 @@ export default defineConfig({
     setupFiles: ['./src/__tests__/setup.js'],
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
