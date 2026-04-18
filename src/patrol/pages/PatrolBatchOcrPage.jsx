@@ -46,11 +46,14 @@ export default function PatrolBatchOcrPage() {
     setItems(prev =>
       results.map(r => {
         const base = prev[r.index] ?? { imageUrl: '', checked: false }
-        const next = { ...base, file: r.file, result: r.result ?? null, takenAt: null, status: r.status }
-        if (r.status === 'success' && r.result) {
-          const is2B = is2BoothType(r.result.machine_type_guess)
-          const { blocked } = validateMeterReading(r.result, null, is2B)
-          next.checked = !blocked && (r.result.confidence ?? 0) >= 0.8 && !!r.result.machine_code
+        // ocrFromFile が exifTime を result に混ぜて返すので分離する
+        const { exifTime, ...ocrData } = r.result ?? {}
+        const ocrResult = r.status === 'success' ? ocrData : null
+        const next = { ...base, file: r.file, result: ocrResult, takenAt: exifTime ?? null, status: r.status }
+        if (ocrResult) {
+          const is2B = is2BoothType(ocrResult.machine_type_guess)
+          const { blocked } = validateMeterReading(ocrResult, null, is2B)
+          next.checked = !blocked && (ocrResult.confidence ?? 0) >= 0.8 && !!ocrResult.machine_code
         }
         return next
       })

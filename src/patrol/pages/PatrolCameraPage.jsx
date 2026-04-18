@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { callMeterOcr } from '../services/ocrApi'
-import { fileToBase64, getPhotoTakenTime } from '../utils/exifReader'
+import { ocrFromFile } from '../services/ocrApi'
 import OcrConfirm from '../components/OcrConfirm'
 import LogoutButton from '../../components/LogoutButton'
 
@@ -31,13 +30,9 @@ export default function PatrolCameraPage() {
     setOcrError(null)
 
     try {
-      const [{ base64, mediaType }, exifTime] = await Promise.all([
-        fileToBase64(file),
-        getPhotoTakenTime(file),
-      ])
+      const { exifTime, ...ocrData } = await ocrFromFile(file)
       setTakenAt(exifTime)
-      const result = await callMeterOcr(base64, null, mediaType)
-      setOcrResult(result)
+      setOcrResult(ocrData)
       setPhase('confirm')
     } catch (err) {
       setOcrError(err.message || 'OCR処理に失敗しました')
