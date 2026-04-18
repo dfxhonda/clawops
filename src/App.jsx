@@ -147,6 +147,8 @@ function AppInner() {
       <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
 
 
+      {/* Phase 4一時無効化中 - OcrConfirmのReferenceError調査中
+          導線はPatrolOverviewで隠しているが、直URL入力で到達可能 */}
       {/* OCR巡回入力 — 全ロール */}
       <Route path="/patrol/camera"    element={<ProtectedRoute><PatrolCameraPage /></ProtectedRoute>} />
       <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
