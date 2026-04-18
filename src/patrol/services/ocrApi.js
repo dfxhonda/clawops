@@ -17,21 +17,28 @@ export async function callMeterOcr(imageBase64, hintMachineType = null) {
  * PatrolCameraPage / PatrolBatchOcrPage から使う統合関数
  */
 export async function ocrFromFile(file, hintMachineType = null) {
+  console.log('[ocrFromFile] START', file?.name, file?.type, file?.size);
+
   const tAll = Date.now();
 
   // EXIFは圧縮前に取る（圧縮後は消える）
-  const exifTime = await getPhotoTakenTime(file).catch(() => null);
+  const exifTime = await getPhotoTakenTime(file).catch((e) => {
+    console.warn('[ocrFromFile] EXIF失敗', e?.message);
+    return null;
+  });
+  console.log('[ocrFromFile] EXIF取得完了');
 
-  const tCompress = Date.now();
-  const { base64, sizeKB, originalSizeKB, width, height } =
-    await compressImageForOcr(file);
+  const compressed = await compressImageForOcr(file);
   console.log(
-    `[OCR] 圧縮 ${Date.now() - tCompress}ms  ${originalSizeKB}KB→${sizeKB}KB  ${width}x${height}`
+    '[ocrFromFile] 圧縮完了',
+    compressed?.compressed ? '圧縮成功' : 'フォールバック',
+    `${compressed?.sizeKB}KB`
   );
 
-  const result = await callMeterOcr(base64, hintMachineType);
+  console.log('[ocrFromFile] Edge Function呼び出し開始');
+  const result = await callMeterOcr(compressed.base64, hintMachineType);
+  console.log('[ocrFromFile] OCR完了', Date.now() - tAll, 'ms');
 
-  console.log(`[OCR] 合計 ${Date.now() - tAll}ms`);
   return { ...result, exifTime };
 }
 
@@ -43,11 +50,13 @@ export async function callMeterOcrBatch(files, concurrency = 3) {
     while (queue.length > 0) {
       const item = queue.shift();
       if (!item) break;
+      console.log(`[Batch Worker] 開始 ${item.index + 1}/${files.length}`);
       try {
         const result = await ocrFromFile(item.file);
+        console.log(`[Batch Worker] 成功 ${item.index + 1}`);
         results.push({ file: item.file, result, status: 'success', index: item.index });
       } catch (err) {
-        console.error(`[OCR Batch] ${item.index + 1} 失敗`, err);
+        console.error(`[Batch Worker] 失敗 ${item.index + 1}`, err?.message || err);
         results.push({ file: item.file, error: err, status: 'error', index: item.index });
       }
     }

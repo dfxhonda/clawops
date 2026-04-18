@@ -1,5 +1,3 @@
-// src/patrol/utils/imageResize.js
-
 /**
  * OCR送信用に画像を圧縮する
  * - 長辺1600pxにリサイズ
@@ -8,20 +6,27 @@
  * - 10秒でタイムアウト → 元画像のBase64にフォールバック
  */
 export async function compressImageForOcr(file, maxEdge = 1600, quality = 0.82) {
+  console.log('[imageResize] START', file?.type, file?.size);
   try {
-    return await Promise.race([
+    const result = await Promise.race([
       compressInternal(file, maxEdge, quality),
       timeoutFallback(file, 10000),
     ]);
+    console.log('[imageResize] 完了');
+    return result;
   } catch (err) {
-    console.warn('[imageResize] 圧縮失敗、元画像にフォールバック:', err);
+    console.warn('[imageResize] 圧縮失敗→fallback:', err?.message);
     return fallbackNoCompress(file);
   }
 }
 
 async function compressInternal(file, maxEdge, quality) {
+  console.log('[imageResize] loadImage開始');
   const img = await loadImage(file);
+  console.log('[imageResize] loadImage完了', img.width, 'x', img.height);
+
   const { width, height } = scaleDown(img.width, img.height, maxEdge);
+  console.log('[imageResize] リサイズ先', width, 'x', height);
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -29,11 +34,14 @@ async function compressInternal(file, maxEdge, quality) {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas 2d context取得失敗');
   ctx.drawImage(img, 0, 0, width, height);
+  console.log('[imageResize] drawImage完了');
 
   const blob = await canvasToBlob(canvas, 'image/jpeg', quality);
+  console.log('[imageResize] toBlob完了', blob?.size, 'bytes');
   if (!blob) throw new Error('canvas.toBlob が null を返した（HEIC疑い）');
 
   const base64 = await blobToBase64(blob);
+  console.log('[imageResize] Base64変換完了', base64.length, 'chars');
 
   return {
     base64,
