@@ -38,7 +38,8 @@ export function usePatrolForm(booth) {
   const [hist, setHist] = useState([])
   const dateOpts = useMemo(() => getDateOptions(7), [])
   const [readDate, setReadDate] = useState(() => {
-    const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10)
+    const d = new Date(); d.setDate(d.getDate() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   })
 
   const [patrol, setPatrol] = useState(null)   // patrol section state

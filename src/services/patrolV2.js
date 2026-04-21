@@ -174,7 +174,8 @@ export async function saveReadingV2({ boothCode, patrol, change, outCount, staff
 // 前日のpatrolレコードを検索（モード判定用）
 export async function getYesterdayPatrol(boothCode) {
   const d = new Date(); d.setDate(d.getDate() - 1)
-  const yesterday = d.toISOString().slice(0, 10)
+  // toISOString()はUTC変換されるため、ローカル日付で計算する（JST午前9時前に1日ずれる問題を防ぐ）
+  const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const { data, error } = await supabase
     .from('meter_readings')
     .select('*')
