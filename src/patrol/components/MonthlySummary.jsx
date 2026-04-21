@@ -38,7 +38,7 @@ export default function MonthlySummary({ currRevenue, currRate, histRows }) {
               {histRows.map((r, i) => (
                 <tr key={i}>
                   <td style={{ padding: '3px 4px', color: '#8888a8', borderBottom: '1px solid rgba(42,42,68,.4)' }}>
-                    {r.read_time ? String(r.read_time).slice(5, 10).replace('-', '/') : '—'}
+                    {r.patrol_date ? r.patrol_date.slice(5).replace('-', '/') : r.read_time ? String(r.read_time).slice(5, 10).replace('-', '/') : '—'}
                   </td>
                   <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>
                     {r.in_diff != null ? fmtYen(r.revenue ?? r.in_diff * (r.play_price || 100)) : '—'}

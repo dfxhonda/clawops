@@ -74,16 +74,29 @@ export async function getLastReadingV2(boothCode) {
 }
 
 // ブース売上履歴 (集金区間リスト)
+// J2-a: patrol_date(営業日)ベースに変更 — 発生主義
 export async function getBoothHistory(boothCode, limit = 6) {
   const { data, error } = await supabase
     .from('meter_readings')
-    .select('reading_id, read_time, in_diff, out_diff_1, prize_name, play_price, revenue')
+    .select('reading_id, read_time, patrol_date, in_meter, out_meter, in_diff, out_diff_1, prize_name, play_price, revenue')
     .eq('full_booth_code', boothCode)
     .or('entry_type.eq.patrol,entry_type.is.null')
-    .order('read_time', { ascending: false })
+    .order('patrol_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(limit)
   if (error) return []
-  return (data || []).reverse()
+  // 古い順に並べて差分を patrol_date ベースで再計算
+  const rows = (data || []).reverse()
+  return rows.map((current, i) => {
+    const previous = rows[i - 1]
+    if (!previous || current.in_meter == null || previous.in_meter == null) return current
+    const in_diff = Number(current.in_meter) - Number(previous.in_meter)
+    const out_diff_1 = current.out_meter != null && previous.out_meter != null
+      ? Number(current.out_meter) - Number(previous.out_meter)
+      : current.out_diff_1
+    const revenue = in_diff * (current.play_price || 100)
+    return { ...current, in_diff, out_diff_1, revenue }
+  })
 }
 
 // ロッカースロット一覧
