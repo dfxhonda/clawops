@@ -96,24 +96,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 店舗チップ（manager以上のみ切り替え可） */}
-      {isFieldStaff ? (
-        <div className="px-3 py-2 text-xs font-semibold text-muted">
-          {stores.find(s => s.store_code === storeId)?.store_name || '—'}
-        </div>
-      ) : (
-        <div className="flex gap-1.5 px-2.5 py-2 overflow-x-auto" style={{scrollbarWidth:'none'}}>
-          {stores.map(s => (
-            <button key={s.store_code} onClick={() => setStoreId(s.store_code)}
-              className={`shrink-0 px-3 py-1 rounded-2xl text-xs font-semibold border transition-all
-                ${s.store_code === storeId
-                  ? 'bg-blue-600 border-blue-600 text-white'
-                  : 'bg-surface border-border text-muted'}`}>
-              {s.store_name}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* 店舗セレクター */}
+      <div className="px-3 py-2">
+        {isFieldStaff ? (
+          <div className="text-xs font-semibold text-muted py-1">
+            {stores.find(s => s.store_code === storeId)?.store_name || '—'}
+          </div>
+        ) : (
+          <select
+            value={storeId || ''}
+            onChange={e => setStoreId(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text text-sm outline-none focus:border-accent [color-scheme:dark]"
+          >
+            {stores.map(s => (
+              <option key={s.store_code} value={s.store_code}>{s.store_name}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {/* サマリーカード */}
       {storeSummary && (
