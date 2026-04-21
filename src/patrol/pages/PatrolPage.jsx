@@ -113,6 +113,7 @@ export default function PatrolPage() {
       if (record) {
         setExistingRecord(record)
         setDialogOpen(true)
+        setMode('choosing')
       } else {
         setMode('new_patrol')
       }
