@@ -41,7 +41,13 @@ export default function Dashboard() {
         totalBooths += mBooths.length
 
         for (const booth of mBooths) {
-          const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_code))
+          const br = allReadings
+            .filter(r => String(r.booth_id) === String(booth.booth_code))
+            .sort((a, b) => {
+              const da = a.patrol_date || a.read_time
+              const db = b.patrol_date || b.read_time
+              return da < db ? -1 : da > db ? 1 : 0
+            })
           if (br.length >= 2) {
             const curr = parseNum(br[br.length-1].in_meter)
             const prev = parseNum(br[br.length-2].in_meter)

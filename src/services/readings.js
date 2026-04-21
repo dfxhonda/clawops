@@ -13,6 +13,7 @@ export async function getAllMeterReadings(forceRefresh = false) {
     const { data, error } = await supabase
       .from('meter_readings')
       .select('*')
+      .order('patrol_date', { ascending: true, nullsFirst: true })
       .order('read_time', { ascending: true })
       .range(offset, offset + pageSize - 1)
     if (error) { console.error('meter_readings取得エラー:', error.message); return [] }
@@ -24,6 +25,7 @@ export async function getAllMeterReadings(forceRefresh = false) {
     reading_id: r.reading_id,
     booth_id: r.booth_id || '',
     full_booth_code: r.full_booth_code || '',
+    patrol_date: r.patrol_date || '',
     read_time: r.read_time || '',
     in_meter: r.in_meter != null ? String(r.in_meter) : '',
     out_meter: r.out_meter != null ? String(r.out_meter) : '',
