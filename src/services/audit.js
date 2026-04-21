@@ -9,6 +9,7 @@ import { getAuthSession, extractMeta } from '../lib/auth/session'
 export const AUDIT_ACTIONS = {
   reading_create: 'メーター入力',
   reading_update: 'メーター修正',
+  reading_replace: '入替変更',
   stock_transfer: '在庫移管',
   stock_count_adjust: '棚卸し(差異)',
   stock_count_match: '棚卸し(一致)',

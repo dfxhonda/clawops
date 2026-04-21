@@ -284,6 +284,67 @@ export function usePatrolForm(booth) {
     }))
   }, [patrol]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── 修正モード初期化（既存DBレコードから全フィールドをロード）──
+  const loadCorrectionData = useCallback((record) => {
+    if (!record || !machineInfo) return
+    const oc = machineInfo.outCount || 1
+    const outs = [
+      { meter: record.out_meter != null ? String(record.out_meter) : '',
+        zan: record.prize_stock_count != null ? String(record.prize_stock_count) : '',
+        ho: record.prize_restock_count != null ? String(record.prize_restock_count) : 'ー',
+        prize: record.prize_name || '', cost: record.prize_cost_1 != null ? String(record.prize_cost_1) : '' },
+      { meter: record.out_meter_2 != null ? String(record.out_meter_2) : '',
+        zan: record.stock_2 != null ? String(record.stock_2) : '',
+        ho: record.restock_2 != null ? String(record.restock_2) : 'ー',
+        prize: record.prize_name_2 || '', cost: record.prize_cost_2 != null ? String(record.prize_cost_2) : '' },
+      { meter: record.out_meter_3 != null ? String(record.out_meter_3) : '',
+        zan: record.stock_3 != null ? String(record.stock_3) : '',
+        ho: record.restock_3 != null ? String(record.restock_3) : 'ー',
+        prize: record.prize_name_3 || '', cost: record.prize_cost_3 != null ? String(record.prize_cost_3) : '' },
+    ]
+    const touchedOuts = Array.from({ length: oc }, () => ({ meter: true, zan: true, ho: true, prize: false, cost: false }))
+    setReadDate(record.patrol_date)
+    setPatrol(p => ({
+      ...p,
+      readDate: record.patrol_date,
+      inMeter: record.in_meter != null ? String(record.in_meter) : '',
+      inTouched: true,
+      outs: outs.slice(0, oc),
+      touchedOuts,
+      setA: record.set_a || '', setC: record.set_c || '',
+      setL: record.set_l || '', setR: record.set_r || '',
+      setO: record.set_o || '',
+    }))
+  }, [machineInfo]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── 入替変更モード初期化（メーター系空、景品/設定は前回値）──
+  const loadReplaceData = useCallback((record) => {
+    if (!record || !machineInfo) return
+    const oc = machineInfo.outCount || 1
+    const today = new Date().toISOString().slice(0, 10)
+    const outs = [
+      { meter: '', zan: '', ho: 'ー',
+        prize: record.prize_name || '', cost: record.prize_cost_1 != null ? String(record.prize_cost_1) : '' },
+      { meter: '', zan: '', ho: 'ー',
+        prize: record.prize_name_2 || '', cost: record.prize_cost_2 != null ? String(record.prize_cost_2) : '' },
+      { meter: '', zan: '', ho: 'ー',
+        prize: record.prize_name_3 || '', cost: record.prize_cost_3 != null ? String(record.prize_cost_3) : '' },
+    ]
+    const touchedOuts = Array.from({ length: oc }, () => ({ meter: false, zan: false, ho: false, prize: true, cost: true }))
+    setReadDate(today)
+    setPatrol(p => ({
+      ...p,
+      readDate: today,
+      inMeter: '',
+      inTouched: false,
+      outs: outs.slice(0, oc),
+      touchedOuts,
+      setA: record.set_a || '', setC: record.set_c || '',
+      setL: record.set_l || '', setR: record.set_r || '',
+      setO: record.set_o || '',
+    }))
+  }, [machineInfo]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── 保存 ────────────────────────────────────────
   const save = useCallback(async (staffId) => {
     if (!patrol || !booth) return { ok: false, message: 'データがありません' }
@@ -331,5 +392,6 @@ export function usePatrolForm(booth) {
     calc, changeCalc, changeType,
     outCount, pattern,
     save,
+    loadCorrectionData, loadReplaceData,
   }
 }

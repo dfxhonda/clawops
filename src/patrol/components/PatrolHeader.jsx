@@ -1,5 +1,5 @@
 // 日付カレンダー入力 + 機械名ヘッダー
-export default function PatrolHeader({ readDate, onDateChange, machineName, boothLabel, badge, playPrice, onBack }) {
+export default function PatrolHeader({ readDate, onDateChange, machineName, boothLabel, badge, playPrice, onBack, dateLocked = false }) {
   const today = new Date().toISOString().slice(0, 10)
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', marginBottom: 8 }}>
@@ -11,8 +11,9 @@ export default function PatrolHeader({ readDate, onDateChange, machineName, boot
           type="date"
           value={readDate}
           max={today}
-          onChange={e => onDateChange(e.target.value)}
-          style={{ fontSize: 16, color: '#f0c040', background: '#1a1a2e', border: '1px solid #2a2a44', borderRadius: 4, padding: '5px 8px', fontWeight: 700, outline: 'none', WebkitAppearance: 'none', colorScheme: 'dark' }}
+          disabled={dateLocked}
+          onChange={e => !dateLocked && onDateChange(e.target.value)}
+          style={{ fontSize: 16, color: dateLocked ? '#a8882a' : '#f0c040', background: dateLocked ? 'rgba(18,18,30,.8)' : '#1a1a2e', border: '1px solid #2a2a44', borderRadius: 4, padding: '5px 8px', fontWeight: 700, outline: 'none', WebkitAppearance: 'none', colorScheme: 'dark', opacity: dateLocked ? 0.8 : 1 }}
         />
       </div>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#e8e8f0' }}>

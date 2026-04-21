@@ -5,6 +5,7 @@ import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
 import { getMachineLockers } from '../../services/patrol'
+import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2 } from '../../services/patrolV2'
 
 import MeterOcr        from '../components/MeterOcr'
 import PatrolHeader    from '../components/PatrolHeader'
@@ -16,7 +17,6 @@ import PrizeRow        from '../components/PrizeRow'
 import SettingRow      from '../components/SettingRow'
 import OutGroupRow     from '../components/OutGroupRow'
 import LockerButton    from '../components/LockerButton'
-import ChangeZoneHeader from '../components/ChangeZone'
 import MonthlySummary  from '../components/MonthlySummary'
 import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
@@ -50,10 +50,14 @@ export default function PatrolPage() {
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
 
+  // モード管理
+  const [mode, setMode] = useState('loading') // 'loading' | 'new_patrol' | 'correction' | 'replace'
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [existingRecord, setExistingRecord] = useState(null)
+
   // スワイプナビゲーション
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)
-  // machines から全ブースのフラットリストを作成 [{machine, booth}]
   const allBooths = useMemo(() => {
     const machines = state?.machines ?? []
     return machines.flatMap(m => m.booths.map(b => ({ machine: m, booth: b })))
@@ -95,6 +99,42 @@ export default function PatrolPage() {
   const form = usePatrolForm(booth)
   const lockerState = useLockerState(lockers)
 
+  // フォームロード完了後、前日patrolレコードを確認してモード決定
+  useEffect(() => {
+    if (form.loading) {
+      // ブース変更時にモードをリセット
+      setMode('loading')
+      setDialogOpen(false)
+      setExistingRecord(null)
+      return
+    }
+    if (!booth?.booth_code) return
+    getYesterdayPatrol(booth.booth_code).then(record => {
+      if (record) {
+        setExistingRecord(record)
+        setDialogOpen(true)
+      } else {
+        setMode('new_patrol')
+      }
+    })
+  }, [form.loading, booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ダイアログハンドラ
+  function handleSelectCorrection() {
+    form.loadCorrectionData(existingRecord)
+    setMode('correction')
+    setDialogOpen(false)
+  }
+  function handleSelectReplace() {
+    form.loadReplaceData(existingRecord)
+    setMode('replace')
+    setDialogOpen(false)
+  }
+  function handleCancelDialog() {
+    setDialogOpen(false)
+    navigate(-1)
+  }
+
   // Hooks must be before any early returns
   const { currRevenue, currRate } = useMemo(() => {
     const hist = form.hist
@@ -115,29 +155,31 @@ export default function PatrolPage() {
     return null
   }
 
-  if (form.loading) {
+  if (form.loading || mode === 'loading') {
     return (
       <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a12', color: '#8888a8' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ width: 32, height: 32, border: '2px solid #f0c040', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
           <div style={{ fontSize: 13 }}>読み込み中...</div>
         </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
   }
 
-  const { pattern, outCount, prev, hist, dateOpts, readDate, setReadDate,
-    patrol, change,
+  const { pattern, outCount, prev, hist, readDate, setReadDate,
+    patrol,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
-    setChangeIn, setChangeOut, setChangeZan, setChangeSet,
-    resetPatrol, resetChange,
-    calc, changeCalc, changeType, machineInfo,
+    resetPatrol,
+    calc, machineInfo,
     save,
   } = form
 
-  const today = new Date().toISOString().slice(0, 10)
-  const changeDateLabel = readDate.slice(5).replace('-', '/')
   const outLabels = pattern === 'B' ? OUT_LABELS_B : OUT_LABELS_D2
+  const boothLabel = `B${String(booth.booth_number || '').padStart(2, '0')}`
+  const hasLocker = lockers.length > 0
+  const dateLocked = mode === 'correction' || mode === 'replace'
+  const isReplace = mode === 'replace'
 
   // ロッカービュー
   if (lockerView === 'check') {
@@ -166,9 +208,6 @@ export default function PatrolPage() {
     )
   }
 
-  const boothLabel = `B${String(booth.booth_number || '').padStart(2, '0')}`
-  const hasLocker = lockers.length > 0
-
   function handleOcrApply({ inMeter, outMeter }) {
     if (inMeter) setPatrolIn(inMeter)
     if (outMeter) setPatrolOut(0, 'meter', outMeter)
@@ -178,11 +217,38 @@ export default function PatrolPage() {
   async function handleSave() {
     setSaveError(null)
     setSaving(true)
-    const result = await save(staffId)
-    setSaving(false)
-    if (!result.ok) { setSaveError(result.message); return }
-    setSaved(true)
-    setTimeout(() => navigate('/'), 800)
+    try {
+      if (mode === 'correction') {
+        await updatePatrolReading({
+          readingId: existingRecord.reading_id,
+          formData: patrol,
+          outCount,
+          staffId,
+          existingRecord,
+        })
+      } else if (mode === 'replace') {
+        await saveReplaceReadingV2({
+          boothCode: booth.booth_code,
+          formData: patrol,
+          outCount,
+          staffId,
+          relatedRecord: existingRecord,
+        })
+      } else {
+        // new_patrol
+        const result = await save(staffId)
+        if (!result.ok) {
+          setSaveError(result.message)
+          setSaving(false)
+          return
+        }
+      }
+      setSaved(true)
+      setTimeout(() => navigate('/'), 800)
+    } catch (e) {
+      setSaveError(e.message)
+      setSaving(false)
+    }
   }
 
   // ─── パターン別レンダリング ──────────────────────────────────
@@ -196,7 +262,6 @@ export default function PatrolPage() {
       // ── パターンA: クレーン基本形 ──────────────────────────────
       case 'A':
       case 'A0': {
-        // 複数OUTの機種（バーバーカット系クレーン等）
         if (outCount >= 2) {
           const displayCount = Math.min(outCount, 3)
           const prevOuts = [prev?.outMeter, prev?.outMeter2, prev?.outMeter3]
@@ -204,21 +269,27 @@ export default function PatrolPage() {
             <>
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
-                inDiff={c?.inDiff} showDiff
-                onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+                inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
+                onChange={setPatrolIn} onCamera={mode !== 'correction' ? () => setShowOcr(true) : undefined} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
                   prevOut={prevOuts[i]}
                   outDiff={c?.outs[i]?.diff}
-                  readonly
+                  readonly={!isReplace}
                   onMeter={v => setPatrolOut(i, 'meter', v)}
                   onZan={v => setPatrolZan(i, v)}
-                  onHo={v => setPatrolOut(i, 'ho', v)} />
+                  onHo={v => setPatrolOut(i, 'ho', v)}
+                  onPrize={isReplace ? v => setPatrolOut(i, 'prize', v) : undefined}
+                  onCost={isReplace ? v => setPatrolOut(i, 'cost', v) : undefined} />
               ))}
               <SettingRow
                 setA={p.setA} setC={p.setC} setL={p.setL} setR={p.setR} setO={p.setO}
-                readonly
+                readonly={!isReplace}
+                onSetA={isReplace ? v => setPatrolSet('A', v) : undefined}
+                onSetC={isReplace ? v => setPatrolSet('C', v) : undefined}
+                onSetL={isReplace ? v => setPatrolSet('L', v) : undefined}
+                onSetR={isReplace ? v => setPatrolSet('R', v) : undefined}
                 onSetO={v => setPatrolSet('O', v)} />
             </>
           )
@@ -229,7 +300,9 @@ export default function PatrolPage() {
           <>
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              {mode !== 'correction' && (
+                <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              )}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
                 <input type="text" inputMode="numeric"
@@ -266,19 +339,29 @@ export default function PatrolPage() {
               </div>
             </div>
 
-            {/* 差分バー */}
-            <CalcBar
-              inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
-              theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
-              onReset={resetPatrol} />
+            {/* 差分バー（新規巡回のみ） */}
+            {mode === 'new_patrol' && (
+              <CalcBar
+                inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
+                theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
+                onReset={resetPatrol} />
+            )}
 
-            {/* 景品 + @単価 (read-only) */}
-            <PrizeRow prize={o0.prize} cost={o0.cost} prizeRO costRO />
+            {/* 景品 + @単価 */}
+            <PrizeRow
+              prize={o0.prize} cost={o0.cost}
+              prizeRO={!isReplace} costRO={!isReplace}
+              onPrize={isReplace ? v => setPatrolOut(0, 'prize', v) : undefined}
+              onCost={isReplace ? v => setPatrolOut(0, 'cost', v) : undefined} />
 
-            {/* 設定 A/C/L/R (read-only) + O (editable) */}
+            {/* 設定 A/C/L/R (入替時のみ編集可) + O (常時編集可) */}
             <SettingRow
               setA={p.setA} setC={p.setC} setL={p.setL} setR={p.setR} setO={p.setO}
-              readonly
+              readonly={!isReplace}
+              onSetA={isReplace ? v => setPatrolSet('A', v) : undefined}
+              onSetC={isReplace ? v => setPatrolSet('C', v) : undefined}
+              onSetL={isReplace ? v => setPatrolSet('L', v) : undefined}
+              onSetR={isReplace ? v => setPatrolSet('R', v) : undefined}
               onSetO={v => setPatrolSet('O', v)} />
           </>
         )
@@ -288,25 +371,24 @@ export default function PatrolPage() {
       case 'B': {
         return (
           <>
-            {/* IN行 */}
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={calc?.inDiff} showDiff
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+              inDiff={calc?.inDiff} showDiff={mode === 'new_patrol'}
+              onChange={setPatrolIn} onCamera={mode !== 'correction' ? () => setShowOcr(true) : undefined} />
 
-            {/* OUT-A/B/C */}
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
                 out={o} touched={p.touchedOuts[i]}
                 prevOut={i === 0 ? prev?.outMeter : i === 1 ? prev?.outMeter2 : prev?.outMeter3}
                 outDiff={c?.outs[i]?.diff}
-                readonly
+                readonly={!isReplace}
                 onMeter={v => setPatrolOut(i, 'meter', v)}
                 onZan={v => setPatrolZan(i, v)}
-                onHo={v => setPatrolOut(i, 'ho', v)} />
+                onHo={v => setPatrolOut(i, 'ho', v)}
+                onPrize={isReplace ? v => setPatrolOut(i, 'prize', v) : undefined}
+                onCost={isReplace ? v => setPatrolOut(i, 'cost', v) : undefined} />
             ))}
 
-            {/* O設定のみ */}
             <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 11, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</span>
               <input type="text"
@@ -325,9 +407,10 @@ export default function PatrolPage() {
         const t0 = p.touchedOuts[0] || {}
         return (
           <>
-            {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <button onClick={() => setShowOcr(true)} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              {mode !== 'correction' && (
+                <button onClick={() => setShowOcr(true)} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              )}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
                 <input type="text" inputMode="numeric"
@@ -360,18 +443,20 @@ export default function PatrolPage() {
               </div>
             </div>
 
-            <CalcBar inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
-              theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
-              onReset={resetPatrol} />
+            {mode === 'new_patrol' && (
+              <CalcBar inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
+                theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
+                onReset={resetPatrol} />
+            )}
 
-            {/* 景品 + @単価 + O */}
-            <PrizeRow prize={o0.prize} cost={o0.cost} setO={p.setO}
+            <PrizeRow
+              prize={o0.prize} cost={o0.cost} setO={p.setO}
               showO
-              onPrize={v => setPatrolOut(0, 'prize', v)}
-              onCost={v => setPatrolOut(0, 'cost', v)}
+              prizeRO={!isReplace} costRO={!isReplace}
+              onPrize={isReplace ? v => setPatrolOut(0, 'prize', v) : undefined}
+              onCost={isReplace ? v => setPatrolOut(0, 'cost', v) : undefined}
               onSetO={v => setPatrolSet('O', v)} />
 
-            {/* ロッカーボタン (確認) */}
             {hasLocker && (
               <LockerButton variant="check"
                 total={lockerState.summary.total}
@@ -386,13 +471,11 @@ export default function PatrolPage() {
       case 'D2': {
         return (
           <>
-            {/* IN行 + diff */}
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={c?.inDiff} showDiff
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+              inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
+              onChange={setPatrolIn} onCamera={mode !== 'correction' ? () => setShowOcr(true) : undefined} />
 
-            {/* OUT-A(上段)/B(下段) */}
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
                 out={o} touched={p.touchedOuts[i]}
@@ -428,205 +511,10 @@ export default function PatrolPage() {
     }
   }
 
-  // ── 入替/設定変更ゾーン ────────────────────────────────────────
-  function renderChangeContent() {
-    if (!change) return null
-    const ch = change
-    const cc = changeCalc
-
-    switch (pattern) {
-      case 'A':
-      case 'A0': {
-        // 複数OUTの機種（入替ゾーン）
-        if (outCount >= 2) {
-          const displayCount = Math.min(outCount, 3)
-          return (
-            <>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
-                  <input type="text" inputMode="numeric"
-                    style={inp(ch.inTouched)} value={ch.inMeter}
-                    onFocus={e => { if (!ch.inTouched) e.target.select() }}
-                    onChange={e => setChangeIn(e.target.value)} />
-                </div>
-              </div>
-              {ch.outs.slice(0, displayCount).map((o, i) => (
-                <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
-                  out={o} touched={ch.touchedOuts[i]}
-                  prevOut={null}
-                  outDiff={cc?.[i]?.diff}
-                  onMeter={v => setChangeOut(i, 'meter', v)}
-                  onZan={v => setChangeZan(i, v)}
-                  onHo={v => setChangeOut(i, 'ho', v)}
-                  onPrize={v => setChangeOut(i, 'prize', v)}
-                  onCost={v => setChangeOut(i, 'cost', v)} />
-              ))}
-              <SettingRow
-                setA={ch.setA} setC={ch.setC} setL={ch.setL} setR={ch.setR} setO={ch.setO}
-                onSetA={v => setChangeSet('A', v)} onSetC={v => setChangeSet('C', v)}
-                onSetL={v => setChangeSet('L', v)} onSetR={v => setChangeSet('R', v)}
-                onSetO={v => setChangeSet('O', v)} />
-            </>
-          )
-        }
-        const o0 = ch.outs[0] || {}
-        const t0 = ch.touchedOuts[0] || {}
-        return (
-          <>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
-                <input type="text" inputMode="numeric"
-                  style={inp(ch.inTouched)} value={ch.inMeter}
-                  onFocus={e => { if (!ch.inTouched) e.target.select() }}
-                  onChange={e => setChangeIn(e.target.value)} />
-              </div>
-              {pattern !== 'A0' && (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</span>
-                  <input type="text" inputMode="numeric"
-                    style={inp(t0.meter)} value={o0.meter}
-                    onFocus={e => { if (!t0.meter) e.target.select() }}
-                    onChange={e => setChangeOut(0, 'meter', e.target.value)} />
-                </div>
-              )}
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</span>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
-                  value={o0.zan}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setChangeZan(0, e.target.value)} />
-              </div>
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</span>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, textAlign: 'center', color: '#d0d0e0' }}
-                  value={o0.ho}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setChangeOut(0, 'ho', e.target.value)} />
-              </div>
-            </div>
-
-            <PrizeRow
-              prize={o0.prize} cost={o0.cost}
-              onPrize={v => setChangeOut(0, 'prize', v)}
-              onCost={v => setChangeOut(0, 'cost', v)} />
-
-            <SettingRow
-              setA={ch.setA} setC={ch.setC} setL={ch.setL} setR={ch.setR} setO={ch.setO}
-              onSetA={v => setChangeSet('A', v)} onSetC={v => setChangeSet('C', v)}
-              onSetL={v => setChangeSet('L', v)} onSetR={v => setChangeSet('R', v)}
-              onSetO={v => setChangeSet('O', v)} />
-
-            {pattern === 'D1' && hasLocker && (
-              <LockerButton variant="edit"
-                total={lockerState.summary.total}
-                emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-            )}
-          </>
-        )
-      }
-
-      case 'B':
-      case 'D2': {
-        return (
-          <>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
-                <input type="text" inputMode="numeric"
-                  style={inp(ch.inTouched)} value={ch.inMeter}
-                  onFocus={e => { if (!ch.inTouched) e.target.select() }}
-                  onChange={e => setChangeIn(e.target.value)} />
-              </div>
-            </div>
-            {ch.outs.map((o, i) => (
-              <OutGroupRow key={i} idx={i} label={outLabels[i]}
-                out={o} touched={ch.touchedOuts[i]}
-                prevOut={null}
-                outDiff={cc?.[i]?.diff}
-                onMeter={v => setChangeOut(i, 'meter', v)}
-                onZan={v => setChangeZan(i, v)}
-                onHo={v => setChangeOut(i, 'ho', v)}
-                onPrize={v => setChangeOut(i, 'prize', v)}
-                onCost={v => setChangeOut(i, 'cost', v)} />
-            ))}
-            <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</span>
-              <input type="text"
-                style={{ ...INP_BASE, flex: 1, textAlign: 'left', color: '#d0d0e0' }}
-                value={ch.setO}
-                onFocus={e => e.target.select()}
-                onChange={e => setChangeSet('O', e.target.value)} />
-            </div>
-            {pattern === 'D2' && hasLocker && (
-              <LockerButton variant="edit"
-                total={lockerState.summary.total}
-                emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-            )}
-          </>
-        )
-      }
-
-      case 'D1': {
-        const o0 = ch.outs[0] || {}
-        const t0 = ch.touchedOuts[0] || {}
-        return (
-          <>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
-                <input type="text" inputMode="numeric"
-                  style={inp(ch.inTouched)} value={ch.inMeter}
-                  onFocus={e => { if (!ch.inTouched) e.target.select() }}
-                  onChange={e => setChangeIn(e.target.value)} />
-              </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</span>
-                <input type="text" inputMode="numeric"
-                  style={inp(t0.meter)} value={o0.meter}
-                  onFocus={e => { if (!t0.meter) e.target.select() }}
-                  onChange={e => setChangeOut(0, 'meter', e.target.value)} />
-              </div>
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</span>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
-                  value={o0.zan}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setChangeZan(0, e.target.value)} />
-              </div>
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</span>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, textAlign: 'center', color: '#d0d0e0' }}
-                  value={o0.ho}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setChangeOut(0, 'ho', e.target.value)} />
-              </div>
-            </div>
-            <PrizeRow
-              prize={o0.prize} cost={o0.cost} setO={ch.setO} showO
-              onPrize={v => setChangeOut(0, 'prize', v)}
-              onCost={v => setChangeOut(0, 'cost', v)}
-              onSetO={v => setChangeSet('O', v)} />
-            {hasLocker && (
-              <LockerButton variant="edit"
-                total={lockerState.summary.total}
-                emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-            )}
-          </>
-        )
-      }
-
-      default: return null
-    }
-  }
+  // 保存ボタンラベル
+  const saveLabel = mode === 'correction' ? '修正を保存'
+    : mode === 'replace' ? '入替として保存'
+    : `${boothLabel} を保存`
 
   // ── メイン描画 ─────────────────────────────────────────────────
   return (
@@ -644,35 +532,47 @@ export default function PatrolPage() {
         badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
         playPrice={machineInfo?.playPrice}
         onBack={() => navigate('/')}
+        dateLocked={dateLocked}
       />
+
+      {/* モードバッジ（修正・入替時のみ） */}
+      {dateLocked && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
+          {mode === 'correction' && <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>✏️ 修正モード</span>}
+          {mode === 'replace' && <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>}
+          <span style={{ fontSize: 11, color: '#8888a8' }}>日付: {readDate} 🔒</span>
+        </div>
+      )}
+
+      {/* 新規巡回バッジ */}
+      {mode === 'new_patrol' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
+          <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
+        </div>
+      )}
 
       {/* 巡回ゾーン */}
       <div style={ZONE}>
-        {/* 前回値 */}
-        <PrevRow prev={prev}
-          outCount={outCount}
-          outLabels={pattern === 'B' ? OUT_LABELS_B : pattern === 'D2' ? OUT_LABELS_D2 : null} />
+        {/* 前回値（新規巡回のみ） */}
+        {mode === 'new_patrol' && (
+          <PrevRow prev={prev}
+            outCount={outCount}
+            outLabels={pattern === 'B' ? OUT_LABELS_B : pattern === 'D2' ? OUT_LABELS_D2 : null} />
+        )}
 
         {/* パターン別入力 */}
         {renderPatrolContent()}
 
-        {/* 異常値アラート */}
-        <AlertBar alerts={alerts} />
+        {/* 異常値アラート（新規巡回のみ） */}
+        {mode === 'new_patrol' && <AlertBar alerts={alerts} />}
 
-        {/* 入替/設定変更 区切り */}
-        <ChangeZoneHeader
-          changeDate={changeDateLabel}
-          changeType={changeType}
-          onReset={resetChange} />
-
-        {/* 変更ゾーン内容 */}
-        {renderChangeContent()}
-
-        {/* 月次サマリー */}
-        <MonthlySummary
-          currRevenue={currRevenue}
-          currRate={currRate}
-          histRows={hist} />
+        {/* 月次サマリー（新規巡回のみ） */}
+        {mode === 'new_patrol' && (
+          <MonthlySummary
+            currRevenue={currRevenue}
+            currRate={currRate}
+            histRows={hist} />
+        )}
       </div>
 
       {/* エラー */}
@@ -693,7 +593,7 @@ export default function PatrolPage() {
           disabled={saving}
           style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer', marginBottom: 24 }}
         >
-          {saving ? '保存中...' : `${boothLabel} を保存`}
+          {saving ? '保存中...' : saveLabel}
         </button>
       )}
 
@@ -705,6 +605,47 @@ export default function PatrolPage() {
           onApply={handleOcrApply}
           onClose={() => setShowOcr(false)}
         />
+      )}
+
+      {/* モード選択ダイアログ */}
+      {dialogOpen && existingRecord && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#1a1a2e', border: '1px solid #2a2a44', borderRadius: 12, padding: 20, maxWidth: 360, width: '100%' }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#e8e8f0', marginBottom: 6 }}>ℹ️ 既に保存済みのブースです</div>
+              <div style={{ fontSize: 13, color: '#8888a8' }}>
+                {machineInfo?.machineName} / {boothLabel}<br/>
+                {existingRecord.patrol_date} に入力済み
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={handleSelectCorrection}
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(240,160,64,.15)', border: '1px solid rgba(240,160,64,.4)', color: '#f0a040', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
+              >
+                ✏️ 修正する<br/>
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#8888a8' }}>
+                  {existingRecord.patrol_date} のデータを上書き
+                </span>
+              </button>
+              <button
+                onClick={handleSelectReplace}
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(93,173,226,.15)', border: '1px solid rgba(93,173,226,.4)', color: '#5dade2', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
+              >
+                🔄 入替変更として記録<br/>
+                <span style={{ fontSize: 12, fontWeight: 400, color: '#8888a8' }}>
+                  今日 {new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })} の日付で新規記録
+                </span>
+              </button>
+              <button
+                onClick={handleCancelDialog}
+                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(136,136,168,.1)', border: '1px solid rgba(136,136,168,.3)', color: '#8888a8', fontSize: 14, cursor: 'pointer' }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

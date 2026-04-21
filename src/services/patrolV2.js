@@ -158,6 +158,76 @@ export async function saveReadingV2({ boothCode, patrol, change, outCount, staff
   })
 }
 
+// 前日のpatrolレコードを検索（モード判定用）
+export async function getYesterdayPatrol(boothCode) {
+  const d = new Date(); d.setDate(d.getDate() - 1)
+  const yesterday = d.toISOString().slice(0, 10)
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select('*')
+    .eq('full_booth_code', boothCode)
+    .eq('patrol_date', yesterday)
+    .eq('entry_type', 'patrol')
+    .maybeSingle()
+  if (error) return null
+  return data || null
+}
+
+// 修正モード: 既存レコードをUPDATE
+export async function updatePatrolReading({ readingId, formData, outCount, staffId, existingRecord }) {
+  const now = new Date().toISOString()
+  const upd = {
+    in_meter: formData.inMeter ? parseFloat(formData.inMeter) : null,
+    out_meter: formData.outs?.[0]?.meter ? parseFloat(formData.outs[0].meter) : null,
+    prize_stock_count: formData.outs?.[0]?.zan ? parseInt(formData.outs[0].zan) : null,
+    prize_restock_count: formData.outs?.[0]?.ho && formData.outs[0].ho !== 'ー' ? parseInt(formData.outs[0].ho) : 0,
+    set_o: formData.setO || null,
+    updated_at: now,
+    updated_by: staffId || null,
+  }
+  if (outCount >= 2 && formData.outs?.[1]) {
+    upd.out_meter_2 = formData.outs[1].meter ? parseFloat(formData.outs[1].meter) : null
+    upd.stock_2 = formData.outs[1].zan ? parseInt(formData.outs[1].zan) : null
+    upd.restock_2 = formData.outs[1].ho && formData.outs[1].ho !== 'ー' ? parseInt(formData.outs[1].ho) : 0
+  }
+  if (outCount >= 3 && formData.outs?.[2]) {
+    upd.out_meter_3 = formData.outs[2].meter ? parseFloat(formData.outs[2].meter) : null
+    upd.stock_3 = formData.outs[2].zan ? parseInt(formData.outs[2].zan) : null
+    upd.restock_3 = formData.outs[2].ho && formData.outs[2].ho !== 'ー' ? parseInt(formData.outs[2].ho) : 0
+  }
+  const { error } = await supabase.from('meter_readings').update(upd).eq('reading_id', readingId)
+  if (error) throw new Error('修正保存エラー: ' + error.message)
+  clearCache()
+  await writeAuditLog({
+    action: 'reading_update',
+    target_table: 'meter_readings',
+    target_id: existingRecord.full_booth_code,
+    detail: `修正: IN=${formData.inMeter || '-'} (${existingRecord.full_booth_code})`,
+    before_data: existingRecord,
+    after_data: { ...existingRecord, ...upd },
+    reason_code: 'INPUT_FIX',
+    staff_id: staffId || undefined,
+  })
+}
+
+// 入替変更モード: 新規INSERT entry_type='replace'
+export async function saveReplaceReadingV2({ boothCode, formData, outCount, staffId, relatedRecord }) {
+  const payload = _buildPayload(boothCode, 'replace', formData, outCount, staffId)
+  const { error } = await supabase.from('meter_readings').insert(payload)
+  if (error) throw new Error('入替保存エラー: ' + error.message)
+  clearCache()
+  await writeAuditLog({
+    action: 'reading_replace',
+    target_table: 'meter_readings',
+    target_id: boothCode,
+    detail: `入替: (${boothCode})`,
+    before_data: relatedRecord,
+    after_data: payload,
+    reason_code: 'REPLACE',
+    staff_id: staffId || undefined,
+  })
+}
+
 function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
   const now = new Date().toISOString()
   const parts = boothCode.split('-')
