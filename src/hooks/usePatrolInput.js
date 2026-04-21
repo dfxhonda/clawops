@@ -70,24 +70,27 @@ export function usePatrolInput(initialBooth, navigateToPatrol) {
           const store = await findStoreById(machine.store_code)
           if (store) setStoreName(store.store_name)
         }
-      } catch { /* ignore */ }
 
-      const bs = await getBooths(initialBooth.machine_code)
-      setBooths(bs)
-      const startIdx = bs.findIndex(b => b.booth_code === initialBooth.booth_code)
-      setCurrentIndex(startIdx >= 0 ? startIdx : 0)
+        const bs = await getBooths(initialBooth.machine_code)
+        setBooths(bs)
+        const startIdx = bs.findIndex(b => b.booth_code === initialBooth.booth_code)
+        setCurrentIndex(startIdx >= 0 ? startIdx : 0)
 
-      const map = await getLastReadingsMap(bs.map(b => b.booth_code))
-      setReadingsMap(map)
+        const map = await getLastReadingsMap(bs.map(b => b.booth_code))
+        setReadingsMap(map)
 
-      // ドラフト復元
-      const drafts = getPatrolDrafts()
-      const restored = {}
-      for (const b of bs) {
-        if (drafts[b.booth_code]) restored[b.booth_code] = drafts[b.booth_code]
+        // ドラフト復元
+        const drafts = getPatrolDrafts()
+        const restored = {}
+        for (const b of bs) {
+          if (drafts[b.booth_code]) restored[b.booth_code] = drafts[b.booth_code]
+        }
+        setInputs(restored)
+      } catch (e) {
+        console.error('usePatrolInput load error:', e)
+      } finally {
+        setLoading(false)
       }
-      setInputs(restored)
-      setLoading(false)
 
       // 月次統計（非blocking）
       if (sc) {
