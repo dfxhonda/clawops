@@ -168,7 +168,7 @@ export default function PatrolPage() {
     )
   }
 
-  const { pattern, outCount, prev, hist, readDate, setReadDate,
+  const { pattern, outCount, prev, hist, readDate,
     patrol,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     resetPatrol,
@@ -179,7 +179,6 @@ export default function PatrolPage() {
   const outLabels = pattern === 'B' ? OUT_LABELS_B : OUT_LABELS_D2
   const boothLabel = `B${String(booth.booth_number || '').padStart(2, '0')}`
   const hasLocker = lockers.length > 0
-  const dateLocked = mode === 'correction' || mode === 'replace'
   const isReplace = mode === 'replace'
 
   // ロッカービュー
@@ -527,28 +526,30 @@ export default function PatrolPage() {
 
       {/* ヘッダー */}
       <PatrolHeader
-        readDate={readDate} onDateChange={setReadDate}
         machineName={machineInfo?.machineName || ''}
         boothLabel={boothLabel}
         badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
         playPrice={machineInfo?.playPrice}
         onBack={() => navigate('/')}
-        dateLocked={dateLocked}
       />
 
-      {/* モードバッジ（修正・入替時のみ） */}
-      {dateLocked && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
-          {mode === 'correction' && <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>✏️ 修正モード</span>}
-          {mode === 'replace' && <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>}
-          <span style={{ fontSize: 11, color: '#8888a8' }}>日付: {readDate} 🔒</span>
-        </div>
-      )}
-
-      {/* 新規巡回バッジ */}
+      {/* モードバッジ（全モード、日付を内包） */}
       {mode === 'new_patrol' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
           <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
+          <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
+        </div>
+      )}
+      {mode === 'correction' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>✏️ 修正モード</span>
+          <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
+        </div>
+      )}
+      {mode === 'replace' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>
+          <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
         </div>
       )}
 

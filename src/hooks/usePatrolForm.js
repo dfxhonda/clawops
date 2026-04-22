@@ -92,7 +92,7 @@ export function usePatrolForm(booth) {
       setPatrol(initP)
 
       // change は patrol から引き継ぎ
-      setChange({ ...JSON.parse(JSON.stringify(initP)), readDate: new Date().toISOString().slice(0, 10) })
+      setChange({ ...JSON.parse(JSON.stringify(initP)), readDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) })
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -262,7 +262,7 @@ export function usePatrolForm(booth) {
 
   const resetChange = useCallback(() => {
     if (!patrol) return
-    setChange({ ...JSON.parse(JSON.stringify(patrol)), readDate: new Date().toISOString().slice(0, 10) })
+    setChange({ ...JSON.parse(JSON.stringify(patrol)), readDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) })
   }, [patrol])
 
   // patrol → change 同期（changeが未タッチの場合）
@@ -322,7 +322,7 @@ export function usePatrolForm(booth) {
   const loadReplaceData = useCallback((record) => {
     if (!record || !machineInfo) return
     const oc = machineInfo.outCount || 1
-    const today = new Date().toISOString().slice(0, 10)
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
     const outs = [
       { meter: '', zan: '', ho: 'ー',
         prize: record.prize_name || '', cost: record.prize_cost_1 != null ? String(record.prize_cost_1) : '' },
@@ -385,7 +385,7 @@ export function usePatrolForm(booth) {
 
   return {
     loading, machineInfo, prev, hist,
-    dateOpts, readDate, setReadDate,
+    readDate,
     patrol, change,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     setChangeIn, setChangeOut, setChangeZan, setChangeSet,
