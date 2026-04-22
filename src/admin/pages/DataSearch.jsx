@@ -190,23 +190,6 @@ export default function DataSearch() {
         {errorProps && <ErrorDisplay {...errorProps} />}
         {successMsg && <div className="bg-accent3/20 text-accent3 rounded-xl p-3 mb-3 text-sm">{successMsg}</div>}
 
-        {/* 店舗選択グリッド（店舗未選択時） */}
-        {!filterStore && stores.length > 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
-            <div className="text-5xl mb-3">🏪</div>
-            <div className="text-[15px] text-muted mb-5">検索する店舗を選択してください</div>
-            <div className="grid grid-cols-1 gap-2.5 w-full max-w-[360px]">
-              {stores.map(s => (
-                <button key={s.store_id} onClick={() => handleStoreChange(s.store_code)}
-                  className="bg-surface border border-border rounded-lg p-4 text-left text-text text-[15px] font-bold cursor-pointer">
-                  {s.store_name}
-                  <div className="text-[11px] text-muted font-normal mt-0.5">{s.store_code}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* フィルター（店舗選択済み時のみ表示） */}
         {filterStore && (
         <div className="bg-surface border border-border rounded-xl p-3 mb-2">
@@ -254,6 +237,25 @@ export default function DataSearch() {
         </div>
         )}
       </div>
+
+      {/* 店舗選択グリッド（店舗未選択時・スクロール可能） */}
+      {!filterStore && stores.length > 0 && (
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
+          <div className="flex flex-col items-center pt-8 pb-6">
+            <div className="text-5xl mb-3">🏪</div>
+            <div className="text-[15px] text-muted mb-5">検索する店舗を選択してください</div>
+            <div className="grid grid-cols-1 gap-2.5 w-full max-w-[360px]">
+              {stores.map(s => (
+                <button key={s.store_id} onClick={() => handleStoreChange(s.store_code)}
+                  className="bg-surface border border-border rounded-lg p-4 text-left text-text text-[15px] font-bold cursor-pointer">
+                  {s.store_name}
+                  <div className="text-[11px] text-muted font-normal mt-0.5">{s.store_code}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* スクロール可能なデータリスト（店舗選択済み時のみ） */}
       {filterStore && (
