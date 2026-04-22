@@ -270,26 +270,24 @@ export default function PatrolPage() {
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
                 inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
-                onChange={setPatrolIn} onCamera={mode !== 'correction' ? () => setShowOcr(true) : undefined} />
+                onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
                   prevOut={prevOuts[i]}
                   outDiff={c?.outs[i]?.diff}
-                  readonly={!isReplace}
                   onMeter={v => setPatrolOut(i, 'meter', v)}
                   onZan={v => setPatrolZan(i, v)}
                   onHo={v => setPatrolOut(i, 'ho', v)}
-                  onPrize={isReplace ? v => setPatrolOut(i, 'prize', v) : undefined}
-                  onCost={isReplace ? v => setPatrolOut(i, 'cost', v) : undefined} />
+                  onPrize={v => setPatrolOut(i, 'prize', v)}
+                  onCost={v => setPatrolOut(i, 'cost', v)} />
               ))}
               <SettingRow
                 setA={p.setA} setC={p.setC} setL={p.setL} setR={p.setR} setO={p.setO}
-                readonly={!isReplace}
-                onSetA={isReplace ? v => setPatrolSet('A', v) : undefined}
-                onSetC={isReplace ? v => setPatrolSet('C', v) : undefined}
-                onSetL={isReplace ? v => setPatrolSet('L', v) : undefined}
-                onSetR={isReplace ? v => setPatrolSet('R', v) : undefined}
+                onSetA={v => setPatrolSet('A', v)}
+                onSetC={v => setPatrolSet('C', v)}
+                onSetL={v => setPatrolSet('L', v)}
+                onSetR={v => setPatrolSet('R', v)}
                 onSetO={v => setPatrolSet('O', v)} />
             </>
           )
@@ -300,9 +298,7 @@ export default function PatrolPage() {
           <>
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              {mode !== 'correction' && (
-                <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
-              )}
+              <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
                 <input type="text" inputMode="numeric"
@@ -350,18 +346,16 @@ export default function PatrolPage() {
             {/* 景品 + @単価 */}
             <PrizeRow
               prize={o0.prize} cost={o0.cost}
-              prizeRO={!isReplace} costRO={!isReplace}
-              onPrize={isReplace ? v => setPatrolOut(0, 'prize', v) : undefined}
-              onCost={isReplace ? v => setPatrolOut(0, 'cost', v) : undefined} />
+              onPrize={v => setPatrolOut(0, 'prize', v)}
+              onCost={v => setPatrolOut(0, 'cost', v)} />
 
-            {/* 設定 A/C/L/R (入替時のみ編集可) + O (常時編集可) */}
+            {/* 設定 A/C/L/R/O */}
             <SettingRow
               setA={p.setA} setC={p.setC} setL={p.setL} setR={p.setR} setO={p.setO}
-              readonly={!isReplace}
-              onSetA={isReplace ? v => setPatrolSet('A', v) : undefined}
-              onSetC={isReplace ? v => setPatrolSet('C', v) : undefined}
-              onSetL={isReplace ? v => setPatrolSet('L', v) : undefined}
-              onSetR={isReplace ? v => setPatrolSet('R', v) : undefined}
+              onSetA={v => setPatrolSet('A', v)}
+              onSetC={v => setPatrolSet('C', v)}
+              onSetL={v => setPatrolSet('L', v)}
+              onSetR={v => setPatrolSet('R', v)}
               onSetO={v => setPatrolSet('O', v)} />
           </>
         )
@@ -374,19 +368,18 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={calc?.inDiff} showDiff={mode === 'new_patrol'}
-              onChange={setPatrolIn} onCamera={mode !== 'correction' ? () => setShowOcr(true) : undefined} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
                 out={o} touched={p.touchedOuts[i]}
                 prevOut={i === 0 ? prev?.outMeter : i === 1 ? prev?.outMeter2 : prev?.outMeter3}
                 outDiff={c?.outs[i]?.diff}
-                readonly={!isReplace}
                 onMeter={v => setPatrolOut(i, 'meter', v)}
                 onZan={v => setPatrolZan(i, v)}
                 onHo={v => setPatrolOut(i, 'ho', v)}
-                onPrize={isReplace ? v => setPatrolOut(i, 'prize', v) : undefined}
-                onCost={isReplace ? v => setPatrolOut(i, 'cost', v) : undefined} />
+                onPrize={v => setPatrolOut(i, 'prize', v)}
+                onCost={v => setPatrolOut(i, 'cost', v)} />
             ))}
 
             <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginBottom: 6 }}>
@@ -408,9 +401,7 @@ export default function PatrolPage() {
         return (
           <>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              {mode !== 'correction' && (
-                <button onClick={() => setShowOcr(true)} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
-              )}
+              <button onClick={() => setShowOcr(true)} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
                 <input type="text" inputMode="numeric"
@@ -452,16 +443,15 @@ export default function PatrolPage() {
             <PrizeRow
               prize={o0.prize} cost={o0.cost} setO={p.setO}
               showO
-              prizeRO={!isReplace} costRO={!isReplace}
-              onPrize={isReplace ? v => setPatrolOut(0, 'prize', v) : undefined}
-              onCost={isReplace ? v => setPatrolOut(0, 'cost', v) : undefined}
+              onPrize={v => setPatrolOut(0, 'prize', v)}
+              onCost={v => setPatrolOut(0, 'cost', v)}
               onSetO={v => setPatrolSet('O', v)} />
 
             {hasLocker && (
-              <LockerButton variant="check"
+              <LockerButton variant="edit"
                 total={lockerState.summary.total}
                 emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('check') }} />
+                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
             )}
           </>
         )
@@ -474,7 +464,7 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
-              onChange={setPatrolIn} onCamera={mode !== 'correction' ? () => setShowOcr(true) : undefined} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
@@ -498,10 +488,10 @@ export default function PatrolPage() {
             </div>
 
             {hasLocker && (
-              <LockerButton variant="check"
+              <LockerButton variant="edit"
                 total={lockerState.summary.total}
                 emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('check') }} />
+                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
             )}
           </>
         )
