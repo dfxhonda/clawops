@@ -385,7 +385,7 @@ export function usePatrolForm(booth) {
 
   return {
     loading, machineInfo, prev, hist,
-    readDate,
+    readDate, setReadDate,
     patrol, change,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     setChangeIn, setChangeOut, setChangeZan, setChangeSet,

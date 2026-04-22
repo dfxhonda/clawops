@@ -168,7 +168,7 @@ export default function PatrolPage() {
     )
   }
 
-  const { pattern, outCount, prev, hist, readDate,
+  const { pattern, outCount, prev, hist, readDate, setReadDate,
     patrol,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     resetPatrol,
@@ -179,6 +179,7 @@ export default function PatrolPage() {
   const outLabels = pattern === 'B' ? OUT_LABELS_B : OUT_LABELS_D2
   const boothLabel = `B${String(booth.booth_number || '').padStart(2, '0')}`
   const hasLocker = lockers.length > 0
+  const dateLocked = mode === 'correction' || mode === 'replace'
   const isReplace = mode === 'replace'
 
   // ロッカービュー
@@ -516,11 +517,13 @@ export default function PatrolPage() {
 
       {/* ヘッダー */}
       <PatrolHeader
+        readDate={readDate} onDateChange={setReadDate}
         machineName={machineInfo?.machineName || ''}
         boothLabel={boothLabel}
         badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
         playPrice={machineInfo?.playPrice}
         onBack={() => navigate('/')}
+        dateLocked={dateLocked}
       />
 
       {/* モードバッジ（全モード、日付を内包） */}
