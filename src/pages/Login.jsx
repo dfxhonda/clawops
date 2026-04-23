@@ -102,7 +102,7 @@ export default function Login() {
   return (
     <div style={S.page}>
       <div style={{ fontSize: 48, marginBottom: 6 }}>🎮</div>
-      <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>ClawOps</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>Round 0</h1>
       <p style={{ fontSize: 13, color: '#9090a8', marginBottom: 32 }}>クレーンゲーム運営管理システム</p>
 
       <form onSubmit={handleSubmit} style={S.box}>
