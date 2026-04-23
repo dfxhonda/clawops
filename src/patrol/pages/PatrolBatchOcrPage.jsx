@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { callMeterOcrBatch } from '../services/ocrApi'
 import { validateMeterReading, is2BoothType } from '../utils/meterValidation'
 import { getBooths, findMachineById } from '../../services/masters'
@@ -128,6 +129,7 @@ export default function PatrolBatchOcrPage() {
             read_time:       readTimeIso,
             patrol_date:     patrolDate,
             created_by:      staffId,
+            organization_id: DFX_ORG_ID,
           })
           records.push({
             full_booth_code: booths[1].booth_code,
@@ -140,6 +142,7 @@ export default function PatrolBatchOcrPage() {
             read_time:       readTimeIso,
             patrol_date:     patrolDate,
             created_by:      staffId,
+            organization_id: DFX_ORG_ID,
           })
         } else {
           records.push({
@@ -153,6 +156,7 @@ export default function PatrolBatchOcrPage() {
             read_time:       readTimeIso,
             patrol_date:     patrolDate,
             created_by:      staffId,
+            organization_id: DFX_ORG_ID,
           })
         }
 

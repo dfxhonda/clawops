@@ -4,6 +4,7 @@
 import { supabase } from '../lib/supabase'
 import { getCache, setCache, clearCache, supName, SUPPLIER_MAP } from './utils'
 import { writeAuditLog } from './audit'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
 // 景品名検索用の軽量リスト（prize_name + original_cost のみ）
 export async function getPrizeMasters() {
@@ -57,6 +58,7 @@ export async function addPrize(p) {
     default_case_quantity: parseInt(p.pieces_per_case) || null,
     status: p.is_active === 'FALSE' ? 'inactive' : 'active',
     notes: p.notes || null,
+    organization_id: DFX_ORG_ID,
   }).select().single()
   if (error) throw new Error('景品登録エラー: ' + error.message)
   clearCache()

@@ -4,6 +4,7 @@
 import { supabase } from '../lib/supabase'
 import { parseNum, getCache, setCache, clearCache, isOldEnough } from './utils'
 import { writeAuditLog } from './audit'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
 export async function getAllMeterReadings(forceRefresh = false) {
   if (!forceRefresh && getCache('meter_readings')) return getCache('meter_readings')
@@ -80,6 +81,7 @@ export async function saveReading(r) {
     ocr_confidence: r.ocr_confidence != null ? parseFloat(r.ocr_confidence) : null,
     created_at: now,
     created_by: r.created_by || null,
+    organization_id: DFX_ORG_ID,
   })
   if (error) throw new Error('メーター保存エラー: ' + error.message)
   clearCache()

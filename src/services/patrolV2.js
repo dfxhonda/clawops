@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { getMachineTypes, getMachineModels, getStores } from './masters'
 import { writeAuditLog } from './audit'
 import { clearCache } from './utils'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
 // 機械のカテゴリ・outCount・ロッカー情報
 export async function getMachineInfo(machineCode) {
@@ -272,6 +273,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     source: 'manual',
     created_at: now,
     created_by: staffId || null,
+    organization_id: DFX_ORG_ID,
   }
   if (outCount >= 2 && inp.outs?.[1]) {
     p.out_meter_2 = inp.outs[1].meter ? parseFloat(inp.outs[1].meter) : null
