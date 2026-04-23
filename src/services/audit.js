@@ -4,6 +4,7 @@
 // ============================================
 import { supabase } from '../lib/supabase'
 import { getAuthSession, extractMeta } from '../lib/auth/session'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
 /** 操作種別の定型ラベル */
 export const AUDIT_ACTIONS = {
@@ -79,6 +80,7 @@ export async function writeAuditLog(entry) {
       reason_code: reasonCode,
       reason_note: reasonNote,
       created_at: new Date().toISOString(),
+      organization_id: DFX_ORG_ID,
     })
   } catch (err) {
     // 監査ログの書き込み失敗は本体処理を止めない

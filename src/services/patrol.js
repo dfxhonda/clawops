@@ -4,6 +4,7 @@
 import { supabase } from '../lib/supabase'
 import { writeAuditLog } from './audit'
 import { clearCache } from './utils'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
 // 店舗の機械一覧（booths + machine_lockers + machine_models/types 付き）
 export async function getPatrolMachines(storeCode) {
@@ -85,6 +86,7 @@ export async function saveBoothReading({ boothCode, inMeter, outMeter, prizeName
     source: source || 'manual',
     input_method: 'manual',
     created_by: createdBy || null,
+    organization_id: DFX_ORG_ID,
   }
 
   let readingId
