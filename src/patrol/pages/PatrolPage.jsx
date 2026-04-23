@@ -20,6 +20,8 @@ import LockerButton    from '../components/LockerButton'
 import MonthlySummary  from '../components/MonthlySummary'
 import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
+import GachaOutCard   from '../components/GachaOutCard'
+import GachaCheckBar  from '../components/GachaCheckBar'
 
 // OUT ラベル設定
 const OUT_LABELS_B  = ['A', 'B', 'C']
@@ -401,58 +403,35 @@ export default function PatrolPage() {
         const t0 = p.touchedOuts[0] || {}
         return (
           <>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <button onClick={() => setShowOcr(true)} style={{ width: 36, height: 36, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 16, flexShrink: 0, cursor: 'pointer' }}>📷</button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
-                <input type="text" inputMode="numeric"
-                  style={inp(p.inTouched)} value={p.inMeter}
-                  onFocus={e => { if (!p.inTouched) e.target.select() }}
-                  onChange={e => setPatrolIn(e.target.value)} />
-              </div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</span>
-                <input type="text" inputMode="numeric"
-                  style={inp(t0.meter)} value={o0.meter}
-                  onFocus={e => { if (!t0.meter) e.target.select() }}
-                  onChange={e => setPatrolOut(0, 'meter', e.target.value)} />
-              </div>
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</span>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
-                  value={o0.zan}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setPatrolZan(0, e.target.value)} />
-              </div>
-              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</span>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
-                  value={o0.ho}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setPatrolOut(0, 'ho', e.target.value)} />
-              </div>
-            </div>
+            <MeterInputRow
+              inMeter={p.inMeter} inTouched={p.inTouched}
+              inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+
+            <GachaOutCard
+              slot={0}
+              out={o0} touched={t0}
+              outDiff={c?.outs[0]?.diff}
+              prevPrizeName={prev?.prizeName}
+              onMeter={v => setPatrolOut(0, 'meter', v)}
+              onZan={v => setPatrolZan(0, v)}
+              onHo={v => setPatrolOut(0, 'ho', v)}
+              onPrize={v => setPatrolOut(0, 'prize', v)}
+              onCost={v => setPatrolOut(0, 'cost', v)} />
 
             {mode === 'new_patrol' && (
-              <CalcBar inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
-                theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
-                onReset={resetPatrol} />
+              <div style={{ marginTop: 6 }}>
+                <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]} />
+              </div>
             )}
 
-            <PrizeRow
-              prize={o0.prize} cost={o0.cost} setO={p.setO}
-              showO
-              onPrize={v => setPatrolOut(0, 'prize', v)}
-              onCost={v => setPatrolOut(0, 'cost', v)}
-              onSetO={v => setPatrolSet('O', v)} />
-
             {hasLocker && (
-              <LockerButton variant="edit"
-                total={lockerState.summary.total}
-                emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+              <div style={{ marginTop: 6 }}>
+                <LockerButton variant="edit"
+                  total={lockerState.summary.total}
+                  emptyCount={lockerState.summary.empty}
+                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+              </div>
             )}
           </>
         )
@@ -467,32 +446,35 @@ export default function PatrolPage() {
               inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
               onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
-            {p.outs.map((o, i) => (
-              <OutGroupRow key={i} idx={i} label={outLabels[i]}
-                out={o} touched={p.touchedOuts[i]}
-                prevOut={i === 0 ? prev?.outMeter : prev?.outMeter2}
-                outDiff={c?.outs[i]?.diff}
-                onMeter={v => setPatrolOut(i, 'meter', v)}
-                onZan={v => setPatrolZan(i, v)}
-                onHo={v => setPatrolOut(i, 'ho', v)}
-                onPrize={v => setPatrolOut(i, 'prize', v)}
-                onCost={v => setPatrolOut(i, 'cost', v)} />
-            ))}
-
-            <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</span>
-              <input type="text" maxLength={6}
-                style={{ ...INP_BASE, flex: 1, textAlign: 'left', color: '#d0d0e0' }}
-                value={p.setO} placeholder="設定"
-                onFocus={e => e.target.select()}
-                onChange={e => setPatrolSet('O', e.target.value)} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
+              {p.outs.map((o, i) => (
+                <GachaOutCard key={i} slot={i}
+                  out={o} touched={p.touchedOuts[i]}
+                  outDiff={c?.outs[i]?.diff}
+                  prevPrizeName={i === 0 ? prev?.prizeName : prev?.prizeName2}
+                  onMeter={v => setPatrolOut(i, 'meter', v)}
+                  onZan={v => setPatrolZan(i, v)}
+                  onHo={v => setPatrolOut(i, 'ho', v)}
+                  onPrize={v => setPatrolOut(i, 'prize', v)}
+                  onCost={v => setPatrolOut(i, 'cost', v)} />
+              ))}
             </div>
 
+            {mode === 'new_patrol' && (
+              <div style={{ marginTop: 6 }}>
+                <GachaCheckBar
+                  inDiff={c?.inDiff}
+                  outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))} />
+              </div>
+            )}
+
             {hasLocker && (
-              <LockerButton variant="edit"
-                total={lockerState.summary.total}
-                emptyCount={lockerState.summary.empty}
-                onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+              <div style={{ marginTop: 6 }}>
+                <LockerButton variant="edit"
+                  total={lockerState.summary.total}
+                  emptyCount={lockerState.summary.empty}
+                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+              </div>
             )}
           </>
         )
