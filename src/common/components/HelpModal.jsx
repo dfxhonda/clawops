@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { HelpCircle } from 'lucide-react'
 
 // 汎用ヘルプモーダル（下からスライドアップ）
 // usage: <HelpModal topic={helpContent} onClose={() => setHelpTopic(null)} />
@@ -57,18 +58,19 @@ export default function HelpModal({ topic, onClose }) {
   )
 }
 
-// ヘルプボタン本体 — 各コンポーネントで使う小さな ? ボタン
+// ヘルプボタン本体 — 各コンポーネントで使う小さな HelpCircle ボタン
 export function HelpBtn({ onClick }) {
   return (
     <button
       onClick={e => { e.stopPropagation(); onClick() }}
       style={{
-        fontSize: 9, fontWeight: 700, color: '#5555aa',
-        background: 'none', border: '1px solid #3a3a66',
-        borderRadius: '50%', width: 15, height: 15,
+        color: '#5555aa',
+        background: 'none', border: 'none',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', flexShrink: 0, lineHeight: 1, padding: 0,
+        cursor: 'pointer', flexShrink: 0, padding: 0,
       }}
-    >?</button>
+    >
+      <HelpCircle className="w-3 h-3" style={{ width: 12, height: 12 }} />
+    </button>
   )
 }
