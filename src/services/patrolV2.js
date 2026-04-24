@@ -244,6 +244,34 @@ export async function saveReplaceReadingV2({ boothCode, formData, outCount, staf
   })
 }
 
+// 据え置き確定: 前回値をそのまま carry_forward で保存
+export async function saveCarryForwardV2({ boothCode, prevReading, outCount, staffId, readDate }) {
+  const toStr = v => (v != null ? String(v) : '')
+  const inp = {
+    readDate,
+    inMeter: toStr(prevReading?.inMeter),
+    outs: [
+      { meter: toStr(prevReading?.outMeter),  prize: prevReading?.prizeName  || '', cost: toStr(prevReading?.prizeCost1), zan: '', ho: 'ー' },
+      { meter: toStr(prevReading?.outMeter2), prize: prevReading?.prizeName2 || '', cost: toStr(prevReading?.prizeCost2), zan: '', ho: 'ー' },
+      { meter: toStr(prevReading?.outMeter3), prize: prevReading?.prizeName3 || '', cost: toStr(prevReading?.prizeCost3), zan: '', ho: 'ー' },
+    ],
+    inDiff: 0,
+    playPrice: null,
+  }
+  const payload = _buildPayload(boothCode, 'carry_forward', inp, outCount, staffId)
+  const { error } = await supabase.from('meter_readings').insert(payload)
+  if (error) throw new Error('据え置き保存エラー: ' + error.message)
+  clearCache()
+  await writeAuditLog({
+    action: 'reading_carry_forward',
+    target_table: 'meter_readings',
+    target_id: boothCode,
+    detail: `据え置き確定: IN=${prevReading?.inMeter ?? '-'} (${boothCode})`,
+    reason_code: 'CARRY_FORWARD',
+    staff_id: staffId || undefined,
+  })
+}
+
 function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
   const now = new Date().toISOString()
   const parts = boothCode.split('-')

@@ -5,7 +5,7 @@ import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
 import { getMachineLockers } from '../../services/patrol'
-import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2 } from '../../services/patrolV2'
+import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, saveCarryForwardV2 } from '../../services/patrolV2'
 
 import MeterOcr        from '../components/MeterOcr'
 import PatrolHeader    from '../components/PatrolHeader'
@@ -51,6 +51,7 @@ export default function PatrolPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [carryModal, setCarryModal] = useState(false)
 
   // モード管理
   const [mode, setMode] = useState('loading') // 'loading' | 'new_patrol' | 'correction' | 'replace'
@@ -215,6 +216,20 @@ export default function PatrolPage() {
     if (inMeter) setPatrolIn(inMeter)
     if (outMeter) setPatrolOut(0, 'meter', outMeter)
     setShowOcr(false)
+  }
+
+  async function handleCarrySave() {
+    setCarryModal(false)
+    setSaveError(null)
+    setSaving(true)
+    try {
+      await saveCarryForwardV2({ boothCode: booth.booth_code, prevReading: prev, outCount, staffId, readDate })
+      setSaved(true)
+      setTimeout(() => navigate('/'), 800)
+    } catch (e) {
+      setSaveError(e.message)
+      setSaving(false)
+    }
   }
 
   async function handleSave() {
@@ -565,13 +580,24 @@ export default function PatrolPage() {
           ✅ 保存しました
         </div>
       ) : (
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer', marginBottom: 24 }}
-        >
-          {saving ? '保存中...' : saveLabel}
-        </button>
+        <>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer', marginBottom: 8 }}
+          >
+            {saving ? '保存中...' : saveLabel}
+          </button>
+          {mode === 'new_patrol' && (
+            <button
+              onClick={() => prev ? setCarryModal(true) : setSaveError('前回値がないため据え置きできません')}
+              disabled={saving}
+              style={{ width: '100%', padding: '10px', borderRadius: 10, background: '#12121e', color: '#8888a8', border: '1px solid #2a2a44', fontWeight: 700, fontSize: 13, cursor: saving ? 'default' : 'pointer', marginBottom: 24 }}
+            >
+              ⏸ 据え置き確定（前回値のまま）
+            </button>
+          )}
+        </>
       )}
 
       {showOcr && (
@@ -620,6 +646,32 @@ export default function PatrolPage() {
               >
                 キャンセル
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 据え置き確定ダイアログ */}
+      {carryModal && prev && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#1a1a2e', border: '1px solid #2a2a44', borderRadius: 12, padding: 20, maxWidth: 360, width: '100%' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#e8e8f0', marginBottom: 8 }}>⏸ 据え置き確定</div>
+            <div style={{ fontSize: 13, color: '#8888a8', marginBottom: 4 }}>
+              前回値をそのまま記録します。
+            </div>
+            <div style={{ fontSize: 13, color: '#c0c0d8', fontFamily: 'monospace', marginBottom: 16 }}>
+              IN: {prev.inMeter ?? '—'}
+              {prev.outMeter != null && <> &nbsp; OUT: {prev.outMeter}</>}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setCarryModal(false)}
+                style={{ flex: 1, padding: 12, borderRadius: 8, background: 'rgba(136,136,168,.1)', border: '1px solid rgba(136,136,168,.3)', color: '#8888a8', fontSize: 13, cursor: 'pointer' }}
+              >キャンセル</button>
+              <button
+                onClick={handleCarrySave}
+                style={{ flex: 1, padding: 12, borderRadius: 8, background: 'rgba(93,173,226,.15)', border: '1px solid rgba(93,173,226,.4)', color: '#5dade2', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >確定する</button>
             </div>
           </div>
         </div>
