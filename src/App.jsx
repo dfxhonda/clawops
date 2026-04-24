@@ -20,20 +20,18 @@ import { useVersionCheck } from './hooks/useVersionCheck'
 import { buildLabel } from './lib/buildInfo'
 
 // ===== 遅延読み込み =====
-// 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
+// 初回ロードは Login のみ。他は画面遷移時にロード。
 
 // 即時ロード（初回表示に必要）
 import Login from './pages/Login'
 
 // 遅延ロード — メインタブ
-const MainInput = lazy(() => import('./patrol/pages/MainInput'))
 const Dashboard = lazy(() => import('./admin/pages/Dashboard'))
 const AdminMenu = lazy(() => import('./admin/pages/AdminMenu'))
 const AdminTop = lazy(() => import('./admin/pages/AdminTop'))
 
 // 遅延ロード — 巡回入力
 const BoothInput = lazy(() => import('./patrol/pages/BoothInput'))
-const DraftList = lazy(() => import('./patrol/pages/DraftList'))
 const Complete = lazy(() => import('./patrol/pages/Complete'))
 const RankingView = lazy(() => import('./patrol/pages/RankingView'))
 const MachineList = lazy(() => import('./patrol/pages/MachineList'))
@@ -50,13 +48,11 @@ const ManualView = lazy(() => import('./admin/pages/ManualView'))
 const EditReading = lazy(() => import('./admin/pages/EditReading'))
 const DataSearch = lazy(() => import('./admin/pages/DataSearch'))
 const PatrolScan = lazy(() => import('./patrol/pages/PatrolScan'))
-const PatrolInput = lazy(() => import('./patrol/pages/PatrolInput'))
 const PatrolPage  = lazy(() => import('./patrol/pages/PatrolPage'))
 const PatrolOverview = lazy(() => import('./patrol/pages/PatrolOverview'))
 const LockerList = lazy(() => import('./admin/pages/LockerList'))
 const ImportSlips = lazy(() => import('./admin/pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./admin/pages/SetupSheets'))
-const TestDataImport = lazy(() => import('./admin/pages/TestDataImport'))
 const AuditLog = lazy(() => import('./admin/pages/AuditLog'))
 const AuditSummary = lazy(() => import('./admin/pages/AuditSummary'))
 const DailyStatsAdmin = lazy(() => import('./admin/pages/DailyStatsAdmin'))
@@ -101,14 +97,12 @@ function AppInner() {
 
       {/* ホーム = 巡回アプリ（全ロール） */}
       <Route path="/" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
-      <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
-      <Route path="/drafts" element={<ProtectedRoute><DraftList /></ProtectedRoute>} />
       <Route path="/complete" element={<ProtectedRoute><Complete /></ProtectedRoute>} />
       <Route path="/ranking/:storeId" element={<ProtectedRoute><RankingView /></ProtectedRoute>} />
       <Route path="/machines/:storeId" element={<ProtectedRoute><MachineList /></ProtectedRoute>} />
@@ -117,8 +111,6 @@ function AppInner() {
       <Route path="/patrol/overview" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
       <Route path="/patrol" element={<ProtectedRoute><PatrolScan /></ProtectedRoute>} />
       <Route path="/patrol/input" element={<ProtectedRoute><PatrolPage /></ProtectedRoute>} />
-      <Route path="/patrol/input-legacy" element={<ProtectedRoute><PatrolInput /></ProtectedRoute>} />
-      <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
 
       {/* 監査ログ — manager以上 */}
       <Route path="/admin/audit" element={<ManagerRoute><AuditLog /></ManagerRoute>} />
@@ -143,15 +135,13 @@ function AppInner() {
       {/* 管理ツール — admin のみ */}
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />
       <Route path="/admin/setup-sheets" element={<AdminRoute><SetupSheets /></AdminRoute>} />
-      <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
       <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
 
 
-      {/* Phase 4一時無効化中 - OcrConfirmのReferenceError調査中
-          導線はPatrolOverviewで隠しているが、直URL入力で到達可能 */}
-      {/* OCR巡回入力 — 全ロール */}
-      <Route path="/patrol/camera"    element={<ProtectedRoute><PatrolCameraPage /></ProtectedRoute>} />
+      {/* TODO: Phase 4 OCR復活時にアンコメント - OcrConfirm ReferenceError調査中
+      <Route path="/patrol/camera" element={<ProtectedRoute><PatrolCameraPage /></ProtectedRoute>} />
       <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
+      */}
 
       {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
       <Route path="/stock" element={<StocktakeLogin />} />

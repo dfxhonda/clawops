@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { calcMeterDiff } from '../../services/calc'
-import { REPORT_KEY } from './DraftList'
+const REPORT_KEY = 'clawops_last_report'
 
 const REPORT_TTL_MS = 24 * 60 * 60 * 1000
 

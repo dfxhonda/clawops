@@ -80,7 +80,6 @@ const SECTIONS = [
     minRole: 'admin',
     items: [
       { icon: '🔧', title: 'シートセットアップ', desc: '新規シート作成・初期化', path: '/admin/setup-sheets' },
-      { icon: '🧪', title: 'テストデータ投入', desc: 'シミュレーションデータ', path: '/admin/test-data' },
     ]
   },
 ]

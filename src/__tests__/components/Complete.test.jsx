@@ -9,7 +9,7 @@ vi.mock('react-router-dom', async () => {
 })
 
 import Complete from '../../patrol/pages/Complete'
-import { REPORT_KEY } from '../../patrol/pages/DraftList'
+const REPORT_KEY = 'clawops_last_report'
 
 function renderComplete(locationState = {}) {
   return render(
