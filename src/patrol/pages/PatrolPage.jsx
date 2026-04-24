@@ -469,7 +469,7 @@ export default function PatrolPage() {
                   onPrize={v => setPatrolOut(i, 'prize', v)}
                   onCost={v => setPatrolOut(i, 'cost', v)}
                   onHelpLabel={() => setHelpTopic(i === 0 ? GACHA_HELP.outA : GACHA_HELP.outB)}
-                  onHelpPrize={i === 0 ? () => setHelpTopic(GACHA_HELP.prize) : undefined} />
+                  onHelpPrize={() => setHelpTopic(GACHA_HELP.prize)} />
               ))}
             </div>
 

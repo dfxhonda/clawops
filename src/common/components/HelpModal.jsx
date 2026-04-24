@@ -64,7 +64,7 @@ export function HelpBtn({ onClick }) {
     <button
       onClick={e => { e.stopPropagation(); onClick() }}
       style={{
-        color: '#5555aa',
+        color: '#5dade2',
         background: 'none', border: 'none',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', flexShrink: 0, padding: 0,
