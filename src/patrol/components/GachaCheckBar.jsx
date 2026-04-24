@@ -1,5 +1,7 @@
 // 整合チェックバー: IN差分 vs OUT合計 の一致確認 + 合計売上表示
-export default function GachaCheckBar({ inDiff, outs = [] }) {
+import { HelpBtn } from '../../common/components/HelpModal'
+
+export default function GachaCheckBar({ inDiff, outs = [], onHelp }) {
   const totalOut = outs.reduce((s, o) => s + (o?.diff ?? 0), 0)
   const match = inDiff != null && inDiff === totalOut
   const gap = inDiff != null ? Math.abs(inDiff - totalOut) : null
@@ -33,6 +35,7 @@ export default function GachaCheckBar({ inDiff, outs = [] }) {
         <span style={{ fontSize: 11, fontWeight: 700, color: textColor, flexShrink: 0 }}>
           {match ? '整合OK' : `誤差${gap}`}
         </span>
+        {onHelp && <HelpBtn onClick={onHelp} />}
         <span style={{ fontSize: 10, color: '#8888a8', fontFamily: 'monospace' }}>
           IN{diffStr(inDiff)}=A+B={totalOut}
         </span>

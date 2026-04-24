@@ -22,6 +22,8 @@ import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
 import GachaOutCard   from '../components/GachaOutCard'
 import GachaCheckBar  from '../components/GachaCheckBar'
+import HelpModal, { HelpBtn } from '../../common/components/HelpModal'
+import { GACHA_HELP } from '../../helpContent/gacha'
 
 // OUT ラベル設定
 const OUT_LABELS_B  = ['A', 'B', 'C']
@@ -51,6 +53,7 @@ export default function PatrolPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [helpTopic, setHelpTopic] = useState(null)
 
   // モード管理
   const [mode, setMode] = useState('loading') // 'loading' | 'new_patrol' | 'correction' | 'replace'
@@ -406,7 +409,8 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)}
+              onHelp={() => setHelpTopic(GACHA_HELP.in)} />
 
             <GachaOutCard
               slot={0}
@@ -417,20 +421,26 @@ export default function PatrolPage() {
               onZan={v => setPatrolZan(0, v)}
               onHo={v => setPatrolOut(0, 'ho', v)}
               onPrize={v => setPatrolOut(0, 'prize', v)}
-              onCost={v => setPatrolOut(0, 'cost', v)} />
+              onCost={v => setPatrolOut(0, 'cost', v)}
+              onHelpLabel={() => setHelpTopic(GACHA_HELP.outA)}
+              onHelpPrize={() => setHelpTopic(GACHA_HELP.prize)} />
 
             {mode === 'new_patrol' && (
               <div style={{ marginTop: 6 }}>
-                <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]} />
+                <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]}
+                  onHelp={() => setHelpTopic(GACHA_HELP.check)} />
               </div>
             )}
 
             {hasLocker && (
-              <div style={{ marginTop: 6 }}>
-                <LockerButton variant="edit"
-                  total={lockerState.summary.total}
-                  emptyCount={lockerState.summary.empty}
-                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ flex: 1 }}>
+                  <LockerButton variant="edit"
+                    total={lockerState.summary.total}
+                    emptyCount={lockerState.summary.empty}
+                    onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+                </div>
+                <HelpBtn onClick={() => setHelpTopic(GACHA_HELP.locker)} />
               </div>
             )}
           </>
@@ -444,7 +454,8 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)}
+              onHelp={() => setHelpTopic(GACHA_HELP.in)} />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
               {p.outs.map((o, i) => (
@@ -456,7 +467,9 @@ export default function PatrolPage() {
                   onZan={v => setPatrolZan(i, v)}
                   onHo={v => setPatrolOut(i, 'ho', v)}
                   onPrize={v => setPatrolOut(i, 'prize', v)}
-                  onCost={v => setPatrolOut(i, 'cost', v)} />
+                  onCost={v => setPatrolOut(i, 'cost', v)}
+                  onHelpLabel={() => setHelpTopic(i === 0 ? GACHA_HELP.outA : GACHA_HELP.outB)}
+                  onHelpPrize={i === 0 ? () => setHelpTopic(GACHA_HELP.prize) : undefined} />
               ))}
             </div>
 
@@ -464,16 +477,20 @@ export default function PatrolPage() {
               <div style={{ marginTop: 6 }}>
                 <GachaCheckBar
                   inDiff={c?.inDiff}
-                  outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))} />
+                  outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))}
+                  onHelp={() => setHelpTopic(GACHA_HELP.check)} />
               </div>
             )}
 
             {hasLocker && (
-              <div style={{ marginTop: 6 }}>
-                <LockerButton variant="edit"
-                  total={lockerState.summary.total}
-                  emptyCount={lockerState.summary.empty}
-                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ flex: 1 }}>
+                  <LockerButton variant="edit"
+                    total={lockerState.summary.total}
+                    emptyCount={lockerState.summary.empty}
+                    onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
+                </div>
+                <HelpBtn onClick={() => setHelpTopic(GACHA_HELP.locker)} />
               </div>
             )}
           </>
@@ -512,6 +529,9 @@ export default function PatrolPage() {
       {mode === 'new_patrol' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
           <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
+          {(pattern === 'D1' || pattern === 'D2') && (
+            <HelpBtn onClick={() => setHelpTopic(GACHA_HELP.overview)} />
+          )}
           <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
         </div>
       )}
@@ -624,6 +644,9 @@ export default function PatrolPage() {
           </div>
         </div>
       )}
+
+      {/* ヘルプモーダル */}
+      <HelpModal topic={helpTopic} onClose={() => setHelpTopic(null)} />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>

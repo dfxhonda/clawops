@@ -1,7 +1,9 @@
 // カメラ + IN + IN差 表示行 (および単独IN行として使用)
+import { HelpBtn } from '../../common/components/HelpModal'
+
 const INP = { fontSize: 16, background: '#222238', border: '1px solid #2a2a44', borderRadius: 4, padding: '0.45em 0.35em', fontFamily: "'Courier New', Courier, monospace", fontWeight: 'bold', outline: 'none', color: '#d0d0e0', WebkitAppearance: 'none', textAlign: 'right', minWidth: 0, flex: 1 }
 
-export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, onCamera, showDiff = false }) {
+export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, onCamera, showDiff = false, onHelp }) {
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
       {onCamera && (
@@ -10,7 +12,8 @@ export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, on
         </button>
       )}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-        <span style={{ fontSize: 10, color: '#8888a8', flexShrink: 0, width: 18, textAlign: 'center' }}>IN</span>
+        <span style={{ fontSize: 10, color: '#8888a8', flexShrink: 0, textAlign: 'center' }}>IN</span>
+          {onHelp && <HelpBtn onClick={onHelp} />}
         <input
           type="text" inputMode="numeric"
           style={inTouched ? { ...INP, color: '#e8e8f0' } : INP}
