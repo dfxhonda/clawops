@@ -22,8 +22,7 @@ import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
 import GachaOutCard   from '../components/GachaOutCard'
 import GachaCheckBar  from '../components/GachaCheckBar'
-import HelpModal, { HelpBtn } from '../../common/components/HelpModal'
-import { GACHA_HELP } from '../../helpContent/gacha'
+import { HelpCircle, AlertTriangle, X } from 'lucide-react'
 
 // OUT ラベル設定
 const OUT_LABELS_B  = ['A', 'B', 'C']
@@ -53,7 +52,7 @@ export default function PatrolPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
-  const [helpTopic, setHelpTopic] = useState(null)
+  const [helpOpen, setHelpOpen] = useState(null) // null | 'main' | 'check'
 
   // モード管理
   const [mode, setMode] = useState('loading') // 'loading' | 'new_patrol' | 'correction' | 'replace'
@@ -409,8 +408,7 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)}
-              onHelp={() => setHelpTopic(GACHA_HELP.in)} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             <GachaOutCard
               slot={0}
@@ -421,26 +419,21 @@ export default function PatrolPage() {
               onZan={v => setPatrolZan(0, v)}
               onHo={v => setPatrolOut(0, 'ho', v)}
               onPrize={v => setPatrolOut(0, 'prize', v)}
-              onCost={v => setPatrolOut(0, 'cost', v)}
-              onHelpLabel={() => setHelpTopic(GACHA_HELP.outA)}
-              onHelpPrize={() => setHelpTopic(GACHA_HELP.prize)} />
+              onCost={v => setPatrolOut(0, 'cost', v)} />
 
             {mode === 'new_patrol' && (
               <div style={{ marginTop: 6 }}>
                 <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]}
-                  onHelp={() => setHelpTopic(GACHA_HELP.check)} />
+                  onHelp={() => setHelpOpen('check')} />
               </div>
             )}
 
             {hasLocker && (
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ flex: 1 }}>
-                  <LockerButton variant="edit"
-                    total={lockerState.summary.total}
-                    emptyCount={lockerState.summary.empty}
-                    onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-                </div>
-                <HelpBtn onClick={() => setHelpTopic(GACHA_HELP.locker)} />
+              <div style={{ marginTop: 6 }}>
+                <LockerButton variant="edit"
+                  total={lockerState.summary.total}
+                  emptyCount={lockerState.summary.empty}
+                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
               </div>
             )}
           </>
@@ -454,8 +447,7 @@ export default function PatrolPage() {
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)}
-              onHelp={() => setHelpTopic(GACHA_HELP.in)} />
+              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
               {p.outs.map((o, i) => (
@@ -467,9 +459,7 @@ export default function PatrolPage() {
                   onZan={v => setPatrolZan(i, v)}
                   onHo={v => setPatrolOut(i, 'ho', v)}
                   onPrize={v => setPatrolOut(i, 'prize', v)}
-                  onCost={v => setPatrolOut(i, 'cost', v)}
-                  onHelpLabel={() => setHelpTopic(i === 0 ? GACHA_HELP.outA : GACHA_HELP.outB)}
-                  onHelpPrize={() => setHelpTopic(GACHA_HELP.prize)} />
+                  onCost={v => setPatrolOut(i, 'cost', v)} />
               ))}
             </div>
 
@@ -478,19 +468,16 @@ export default function PatrolPage() {
                 <GachaCheckBar
                   inDiff={c?.inDiff}
                   outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))}
-                  onHelp={() => setHelpTopic(GACHA_HELP.check)} />
+                  onHelp={() => setHelpOpen('check')} />
               </div>
             )}
 
             {hasLocker && (
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ flex: 1 }}>
-                  <LockerButton variant="edit"
-                    total={lockerState.summary.total}
-                    emptyCount={lockerState.summary.empty}
-                    onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-                </div>
-                <HelpBtn onClick={() => setHelpTopic(GACHA_HELP.locker)} />
+              <div style={{ marginTop: 6 }}>
+                <LockerButton variant="edit"
+                  total={lockerState.summary.total}
+                  emptyCount={lockerState.summary.empty}
+                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
               </div>
             )}
           </>
@@ -523,15 +510,13 @@ export default function PatrolPage() {
         playPrice={machineInfo?.playPrice}
         onBack={() => navigate('/')}
         dateLocked={dateLocked}
+        onHelp={(pattern === 'D1' || pattern === 'D2') ? () => setHelpOpen('main') : undefined}
       />
 
       {/* モードバッジ（全モード、日付を内包） */}
       {mode === 'new_patrol' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
           <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
-          {(pattern === 'D1' || pattern === 'D2') && (
-            <HelpBtn onClick={() => setHelpTopic(GACHA_HELP.overview)} />
-          )}
           <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
         </div>
       )}
@@ -645,8 +630,84 @@ export default function PatrolPage() {
         </div>
       )}
 
-      {/* ヘルプモーダル */}
-      <HelpModal topic={helpTopic} onClose={() => setHelpTopic(null)} />
+      {/* メインヘルプモーダル */}
+      {helpOpen === 'main' && (
+        <div onClick={() => setHelpOpen(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0f172a', border: '1px solid #475569', borderRadius: '14px 14px 0 0', padding: '16px 16px 32px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ width: 36, height: 4, background: '#475569', borderRadius: 2, margin: '0 auto 14px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <HelpCircle style={{ width: 20, height: 20, color: '#22d3ee' }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>画面の使い方</span>
+              </div>
+              <button onClick={() => setHelpOpen(null)} aria-label="閉じる" style={{ width: 28, height: 28, borderRadius: '50%', background: '#334155', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                <X style={{ width: 16, height: 16, color: '#e2e8f0' }} />
+              </button>
+            </div>
+
+            <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 700, color: '#22d3ee', marginBottom: 8 }}>触るべきところ（新人向け）</div>
+              <ol style={{ paddingLeft: 18, margin: '0 0 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <li>機械の<b>真ん中（IN）</b>のメーターの数字を入力</li>
+                <li>機械の<b>一番上（A段）</b>のメーターの数字を入力</li>
+                <li>機械の<b>一番下（B段）</b>のメーターの数字を入力</li>
+                <li>下の計算結果が <b style={{ color: '#4ade80' }}>整合OK（緑）</b> なら「保存する」を押す</li>
+              </ol>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 16 }}>※ 景品変更・ロッカーは通常触らない。管理者に指示された時のみ。</div>
+
+              <div style={{ borderTop: '1px solid #1e293b', paddingTop: 12 }}>
+                <div style={{ fontWeight: 700, color: '#22d3ee', marginBottom: 8 }}>画面の略語</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                  <tbody>
+                    {[
+                      ['IN', '機械に入ったコインの総数（真ん中）', '#22d3ee'],
+                      ['▲A', '上段から出たカプセル数', '#4ade80'],
+                      ['▼B', '下段から出たカプセル数', '#60a5fa'],
+                      ['@', 'カプセル1個の単価', '#facc15'],
+                      ['残', '機械内の残カプセル数', '#e2e8f0'],
+                      ['+差分', '前回からの増加（緑=プラス/赤=異常）', '#4ade80'],
+                    ].map(([term, desc, color]) => (
+                      <tr key={term} style={{ borderBottom: '1px solid #1e293b' }}>
+                        <td style={{ padding: '5px 8px 5px 0', fontFamily: 'monospace', fontWeight: 700, color, width: 56, whiteSpace: 'nowrap' }}>{term}</td>
+                        <td style={{ padding: '5px 0', color: '#cbd5e1' }}>{desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 誤差ヘルプモーダル */}
+      {helpOpen === 'check' && (() => {
+        const inD = calc?.inDiff ?? 0
+        const totalOut = (calc?.outs ?? []).reduce((s, o) => s + (o?.diff ?? 0), 0)
+        const gap = Math.abs(inD - totalOut)
+        return (
+          <div onClick={() => setHelpOpen(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: '#0f172a', border: '1px solid #854d0e', borderRadius: '14px 14px 0 0', padding: '16px 16px 32px' }}>
+              <div style={{ width: 36, height: 4, background: '#475569', borderRadius: 2, margin: '0 auto 14px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertTriangle style={{ width: 20, height: 20, color: '#fcd34d' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>誤差について</span>
+                </div>
+                <button onClick={() => setHelpOpen(null)} aria-label="閉じる" style={{ width: 28, height: 28, borderRadius: '50%', background: '#334155', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                  <X style={{ width: 16, height: 16, color: '#e2e8f0' }} />
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: '#e2e8f0', lineHeight: 1.8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ margin: 0 }}>IN の増加分と A+B の合計が <b>{gap}</b> ずれています。</p>
+                <p style={{ margin: 0 }}>理論上は IN の分だけカプセルが出るはずなので、ほぼ一致します。機械の読み取り誤差で少しズレることはよくあります。</p>
+                <p style={{ margin: 0, color: '#4ade80', fontWeight: 700 }}>このまま保存してOK。</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', borderTop: '1px solid #1e293b', paddingTop: 8 }}>大きなズレ（2桁以上）が続く場合は、メーターの読み間違いがないか再確認するか、管理者に報告してください。</p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>

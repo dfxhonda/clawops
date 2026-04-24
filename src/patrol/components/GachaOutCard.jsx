@@ -1,5 +1,4 @@
 import PrizeSearchInput from './PrizeSearchInput'
-import { HelpBtn } from '../../common/components/HelpModal'
 
 const INP = {
   fontSize: 15,
@@ -18,7 +17,7 @@ const INP = {
 }
 
 // slot: 0=A(上), 1=B(下)
-export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, prevPrizeName, onMeter, onZan, onHo, onPrize, onCost, onHelpLabel, onHelpPrize }) {
+export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, prevPrizeName, onMeter, onZan, onHo, onPrize, onCost }) {
   const isA = slot === 0
   const accentColor = isA ? '#2ecc71' : '#5dade2'
   const labelChar = isA ? '▲A' : '▼B'
@@ -47,7 +46,6 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: accentColor }}>{labelChar}</span>
-          {onHelpLabel && <HelpBtn onClick={onHelpLabel} />}
         </div>
         <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color: diffColor }}>{diffStr}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -69,17 +67,12 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
 
       {/* 行3: 景品名 */}
       <div style={{ marginTop: 5 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <PrizeSearchInput
-              value={prizeName}
-              onChange={onPrize}
-              onSelect={onPrize}
-              inputStyle={{ fontSize: 11, padding: '3px 6px' }}
-            />
-          </div>
-          {onHelpPrize && <HelpBtn onClick={onHelpPrize} />}
-        </div>
+        <PrizeSearchInput
+          value={prizeName}
+          onChange={onPrize}
+          onSelect={onPrize}
+          inputStyle={{ fontSize: 11, padding: '3px 6px' }}
+        />
         {nameChanged && (
           <span style={{ fontSize: 9, color: '#f0a040' }}>変更</span>
         )}

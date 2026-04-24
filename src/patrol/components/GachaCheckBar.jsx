@@ -1,5 +1,5 @@
 // 整合チェックバー: IN差分 vs OUT合計 の一致確認 + 合計売上表示
-import { HelpBtn } from '../../common/components/HelpModal'
+import { HelpCircle } from 'lucide-react'
 
 export default function GachaCheckBar({ inDiff, outs = [], onHelp }) {
   const totalOut = outs.reduce((s, o) => s + (o?.diff ?? 0), 0)
@@ -35,7 +35,15 @@ export default function GachaCheckBar({ inDiff, outs = [], onHelp }) {
         <span style={{ fontSize: 11, fontWeight: 700, color: textColor, flexShrink: 0 }}>
           {match ? '整合OK' : `誤差${gap}`}
         </span>
-        {onHelp && <HelpBtn onClick={onHelp} />}
+        {!match && onHelp && (
+          <button
+            onClick={onHelp}
+            aria-label="誤差について"
+            style={{ color: '#f0c040', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', padding: 0 }}
+          >
+            <HelpCircle style={{ width: 14, height: 14 }} />
+          </button>
+        )}
         <span style={{ fontSize: 10, color: '#8888a8', fontFamily: 'monospace' }}>
           IN{diffStr(inDiff)}=A+B={totalOut}
         </span>
