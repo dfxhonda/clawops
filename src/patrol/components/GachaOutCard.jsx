@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import PrizeSearchInput from './PrizeSearchInput'
 
 const INP = {
@@ -23,16 +24,31 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
   const labelChar = isA ? '▲A' : '▼B'
   const borderColor = isA ? '#27ae60' : '#2980b9'
 
+  const [zanEditing, setZanEditing] = useState(false)
+
   const diff = outDiff ?? null
   const diffStr = diff != null ? (diff >= 0 ? `+${diff}` : String(diff)) : '—'
   const diffColor = diff > 0 ? '#2ecc71' : diff < 0 ? '#e74c3c' : '#555577'
 
   const zan = out.zan ?? ''
+  const ho = (out.ho === 'ー' || out.ho == null) ? '0' : out.ho
   const cost = parseInt(out.cost) || 0
   const revenue = diff != null && diff > 0 && cost > 0 ? diff * cost : null
 
   const prizeName = out.prize || ''
   const nameChanged = prevPrizeName && prizeName && prizeName !== prevPrizeName
+
+  function handleZanClick() {
+    setZanEditing(true)
+  }
+
+  function handleZanBlur() {
+    setZanEditing(false)
+  }
+
+  function handleZanChange(val) {
+    onZan(val)
+  }
 
   return (
     <div style={{
@@ -48,11 +64,40 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
         <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color: diffColor }}>{diffStr}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</span>
-          <input type="text" inputMode="numeric" maxLength={4}
-            style={{ ...INP, width: 44, fontSize: 13 }}
-            value={zan}
-            onFocus={e => e.target.select()}
-            onChange={e => onZan(e.target.value)} />
+          {zanEditing ? (
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              autoFocus
+              style={{ ...INP, width: 44, fontSize: 13 }}
+              value={zan}
+              onFocus={e => e.target.select()}
+              onChange={e => handleZanChange(e.target.value)}
+              onBlur={handleZanBlur}
+            />
+          ) : (
+            <button
+              onClick={handleZanClick}
+              style={{
+                width: 44,
+                fontSize: 13,
+                fontFamily: "'Courier New', Courier, monospace",
+                fontWeight: 'bold',
+                background: '#0a0a14',
+                border: '1px dotted #4a4a64',
+                borderRadius: 4,
+                padding: '0.4em 0.35em',
+                color: zan !== '' ? '#e8e8f0' : '#555577',
+                textAlign: 'right',
+                cursor: 'pointer',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            >
+              {zan !== '' ? zan : '—'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -76,7 +121,7 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
         )}
       </div>
 
-      {/* 行4: @単価 / 売上 */}
+      {/* 行4: @単価 / 売上 / 補充 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 10, color: '#8888a8' }}>@</span>
@@ -85,6 +130,25 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
             value={out.cost ?? ''}
             onFocus={e => e.target.select()}
             onChange={e => onCost(e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 10, color: '#f0a040', fontWeight: 700 }}>補</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            style={{
+              ...INP,
+              width: 44,
+              fontSize: 13,
+              color: ho !== '0' && ho !== '' ? '#f0a040' : '#555577',
+              border: '1px solid #4a3010',
+              background: '#100a00',
+            }}
+            value={ho}
+            onFocus={e => e.target.select()}
+            onChange={e => onHo(e.target.value)}
+          />
         </div>
         <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color: revenue != null ? '#5dade2' : '#444466' }}>
           {revenue != null ? `¥${revenue.toLocaleString()}` : '¥—'}
