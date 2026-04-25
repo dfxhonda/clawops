@@ -41,6 +41,20 @@ export async function getAllMeterReadings(forceRefresh = false) {
   return result
 }
 
+// ブース集金履歴 (直近 limit 件、全 entry_type 対象)
+// patrol_date DESC NULLS LAST, read_time DESC — COALESCE相当
+export async function getBoothHistory(boothId, limit = 10) {
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select('reading_id, patrol_date, read_time, in_meter, out_meter, prize_stock_count, prize_restock_count, prize_name, revenue, entry_type')
+    .eq('booth_id', boothId)
+    .order('patrol_date', { ascending: false, nullsFirst: false })
+    .order('read_time', { ascending: false })
+    .limit(limit)
+  if (error) { console.error('getBoothHistory error:', error.message); return [] }
+  return data || []
+}
+
 export async function getLastReadingsMap(boothIds) {
   const all = await getAllMeterReadings()
   const map = {}

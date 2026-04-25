@@ -20,8 +20,9 @@ import LockerButton    from '../components/LockerButton'
 import MonthlySummary  from '../components/MonthlySummary'
 import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
-import GachaOutCard   from '../components/GachaOutCard'
-import GachaCheckBar  from '../components/GachaCheckBar'
+import GachaOutCard      from '../components/GachaOutCard'
+import GachaCheckBar     from '../components/GachaCheckBar'
+import BoothHistoryTable from '../components/BoothHistoryTable'
 
 // OUT ラベル設定
 const OUT_LABELS_B  = ['A', 'B', 'C']
@@ -526,6 +527,14 @@ export default function PatrolPage() {
           <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>
           <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
         </div>
+      )}
+
+      {/* 集金履歴テーブル（修正/入替モードのみ） */}
+      {(mode === 'correction' || mode === 'replace') && (
+        <BoothHistoryTable
+          boothId={booth?.booth_code}
+          currentReadingId={existingRecord?.reading_id}
+        />
       )}
 
       {/* 巡回ゾーン */}
