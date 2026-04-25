@@ -13,7 +13,7 @@ const MOVE_THRESHOLD = 10   // px: これ以上動いたら長押しキャンセ
  * 使い方:
  *   <Term id="in">IN</Term>
  *
- * - 400ms 長押しで PeekBubble 表示
+ * - 400ms 長押しで PeekBubble 表示 (要素の上端基準で配置、三角矢印付き)
  * - 250ms 地点でハイライト
  * - 用語が見つからなければ <span>{children}</span> にフォールバック
  * - タッチ・マウス両対応
@@ -24,7 +24,7 @@ export default function Term({ id, children, style }) {
   const hlTimerRef  = useRef(null)
   const startPosRef = useRef({ x: 0, y: 0 })
   const [highlighted, setHighlighted] = useState(false)
-  const [bubble, setBubble]           = useState(null)
+  const [bubble, setBubble]           = useState(null) // { term, anchor }
 
   const clear = useCallback(() => {
     clearTimeout(timerRef.current)
@@ -39,19 +39,25 @@ export default function Term({ id, children, style }) {
     setBubble(null)
   }, [clear])
 
-  const startPress = useCallback((clientX, clientY) => {
+  const startPress = useCallback((clientX, clientY, anchor) => {
     if (!term) return
     startPosRef.current = { x: clientX, y: clientY }
     hlTimerRef.current = setTimeout(() => setHighlighted(true), HL_DELAY)
     timerRef.current   = setTimeout(() => {
-      setBubble({ term, position: { x: clientX, y: clientY - 80 } })
+      setBubble({ term, anchor })
     }, PEEK_DELAY)
   }, [term])
 
   // ── タッチ ──────────────────────────────────────────────
   const handleTouchStart = useCallback((e) => {
     const t = e.touches[0]
-    startPress(t.clientX, t.clientY)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const anchor = {
+      anchorX:      rect.left + rect.width / 2,
+      anchorTop:    rect.top,
+      anchorBottom: rect.bottom,
+    }
+    startPress(t.clientX, t.clientY, anchor)
   }, [startPress])
 
   const handleTouchEnd = useCallback(() => {
@@ -72,7 +78,13 @@ export default function Term({ id, children, style }) {
 
   // ── マウス ──────────────────────────────────────────────
   const handleMouseDown = useCallback((e) => {
-    startPress(e.clientX, e.clientY)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const anchor = {
+      anchorX:      rect.left + rect.width / 2,
+      anchorTop:    rect.top,
+      anchorBottom: rect.bottom,
+    }
+    startPress(e.clientX, e.clientY, anchor)
   }, [startPress])
 
   const handleMouseUp = useCallback(() => {
@@ -117,7 +129,7 @@ export default function Term({ id, children, style }) {
       </span>
       {bubble && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
-          <PeekBubble term={bubble.term} position={bubble.position} />
+          <PeekBubble term={bubble.term} anchor={bubble.anchor} />
         </div>,
         document.body
       )}
