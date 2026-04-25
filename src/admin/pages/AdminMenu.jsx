@@ -73,6 +73,7 @@ const SECTIONS = [
       { icon: '🕹️', title: '機械登録', desc: '機械の追加・ブース自動生成', path: '/admin/machines' },
       { icon: '📦', title: 'ブース一覧', desc: 'ブース設定の確認・編集', path: '/admin/booths' },
       { icon: '📖', title: 'マニュアル管理', desc: '機種マニュアルの作成・編集・公開', path: '/admin/manuals' },
+      { icon: '📚', title: '用語マスタ管理', desc: '長押し用語説明の登録・編集', path: '/admin/glossary' },
     ]
   },
   {
