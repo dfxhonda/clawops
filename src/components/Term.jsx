@@ -1,9 +1,11 @@
 import { useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useGlossaryStore } from '../stores/glossaryStore'
 import PeekBubble from './PeekBubble'
 
-const PEEK_DELAY = 400   // ms: 長押し認識
-const HL_DELAY   = 250   // ms: ハイライト開始
+const PEEK_DELAY     = 400  // ms: 長押し認識
+const HL_DELAY       = 250  // ms: ハイライト開始
+const MOVE_THRESHOLD = 10   // px: これ以上動いたら長押しキャンセル
 
 /**
  * Term — 用語ラベルラッパー
@@ -20,8 +22,9 @@ export default function Term({ id, children, style }) {
   const term = useGlossaryStore(s => s.terms[id])
   const timerRef    = useRef(null)
   const hlTimerRef  = useRef(null)
+  const startPosRef = useRef({ x: 0, y: 0 })
   const [highlighted, setHighlighted] = useState(false)
-  const [bubble, setBubble]           = useState(null) // { term, position }
+  const [bubble, setBubble]           = useState(null)
 
   const clear = useCallback(() => {
     clearTimeout(timerRef.current)
@@ -38,6 +41,7 @@ export default function Term({ id, children, style }) {
 
   const startPress = useCallback((clientX, clientY) => {
     if (!term) return
+    startPosRef.current = { x: clientX, y: clientY }
     hlTimerRef.current = setTimeout(() => setHighlighted(true), HL_DELAY)
     timerRef.current   = setTimeout(() => {
       setBubble({ term, position: { x: clientX, y: clientY - 80 } })
@@ -54,7 +58,15 @@ export default function Term({ id, children, style }) {
     hideBubble()
   }, [hideBubble])
 
-  const handleTouchMove = useCallback(() => {
+  const handleTouchMove = useCallback((e) => {
+    const t = e.touches[0]
+    const dx = Math.abs(t.clientX - startPosRef.current.x)
+    const dy = Math.abs(t.clientY - startPosRef.current.y)
+    // 微小ブレはキャンセルしない (iOS Safari の touchmove noise 対策)
+    if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) hideBubble()
+  }, [hideBubble])
+
+  const handleTouchCancel = useCallback(() => {
     hideBubble()
   }, [hideBubble])
 
@@ -88,8 +100,6 @@ export default function Term({ id, children, style }) {
     cursor: term ? 'default' : undefined,
   }
 
-  // PeekBubble はポータルが理想だが、PatrolPage はインラインクラスタなので
-  // document.body へ append する代わりに fixed 座標で絶対配置
   return (
     <>
       <span
@@ -97,6 +107,7 @@ export default function Term({ id, children, style }) {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
+        onTouchCancel={handleTouchCancel}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
@@ -104,10 +115,11 @@ export default function Term({ id, children, style }) {
       >
         {children}
       </span>
-      {bubble && (
+      {bubble && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
           <PeekBubble term={bubble.term} position={bubble.position} />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

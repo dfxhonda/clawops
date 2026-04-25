@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react'
-
 const BUBBLE_STYLE = {
   position: 'absolute',
   zIndex: 9999,
@@ -32,28 +30,18 @@ const BUBBLE_TEXT_STYLE = {
 /**
  * PeekBubble — 用語の長押し吹き出し
  * @param {object} term   glossary_terms row
- * @param {{ x: number, y: number }} position  ページ座標
+ * @param {{ x: number, y: number }} position  ビューポート座標
  */
 export default function PeekBubble({ term, position }) {
-  const [style, setStyle] = useState({ ...BUBBLE_STYLE, top: 0, left: 0, opacity: 0 })
-
-  useEffect(() => {
-    if (!position) return
-    // ビューポートからはみ出さないよう調整
-    const vw = window.innerWidth
-    const left = Math.min(position.x, vw - 272)
-    const top = position.y - 8
-
-    setStyle({
-      ...BUBBLE_STYLE,
-      top,
-      left: Math.max(8, left),
-    })
-  }, [position])
-
   if (!term || !position) return null
 
-  const head = [term.label_short, term.label_full].filter(Boolean).join(' — ')
+  // ビューポートからはみ出さないよう調整 (useEffect不要・直接計算)
+  const vw = window.innerWidth
+  const left = Math.max(8, Math.min(position.x, vw - 272))
+  const top  = Math.max(8, position.y - 8)
+
+  const style = { ...BUBBLE_STYLE, top, left }
+  const head  = [term.label_short, term.label_full].filter(Boolean).join(' — ')
 
   return (
     <>
