@@ -394,5 +394,6 @@ export function usePatrolForm(booth) {
     outCount, pattern,
     save,
     loadCorrectionData, loadReplaceData,
+    setPrevOverride: setPrev,
   }
 }

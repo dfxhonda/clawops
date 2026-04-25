@@ -5,7 +5,7 @@ import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
 import { getMachineLockers } from '../../services/patrol'
-import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2 } from '../../services/patrolV2'
+import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
 
 import MeterOcr        from '../components/MeterOcr'
 import PatrolHeader    from '../components/PatrolHeader'
@@ -124,15 +124,19 @@ export default function PatrolPage() {
   }, [form.loading, booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ダイアログハンドラ
-  function handleSelectCorrection() {
+  async function handleSelectCorrection() {
     form.loadCorrectionData(existingRecord)
     setMode('correction')
     setDialogOpen(false)
+    const prevRecord = await getReadingBefore(booth.booth_code, existingRecord.reading_id)
+    form.setPrevOverride(prevRecord)
   }
-  function handleSelectReplace() {
+  async function handleSelectReplace() {
     form.loadReplaceData(existingRecord)
     setMode('replace')
     setDialogOpen(false)
+    const prevRecord = await getReadingBefore(booth.booth_code, existingRecord.reading_id)
+    form.setPrevOverride(prevRecord)
   }
   function handleCancelDialog() {
     setDialogOpen(false)
@@ -273,7 +277,7 @@ export default function PatrolPage() {
             <>
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
-                inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
+                inDiff={c?.inDiff} showDiff={true}
                 onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
@@ -339,13 +343,11 @@ export default function PatrolPage() {
               </div>
             </div>
 
-            {/* 差分バー（新規巡回のみ） */}
-            {mode === 'new_patrol' && (
-              <CalcBar
-                inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
-                theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
-                onReset={resetPatrol} />
-            )}
+            {/* 差分バー */}
+            <CalcBar
+              inDiff={c?.inDiff} outDiff={c?.outs[0]?.diff}
+              theoryZan={c?.outs[0]?.theory} rate={c?.inRate}
+              onReset={resetPatrol} />
 
             {/* 景品 + @単価 */}
             <PrizeRow
@@ -371,7 +373,7 @@ export default function PatrolPage() {
           <>
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={calc?.inDiff} showDiff={mode === 'new_patrol'}
+              inDiff={calc?.inDiff} showDiff={true}
               onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             {p.outs.map((o, i) => (
@@ -406,7 +408,7 @@ export default function PatrolPage() {
           <>
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
+              inDiff={c?.inDiff} showDiff={true}
               onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             <GachaOutCard
@@ -420,11 +422,9 @@ export default function PatrolPage() {
               onPrize={v => setPatrolOut(0, 'prize', v)}
               onCost={v => setPatrolOut(0, 'cost', v)} />
 
-            {mode === 'new_patrol' && (
-              <div style={{ marginTop: 6 }}>
-                <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]} />
-              </div>
-            )}
+            <div style={{ marginTop: 6 }}>
+              <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]} />
+            </div>
 
             {hasLocker && (
               <div style={{ marginTop: 6 }}>
@@ -444,7 +444,7 @@ export default function PatrolPage() {
           <>
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={c?.inDiff} showDiff={mode === 'new_patrol'}
+              inDiff={c?.inDiff} showDiff={true}
               onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
@@ -461,13 +461,11 @@ export default function PatrolPage() {
               ))}
             </div>
 
-            {mode === 'new_patrol' && (
-              <div style={{ marginTop: 6 }}>
-                <GachaCheckBar
-                  inDiff={c?.inDiff}
-                  outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))} />
-              </div>
-            )}
+            <div style={{ marginTop: 6 }}>
+              <GachaCheckBar
+                inDiff={c?.inDiff}
+                outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))} />
+            </div>
 
             {hasLocker && (
               <div style={{ marginTop: 6 }}>
@@ -539,26 +537,22 @@ export default function PatrolPage() {
 
       {/* 巡回ゾーン */}
       <div style={ZONE}>
-        {/* 前回値（新規巡回のみ） */}
-        {mode === 'new_patrol' && (
-          <PrevRow prev={prev}
-            outCount={outCount}
-            outLabels={pattern === 'B' ? OUT_LABELS_B : pattern === 'D2' ? OUT_LABELS_D2 : null} />
-        )}
+        {/* 前回値 */}
+        <PrevRow prev={prev}
+          outCount={outCount}
+          outLabels={pattern === 'B' ? OUT_LABELS_B : pattern === 'D2' ? OUT_LABELS_D2 : null} />
 
         {/* パターン別入力 */}
         {renderPatrolContent()}
 
-        {/* 異常値アラート（新規巡回のみ） */}
-        {mode === 'new_patrol' && <AlertBar alerts={alerts} />}
+        {/* 異常値アラート */}
+        <AlertBar alerts={alerts} />
 
-        {/* 月次サマリー（新規巡回のみ） */}
-        {mode === 'new_patrol' && (
-          <MonthlySummary
-            currRevenue={currRevenue}
-            currRate={currRate}
-            histRows={hist} />
-        )}
+        {/* 月次サマリー */}
+        <MonthlySummary
+          currRevenue={currRevenue}
+          currRate={currRate}
+          histRows={hist} />
       </div>
 
       {/* エラー */}

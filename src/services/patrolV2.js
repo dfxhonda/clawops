@@ -173,6 +173,45 @@ export async function saveReadingV2({ boothCode, patrol, change, outCount, staff
   })
 }
 
+// 指定レコードを除いた直前のpatrolレコードを取得（修正/入替モードの prev 用）
+export async function getReadingBefore(boothCode, excludeReadingId) {
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select('*')
+    .eq('full_booth_code', boothCode)
+    .neq('reading_id', excludeReadingId)
+    .or('entry_type.eq.patrol,entry_type.is.null')
+    .order('patrol_date', { ascending: false, nullsFirst: false })
+    .order('read_time', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !data) return null
+  return {
+    readTime: data.read_time,
+    inMeter: data.in_meter,
+    outMeter: data.out_meter,
+    outMeter2: data.out_meter_2,
+    outMeter3: data.out_meter_3,
+    prizeName: data.prize_name,
+    prizeName2: data.prize_name_2,
+    prizeName3: data.prize_name_3,
+    prizeCost1: data.prize_cost_1,
+    prizeCost2: data.prize_cost_2,
+    prizeCost3: data.prize_cost_3,
+    stock1: data.prize_stock_count,
+    stock2: data.stock_2,
+    stock3: data.stock_3,
+    restock1: data.prize_restock_count,
+    restock2: data.restock_2,
+    restock3: data.restock_3,
+    setA: data.set_a,
+    setC: data.set_c,
+    setL: data.set_l,
+    setR: data.set_r,
+    setO: data.set_o,
+  }
+}
+
 // 前日のpatrolレコードを検索（モード判定用）
 export async function getYesterdayPatrol(boothCode) {
   const d = new Date(); d.setDate(d.getDate() - 1)
