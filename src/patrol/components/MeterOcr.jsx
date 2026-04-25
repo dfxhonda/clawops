@@ -9,32 +9,35 @@ function getBoothSide(boothCode) {
   return parseInt(match[1], 10) % 2 === 0 ? 'right' : 'left'
 }
 
-// iPhoneの写真を1024px以下にリサイズしてbase64返す
-function resizeImage(file, maxPx = 1024) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
-      const w = Math.round(img.width * scale)
-      const h = Math.round(img.height * scale)
-      const canvas = document.createElement('canvas')
-      canvas.width = w; canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { reject(new Error('canvas初期化失敗')); return }
-      ctx.drawImage(img, 0, 0, w, h)
-      const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
-      // iOS Safariでピクセルバッファを解放
-      canvas.width = 0; canvas.height = 0
-      resolve(b64)
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('画像読み込み失敗'))
-    }
-    img.src = url
-  })
+// グレースケール変換 (OCR精度向上)
+function applyGrayscale(ctx, w, h) {
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const data = imageData.data
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
+    data[i] = data[i + 1] = data[i + 2] = gray
+  }
+  ctx.putImageData(imageData, 0, 0)
+}
+
+// iPhoneの写真を1600px以下にリサイズ・EXIF補正・グレースケール変換してbase64返す
+async function resizeImage(file, maxPx = 1600) {
+  // createImageBitmap はブラウザがEXIF rotationを自動適用する
+  const bitmap = await createImageBitmap(file)
+  const scale = Math.min(1, maxPx / Math.max(bitmap.width, bitmap.height))
+  const w = Math.round(bitmap.width * scale)
+  const h = Math.round(bitmap.height * scale)
+  const canvas = document.createElement('canvas')
+  canvas.width = w; canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas初期化失敗')
+  ctx.drawImage(bitmap, 0, 0, w, h)
+  bitmap.close()
+  applyGrayscale(ctx, w, h)
+  const b64 = canvas.toDataURL('image/jpeg', 0.95).split(',')[1]
+  // iOS Safariでピクセルバッファを解放
+  canvas.width = 0; canvas.height = 0
+  return b64
 }
 
 const OCR_CONFIDENCE_THRESHOLD = 0.65
@@ -222,9 +225,27 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
             <p className="text-[13px] text-muted mb-1">
               メーターパネル全体を撮影してください
             </p>
-            <p className="text-[11px] text-accent mb-5">
+            <p className="text-[11px] text-accent mb-4">
               ブース {boothCode?.split('-').pop()} → {side === 'left' ? '左側' : '右側'}メーターを読み取ります
             </p>
+
+            {/* メーター領域ガイド枠 */}
+            <div className="relative w-full mb-5 flex justify-center">
+              <div
+                className="relative bg-black/10 rounded"
+                style={{ width: '80%', paddingTop: 'calc(80% / 4)' }}
+              >
+                <div
+                  className="absolute inset-0 rounded flex items-center justify-center"
+                  style={{ border: '2px solid rgba(255,255,255,0.8)', boxShadow: '0 0 0 1px rgba(0,0,0,0.3)' }}
+                >
+                  <span className="text-[11px] text-white/80 font-medium px-2 text-center leading-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                    メーターをここに合わせてください
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-3 justify-center">
               <label className="flex-1 max-w-[160px] cursor-pointer bg-blue-600 text-white font-bold py-4 px-2 rounded-xl text-[15px] flex flex-col items-center gap-1 border-none">
                 <span className="text-[28px]">📸</span>
