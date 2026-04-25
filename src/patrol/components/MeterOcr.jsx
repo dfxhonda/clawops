@@ -2,6 +2,7 @@
 // booth_code 末尾の奇数ブース(B01,B03)=左、偶数ブース(B02,B04)=右
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import Term from '../../components/Term'
 
 function getBoothSide(boothCode) {
   const match = boothCode?.match(/-B(\d+)$/)
@@ -68,8 +69,9 @@ function validateOcr(ocr, lastIn, lastOut) {
   if (inVal !== null && outVal !== null && inVal < outVal) {
     warnings.push('IN < OUT（異常値の可能性）')
   }
+  // confidence は内部ログのみ・UIには出さない
   if (ocr.confidence < OCR_CONFIDENCE_THRESHOLD) {
-    warnings.push(`読み取り信頼度が低い（${(ocr.confidence * 100).toFixed(0)}%）`)
+    console.log(`OCR信頼度: ${(ocr.confidence * 100).toFixed(0)}%`)
   }
   return warnings
 }
@@ -85,6 +87,8 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
   const fileRef = useRef(null)
   const galleryRef = useRef(null)
   const mountedRef = useRef(true)
+  const inRef = useRef(null)
+  const outRef = useRef(null)
 
   const side = getBoothSide(boothCode)
 
@@ -96,6 +100,16 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
       setPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null })
     }
   }, [])
+
+  // OCR失敗時にIN欄に自動フォーカス
+  useEffect(() => {
+    if (phase === 'confirming' && ocrData) {
+      const status = getOcrStatus(ocrData.inVal, ocrData.outVal)
+      if (status === 'fail') {
+        setTimeout(() => inRef.current?.focus(), 100)
+      }
+    }
+  }, [phase, ocrData])
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
@@ -154,30 +168,29 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
     { ...ocrData, inVal: inNum, outVal: outNum },
     lastIn, lastOut
   ) : []
-  const hasBlockingWarning = warnings.some(w => w.includes('IN < OUT'))
 
-  // fail状態 or IN < OUT警告 → 適用ボタン無効
-  const isApplyDisabled = ocrStatus === 'fail' || hasBlockingWarning || (!editIn && !editOut)
+  // 保存ボタン: IN/OUT両方入力済みで活性
+  const isSaveDisabled = !editIn || !editOut
 
-  // 信頼度バッジ文字列
-  function getConfidenceBadgeText() {
-    if (!ocrData) return ''
-    const conf = ocrData.confidence ?? 0
-    const pct  = (conf * 100).toFixed(0)
-    if (ocrStatus === 'success') {
-      const inConf  = ocrData.in_confidence  != null ? ` IN${(ocrData.in_confidence  * 100).toFixed(0)}%` : ''
-      const outConf = ocrData.out_confidence != null ? `/OUT${(ocrData.out_confidence * 100).toFixed(0)}%` : ''
-      return `✓ 認識成功${inConf}${outConf}`
-    }
-    if (ocrStatus === 'partial') {
-      return `⚠ 部分認識 ${pct}%`
-    }
-    return `✗ 読取失敗 ${pct}%`
-  }
+  // フィールド単位の桁数・前回値バリデーション (ブロックしない・警告のみ)
+  const inWarning = (() => {
+    if (!editIn) return null
+    if (editIn.length > 7) return '桁数が多いようです'
+    if (lastIn != null && Number(editIn) < lastIn) return `前回(${lastIn.toLocaleString()})より小さい`
+    return null
+  })()
 
-  // オーバーレイバッジのレンダリング
+  const outWarning = (() => {
+    if (!editOut) return null
+    if (editOut.length > 7) return '桁数が多いようです'
+    if (lastOut != null && Number(editOut) < lastOut) return `前回(${lastOut.toLocaleString()})より小さい`
+    return null
+  })()
+
+  // オーバーレイバッジ: fail時は画像に被せない
   function renderOverlayBadges() {
     if (!showOcrOverlay || !ocrData) return null
+    if (ocrStatus === 'fail') return null
 
     const badgeBase = 'px-3 py-1 rounded-full font-bold text-[15px] text-white border-2'
     const greenBadge = `${badgeBase} bg-emerald-500/85 border-emerald-500`
@@ -191,20 +204,13 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
         </div>
       )
     }
-    if (ocrStatus === 'partial') {
-      const hasIn  = ocrData.inVal  !== null && ocrData.inVal  !== undefined
-      const hasOut = ocrData.outVal !== null && ocrData.outVal !== undefined
-      return (
-        <div className="absolute bottom-0 left-0 right-0 bg-black/60 flex gap-2 justify-center items-center px-3 py-2 rounded-b-lg">
-          <span className={hasIn  ? greenBadge : redBadge}>{hasIn  ? `IN ${ocrData.inVal}`  : '読取× IN'}</span>
-          <span className={hasOut ? greenBadge : redBadge}>{hasOut ? `OUT ${ocrData.outVal}` : '読取× OUT'}</span>
-        </div>
-      )
-    }
-    // fail
+    // partial
+    const hasIn  = ocrData.inVal  !== null && ocrData.inVal  !== undefined
+    const hasOut = ocrData.outVal !== null && ocrData.outVal !== undefined
     return (
       <div className="absolute bottom-0 left-0 right-0 bg-black/60 flex gap-2 justify-center items-center px-3 py-2 rounded-b-lg">
-        <span className={redBadge}>読取失敗</span>
+        <span className={hasIn  ? greenBadge : redBadge}>{hasIn  ? `IN ${ocrData.inVal}`  : '読取× IN'}</span>
+        <span className={hasOut ? greenBadge : redBadge}>{hasOut ? `OUT ${ocrData.outVal}` : '読取× OUT'}</span>
       </div>
     )
   }
@@ -213,10 +219,11 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
     <div className="fixed inset-0 z-50 bg-black/75 flex items-end justify-center">
       <div className="bg-surface w-full max-w-[520px] rounded-t-2xl p-4 max-h-[92vh] overflow-y-auto">
 
-        {/* ヘッダー */}
+        {/* ヘッダー: ×はここに集約 */}
         <div className="flex items-center justify-between mb-4">
-          <span className="font-bold text-[15px]">📷 カメラで読取</span>
-          <button onClick={onClose} className="text-muted text-xl px-2 bg-transparent border-none cursor-pointer">✕</button>
+          <button onClick={onClose} className="text-slate-400 text-xl px-2 bg-transparent border-none cursor-pointer" aria-label="閉じる">✕</button>
+          <span className="font-bold text-[15px]">📷 メーター入力</span>
+          <div className="w-8" />
         </div>
 
         {/* idle: 撮影ボタン */}
@@ -287,7 +294,7 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
           </div>
         )}
 
-        {/* error */}
+        {/* error: ネットワーク・API障害 */}
         {phase === 'error' && (
           <div>
             <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-[12px_14px] mb-[14px]">
@@ -303,17 +310,19 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
         {/* confirming: OCR結果確認 */}
         {phase === 'confirming' && ocrData && (
           <div>
-            {/* OCRトグル */}
-            <div className="flex justify-end mb-2">
-              <button
-                onClick={() => setShowOcrOverlay(v => !v)}
-                className="text-[11px] px-[10px] py-[3px] rounded-full border border-border bg-surface2 text-muted cursor-pointer"
-              >
-                OCR表示 {showOcrOverlay ? 'ON' : 'OFF'}
-              </button>
-            </div>
+            {/* OCRトグル (fail時は不要なので非表示) */}
+            {ocrStatus !== 'fail' && (
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => setShowOcrOverlay(v => !v)}
+                  className="text-[11px] px-[10px] py-[3px] rounded-full border border-border bg-surface2 text-muted cursor-pointer"
+                >
+                  OCR表示 {showOcrOverlay ? 'ON' : 'OFF'}
+                </button>
+              </div>
+            )}
 
-            {/* 撮影画像 フル幅 + オーバーレイ */}
+            {/* 撮影画像 フル幅 + オーバーレイ (fail時はバッジなし) */}
             {previewUrl && (
               <div className="relative w-full mb-3">
                 <img src={previewUrl} alt="撮影画像" className="w-full h-auto block rounded-lg" />
@@ -321,74 +330,85 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
               </div>
             )}
 
-            {/* 信頼度バッジ */}
-            <div className={`inline-flex items-center gap-1 text-[12px] font-bold px-[10px] py-1 rounded-full mb-[10px]
-              ${ocrStatus === 'success' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-400'}`}>
-              {getConfidenceBadgeText()}
-            </div>
+            {/* ステータス表示 */}
+            {ocrStatus === 'fail' ? (
+              <div className="flex items-center gap-2 text-xs text-amber-300 px-1 mb-3">
+                <span>⚠</span>
+                <span>自動で読み取れませんでした。下の欄に手動で入力してください。</span>
+              </div>
+            ) : (
+              <div className={`inline-flex items-center gap-1 text-[12px] font-bold px-[10px] py-1 rounded-full mb-[10px]
+                ${ocrStatus === 'success' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-amber-500/15 text-amber-400'}`}>
+                {ocrStatus === 'success' ? (() => {
+                  const inConf  = ocrData.in_confidence  != null ? ` IN${(ocrData.in_confidence  * 100).toFixed(0)}%` : ''
+                  const outConf = ocrData.out_confidence != null ? `/OUT${(ocrData.out_confidence * 100).toFixed(0)}%` : ''
+                  return `✓ 認識成功${inConf}${outConf}`
+                })() : '⚠ 部分認識'}
+              </div>
+            )}
 
-            {/* 警告 */}
+            {/* 警告 (IN<OUT等) */}
             {warnings.length > 0 && (
-              <div className="bg-red-500/10 border border-red-500/40 rounded-xl px-[14px] py-[10px] mb-[10px]">
+              <div className="bg-amber-500/10 border border-amber-500/40 rounded-xl px-[14px] py-[10px] mb-[10px]">
                 {warnings.map((w, i) => (
-                  <p key={i} className="text-red-400 text-[12px]">{w}</p>
+                  <p key={i} className="text-amber-400 text-[12px]">{w}</p>
                 ))}
               </div>
             )}
 
-            {/* fail時の救済フロー */}
-            {ocrStatus === 'fail' && (
-              <div className="bg-red-500/[0.08] border border-red-500/30 rounded-xl px-[14px] py-3 mb-[10px]">
-                <div className="text-red-400 font-bold text-[13px] mb-2">読み取りに失敗しました。次の操作を選択してください：</div>
-                <div className="flex gap-2">
-                  <button onClick={handleRetake} className="flex-1 py-[10px] px-1 rounded-[10px] bg-transparent border border-blue-400 text-blue-400 font-semibold text-[12px] cursor-pointer">📸 再撮影</button>
-                  <button
-                    onClick={() => {
-                      setEditIn(''); setEditOut('')
-                      // フォーカスを手動入力フィールドへ（UIは以下フィールドに残る）
-                    }}
-                    className="flex-1 py-[10px] px-1 rounded-[10px] bg-transparent border border-violet-400 text-violet-400 font-semibold text-[12px] cursor-pointer"
-                  >
-                    ✏️ 手動入力
-                  </button>
-                  <button onClick={onClose} className="flex-1 py-[10px] px-1 rounded-[10px] bg-transparent border border-[#9ca3af] text-[#9ca3af] font-semibold text-[12px] cursor-pointer">スキップ</button>
-                </div>
-              </div>
-            )}
-
-            {/* OCR結果 (編集可能) */}
+            {/* IN/OUT 入力欄 */}
             <div className="flex gap-3 mb-[14px]">
               <div className="flex-1">
-                <div className="text-[11px] text-muted mb-1">IN</div>
+                <div className="text-xs font-bold text-cyan-400 mb-1">
+                  <Term id="in">IN</Term>
+                </div>
                 <input
-                  className={`w-full py-3 px-2 text-[18px] text-center rounded-lg border-2 outline-none box-border
-                    ${ocrStatus !== 'fail' && !editIn && ocrData.inVal === null
-                      ? 'border-red-500 bg-surface2 text-red-400'
-                      : 'border-border bg-surface2 text-text focus:border-accent'}`}
-                  type="number" inputMode="numeric"
+                  ref={inRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoFocus={ocrStatus === 'fail'}
+                  className={`w-full py-3 px-2 text-[18px] text-center rounded-lg border-2 outline-none box-border bg-slate-900 text-white transition-colors focus:border-cyan-500
+                    ${editIn ? 'border-slate-600' : ocrStatus === 'fail' ? 'border-cyan-500' : 'border-slate-700'}`}
                   value={editIn}
-                  onChange={e => setEditIn(e.target.value)}
-                  placeholder="読取失敗"
+                  onChange={e => setEditIn(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={e => { if (e.key === 'Enter') outRef.current?.focus() }}
+                  placeholder="例: 19091"
                 />
-                {lastIn !== null && editIn !== '' && (
+                {inWarning && (
+                  <div className="text-[10px] text-amber-400 mt-1">⚠ {inWarning}</div>
+                )}
+                {!editIn && lastIn != null && (
+                  <div className="text-[10px] text-slate-500 mt-0.5 text-center">前回 {lastIn.toLocaleString()}</div>
+                )}
+                {editIn && lastIn != null && !inWarning && (
                   <div className="text-[11px] text-center text-muted mt-1">
                     前回比 {Number(editIn) >= lastIn ? '+' : ''}{(Number(editIn) - lastIn).toLocaleString()}
                   </div>
                 )}
               </div>
               <div className="flex-1">
-                <div className="text-[11px] text-muted mb-1">OUT</div>
+                <div className="text-xs font-bold text-cyan-400 mb-1">
+                  <Term id="out">OUT</Term>
+                </div>
                 <input
-                  className={`w-full py-3 px-2 text-[18px] text-center rounded-lg border-2 outline-none box-border
-                    ${ocrStatus !== 'fail' && !editOut && ocrData.outVal === null
-                      ? 'border-red-500 bg-surface2 text-red-400'
-                      : 'border-border bg-surface2 text-text focus:border-accent'}`}
-                  type="number" inputMode="numeric"
+                  ref={outRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className={`w-full py-3 px-2 text-[18px] text-center rounded-lg border-2 outline-none box-border bg-slate-900 text-white transition-colors focus:border-cyan-500
+                    ${editOut ? 'border-slate-600' : 'border-slate-700'}`}
                   value={editOut}
-                  onChange={e => setEditOut(e.target.value)}
-                  placeholder="読取失敗"
+                  onChange={e => setEditOut(e.target.value.replace(/\D/g, ''))}
+                  placeholder="例: 12084"
                 />
-                {lastOut !== null && editOut !== '' && (
+                {outWarning && (
+                  <div className="text-[10px] text-amber-400 mt-1">⚠ {outWarning}</div>
+                )}
+                {!editOut && lastOut != null && (
+                  <div className="text-[10px] text-slate-500 mt-0.5 text-center">前回 {lastOut.toLocaleString()}</div>
+                )}
+                {editOut && lastOut != null && !outWarning && (
                   <div className="text-[11px] text-center text-muted mt-1">
                     前回比 {Number(editOut) >= lastOut ? '+' : ''}{(Number(editOut) - lastOut).toLocaleString()}
                   </div>
@@ -396,18 +416,28 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
               </div>
             </div>
 
-            {/* ボタン */}
+            {/* 保存ボタン: 主アクション */}
             <button
               onClick={handleApply}
-              disabled={isApplyDisabled}
-              className="w-full p-[14px] rounded-xl bg-blue-600 disabled:bg-[#444] text-white disabled:text-[#888] font-bold text-[15px] border-none cursor-pointer disabled:cursor-not-allowed mb-2 disabled:opacity-50"
+              disabled={isSaveDisabled}
+              className="w-full p-[14px] rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white disabled:text-slate-500 font-bold text-[15px] border-none cursor-pointer disabled:cursor-not-allowed mb-3 transition-colors"
             >
-              ✅ この値を適用
+              💾 保存
             </button>
-            <div className="flex gap-2">
-              <button onClick={handleRetake} className="flex-1 py-3 px-1 rounded-xl bg-surface2 border border-border text-text font-medium text-[13px] cursor-pointer">📸 再撮影</button>
-              <button onClick={onClose}      className="flex-1 py-3 px-1 rounded-xl bg-surface2 border border-border text-text font-medium text-[13px] cursor-pointer">キャンセル</button>
-            </div>
+
+            {/* 副アクション: テキストリンク */}
+            <button
+              onClick={handleRetake}
+              className="w-full text-cyan-400 text-xs py-1.5 underline bg-transparent border-none cursor-pointer"
+            >
+              📷 もう一度撮影する
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full text-slate-500 text-[11px] py-1 bg-transparent border-none cursor-pointer"
+            >
+              後で入力(スキップ)
+            </button>
           </div>
         )}
 
