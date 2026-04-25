@@ -7,6 +7,9 @@ import { useLockerState } from '../../hooks/useLockerState'
 import { getMachineLockers } from '../../services/patrol'
 import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
 
+import Term    from '../../components/Term'
+import HelpFAB from '../../components/HelpFAB'
+
 import MeterOcr        from '../components/MeterOcr'
 import PatrolHeader    from '../components/PatrolHeader'
 import PrevRow         from '../components/PrevRow'
@@ -308,7 +311,7 @@ export default function PatrolPage() {
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
               <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</span>
+                <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
                 <input type="text" inputMode="numeric"
                   style={inp(p.inTouched)}
                   value={p.inMeter}
@@ -317,7 +320,7 @@ export default function PatrolPage() {
               </div>
               {pattern !== 'A0' && (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                  <span style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</span>
+                  <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
                   <input type="text" inputMode="numeric"
                     style={inp(t0.meter)}
                     value={o0.meter}
@@ -326,7 +329,7 @@ export default function PatrolPage() {
                 </div>
               )}
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</span>
+                <Term id="residual" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</Term>
                 <input type="text" inputMode="numeric" maxLength={4}
                   style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
                   value={o0.zan}
@@ -334,7 +337,7 @@ export default function PatrolPage() {
                   onChange={e => setPatrolZan(0, e.target.value)} />
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</span>
+                <Term id="refill" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</Term>
                 <input type="text" inputMode="numeric" maxLength={4}
                   style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
                   value={o0.ho}
@@ -490,6 +493,7 @@ export default function PatrolPage() {
 
   // ── メイン描画 ─────────────────────────────────────────────────
   return (
+    <>
     <div
       style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
       onTouchStart={handleTouchStart}
@@ -630,5 +634,7 @@ export default function PatrolPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
+    <HelpFAB />
+    </>
   )
 }

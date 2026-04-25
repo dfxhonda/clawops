@@ -1,5 +1,6 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useGlossaryStore } from './stores/glossaryStore'
 
 // ===== ドメイン別ルーティング =====
 // patrol.clawops.app → 巡回アプリ専用（/admin へのアクセスは admin.clawops.app にリダイレクト）
@@ -61,6 +62,12 @@ const AuditLog = lazy(() => import('./admin/pages/AuditLog'))
 const AuditSummary = lazy(() => import('./admin/pages/AuditSummary'))
 const DailyStatsAdmin = lazy(() => import('./admin/pages/DailyStatsAdmin'))
 
+// 遅延ロード — 用語マスタ管理
+const AdminGlossary = lazy(() => import('./admin/pages/AdminGlossary'))
+
+// 遅延ロード — ヘルプ
+const HelpPage = lazy(() => import('./pages/HelpPage'))
+
 // 遅延ロード — OCRアプリ
 const PatrolCameraPage  = lazy(() => import('./patrol/pages/PatrolCameraPage'))
 const PatrolBatchOcrPage = lazy(() => import('./patrol/pages/PatrolBatchOcrPage'))
@@ -87,6 +94,13 @@ function PageLoader() {
 function AppInner() {
   const { isLoggedIn } = useAuth()
   const { updateAvailable, dismiss } = useVersionCheck()
+  const initGlossary = useGlossaryStore(s => s.init)
+  const cleanupGlossary = useGlossaryStore(s => s.cleanup)
+
+  useEffect(() => {
+    initGlossary()
+    return () => cleanupGlossary()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <ErrorBoundary>
       {updateAvailable && isLoggedIn && <UpdateBanner onDismiss={dismiss} />}
@@ -130,6 +144,12 @@ function AppInner() {
 
       {/* QR印刷 — manager以上 */}
       <Route path="/admin/qr-print" element={<ManagerRoute><BoothQrPrint /></ManagerRoute>} />
+
+      {/* 用語マスタ管理 — admin のみ */}
+      <Route path="/admin/glossary" element={<AdminRoute><AdminGlossary /></AdminRoute>} />
+
+      {/* ヘルプ — 全認証ユーザー */}
+      <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
 
       {/* マスタ管理 — admin のみ */}
       <Route path="/admin/lockers" element={<AdminRoute><LockerList /></AdminRoute>} />

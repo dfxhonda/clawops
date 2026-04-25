@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import PrizeSearchInput from './PrizeSearchInput'
+import Term from '../../components/Term'
 
 const INP = {
   fontSize: 15,
@@ -63,7 +64,7 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
         <span style={{ fontSize: 12, fontWeight: 700, color: accentColor }}>{labelChar}</span>
         <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color: diffColor }}>{diffStr}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</span>
+          <Term id="residual" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</Term>
           {zanEditing ? (
             <input
               type="text"
@@ -124,7 +125,7 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
       {/* 行4: @単価 / 売上 / 補充 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#8888a8' }}>@</span>
+          <Term id="at" style={{ fontSize: 10, color: '#8888a8' }}>@</Term>
           <input type="text" inputMode="numeric" maxLength={5}
             style={{ ...INP, width: 52, fontSize: 13, color: '#f0c040' }}
             value={out.cost ?? ''}
@@ -132,7 +133,7 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
             onChange={e => onCost(e.target.value)} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#f0a040', fontWeight: 700 }}>補</span>
+          <Term id="refill" style={{ fontSize: 10, color: '#f0a040', fontWeight: 700 }}>補</Term>
           <input
             type="text"
             inputMode="numeric"
