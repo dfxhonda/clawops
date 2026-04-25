@@ -552,11 +552,11 @@ export default function PatrolPage() {
         {/* 異常値アラート */}
         <AlertBar alerts={alerts} />
 
-        {/* 月次サマリー */}
+        {/* 月次サマリー: 修正/入替モードは BoothHistoryTable が上部に表示済みのため histRows は非表示 */}
         <MonthlySummary
           currRevenue={currRevenue}
           currRate={currRate}
-          histRows={hist} />
+          histRows={mode === 'new_patrol' ? hist : null} />
       </div>
 
       {/* エラー */}
