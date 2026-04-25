@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getBoothHistory } from '../../services/readings'
 
 function fmtDate(row) {
@@ -19,6 +19,25 @@ const ENTRY_BADGE = {
 const TH = { padding: '4px 6px', color: '#6666a8', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }
 const TD = { padding: '4px 6px', textAlign: 'right', color: '#d0d0e0' }
 
+function computeRevenues(history) {
+  const patrols = [...history]
+    .filter(h => h.entry_type !== 'replace' && h.in_meter != null)
+    .sort((a, b) => {
+      const da = a.patrol_date || a.read_time.slice(0, 10)
+      const db = b.patrol_date || b.read_time.slice(0, 10)
+      if (da !== db) return da.localeCompare(db)
+      return a.read_time.localeCompare(b.read_time)
+    })
+  const revMap = new Map()
+  patrols.forEach((row, i) => {
+    if (i === 0) { revMap.set(row.reading_id, null); return }
+    const prev = patrols[i - 1]
+    const inDiff = Number(row.in_meter) - Number(prev.in_meter)
+    revMap.set(row.reading_id, inDiff > 0 ? inDiff * Number(row.play_price || 100) : null)
+  })
+  return revMap
+}
+
 export default function BoothHistoryTable({ boothId, currentReadingId }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,6 +50,8 @@ export default function BoothHistoryTable({ boothId, currentReadingId }) {
       setLoading(false)
     })
   }, [boothId])
+
+  const revMap = useMemo(() => computeRevenues(rows), [rows])
 
   if (loading) return (
     <div style={{ fontSize: 11, color: '#8888a8', padding: '6px 0 8px', textAlign: 'center' }}>
@@ -60,6 +81,8 @@ export default function BoothHistoryTable({ boothId, currentReadingId }) {
             {rows.map(row => {
               const isCurrent = row.reading_id === currentReadingId
               const badge = ENTRY_BADGE[row.entry_type]
+              const isReplace = row.entry_type === 'replace'
+              const calcRev = isReplace ? null : revMap.get(row.reading_id)
               return (
                 <tr key={row.reading_id}
                   style={{ borderBottom: '1px solid #111124', opacity: isCurrent ? 0.4 : 1 }}>
@@ -75,8 +98,8 @@ export default function BoothHistoryTable({ boothId, currentReadingId }) {
                   <td style={TD}>{fmtNum(row.out_meter)}</td>
                   <td style={TD}>{row.prize_stock_count != null ? row.prize_stock_count : '—'}</td>
                   <td style={TD}>{row.prize_restock_count != null ? row.prize_restock_count : '—'}</td>
-                  <td style={{ ...TD, color: row.revenue != null ? '#22d3ee' : '#444466', fontWeight: row.revenue != null ? 700 : 400 }}>
-                    {row.revenue != null ? `¥${Number(row.revenue).toLocaleString()}` : '—'}
+                  <td style={{ ...TD, color: calcRev != null ? '#22d3ee' : '#444466', fontWeight: calcRev != null ? 700 : 400 }}>
+                    {calcRev != null ? `¥${Number(calcRev).toLocaleString()}` : '—'}
                   </td>
                 </tr>
               )

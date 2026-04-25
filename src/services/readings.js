@@ -46,7 +46,7 @@ export async function getAllMeterReadings(forceRefresh = false) {
 export async function getBoothHistory(boothId, limit = 10) {
   const { data, error } = await supabase
     .from('meter_readings')
-    .select('reading_id, patrol_date, read_time, in_meter, out_meter, prize_stock_count, prize_restock_count, prize_name, revenue, entry_type')
+    .select('reading_id, patrol_date, read_time, in_meter, out_meter, prize_stock_count, prize_restock_count, prize_name, revenue, entry_type, play_price')
     .eq('booth_id', boothId)
     .order('patrol_date', { ascending: false, nullsFirst: false })
     .order('read_time', { ascending: false })
