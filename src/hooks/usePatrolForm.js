@@ -107,6 +107,19 @@ export function usePatrolForm(booth) {
     setPatrol(p => ({ ...p, inMeter: val, inTouched: true }))
   }, [])
 
+  // v3 用: 指定フィールドを前回値+未タッチ状態にリセット (据え置きキー対応)
+  const resetPatrolInMeter = useCallback(() => {
+    setPatrol(p => ({ ...p, inMeter: prev?.inMeter != null ? String(prev.inMeter) : '', inTouched: false }))
+  }, [prev])
+  const resetPatrolOutMeter = useCallback((i) => {
+    const prevMeters = [prev?.outMeter, prev?.outMeter2, prev?.outMeter3]
+    setPatrol(p => {
+      const outs = p.outs.map((o, idx) => idx === i ? { ...o, meter: prevMeters[idx] != null ? String(prevMeters[idx]) : '' } : o)
+      const touchedOuts = p.touchedOuts.map((t, idx) => idx === i ? { ...t, meter: false } : t)
+      return { ...p, outs, touchedOuts }
+    })
+  }, [prev])
+
   const setPatrolOut = useCallback((i, key, val) => {
     setPatrol(p => {
       const outs = p.outs.map((o, idx) => idx === i ? { ...o, [key]: val } : o)
@@ -366,6 +379,10 @@ export function usePatrolForm(booth) {
       inDiff: null,
     } : { entryType: 'none' }
 
+    // 全メーター未タッチ → carry_forward として保存
+    const noMeter = !patrol.inTouched && !patrol.touchedOuts.some(t => t.meter)
+    const entryType = noMeter ? 'carry_forward' : 'patrol'
+
     try {
       await saveReadingV2({
         boothCode: booth.booth_code,
@@ -373,6 +390,7 @@ export function usePatrolForm(booth) {
         change: changeData,
         outCount: machineInfo?.outCount || 1,
         staffId,
+        entryType,
       })
       return { ok: true }
     } catch (e) {
@@ -390,6 +408,7 @@ export function usePatrolForm(booth) {
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     setChangeIn, setChangeOut, setChangeZan, setChangeSet,
     resetPatrol, resetChange,
+    resetPatrolInMeter, resetPatrolOutMeter,
     calc, changeCalc, changeType,
     outCount, pattern,
     save,

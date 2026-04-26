@@ -25,6 +25,7 @@ import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
 import GachaOutCard      from '../components/GachaOutCard'
 import GachaCheckBar     from '../components/GachaCheckBar'
+import GachaInputV3      from '../components/GachaInputV3'
 import BoothHistoryTable from '../components/BoothHistoryTable'
 
 // OUT ラベル設定
@@ -182,6 +183,7 @@ export default function PatrolPage() {
     patrol,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     resetPatrol,
+    resetPatrolInMeter, resetPatrolOutMeter,
     calc, machineInfo,
     save,
   } = form
@@ -219,9 +221,10 @@ export default function PatrolPage() {
     )
   }
 
-  function handleOcrApply({ inMeter, outMeter }) {
+  function handleOcrApply({ inMeter, outMeter, outMeter2 }) {
     if (inMeter) setPatrolIn(inMeter)
     if (outMeter) setPatrolOut(0, 'meter', outMeter)
+    if (outMeter2) setPatrolOut(1, 'meter', outMeter2)
     setShowOcr(false)
   }
 
@@ -403,82 +406,25 @@ export default function PatrolPage() {
         )
       }
 
-      // ── パターンD1: ガチャ (単OUT + ロッカー) ─────────────────
-      case 'D1': {
-        const o0 = p.outs[0] || {}
-        const t0 = p.touchedOuts[0] || {}
-        return (
-          <>
-            <MeterInputRow
-              inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={c?.inDiff} showDiff={true}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
-
-            <GachaOutCard
-              slot={0}
-              out={o0} touched={t0}
-              outDiff={c?.outs[0]?.diff}
-              prevPrizeName={prev?.prizeName}
-              onMeter={v => setPatrolOut(0, 'meter', v)}
-              onZan={v => setPatrolZan(0, v)}
-              onHo={v => setPatrolOut(0, 'ho', v)}
-              onPrize={v => setPatrolOut(0, 'prize', v)}
-              onCost={v => setPatrolOut(0, 'cost', v)} />
-
-            <div style={{ marginTop: 6 }}>
-              <GachaCheckBar inDiff={c?.inDiff} outs={[{ diff: c?.outs[0]?.diff, cost: o0.cost }]} />
-            </div>
-
-            {hasLocker && (
-              <div style={{ marginTop: 6 }}>
-                <LockerButton variant="edit"
-                  total={lockerState.summary.total}
-                  emptyCount={lockerState.summary.empty}
-                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-              </div>
-            )}
-          </>
-        )
-      }
-
-      // ── パターンD2: ガチャ (2OUT + 上下ロッカー) ──────────────
+      // ── パターンD1/D2: ガチャ v3 (3メーター横並び) ────────────
+      case 'D1':
       case 'D2': {
         return (
-          <>
-            <MeterInputRow
-              inMeter={p.inMeter} inTouched={p.inTouched}
-              inDiff={c?.inDiff} showDiff={true}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 6 }}>
-              {p.outs.map((o, i) => (
-                <GachaOutCard key={i} slot={i}
-                  out={o} touched={p.touchedOuts[i]}
-                  outDiff={c?.outs[i]?.diff}
-                  prevPrizeName={i === 0 ? prev?.prizeName : prev?.prizeName2}
-                  onMeter={v => setPatrolOut(i, 'meter', v)}
-                  onZan={v => setPatrolZan(i, v)}
-                  onHo={v => setPatrolOut(i, 'ho', v)}
-                  onPrize={v => setPatrolOut(i, 'prize', v)}
-                  onCost={v => setPatrolOut(i, 'cost', v)} />
-              ))}
-            </div>
-
-            <div style={{ marginTop: 6 }}>
-              <GachaCheckBar
-                inDiff={c?.inDiff}
-                outs={p.outs.map((o, i) => ({ diff: c?.outs[i]?.diff, cost: o.cost }))} />
-            </div>
-
-            {hasLocker && (
-              <div style={{ marginTop: 6 }}>
-                <LockerButton variant="edit"
-                  total={lockerState.summary.total}
-                  emptyCount={lockerState.summary.empty}
-                  onClick={() => { lockerState.refresh(); setLockerView('edit') }} />
-              </div>
-            )}
-          </>
+          <GachaInputV3
+            pattern={pattern}
+            p={p}
+            prev={prev}
+            calc={c}
+            lockers={lockers}
+            lockerState={lockerState}
+            staffId={staffId}
+            setPatrolIn={setPatrolIn}
+            setPatrolOut={setPatrolOut}
+            setPatrolZan={setPatrolZan}
+            onCamera={() => setShowOcr(true)}
+            resetPatrolInMeter={resetPatrolInMeter}
+            resetPatrolOutMeter={resetPatrolOutMeter}
+          />
         )
       }
 
@@ -487,9 +433,23 @@ export default function PatrolPage() {
   }
 
   // 保存ボタンラベル
-  const saveLabel = mode === 'correction' ? '修正を保存'
+  let saveLabel = mode === 'correction' ? '修正を保存'
     : mode === 'replace' ? '入替として保存'
     : `${boothLabel} を保存`
+
+  // D1/D2 v3: 据え置き状態に応じた動的ラベル
+  if ((pattern === 'D1' || pattern === 'D2') && mode === 'new_patrol' && patrol) {
+    const meters = [
+      patrol.inTouched,
+      patrol.touchedOuts[0]?.meter,
+      ...(pattern === 'D2' ? [patrol.touchedOuts[1]?.meter] : []),
+    ]
+    const filled = meters.filter(Boolean).length
+    const total = meters.length
+    saveLabel = filled === 0 ? '全据え置きで保存して次へ'
+      : filled === total ? '保存して次へ'
+      : `${filled}件入力 + 残据え置きで保存`
+  }
 
   // ── メイン描画 ─────────────────────────────────────────────────
   return (
