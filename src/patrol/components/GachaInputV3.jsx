@@ -1,6 +1,7 @@
 // PatrolPage v3 — D1/D2 ガチャ 3メーター入力
 // インライン numpad・据え置き(carry_forward)対応・景品変更・ロッカー個別編集
 import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 import { getPrizeMasters } from '../../services/prizes'
 import GachaCheckBar from './GachaCheckBar'
 
@@ -39,6 +40,7 @@ const diffColor = d => d == null ? '#475569' : d > 0 ? '#34d399' : d < 0 ? '#f87
 // ── Main Component ──────────────────────────────────
 export default function GachaInputV3({
   pattern,             // 'D1' | 'D2'
+  boothCode,           // booths.booth_code (A段景品永続化用)
   p,                   // patrol state from usePatrolForm
   prev,                // 前回読み値
   calc,                // 計算差分
@@ -58,6 +60,8 @@ export default function GachaInputV3({
   const [prizeModal, setPrizeModal] = useState(null)    // null | 0 | 1 (outs index)
   const [prizeSearch, setPrizeSearch] = useState('')
   const [prizeList, setPrizeList] = useState([])
+  const [prizeWorking, setPrizeWorking] = useState(false)
+  const [prizeError, setPrizeError] = useState('')
   const [lockerModal, setLockerModal] = useState(null)  // null | { locker, slot, lockerIdx }
   const [lockerSub, setLockerSub] = useState(null)      // null | 'restock' | 'replace'
   const [lkPrizeName, setLkPrizeName] = useState('')
@@ -125,7 +129,21 @@ export default function GachaInputV3({
   const filteredPrizes = prizeList.filter(pr =>
     !prizeSearch || pr.prize_name.toLowerCase().includes(prizeSearch.toLowerCase())
   )
-  function selectPrize(prizeName, cost, slotIdx) {
+  async function selectPrize(prizeId, prizeName, cost, slotIdx) {
+    setPrizeError('')
+    // A段のみ booths.current_prize_id を即時永続化
+    if (slotIdx === 0 && boothCode && prizeId) {
+      setPrizeWorking(true)
+      const { error: boothErr } = await supabase
+        .from('booths')
+        .update({ current_prize_id: prizeId, updated_at: new Date().toISOString(), updated_by: staffId || null })
+        .eq('booth_code', boothCode)
+      setPrizeWorking(false)
+      if (boothErr) {
+        setPrizeError('景品マスタ更新失敗。もう一度試してください')
+        return
+      }
+    }
     setPatrolOut(slotIdx, 'prize', prizeName)
     if (cost) setPatrolOut(slotIdx, 'cost', String(cost))
     setPrizeModal(null); setPrizeSearch('')
@@ -291,7 +309,7 @@ export default function GachaInputV3({
           cost={p?.outs?.[0]?.cost || ''}
           zan={p?.outs?.[0]?.zan || ''}
           ho={p?.outs?.[0]?.ho === 'ー' ? '' : (p?.outs?.[0]?.ho || '')}
-          onTapCard={() => { setPrizeModal(0); setPrizeSearch('') }}
+          onTapCard={() => { setPrizeModal(0); setPrizeSearch(''); setPrizeError('') }}
           onCostChange={v => setPatrolOut(0, 'cost', v)}
           onZanChange={v => setPatrolZan(0, v)}
           onHoChange={v => setPatrolOut(0, 'ho', v)}
@@ -306,7 +324,7 @@ export default function GachaInputV3({
             cost={p?.outs?.[1]?.cost || ''}
             zan={p?.outs?.[1]?.zan || ''}
             ho={p?.outs?.[1]?.ho === 'ー' ? '' : (p?.outs?.[1]?.ho || '')}
-            onTapCard={() => { setPrizeModal(1); setPrizeSearch('') }}
+            onTapCard={() => { setPrizeModal(1); setPrizeSearch(''); setPrizeError('') }}
             onCostChange={v => setPatrolOut(1, 'cost', v)}
             onZanChange={v => setPatrolZan(1, v)}
             onHoChange={v => setPatrolOut(1, 'ho', v)}
@@ -499,8 +517,13 @@ export default function GachaInputV3({
               <span style={{ fontWeight: 700, fontSize: 14 }}>
                 {prizeModal === 0 ? 'A段' : 'B段'} 景品変更
               </span>
-              <button onClick={() => { setPrizeModal(null); setPrizeSearch('') }} style={{ fontSize: 12, color: '#475569', background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer' }}>閉じる</button>
+              <button onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError('') }} style={{ fontSize: 12, color: '#475569', background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer' }}>閉じる</button>
             </div>
+            {prizeError && (
+              <div style={{ padding: '6px 12px', background: 'rgba(127,29,29,.4)', borderBottom: '1px solid rgba(190,18,60,.5)', flexShrink: 0 }}>
+                <span style={{ fontSize: 12, color: '#fca5a5' }}>{prizeError}</span>
+              </div>
+            )}
             <div style={{ padding: '8px 12px', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
               <input
                 autoFocus
@@ -512,13 +535,16 @@ export default function GachaInputV3({
               />
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-              {filteredPrizes.length === 0 ? (
+              {prizeWorking ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: '#67e8f9', fontSize: 13 }}>更新中...</div>
+              ) : filteredPrizes.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: '#475569', fontSize: 13 }}>該当なし</div>
               ) : (
                 filteredPrizes.map((pr, i) => (
                   <button
                     key={i}
-                    onClick={() => selectPrize(pr.prize_name, pr.original_cost, prizeModal)}
+                    disabled={prizeWorking}
+                    onClick={() => selectPrize(pr.prize_id, pr.prize_name, pr.original_cost, prizeModal)}
                     style={{
                       width: '100%', textAlign: 'left',
                       background: 'rgba(2,6,23,.6)', border: '1px solid #1e293b',

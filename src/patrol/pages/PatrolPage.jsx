@@ -412,6 +412,7 @@ export default function PatrolPage() {
         return (
           <GachaInputV3
             pattern={pattern}
+            boothCode={booth.booth_code}
             p={p}
             prev={prev}
             calc={c}
