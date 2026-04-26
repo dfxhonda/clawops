@@ -509,15 +509,18 @@ export default function GachaInputV3({
 
       {/* ════ 景品変更モーダル ════════════════════════════ */}
       {prizeModal != null && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.65)' }} onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false) }} />
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            background: '#0f172a', borderTop: '1px solid #1e293b',
-            borderRadius: '16px 16px 0 0', maxHeight: '85vh',
-            display: 'flex', flexDirection: 'column',
-            animation: 'giv3SlideUp .22s cubic-bezier(.16,1,.3,1)',
-          }}>
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,.65)' }} onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false) }} />
+          <div
+            className="giv3-prize-modal"
+            style={{
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+              background: '#0f172a', borderTop: '1px solid #1e293b',
+              borderRadius: '16px 16px 0 0',
+              display: 'flex', flexDirection: 'column',
+              animation: 'giv3SlideUp .22s cubic-bezier(.16,1,.3,1)',
+            }}
+          >
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <span style={{ fontWeight: 700, fontSize: 14 }}>
                 {prizeModal === 0 ? 'A段' : 'B段'} 景品変更
@@ -619,7 +622,7 @@ export default function GachaInputV3({
               )}
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ════ ロッカー個別編集モーダル ════════════════════ */}
@@ -704,7 +707,10 @@ export default function GachaInputV3({
         </div>
       )}
 
-      <style>{`@keyframes giv3SlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
+      <style>{`
+        @keyframes giv3SlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+        .giv3-prize-modal { max-height: 85vh; max-height: 85dvh; }
+      `}</style>
     </>
   )
 }
