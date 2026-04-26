@@ -22,6 +22,12 @@ const KANA_GROUPS = {
   'わ': /^[ワヰヱヲン]/,
 }
 
+// ひらがな → カタカナ変換（name_kana がひらがな保存の場合に対応）
+function toKatakana(str) {
+  return (str || '').replace(/[ぁ-ゖ]/g, c =>
+    String.fromCharCode(c.charCodeAt(0) + 0x60))
+}
+
 export default function Login() {
   const navigate = useNavigate()
   const { showToast, Toast } = useToast({ successDuration: 1200 })
@@ -38,20 +44,34 @@ export default function Login() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) { navigate('/', { replace: true }); return }
 
+      // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため
+      // org_id で絞ると環境によっては空配列になる
       const { data, error } = await supabase
         .from('staff')
         .select('staff_id, name, name_kana, has_pin')
-        .eq('organization_id', DFX_ORG_ID)
         .eq('is_active', true)
         .order('name_kana')
 
       if (error) {
-        setLoadErr('スタッフ一覧の取得に失敗しました')
+        console.error('[Login] staff fetch error:', error)
+        setLoadErr(`スタッフ一覧の取得に失敗しました (${error.message})`)
         setInitDone(true)
         return
       }
 
-      const staff = data || []
+      let staff = data || []
+
+      // staff テーブルが空の場合は staff_public ビューにフォールバック
+      if (staff.length === 0) {
+        const { data: pub } = await supabase
+          .from('staff_public')
+          .select('staff_id, name, name_kana, has_pin')
+          .eq('is_active', true)
+          .order('name')
+        if (pub?.length) staff = pub
+      }
+
+      console.log('[Login] staff loaded:', staff.length)
       setAllStaff(staff)
       const star = await fetchStarStaff(staff)
       setStarStaff(star)
@@ -69,7 +89,7 @@ export default function Login() {
     if (activeTab === '★') return starStaff
     const regex = KANA_GROUPS[activeTab]
     if (!regex) return allStaff
-    return allStaff.filter(s => regex.test(s.name_kana || ''))
+    return allStaff.filter(s => regex.test(toKatakana(s.name_kana || '')))
   }, [activeTab, allStaff, starStaff])
 
   const handleLoginSuccess = async (staff, session) => {
