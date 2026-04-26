@@ -1,158 +1,138 @@
-// ============================================
-// Login: PIN認証ログインフォーム
-// verify-pin Edge Function → supabase.auth.setSession → /
-// ============================================
-import { useEffect, useState } from 'react'
+// Login v4 - 50音タブ + 名前リスト + bottom sheet PIN
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { useToast } from '../hooks/useToast'
+import { fetchStarStaff, upsertLoginHistory } from '../services/loginHistory'
+import TabBar from './login/TabBar'
+import StaffList from './login/StaffList'
+import PinSheet from './login/PinSheet'
 
-const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+const KANA_GROUPS = {
+  'あ': /^[アイウエオ]/,
+  'か': /^[カキクケコガギグゲゴ]/,
+  'さ': /^[サシスセソザジズゼゾ]/,
+  'た': /^[タチツテトダヂヅデド]/,
+  'な': /^[ナニヌネノ]/,
+  'は': /^[ハヒフヘホバビブベボパピプペポ]/,
+  'ま': /^[マミムメモ]/,
+  'や': /^[ヤユヨ]/,
+  'ら': /^[ラリルレロ]/,
+  'わ': /^[ワヰヱヲン]/,
+}
 
 export default function Login() {
   const navigate = useNavigate()
-  const [staffList, setStaffList] = useState([])
-  const [staffId,   setStaffId]   = useState('')
-  const [pin,       setPin]       = useState('')
-  const [hasPin,    setHasPin]    = useState(false)
-  const [msg,       setMsg]       = useState({ text: '', err: false })
-  const [initDone,  setInitDone]  = useState(false)
-  const [busy,      setBusy]      = useState(false)
+  const { showToast, Toast } = useToast({ successDuration: 1200 })
+
+  const [allStaff, setAllStaff]         = useState([])
+  const [starStaff, setStarStaff]       = useState([])
+  const [activeTab, setActiveTab]       = useState('★')
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [initDone, setInitDone]         = useState(false)
+  const [loadErr, setLoadErr]           = useState('')
 
   useEffect(() => {
     async function init() {
-      // 既存セッションがあればそのままホームへ
       const { data: { session } } = await supabase.auth.getSession()
       if (session) { navigate('/', { replace: true }); return }
 
-      // スタッフ一覧取得
-      try {
-        const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/staff_public?select=staff_id,name,has_pin&is_active=eq.true&order=staff_id`,
-          { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } }
-        )
-        if (res.ok) setStaffList(await res.json())
-        else setMsg({ text: 'スタッフ一覧の取得に失敗しました', err: true })
-      } catch (e) {
-        setMsg({ text: '通信エラー: ' + e.message, err: true })
+      const { data, error } = await supabase
+        .from('staff')
+        .select('staff_id, name, name_kana, has_pin')
+        .eq('organization_id', DFX_ORG_ID)
+        .eq('is_active', true)
+        .order('name_kana')
+
+      if (error) {
+        setLoadErr('スタッフ一覧の取得に失敗しました')
+        setInitDone(true)
+        return
       }
+
+      const staff = data || []
+      setAllStaff(staff)
+      const star = await fetchStarStaff(staff)
+      setStarStaff(star)
       setInitDone(true)
     }
     init()
   }, [navigate])
 
-  function onStaffChange(id) {
-    setStaffId(id)
-    setPin('')
-    setMsg({ text: '', err: false })
-    const s = staffList.find(s => s.staff_id === id)
-    setHasPin(!!s?.has_pin)
+  const starStaffIds = useMemo(
+    () => new Set(starStaff.map(s => s.staff_id)),
+    [starStaff]
+  )
+
+  const filteredStaff = useMemo(() => {
+    if (activeTab === '★') return starStaff
+    const regex = KANA_GROUPS[activeTab]
+    if (!regex) return allStaff
+    return allStaff.filter(s => regex.test(s.name_kana || ''))
+  }, [activeTab, allStaff, starStaff])
+
+  const handleLoginSuccess = async (staff, session) => {
+    await supabase.auth.setSession({
+      access_token:  session.access_token,
+      refresh_token: session.refresh_token,
+    })
+    await upsertLoginHistory(staff.staff_id)
+    setSelectedStaff(null)
+    showToast(`${staff.name} さん こんにちは`)
+    setTimeout(() => navigate('/', { replace: true }), 1200)
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!staffId) { setMsg({ text: 'スタッフを選択してください', err: true }); return }
-    if (pin.length < 4) { setMsg({ text: '暗証番号は4桁以上で入力してください', err: true }); return }
-
-    setBusy(true)
-    setMsg({ text: '認証中...', err: false })
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staff_id: staffId, pin }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setMsg({ text: data.error || '認証に失敗しました', err: true })
-        setBusy(false)
-        return
-      }
-
-      // React SDK にセッションを設定（localStorage も SDK が書き込む）
-      await supabase.auth.setSession({
-        access_token:  data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      })
-
-      navigate('/', { replace: true })
-    } catch (e) {
-      setMsg({ text: '通信エラー: ' + e.message, err: true })
-      setBusy(false)
-    }
-  }
-
-  // セッション確認中スピナー
   if (!initDone) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        <div style={{ width: 32, height: 32, border: '2px solid #f0c040', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
       </div>
     )
   }
 
-  const S = {
-    page:  { minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#0f0f13', color: '#e8e8f0', fontFamily: "-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif" },
-    box:   { width: '100%', maxWidth: 320, background: '#1a1a23', border: '1px solid #2e2e3e', borderRadius: 8, padding: 24, marginBottom: 20 },
-    label: { display: 'block', fontSize: 12, color: '#9090a8', fontWeight: 700, marginBottom: 5 },
-    input: { width: '100%', background: '#22222e', border: '1px solid #2e2e3e', borderRadius: 8, padding: '10px 12px', color: '#e8e8f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' },
-    btn:   { width: '100%', padding: 11, borderRadius: 8, background: '#7c6aff', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44, marginTop: 4 },
-  }
-
   return (
-    <div style={S.page}>
-      <div style={{ fontSize: 48, marginBottom: 6 }}>🎮</div>
-      <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>Round 0</h1>
-      <p style={{ fontSize: 13, color: '#9090a8', marginBottom: 32 }}>クレーンゲーム運営管理システム</p>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0a0f', color: '#e8e8f0', fontFamily: "-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif" }}>
+      <Toast />
 
-      <form onSubmit={handleSubmit} style={S.box}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>ログイン</h2>
+      {/* ヘッダー */}
+      <div style={{ flexShrink: 0, padding: '16px 16px 10px', textAlign: 'center' }}>
+        <div style={{ fontSize: 36, lineHeight: 1 }}>🎮</div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1, marginTop: 4 }}>Round 0</div>
+        <div style={{ fontSize: 12, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
+      </div>
 
-        <div style={{ marginBottom: 14 }}>
-          <label style={S.label}>スタッフ</label>
-          <select
-            value={staffId}
-            onChange={e => onStaffChange(e.target.value)}
-            style={{ ...S.input, colorScheme: 'dark' }}
-          >
-            <option value="">-- 選択してください --</option>
-            {staffList.map(s => (
-              <option key={s.staff_id} value={s.staff_id}>{s.name}</option>
-            ))}
-          </select>
-        </div>
+      {/* タブバー */}
+      <TabBar active={activeTab} onChange={setActiveTab} />
 
-        {staffId && (
-          <div style={{ marginBottom: 14 }}>
-            <label style={S.label}>
-              {hasPin ? '暗証番号' : '暗証番号を設定（4桁以上）'}
-            </label>
-            <input
-              type="password"
-              inputMode="numeric"
-              value={pin}
-              onChange={e => setPin(e.target.value)}
-              placeholder={hasPin ? '暗証番号を入力' : '好きな番号を決めてください'}
-              autoFocus
-              style={S.input}
-            />
-          </div>
+      {/* 件数バッジ */}
+      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 11, color: '#64748b' }}>
+        {filteredStaff.length}件
+      </div>
+
+      {/* 名前リスト(スクロールエリア) */}
+      <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
+        {loadErr ? (
+          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#f87171', fontSize: 13 }}>{loadErr}</div>
+        ) : (
+          <StaffList
+            staff={filteredStaff}
+            starStaffIds={starStaffIds}
+            isStarTab={activeTab === '★'}
+            onSelect={setSelectedStaff}
+          />
         )}
+      </div>
 
-        <button
-          type="submit"
-          disabled={!staffId || busy}
-          style={{ ...S.btn, opacity: (!staffId || busy) ? 0.5 : 1 }}
-        >
-          {busy ? '認証中...' : 'ログイン'}
-        </button>
-
-        {msg.text && (
-          <p style={{ fontSize: 12, textAlign: 'center', marginTop: 10, minHeight: 18, color: msg.err ? '#e74c3c' : '#2ecc71' }}>
-            {msg.text}
-          </p>
-        )}
-      </form>
+      {/* bottom sheet */}
+      {selectedStaff && (
+        <PinSheet
+          staff={selectedStaff}
+          onClose={() => setSelectedStaff(null)}
+          onSuccess={handleLoginSuccess}
+        />
+      )}
     </div>
   )
 }
