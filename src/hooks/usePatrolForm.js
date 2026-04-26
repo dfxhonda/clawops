@@ -15,7 +15,7 @@ export function detectPattern(category, outCount) {
 }
 
 function makeOut(n) {
-  return Array.from({ length: n }, () => ({ meter: '', zan: '', ho: 'ー', prize: '', cost: '' }))
+  return Array.from({ length: n }, () => ({ meter: '', zan: '', ho: 'ー', prize: '', prize_id: '', cost: '' }))
 }
 function makeTouchedOut(n) {
   return Array.from({ length: n }, () => ({ meter: false, zan: false, ho: false, prize: false, cost: false }))

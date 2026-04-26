@@ -158,13 +158,11 @@ export default function GachaInputV3({
   )
   async function selectPrize(prizeId, prizeName, cost, slotIdx) {
     setPrizeError('')
-    // A段のみ booths.current_prize_id を即時永続化
+    // A段のみ booths.current_prize_id を即時永続化（SECURITY DEFINER RPC で RLS を回避）
     if (slotIdx === 0 && boothCode && prizeId) {
       setPrizeWorking(true)
       const { error: boothErr } = await supabase
-        .from('booths')
-        .update({ current_prize_id: prizeId, updated_at: new Date().toISOString(), updated_by: staffId || null })
-        .eq('booth_code', boothCode)
+        .rpc('update_booth_current_prize', { p_booth_code: boothCode, p_prize_id: prizeId, p_updated_by: staffId || null })
       setPrizeWorking(false)
       if (boothErr) {
         setPrizeError('景品マスタ更新失敗。もう一度試してください')
@@ -172,7 +170,8 @@ export default function GachaInputV3({
       }
     }
     setPatrolOut(slotIdx, 'prize', prizeName)
-    if (cost) setPatrolOut(slotIdx, 'cost', String(cost))
+    setPatrolOut(slotIdx, 'prize_id', prizeId)
+    if (cost != null && cost !== '') setPatrolOut(slotIdx, 'cost', String(cost))
     setPrizeModal(null); setPrizeSearch('')
   }
 

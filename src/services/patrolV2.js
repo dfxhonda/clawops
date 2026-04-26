@@ -283,6 +283,18 @@ export async function saveReplaceReadingV2({ boothCode, formData, outCount, staf
   })
 }
 
+function _calcRevenue(inp) {
+  const outs = inp.outs || []
+  let outRev = 0
+  for (const o of outs) {
+    const d = o.diff != null ? Number(o.diff) : 0
+    const c = o.cost != null && o.cost !== '' ? parseInt(o.cost) : 0
+    if (d > 0 && c > 0) outRev += d * c
+  }
+  // OUT×景品原価 が取れた場合はそちらを優先（ガチャ）、なければ IN×プレイ単価（クレーン）
+  return outRev > 0 ? outRev : (inp.inDiff || 0) * (inp.playPrice || 100)
+}
+
 function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
   const now = new Date().toISOString()
   const parts = boothCode.split('-')
@@ -299,7 +311,8 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     in_meter: inp.inMeter ? parseFloat(inp.inMeter) : null,
     out_meter: inp.outs?.[0]?.meter ? parseFloat(inp.outs[0].meter) : null,
     prize_name: inp.outs?.[0]?.prize || null,
-    prize_cost_1: inp.outs?.[0]?.cost ? parseInt(inp.outs[0].cost) : null,
+    prize_id: inp.outs?.[0]?.prize_id || null,
+    prize_cost_1: inp.outs?.[0]?.cost != null && inp.outs[0].cost !== '' ? parseInt(inp.outs[0].cost) : null,
     prize_stock_count: inp.outs?.[0]?.zan ? parseInt(inp.outs[0].zan) : null,
     prize_restock_count: inp.outs?.[0]?.ho && inp.outs[0].ho !== 'ー' ? parseInt(inp.outs[0].ho) : 0,
     set_a: inp.setA || null, set_c: inp.setC || null,
@@ -308,7 +321,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     in_diff: inp.inDiff ?? null,
     out_diff_1: inp.outs?.[0]?.diff ?? null,
     play_price: inp.playPrice || null,
-    revenue: (inp.inDiff || 0) * (inp.playPrice || 100),
+    revenue: _calcRevenue(inp),
     source: 'manual',
     created_at: now,
     created_by: staffId || null,
@@ -317,7 +330,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
   if (outCount >= 2 && inp.outs?.[1]) {
     p.out_meter_2 = inp.outs[1].meter ? parseFloat(inp.outs[1].meter) : null
     p.prize_name_2 = inp.outs[1].prize || null
-    p.prize_cost_2 = inp.outs[1].cost ? parseInt(inp.outs[1].cost) : null
+    p.prize_cost_2 = inp.outs[1].cost != null && inp.outs[1].cost !== '' ? parseInt(inp.outs[1].cost) : null
     p.stock_2 = inp.outs[1].zan ? parseInt(inp.outs[1].zan) : null
     p.restock_2 = inp.outs[1].ho && inp.outs[1].ho !== 'ー' ? parseInt(inp.outs[1].ho) : 0
     p.out_diff_2 = inp.outs[1].diff ?? null
@@ -325,7 +338,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
   if (outCount >= 3 && inp.outs?.[2]) {
     p.out_meter_3 = inp.outs[2].meter ? parseFloat(inp.outs[2].meter) : null
     p.prize_name_3 = inp.outs[2].prize || null
-    p.prize_cost_3 = inp.outs[2].cost ? parseInt(inp.outs[2].cost) : null
+    p.prize_cost_3 = inp.outs[2].cost != null && inp.outs[2].cost !== '' ? parseInt(inp.outs[2].cost) : null
     p.stock_3 = inp.outs[2].zan ? parseInt(inp.outs[2].zan) : null
     p.restock_3 = inp.outs[2].ho && inp.outs[2].ho !== 'ー' ? parseInt(inp.outs[2].ho) : 0
     p.out_diff_3 = inp.outs[2].diff ?? null
