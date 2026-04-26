@@ -67,6 +67,8 @@ export default function GachaInputV3({
   const [newPrizeName, setNewPrizeName] = useState('')
   const [newPrizeCost, setNewPrizeCost] = useState('')
   const [newPrizeAdding, setNewPrizeAdding] = useState(false)
+  const [prizeModalBottom, setPrizeModalBottom] = useState(0)
+  const [prizeModalMaxH, setPrizeModalMaxH] = useState(window.visualViewport?.height ?? window.innerHeight)
   const [lockerModal, setLockerModal] = useState(null)  // null | { locker, slot, lockerIdx }
   const [lockerSub, setLockerSub] = useState(null)      // null | 'restock' | 'replace'
   const [lkPrizeName, setLkPrizeName] = useState('')
@@ -77,6 +79,26 @@ export default function GachaInputV3({
   useEffect(() => {
     getPrizeMasters().then(setPrizeList).catch(() => {})
   }, [])
+
+  // iOS Safari キーボード対応: visualViewport でモーダルの bottom と maxHeight をピクセル制御
+  useEffect(() => {
+    if (prizeModal == null || !window.visualViewport) return
+    function update() {
+      const vv = window.visualViewport
+      const keyboardH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      setPrizeModalBottom(keyboardH)
+      setPrizeModalMaxH(Math.floor(vv.height * 0.85))
+    }
+    update()
+    window.visualViewport.addEventListener('resize', update)
+    window.visualViewport.addEventListener('scroll', update)
+    return () => {
+      window.visualViewport.removeEventListener('resize', update)
+      window.visualViewport.removeEventListener('scroll', update)
+      setPrizeModalBottom(0)
+      setPrizeModalMaxH(window.visualViewport?.height ?? window.innerHeight)
+    }
+  }, [prizeModal])
 
   // ── 表示値・touched ──────────────────────────────
   const touched = {
@@ -512,13 +534,14 @@ export default function GachaInputV3({
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,.65)' }} onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false) }} />
           <div
-            className="giv3-prize-modal"
             style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+              position: 'fixed', bottom: prizeModalBottom, left: 0, right: 0, zIndex: 50,
+              maxHeight: prizeModalMaxH,
               background: '#0f172a', borderTop: '1px solid #1e293b',
               borderRadius: '16px 16px 0 0',
               display: 'flex', flexDirection: 'column',
               animation: 'giv3SlideUp .22s cubic-bezier(.16,1,.3,1)',
+              transition: 'bottom .15s ease-out',
             }}
           >
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -707,10 +730,7 @@ export default function GachaInputV3({
         </div>
       )}
 
-      <style>{`
-        @keyframes giv3SlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
-        .giv3-prize-modal { max-height: 85vh; max-height: 85dvh; }
-      `}</style>
+      <style>{`@keyframes giv3SlideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
     </>
   )
 }
