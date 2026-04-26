@@ -392,7 +392,7 @@ export default function PatrolPage() {
             ))}
 
             <div style={{ display: 'flex', gap: 3, alignItems: 'center', marginBottom: 6 }}>
-              <Term id="claw_o" style={{ fontSize: 11, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</Term>
+              <Term id="o" style={{ fontSize: 11, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</Term>
               <input type="text"
                 style={{ ...INP_BASE, flex: 1, textAlign: 'left', color: '#d0d0e0' }}
                 value={p.setO} placeholder="設定メモ"

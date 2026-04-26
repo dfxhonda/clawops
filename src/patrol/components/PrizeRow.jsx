@@ -29,7 +29,7 @@ export default function PrizeRow({ prize, cost, setO, prizeRO = false, costRO = 
       />
       {showO && (
         <>
-          <Term id="claw_o" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</Term>
+          <Term id="o" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700, flexShrink: 0 }}>O</Term>
           <input type="text" maxLength={6} style={{ ...INP, flex: 1, color: '#d0d0e0' }}
             value={setO || ''} placeholder="設定"
             onFocus={e => e.target.select()}
