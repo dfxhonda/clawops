@@ -106,15 +106,15 @@ export default function AuditSummary() {
   const errorProps = error ? { message: error, onClose: () => setError(null) } : null
 
   return (
-    <div className="min-h-screen bg-bg text-text max-w-lg mx-auto">
+    <div className="h-full flex flex-col max-w-lg md:max-w-3xl mx-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
         <h1 className="flex-1 text-xl font-bold text-accent">監査サマリ</h1>
         <LogoutButton to="/admin/menu" />
       </div>
 
-      <div className="px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {errorProps && <ErrorDisplay {...errorProps} />}
 
         {/* 期間選択 */}

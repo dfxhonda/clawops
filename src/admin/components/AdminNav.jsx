@@ -17,7 +17,7 @@ export default function AdminNav() {
         <button
           key={tab.path}
           onClick={() => navigate(tab.path)}
-          className={`flex-none w-[72px] flex flex-col items-center py-1.5 gap-0.5 text-[10px] font-bold transition-colors shrink-0
+          className={`flex-none w-[72px] md:w-24 flex flex-col items-center py-1.5 gap-0.5 text-[10px] md:text-xs font-bold transition-colors shrink-0
             ${pathname === tab.path ? 'text-accent border-b-2 border-accent' : 'text-muted'}`}
         >
           <span className="text-base leading-none">{tab.icon}</span>

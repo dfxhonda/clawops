@@ -163,7 +163,7 @@ export default function DataSearch() {
   const totalPending = editCount + deleteCount
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="h-full flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
         <p className="text-muted text-sm">データを取得しています...</p>
@@ -175,7 +175,7 @@ export default function DataSearch() {
   const selectCls = "w-full bg-surface2 border border-border rounded-lg px-2.5 py-2 text-text text-sm outline-none focus:border-accent"
 
   return (
-    <div className="h-screen max-w-lg mx-auto flex flex-col overflow-hidden">
+    <div className="h-full max-w-lg md:max-w-4xl mx-auto flex flex-col">
       {/* 固定ヘッダー+検索セクション */}
       <div className="shrink-0 px-4 pt-4">
         <div className="flex items-center gap-3 mb-3">

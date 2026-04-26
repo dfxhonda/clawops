@@ -143,7 +143,7 @@ export default function LockerList() {
       <AdminNav />
 
       <div className="flex-1 overflow-y-auto pb-16">
-      <div className="px-4 mt-4 space-y-3">
+      <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">
         <div>
           <label className="block text-xs text-muted mb-1">店舗</label>
           <select
@@ -194,7 +194,7 @@ export default function LockerList() {
 
       {machineCode && !loading && lockers.map(locker => (
         <div key={locker.locker_id}
-          className={`bg-surface border border-border rounded-xl p-3.5 mx-4 mt-2 ${!locker.is_active ? 'opacity-40' : ''}`}>
+          className={`bg-surface border border-border rounded-xl p-3.5 mx-4 md:max-w-3xl md:mx-auto mt-2 ${!locker.is_active ? 'opacity-40' : ''}`}>
           {editingId === locker.locker_id ? (
             <div className="space-y-2">
               <p className="font-bold text-sm text-text">ロッカー{locker.locker_number} 編集</p>
@@ -282,7 +282,7 @@ export default function LockerList() {
       ))}
 
       {machineCode && !loading && (
-        <div className="bg-surface border border-border rounded-xl p-4 mx-4 mt-4 space-y-3">
+        <div className="bg-surface border border-border rounded-xl p-4 mx-4 md:max-w-3xl md:mx-auto mt-4 space-y-3">
           <p className="text-sm font-bold text-text">ロッカーを追加</p>
 
           <div>

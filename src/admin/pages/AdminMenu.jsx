@@ -93,8 +93,8 @@ export default function AdminMenu() {
   const visibleSections = SECTIONS.filter(sec => canAccess(staffRole, sec.minRole ?? 'staff'))
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between shrink-0">
+    <div className="h-full flex flex-col">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between">
         <div className="text-base font-bold">メニュー</div>
         <LogoutButton />
       </div>
@@ -106,7 +106,7 @@ export default function AdminMenu() {
             {sec.title}
             {sec.external && <span className="ml-1 text-blue-400 normal-case">(別ページで開きます)</span>}
           </div>
-          <div className="px-3 space-y-1.5">
+          <div className="px-3 grid grid-cols-1 gap-1.5 md:grid-cols-2">
             {sec.items.map(item => {
               if (item.href) {
                 return (

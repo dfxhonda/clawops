@@ -236,6 +236,7 @@ export default function ManualEditor() {
       <AdminNav />
 
       <div className="flex-1 overflow-y-auto pb-16">
+      <div className="md:max-w-3xl md:mx-auto">
       {/* ── ヘッダー情報カード ── */}
       <div className="bg-surface border border-border rounded-xl p-4 mx-4 mt-4 space-y-3">
         <h3 className="text-sm font-bold text-accent">基本情報</h3>
@@ -389,6 +390,7 @@ export default function ManualEditor() {
         >
           {saving ? '保存中...' : '保存する'}
         </button>
+      </div>
       </div>
       </div>
     </div>

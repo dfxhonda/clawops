@@ -116,7 +116,7 @@ export default function AuditLog() {
   const staffName = (id) => staffMap[id] || id || '—'
 
   return (
-    <div className="h-screen bg-bg text-text flex flex-col max-w-lg mx-auto">
+    <div className="h-full flex flex-col max-w-lg md:max-w-4xl mx-auto">
       <div className="shrink-0 px-4 pt-4">
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
@@ -138,7 +138,7 @@ export default function AuditLog() {
                 className="flex-1 bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div>
               <label className="text-xs text-muted block mb-1">担当者</label>
               <select value={filterStaff} onChange={e => setFilterStaff(e.target.value)}
@@ -160,7 +160,7 @@ export default function AuditLog() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div>
               <label className="text-xs text-muted block mb-1">理由</label>
               <select value={filterReason} onChange={e => setFilterReason(e.target.value)}

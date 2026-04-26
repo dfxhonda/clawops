@@ -260,6 +260,7 @@ export default function AdminMachineList() {
       <AdminNav />
 
       <div className="flex-1 overflow-y-auto pb-16">
+      <div className="md:max-w-3xl md:mx-auto">
       {/* Store selector */}
       <div className="mx-4 mt-4">
         <label className="block text-xs text-muted mb-1">店舗を選択</label>
@@ -385,6 +386,7 @@ export default function AdminMachineList() {
           )}
         </div>
       ))}
+      </div>
       </div>
     </div>
   )

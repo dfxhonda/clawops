@@ -213,7 +213,8 @@ export default function SetupSheets() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto">
+    <div className="h-full bg-bg text-text overflow-y-auto">
+    <div className="p-4 max-w-lg md:max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
         <h1 className="flex-1 text-xl font-bold text-accent">シートセットアップ</h1>
@@ -271,6 +272,7 @@ export default function SetupSheets() {
           ))}
         </div>
       )}
+    </div>
     </div>
   )
 }

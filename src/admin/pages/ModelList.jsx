@@ -194,7 +194,7 @@ export default function ModelList() {
       </div>
 
       {/* ━━━ 登録済み一覧 ━━━ */}
-      <div className="px-4">
+      <div className="px-4 md:max-w-4xl md:mx-auto">
         {loading ? (
           <div className="flex items-center justify-center py-10 gap-2">
             <div className="animate-spin w-5 h-5 border-2 border-accent border-t-transparent rounded-full" />
@@ -267,7 +267,7 @@ export default function ModelList() {
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={e => { if (e.target === e.currentTarget) closeModal() }}
         >
-          <div className="bg-bg rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-xl">
+          <div className="bg-bg rounded-xl w-full max-w-lg md:max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
 
             {/* モーダルヘッダー */}
             <div className="sticky top-0 bg-bg rounded-t-xl px-4 py-3 border-b border-border flex items-center justify-between shrink-0">

@@ -79,7 +79,7 @@ export default function ManualView() {
     : null
 
   return (
-    <div className="h-dvh flex flex-col bg-surface text-text max-w-lg mx-auto">
+    <div className="h-dvh flex flex-col bg-surface text-text max-w-lg md:max-w-3xl mx-auto">
       {/* Header */}
       <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3 border-b border-border">
         <button

@@ -298,7 +298,8 @@ export default function TestDataImport() {
   const pct = total > 0 ? Math.round(progress / total * 100) : 0
 
   return (
-    <div className="min-h-screen bg-bg text-text p-4 max-w-lg mx-auto pb-24">
+    <div className="h-full bg-bg text-text overflow-y-auto">
+    <div className="p-4 max-w-lg md:max-w-3xl mx-auto pb-24">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
         <div className="flex-1">
@@ -428,6 +429,7 @@ export default function TestDataImport() {
       <div className="text-[10px] text-muted/60 text-center">
         ⚠️ テストデータは既存データに追記されます。削除する場合はシートから手動で行を削除してください。
       </div>
+    </div>
     </div>
   )
 }

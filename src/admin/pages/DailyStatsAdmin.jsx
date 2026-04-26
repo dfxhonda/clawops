@@ -38,14 +38,15 @@ export default function DailyStatsAdmin() {
   }
 
   return (
-    <div className="min-h-screen pb-16">
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
+    <div className="h-full flex flex-col">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
         <button onClick={() => navigate('/admin/menu')} className="text-xl text-muted hover:text-accent">←</button>
         <span className="font-bold text-sm flex-1">日次集計バッチ</span>
         <LogoutButton to="/admin/menu" />
       </div>
 
-      <div className="px-4 py-6 max-w-md mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto">
+      <div className="px-4 py-6 max-w-md md:max-w-3xl mx-auto space-y-6">
         <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
           <div>
             <label className="block text-xs text-muted mb-1">集計対象日</label>
@@ -81,6 +82,7 @@ export default function DailyStatsAdmin() {
           <p>• 毎日 02:00 JST に前日分が自動集計されます</p>
           <p>• 同じ日付を再実行すると上書きされます</p>
         </div>
+      </div>
       </div>
     </div>
   )
