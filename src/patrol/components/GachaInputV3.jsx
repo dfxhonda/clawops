@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getPrizeMasters } from '../../services/prizes'
+import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import GachaCheckBar from './GachaCheckBar'
 
 // ── カラー定数 ───────────────────────────────────────
@@ -62,6 +63,10 @@ export default function GachaInputV3({
   const [prizeList, setPrizeList] = useState([])
   const [prizeWorking, setPrizeWorking] = useState(false)
   const [prizeError, setPrizeError] = useState('')
+  const [newPrizeMode, setNewPrizeMode] = useState(false)
+  const [newPrizeName, setNewPrizeName] = useState('')
+  const [newPrizeCost, setNewPrizeCost] = useState('')
+  const [newPrizeAdding, setNewPrizeAdding] = useState(false)
   const [lockerModal, setLockerModal] = useState(null)  // null | { locker, slot, lockerIdx }
   const [lockerSub, setLockerSub] = useState(null)      // null | 'restock' | 'replace'
   const [lkPrizeName, setLkPrizeName] = useState('')
@@ -309,7 +314,7 @@ export default function GachaInputV3({
           cost={p?.outs?.[0]?.cost || ''}
           zan={p?.outs?.[0]?.zan || ''}
           ho={p?.outs?.[0]?.ho === 'ー' ? '' : (p?.outs?.[0]?.ho || '')}
-          onTapCard={() => { setPrizeModal(0); setPrizeSearch(''); setPrizeError('') }}
+          onTapCard={() => { setPrizeModal(0); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false); setNewPrizeName(''); setNewPrizeCost('') }}
           onCostChange={v => setPatrolOut(0, 'cost', v)}
           onZanChange={v => setPatrolZan(0, v)}
           onHoChange={v => setPatrolOut(0, 'ho', v)}
@@ -324,7 +329,7 @@ export default function GachaInputV3({
             cost={p?.outs?.[1]?.cost || ''}
             zan={p?.outs?.[1]?.zan || ''}
             ho={p?.outs?.[1]?.ho === 'ー' ? '' : (p?.outs?.[1]?.ho || '')}
-            onTapCard={() => { setPrizeModal(1); setPrizeSearch(''); setPrizeError('') }}
+            onTapCard={() => { setPrizeModal(1); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false); setNewPrizeName(''); setNewPrizeCost('') }}
             onCostChange={v => setPatrolOut(1, 'cost', v)}
             onZanChange={v => setPatrolZan(1, v)}
             onHoChange={v => setPatrolOut(1, 'ho', v)}
@@ -505,7 +510,7 @@ export default function GachaInputV3({
       {/* ════ 景品変更モーダル ════════════════════════════ */}
       {prizeModal != null && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.65)' }} onClick={() => { setPrizeModal(null); setPrizeSearch('') }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.65)' }} onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false) }} />
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             background: '#0f172a', borderTop: '1px solid #1e293b',
@@ -517,7 +522,7 @@ export default function GachaInputV3({
               <span style={{ fontWeight: 700, fontSize: 14 }}>
                 {prizeModal === 0 ? 'A段' : 'B段'} 景品変更
               </span>
-              <button onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError('') }} style={{ fontSize: 12, color: '#475569', background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer' }}>閉じる</button>
+              <button onClick={() => { setPrizeModal(null); setPrizeSearch(''); setPrizeError(''); setNewPrizeMode(false) }} style={{ fontSize: 12, color: '#475569', background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer' }}>閉じる</button>
             </div>
             {prizeError && (
               <div style={{ padding: '6px 12px', background: 'rgba(127,29,29,.4)', borderBottom: '1px solid rgba(190,18,60,.5)', flexShrink: 0 }}>
@@ -534,7 +539,7 @@ export default function GachaInputV3({
                 style={{ width: '100%', background: '#020617', border: '1px solid #1e293b', borderRadius: 6, padding: '8px 12px', fontSize: 13, color: '#f1f5f9', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '8px 12px' }}>
               {prizeWorking ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: '#67e8f9', fontSize: 13 }}>更新中...</div>
               ) : filteredPrizes.length === 0 ? (
@@ -557,6 +562,60 @@ export default function GachaInputV3({
                     {pr.original_cost && <span style={{ fontSize: 11, color: '#475569' }}>@¥{pr.original_cost}</span>}
                   </button>
                 ))
+              )}
+            </div>
+
+            {/* フッター: 新規追加 */}
+            <div style={{ flexShrink: 0, borderTop: '1px solid #1e293b', padding: '8px 12px' }}>
+              {!newPrizeMode ? (
+                <button
+                  onClick={() => { setNewPrizeMode(true); setNewPrizeName(prizeSearch); setNewPrizeCost('') }}
+                  style={{ width: '100%', padding: '9px', borderRadius: 8, background: 'rgba(2,6,23,.6)', border: '1px dashed #334155', color: '#94a3b8', fontSize: 13, cursor: 'pointer' }}
+                >
+                  + マスタに新規追加
+                </button>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                    <input
+                      autoFocus
+                      type="text" placeholder="景品名(必須)" value={newPrizeName}
+                      onChange={e => setNewPrizeName(e.target.value)}
+                      style={{ flex: 1, background: '#020617', border: '1px solid #334155', borderRadius: 6, padding: '7px 10px', fontSize: 13, color: '#f1f5f9', outline: 'none' }}
+                    />
+                    <input
+                      type="number" placeholder="原価" value={newPrizeCost}
+                      onChange={e => setNewPrizeCost(e.target.value)}
+                      style={{ width: 70, background: '#020617', border: '1px solid #334155', borderRadius: 6, padding: '7px 8px', fontSize: 13, color: '#f1f5f9', outline: 'none' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setNewPrizeMode(false)} style={{ flex: 1, padding: '8px', borderRadius: 7, background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>キャンセル</button>
+                    <button
+                      disabled={!newPrizeName.trim() || newPrizeAdding}
+                      onClick={async () => {
+                        if (!newPrizeName.trim()) return
+                        setNewPrizeAdding(true)
+                        const id = crypto.randomUUID()
+                        const { error } = await supabase.from('prize_masters').insert({
+                          prize_id: id,
+                          prize_name: newPrizeName.trim(),
+                          original_cost: parseInt(newPrizeCost) || 0,
+                          status: 'provisional',
+                          organization_id: DFX_ORG_ID,
+                        })
+                        setNewPrizeAdding(false)
+                        if (error) { setPrizeError('追加失敗: ' + error.message); setNewPrizeMode(false); return }
+                        setPrizeList(list => [...list, { prize_id: id, prize_name: newPrizeName.trim(), original_cost: parseInt(newPrizeCost) || 0 }])
+                        await selectPrize(id, newPrizeName.trim(), parseInt(newPrizeCost) || 0, prizeModal)
+                        setNewPrizeMode(false)
+                      }}
+                      style={{ flex: 2, padding: '8px', borderRadius: 7, background: '#0891b2', border: '1px solid #0e7490', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: !newPrizeName.trim() || newPrizeAdding ? 0.5 : 1 }}
+                    >
+                      {newPrizeAdding ? '追加中...' : '追加して選択'}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>
