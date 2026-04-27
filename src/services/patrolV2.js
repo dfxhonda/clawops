@@ -55,6 +55,7 @@ export async function getLastReadingV2(boothCode) {
     outMeter2: data.out_meter_2,
     outMeter3: data.out_meter_3,
     prizeName: data.prize_name,
+    prizeId: data.prize_id,
     prizeName2: data.prize_name_2,
     prizeName3: data.prize_name_3,
     prizeCost1: data.prize_cost_1,

@@ -67,9 +67,9 @@ export function usePatrolForm(booth) {
 
       // OUT初期値: 前回OUT値（グレー表示、未タッチ）
       const prevOuts = [
-        { meter: lastR?.outMeter, prize: lastR?.prizeName, cost: lastR?.prizeCost1, zan: null, ho: null },
-        { meter: lastR?.outMeter2, prize: lastR?.prizeName2, cost: lastR?.prizeCost2, zan: null, ho: null },
-        { meter: lastR?.outMeter3, prize: lastR?.prizeName3, cost: lastR?.prizeCost3, zan: null, ho: null },
+        { meter: lastR?.outMeter, prize: lastR?.prizeName, prizeId: lastR?.prizeId, cost: lastR?.prizeCost1, zan: null, ho: null },
+        { meter: lastR?.outMeter2, prize: lastR?.prizeName2, prizeId: null, cost: lastR?.prizeCost2, zan: null, ho: null },
+        { meter: lastR?.outMeter3, prize: lastR?.prizeName3, prizeId: null, cost: lastR?.prizeCost3, zan: null, ho: null },
       ]
       initP.outs = initP.outs.map((o, i) => {
         const p = prevOuts[i]
@@ -80,6 +80,7 @@ export function usePatrolForm(booth) {
           meter: p?.meter != null ? String(p.meter) : '',
           zan: prevZan != null ? String((prevZan || 0) + (prevHo || 0)) : '', // 理論残=前回残+前回補
           prize: p?.prize || '',
+          prize_id: p?.prizeId || '',
           cost: p?.cost != null ? String(p.cost) : '',
         }
       })
@@ -252,9 +253,9 @@ export function usePatrolForm(booth) {
     if (prev) {
       initP.inMeter = prev.inMeter != null ? String(prev.inMeter) : ''
       const prevOuts = [
-        { meter: prev.outMeter, prize: prev.prizeName, cost: prev.prizeCost1 },
-        { meter: prev.outMeter2, prize: prev.prizeName2, cost: prev.prizeCost2 },
-        { meter: prev.outMeter3, prize: prev.prizeName3, cost: prev.prizeCost3 },
+        { meter: prev.outMeter, prize: prev.prizeName, prizeId: prev.prizeId, cost: prev.prizeCost1 },
+        { meter: prev.outMeter2, prize: prev.prizeName2, prizeId: null, cost: prev.prizeCost2 },
+        { meter: prev.outMeter3, prize: prev.prizeName3, prizeId: null, cost: prev.prizeCost3 },
       ]
       const prevStocks = [prev.stock1, prev.stock2, prev.stock3]
       const prevRestocks = [prev.restock1, prev.restock2, prev.restock3]
@@ -264,6 +265,7 @@ export function usePatrolForm(booth) {
         zan: prevStocks[i] != null ? String((prevStocks[i]||0) + (prevRestocks[i]||0)) : '',
         ho: 'ー',
         prize: prevOuts[i]?.prize || '',
+        prize_id: prevOuts[i]?.prizeId || '',
         cost: prevOuts[i]?.cost != null ? String(prevOuts[i].cost) : '',
       }))
       initP.setA = prev.setA || ''; initP.setC = prev.setC || ''

@@ -158,6 +158,11 @@ export default function GachaInputV3({
   )
   async function selectPrize(prizeId, prizeName, cost, slotIdx) {
     setPrizeError('')
+    // ローカル state を先に更新（RPC 失敗でも入力は確定させる）
+    setPatrolOut(slotIdx, 'prize', prizeName)
+    setPatrolOut(slotIdx, 'prize_id', prizeId || '')
+    if (cost != null && cost !== '') setPatrolOut(slotIdx, 'cost', String(cost))
+    console.log('[selectPrize]', { slotIdx, prizeId, prizeName, cost, boothCode })
     // A段のみ booths.current_prize_id を即時永続化（SECURITY DEFINER RPC で RLS を回避）
     if (slotIdx === 0 && boothCode && prizeId) {
       setPrizeWorking(true)
@@ -165,13 +170,12 @@ export default function GachaInputV3({
         .rpc('update_booth_current_prize', { p_booth_code: boothCode, p_prize_id: prizeId, p_updated_by: staffId || null })
       setPrizeWorking(false)
       if (boothErr) {
-        setPrizeError('景品マスタ更新失敗。もう一度試してください')
-        return
+        console.error('[selectPrize] booths RPC error:', boothErr)
+        setPrizeError('景品DB更新失敗(保存には影響なし): ' + boothErr.message)
+      } else {
+        console.log('[selectPrize] booths.current_prize_id updated OK')
       }
     }
-    setPatrolOut(slotIdx, 'prize', prizeName)
-    setPatrolOut(slotIdx, 'prize_id', prizeId)
-    if (cost != null && cost !== '') setPatrolOut(slotIdx, 'cost', String(cost))
     setPrizeModal(null); setPrizeSearch('')
   }
 
