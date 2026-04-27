@@ -6,13 +6,13 @@ import { getCache, setCache, clearCache, supName, SUPPLIER_MAP } from './utils'
 import { writeAuditLog } from './audit'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
-// 景品名検索用の軽量リスト（prize_name + original_cost のみ）
+// 景品名検索用リスト（prize_id + prize_name + original_cost）
 export async function getPrizeMasters() {
-  const KEY = 'prize_masters_search'
+  const KEY = 'prize_masters_search_v2'
   if (getCache(KEY)) return getCache(KEY)
   const { data, error } = await supabase
     .from('prize_masters')
-    .select('prize_name, original_cost, category')
+    .select('prize_id, prize_name, original_cost, category')
     .eq('status', 'active')
     .order('prize_name')
   if (error) { console.error('prize_masters取得エラー:', error.message); return [] }

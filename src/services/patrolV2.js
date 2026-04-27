@@ -314,6 +314,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     prize_name: inp.outs?.[0]?.prize || null,
     prize_id: inp.outs?.[0]?.prize_id || null,
     prize_cost_1: inp.outs?.[0]?.cost != null && inp.outs[0].cost !== '' ? parseInt(inp.outs[0].cost) : null,
+    prize_cost: inp.outs?.[0]?.cost != null && inp.outs[0].cost !== '' ? parseInt(inp.outs[0].cost) : null,
     prize_stock_count: inp.outs?.[0]?.zan ? parseInt(inp.outs[0].zan) : null,
     prize_restock_count: inp.outs?.[0]?.ho && inp.outs[0].ho !== 'ー' ? parseInt(inp.outs[0].ho) : 0,
     set_a: inp.setA || null, set_c: inp.setC || null,
