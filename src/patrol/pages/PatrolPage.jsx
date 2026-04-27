@@ -5,7 +5,7 @@ import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
 import { getMachineLockers } from '../../services/patrol'
-import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
+import { getYesterdayPatrol, getLatestReading, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
 
 import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
@@ -118,7 +118,7 @@ export default function PatrolPage() {
       return
     }
     if (!booth?.booth_code) return
-    getYesterdayPatrol(booth.booth_code).then(record => {
+    getLatestReading(booth.booth_code).then(record => {
       if (record) {
         setExistingRecord(record)
         setDialogOpen(true)
@@ -483,7 +483,9 @@ export default function PatrolPage() {
       )}
       {mode === 'correction' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>✏️ 修正モード</span>
+          <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>
+            ✏️ {existingRecord?.entry_type === 'replace' ? '今日の入替を修正' : '昨日の巡回を修正'}
+          </span>
           <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
         </div>
       )}

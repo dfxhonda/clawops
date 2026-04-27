@@ -229,6 +229,20 @@ export async function getYesterdayPatrol(boothCode) {
   return data || null
 }
 
+// 同一ブースの最新レコードを1件取得（entry_type・日付不問）
+// 修正モードで「最後に保存したレコード」を編集対象にするために使う
+export async function getLatestReading(boothCode) {
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select('*')
+    .eq('full_booth_code', boothCode)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) return null
+  return data || null
+}
+
 // 修正モード: 既存レコードをUPDATE
 export async function updatePatrolReading({ readingId, formData, outCount, staffId, existingRecord }) {
   const now = new Date().toISOString()
