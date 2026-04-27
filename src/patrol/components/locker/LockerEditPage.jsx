@@ -2,18 +2,15 @@ import { useState } from 'react'
 import SlotCard from './SlotCard'
 import LockerModal from './LockerModal'
 import { fmtYen } from '../../../utils/format'
-import { useKeyboardHeight } from '../../../hooks/useKeyboardHeight'
-
 export default function LockerEditPage({ machineName, lockers, slotsByLocker, onBack, onWon, onFill, onRemove, onSwap }) {
   const [modalSlot, setModalSlot] = useState(null)
-  const kh = useKeyboardHeight()
 
   const allSlots = Object.values(slotsByLocker).flat()
   const total = allSlots.reduce((s, sl) => s + (sl.status === 'filled' ? (sl.prize_value || 0) : 0), 0)
   const empty = allSlots.filter(sl => sl.status !== 'filled').length
 
   return (
-    <div style={{ background: '#0a0a12', height: '100dvh', overflowY: 'auto', padding: 10, color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", paddingBottom: `max(33vh, ${kh}px)` }}>
+    <div style={{ background: '#0a0a12', height: '100dvh', overflowY: 'auto', padding: 10, paddingBottom: '20vh', color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif" }}>
       <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 6px', fontSize: 14, color: '#5dade2', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: 8 }}>
         ← 巡回画面に戻る
       </button>

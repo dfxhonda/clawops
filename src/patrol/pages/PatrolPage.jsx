@@ -10,7 +10,7 @@ import { getYesterdayPatrol, getLatestReading, updatePatrolReading, saveReplaceR
 import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
 
-import MeterOcr        from '../components/MeterOcr'
+import OcrCaptureScreen from '../components/OcrCaptureScreen'
 import PatrolHeader    from '../components/PatrolHeader'
 import PrevRow         from '../components/PrevRow'
 import MeterInputRow   from '../components/MeterInputRow'
@@ -27,7 +27,6 @@ import GachaOutCard      from '../components/GachaOutCard'
 import GachaCheckBar     from '../components/GachaCheckBar'
 import GachaInputV3      from '../components/GachaInputV3'
 import BoothHistoryTable from '../components/BoothHistoryTable'
-import { useKeyboardHeight } from '../../hooks/useKeyboardHeight'
 
 // OUT ラベル設定
 const OUT_LABELS_B  = ['A', 'B', 'C']
@@ -105,7 +104,6 @@ export default function PatrolPage() {
 
   const form = usePatrolForm(booth)
   const lockerState = useLockerState(lockers)
-  const kh = useKeyboardHeight()
 
   // フォームロード完了後、最新レコードを確認してモード決定（確認ダイアログなし、自動で修正モードへ）
   useEffect(() => {
@@ -446,7 +444,7 @@ export default function PatrolPage() {
   return (
     <>
     <div
-      style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto', paddingBottom: `max(33vh, ${kh}px)` }}
+      style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, paddingBottom: '33vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -540,12 +538,14 @@ export default function PatrolPage() {
       )}
 
       {showOcr && (
-        <MeterOcr
+        <OcrCaptureScreen
           boothCode={booth.booth_code}
+          machineInfo={machineInfo}
           lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
           lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
-          onApply={handleOcrApply}
-          onClose={() => setShowOcr(false)}
+          mode={outCount >= 2 ? 'three' : 'single'}
+          onConfirm={handleOcrApply}
+          onCancel={() => setShowOcr(false)}
         />
       )}
 
