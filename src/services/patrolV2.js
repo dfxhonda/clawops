@@ -235,21 +235,35 @@ export async function updatePatrolReading({ readingId, formData, outCount, staff
   const upd = {
     in_meter: formData.inMeter ? parseFloat(formData.inMeter) : null,
     out_meter: formData.outs?.[0]?.meter ? parseFloat(formData.outs[0].meter) : null,
+    prize_name: formData.outs?.[0]?.prize || null,
+    prize_id: formData.outs?.[0]?.prize_id || null,
+    prize_cost: formData.outs?.[0]?.cost != null && formData.outs[0].cost !== '' ? parseInt(formData.outs[0].cost) : null,
+    prize_cost_1: formData.outs?.[0]?.cost != null && formData.outs[0].cost !== '' ? parseInt(formData.outs[0].cost) : null,
     prize_stock_count: formData.outs?.[0]?.zan ? parseInt(formData.outs[0].zan) : null,
     prize_restock_count: formData.outs?.[0]?.ho && formData.outs[0].ho !== 'ー' ? parseInt(formData.outs[0].ho) : 0,
+    in_diff: formData.inDiff ?? null,
+    out_diff_1: formData.outs?.[0]?.diff ?? null,
+    play_price: formData.playPrice || null,
+    revenue: _calcRevenue(formData),
     set_o: formData.setO || null,
     updated_at: now,
     updated_by: staffId || null,
   }
   if (outCount >= 2 && formData.outs?.[1]) {
     upd.out_meter_2 = formData.outs[1].meter ? parseFloat(formData.outs[1].meter) : null
+    upd.prize_name_2 = formData.outs[1].prize || null
+    upd.prize_cost_2 = formData.outs[1].cost != null && formData.outs[1].cost !== '' ? parseInt(formData.outs[1].cost) : null
     upd.stock_2 = formData.outs[1].zan ? parseInt(formData.outs[1].zan) : null
     upd.restock_2 = formData.outs[1].ho && formData.outs[1].ho !== 'ー' ? parseInt(formData.outs[1].ho) : 0
+    upd.out_diff_2 = formData.outs[1].diff ?? null
   }
   if (outCount >= 3 && formData.outs?.[2]) {
     upd.out_meter_3 = formData.outs[2].meter ? parseFloat(formData.outs[2].meter) : null
+    upd.prize_name_3 = formData.outs[2].prize || null
+    upd.prize_cost_3 = formData.outs[2].cost != null && formData.outs[2].cost !== '' ? parseInt(formData.outs[2].cost) : null
     upd.stock_3 = formData.outs[2].zan ? parseInt(formData.outs[2].zan) : null
     upd.restock_3 = formData.outs[2].ho && formData.outs[2].ho !== 'ー' ? parseInt(formData.outs[2].ho) : 0
+    upd.out_diff_3 = formData.outs[2].diff ?? null
   }
   const { error } = await supabase.from('meter_readings').update(upd).eq('reading_id', readingId)
   if (error) throw new Error('修正保存エラー: ' + error.message)
