@@ -2,11 +2,17 @@ import { supabase } from '../../lib/supabase';
 import { compressImageForOcr } from '../utils/imageResize';
 import { getPhotoTakenTime } from '../utils/exifReader';
 
+const OCR_TIMEOUT_MS = 15000
+
 export async function callMeterOcr(imageBase64, hintMachineType = null) {
   const t0 = Date.now();
-  const { data, error } = await supabase.functions.invoke('meter-ocr', {
+  const invokePromise = supabase.functions.invoke('meter-ocr', {
     body: { image_base64: imageBase64, hint_machine_type: hintMachineType },
   });
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('15秒で読み取れなかったため手動入力に切り替えてください')), OCR_TIMEOUT_MS)
+  );
+  const { data, error } = await Promise.race([invokePromise, timeoutPromise]);
   console.log('[OCR] 応答', Date.now() - t0, 'ms');
   if (error) throw error;
   return data;

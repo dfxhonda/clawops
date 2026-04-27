@@ -120,9 +120,13 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
     setErrorMsg('')
     try {
       const b64 = await resizeImage(file)
-      const { data, error } = await supabase.functions.invoke('ocr-meter', {
+      const invokePromise = supabase.functions.invoke('ocr-meter', {
         body: { image_base64: b64, media_type: 'image/jpeg' },
       })
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('15秒で読み取れなかったため手動入力に切り替えてください')), 15000)
+      )
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise])
       if (!mountedRef.current) return
       if (error) throw new Error(error.message || 'OCR失敗')
 
