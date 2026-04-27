@@ -27,6 +27,7 @@ import GachaOutCard      from '../components/GachaOutCard'
 import GachaCheckBar     from '../components/GachaCheckBar'
 import GachaInputV3      from '../components/GachaInputV3'
 import BoothHistoryTable from '../components/BoothHistoryTable'
+import { useKeyboardHeight } from '../../hooks/useKeyboardHeight'
 
 // OUT ラベル設定
 const OUT_LABELS_B  = ['A', 'B', 'C']
@@ -105,6 +106,7 @@ export default function PatrolPage() {
 
   const form = usePatrolForm(booth)
   const lockerState = useLockerState(lockers)
+  const kh = useKeyboardHeight()
 
   // フォームロード完了後、前日patrolレコードを確認してモード決定
   useEffect(() => {
@@ -456,7 +458,7 @@ export default function PatrolPage() {
   return (
     <>
     <div
-      style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
+      style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto', paddingBottom: `max(33vh, ${kh}px)` }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
