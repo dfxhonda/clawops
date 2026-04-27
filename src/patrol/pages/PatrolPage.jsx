@@ -60,7 +60,6 @@ export default function PatrolPage() {
 
   // モード管理
   const [mode, setMode] = useState('loading') // 'loading' | 'new_patrol' | 'correction' | 'replace'
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [existingRecord, setExistingRecord] = useState(null)
 
   // スワイプナビゲーション
@@ -108,45 +107,34 @@ export default function PatrolPage() {
   const lockerState = useLockerState(lockers)
   const kh = useKeyboardHeight()
 
-  // フォームロード完了後、前日patrolレコードを確認してモード決定
+  // フォームロード完了後、最新レコードを確認してモード決定（確認ダイアログなし、自動で修正モードへ）
   useEffect(() => {
     if (form.loading) {
-      // ブース変更時にモードをリセット
       setMode('loading')
-      setDialogOpen(false)
       setExistingRecord(null)
       return
     }
     if (!booth?.booth_code) return
-    getLatestReading(booth.booth_code).then(record => {
+    getLatestReading(booth.booth_code).then(async record => {
       if (record) {
         setExistingRecord(record)
-        setDialogOpen(true)
-        setMode('choosing')
+        form.loadCorrectionData(record)
+        setMode('correction')
+        const prevRecord = await getReadingBefore(booth.booth_code, record.reading_id)
+        form.setPrevOverride(prevRecord)
       } else {
         setMode('new_patrol')
       }
     })
   }, [form.loading, booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ダイアログハンドラ
-  async function handleSelectCorrection() {
-    form.loadCorrectionData(existingRecord)
-    setMode('correction')
-    setDialogOpen(false)
-    const prevRecord = await getReadingBefore(booth.booth_code, existingRecord.reading_id)
-    form.setPrevOverride(prevRecord)
-  }
-  async function handleSelectReplace() {
+  // 入替変更モードへの切り替え（修正モードヘッダーから呼ぶ）
+  async function handleSwitchToReplace() {
+    if (!existingRecord) return
     form.loadReplaceData(existingRecord)
     setMode('replace')
-    setDialogOpen(false)
     const prevRecord = await getReadingBefore(booth.booth_code, existingRecord.reading_id)
     form.setPrevOverride(prevRecord)
-  }
-  function handleCancelDialog() {
-    setDialogOpen(false)
-    navigate(-1)
   }
 
   // Hooks must be before any early returns
@@ -484,9 +472,14 @@ export default function PatrolPage() {
       {mode === 'correction' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
           <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>
-            ✏️ {existingRecord?.entry_type === 'replace' ? '今日の入替を修正' : '昨日の巡回を修正'}
+            ✏️ {existingRecord?.entry_type === 'replace' ? '今日の入替を編集中' : '昨日の巡回を編集中'}
           </span>
-          <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
+          <button
+            onClick={handleSwitchToReplace}
+            style={{ marginLeft: 'auto', fontSize: 11, color: '#5dade2', background: 'none', border: '1px solid rgba(93,173,226,.3)', borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}
+          >
+            🔄 入替変更で記録
+          </button>
         </div>
       )}
       {mode === 'replace' && (
@@ -554,47 +547,6 @@ export default function PatrolPage() {
           onApply={handleOcrApply}
           onClose={() => setShowOcr(false)}
         />
-      )}
-
-      {/* モード選択ダイアログ */}
-      {dialogOpen && existingRecord && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: '#1a1a2e', border: '1px solid #2a2a44', borderRadius: 12, padding: 20, maxWidth: 360, width: '100%' }}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#e8e8f0', marginBottom: 6 }}>ℹ️ 既に保存済みのブースです</div>
-              <div style={{ fontSize: 13, color: '#8888a8' }}>
-                {machineInfo?.machineName} / {boothLabel}<br/>
-                {existingRecord.patrol_date} に入力済み
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button
-                onClick={handleSelectCorrection}
-                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(240,160,64,.15)', border: '1px solid rgba(240,160,64,.4)', color: '#f0a040', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
-              >
-                ✏️ 修正する<br/>
-                <span style={{ fontSize: 12, fontWeight: 400, color: '#8888a8' }}>
-                  {existingRecord.patrol_date} のデータを上書き
-                </span>
-              </button>
-              <button
-                onClick={handleSelectReplace}
-                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(93,173,226,.15)', border: '1px solid rgba(93,173,226,.4)', color: '#5dade2', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
-              >
-                🔄 入替変更として記録<br/>
-                <span style={{ fontSize: 12, fontWeight: 400, color: '#8888a8' }}>
-                  今日 {new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })} の日付で新規記録
-                </span>
-              </button>
-              <button
-                onClick={handleCancelDialog}
-                style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(136,136,168,.1)', border: '1px solid rgba(136,136,168,.3)', color: '#8888a8', fontSize: 14, cursor: 'pointer' }}
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

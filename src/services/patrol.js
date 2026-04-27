@@ -30,14 +30,15 @@ export async function getPatrolMachines(storeCode) {
 // 当日の入力済みブース一覧 → Map<booth_code, {read_time, created_by}>
 export async function getTodayReadings(boothCodes) {
   if (!boothCodes.length) return {}
-  const today = new Date().toISOString().slice(0, 10)
+  // JST今日の開始時刻（UTC変換バグを避けるためsv-SE+タイムゾーン指定）
+  const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+  const todayStartIso = `${todayJST}T00:00:00+09:00`
   const { data, error } = await supabase
     .from('meter_readings')
-    .select('full_booth_code, read_time, created_by')
+    .select('full_booth_code, read_time, created_by, created_at, updated_at')
     .in('full_booth_code', boothCodes)
-    .gte('read_time', today + 'T00:00:00')
-    .lte('read_time', today + 'T23:59:59')
-    .order('read_time', { ascending: false })
+    .or(`created_at.gte.${todayStartIso},updated_at.gte.${todayStartIso}`)
+    .order('updated_at', { ascending: false })
   if (error) { console.error('getTodayReadings error:', error.message); return {} }
   const map = {}
   for (const r of (data || [])) {
