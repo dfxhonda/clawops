@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getAllStores } from '../../services/masters'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
 import { logout } from '../../lib/auth/session'
+import { exportPatrolDetailSheet } from '../../services/excelExport'
 
 function isGacha(machine) {
   return (
@@ -25,6 +26,8 @@ export default function PatrolOverview() {
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [loading, setLoading] = useState(false)
+  const [xlsxLoading, setXlsxLoading] = useState(false)
+  const [xlsxError, setXlsxError] = useState('')
   const intervalRef = useRef(null)
 
   // 店舗一覧取得
@@ -100,6 +103,26 @@ export default function PatrolOverview() {
       {/* ━━━ ヘッダー ━━━ */}
       <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2">
         <h1 className="flex-1 font-bold text-base">巡回状況</h1>
+        <button
+          onClick={async () => {
+            setXlsxError('')
+            setXlsxLoading(true)
+            try {
+              const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+              const monthStart = today.slice(0, 7) + '-01'
+              await exportPatrolDetailSheet({ from: monthStart, to: today })
+            } catch (e) {
+              setXlsxError(e.message)
+            } finally {
+              setXlsxLoading(false)
+            }
+          }}
+          disabled={xlsxLoading}
+          className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors disabled:opacity-50"
+          title="今月分の巡回明細をExcel出力"
+        >
+          {xlsxLoading ? '⏳' : '📊'}
+        </button>
         {/* Phase 4一時無効化（2026-04-18）OcrConfirmのReferenceError調査中
         <button
           onClick={() => navigate('/patrol/camera')}
@@ -133,6 +156,12 @@ export default function PatrolOverview() {
           ログアウト
         </button>
       </div>
+
+      {xlsxError && (
+        <div className="shrink-0 mx-3 mb-1 px-3 py-1.5 rounded-lg bg-red-900/30 border border-red-700/50 text-red-400 text-xs">
+          {xlsxError}
+        </div>
+      )}
 
       {/* ━━━ 店舗セレクター + 日付 ━━━ */}
       <div className="shrink-0 px-4 py-2 flex items-center gap-3">
