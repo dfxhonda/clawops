@@ -1,5 +1,6 @@
-// カメラ + IN + IN差 表示行 (および単独IN行として使用)
-const INP = { fontSize: 16, background: '#222238', border: '1px solid #2a2a44', borderRadius: 4, padding: '0.45em 0.35em', fontFamily: "'Courier New', Courier, monospace", fontWeight: 'bold', outline: 'none', color: '#d0d0e0', WebkitAppearance: 'none', textAlign: 'right', minWidth: 0, flex: 1 }
+import NumpadField from './NumpadField'
+
+const INP = { fontSize: 16, background: '#222238', border: '1px solid #2a2a44', borderRadius: 4, padding: '0.45em 0.35em', fontFamily: "'Courier New', Courier, monospace", fontWeight: 'bold', outline: 'none', color: '#d0d0e0', WebkitAppearance: 'none', textAlign: 'right', minWidth: 0, flex: 1, boxSizing: 'border-box' }
 
 export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, onCamera, showDiff = false }) {
   return (
@@ -11,12 +12,12 @@ export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, on
       )}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
         <span style={{ fontSize: 10, color: '#8888a8', flexShrink: 0, width: 18, textAlign: 'center' }}>IN</span>
-        <input
-          type="text" inputMode="numeric"
-          style={inTouched ? { ...INP, color: '#e8e8f0' } : INP}
+        <NumpadField
           value={inMeter}
-          onFocus={e => { if (!inTouched) e.target.select() }}
-          onChange={e => onChange(e.target.value)}
+          onChange={onChange}
+          label="INメーター"
+          max={999999}
+          style={inTouched ? { ...INP, color: '#e8e8f0' } : INP}
         />
       </div>
       {showDiff && (

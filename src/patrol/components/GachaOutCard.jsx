@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import PrizeSearchInput from './PrizeSearchInput'
 import Term from '../../components/Term'
+import NumpadField from './NumpadField'
 
 const INP = {
   fontSize: 15,
@@ -25,8 +25,6 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
   const labelChar = isA ? '▲A' : '▼B'
   const borderColor = isA ? '#27ae60' : '#2980b9'
 
-  const [zanEditing, setZanEditing] = useState(false)
-
   const diff = outDiff ?? null
   const diffStr = diff != null ? (diff >= 0 ? `+${diff}` : String(diff)) : '—'
   const diffColor = diff > 0 ? '#2ecc71' : diff < 0 ? '#e74c3c' : '#555577'
@@ -38,18 +36,6 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
 
   const prizeName = out.prize || ''
   const nameChanged = prevPrizeName && prizeName && prizeName !== prevPrizeName
-
-  function handleZanClick() {
-    setZanEditing(true)
-  }
-
-  function handleZanBlur() {
-    setZanEditing(false)
-  }
-
-  function handleZanChange(val) {
-    onZan(val)
-  }
 
   return (
     <div style={{
@@ -65,49 +51,24 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
         <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color: diffColor }}>{diffStr}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Term id="residual" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</Term>
-          {zanEditing ? (
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              autoFocus
-              style={{ ...INP, width: 44, fontSize: 13 }}
-              value={zan}
-              onFocus={e => e.target.select()}
-              onChange={e => handleZanChange(e.target.value)}
-              onBlur={handleZanBlur}
-            />
-          ) : (
-            <button
-              onClick={handleZanClick}
-              style={{
-                width: 44,
-                fontSize: 13,
-                fontFamily: "'Courier New', Courier, monospace",
-                fontWeight: 'bold',
-                background: '#0a0a14',
-                border: '1px dotted #4a4a64',
-                borderRadius: 4,
-                padding: '0.4em 0.35em',
-                color: zan !== '' ? '#e8e8f0' : '#555577',
-                textAlign: 'right',
-                cursor: 'pointer',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            >
-              {zan !== '' ? zan : '—'}
-            </button>
-          )}
+          <NumpadField
+            value={zan}
+            onChange={onZan}
+            label="残"
+            max={9999}
+            style={{ ...INP, width: 44, fontSize: 13 }}
+          />
         </div>
       </div>
 
       {/* 行2: メーター入力 */}
-      <input type="text" inputMode="numeric"
-        style={{ ...INP, color: touched.meter ? '#e8e8f0' : '#a0a0c0', fontSize: 16 }}
+      <NumpadField
         value={out.meter ?? ''}
-        onFocus={e => { if (!touched.meter) e.target.select() }}
-        onChange={e => onMeter(e.target.value)} />
+        onChange={onMeter}
+        label="OUTメーター"
+        max={999999}
+        style={{ ...INP, color: touched.meter ? '#e8e8f0' : '#a0a0c0', fontSize: 16 }}
+      />
 
       {/* 行3: 景品名 */}
       <div style={{ marginTop: 5 }}>
@@ -126,18 +87,21 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Term id="at" style={{ fontSize: 10, color: '#8888a8' }}>@</Term>
-          <input type="text" inputMode="numeric" maxLength={5}
-            style={{ ...INP, width: 52, fontSize: 13, color: '#f0c040' }}
+          <NumpadField
             value={out.cost ?? ''}
-            onFocus={e => e.target.select()}
-            onChange={e => onCost(e.target.value)} />
+            onChange={onCost}
+            label="単価"
+            max={99999}
+            style={{ ...INP, width: 52, fontSize: 13, color: '#f0c040' }}
+          />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Term id="refill" style={{ fontSize: 10, color: '#f0a040', fontWeight: 700 }}>補</Term>
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={4}
+          <NumpadField
+            value={ho}
+            onChange={onHo}
+            label="補充数"
+            max={9999}
             style={{
               ...INP,
               width: 44,
@@ -146,9 +110,6 @@ export default function GachaOutCard({ slot, out = {}, touched = {}, outDiff, pr
               border: '1px solid #4a3010',
               background: '#100a00',
             }}
-            value={ho}
-            onFocus={e => e.target.select()}
-            onChange={e => onHo(e.target.value)}
           />
         </div>
         <span style={{ fontSize: 12, fontFamily: 'monospace', fontWeight: 700, color: revenue != null ? '#5dade2' : '#444466' }}>

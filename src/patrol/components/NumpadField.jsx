@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
-export default function NumpadField({ value, onChange, label, max = 99999, allowDecimal = false, alwaysOpen = false, onClose }) {
-  const inputRef = useRef(null)
+export default function NumpadField({ value, onChange, label, max = 99999, allowDecimal = false, alwaysOpen = false, onClose, style }) {
+  const [open, setOpen] = useState(false)
 
   function handleKey(k) {
     if (k === '⌫') {
@@ -11,6 +12,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
       return
     }
     if (k === '→') {
+      setOpen(false)
       if (onClose) onClose()
       return
     }
@@ -44,17 +46,84 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
     )
   }
 
-  // bottom sheet mode (not used in OCR, for future Phase 1.5)
+  // Bottom sheet mode
   return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        readOnly
-        value={value || ''}
-        placeholder={label || '入力'}
-        className="w-full text-right py-2 px-3 text-xl font-mono rounded-lg bg-slate-800 border border-slate-600 text-white cursor-pointer"
-        onFocus={e => e.target.blur()}
-      />
-    </div>
+    <>
+      <button
+        onPointerDown={e => { e.preventDefault(); setOpen(true) }}
+        style={{
+          cursor: 'pointer',
+          border: '1px solid #2a2a44',
+          background: '#0a0a14',
+          borderRadius: 4,
+          padding: '0.4em 0.35em',
+          fontFamily: "'Courier New', Courier, monospace",
+          fontWeight: 'bold',
+          textAlign: 'right',
+          color: '#e8e8f0',
+          outline: 'none',
+          boxSizing: 'border-box',
+          WebkitAppearance: 'none',
+          ...style,
+        }}
+      >
+        {value !== '' && value != null ? value : <span style={{ opacity: 0.35, fontWeight: 400 }}>—</span>}
+      </button>
+
+      {open && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}
+            onPointerDown={() => setOpen(false)}
+          />
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '50vh',
+            background: '#13132a', borderRadius: '12px 12px 0 0',
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.7)',
+          }}>
+            <div style={{
+              padding: '10px 16px', borderBottom: '1px solid #2a2a44',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 12, color: '#8888a8' }}>{label || ''}</span>
+              <span style={{
+                fontSize: 24, fontFamily: "'Courier New', monospace",
+                fontWeight: 'bold', color: '#e8e8f0',
+              }}>
+                {value !== '' && value != null ? value : '—'}
+              </span>
+            </div>
+            <div style={{
+              flex: 1,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateRows: 'repeat(4, 1fr)',
+              gap: 4,
+              padding: 8,
+            }}>
+              {KEYS.map(k => (
+                <button
+                  key={k}
+                  onPointerDown={e => { e.preventDefault(); handleKey(k) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 8, fontSize: 20, fontWeight: 'bold',
+                    border: 'none', cursor: 'pointer', touchAction: 'none',
+                    background: k === '→' ? '#22c55e' : k === '⌫' ? '#4b5563' : '#1e293b',
+                    color: '#f1f5f9',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }

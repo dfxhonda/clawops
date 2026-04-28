@@ -26,6 +26,7 @@ import LockerEditPage  from '../components/locker/LockerEditPage'
 import GachaOutCard      from '../components/GachaOutCard'
 import GachaCheckBar     from '../components/GachaCheckBar'
 import GachaInputV3      from '../components/GachaInputV3'
+import NumpadField       from '../components/NumpadField'
 import BoothHistoryTable from '../components/BoothHistoryTable'
 
 // OUT ラベル設定
@@ -303,37 +304,45 @@ export default function PatrolPage() {
               <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                 <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
-                <input type="text" inputMode="numeric"
-                  style={inp(p.inTouched)}
+                <NumpadField
                   value={p.inMeter}
-                  onFocus={e => { if (!p.inTouched) e.target.select() }}
-                  onChange={e => setPatrolIn(e.target.value)} />
+                  onChange={setPatrolIn}
+                  label="INメーター"
+                  max={999999}
+                  style={inp(p.inTouched)}
+                />
               </div>
               {pattern !== 'A0' && (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
                   <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
-                  <input type="text" inputMode="numeric"
-                    style={inp(t0.meter)}
+                  <NumpadField
                     value={o0.meter}
-                    onFocus={e => { if (!t0.meter) e.target.select() }}
-                    onChange={e => setPatrolOut(0, 'meter', e.target.value)} />
+                    onChange={v => setPatrolOut(0, 'meter', v)}
+                    label="OUTメーター"
+                    max={999999}
+                    style={inp(t0.meter)}
+                  />
                 </div>
               )}
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Term id="residual" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</Term>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
+                <NumpadField
                   value={o0.zan}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setPatrolZan(0, e.target.value)} />
+                  onChange={v => setPatrolZan(0, v)}
+                  label="残"
+                  max={9999}
+                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0', boxSizing: 'border-box' }}
+                />
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Term id="refill" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</Term>
-                <input type="text" inputMode="numeric" maxLength={4}
-                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0' }}
+                <NumpadField
                   value={o0.ho}
-                  onFocus={e => e.target.select()}
-                  onChange={e => setPatrolOut(0, 'ho', e.target.value)} />
+                  onChange={v => setPatrolOut(0, 'ho', v)}
+                  label="補充数"
+                  max={9999}
+                  style={{ ...INP_BASE, width: 48, color: '#d0d0e0', boxSizing: 'border-box' }}
+                />
               </div>
             </div>
 
@@ -444,113 +453,124 @@ export default function PatrolPage() {
   return (
     <>
     <div
-      style={{ height: '100dvh', overflowY: 'auto', background: '#0a0a12', color: '#e8e8f0', padding: 10, paddingBottom: '33vh', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
+      style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#0a0a12', color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
 
-      {/* ヘッダー */}
-      <PatrolHeader
-        readDate={readDate} onDateChange={setReadDate}
-        machineName={machineInfo?.machineName || ''}
-        boothLabel={boothLabel}
-        badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
-        playPrice={machineInfo?.playPrice}
-        onBack={() => navigate('/')}
-        dateLocked={dateLocked}
-      />
+      {/* 上半分: 入力エリア (numpad展開中も常に見える) */}
+      <div style={{ flexShrink: 0, minHeight: '50vh', maxHeight: '50vh', overflowY: 'auto', padding: 10 }}>
 
-      {/* モードバッジ（全モード、日付を内包） */}
-      {mode === 'new_patrol' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
-          <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
-          <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
-        </div>
-      )}
-      {mode === 'correction' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>
-            ✏️ {existingRecord?.entry_type === 'replace' ? '今日の入替を編集中' : '昨日の巡回を編集中'}
-          </span>
-          <button
-            onClick={handleSwitchToReplace}
-            style={{ marginLeft: 'auto', fontSize: 11, color: '#5dade2', background: 'none', border: '1px solid rgba(93,173,226,.3)', borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}
-          >
-            🔄 入替変更で記録
-          </button>
-        </div>
-      )}
-      {mode === 'replace' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>
-          <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
-        </div>
-      )}
-
-      {/* 集金履歴テーブル（修正/入替モードのみ） */}
-      {(mode === 'correction' || mode === 'replace') && (
-        <BoothHistoryTable
-          boothId={booth?.booth_code}
-          currentReadingId={existingRecord?.reading_id}
+        {/* ヘッダー */}
+        <PatrolHeader
+          readDate={readDate} onDateChange={setReadDate}
+          machineName={machineInfo?.machineName || ''}
+          boothLabel={boothLabel}
+          badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
+          playPrice={machineInfo?.playPrice}
+          onBack={() => navigate('/')}
+          dateLocked={dateLocked}
         />
-      )}
 
-      {/* 巡回ゾーン */}
-      <div style={ZONE}>
-        {/* 前回値 */}
-        <PrevRow prev={prev}
-          outCount={outCount}
-          outLabels={pattern === 'B' ? OUT_LABELS_B : pattern === 'D2' ? OUT_LABELS_D2 : null} />
+        {/* モードバッジ（全モード、日付を内包） */}
+        {mode === 'new_patrol' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
+            <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
+            <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
+          </div>
+        )}
+        {mode === 'correction' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>
+              ✏️ {existingRecord?.entry_type === 'replace' ? '今日の入替を編集中' : '昨日の巡回を編集中'}
+            </span>
+            <button
+              onClick={handleSwitchToReplace}
+              style={{ marginLeft: 'auto', fontSize: 11, color: '#5dade2', background: 'none', border: '1px solid rgba(93,173,226,.3)', borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}
+            >
+              🔄 入替変更で記録
+            </button>
+          </div>
+        )}
+        {mode === 'replace' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>
+            <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
+          </div>
+        )}
 
-        {/* パターン別入力 */}
-        {renderPatrolContent()}
+        {/* 集金履歴テーブル（修正/入替モードのみ） */}
+        {(mode === 'correction' || mode === 'replace') && (
+          <BoothHistoryTable
+            boothId={booth?.booth_code}
+            currentReadingId={existingRecord?.reading_id}
+          />
+        )}
 
-        {/* 異常値アラート */}
-        <AlertBar alerts={alerts} />
+        {/* 巡回ゾーン */}
+        <div style={ZONE}>
+          {/* 前回値 */}
+          <PrevRow prev={prev}
+            outCount={outCount}
+            outLabels={pattern === 'B' ? OUT_LABELS_B : pattern === 'D2' ? OUT_LABELS_D2 : null} />
 
-        {/* 月次サマリー: 修正/入替モードは BoothHistoryTable が上部に表示済みのため histRows は非表示 */}
-        <MonthlySummary
-          currRevenue={currRevenue}
-          currRate={currRate}
-          histRows={mode === 'new_patrol' ? hist : null} />
+          {/* パターン別入力 */}
+          {renderPatrolContent()}
+
+          {/* 異常値アラート */}
+          <AlertBar alerts={alerts} />
+
+          {/* 月次サマリー: 修正/入替モードは BoothHistoryTable が上部に表示済みのため histRows は非表示 */}
+          <MonthlySummary
+            currRevenue={currRevenue}
+            currRate={currRate}
+            histRows={mode === 'new_patrol' ? hist : null} />
+        </div>
+
       </div>
 
-      {/* エラー */}
-      {saveError && (
-        <div style={{ margin: '0 0 8px', padding: '8px 12px', background: 'rgba(255,107,107,.12)', border: '1px solid #ff6b6b', borderRadius: 6, fontSize: 13, color: '#ff6b6b' }}>
-          {saveError}
-        </div>
-      )}
+      {/* 下半分: 保存ボタン + bottom sheet 展開先 */}
+      <div style={{ flex: 1, minHeight: '50vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 10px 16px' }}>
 
-      {/* 保存ボタン */}
-      {saved ? (
-        <div style={{ padding: '14px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #2ecc71', textAlign: 'center', color: '#2ecc71', fontWeight: 700, fontSize: 15 }}>
-          ✅ 保存しました
-        </div>
-      ) : (
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer', marginBottom: 24 }}
-        >
-          {saving ? '保存中...' : saveLabel}
-        </button>
-      )}
+        {/* エラー */}
+        {saveError && (
+          <div style={{ margin: '0 0 8px', padding: '8px 12px', background: 'rgba(255,107,107,.12)', border: '1px solid #ff6b6b', borderRadius: 6, fontSize: 13, color: '#ff6b6b' }}>
+            {saveError}
+          </div>
+        )}
 
-      {showOcr && (
-        <OcrCaptureScreen
-          boothCode={booth.booth_code}
-          machineInfo={machineInfo}
-          lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
-          lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
-          mode={outCount >= 2 ? 'three' : 'single'}
-          onConfirm={handleOcrApply}
-          onCancel={() => setShowOcr(false)}
-        />
-      )}
+        {/* 保存ボタン */}
+        {saved ? (
+          <div style={{ padding: '14px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #2ecc71', textAlign: 'center', color: '#2ecc71', fontWeight: 700, fontSize: 15 }}>
+            ✅ 保存しました
+          </div>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer' }}
+          >
+            {saving ? '保存中...' : saveLabel}
+          </button>
+        )}
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+
     </div>
+
+    {showOcr && (
+      <OcrCaptureScreen
+        boothCode={booth.booth_code}
+        machineInfo={machineInfo}
+        lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
+        lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
+        mode={outCount >= 2 ? 'three' : 'single'}
+        onConfirm={handleOcrApply}
+        onCancel={() => setShowOcr(false)}
+      />
+    )}
+
+    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     <HelpFAB />
     </>
   )
