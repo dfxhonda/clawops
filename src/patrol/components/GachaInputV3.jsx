@@ -75,9 +75,16 @@ export default function GachaInputV3({
   const [lkPriceVal, setLkPriceVal] = useState('')
   const [lkWorking, setLkWorking] = useState(false)
 
+  // 景品リストはモーダル開封時に初めてロード（service層にキャッシュあり、2回目以降は即時）
   useEffect(() => {
+    if (prizeModal == null) return
     getPrizeMasters().then(setPrizeList).catch(() => {})
-  }, [])
+  }, [prizeModal]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (lockerSub !== 'restock' && lockerSub !== 'replace') return
+    getPrizeMasters().then(setPrizeList).catch(() => {})
+  }, [lockerSub]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 表示値・touched ──────────────────────────────
   const touched = {

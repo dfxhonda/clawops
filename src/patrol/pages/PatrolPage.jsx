@@ -4,7 +4,6 @@ import { useAuth } from '../../hooks/useAuth'
 import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
-import { getMachineLockers } from '../../services/patrol'
 import { getYesterdayPatrol, getLatestReading, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
 
 import Term    from '../../components/Term'
@@ -50,8 +49,15 @@ export default function PatrolPage() {
   const navigate  = useNavigate()
   const { staffId } = useAuth()
   const booth = state?.booth
+  const machine = state?.machine
 
-  const [lockers, setLockers] = useState([])
+  const [lockers, setLockers] = useState(() => {
+    const list = (machine?.machine_lockers || []).filter(l => l.is_active !== false)
+    return list.map((l, i) => ({
+      ...l,
+      posLabel: list.length >= 2 ? (i === 0 ? '上段' : '下段') : null,
+    }))
+  })
   const [lockerView, setLockerView] = useState(null) // null | 'check' | 'edit'
   const [showOcr, setShowOcr] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -91,17 +97,6 @@ export default function PatrolPage() {
       state: { ...state, machine, booth: nextBooth },
     })
   }
-
-  // ロッカー読み込み
-  useEffect(() => {
-    if (!booth?.machine_code) return
-    getMachineLockers(booth.machine_code).then(list => {
-      setLockers(list.map((l, i) => ({
-        ...l,
-        posLabel: list.length >= 2 ? (i === 0 ? '上段' : '下段') : null,
-      })))
-    })
-  }, [booth?.machine_code])
 
   const form = usePatrolForm(booth)
   const lockerState = useLockerState(lockers)

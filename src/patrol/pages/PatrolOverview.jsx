@@ -209,13 +209,24 @@ export default function PatrolOverview() {
       {/* ━━━ メインスクロール ━━━ */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6">
 
-        {/* ローディング */}
-        {loading && (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-3" />
-              <p className="text-muted text-sm">読み込み中...</p>
-            </div>
+        {/* ローディング: 初回はスケルトン、更新中は上部スピナーのみ */}
+        {loading && machines.length === 0 && (
+          <div className="space-y-4 animate-pulse">
+            {[1, 2, 3].map(n => (
+              <div key={n} className="bg-surface border border-border rounded-xl overflow-hidden">
+                <div className="bg-surface2 px-4 py-2.5 flex items-center gap-2">
+                  <div className="h-4 bg-border rounded w-32" />
+                  <div className="ml-auto h-4 bg-border rounded w-12" />
+                </div>
+                {[1, 2].map(b => (
+                  <div key={b} className="w-full flex items-center gap-3 px-4 py-3 border-t border-border">
+                    <div className="w-5 h-5 bg-border rounded" />
+                    <div className="h-4 bg-border rounded w-12" />
+                    <div className="ml-auto h-3 bg-border rounded w-16" />
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         )}
 
