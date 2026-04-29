@@ -5,7 +5,7 @@ import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
 import AnomalyBanner from '../components/AnomalyBanner'
 import PatrolConfirmModal from '../components/PatrolConfirmModal'
-import MeterOcr from '../components/MeterOcr'
+import OcrCaptureScreen from '../components/OcrCaptureScreen'
 
 // 前日付タブ用（set_a〜o キーで直接保存）
 const SETTINGS_PREV = [
@@ -566,16 +566,16 @@ export default function PatrolInput() {
 
       {/* OCRモーダル */}
       {showOcr && currentBooth && (
-        <MeterOcr
+        <OcrCaptureScreen
           boothCode={currentBooth.booth_code}
           lastIn={lastIn} lastOut={lastOut}
-          onApply={({ inMeter, outMeter, confidence }) => {
+          onConfirm={({ inMeter, outMeter }) => {
             const p = activeTab === 'today' ? 'today_' : ''
             setInp(p + 'in_meter', inMeter); setInp(p + 'out_meter', outMeter)
-            setInp(p + 'inputMethod', 'ocr'); setInp(p + 'ocrConfidence', confidence)
+            setInp(p + 'inputMethod', 'ocr')
             setShowOcr(false)
           }}
-          onClose={() => setShowOcr(false)}
+          onCancel={() => setShowOcr(false)}
         />
       )}
 
