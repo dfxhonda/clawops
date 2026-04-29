@@ -29,6 +29,7 @@ import Login from './pages/Login'
 // 遅延ロード — メインタブ
 const MainInput = lazy(() => import('./patrol/pages/MainInput'))
 const Dashboard = lazy(() => import('./admin/pages/Dashboard'))
+const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 const AdminMenu = lazy(() => import('./admin/pages/AdminMenu'))
 const AdminTop = lazy(() => import('./admin/pages/AdminTop'))
 
@@ -116,7 +117,8 @@ function AppInner() {
       {/* ホーム = 巡回アプリ（全ロール） */}
       <Route path="/" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
       <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
+      <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
 

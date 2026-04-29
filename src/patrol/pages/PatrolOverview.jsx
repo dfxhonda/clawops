@@ -153,6 +153,13 @@ export default function PatrolOverview() {
         </button>
         */}
         <button
+          onClick={() => navigate('/dashboard')}
+          className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors"
+          title="経営者ダッシュボード"
+        >
+          📊 DB
+        </button>
+        <button
           onClick={() => navigate('/admin/menu')}
           className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors"
         >
