@@ -15,8 +15,8 @@ export async function fetchDashboardData() {
       .from('meter_readings')
       .select(`
         reading_id, full_booth_code, store_code, machine_code,
-        patrol_date, entry_type, in_diff, out_diff_1, out_diff_2,
-        revenue, prize_id, prize_cost_1, created_at,
+        patrol_date, entry_type, in_diff, out_diff, out_diff_2,
+        revenue, prize_id, prize_cost, created_at,
         stores!store_code(store_code, store_name),
         machines!machine_code(machine_code, machine_name)
       `)
@@ -25,7 +25,7 @@ export async function fetchDashboardData() {
       .order('patrol_date', { ascending: false }),
     supabase
       .from('meter_readings')
-      .select('full_booth_code, patrol_date, machine_code, in_diff, out_diff_1, out_diff_2')
+      .select('full_booth_code, patrol_date, machine_code, in_diff, out_diff, out_diff_2')
       .gte('patrol_date', last14daysStart)
       .lte('patrol_date', today),
     supabase

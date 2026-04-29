@@ -28,7 +28,7 @@ function computeAlerts(monthReadings, heatmapReadings, avgRate, today) {
   const boothRates = []
   for (const [boothCode, rows] of boothGroups) {
     const inS = sum(rows, 'in_diff')
-    const outS = rows.reduce((s, r) => s + (Number(r.out_diff_1) || 0) + (Number(r.out_diff_2) || 0), 0)
+    const outS = rows.reduce((s, r) => s + (Number(r.out_diff) || 0) + (Number(r.out_diff_2) || 0), 0)
     boothRates.push({ booth_code: boothCode, rate: inS > 0 ? outS / inS : 0, in_total: inS })
   }
   const threshold = avgRate * 2
@@ -91,7 +91,7 @@ function buildHeatmapData(heatmapReadings) {
       data[r.machine_code][r.patrol_date] = { inSum: 0, outSum: 0 }
     }
     data[r.machine_code][r.patrol_date].inSum += Number(r.in_diff) || 0
-    data[r.machine_code][r.patrol_date].outSum += (Number(r.out_diff_1) || 0) + (Number(r.out_diff_2) || 0)
+    data[r.machine_code][r.patrol_date].outSum += (Number(r.out_diff) || 0) + (Number(r.out_diff_2) || 0)
   }
   for (const mc of Object.keys(data)) {
     for (const d of Object.keys(data[mc])) {
@@ -129,7 +129,7 @@ export default function DashboardTop() {
 
     const nonCF = monthReadings.filter(r => r.entry_type !== 'carry_forward')
     const inSum = monthReadings.reduce((s, r) => s + (Number(r.in_diff) || 0), 0)
-    const outSum = monthReadings.reduce((s, r) => s + (Number(r.out_diff_1) || 0) + (Number(r.out_diff_2) || 0), 0)
+    const outSum = monthReadings.reduce((s, r) => s + (Number(r.out_diff) || 0) + (Number(r.out_diff_2) || 0), 0)
     const monthRevenue = sum(nonCF, 'revenue')
     const avgRate = inSum > 0 ? outSum / inSum : 0
 
