@@ -25,7 +25,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
 
   if (alwaysOpen) {
     return (
-      <div className="w-full h-full grid grid-rows-4 gap-1 bg-slate-800 p-2 select-none">
+      <div className="w-full h-full grid grid-rows-4 gap-1 bg-slate-800 p-2 select-none" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {KEYS.map(k => (
           <button
             key={k}

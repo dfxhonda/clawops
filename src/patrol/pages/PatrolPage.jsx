@@ -528,38 +528,36 @@ export default function PatrolPage() {
       <div style={{ flex: 1, minHeight: '50vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 10px 16px' }}>
 
         {/* 集金履歴テーブル（修正/入替モード）— スクロール領域で保存ボタンを押し下げない */}
-        {(mode === 'correction' || mode === 'replace') ? (
+        {(mode === 'correction' || mode === 'replace') && (
           <div style={{ flex: 1, overflowY: 'auto', marginBottom: 8 }}>
             <BoothHistoryTable
               boothId={booth?.booth_code}
               currentReadingId={existingRecord?.reading_id}
             />
           </div>
-        ) : (
-          <div style={{ flex: 1 }} />
         )}
 
-        {/* エラー */}
-        {saveError && (
-          <div style={{ margin: '0 0 8px', padding: '8px 12px', background: 'rgba(255,107,107,.12)', border: '1px solid #ff6b6b', borderRadius: 6, fontSize: 13, color: '#ff6b6b' }}>
-            {saveError}
-          </div>
-        )}
-
-        {/* 保存ボタン */}
-        {saved ? (
-          <div style={{ padding: '14px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #2ecc71', textAlign: 'center', color: '#2ecc71', fontWeight: 700, fontSize: 15 }}>
-            ✅ 保存しました
-          </div>
-        ) : (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer' }}
-          >
-            {saving ? '保存中...' : saveLabel}
-          </button>
-        )}
+        {/* 保存ボタン — marginTop:auto でボトムに固定 */}
+        <div style={{ marginTop: 'auto' }}>
+          {saveError && (
+            <div style={{ margin: '0 0 8px', padding: '8px 12px', background: 'rgba(255,107,107,.12)', border: '1px solid #ff6b6b', borderRadius: 6, fontSize: 13, color: '#ff6b6b' }}>
+              {saveError}
+            </div>
+          )}
+          {saved ? (
+            <div style={{ padding: '14px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #2ecc71', textAlign: 'center', color: '#2ecc71', fontWeight: 700, fontSize: 15 }}>
+              ✅ 保存しました
+            </div>
+          ) : (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{ width: '100%', padding: '14px', borderRadius: 10, background: saving ? '#1a1a2e' : '#5dade2', color: saving ? '#8888a8' : '#000', border: 'none', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer' }}
+            >
+              {saving ? '保存中...' : saveLabel}
+            </button>
+          )}
+        </div>
 
       </div>
 
