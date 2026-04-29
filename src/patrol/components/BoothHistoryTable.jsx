@@ -46,7 +46,7 @@ export default function BoothHistoryTable({ boothId, currentReadingId }) {
     if (!boothId) return
     setLoading(true)
     getBoothHistory(boothId, 10).then(data => {
-      setRows(data)
+      setRows([...data].reverse()) // 古い順（上）→ 最新（下）: LINEと同じ並び
       setLoading(false)
     })
   }, [boothId])
