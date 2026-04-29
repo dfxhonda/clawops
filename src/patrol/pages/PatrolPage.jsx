@@ -110,7 +110,15 @@ export default function PatrolPage() {
     }
     if (!booth?.booth_code) return
     getLatestReading(booth.booth_code).then(async record => {
-      if (record) {
+      // 今日(JST)の created_at または updated_at があるレコードのみ修正モードに入る
+      const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+      const isToday = r => {
+        if (!r) return false
+        const ca = r.created_at ? new Date(r.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
+        const ua = r.updated_at ? new Date(r.updated_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
+        return ca === todayJST || ua === todayJST
+      }
+      if (record && isToday(record)) {
         setExistingRecord(record)
         form.loadCorrectionData(record)
         setMode('correction')
@@ -494,14 +502,6 @@ export default function PatrolPage() {
           </div>
         )}
 
-        {/* 集金履歴テーブル（修正/入替モードのみ） */}
-        {(mode === 'correction' || mode === 'replace') && (
-          <BoothHistoryTable
-            boothId={booth?.booth_code}
-            currentReadingId={existingRecord?.reading_id}
-          />
-        )}
-
         {/* 巡回ゾーン */}
         <div style={ZONE}>
           {/* 前回値 */}
@@ -524,8 +524,20 @@ export default function PatrolPage() {
 
       </div>
 
-      {/* 下半分: 保存ボタン + bottom sheet 展開先 */}
-      <div style={{ flex: 1, minHeight: '50vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 10px 16px' }}>
+      {/* 下半分: 集金履歴 (修正/入替) + 保存ボタン */}
+      <div style={{ flex: 1, minHeight: '50vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 10px 16px' }}>
+
+        {/* 集金履歴テーブル（修正/入替モード）— スクロール領域で保存ボタンを押し下げない */}
+        {(mode === 'correction' || mode === 'replace') ? (
+          <div style={{ flex: 1, overflowY: 'auto', marginBottom: 8 }}>
+            <BoothHistoryTable
+              boothId={booth?.booth_code}
+              currentReadingId={existingRecord?.reading_id}
+            />
+          </div>
+        ) : (
+          <div style={{ flex: 1 }} />
+        )}
 
         {/* エラー */}
         {saveError && (
