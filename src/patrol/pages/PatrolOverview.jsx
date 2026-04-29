@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getAllStores } from '../../services/masters'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
 import { logout } from '../../lib/auth/session'
-import { exportPatrolDetailSheet } from '../../services/excelExport'
+import { exportPatrolDetailSheet, exportRound0FullReport } from '../../services/excelExport'
 
 function isGacha(machine) {
   return (
@@ -27,6 +27,7 @@ export default function PatrolOverview() {
   const [todayMap, setTodayMap] = useState({})
   const [loading, setLoading] = useState(false)
   const [xlsxLoading, setXlsxLoading] = useState(false)
+  const [xlsxFullLoading, setXlsxFullLoading] = useState(false)
   const [xlsxError, setXlsxError] = useState('')
   const intervalRef = useRef(null)
 
@@ -117,11 +118,31 @@ export default function PatrolOverview() {
               setXlsxLoading(false)
             }
           }}
-          disabled={xlsxLoading}
+          disabled={xlsxLoading || xlsxFullLoading}
           className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors disabled:opacity-50"
-          title="今月分の巡回明細をExcel出力"
+          title="今月分の巡回明細のみExcel出力"
         >
           {xlsxLoading ? '⏳' : '📊'}
+        </button>
+        <button
+          onClick={async () => {
+            setXlsxError('')
+            setXlsxFullLoading(true)
+            try {
+              const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+              const monthStart = today.slice(0, 7) + '-01'
+              await exportRound0FullReport({ from: monthStart, to: today })
+            } catch (e) {
+              setXlsxError(e.message)
+            } finally {
+              setXlsxFullLoading(false)
+            }
+          }}
+          disabled={xlsxLoading || xlsxFullLoading}
+          className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors disabled:opacity-50"
+          title="Round 0 完結レポート (4シート)"
+        >
+          {xlsxFullLoading ? '⏳' : '📊4'}
         </button>
         {/* Phase 4一時無効化（2026-04-18）OcrConfirmのReferenceError調査中
         <button
