@@ -308,7 +308,7 @@ export function usePatrolForm(booth) {
       { meter: record.out_meter != null ? String(record.out_meter) : '',
         zan: record.prize_stock_count != null ? String(record.prize_stock_count) : '',
         ho: record.prize_restock_count != null ? String(record.prize_restock_count) : 'ー',
-        prize: record.prize_name || '', cost: record.prize_cost_1 != null ? String(record.prize_cost_1) : '' },
+        prize: record.prize_name || '', cost: record.prize_cost != null ? String(record.prize_cost) : '' },
       { meter: record.out_meter_2 != null ? String(record.out_meter_2) : '',
         zan: record.stock_2 != null ? String(record.stock_2) : '',
         ho: record.restock_2 != null ? String(record.restock_2) : 'ー',
@@ -340,7 +340,7 @@ export function usePatrolForm(booth) {
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
     const outs = [
       { meter: '', zan: '', ho: 'ー',
-        prize: record.prize_name || '', cost: record.prize_cost_1 != null ? String(record.prize_cost_1) : '' },
+        prize: record.prize_name || '', cost: record.prize_cost != null ? String(record.prize_cost) : '' },
       { meter: '', zan: '', ho: 'ー',
         prize: record.prize_name_2 || '', cost: record.prize_cost_2 != null ? String(record.prize_cost_2) : '' },
       { meter: '', zan: '', ho: 'ー',

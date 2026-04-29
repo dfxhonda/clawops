@@ -58,7 +58,7 @@ export async function getLastReadingV2(boothCode) {
     prizeId: data.prize_id,
     prizeName2: data.prize_name_2,
     prizeName3: data.prize_name_3,
-    prizeCost1: data.prize_cost_1,
+    prizeCost1: data.prize_cost,
     prizeCost2: data.prize_cost_2,
     prizeCost3: data.prize_cost_3,
     stock1: data.prize_stock_count,
@@ -80,7 +80,7 @@ export async function getLastReadingV2(boothCode) {
 export async function getBoothHistory(boothCode, limit = 6) {
   const { data, error } = await supabase
     .from('meter_readings')
-    .select('reading_id, read_time, patrol_date, in_meter, out_meter, in_diff, out_diff_1, prize_name, play_price, revenue')
+    .select('reading_id, read_time, patrol_date, in_meter, out_meter, in_diff, out_diff, prize_name, play_price, revenue')
     .eq('full_booth_code', boothCode)
     .or('entry_type.eq.patrol,entry_type.is.null')
     .order('patrol_date', { ascending: false })
@@ -91,14 +91,14 @@ export async function getBoothHistory(boothCode, limit = 6) {
   const rows = (data || []).reverse()
   return rows.map((current, i) => {
     const previous = rows[i - 1]
-    if (!previous) return { ...current, in_diff: 0, out_diff_1: 0, revenue: 0 }
+    if (!previous) return { ...current, in_diff: 0, out_diff: 0, revenue: 0 }
     if (current.in_meter == null || previous.in_meter == null) return current
     const in_diff = Number(current.in_meter) - Number(previous.in_meter)
-    const out_diff_1 = current.out_meter != null && previous.out_meter != null
+    const out_diff = current.out_meter != null && previous.out_meter != null
       ? Number(current.out_meter) - Number(previous.out_meter)
-      : current.out_diff_1
+      : current.out_diff
     const revenue = in_diff * (current.play_price || 100)
-    return { ...current, in_diff, out_diff_1, revenue }
+    return { ...current, in_diff, out_diff, revenue }
   })
 }
 
@@ -196,7 +196,7 @@ export async function getReadingBefore(boothCode, excludeReadingId) {
     prizeName: data.prize_name,
     prizeName2: data.prize_name_2,
     prizeName3: data.prize_name_3,
-    prizeCost1: data.prize_cost_1,
+    prizeCost1: data.prize_cost,
     prizeCost2: data.prize_cost_2,
     prizeCost3: data.prize_cost_3,
     stock1: data.prize_stock_count,
@@ -252,11 +252,11 @@ export async function updatePatrolReading({ readingId, formData, outCount, staff
     prize_name: formData.outs?.[0]?.prize || null,
     prize_id: formData.outs?.[0]?.prize_id || null,
     prize_cost: formData.outs?.[0]?.cost != null && formData.outs[0].cost !== '' ? parseInt(formData.outs[0].cost) : null,
-    prize_cost_1: formData.outs?.[0]?.cost != null && formData.outs[0].cost !== '' ? parseInt(formData.outs[0].cost) : null,
+    prize_cost: formData.outs?.[0]?.cost != null && formData.outs[0].cost !== '' ? parseInt(formData.outs[0].cost) : null,
     prize_stock_count: formData.outs?.[0]?.zan ? parseInt(formData.outs[0].zan) : null,
     prize_restock_count: formData.outs?.[0]?.ho && formData.outs[0].ho !== 'ー' ? parseInt(formData.outs[0].ho) : 0,
     in_diff: formData.inDiff ?? null,
-    out_diff_1: formData.outs?.[0]?.diff ?? null,
+    out_diff: formData.outs?.[0]?.diff ?? null,
     play_price: formData.playPrice || null,
     revenue: _calcRevenue(formData),
     set_o: formData.setO || null,
@@ -341,7 +341,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     out_meter: inp.outs?.[0]?.meter ? parseFloat(inp.outs[0].meter) : null,
     prize_name: inp.outs?.[0]?.prize || null,
     prize_id: inp.outs?.[0]?.prize_id || null,
-    prize_cost_1: inp.outs?.[0]?.cost != null && inp.outs[0].cost !== '' ? parseInt(inp.outs[0].cost) : null,
+    prize_cost: inp.outs?.[0]?.cost != null && inp.outs[0].cost !== '' ? parseInt(inp.outs[0].cost) : null,
     prize_cost: inp.outs?.[0]?.cost != null && inp.outs[0].cost !== '' ? parseInt(inp.outs[0].cost) : null,
     prize_stock_count: inp.outs?.[0]?.zan ? parseInt(inp.outs[0].zan) : null,
     prize_restock_count: inp.outs?.[0]?.ho && inp.outs[0].ho !== 'ー' ? parseInt(inp.outs[0].ho) : 0,
@@ -349,7 +349,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     set_l: inp.setL || null, set_r: inp.setR || null,
     set_o: inp.setO || null,
     in_diff: inp.inDiff ?? null,
-    out_diff_1: inp.outs?.[0]?.diff ?? null,
+    out_diff: inp.outs?.[0]?.diff ?? null,
     play_price: inp.playPrice || null,
     revenue: _calcRevenue(inp),
     source: 'manual',

@@ -136,7 +136,7 @@ export default function PatrolPage() {
     const hist = form.hist
     if (!hist || hist.length === 0) return { currRevenue: null, currRate: null }
     const totalIn = hist.reduce((s, r) => s + (r.in_diff ?? 0), 0)
-    const totalOut = hist.reduce((s, r) => s + (r.out_diff_1 ?? 0), 0)
+    const totalOut = hist.reduce((s, r) => s + (r.out_diff ?? 0), 0)
     return {
       currRevenue: hist.reduce((s, r) => s + (r.revenue ?? (r.in_diff ?? 0) * (r.play_price || 100)), 0),
       currRate: totalIn > 0 ? (totalOut / totalIn * 100) : null,

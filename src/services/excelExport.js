@@ -7,7 +7,7 @@ export async function exportPatrolDetailSheet(filters) {
     .from('meter_readings')
     .select(`
       patrol_date, full_booth_code, store_code, machine_code,
-      in_diff, out_diff_1, prize_name, prize_cost_1, revenue, entry_type, play_price,
+      in_diff, out_diff, prize_name, prize_cost, revenue, entry_type, play_price,
       stores!store_code(store_name),
       machines!machine_code(machine_name)
     `)
@@ -28,12 +28,12 @@ export async function exportPatrolDetailSheet(filters) {
     '機種名': r.machines?.machine_name ?? '',
     'ブースコード': r.full_booth_code,
     'IN差': r.in_diff ?? '',
-    'OUT差': r.out_diff_1 ?? '',
+    'OUT差': r.out_diff ?? '',
     '単価': r.play_price ?? '',
-    '原価': r.prize_cost_1 ?? '',
+    '原価': r.prize_cost ?? '',
     '売上': r.revenue ?? '',
-    '出率': (r.in_diff != null && r.in_diff > 0 && r.out_diff_1 != null)
-      ? Math.round((r.out_diff_1 / r.in_diff) * 1000) / 10
+    '出率': (r.in_diff != null && r.in_diff > 0 && r.out_diff != null)
+      ? Math.round((r.out_diff / r.in_diff) * 1000) / 10
       : '',
     '景品': r.prize_name ?? '',
     '区分': r.entry_type === 'patrol' ? '巡回'
@@ -79,14 +79,14 @@ function _buildDetailRows(rows) {
     '機種名': r.machines?.machine_name ?? '',
     'ブースコード': r.full_booth_code,
     'IN差': r.in_diff ?? '',
-    'OUT差(A)': r.out_diff_1 ?? '',
+    'OUT差(A)': r.out_diff ?? '',
     'OUT差(B)': r.out_diff_2 ?? '',
     '単価': r.play_price ?? '',
-    '原価(A)': r.prize_cost_1 ?? '',
+    '原価(A)': r.prize_cost ?? '',
     '原価(B)': r.prize_cost_2 ?? '',
     '売上': r.revenue ?? '',
     '出率': (r.in_diff > 0)
-      ? Math.round(((Number(r.out_diff_1) || 0) + (Number(r.out_diff_2) || 0)) / r.in_diff * 1000) / 10
+      ? Math.round(((Number(r.out_diff) || 0) + (Number(r.out_diff_2) || 0)) / r.in_diff * 1000) / 10
       : '',
     '景品(A)': r.prize_name ?? '',
     '景品(B)': r.prize_name_2 ?? '',
@@ -105,10 +105,10 @@ function _buildStoreSummary(rows) {
     const machineSet = new Set(storeRows.map(r => r.machine_code))
     const nonCF = storeRows.filter(r => r.entry_type !== 'carry_forward')
     const inSum = _sum(storeRows, 'in_diff')
-    const outSum = storeRows.reduce((s, r) => s + (Number(r.out_diff_1) || 0) + (Number(r.out_diff_2) || 0), 0)
+    const outSum = storeRows.reduce((s, r) => s + (Number(r.out_diff) || 0) + (Number(r.out_diff_2) || 0), 0)
     const revSum = _sum(nonCF, 'revenue')
     const costSum = storeRows.reduce((s, r) =>
-      s + (Number(r.out_diff_1) || 0) * (Number(r.prize_cost_1) || 0)
+      s + (Number(r.out_diff) || 0) * (Number(r.prize_cost) || 0)
         + (Number(r.out_diff_2) || 0) * (Number(r.prize_cost_2) || 0), 0)
 
     const boothRev = {}
@@ -144,10 +144,10 @@ function _buildBoothSummary(rows) {
     const nonCF = boothRows.filter(r => r.entry_type !== 'carry_forward')
     const cfRows = boothRows.filter(r => r.entry_type === 'carry_forward')
     const inSum = _sum(boothRows, 'in_diff')
-    const outSum = boothRows.reduce((s, r) => s + (Number(r.out_diff_1) || 0) + (Number(r.out_diff_2) || 0), 0)
+    const outSum = boothRows.reduce((s, r) => s + (Number(r.out_diff) || 0) + (Number(r.out_diff_2) || 0), 0)
     const revSum = _sum(nonCF, 'revenue')
     const costSum = boothRows.reduce((s, r) =>
-      s + (Number(r.out_diff_1) || 0) * (Number(r.prize_cost_1) || 0)
+      s + (Number(r.out_diff) || 0) * (Number(r.prize_cost) || 0)
         + (Number(r.out_diff_2) || 0) * (Number(r.prize_cost_2) || 0), 0)
     const gross = revSum - costSum
     const rate = inSum > 0 ? outSum / inSum : 0
@@ -201,8 +201,8 @@ function _buildPrizeAnalysis(rows, prizes) {
   for (const [prizeId, prizeRows] of grouped) {
     const meta = prizeMap.get(prizeId)
     const boothSet = new Set(prizeRows.map(r => r.full_booth_code))
-    const useCount = _sum(prizeRows, 'out_diff_1')
-    const costSum = prizeRows.reduce((s, r) => s + (Number(r.out_diff_1) || 0) * (Number(r.prize_cost_1) || 0), 0)
+    const useCount = _sum(prizeRows, 'out_diff')
+    const costSum = prizeRows.reduce((s, r) => s + (Number(r.out_diff) || 0) * (Number(r.prize_cost) || 0), 0)
     const revSum = _sum(prizeRows.filter(r => r.entry_type !== 'carry_forward'), 'revenue')
     const dates = prizeRows.map(r => r.patrol_date).sort()
 
@@ -238,8 +238,8 @@ export async function exportRound0FullReport(filters) {
     .from('meter_readings')
     .select(`
       patrol_date, full_booth_code, store_code, machine_code, play_price,
-      in_diff, out_diff_1, out_diff_2,
-      prize_id, prize_name, prize_cost_1, prize_name_2, prize_cost_2,
+      in_diff, out_diff, out_diff_2,
+      prize_id, prize_name, prize_cost, prize_name_2, prize_cost_2,
       revenue, entry_type,
       stores!store_code(store_name),
       machines!machine_code(machine_name)
