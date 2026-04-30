@@ -2,7 +2,7 @@
 // usePatrolForm: 巡回入力フォーム状態管理
 // ============================================
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { getLastReadingV2, getMachineInfo, getBoothHistory, saveReadingV2 } from '../services/patrolV2'
+import { getLastReadingV2, getMachineInfo, saveReadingV2 } from '../services/patrolV2'
 import { getDateOptions } from '../utils/format'
 
 // aut) category + outCount → pattern
@@ -35,7 +35,6 @@ export function usePatrolForm(booth) {
   const [loading, setLoading] = useState(true)
   const [machineInfo, setMachineInfo] = useState(null)
   const [prev, setPrev] = useState(null)      // last reading from DB
-  const [hist, setHist] = useState([])
   const dateOpts = useMemo(() => getDateOptions(7), [])
   const [readDate, setReadDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 1)
@@ -52,13 +51,11 @@ export function usePatrolForm(booth) {
     Promise.all([
       getMachineInfo(booth.machine_code),
       getLastReadingV2(booth.booth_code),
-      getBoothHistory(booth.booth_code),
-    ]).then(([info, lastR, history]) => {
+    ]).then(([info, lastR]) => {
       const outCount = info?.outCount || 1
       const effectivePlayPrice = booth?.play_price || info?.playPrice || 100
       setMachineInfo({ ...info, playPrice: effectivePlayPrice })
       setPrev(lastR)
-      setHist(history)
 
       // 初期値セット
       const initP = makeInitialSection(outCount)
@@ -404,7 +401,7 @@ export function usePatrolForm(booth) {
   const pattern = machineInfo ? detectPattern(machineInfo.category, outCount) : 'A'
 
   return {
-    loading, machineInfo, prev, hist,
+    loading, machineInfo, prev,
     readDate, setReadDate,
     patrol, change,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,

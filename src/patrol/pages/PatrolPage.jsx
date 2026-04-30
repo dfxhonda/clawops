@@ -19,7 +19,6 @@ import PrizeRow        from '../components/PrizeRow'
 import SettingRow      from '../components/SettingRow'
 import OutGroupRow     from '../components/OutGroupRow'
 import LockerButton    from '../components/LockerButton'
-import MonthlySummary  from '../components/MonthlySummary'
 import LockerCheckPage from '../components/locker/LockerCheckPage'
 import LockerEditPage  from '../components/locker/LockerEditPage'
 import GachaOutCard      from '../components/GachaOutCard'
@@ -139,19 +138,7 @@ export default function PatrolPage() {
     form.setPrevOverride(prevRecord)
   }
 
-  // Hooks must be before any early returns
-  const { currRevenue, currRate } = useMemo(() => {
-    const hist = form.hist
-    if (!hist || hist.length === 0) return { currRevenue: null, currRate: null }
-    const totalIn = hist.reduce((s, r) => s + (r.in_diff ?? 0), 0)
-    const totalOut = hist.reduce((s, r) => s + (r.out_diff ?? 0), 0)
-    return {
-      currRevenue: hist.reduce((s, r) => s + (r.revenue ?? (r.in_diff ?? 0) * (r.play_price || 100)), 0),
-      currRate: totalIn > 0 ? (totalOut / totalIn * 100) : null,
-    }
-  }, [form.hist])
-
-  const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc, form.outCount])
+const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc, form.outCount])
 
   // guard
   if (!booth) {
@@ -171,7 +158,7 @@ export default function PatrolPage() {
     )
   }
 
-  const { pattern, outCount, prev, hist, readDate, setReadDate,
+  const { pattern, outCount, prev, readDate, setReadDate,
     patrol,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,
     resetPatrol,
@@ -525,11 +512,6 @@ export default function PatrolPage() {
           {/* 異常値アラート */}
           <AlertBar alerts={alerts} />
 
-          {/* 月次サマリー */}
-          <MonthlySummary
-            currRevenue={currRevenue}
-            currRate={currRate}
-            histRows={mode === 'new_patrol' ? hist : null} />
         </div>
 
         {/* 集金履歴テーブル（修正/入替モード） */}
