@@ -78,6 +78,8 @@ const StocktakeLogin = lazy(() => import('./stock/pages/StocktakeLogin'))
 const StocktakeTop = lazy(() => import('./stock/pages/StocktakeTop'))
 const StocktakeCount = lazy(() => import('./stock/pages/StocktakeCount'))
 const StocktakeSummary = lazy(() => import('./stock/pages/StocktakeSummary'))
+const StockDashboard = lazy(() => import('./stock/pages/StockDashboard'))
+const StockMove = lazy(() => import('./stock/pages/StockMove'))
 
 
 // ローディングスピナー（Suspense フォールバック）
@@ -180,6 +182,10 @@ function AppInner() {
       <Route path="/stock/top" element={<StocktakeTop />} />
       <Route path="/stock/count/:sessionId" element={<StocktakeCount />} />
       <Route path="/stock/summary/:sessionId" element={<StocktakeSummary />} />
+
+      {/* 在庫管理 — manager以上 */}
+      <Route path="/stock/dashboard" element={<ManagerRoute><StockDashboard /></ManagerRoute>} />
+      <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

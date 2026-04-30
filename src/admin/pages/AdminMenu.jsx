@@ -58,7 +58,7 @@ const SECTIONS = [
     items: [
       { icon: '🏆', title: '景品マスタ', desc: '景品の登録・検索・編集', href: DOCS_BASE + 'prizes.html' },
       { icon: '📋', title: '発注管理', desc: '発注履歴・入荷チェック', href: DOCS_BASE + 'orders.html' },
-      { icon: '📦', title: '在庫管理', desc: '在庫検索・移動記録', href: DOCS_BASE + 'inventory.html' },
+      { icon: '📦', title: '在庫管理', desc: '在庫検索・移動記録', path: '/stock/dashboard' },
       { icon: '📬', title: '景品案内', desc: '仕入先からの新商品案内', href: DOCS_BASE + 'announcements.html' },
       { icon: '🖼️', title: '画像マッチング', desc: '景品写真と景品マスタの手動紐付け', href: DOCS_BASE + 'image-match.html' },
       { icon: '⚙️', title: 'マスタ管理・ツール', desc: '店舗・機械・Excel出力', href: DOCS_BASE + 'admin.html' },
