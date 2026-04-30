@@ -456,13 +456,13 @@ export default function PatrolPage() {
   return (
     <>
     <div
-      style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#0a0a12', color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
+      style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0a0a12', color: '#e8e8f0', fontFamily: "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif", maxWidth: 640, margin: '0 auto' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
 
       {/* 上半分: 入力エリア (numpad展開中も常に見える) */}
-      <div style={{ flexShrink: 0, minHeight: '50vh', maxHeight: '50vh', overflowY: 'auto', padding: 10 }}>
+      <div style={{ flexShrink: 0, maxHeight: '60vh', overflowY: 'auto', padding: 10 }}>
 
         {/* ヘッダー */}
         <PatrolHeader
@@ -525,7 +525,7 @@ export default function PatrolPage() {
       </div>
 
       {/* 下半分: 集金履歴 (修正/入替) + 保存ボタン */}
-      <div style={{ flex: 1, minHeight: '50vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 10px 16px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 10px 16px' }}>
 
         {/* 集金履歴テーブル（修正/入替モード）— スクロール領域で保存ボタンを押し下げない */}
         {(mode === 'correction' || mode === 'replace') && (
