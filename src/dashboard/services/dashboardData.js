@@ -17,8 +17,13 @@ export async function fetchDashboardData() {
         reading_id, full_booth_code, store_code, machine_code,
         patrol_date, entry_type, in_diff, out_diff, out_diff_2,
         revenue, prize_id, prize_cost, created_at,
-        stores!store_code(store_code, store_name),
-        machines!machine_code(machine_code, machine_name)
+        booths!inner(
+          booth_code, machine_code, play_price,
+          machines!inner(
+            machine_code, machine_name, store_code,
+            stores!inner(store_code, store_name, is_active)
+          )
+        )
       `)
       .gte('patrol_date', monthStart)
       .lte('patrol_date', today)

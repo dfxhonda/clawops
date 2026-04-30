@@ -170,7 +170,7 @@ export default function DashboardTop() {
       const rev = sum(rows.filter(r => r.entry_type !== 'carry_forward'), 'revenue')
       storeRevenue.push({
         store_code: code,
-        store_name: rows[0].stores?.store_name ?? code,
+        store_name: rows[0].booths?.machines?.stores?.store_name ?? code,
         revenue: rev,
         booth_count: new Set(rows.map(r => r.full_booth_code)).size,
       })
@@ -181,7 +181,7 @@ export default function DashboardTop() {
     // ヒートマップ
     const heatmapData = buildHeatmapData(heatmapReadings)
     const machineNameMap = new Map(
-      monthReadings.map(r => [r.machine_code, r.machines?.machine_name || r.machine_code])
+      monthReadings.map(r => [r.machine_code, r.booths?.machines?.machine_name || r.machine_code])
     )
     const heatmapMachines = [...new Set(heatmapReadings.map(r => r.machine_code))]
       .sort()
