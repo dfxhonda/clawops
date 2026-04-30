@@ -305,26 +305,36 @@ export default function PatrolPage() {
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
               <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
-                <NumpadField
-                  value={p.inMeter}
-                  onChange={setPatrolIn}
-                  label="INメーター"
-                  max={999999}
-                  style={inp(p.inTouched)}
-                />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
+                  <NumpadField
+                    value={p.inMeter}
+                    onChange={setPatrolIn}
+                    label="INメーター"
+                    max={999999}
+                    style={inp(p.inTouched)}
+                  />
+                </div>
+                <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
+                  前回 {prev?.inMeter != null ? Number(prev.inMeter).toLocaleString() : '—'}
+                </div>
               </div>
               {pattern !== 'A0' && (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-                  <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
-                  <NumpadField
-                    value={o0.meter}
-                    onChange={v => setPatrolOut(0, 'meter', v)}
-                    label="OUTメーター"
-                    max={999999}
-                    style={inp(t0.meter)}
-                  />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
+                    <NumpadField
+                      value={o0.meter}
+                      onChange={v => setPatrolOut(0, 'meter', v)}
+                      label="OUTメーター"
+                      max={999999}
+                      style={inp(t0.meter)}
+                    />
+                  </div>
+                  <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
+                    前回 {prev?.outMeter != null ? Number(prev.outMeter).toLocaleString() : '—'}
+                  </div>
                 </div>
               )}
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -461,8 +471,8 @@ export default function PatrolPage() {
       onTouchEnd={handleTouchEnd}
     >
 
-      {/* 上半分: 入力エリア (numpad展開中も常に見える) */}
-      <div style={{ flexShrink: 0, maxHeight: '60vh', overflowY: 'auto', padding: 10 }}>
+      {/* スクロール可能なコンテンツエリア */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 0' }}>
 
         {/* ヘッダー */}
         <PatrolHeader
@@ -515,21 +525,16 @@ export default function PatrolPage() {
           {/* 異常値アラート */}
           <AlertBar alerts={alerts} />
 
-          {/* 月次サマリー: 修正/入替モードは BoothHistoryTable が上部に表示済みのため histRows は非表示 */}
+          {/* 月次サマリー */}
           <MonthlySummary
             currRevenue={currRevenue}
             currRate={currRate}
             histRows={mode === 'new_patrol' ? hist : null} />
         </div>
 
-      </div>
-
-      {/* 下半分: 集金履歴 (修正/入替) + 保存ボタン */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0 10px 16px' }}>
-
-        {/* 集金履歴テーブル（修正/入替モード）— スクロール領域で保存ボタンを押し下げない */}
+        {/* 集金履歴テーブル（修正/入替モード） */}
         {(mode === 'correction' || mode === 'replace') && (
-          <div style={{ flex: 1, overflowY: 'auto', marginBottom: 8 }}>
+          <div style={{ marginTop: 8 }}>
             <BoothHistoryTable
               boothId={booth?.booth_code}
               currentReadingId={existingRecord?.reading_id}
@@ -537,8 +542,10 @@ export default function PatrolPage() {
           </div>
         )}
 
-        {/* 保存ボタン — marginTop:auto でボトムに固定 */}
-        <div style={{ marginTop: 'auto' }}>
+      </div>
+
+      {/* 保存ボタン固定 */}
+      <div style={{ flexShrink: 0, padding: '8px 10px 16px' }}>
           {saveError && (
             <div style={{ margin: '0 0 8px', padding: '8px 12px', background: 'rgba(255,107,107,.12)', border: '1px solid #ff6b6b', borderRadius: 6, fontSize: 13, color: '#ff6b6b' }}>
               {saveError}
@@ -558,8 +565,6 @@ export default function PatrolPage() {
             </button>
           )}
         </div>
-
-      </div>
 
     </div>
 

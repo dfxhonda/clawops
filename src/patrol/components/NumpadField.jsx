@@ -4,7 +4,18 @@ import { createPortal } from 'react-dom'
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
 export default function NumpadField({ value, onChange, label, max = 99999, allowDecimal = false, alwaysOpen = false, onClose, style }) {
-  const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  function handleOpen() {
+    setMounted(true)
+    setTimeout(() => setVisible(true), 10)
+  }
+  function handleClose() {
+    setVisible(false)
+    setTimeout(() => setMounted(false), 210)
+    if (onClose) onClose()
+  }
 
   function handleKey(k) {
     if (k === '⌫') {
@@ -12,8 +23,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
       return
     }
     if (k === '→') {
-      setOpen(false)
-      if (onClose) onClose()
+      handleClose()
       return
     }
     if (k === '.' && !allowDecimal) return
@@ -50,7 +60,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
   return (
     <>
       <button
-        onPointerDown={e => { e.preventDefault(); setOpen(true) }}
+        onPointerDown={e => { e.preventDefault(); handleOpen() }}
         style={{
           cursor: 'pointer',
           border: '1px solid #2a2a44',
@@ -70,26 +80,33 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
         {value !== '' && value != null ? value : <span style={{ opacity: 0.35, fontWeight: 400 }}>—</span>}
       </button>
 
-      {open && createPortal(
+      {mounted && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}
-            onPointerDown={() => setOpen(false)}
+            style={{
+              position: 'absolute', inset: 0,
+              background: visible ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
+              transition: 'background 200ms ease-out',
+            }}
+            onPointerDown={handleClose}
           />
           <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: '50vh',
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            maxHeight: '45vh',
             background: '#13132a', borderRadius: '12px 12px 0 0',
             display: 'flex', flexDirection: 'column',
             boxShadow: '0 -4px 24px rgba(0,0,0,0.7)',
+            transform: visible ? 'translateY(0)' : 'translateY(100%)',
+            transition: 'transform 200ms ease-out',
           }}>
             <div style={{
-              padding: '10px 16px', borderBottom: '1px solid #2a2a44',
+              height: 36, padding: '0 16px', borderBottom: '1px solid #2a2a44',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               flexShrink: 0,
             }}>
-              <span style={{ fontSize: 12, color: '#8888a8' }}>{label || ''}</span>
+              <span style={{ fontSize: 13, color: '#8888a8' }}>{label || ''}</span>
               <span style={{
-                fontSize: 24, fontFamily: "'Courier New', monospace",
+                fontSize: 22, fontFamily: "'Courier New', monospace",
                 fontWeight: 'bold', color: '#e8e8f0',
               }}>
                 {value !== '' && value != null ? value : '—'}
@@ -100,8 +117,8 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
-              gap: 4,
-              padding: 8,
+              gap: 2,
+              padding: 6,
             }}>
               {KEYS.map(k => (
                 <button
@@ -109,9 +126,9 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
                   onPointerDown={e => { e.preventDefault(); handleKey(k) }}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 8, fontSize: 20, fontWeight: 'bold',
+                    height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
                     border: 'none', cursor: 'pointer', touchAction: 'none',
-                    background: k === '→' ? '#22c55e' : k === '⌫' ? '#4b5563' : '#1e293b',
+                    background: k === '→' ? '#059669' : k === '⌫' ? '#4b5563' : '#1e293b',
                     color: '#f1f5f9',
                     WebkitTapHighlightColor: 'transparent',
                   }}
