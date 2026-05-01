@@ -167,3 +167,19 @@ archive/          旧データ（.gitignore 済み）
 - machine_code: M01 形式
 - booth_code: B01 形式
 - full_booth_code: KIK01-M01-B01 形式
+
+## Sentry有効化 (ヒロさん作業)
+1. https://sentry.io でアカウント作成、Platform=React で新規プロジェクト作成
+   - 組織onboarding(Welcome画面→組織名)を完了させること
+2. DSN取得
+   - 新規作成直後の **Configure React SDK** 画面のコード内 `dsn:` の値
+   - または **Settings > Projects > [プロジェクト名] > SDK Setup > Client Keys (DSN)**
+3. Vercel (dfxhonda) → clawops → **Settings → Environment Variables**
+   - Key: `VITE_SENTRY_DSN`
+   - Value: 上記DSN
+   - Environments: Production + Preview (Development不要)
+   - Sensitive: チェック推奨
+4. Vercel **Deployments → 最新Production の三点 → Redeploy** で環境変数反映
+5. メール通知はデフォルトで有効 (登録メールに自動配信、追加設定不要)
+
+> ntfy速報化は別タスク (#1.5): Sentry Webhook → ntfy変換の Vercel Function は後で実装
