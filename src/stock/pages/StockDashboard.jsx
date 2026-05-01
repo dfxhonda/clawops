@@ -75,7 +75,7 @@ export default function StockDashboard() {
           移動
         </button>
         <button
-          onClick={() => navigate('/stock')}
+          onClick={() => navigate('/stock/count')}
           className="h-8 px-3 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2"
         >
           棚卸し
