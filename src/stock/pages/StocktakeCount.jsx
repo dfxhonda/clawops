@@ -250,6 +250,11 @@ export default function StocktakeCount() {
     navigate(`/stock/summary/${sessionId}`)
   }
 
+  function handleSuspend() {
+    // in_progress のまま保存してトップへ（セッションはそのまま残る）
+    navigate('/stock/top')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg text-muted text-sm">
@@ -272,6 +277,12 @@ export default function StocktakeCount() {
                 : session?.location_owner_id}
             </div>
           </div>
+          <button
+            onClick={handleSuspend}
+            className="px-3 py-1.5 rounded-xl bg-surface border border-border text-xs font-bold text-muted active:scale-[0.98] transition-all"
+          >
+            中断
+          </button>
           <button
             onClick={handleFinish}
             disabled={finishing}

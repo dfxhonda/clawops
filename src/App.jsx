@@ -180,6 +180,7 @@ function AppInner() {
       {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
       <Route path="/stock" element={<StocktakeLogin />} />
       <Route path="/stock/top" element={<StocktakeTop />} />
+      <Route path="/stock/count" element={<Navigate to="/stock" replace />} />
       <Route path="/stock/count/:sessionId" element={<StocktakeCount />} />
       <Route path="/stock/summary/:sessionId" element={<StocktakeSummary />} />
 
