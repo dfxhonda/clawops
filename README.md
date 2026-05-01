@@ -183,3 +183,26 @@ archive/          旧データ（.gitignore 済み）
 5. メール通知はデフォルトで有効 (登録メールに自動配信、追加設定不要)
 
 > ntfy速報化は別タスク (#1.5): Sentry Webhook → ntfy変換の Vercel Function は後で実装
+
+## 緊急ロールバック手順
+本番で不具合見つかった時、以下3ステップで前の状態に戻す:
+
+1. https://vercel.com/dfxhonda/clawops/deployments を開く
+2. 現在 Production タグが付いてるデプロイのひとつ上 (= 一つ前の Production)
+   の右端三点メニュー → **Promote to Production**
+3. ダイアログで **Promote** をクリック
+
+数秒で現場 (round-0.com / clawops-tau.vercel.app) に反映。
+リビルド不要、トラフィック切り替えのみ。
+
+ロールバック後にやること:
+- ヒロさんがチャットClaudeに「ロールバックした」と伝える
+- チャットClaudeがコミットの何が原因か調査、修正は dev で進める
+
+## Sentry environment タグを production/preview で分けるには (任意)
+Vercel → clawops → Settings → Environment Variables に以下を追加:
+- Key: `VITE_VERCEL_ENV`
+- Value: `$VERCEL_ENV`
+- Environments: Production + Preview + Development すべてチェック
+
+追加後 Redeploy すると Sentry の Issues に `production` / `preview` タグが付く。

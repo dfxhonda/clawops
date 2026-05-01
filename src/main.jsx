@@ -7,7 +7,7 @@ import './index.css'
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
-  environment: import.meta.env.MODE,
+  environment: import.meta.env.VITE_VERCEL_ENV || import.meta.env.MODE,
   enabled: !!import.meta.env.VITE_SENTRY_DSN,
   tracesSampleRate: 0.1,
   replaysSessionSampleRate: 0,

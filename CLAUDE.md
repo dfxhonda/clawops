@@ -130,3 +130,43 @@ curl -d "作業が完了しました" ntfy.sh/clawops-hiro-0328
 - release / changelog 運用あり
 
 「テストなし」「バックエンドなし」「Sheets 直操作中心」として扱わないこと。
+
+## ブランチ運用ルール (2026-05 以降)
+
+### 原則
+- **main** = 本番、ど安定ver保証ライン
+- **dev** = 作業ブランチ、Claude Code はここに push
+
+### どちらにpushするかの判断
+**dev にする**: 以下のいずれかに関わる変更
+- in/out メーター記録
+- 設定値記録
+- 景品在庫記録
+- 補充数記録
+- 集金根拠 (誰がいつ何を入/出/集金)
+- 上記に間接的に効くテーブルスキーマ / RLS / 認証処理
+- 新規画面/大規模リファクタ
+
+**main 直 OK**: 以下のみ
+- タイポ修正
+- README/CLAUDE.md/コメント修正
+- ど安定ver5点に一切関わらない表示調整 (例: ヘルプ画面、設定メニュー)
+- Sentry/ログ関連の調整
+
+### 迷ったら dev
+「これ main 直でもいいかな」と思った時点で dev にする。コストは Preview URL が一つ出るだけ、デメリットはゼロ。
+
+### dev → main マージ手順
+```
+git checkout main && git pull
+git merge dev
+git push
+```
+(リベース/squash不要、ちゃんと動いてる dev の状態をそのまま main に込む)
+
+### Preview URL
+- main: https://round-0.com ・ https://clawops-tau.vercel.app
+- dev: Vercelが pushごとに生成、Vercelダッシュボード → clawops → Deployments タブで確認
+
+### ロールバック
+コードや git操作不要。Vercel ダッシュボード → Deployments → 前のデプロイの三点メニュー → Promote to Production で1クリック。
