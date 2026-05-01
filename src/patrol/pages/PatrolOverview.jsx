@@ -4,6 +4,7 @@ import { getAllStores } from '../../services/masters'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
 import { logout } from '../../lib/auth/session'
 import { exportPatrolDetailSheet, exportRound0FullReport } from '../../services/excelExport'
+import FullshotCamera from '../components/FullshotCamera'
 
 function isGacha(machine) {
   return (
@@ -152,6 +153,12 @@ export default function PatrolOverview() {
           📸 OCR
         </button>
         */}
+        {(import.meta.env.VITE_OCR_MODE ?? 'fullshot') === 'fullshot' && (
+          <FullshotCamera
+            currentStoreCode={selStore}
+            onComplete={({ machineCode }) => { load(); console.log('[FullshotCamera] saved:', machineCode) }}
+          />
+        )}
         <button
           onClick={() => navigate('/dashboard')}
           className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors"
