@@ -60,9 +60,9 @@ export function usePatrolForm(booth) {
       // 初期値セット
       const initP = makeInitialSection(outCount)
       initP.readDate = readDate
-      initP.inMeter = ''
+      initP.inMeter = lastR?.inMeter != null ? String(lastR.inMeter) : ''
 
-      // OUT初期値: 前回値は PrevRow でラベル表示のみ、入力欄は空で初期化
+      // OUT初期値: 前回OUT値（グレー表示、未タッチ）
       const prevOuts = [
         { meter: lastR?.outMeter, prize: lastR?.prizeName, prizeId: lastR?.prizeId, cost: lastR?.prizeCost1, zan: null, ho: null },
         { meter: lastR?.outMeter2, prize: lastR?.prizeName2, prizeId: null, cost: lastR?.prizeCost2, zan: null, ho: null },
@@ -74,8 +74,8 @@ export function usePatrolForm(booth) {
         const prevHo  = i === 0 ? lastR?.restock1 : i === 1 ? lastR?.restock2 : lastR?.restock3
         return {
           ...o,
-          meter: '',
-          zan: prevZan != null ? String((prevZan || 0) + (prevHo || 0)) : '',
+          meter: p?.meter != null ? String(p.meter) : '',
+          zan: prevZan != null ? String((prevZan || 0) + (prevHo || 0)) : '', // 理論残=前回残+前回補
           prize: p?.prize || '',
           prize_id: p?.prizeId || '',
           cost: p?.cost != null ? String(p.cost) : '',
