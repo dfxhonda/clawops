@@ -62,6 +62,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   const [activeField, setActiveField] = useState('in') // 'in' | 'out' | 'out2'
   const [elapsed, setElapsed] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
+  const [capturedImage, setCapturedImage] = useState(null) // 撮影直後の停止画像 (dataURL)。再撮影でクリア
   const timerRef = useRef(null)
   const mountedRef = useRef(true)
 
@@ -138,7 +139,10 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     canvas.height = video.videoHeight || 720
     canvas.getContext('2d').drawImage(video, 0, 0)
     preprocessForOCR(canvas)
-    const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    // 停止画像として保持(MeterOcr 旧版の previewUrl 相当)。シャッター押した感を出す
+    setCapturedImage(dataUrl)
+    const b64 = dataUrl.split(',')[1]
     canvas.width = 0; canvas.height = 0
     sendOcr(b64)
   }
@@ -153,10 +157,20 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     canvas.width = img.width; canvas.height = img.height
     canvas.getContext('2d').drawImage(img, 0, 0)
     preprocessForOCR(canvas)
-    const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    setCapturedImage(dataUrl)
+    const b64 = dataUrl.split(',')[1]
     canvas.width = 0; canvas.height = 0
     URL.revokeObjectURL(img.src)
     sendOcr(b64)
+  }
+
+  function retake() {
+    setCapturedImage(null)
+    setOcrStatus('idle')
+    setErrorMsg('')
+    setInValue(''); setOutValue(''); setOut2Value('')
+    setActiveField('in')
   }
 
   function getActiveValue() {
@@ -184,9 +198,15 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col" style={{ touchAction: 'none' }}>
 
-      {/* 上1/3: ライブカメラ */}
+      {/* 上1/3: ライブカメラ または 撮影後停止画像 */}
       <div className="relative flex-shrink-0" style={{ height: '33.33vh' }}>
-        {errorMsg && !videoRef.current?.srcObject ? (
+        {capturedImage ? (
+          /* 停止画像(撮影直後): 「シャッター押した感」を出す + 再撮影できるように */
+          <img src={capturedImage} alt="撮影画像"
+            className="w-full h-full object-cover"
+            style={{ filter: 'grayscale(80%) contrast(130%)' }}
+          />
+        ) : errorMsg && !videoRef.current?.srcObject ? (
           <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">{errorMsg}</div>
         ) : (
           <video ref={videoRef} autoPlay playsInline muted
@@ -202,18 +222,28 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
           ✕
         </button>
 
-        {/* シャッターボタン */}
-        {ocrStatus !== 'loading' && (
+        {/* シャッターボタン (停止画像なし時のみ) */}
+        {!capturedImage && ocrStatus !== 'loading' && (
           <button onClick={shutter}
             className="absolute bottom-3 left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-slate-700 rounded-full active:scale-90 transition-transform"
           />
         )}
 
-        {/* ギャラリーボタン */}
+        {/* 再撮影ボタン (停止画像あり時) */}
+        {capturedImage && ocrStatus !== 'loading' && (
+          <button onClick={retake}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 h-10 bg-slate-700/90 text-white rounded-full text-sm font-bold border-2 border-white/30 active:scale-95 transition-transform">
+            ↻ 再撮影
+          </button>
+        )}
+
+        {/* ギャラリーボタン (停止画像なし時のみ) */}
+        {!capturedImage && (
         <label className="absolute bottom-3 right-3 w-10 h-10 bg-black/60 text-white rounded-lg flex items-center justify-center cursor-pointer text-lg">
           🖼️
           <input type="file" accept="image/*" onChange={handleGalleryPick} className="hidden" />
         </label>
+        )}
 
         {/* OCR処理中スピナー */}
         {ocrStatus === 'loading' && (
