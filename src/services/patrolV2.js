@@ -153,8 +153,10 @@ export async function updateLockerSlot(slotId, { prizeName, prizeValue, status, 
 }
 
 // メーター読み値保存 V2
-export async function saveReadingV2({ boothCode, patrol, change, outCount, staffId, entryType = 'patrol' }) {
+export async function saveReadingV2({ boothCode, patrol, change, outCount, staffId, entryType = 'patrol', photoUrl = null, croppedPhotoUrl = null }) {
   const patrolPayload = _buildPayload(boothCode, entryType, patrol, outCount, staffId)
+  if (photoUrl) patrolPayload.photo_url = photoUrl
+  if (croppedPhotoUrl) patrolPayload.cropped_photo_url = croppedPhotoUrl
   const { error: e1 } = await supabase.from('meter_readings').insert(patrolPayload)
   if (e1) throw new Error('巡回保存エラー: ' + e1.message)
 

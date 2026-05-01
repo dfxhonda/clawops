@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { detectAlerts } from '../../utils/patrolAlerts'
@@ -10,6 +10,9 @@ import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
 
 import OcrCaptureScreen from '../components/OcrCaptureScreen'
+import NativeCamera from '../components/NativeCamera'
+
+const USE_NEW_CAMERA = import.meta.env.VITE_USE_NEW_CAMERA !== 'false'
 import PatrolHeader    from '../components/PatrolHeader'
 import PrevRow         from '../components/PrevRow'
 import MeterInputRow   from '../components/MeterInputRow'
@@ -59,6 +62,12 @@ export default function PatrolPage() {
   })
   const [lockerView, setLockerView] = useState(null) // null | 'check' | 'edit'
   const [showOcr, setShowOcr] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
+  const nativeCamRef = useRef(null)
+  const onCamera = useCallback(() => {
+    if (USE_NEW_CAMERA) { nativeCamRef.current?.trigger() } else { setShowOcr(true) }
+  }, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -200,11 +209,19 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     )
   }
 
-  function handleOcrApply({ inMeter, outMeter, outMeter2 }) {
+  function handleOcrApply({ inMeter, outMeter, outMeter2, photoUrl: pUrl, croppedPhotoUrl: cUrl } = {}) {
     if (inMeter) setPatrolIn(inMeter)
     if (outMeter) setPatrolOut(0, 'meter', outMeter)
     if (outMeter2) setPatrolOut(1, 'meter', outMeter2)
+    if (pUrl) setPhotoUrl(pUrl)
+    if (cUrl) setCroppedPhotoUrl(cUrl)
     setShowOcr(false)
+  }
+
+  function handleNativeCameraResult({ extractedNumber, photoUrl: pUrl, croppedPhotoUrl: cUrl }) {
+    if (extractedNumber !== null && extractedNumber !== undefined) setPatrolIn(String(extractedNumber))
+    if (pUrl) setPhotoUrl(pUrl)
+    if (cUrl) setCroppedPhotoUrl(cUrl)
   }
 
   async function handleSave() {
@@ -229,7 +246,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         })
       } else {
         // new_patrol
-        const result = await save(staffId)
+        const result = await save(staffId, { photoUrl, croppedPhotoUrl })
         if (!result.ok) {
           setSaveError(result.message)
           setSaving(false)
@@ -263,7 +280,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
                 inDiff={c?.inDiff} showDiff={true}
-                onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+                onChange={setPatrolIn} onCamera={onCamera} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
@@ -291,7 +308,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           <>
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
-              <button onClick={() => setShowOcr(true)} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              <button onClick={onCamera} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
@@ -377,7 +394,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={calc?.inDiff} showDiff={true}
-              onChange={setPatrolIn} onCamera={() => setShowOcr(true)} />
+              onChange={setPatrolIn} onCamera={onCamera} />
 
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
@@ -419,7 +436,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             setPatrolIn={setPatrolIn}
             setPatrolOut={setPatrolOut}
             setPatrolZan={setPatrolZan}
-            onCamera={() => setShowOcr(true)}
+            onCamera={onCamera}
             resetPatrolInMeter={resetPatrolInMeter}
             resetPatrolOutMeter={resetPatrolOutMeter}
           />
@@ -550,7 +567,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
 
     </div>
 
-    {showOcr && (
+    {showOcr && !USE_NEW_CAMERA && (
       <OcrCaptureScreen
         boothCode={booth.booth_code}
         machineInfo={machineInfo}
@@ -559,6 +576,13 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         mode={outCount >= 2 ? 'three' : 'single'}
         onConfirm={handleOcrApply}
         onCancel={() => setShowOcr(false)}
+      />
+    )}
+    {USE_NEW_CAMERA && (
+      <NativeCamera
+        ref={nativeCamRef}
+        onOcrResult={handleNativeCameraResult}
+        storagePrefix={`meter-captures/${booth?.store_code || 'unknown'}/${booth?.booth_code || 'unknown'}/${new Date().toISOString().slice(0, 10)}`}
       />
     )}
 

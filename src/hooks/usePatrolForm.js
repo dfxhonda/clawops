@@ -359,7 +359,7 @@ export function usePatrolForm(booth) {
   }, [machineInfo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 保存 ────────────────────────────────────────
-  const save = useCallback(async (staffId) => {
+  const save = useCallback(async (staffId, extraData = {}) => {
     if (!patrol || !booth) return { ok: false, message: 'データがありません' }
     if (!patrol.inMeter && calc?.prevIn == null) return { ok: false, message: 'INメーターを入力してください' }
 
@@ -390,6 +390,8 @@ export function usePatrolForm(booth) {
         outCount: machineInfo?.outCount || 1,
         staffId,
         entryType,
+        photoUrl: extraData.photoUrl || null,
+        croppedPhotoUrl: extraData.croppedPhotoUrl || null,
       })
       return { ok: true }
     } catch (e) {
