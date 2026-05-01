@@ -737,8 +737,12 @@ function PrizeCard({ label, labelColor, borderColor, prizeName, cost, zan, ho, o
       <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', lineHeight: 1.3, marginBottom: 8, minHeight: 20 }}>
         {prizeName || '（未設定）'}
       </div>
-      {/* 単価・残・補 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {/* 単価・残・補 — 親カードの onTapCard(景品変更モーダル) に伝播させない */}
+      <div
+        onClick={e => e.stopPropagation()}
+        onPointerDown={e => e.stopPropagation()}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}
+      >
         <span style={{ fontSize: 10, color: '#475569' }}>@¥</span>
         <NumpadField
           value={cost}
