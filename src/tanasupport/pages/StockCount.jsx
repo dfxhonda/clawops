@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import NumpadField from '../../patrol/components/NumpadField'
+import NumpadField from '../../clawsupport/components/NumpadField'
 
 const TABS = [
   { key: 'warehouse', label: '倉庫' },

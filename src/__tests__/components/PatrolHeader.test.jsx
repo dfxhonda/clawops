@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import PatrolHeader from '../../patrol/components/PatrolHeader'
+import PatrolHeader from '../../clawsupport/components/PatrolHeader'
 
 describe('PatrolHeader', () => {
   it('date input が DOM に存在する', () => {

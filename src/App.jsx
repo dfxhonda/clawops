@@ -27,60 +27,60 @@ import { buildLabel } from './lib/buildInfo'
 import Login from './pages/Login'
 
 // 遅延ロード — メインタブ
-const MainInput = lazy(() => import('./patrol/pages/MainInput'))
-const Dashboard = lazy(() => import('./admin/pages/Dashboard'))
+const MainInput = lazy(() => import('./clawsupport/pages/MainInput'))
+const Dashboard = lazy(() => import('./manesupport/pages/Dashboard'))
 const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
-const AdminMenu = lazy(() => import('./admin/pages/AdminMenu'))
-const AdminTop = lazy(() => import('./admin/pages/AdminTop'))
+const AdminMenu = lazy(() => import('./manesupport/pages/AdminMenu'))
+const AdminTop = lazy(() => import('./manesupport/pages/AdminTop'))
 
 // 遅延ロード — 巡回入力
-const BoothInput = lazy(() => import('./patrol/pages/BoothInput'))
-const DraftList = lazy(() => import('./patrol/pages/DraftList'))
-const Complete = lazy(() => import('./patrol/pages/Complete'))
-const RankingView = lazy(() => import('./patrol/pages/RankingView'))
-const MachineList = lazy(() => import('./patrol/pages/MachineList'))
+const BoothInput = lazy(() => import('./clawsupport/pages/BoothInput'))
+const DraftList = lazy(() => import('./clawsupport/pages/DraftList'))
+const Complete = lazy(() => import('./clawsupport/pages/Complete'))
+const RankingView = lazy(() => import('./clawsupport/pages/RankingView'))
+const MachineList = lazy(() => import('./clawsupport/pages/MachineList'))
 
 // 遅延ロード — マスタ追加
-const BoothQrPrint = lazy(() => import('./admin/pages/BoothQrPrint'))
-const AdminModelList = lazy(() => import('./admin/pages/ModelList'))
-const AdminMachineList = lazy(() => import('./admin/pages/MachineList'))
-const AdminBoothList = lazy(() => import('./admin/pages/BoothList'))
-const ManualEditor = lazy(() => import('./admin/pages/ManualEditor'))
-const ManualView = lazy(() => import('./admin/pages/ManualView'))
+const BoothQrPrint = lazy(() => import('./manesupport/pages/BoothQrPrint'))
+const AdminModelList = lazy(() => import('./manesupport/pages/ModelList'))
+const AdminMachineList = lazy(() => import('./manesupport/pages/MachineList'))
+const AdminBoothList = lazy(() => import('./manesupport/pages/BoothList'))
+const ManualEditor = lazy(() => import('./manesupport/pages/ManualEditor'))
+const ManualView = lazy(() => import('./manesupport/pages/ManualView'))
 
 // 遅延ロード — 管理系
-const EditReading = lazy(() => import('./admin/pages/EditReading'))
-const DataSearch = lazy(() => import('./admin/pages/DataSearch'))
-const PatrolScan = lazy(() => import('./patrol/pages/PatrolScan'))
-const PatrolInput = lazy(() => import('./patrol/pages/PatrolInput'))
-const PatrolPage  = lazy(() => import('./patrol/pages/PatrolPage'))
-const PatrolOverview = lazy(() => import('./patrol/pages/PatrolOverview'))
-const LockerList = lazy(() => import('./admin/pages/LockerList'))
-const ImportSlips = lazy(() => import('./admin/pages/ImportSlips'))
-const SetupSheets = lazy(() => import('./admin/pages/SetupSheets'))
-const TestDataImport = lazy(() => import('./admin/pages/TestDataImport'))
-const AuditLog = lazy(() => import('./admin/pages/AuditLog'))
-const AuditSummary = lazy(() => import('./admin/pages/AuditSummary'))
-const DailyStatsAdmin = lazy(() => import('./admin/pages/DailyStatsAdmin'))
+const EditReading = lazy(() => import('./manesupport/pages/EditReading'))
+const DataSearch = lazy(() => import('./manesupport/pages/DataSearch'))
+const PatrolScan = lazy(() => import('./clawsupport/pages/PatrolScan'))
+const PatrolInput = lazy(() => import('./clawsupport/pages/PatrolInput'))
+const PatrolPage  = lazy(() => import('./clawsupport/pages/PatrolPage'))
+const PatrolOverview = lazy(() => import('./clawsupport/pages/PatrolOverview'))
+const LockerList = lazy(() => import('./manesupport/pages/LockerList'))
+const ImportSlips = lazy(() => import('./manesupport/pages/ImportSlips'))
+const SetupSheets = lazy(() => import('./manesupport/pages/SetupSheets'))
+const TestDataImport = lazy(() => import('./manesupport/pages/TestDataImport'))
+const AuditLog = lazy(() => import('./manesupport/pages/AuditLog'))
+const AuditSummary = lazy(() => import('./manesupport/pages/AuditSummary'))
+const DailyStatsAdmin = lazy(() => import('./manesupport/pages/DailyStatsAdmin'))
 
 // 遅延ロード — 用語マスタ管理
-const AdminGlossary = lazy(() => import('./admin/pages/AdminGlossary'))
+const AdminGlossary = lazy(() => import('./manesupport/pages/AdminGlossary'))
 
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 
 // 遅延ロード — OCRアプリ
-const PatrolCameraPage  = lazy(() => import('./patrol/pages/PatrolCameraPage'))
-const PatrolBatchOcrPage = lazy(() => import('./patrol/pages/PatrolBatchOcrPage'))
+const PatrolCameraPage  = lazy(() => import('./clawsupport/pages/PatrolCameraPage'))
+const PatrolBatchOcrPage = lazy(() => import('./clawsupport/pages/PatrolBatchOcrPage'))
 
 // 遅延ロード — 棚卸しアプリ（PIN認証）
-const StocktakeLogin = lazy(() => import('./stock/pages/StocktakeLogin'))
-const StocktakeTop = lazy(() => import('./stock/pages/StocktakeTop'))
-const StocktakeCount = lazy(() => import('./stock/pages/StocktakeCount'))
-const StocktakeSummary = lazy(() => import('./stock/pages/StocktakeSummary'))
-const StockDashboard = lazy(() => import('./stock/pages/StockDashboard'))
-const StockMove = lazy(() => import('./stock/pages/StockMove'))
-const StockCount = lazy(() => import('./stock/pages/StockCount'))
+const StocktakeLogin = lazy(() => import('./tanasupport/pages/StocktakeLogin'))
+const StocktakeTop = lazy(() => import('./tanasupport/pages/StocktakeTop'))
+const StocktakeCount = lazy(() => import('./tanasupport/pages/StocktakeCount'))
+const StocktakeSummary = lazy(() => import('./tanasupport/pages/StocktakeSummary'))
+const StockDashboard = lazy(() => import('./tanasupport/pages/StockDashboard'))
+const StockMove = lazy(() => import('./tanasupport/pages/StockMove'))
+const StockCount = lazy(() => import('./tanasupport/pages/StockCount'))
 
 
 // ローディングスピナー（Suspense フォールバック）
