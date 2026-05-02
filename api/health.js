@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     );
     const { error } = await supabase
       .from('stores')
-      .select('id')
+      .select('store_id')
       .limit(1);
     if (error) throw error;
     checks.db = true;
