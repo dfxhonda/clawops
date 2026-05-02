@@ -20,7 +20,7 @@ vi.mock('../../services/stats', () => ({
 
 import { useAuth } from '../../hooks/useAuth'
 import { triggerDailyStatsCompute } from '../../services/stats'
-import DailyStatsAdmin from '../../admin/pages/DailyStatsAdmin'
+import DailyStatsAdmin from '../../manesupport/pages/DailyStatsAdmin'
 
 function renderPage() {
   return render(

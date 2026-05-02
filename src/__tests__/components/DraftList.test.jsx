@@ -14,7 +14,7 @@ vi.mock('../../services/readings', () => ({
 }))
 
 import { saveReading } from '../../services/readings'
-import DraftList from '../../patrol/pages/DraftList'
+import DraftList from '../../clawsupport/pages/DraftList'
 
 function renderDraftList(locationState = {}, sessionDrafts = []) {
   sessionStorage.setItem('clawops_drafts', JSON.stringify(sessionDrafts))

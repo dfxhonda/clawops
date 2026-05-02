@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import PrizeSearchModal from '../../patrol/components/PrizeSearchModal'
+import PrizeSearchModal from '../../clawsupport/components/PrizeSearchModal'
 
 const PRIZES = [
   { prize_id: 'P001', prize_name: 'ピカチュウぬいぐるみ', image_url: 'sgp/P001.jpg' },
