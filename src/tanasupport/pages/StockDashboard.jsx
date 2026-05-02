@@ -60,7 +60,7 @@ export default function StockDashboard() {
     <div className="h-dvh flex flex-col bg-bg text-text">
 
       {/* ヘッダー */}
-      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <button onClick={() => navigate(-1)} className="text-muted text-xl leading-none">‹</button>
         <div className="flex-1 font-bold text-base">在庫管理</div>
         {alertCount > 0 && (

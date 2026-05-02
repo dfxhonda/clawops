@@ -13,7 +13,7 @@ export default function AdminTop() {
   const navigate = useNavigate()
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
         <div className="flex-1 text-base font-bold">管理メニュー</div>
         <LogoutButton to="/admin/menu" />

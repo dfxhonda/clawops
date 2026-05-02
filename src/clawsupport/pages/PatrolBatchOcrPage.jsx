@@ -176,7 +176,7 @@ export default function PatrolBatchOcrPage() {
   return (
     <div className="min-h-screen flex flex-col bg-bg text-text">
       {/* ヘッダー */}
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <button
           onClick={() => phase === 'review' ? setPhase('pick') : navigate('/patrol/camera')}
           className="text-xl text-muted"

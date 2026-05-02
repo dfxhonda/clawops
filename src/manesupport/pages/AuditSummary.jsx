@@ -108,7 +108,7 @@ export default function AuditSummary() {
   return (
     <div className="h-full flex flex-col max-w-lg md:max-w-3xl mx-auto">
       {/* Header */}
-      <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
         <h1 className="flex-1 text-xl font-bold text-accent">監査サマリ</h1>
         <LogoutButton to="/admin/menu" />

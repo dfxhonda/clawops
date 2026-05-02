@@ -81,7 +81,7 @@ export default function ManualView() {
   return (
     <div className="h-dvh flex flex-col bg-surface text-text max-w-lg md:max-w-3xl mx-auto">
       {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3 border-b border-border">
+      <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3 border-b border-border" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button
           onClick={() => navigate(-1)}
           className="text-2xl text-muted hover:text-accent transition-colors leading-none"

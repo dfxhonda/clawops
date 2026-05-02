@@ -267,7 +267,7 @@ export default function StocktakeCount() {
     <div className="min-h-screen flex flex-col bg-bg text-text">
 
       {/* ヘッダー */}
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <div className="flex items-center gap-3 mb-2">
           <button onClick={() => navigate('/stock/top')} className="text-xl text-muted">←</button>
           <div className="flex-1">

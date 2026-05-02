@@ -154,7 +154,7 @@ export default function AdminGlossary() {
   return (
     <div className="h-full flex flex-col bg-bg text-foreground">
       {/* ヘッダー */}
-      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button onClick={() => navigate('/admin/menu')}
           className="text-muted hover:text-foreground text-lg leading-none px-1">‹</button>
         <div className="text-base font-bold flex-1">用語マスタ管理</div>

@@ -31,7 +31,7 @@ export const LAUNCHER_TILES = [
     label: 'タナサポ',
     emoji: '📦',
     desc: '入荷チェック・棚卸し・発注',
-    path: '/stock/dashboard',
+    path: '/tanasupport',
     requiredModules: ['arrivals'],
   },
   {

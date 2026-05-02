@@ -94,7 +94,7 @@ export default function AdminMenu() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center justify-between" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <div className="text-base font-bold">メニュー</div>
         <LogoutButton />
       </div>

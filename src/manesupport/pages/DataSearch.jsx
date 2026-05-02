@@ -177,7 +177,7 @@ export default function DataSearch() {
   return (
     <div className="h-full max-w-lg md:max-w-4xl mx-auto flex flex-col">
       {/* 固定ヘッダー+検索セクション */}
-      <div className="shrink-0 px-4 pt-4">
+      <div className="shrink-0 px-4 pt-4" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => navigate('/admin/menu')} className="bg-surface2 border border-border text-text rounded-lg px-3 py-1.5 text-base">←</button>
           <div className="flex-1 min-w-0">
