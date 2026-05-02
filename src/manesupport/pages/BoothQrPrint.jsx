@@ -112,7 +112,7 @@ export default function BoothQrPrint() {
     <div className="h-full flex flex-col print:block">
 
       {/* ヘッダー（印刷時非表示） */}
-      <div className="print:hidden shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3">
+      <div className="print:hidden shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
         <div className="flex-1">
           <h2 className="text-base font-bold">QRコード印刷</h2>

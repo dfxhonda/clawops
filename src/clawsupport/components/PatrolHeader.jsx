@@ -2,7 +2,7 @@
 export default function PatrolHeader({ readDate, onDateChange, machineName, boothLabel, badge, playPrice, onBack, dateLocked = false }) {
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', marginBottom: 8 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', marginBottom: 8, borderLeft: '4px solid #ec4899' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {onBack && (
           <button onClick={onBack} style={{ fontSize: 22, color: '#8888a8', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>←</button>

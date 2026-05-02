@@ -61,7 +61,7 @@ export default function Complete() {
       <style>{`@media print { .no-print { display: none !important; } body { background: white; color: black; } }`}</style>
       <div className="min-h-screen pb-8">
         {/* ヘッダー */}
-        <div className="no-print sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5" />
+        <div className="no-print sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }} />
 
         <div className="px-4 pt-6 text-center mb-6">
           <div className="text-5xl mb-3">✅</div>

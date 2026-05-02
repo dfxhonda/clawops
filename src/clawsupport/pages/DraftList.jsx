@@ -78,7 +78,7 @@ export default function DraftList() {
   return (
     <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
-      <div className="shrink-0 px-4 pt-6">
+      <div className="shrink-0 px-4 pt-6" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <div className="flex items-center gap-3 mb-5">
           <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
           <div className="flex-1">

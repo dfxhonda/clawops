@@ -78,7 +78,7 @@ export default function EditReading() {
   )
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-10" style={{ borderLeft: '4px solid #3b82f6' }}>
       <div className="flex items-center gap-3 mb-5">
         <button onClick={() => navigate(-1)} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
         <div className="flex-1">

@@ -146,7 +146,7 @@ export default function StocktakeSummary() {
     <div className="min-h-screen flex flex-col bg-bg text-text">
 
       {/* ヘッダー */}
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <button onClick={() => navigate('/stock/top')} className="text-xl text-muted">←</button>
         <div className="flex-1 text-sm font-bold">棚卸し結果</div>
       </div>

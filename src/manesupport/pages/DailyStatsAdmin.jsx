@@ -39,7 +39,7 @@ export default function DailyStatsAdmin() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button onClick={() => navigate('/admin/menu')} className="text-xl text-muted hover:text-accent">←</button>
         <span className="font-bold text-sm flex-1">日次集計バッチ</span>
         <LogoutButton to="/admin/menu" />

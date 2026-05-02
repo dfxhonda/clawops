@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useRole } from '../../shared/auth/useRole'
+import { PageHeader } from '../../shared/ui/PageHeader'
 
 const TABS = [
   { key: 'shipped', label: '入荷待ち', color: 'text-rose-400' },
@@ -65,23 +66,24 @@ export default function OrderList() {
   const isOverdue = (o) => o.status === 'ordered' && o.expected_date && o.expected_date < today
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      {/* Header */}
-      <div className="px-4 pt-8 pb-3">
-        <button onClick={() => navigate('/tanasupport')} className="text-slate-500 text-sm mb-3">← タナサポ</button>
-        <h1 className="text-xl font-bold">発注一覧</h1>
-      </div>
+    <div className="min-h-screen bg-bg text-text">
+
+      <PageHeader
+        module="tanasupport"
+        title="発注一覧"
+        onBack={() => navigate('/tanasupport')}
+      />
 
       {/* Tabs */}
-      <div className="flex px-4 gap-2 mb-4 overflow-x-auto">
+      <div className="flex px-5 gap-2 mb-4 overflow-x-auto">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               tab === t.key
-                ? 'bg-slate-700 text-white'
-                : 'bg-slate-800 text-slate-400'
+                ? 'bg-surface2 text-text'
+                : 'bg-surface text-muted'
             }`}
             style={{ fontSize: 15 }}
           >
@@ -91,26 +93,26 @@ export default function OrderList() {
       </div>
 
       {/* List */}
-      <div className="px-4 space-y-2 pb-10">
+      <div className="px-5 space-y-2 pb-10">
         {loading && orders.length === 0 && (
-          <p className="text-slate-500 text-center py-8">読み込み中...</p>
+          <p className="text-muted text-center py-8">読み込み中...</p>
         )}
         {!loading && orders.length === 0 && (
-          <p className="text-slate-500 text-center py-8">件数ゼロ</p>
+          <p className="text-muted text-center py-8">件数ゼロ</p>
         )}
         {orders.map(o => (
           <div
             key={o.order_id}
-            className={`bg-slate-800 rounded-xl p-4 border ${
-              isOverdue(o) ? 'border-amber-700/60' : 'border-slate-700'
+            className={`bg-surface rounded-xl p-4 border ${
+              isOverdue(o) ? 'border-amber-700/60' : 'border-border'
             }`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium leading-snug line-clamp-2">
+                <p className="text-text text-sm font-medium leading-snug line-clamp-2">
                   {o.prize_name_short || o.prize_name_raw}
                 </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-slate-400">
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted">
                   <span>{o.case_count}ケース</span>
                   <span>{o.supplier_id}</span>
                   {o.destination && <span>{o.destination}</span>}
@@ -140,7 +142,7 @@ export default function OrderList() {
         {hasMore && (
           <button
             onClick={() => { const next = page + 1; setPage(next); load(tab, next) }}
-            className="w-full py-3 text-slate-400 text-sm"
+            className="w-full py-3 text-muted text-sm"
           >
             さらに読み込む
           </button>

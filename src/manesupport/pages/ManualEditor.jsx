@@ -169,7 +169,7 @@ export default function ManualEditor() {
   if (selectedModel === null) {
     return (
       <div className="h-full flex flex-col">
-        <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden">
+        <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
           <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
           <div className="flex-1">
             <h2 className="text-base font-bold">マニュアル管理</h2>

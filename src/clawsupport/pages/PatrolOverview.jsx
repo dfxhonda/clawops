@@ -103,7 +103,7 @@ export default function PatrolOverview() {
     <div className="h-dvh flex flex-col bg-bg text-text">
 
       {/* ━━━ ヘッダー ━━━ */}
-      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2">
+      <div className="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <h1 className="flex-1 font-bold text-base">巡回状況</h1>
         <button
           onClick={async () => {

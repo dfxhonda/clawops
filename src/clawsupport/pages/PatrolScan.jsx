@@ -140,7 +140,7 @@ export default function PatrolScan() {
   return (
     <div className="h-screen flex flex-col max-w-lg mx-auto">
       {/* ヘッダー */}
-      <div className="shrink-0 px-4 pt-4">
+      <div className="shrink-0 px-4 pt-4" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => navigate('/')} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
           <div className="flex-1">

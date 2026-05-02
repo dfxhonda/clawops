@@ -121,7 +121,7 @@ function SelectPhase({ staffId, staffName, onStart }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-bg text-text">
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <div className="text-base font-bold flex-1">📦 棚卸しカウント</div>
       </div>
 
@@ -365,7 +365,7 @@ function SummaryPhase({ sessionId, lines, owner, staffId, onConfirm, onBack }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-bg text-text">
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <button onClick={onBack} className="text-xl text-muted">←</button>
         <div className="flex-1 text-base font-bold">確認: {owner.label}</div>
       </div>

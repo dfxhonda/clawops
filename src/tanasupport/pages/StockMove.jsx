@@ -103,7 +103,7 @@ export default function StockMove() {
     <div className="h-dvh flex flex-col bg-bg text-text">
 
       {/* ヘッダー */}
-      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
+      <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <button
           onClick={() => step === STEP_CONFIRM ? setStep(STEP_SELECT) : navigate(-1)}
           className="text-muted text-xl leading-none"
