@@ -205,4 +205,21 @@ Vercel → clawops → Settings → Environment Variables に以下を追加:
 - Value: `$VERCEL_ENV`
 - Environments: Production + Preview + Development すべてチェック
 
+## /api/health 有効化 (ヒロさん作業)
+Vercel ダッシュボード → clawops → Settings → Environment Variables で追加:
+
+1. `CRON_SECRET` → 16文字以上のランダム文字列 (1Passwordで生成推奨)
+2. `SUPABASE_SERVICE_ROLE_KEY` → Supabase Project Settings → API の service_role key (Sensitive必須)
+3. (任意) `SENTRY_DSN_BACKEND` → Sentry DSN、未設定でも動作するがエラーがSentryに飛ばない
+4. Production + Preview にチェック → Save → Redeploy
+
+動作確認:
+```bash
+curl https://round-0.com/api/health
+# 期待: {"status":"ok","checks":{"db":true,"timestamp":"..."}}
+
+# CRON_SECRET設定後
+curl -H "Authorization: Bearer <CRON_SECRETの値>" https://round-0.com/api/health
+```
+
 追加後 Redeploy すると Sentry の Issues に `production` / `preview` タグが付く。

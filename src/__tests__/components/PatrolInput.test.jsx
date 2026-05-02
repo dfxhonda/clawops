@@ -25,7 +25,7 @@ vi.mock('../../components/LogoutButton', () => ({ default: () => null }))
 vi.mock('../../components/ErrorDisplay', () => ({ default: ({ error }) => error ? <div>{error}</div> : null }))
 
 import { usePatrolInput } from '../../hooks/usePatrolInput'
-import PatrolInput from '../../patrol/pages/PatrolInput'
+import PatrolInput from '../../clawsupport/pages/PatrolInput'
 
 const BOOTH = {
   booth_code: 'KOS01-M01-B01', booth_number: 1,
