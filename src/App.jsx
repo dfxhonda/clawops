@@ -68,6 +68,10 @@ const DailyStatsAdmin = lazy(() => import('./manesupport/pages/DailyStatsAdmin')
 // 遅延ロード — 用語マスタ管理
 const AdminGlossary = lazy(() => import('./manesupport/pages/AdminGlossary'))
 
+// 遅延ロード — タナサポ
+const TanasupportHub = lazy(() => import('./tanasupport/pages/TanasupportHub'))
+const OrderList = lazy(() => import('./tanasupport/pages/OrderList'))
+
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 
@@ -154,6 +158,10 @@ function AppInner() {
 
       {/* 用語マスタ管理 — admin のみ */}
       <Route path="/admin/glossary" element={<AdminRoute><AdminGlossary /></AdminRoute>} />
+
+      {/* タナサポ — manager以上 */}
+      <Route path="/tanasupport" element={<ManagerRoute><TanasupportHub /></ManagerRoute>} />
+      <Route path="/tanasupport/orders" element={<ManagerRoute><OrderList /></ManagerRoute>} />
 
       {/* ヘルプ — 全認証ユーザー */}
       <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
