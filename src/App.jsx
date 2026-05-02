@@ -25,6 +25,7 @@ import { buildLabel } from './lib/buildInfo'
 
 // 即時ロード（初回表示に必要）
 import Login from './pages/Login'
+import Launcher from './pages/Launcher'
 
 // 遅延ロード — メインタブ
 const MainInput = lazy(() => import('./clawsupport/pages/MainInput'))
@@ -117,8 +118,8 @@ function AppInner() {
       <Routes>
       <Route path="/login" element={<Login />} />
 
-      {/* ホーム = 巡回アプリ（全ロール） */}
-      <Route path="/" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
+      {/* ホーム = ランチャー（ロール別タイル表示） */}
+      <Route path="/" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
       <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
       <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
