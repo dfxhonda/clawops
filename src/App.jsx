@@ -69,8 +69,16 @@ const DailyStatsAdmin = lazy(() => import('./manesupport/pages/DailyStatsAdmin')
 const AdminGlossary = lazy(() => import('./manesupport/pages/AdminGlossary'))
 
 // 遅延ロード — タナサポ
-const TanasupportHub = lazy(() => import('./tanasupport/pages/TanasupportHub'))
-const OrderList = lazy(() => import('./tanasupport/pages/OrderList'))
+const TanasupportHub  = lazy(() => import('./tanasupport/pages/TanasupportHub'))
+const OrderList       = lazy(() => import('./tanasupport/pages/OrderList'))
+const StoreDashboard  = lazy(() => import('./tanasupport/StoreDashboard'))
+const SessionList     = lazy(() => import('./tanasupport/stocktake/SessionList'))
+const StocktakeInput  = lazy(() => import('./tanasupport/stocktake/StocktakeInput'))
+
+// 遅延ロード — タナサポ 棚卸し管理 (マネサポ側)
+const StocktakeSessionListAdmin = lazy(() => import('./manesupport/admin/stocktake/SessionListAdmin'))
+const StocktakeSessionCreate    = lazy(() => import('./manesupport/admin/stocktake/SessionCreate'))
+const StocktakeSessionDetail    = lazy(() => import('./manesupport/admin/stocktake/SessionDetail'))
 
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
@@ -162,6 +170,14 @@ function AppInner() {
       {/* タナサポ — manager以上 */}
       <Route path="/tanasupport" element={<ManagerRoute><TanasupportHub /></ManagerRoute>} />
       <Route path="/tanasupport/orders" element={<ManagerRoute><OrderList /></ManagerRoute>} />
+      <Route path="/tanasupport/store/:storeCode" element={<ManagerRoute><StoreDashboard /></ManagerRoute>} />
+      <Route path="/tanasupport/store/:storeCode/stocktake" element={<ManagerRoute><SessionList /></ManagerRoute>} />
+      <Route path="/tanasupport/store/:storeCode/stocktake/:sessionId" element={<ManagerRoute><StocktakeInput /></ManagerRoute>} />
+
+      {/* 棚卸し管理 — admin のみ */}
+      <Route path="/admin/stocktake" element={<AdminRoute><StocktakeSessionListAdmin /></AdminRoute>} />
+      <Route path="/admin/stocktake/create" element={<AdminRoute><StocktakeSessionCreate /></AdminRoute>} />
+      <Route path="/admin/stocktake/:sessionId" element={<AdminRoute><StocktakeSessionDetail /></AdminRoute>} />
 
       {/* ヘルプ — 全認証ユーザー */}
       <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />

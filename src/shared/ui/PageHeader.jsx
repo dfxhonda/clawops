@@ -4,7 +4,7 @@ const THEME_COLORS = {
   manesupport:  '#3b82f6',
 }
 
-export function PageHeader({ module, title, onBack, backLabel, children }) {
+export function PageHeader({ module, title, subtitle, onBack, backLabel, children }) {
   const color = THEME_COLORS[module] ?? '#888899'
   return (
     <div
@@ -16,7 +16,10 @@ export function PageHeader({ module, title, onBack, backLabel, children }) {
           {backLabel ?? '‹'}
         </button>
       )}
-      <p className="text-text text-xl font-bold flex-1 leading-snug">{title}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-text text-xl font-bold leading-snug">{title}</p>
+        {subtitle && <p className="text-muted text-xs mt-0.5">{subtitle}</p>}
+      </div>
       {children}
     </div>
   )

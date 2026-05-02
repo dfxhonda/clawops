@@ -1,38 +1,31 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
 const MODULE_COLOR = '#10b981'
 
-function StatCard({ label, count, sub, color, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex-1 bg-surface rounded-2xl p-4 border border-border text-left active:scale-[0.97] transition-transform"
-      style={{ fontSize: 16 }}
-    >
-      <p className={`text-2xl font-bold ${color}`}>{count ?? '…'}</p>
-      <p className="text-text text-sm font-medium mt-0.5">{label}</p>
-      {sub && <p className="text-muted text-xs mt-0.5">{sub}</p>}
-    </button>
-  )
-}
-
 export default function TanasupportHub() {
   const navigate = useNavigate()
-  const [stats, setStats] = useState(null)
+  const [stores, setStores]               = useState([])
+  const [sessionCounts, setSessionCounts] = useState({})
+  const [search, setSearch]               = useState('')
+  const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
     async function load() {
-      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-      const [{ count: shipped }, { count: ordered }, { count: overdue }, { count: arrived }] =
-        await Promise.all([
-          supabase.from('prize_orders').select('*', { count: 'exact', head: true }).eq('status', 'shipped'),
-          supabase.from('prize_orders').select('*', { count: 'exact', head: true }).eq('status', 'ordered'),
-          supabase.from('prize_orders').select('*', { count: 'exact', head: true }).eq('status', 'ordered').lt('expected_date', today),
-          supabase.from('prize_orders').select('*', { count: 'exact', head: true }).eq('status', 'arrived'),
-        ])
-      setStats({ shipped: shipped ?? 0, ordered: ordered ?? 0, overdue: overdue ?? 0, arrived: arrived ?? 0 })
+      const [{ data: storeData }, { data: sessionData }] = await Promise.all([
+        supabase.from('stores').select('store_code, store_name').order('store_code'),
+        supabase.from('stocktake_sessions')
+          .select('store_code')
+          .in('status', ['in_progress', 'submitted']),
+      ])
+      setStores(storeData ?? [])
+      const counts = {}
+      for (const s of sessionData ?? []) {
+        counts[s.store_code] = (counts[s.store_code] ?? 0) + 1
+      }
+      setSessionCounts(counts)
+      setLoading(false)
     }
     load()
   }, [])
@@ -41,86 +34,66 @@ export default function TanasupportHub() {
     timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
   })
 
+  const filteredStores = search
+    ? stores.filter(s =>
+        s.store_name.includes(search) || s.store_code.toLowerCase().includes(search.toLowerCase())
+      )
+    : stores
+
   return (
     <div className="min-h-screen bg-bg text-text">
-
-      {/* Header */}
       <div
-        className="px-5 pt-10 pb-4"
+        className="px-5 pt-10 pb-5"
         style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLOR }}
       >
-        <button onClick={() => navigate('/')} className="text-muted text-sm mb-4">← ランチャー</button>
+        <button onClick={() => navigate('/')} className="text-muted text-sm mb-3">← ランチャー</button>
         <p className="text-muted text-sm">{dateLabel}</p>
-        <h1 className="text-xl font-bold mt-0.5 text-text">📦 タナサポ</h1>
+        <h1 className="text-xl font-bold mt-0.5">📦 タナサポ</h1>
       </div>
 
-      {/* Stats */}
-      <div className="px-5 flex gap-3 mb-4">
-        <StatCard
-          label="入荷待ち"
-          count={stats?.shipped}
-          color="text-rose-400"
-          onClick={() => navigate('/tanasupport/orders?tab=shipped')}
-        />
-        <StatCard
-          label="発注中"
-          count={stats?.ordered}
-          sub={stats?.overdue ? `遅延 ${stats.overdue}件` : undefined}
-          color="text-amber-400"
-          onClick={() => navigate('/tanasupport/orders?tab=ordered')}
-        />
-        <StatCard
-          label="入荷済み"
-          count={stats?.arrived}
-          color="text-emerald-400"
-          onClick={() => navigate('/tanasupport/orders?tab=arrived')}
-        />
-      </div>
-
-      {/* Quick actions */}
-      <div className="px-5 space-y-3 pb-10">
-        <button
-          onClick={() => navigate('/tanasupport/orders?tab=shipped')}
-          className="w-full bg-surface border border-border rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
-          style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#f43f5e', fontSize: 16 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-rose-300 font-bold">入荷チェック</p>
-              <p className="text-muted text-sm mt-0.5">届いた荷物を受取済みにする</p>
-            </div>
-            <span className="text-muted/50 text-lg">›</span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate('/tanasupport/orders?tab=ordered')}
-          className="w-full bg-surface border border-border rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
+      {/* 検索 */}
+      <div className="px-5 py-3 border-b border-border">
+        <input
+          type="search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="店舗名で絞り込み"
           style={{ fontSize: 16 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-text font-bold">発注一覧</p>
-              <p className="text-muted text-sm mt-0.5">発注中・到着待ちを確認する</p>
-            </div>
-            <span className="text-muted/50 text-lg">›</span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => navigate('/stock/dashboard')}
-          className="w-full bg-surface border border-border rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
-          style={{ fontSize: 16 }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-text font-bold">棚卸し・在庫管理</p>
-              <p className="text-muted text-sm mt-0.5">在庫確認・棚卸しカウント</p>
-            </div>
-            <span className="text-muted/50 text-lg">›</span>
-          </div>
-        </button>
+          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text outline-none focus:border-accent placeholder:text-muted"
+        />
       </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-muted text-sm">読み込み中...</div>
+      ) : (
+        <div className="px-5 pt-3 pb-10 space-y-2">
+          <div className="text-[10px] text-muted font-bold uppercase tracking-wider mb-3">
+            担当店舗 ({filteredStores.length})
+          </div>
+          {filteredStores.map(store => {
+            const cnt = sessionCounts[store.store_code] ?? 0
+            return (
+              <button
+                key={store.store_code}
+                onClick={() => navigate(`/tanasupport/store/${store.store_code}`)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-all hover:border-emerald-500/30"
+              >
+                <span className="text-base">🏪</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold truncate">{store.store_name}</div>
+                  <div className="text-xs text-muted">{store.store_code}</div>
+                </div>
+                {cnt > 0 && (
+                  <span className="text-[10px] text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-400/40 shrink-0">
+                    棚卸し {cnt}件
+                  </span>
+                )}
+                <span className="text-muted shrink-0">›</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
