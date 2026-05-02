@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/health",
+      "schedule": "0 23 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

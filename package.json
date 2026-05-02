@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/dfxhonda/clawops#readme",
   "dependencies": {
+    "@sentry/node": "^10.51.0",
     "@sentry/react": "^10.51.0",
     "@supabase/supabase-js": "^2.100.1",
     "@vitejs/plugin-react": "^5.1.4",
