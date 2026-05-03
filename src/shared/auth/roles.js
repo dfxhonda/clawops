@@ -23,7 +23,7 @@ export const LAUNCHER_TILES = [
     label: 'クレサポ',
     emoji: '🎯',
     desc: '巡回・集金・補充',
-    path: '/patrol/overview',
+    path: '/clawsupport',
     requiredModules: ['patrol'],
   },
   {

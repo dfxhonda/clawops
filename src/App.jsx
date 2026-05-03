@@ -83,6 +83,11 @@ const StocktakeSessionDetail    = lazy(() => import('./manesupport/admin/stockta
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 
+// 遅延ロード — クレサポ v1.0 ハブ
+const ClawsupportHub      = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
+const ClawsupportStoreDash = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
+const PatrolScreenV1      = lazy(() => import('./clawsupport/pages/PatrolScreenV1'))
+
 // 遅延ロード — OCRアプリ
 const PatrolCameraPage  = lazy(() => import('./clawsupport/pages/PatrolCameraPage'))
 const PatrolBatchOcrPage = lazy(() => import('./clawsupport/pages/PatrolBatchOcrPage'))
@@ -145,6 +150,11 @@ function AppInner() {
       <Route path="/complete" element={<ProtectedRoute><Complete /></ProtectedRoute>} />
       <Route path="/ranking/:storeId" element={<ProtectedRoute><RankingView /></ProtectedRoute>} />
       <Route path="/machines/:storeId" element={<ProtectedRoute><MachineList /></ProtectedRoute>} />
+
+      {/* クレサポ v1.0 — 全ロール */}
+      <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />
+      <Route path="/clawsupport/store/:storeCode" element={<ProtectedRoute><ClawsupportStoreDash /></ProtectedRoute>} />
+      <Route path="/clawsupport/store/:storeCode/patrol" element={<ProtectedRoute><PatrolScreenV1 /></ProtectedRoute>} />
 
       {/* 巡回 — 全ロール */}
       <Route path="/patrol/overview" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
