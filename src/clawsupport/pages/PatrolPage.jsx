@@ -119,6 +119,22 @@ export default function PatrolPage() {
   const form = usePatrolForm(booth)
   const lockerState = useLockerState(lockers)
 
+  // ブース切り替え時にローカル状態をリセット
+  // replace:true ナビゲーションは同一コンポーネントを再利用するため useState がリセットされない
+  useEffect(() => {
+    setSaved(false)
+    setSaving(false)
+    setSaveError(null)
+    setShowOcr(false)
+    setOcrInitialFile(null)
+    setPhotoUrl(null)
+    setCroppedPhotoUrl(null)
+    setOcrRawText(null)
+    setOcrAttemptedAt(null)
+    setOcrPrefilledValue(null)
+    setLockerView(null)
+  }, [booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // フォームロード完了後、最新レコードを確認してモード決定（確認ダイアログなし、自動で修正モードへ）
   useEffect(() => {
     if (form.loading) {
