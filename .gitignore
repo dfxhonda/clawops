@@ -26,3 +26,6 @@ archive/
 # 資料・写真（git管理対象外）
 docs/screenshots/
 docs/photos/
+.env.tmp.nosync
+.vercel
+CLAUDE.md.v1.bak
