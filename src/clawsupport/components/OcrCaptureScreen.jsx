@@ -383,8 +383,8 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
       {phase === 'confirming' && (
         <div className="flex-1 flex flex-col">
 
-          {/* 上1/3: クロップ画像（手入力時の参考用） */}
-          <div className="flex-shrink-0 bg-black flex items-center justify-center" style={{ height: '33vh' }}>
+          {/* 上2/3: クロップ画像（手入力時の参考用） */}
+          <div className="flex-shrink-0 bg-black flex items-center justify-center" style={{ height: '67vh' }}>
             {croppedDataUrl ? (
               <img src={croppedDataUrl} alt="OCR結果" className="max-w-full max-h-full object-contain" />
             ) : (
@@ -392,8 +392,8 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
             )}
           </div>
 
-          {/* 下2/3: ステータス + 値カード + 確定ボタン + Numpad */}
-          <div className="flex flex-col bg-slate-900" style={{ height: '67vh' }}>
+          {/* 下1/3: ステータス + 値カード + 確定ボタン + Numpad */}
+          <div className="flex flex-col bg-slate-900" style={{ height: '33vh' }}>
             <div className="flex-shrink-0 bg-slate-800 px-3 pt-2 pb-1">
               {ocrStatus === 'success' && (
                 <div className="text-emerald-400 text-[11px] mb-1">✓ 読み取り成功 — 確認して確定</div>
