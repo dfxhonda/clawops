@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
-import { getYesterdayPatrol, getLatestReading, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
+import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
 
 import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
@@ -106,10 +106,11 @@ export default function PatrolPage() {
     })
   }
 
-  const form = usePatrolForm(booth)
+  const form = usePatrolForm(booth, machine)
   const lockerState = useLockerState(lockers)
 
-  // フォームロード完了後、最新レコードを確認してモード決定（確認ダイアログなし、自動で修正モードへ）
+  // フォームロード完了後、最新レコードを確認してモード決定
+  // getLatestReading の代わりに usePatrolForm から返る prevRecord（_raw）を使ってクエリを1本削減
   useEffect(() => {
     if (form.loading) {
       setMode('loading')
@@ -117,15 +118,16 @@ export default function PatrolPage() {
       return
     }
     if (!booth?.booth_code) return
-    getLatestReading(booth.booth_code).then(async record => {
-      // 今日(JST)の created_at または updated_at があるレコードのみ修正モードに入る
-      const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-      const isToday = r => {
-        if (!r) return false
-        const ca = r.created_at ? new Date(r.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
-        const ua = r.updated_at ? new Date(r.updated_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
-        return ca === todayJST || ua === todayJST
-      }
+    const record = form.prevRecord
+    // 今日(JST)の created_at または updated_at があるレコードのみ修正モードに入る
+    const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    const isToday = r => {
+      if (!r) return false
+      const ca = r.created_at ? new Date(r.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
+      const ua = r.updated_at ? new Date(r.updated_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
+      return ca === todayJST || ua === todayJST
+    }
+    ;(async () => {
       if (record && isToday(record)) {
         setExistingRecord(record)
         form.loadCorrectionData(record)
@@ -135,7 +137,7 @@ export default function PatrolPage() {
       } else {
         setMode('new_patrol')
       }
-    })
+    })()
   }, [form.loading, booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 入替変更モードへの切り替え（修正モードヘッダーから呼ぶ）
@@ -253,8 +255,22 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           return
         }
       }
+      setSaving(false)
       setSaved(true)
-      setTimeout(() => navigate('/'), 800)
+      setTimeout(() => {
+        setSaved(false)
+        // 次ブースへ遷移、最後のブースなら巡回一覧に戻る
+        const nextIdx = currentIdx + 1
+        if (nextIdx < allBooths.length) {
+          const { machine: nm, booth: nb } = allBooths[nextIdx]
+          navigate('/patrol/input', { state: { ...state, machine: nm, booth: nb } })
+        } else {
+          const overviewPath = state?.storeCode
+            ? `/clawsupport/store/${state.storeCode}/patrol`
+            : '/clawsupport'
+          navigate(overviewPath)
+        }
+      }, 800)
     } catch (e) {
       setSaveError(e.message)
       setSaving(false)

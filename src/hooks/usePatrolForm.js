@@ -31,10 +31,13 @@ function makeInitialSection(outCount) {
   }
 }
 
-export function usePatrolForm(booth) {
+// machine: navigate state から渡された機械オブジェクト（machine_types・machine_models 埋め込み済み）
+//          渡された場合は getMachineInfo の DB 呼び出しをスキップしてロードを1クエリ削減する
+export function usePatrolForm(booth, machine) {
   const [loading, setLoading] = useState(true)
   const [machineInfo, setMachineInfo] = useState(null)
   const [prev, setPrev] = useState(null)      // last reading from DB
+  const [prevRecord, setPrevRecord] = useState(null)  // 生DBレコード（修正モード判定用）
   const dateOpts = useMemo(() => getDateOptions(7), [])
   const [readDate, setReadDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 1)
@@ -48,14 +51,33 @@ export function usePatrolForm(booth) {
   useEffect(() => {
     if (!booth?.machine_code) return
     setLoading(true)
+
+    // machine オブジェクトが machine_types・machine_models 埋め込み済みなら getMachineInfo をスキップ
+    const derivedInfo = machine && machine.machine_types
+      ? (() => {
+          const model = machine.machine_models?.[0] ?? {}
+          const type  = machine.machine_types?.[0] ?? {}
+          return {
+            machineName: machine.machine_name || '',
+            storeName:   '',   // PatrolPage 側で storeName を保持しているため空で可
+            storeCode:   machine.store_code || '',
+            category:    type.category || 'crane',
+            outCount:    model.out_meter_count || 1,
+            hasLocker:   (type.locker_slots || 0) > 0,
+            playPrice:   model.meter_unit_price || null,
+          }
+        })()
+      : null
+
     Promise.all([
-      getMachineInfo(booth.machine_code),
+      derivedInfo ? Promise.resolve(derivedInfo) : getMachineInfo(booth.machine_code),
       getLastReadingV2(booth.booth_code),
     ]).then(([info, lastR]) => {
       const outCount = info?.outCount || 1
       const effectivePlayPrice = booth?.play_price || info?.playPrice || 100
       setMachineInfo({ ...info, playPrice: effectivePlayPrice })
       setPrev(lastR)
+      setPrevRecord(lastR?._raw ?? null)
 
       // 初期値セット
       const initP = makeInitialSection(outCount)
@@ -403,7 +425,7 @@ export function usePatrolForm(booth) {
   const pattern = machineInfo ? detectPattern(machineInfo.category, outCount) : 'A'
 
   return {
-    loading, machineInfo, prev,
+    loading, machineInfo, prev, prevRecord,
     readDate, setReadDate,
     patrol, change,
     setPatrolIn, setPatrolOut, setPatrolZan, setPatrolSet,

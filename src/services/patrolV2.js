@@ -39,6 +39,7 @@ export async function getMachineInfo(machineCode) {
 }
 
 // ブース直近読み値 (multi-OUT対応)
+// _raw: 生DBレコード（修正モード判定などに使う）
 export async function getLastReadingV2(boothCode) {
   const { data, error } = await supabase
     .from('meter_readings')
@@ -49,6 +50,7 @@ export async function getLastReadingV2(boothCode) {
     .single()
   if (error || !data) return null
   return {
+    _raw: data,
     readTime: data.read_time,
     inMeter: data.in_meter,
     outMeter: data.out_meter,
