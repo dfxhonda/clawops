@@ -11,9 +11,6 @@ import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
 
 import OcrCaptureScreen from '../components/OcrCaptureScreen'
-import NativeCamera from '../components/NativeCamera'
-
-const USE_NEW_CAMERA = import.meta.env.VITE_USE_NEW_CAMERA !== 'false'
 import PatrolHeader    from '../components/PatrolHeader'
 import PrevRow         from '../components/PrevRow'
 import MeterInputRow   from '../components/MeterInputRow'
@@ -65,17 +62,11 @@ export default function PatrolPage() {
   const [showOcr, setShowOcr] = useState(false)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
-  const [ocrStatus, setOcrStatus] = useState(null)
   const [ocrRawText, setOcrRawText] = useState(null)
   const [ocrAttemptedAt, setOcrAttemptedAt] = useState(null)
   const [ocrPrefilledValue, setOcrPrefilledValue] = useState(null)
-  const nativeCamRef = useRef(null)
-  const onCamera = useCallback(() => {
-    if (USE_NEW_CAMERA) { nativeCamRef.current?.triggerCamera() } else { setShowOcr(true) }
-  }, [])
-  const onGallery = useCallback(() => {
-    if (USE_NEW_CAMERA) { nativeCamRef.current?.triggerGallery() }
-  }, [])
+  const onCamera = useCallback(() => { setShowOcr(true) }, [])
+  const onGallery = useCallback(() => {}, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -226,18 +217,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     setShowOcr(false)
   }
 
-  function handleNativeCameraResult({ extractedNumber, photoUrl: pUrl, croppedPhotoUrl: cUrl, ocrRawText: rawText, ocrAttemptedAt: attemptedAt }) {
-    setOcrAttemptedAt(attemptedAt || null)
-    setOcrRawText(rawText || null)
-    if (extractedNumber !== null && extractedNumber !== undefined) {
-      setPatrolIn(String(extractedNumber))
-      setOcrPrefilledValue(extractedNumber)
-      Sentry.captureMessage('ocr.in_field_prefilled', { level: 'info', extra: { extractedNumber, boothCode: booth?.booth_code } })
-    }
-    if (pUrl) setPhotoUrl(pUrl)
-    if (cUrl) setCroppedPhotoUrl(cUrl)
-  }
-
   async function handleSave() {
     setSaveError(null)
     setSaving(true)
@@ -290,17 +269,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     }
   }
 
-  // ─── OCR ステータスラベル ─────────────────────────────────────
-  function getOcrStatusLabel(s) {
-    if (!s) return null
-    if (s.phase === 'binarizing') return 'OCR処理中... (binarization)'
-    if (s.phase === 'uploading') return 'OCR処理中... (uploading)'
-    if (s.phase === 'calling_api') return 'OCR処理中... (calling api)'
-    if (s.phase === 'success') return `OCR成功 ${s.number != null ? Number(s.number).toLocaleString() : ''}`
-    if (s.phase === 'failed') return `OCR失敗: ${s.detail || '不明'}`
-    return null
-  }
-  const ocrStatusLabel = USE_NEW_CAMERA ? getOcrStatusLabel(ocrStatus) : null
+  const ocrStatusLabel = null
 
   // ─── パターン別レンダリング ──────────────────────────────────
   function renderPatrolContent() {
@@ -633,7 +602,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
 
     </div>
 
-    {showOcr && !USE_NEW_CAMERA && (
+    {showOcr && (
       <OcrCaptureScreen
         boothCode={booth.booth_code}
         machineInfo={machineInfo}
@@ -644,15 +613,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         onCancel={() => setShowOcr(false)}
       />
     )}
-    {USE_NEW_CAMERA && (
-      <NativeCamera
-        ref={nativeCamRef}
-        onOcrResult={handleNativeCameraResult}
-        onStatusChange={setOcrStatus}
-        storagePrefix={`meter-captures/${booth?.store_code || 'unknown'}/${booth?.booth_code || 'unknown'}/${new Date().toISOString().slice(0, 10)}`}
-      />
-    )}
-
     <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     <HelpFAB />
     </>
