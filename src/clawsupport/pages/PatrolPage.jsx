@@ -254,7 +254,16 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         }
       }
       setSaved(true)
-      setTimeout(() => navigate('/'), 800)
+      setTimeout(() => {
+        const nextIdx = currentIdx + 1
+        if (nextIdx >= 0 && nextIdx < allBooths.length) {
+          const { machine: nm, booth: nb } = allBooths[nextIdx]
+          navigate('/patrol/input', { replace: true, state: { ...state, machine: nm, booth: nb } })
+        } else {
+          const sc = state?.storeCode
+          navigate(sc ? `/clawsupport/store/${sc}/patrol` : '/patrol/overview', { replace: true })
+        }
+      }, 800)
     } catch (e) {
       setSaveError(e.message)
       setSaving(false)
@@ -318,6 +327,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
                     label="INメーター"
                     max={999999}
                     style={inp(p.inTouched)}
+                    onNext={() => document.getElementById('_pf_out')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))}
                   />
                 </div>
                 <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
@@ -329,11 +339,13 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
                     <NumpadField
+                      id="_pf_out"
                       value={o0.meter}
                       onChange={v => setPatrolOut(0, 'meter', v)}
                       label="OUTメーター"
                       max={999999}
                       style={inp(t0.meter)}
+                      onNext={() => document.getElementById('_pf_zan')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))}
                     />
                   </div>
                   <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
@@ -344,16 +356,19 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Term id="residual" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</Term>
                 <NumpadField
+                  id="_pf_zan"
                   value={o0.zan}
                   onChange={v => setPatrolZan(0, v)}
                   label="残"
                   max={9999}
                   style={{ ...INP_BASE, width: 48, color: '#d0d0e0', boxSizing: 'border-box' }}
+                  onNext={() => document.getElementById('_pf_ho')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))}
                 />
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Term id="refill" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</Term>
                 <NumpadField
+                  id="_pf_ho"
                   value={o0.ho}
                   onChange={v => setPatrolOut(0, 'ho', v)}
                   label="補充数"
@@ -485,7 +500,10 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           boothLabel={boothLabel}
           badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
           playPrice={machineInfo?.playPrice}
-          onBack={() => navigate('/')}
+          onBack={() => {
+            const sc = state?.storeCode
+            navigate(sc ? `/clawsupport/store/${sc}/patrol` : '/patrol/overview')
+          }}
           dateLocked={dateLocked}
         />
 

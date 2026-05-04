@@ -133,7 +133,6 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         style={{ display: 'none' }}
         onChange={handleCapture}
       />

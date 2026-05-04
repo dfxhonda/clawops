@@ -1,33 +1,43 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
-export default function NumpadField({ value, onChange, label, max = 99999, allowDecimal = false, alwaysOpen = false, onClose, style }) {
+export default function NumpadField({ value, onChange, label, max = 99999, allowDecimal = false, alwaysOpen = false, onClose, onNext, id, style }) {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
+  const freshRef = useRef(false) // 開いた直後の最初キーで値をクリア（全選択相当）
 
   function handleOpen() {
     setMounted(true)
     setTimeout(() => setVisible(true), 10)
+    freshRef.current = true
   }
   function handleClose() {
     setVisible(false)
     setTimeout(() => setMounted(false), 210)
+    freshRef.current = false
     if (onClose) onClose()
   }
 
   function handleKey(k) {
     if (k === '⌫') {
+      freshRef.current = false
       onChange(String(value || '').slice(0, -1))
       return
     }
     if (k === '→') {
       handleClose()
+      if (onNext) onNext()
       return
     }
     if (k === '.' && !allowDecimal) return
-    const next = String(value || '') + k
+
+    // 最初のキー押下で既存値をクリア（全選択→上書き 相当）
+    const base = freshRef.current ? '' : String(value || '')
+    freshRef.current = false
+
+    const next = base + k
     if (!allowDecimal && isNaN(Number(next))) return
     if (Number(next) > max) return
     onChange(next)
@@ -60,6 +70,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
   return (
     <>
       <button
+        id={id}
         onPointerDown={e => { e.preventDefault(); handleOpen() }}
         style={{
           cursor: 'pointer',
