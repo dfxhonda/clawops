@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
+import LogoutButton from '../../components/LogoutButton'
 
 function todayLabel() {
   return new Date().toLocaleDateString('ja-JP', {
@@ -57,8 +58,10 @@ export default function ClawsupportStoreDash() {
         module="clawsupport"
         title={storeName}
         variant="compact"
-        rightSlot={todayLabel()}
         onBack={() => navigate('/clawsupport')}
+        rightSlot={
+          <LogoutButton className="h-10 px-3 text-xs text-muted bg-surface border border-border rounded-xl active:opacity-70" />
+        }
       />
 
       {/* 進捗チップ */}

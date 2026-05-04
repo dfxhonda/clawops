@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
+import LogoutButton from '../../components/LogoutButton'
 
 function formatTime(isoStr) {
   if (!isoStr) return ''
@@ -73,6 +74,9 @@ export default function PatrolScreenV1() {
         title={storeName}
         subtitle={progressLabel}
         onBack={() => navigate(`/clawsupport/store/${storeCode}`)}
+        rightSlot={
+          <LogoutButton className="h-10 px-3 text-xs text-muted bg-surface border border-border rounded-xl active:opacity-70" />
+        }
       />
 
       {/* 進捗バー */}

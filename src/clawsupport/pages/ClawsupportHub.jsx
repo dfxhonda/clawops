@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
+import LogoutButton from '../../components/LogoutButton'
 
 function todayLabel() {
   return new Date().toLocaleDateString('ja-JP', {
@@ -79,7 +80,12 @@ export default function ClawsupportHub() {
         module="clawsupport"
         title="クレサポ"
         variant="compact"
-        rightSlot={todayLabel()}
+        rightSlot={
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">{todayLabel()}</span>
+            <LogoutButton className="h-10 px-3 text-xs text-muted bg-surface border border-border rounded-xl active:opacity-70" />
+          </div>
+        }
       />
 
       <KanaIndex
