@@ -19,12 +19,21 @@ export const MODULE_ACCESS = {
 
 export const LAUNCHER_TILES = [
   {
-    key: 'clawsupport',
-    label: 'クレサポ',
+    key: 'clawsupport_stable',
+    label: 'クレサポ(安定)',
     emoji: '🎯',
     desc: '巡回・集金・補充',
+    path: '/patrol/overview',
+    requiredModules: ['patrol'],
+  },
+  {
+    key: 'clawsupport',
+    label: 'クレサポ(試験)',
+    emoji: '🎯',
+    desc: '新ハブ・50音・★ピン留め',
     path: '/clawsupport',
     requiredModules: ['patrol'],
+    badge: '🟢 NEW',
   },
   {
     key: 'tanasupport',

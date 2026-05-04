@@ -50,29 +50,57 @@ export default function Launcher() {
         </h1>
       </div>
 
-      <div className="px-4 space-y-3 pb-10">
-        {tiles.map(tile => (
-          <button
-            key={tile.key}
-            onClick={() => navigate(tile.path)}
-            className="w-full text-left bg-slate-800 rounded-2xl p-5 border border-slate-700 active:scale-[0.98] transition-transform"
-            style={{ fontSize: 16 }}
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-3xl leading-none">{tile.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-base leading-tight">{tile.label}</p>
-                <p className="text-slate-400 text-sm mt-0.5">{tile.desc}</p>
-                {tile.key === 'clawsupport' && (
-                  <p className="text-slate-500 text-xs mt-1.5">
-                    {todayCount === null ? '読み込み中...' : `今日 ${todayCount} 件 記録済`}
-                  </p>
-                )}
+      <div className="px-4 pb-10">
+        {/* クレサポ2タイルは横並び */}
+        {tiles.some(t => t.key === 'clawsupport_stable') && (
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {tiles.filter(t => t.key === 'clawsupport_stable' || t.key === 'clawsupport').map(tile => (
+              <button
+                key={tile.key}
+                onClick={() => navigate(tile.path)}
+                className="text-left bg-slate-800 rounded-2xl p-4 border border-slate-700 active:scale-[0.98] transition-transform"
+                style={{ fontSize: 16 }}
+              >
+                <span className="text-2xl leading-none">{tile.emoji}</span>
+                <div className="mt-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-bold text-sm leading-tight">{tile.label}</p>
+                    {tile.badge && (
+                      <span className="text-xs text-emerald-400 font-bold">{tile.badge}</span>
+                    )}
+                  </div>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-snug">{tile.desc}</p>
+                  {tile.key === 'clawsupport_stable' && (
+                    <p className="text-slate-500 text-xs mt-1">
+                      {todayCount === null ? '...' : `今日 ${todayCount} 件`}
+                    </p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* その他タイル */}
+        <div className="space-y-3">
+          {tiles.filter(t => t.key !== 'clawsupport_stable' && t.key !== 'clawsupport').map(tile => (
+            <button
+              key={tile.key}
+              onClick={() => navigate(tile.path)}
+              className="w-full text-left bg-slate-800 rounded-2xl p-5 border border-slate-700 active:scale-[0.98] transition-transform"
+              style={{ fontSize: 16 }}
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-3xl leading-none">{tile.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base leading-tight">{tile.label}</p>
+                  <p className="text-slate-400 text-sm mt-0.5">{tile.desc}</p>
+                </div>
+                <span className="text-slate-500 text-lg shrink-0">›</span>
               </div>
-              <span className="text-slate-500 text-lg shrink-0">›</span>
-            </div>
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
       </div>
 
       {role === 'admin' && (
