@@ -379,12 +379,12 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
         </div>
       )}
 
-      {/* ─── confirming: 上1/3=クロップ画像、下2/3=入力 ─── */}
+      {/* ─── confirming: 画像(flex-3) + コントロール(固定) + Numpad(flex-2) ─── */}
       {phase === 'confirming' && (
         <div className="flex-1 flex flex-col">
 
-          {/* 上2/3: クロップ画像（手入力時の参考用） */}
-          <div className="flex-shrink-0 bg-black flex items-center justify-center" style={{ height: '67vh' }}>
+          {/* 画像エリア: flex比3 */}
+          <div className="bg-black flex items-center justify-center" style={{ flex: 3, minHeight: 0 }}>
             {croppedDataUrl ? (
               <img src={croppedDataUrl} alt="OCR結果" className="max-w-full max-h-full object-contain" />
             ) : (
@@ -392,35 +392,41 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
             )}
           </div>
 
-          {/* 下1/3: ステータス + 値カード + 確定ボタン + Numpad */}
-          <div className="flex flex-col bg-slate-900" style={{ height: '33vh' }}>
-            <div className="flex-shrink-0 bg-slate-800 px-3 pt-2 pb-1">
-              {ocrStatus === 'success' && (
-                <div className="text-emerald-400 text-[11px] mb-1">✓ 読み取り成功 — 確認して確定</div>
-              )}
-              {ocrStatus === 'failed' && (
-                <div className="text-amber-400 text-[11px] mb-1">⚠ {errorMsg}</div>
-              )}
-              {renderValueCards()}
+          {/* コントロール: 固定高さ・コンパクト */}
+          <div className="flex-shrink-0 bg-slate-800 px-3 pt-2 pb-1.5">
+            {/* ステータス */}
+            {ocrStatus === 'success' && (
+              <div className="text-emerald-400 text-[10px] mb-1">✓ 読み取り成功 — 確認して確定</div>
+            )}
+            {ocrStatus === 'failed' && (
+              <div className="text-amber-400 text-[10px] mb-1">⚠ {errorMsg}</div>
+            )}
+            {/* 値カード */}
+            {renderValueCards()}
+            {/* 確定 + 再撮影 横並び */}
+            <div className="flex gap-2 mt-1">
+              <button onClick={retake}
+                className="px-4 py-2 rounded-xl bg-slate-700 text-cyan-400 text-xs font-bold flex-shrink-0">
+                ↻ 再撮影
+              </button>
               <button onClick={handleConfirm} disabled={!canConfirm}
-                className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors ${
+                className={`flex-1 py-2 rounded-xl font-bold text-sm transition-colors ${
                   canConfirm ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500'
                 }`}>
                 ✓ 確定
               </button>
-              <button onClick={retake} className="w-full text-cyan-400 text-xs py-1 mt-0.5 bg-transparent border-none cursor-pointer">
-                ↻ 再撮影
-              </button>
             </div>
-            <div className="flex-1 min-h-0">
-              <NumpadField
-                value={getActiveValue()}
-                onChange={setActiveValue}
-                alwaysOpen={true}
-                max={999999}
-                onClose={handleConfirm}
-              />
-            </div>
+          </div>
+
+          {/* Numpad: flex比2 */}
+          <div style={{ flex: 2, minHeight: 0 }}>
+            <NumpadField
+              value={getActiveValue()}
+              onChange={setActiveValue}
+              alwaysOpen={true}
+              max={999999}
+              onClose={handleConfirm}
+            />
           </div>
 
         </div>
