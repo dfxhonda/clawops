@@ -130,21 +130,23 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
   }, [onOcrResult, storagePrefix])
 
   return (
-    <div style={{ display: 'none' }}>
+    <>
       <input
         ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        style={{ display: 'none' }}
         onChange={handleCapture}
       />
       <input
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        style={{ display: 'none' }}
         onChange={handleCapture}
       />
-    </div>
+    </>
   )
 })
 
