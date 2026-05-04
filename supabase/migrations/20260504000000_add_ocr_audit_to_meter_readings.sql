@@ -1,0 +1,3 @@
+ALTER TABLE meter_readings
+ADD COLUMN IF NOT EXISTS ocr_raw_text TEXT,
+ADD COLUMN IF NOT EXISTS ocr_attempted_at TIMESTAMPTZ;

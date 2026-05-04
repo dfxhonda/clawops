@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import * as Sentry from '@sentry/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { detectAlerts } from '../../utils/patrolAlerts'
@@ -64,6 +65,10 @@ export default function PatrolPage() {
   const [showOcr, setShowOcr] = useState(false)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
+  const [ocrStatus, setOcrStatus] = useState(null)
+  const [ocrRawText, setOcrRawText] = useState(null)
+  const [ocrAttemptedAt, setOcrAttemptedAt] = useState(null)
+  const [ocrPrefilledValue, setOcrPrefilledValue] = useState(null)
   const nativeCamRef = useRef(null)
   const onCamera = useCallback(() => {
     if (USE_NEW_CAMERA) { nativeCamRef.current?.triggerCamera() } else { setShowOcr(true) }
@@ -221,8 +226,14 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     setShowOcr(false)
   }
 
-  function handleNativeCameraResult({ extractedNumber, photoUrl: pUrl, croppedPhotoUrl: cUrl }) {
-    if (extractedNumber !== null && extractedNumber !== undefined) setPatrolIn(String(extractedNumber))
+  function handleNativeCameraResult({ extractedNumber, photoUrl: pUrl, croppedPhotoUrl: cUrl, ocrRawText: rawText, ocrAttemptedAt: attemptedAt }) {
+    setOcrAttemptedAt(attemptedAt || null)
+    setOcrRawText(rawText || null)
+    if (extractedNumber !== null && extractedNumber !== undefined) {
+      setPatrolIn(String(extractedNumber))
+      setOcrPrefilledValue(extractedNumber)
+      Sentry.captureMessage('ocr.in_field_prefilled', { level: 'info', extra: { extractedNumber, boothCode: booth?.booth_code } })
+    }
     if (pUrl) setPhotoUrl(pUrl)
     if (cUrl) setCroppedPhotoUrl(cUrl)
   }
@@ -249,7 +260,13 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         })
       } else {
         // new_patrol
-        const result = await save(staffId, { photoUrl, croppedPhotoUrl })
+        let inputMethod = 'manual'
+        if (ocrAttemptedAt) {
+          if (ocrPrefilledValue === null) inputMethod = 'ocr_failed'
+          else if (patrol.inMeter === String(ocrPrefilledValue)) inputMethod = 'ocr'
+          else inputMethod = 'ocr_corrected'
+        }
+        const result = await save(staffId, { photoUrl, croppedPhotoUrl, ocrRawText, ocrAttemptedAt, inputMethod })
         if (!result.ok) {
           setSaveError(result.message)
           setSaving(false)
@@ -273,6 +290,18 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     }
   }
 
+  // ─── OCR ステータスラベル ─────────────────────────────────────
+  function getOcrStatusLabel(s) {
+    if (!s) return null
+    if (s.phase === 'binarizing') return 'OCR処理中... (binarization)'
+    if (s.phase === 'uploading') return 'OCR処理中... (uploading)'
+    if (s.phase === 'calling_api') return 'OCR処理中... (calling api)'
+    if (s.phase === 'success') return `OCR成功 ${s.number != null ? Number(s.number).toLocaleString() : ''}`
+    if (s.phase === 'failed') return `OCR失敗: ${s.detail || '不明'}`
+    return null
+  }
+  const ocrStatusLabel = USE_NEW_CAMERA ? getOcrStatusLabel(ocrStatus) : null
+
   // ─── パターン別レンダリング ──────────────────────────────────
   function renderPatrolContent() {
     if (!patrol) return null
@@ -292,7 +321,8 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
                 inDiff={c?.inDiff} showDiff={true}
-                onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery} />
+                onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery}
+                ocrStatusText={ocrStatusLabel} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
@@ -337,6 +367,11 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
                 <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
                   前回 {prev?.inMeter != null ? Number(prev.inMeter).toLocaleString() : '—'}
                 </div>
+                {ocrStatusLabel && (
+                  <div style={{ fontSize: 10, color: '#6b7280', paddingLeft: 4, marginTop: 1 }}>
+                    {ocrStatusLabel}
+                  </div>
+                )}
               </div>
               {pattern !== 'A0' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -413,7 +448,8 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={calc?.inDiff} showDiff={true}
-              onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery} />
+              onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery}
+              ocrStatusText={ocrStatusLabel} />
 
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
@@ -443,23 +479,30 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
       case 'D1':
       case 'D2': {
         return (
-          <GachaInputV3
-            pattern={pattern}
-            boothCode={booth.booth_code}
-            p={p}
-            prev={prev}
-            calc={c}
-            lockers={lockers}
-            lockerState={lockerState}
-            staffId={staffId}
-            setPatrolIn={setPatrolIn}
-            setPatrolOut={setPatrolOut}
-            setPatrolZan={setPatrolZan}
-            onCamera={onCamera}
-            onGallery={onGallery}
-            resetPatrolInMeter={resetPatrolInMeter}
-            resetPatrolOutMeter={resetPatrolOutMeter}
-          />
+          <>
+            <GachaInputV3
+              pattern={pattern}
+              boothCode={booth.booth_code}
+              p={p}
+              prev={prev}
+              calc={c}
+              lockers={lockers}
+              lockerState={lockerState}
+              staffId={staffId}
+              setPatrolIn={setPatrolIn}
+              setPatrolOut={setPatrolOut}
+              setPatrolZan={setPatrolZan}
+              onCamera={onCamera}
+              onGallery={onGallery}
+              resetPatrolInMeter={resetPatrolInMeter}
+              resetPatrolOutMeter={resetPatrolOutMeter}
+            />
+            {ocrStatusLabel && (
+              <div style={{ fontSize: 10, color: '#6b7280', paddingLeft: 4, marginTop: -2, marginBottom: 4 }}>
+                {ocrStatusLabel}
+              </div>
+            )}
+          </>
         )
       }
 
@@ -605,6 +648,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
       <NativeCamera
         ref={nativeCamRef}
         onOcrResult={handleNativeCameraResult}
+        onStatusChange={setOcrStatus}
         storagePrefix={`meter-captures/${booth?.store_code || 'unknown'}/${booth?.booth_code || 'unknown'}/${new Date().toISOString().slice(0, 10)}`}
       />
     )}

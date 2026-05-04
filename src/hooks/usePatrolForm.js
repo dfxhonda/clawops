@@ -392,6 +392,9 @@ export function usePatrolForm(booth) {
         entryType,
         photoUrl: extraData.photoUrl || null,
         croppedPhotoUrl: extraData.croppedPhotoUrl || null,
+        ocrRawText: extraData.ocrRawText || null,
+        ocrAttemptedAt: extraData.ocrAttemptedAt || null,
+        inputMethod: extraData.inputMethod || null,
       })
       return { ok: true }
     } catch (e) {

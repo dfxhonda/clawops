@@ -1,4 +1,5 @@
 import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
+import * as Sentry from '@sentry/react'
 import { supabase } from '../../lib/supabase'
 
 function otsuThreshold(imageData) {
@@ -26,7 +27,7 @@ function otsuThreshold(imageData) {
   return threshold
 }
 
-const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePrefix }, ref) {
+const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePrefix, onStatusChange }, ref) {
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
 
@@ -40,10 +41,15 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
     const file = e.target.files?.[0]
     if (!file) return
     const inputEl = e.target
+    const ocrAttemptedAt = new Date().toISOString()
+
+    Sentry.captureMessage('ocr.file_received', { level: 'info', extra: { size: file.size, type: file.type } })
+    onStatusChange?.({ phase: 'binarizing' })
 
     let photoUrl = null
     let croppedPhotoUrl = null
     let extractedNumber = null
+    let ocrRawText = null
 
     try {
       const img = await createImageBitmap(file)
@@ -65,7 +71,9 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
       cropCtx.putImageData(imageData, 0, 0)
 
       const croppedBlob = await new Promise(resolve => cropCanvas.toBlob(resolve, 'image/jpeg', 0.85))
+      Sentry.captureMessage('ocr.binarization_done', { level: 'info' })
 
+      onStatusChange?.({ phase: 'uploading' })
       try {
         const ts = Date.now()
         const base = storagePrefix || `meter-captures/unknown/unknown/${new Date().toISOString().slice(0, 10)}`
@@ -79,21 +87,26 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
 
         photoUrl = supabase.storage.from('meter-captures').getPublicUrl(origPath).data.publicUrl
         croppedPhotoUrl = supabase.storage.from('meter-captures').getPublicUrl(cropPath).data.publicUrl
+        Sentry.captureMessage('ocr.storage_upload_success', { level: 'info', extra: { origPath } })
       } catch (storageErr) {
+        Sentry.captureException(storageErr, { tags: { ocr_step: 'storage_upload' } })
         console.warn('[NativeCamera] Storage upload failed:', storageErr)
       }
 
-      try {
-        const cropB64 = await new Promise(resolve => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result.split(',')[1])
-          reader.readAsDataURL(croppedBlob)
-        })
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+      if (!apiKey) {
+        Sentry.captureMessage('ocr.api_key_missing', { level: 'warning' })
+        onStatusChange?.({ phase: 'failed', detail: 'APIキー未設定' })
+      } else {
+        onStatusChange?.({ phase: 'calling_api' })
+        Sentry.captureMessage('ocr.api_call_started', { level: 'info', extra: { model: 'claude-haiku-4-5-20251001' } })
+        try {
+          const cropB64 = await new Promise(resolve => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result.split(',')[1])
+            reader.readAsDataURL(croppedBlob)
+          })
 
-        const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-        if (!apiKey) {
-          console.warn('[NativeCamera] VITE_ANTHROPIC_API_KEY not set, skipping OCR')
-        } else {
           const resp = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -114,20 +127,40 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
               }],
             }),
           })
-          const json = await resp.json()
-          const text = json.content?.[0]?.text?.replace(/[^0-9]/g, '')
-          if (text) extractedNumber = parseInt(text, 10)
+
+          if (!resp.ok) {
+            const errText = await resp.text()
+            Sentry.captureException(new Error(`Anthropic ${resp.status}: ${errText}`), { tags: { ocr_step: 'api_response' } })
+            onStatusChange?.({ phase: 'failed', detail: `HTTP ${resp.status}` })
+          } else {
+            const json = await resp.json()
+            ocrRawText = json.content?.[0]?.text || null
+            Sentry.captureMessage('ocr.api_call_success', { level: 'info', extra: { raw: ocrRawText } })
+            const digits = ocrRawText?.replace(/[^0-9]/g, '') || ''
+            if (digits) {
+              extractedNumber = parseInt(digits, 10)
+              Sentry.captureMessage('ocr.value_extracted', { level: 'info', extra: { extractedNumber } })
+              onStatusChange?.({ phase: 'success', number: extractedNumber })
+            } else {
+              Sentry.captureMessage('ocr.value_empty', { level: 'warning', extra: { raw: ocrRawText } })
+              onStatusChange?.({ phase: 'failed', detail: '数値抽出不可' })
+            }
+          }
+        } catch (ocrErr) {
+          Sentry.captureException(ocrErr, { tags: { ocr_step: 'api_call' } })
+          console.warn('[NativeCamera] OCR failed:', ocrErr)
+          onStatusChange?.({ phase: 'failed', detail: ocrErr.message })
         }
-      } catch (ocrErr) {
-        console.warn('[NativeCamera] OCR failed:', ocrErr)
       }
     } catch (err) {
+      Sentry.captureException(err, { tags: { ocr_step: 'binarization' } })
       console.error('[NativeCamera] handleCapture error:', err)
+      onStatusChange?.({ phase: 'failed', detail: err.message })
     }
 
-    onOcrResult?.({ extractedNumber, photoUrl, croppedPhotoUrl })
+    onOcrResult?.({ extractedNumber, photoUrl, croppedPhotoUrl, ocrRawText, ocrAttemptedAt })
     inputEl.value = ''
-  }, [onOcrResult, storagePrefix])
+  }, [onOcrResult, storagePrefix, onStatusChange])
 
   return (
     <>

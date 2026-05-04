@@ -150,7 +150,26 @@ npm test
 重要更新は監査ログ対象にする。
 使える所では reason_code / reason_note を使う。
 
-### 10. テスト
+### 10. 観察可能性 (Observability-First)
+
+新機能・実装中機能は必ず追跡可能にする。
+
+**DB 監査列** (機能ごとに `*_attempted_at`, `*_raw_text`, `*_confidence`, `input_method` を追加):
+- 例: OCR → `ocr_attempted_at`, `ocr_raw_text`, `ocr_confidence`, `input_method`
+- `input_method` の値: `'manual'` / `'ocr'` / `'ocr_corrected'` / `'ocr_failed'`
+
+**Sentry ログ** (`機能名.ステップ名` 形式):
+- 各ステップ開始・成功: `Sentry.captureMessage('ocr.file_received', { level: 'info', extra: {...} })`
+- 失敗・例外: `Sentry.captureException(err, { tags: { ocr_step: 'api_call' } })`
+- `console.warn` だけでなく必ず Sentry にも上げる
+
+**UI ステータス表示** (デバッグ用、本番でも表示):
+- 処理中の各フェーズを UI に `text-[10px]` で表示
+- ヒロさんが現場で「今何が起きてるか」を視認できる状態にする
+
+安定後にログ削減判断。最初は全段記録が原則。
+
+### 11. テスト
 - 純粋関数 → 単体テスト
 - 主要画面 → component test
 - 権限、保存、監査ログまわりは優先して確認
