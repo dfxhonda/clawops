@@ -30,6 +30,7 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ['./src/__tests__/setup.js'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
   build: {
     sourcemap: true,
