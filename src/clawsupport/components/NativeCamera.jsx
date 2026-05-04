@@ -27,15 +27,19 @@ function otsuThreshold(imageData) {
 }
 
 const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePrefix }, ref) {
-  const inputRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const galleryInputRef = useRef(null)
 
   useImperativeHandle(ref, () => ({
-    trigger: () => inputRef.current?.click(),
+    trigger: () => cameraInputRef.current?.click(),
+    triggerCamera: () => cameraInputRef.current?.click(),
+    triggerGallery: () => galleryInputRef.current?.click(),
   }))
 
   const handleCapture = useCallback(async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    const inputEl = e.target
 
     let photoUrl = null
     let croppedPhotoUrl = null
@@ -62,7 +66,6 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
 
       const croppedBlob = await new Promise(resolve => cropCanvas.toBlob(resolve, 'image/jpeg', 0.85))
 
-      // Supabase Storage upload
       try {
         const ts = Date.now()
         const base = storagePrefix || `meter-captures/unknown/unknown/${new Date().toISOString().slice(0, 10)}`
@@ -80,7 +83,6 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
         console.warn('[NativeCamera] Storage upload failed:', storageErr)
       }
 
-      // Claude Vision OCR
       try {
         const cropB64 = await new Promise(resolve => {
           const reader = new FileReader()
@@ -124,33 +126,24 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
     }
 
     onOcrResult?.({ extractedNumber, photoUrl, croppedPhotoUrl })
-    if (inputRef.current) inputRef.current.value = ''
+    inputEl.value = ''
   }, [onOcrResult, storagePrefix])
 
   return (
-    <div>
+    <div style={{ display: 'none' }}>
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
-        style={{ display: 'none' }}
+        capture="environment"
         onChange={handleCapture}
       />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '10px 16px', borderRadius: 8, border: 'none',
-          backgroundColor: '#0f766e', color: '#fff',
-          fontSize: 15, fontWeight: 600, cursor: 'pointer',
-        }}
-      >
-        📸 撮影
-      </button>
-      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-        💡フラッシュONで撮ると認識精度UP
-      </div>
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleCapture}
+      />
     </div>
   )
 })

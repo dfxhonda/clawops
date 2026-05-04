@@ -52,7 +52,8 @@ export default function GachaInputV3({
   setPatrolIn,
   setPatrolOut,
   setPatrolZan,
-  onCamera,            // OCRオーバーレイ起動
+  onCamera,            // OCR カメラ起動
+  onGallery,           // OCR ギャラリー起動
   resetPatrolInMeter,  // IN を前回値+未タッチにリセット
   resetPatrolOutMeter, // out[i] を前回値+未タッチにリセット
 }) {
@@ -277,19 +278,33 @@ export default function GachaInputV3({
   return (
     <>
       {/* ── OCRボタン (INの真上中央) ── */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
         <button
           onClick={onCamera}
           style={{
-            padding: '6px 18px', borderRadius: 20,
+            padding: '6px 14px', borderRadius: 20,
             background: 'rgba(217,119,6,.9)', border: 'none',
             color: '#fff', fontSize: 12, fontWeight: 600,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
           }}
         >
           <span>📷</span>
-          <span>{pattern === 'D2' ? '3メーター 同時OCR' : '2メーター OCR'}</span>
+          <span>{pattern === 'D2' ? '3メーター OCR' : '2メーター OCR'}</span>
         </button>
+        {onGallery && (
+          <button
+            onClick={onGallery}
+            style={{
+              padding: '6px 14px', borderRadius: 20,
+              background: 'rgba(124,108,212,.9)', border: 'none',
+              color: '#fff', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <span>🖼️</span>
+            <span>ギャラリー</span>
+          </button>
+        )}
       </div>
 
       {/* ── 3メーター横並びグリッド ── */}

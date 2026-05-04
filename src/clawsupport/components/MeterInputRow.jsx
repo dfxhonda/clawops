@@ -2,13 +2,16 @@ import NumpadField from './NumpadField'
 
 const INP = { fontSize: 16, background: '#222238', border: '1px solid #2a2a44', borderRadius: 4, padding: '0.45em 0.35em', fontFamily: "'Courier New', Courier, monospace", fontWeight: 'bold', outline: 'none', color: '#d0d0e0', WebkitAppearance: 'none', textAlign: 'right', minWidth: 0, flex: 1, boxSizing: 'border-box' }
 
-export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, onCamera, showDiff = false }) {
+const BTN = { width: 38, height: 38, borderRadius: 6, color: '#000', border: 'none', fontSize: 17, flexShrink: 0, padding: 0, cursor: 'pointer' }
+
+export default function MeterInputRow({ inMeter, inTouched, inDiff, onChange, onCamera, onGallery, showDiff = false }) {
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
       {onCamera && (
-        <button onClick={onCamera} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, padding: 0, cursor: 'pointer' }}>
-          📷
-        </button>
+        <button onClick={onCamera} style={{ ...BTN, background: '#5dade2' }}>📷</button>
+      )}
+      {onGallery && (
+        <button onClick={onGallery} style={{ ...BTN, background: '#7c6cd4' }}>🖼️</button>
       )}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
         <span style={{ fontSize: 10, color: '#8888a8', flexShrink: 0, width: 18, textAlign: 'center' }}>IN</span>

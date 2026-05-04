@@ -66,7 +66,10 @@ export default function PatrolPage() {
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
   const nativeCamRef = useRef(null)
   const onCamera = useCallback(() => {
-    if (USE_NEW_CAMERA) { nativeCamRef.current?.trigger() } else { setShowOcr(true) }
+    if (USE_NEW_CAMERA) { nativeCamRef.current?.triggerCamera() } else { setShowOcr(true) }
+  }, [])
+  const onGallery = useCallback(() => {
+    if (USE_NEW_CAMERA) { nativeCamRef.current?.triggerGallery() }
   }, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
@@ -289,7 +292,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
                 inDiff={c?.inDiff} showDiff={true}
-                onChange={setPatrolIn} onCamera={onCamera} />
+                onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
@@ -318,6 +321,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
               <button onClick={onCamera} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
+              <button onClick={onGallery} style={{ width: 38, height: 38, borderRadius: 6, background: '#7c6cd4', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>🖼️</button>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
@@ -409,7 +413,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={calc?.inDiff} showDiff={true}
-              onChange={setPatrolIn} onCamera={onCamera} />
+              onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery} />
 
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
@@ -452,6 +456,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             setPatrolOut={setPatrolOut}
             setPatrolZan={setPatrolZan}
             onCamera={onCamera}
+            onGallery={onGallery}
             resetPatrolInMeter={resetPatrolInMeter}
             resetPatrolOutMeter={resetPatrolOutMeter}
           />
