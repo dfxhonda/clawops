@@ -60,13 +60,24 @@ export default function PatrolPage() {
   })
   const [lockerView, setLockerView] = useState(null) // null | 'check' | 'edit'
   const [showOcr, setShowOcr] = useState(false)
+  const [ocrInitialFile, setOcrInitialFile] = useState(null)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
   const [ocrRawText, setOcrRawText] = useState(null)
   const [ocrAttemptedAt, setOcrAttemptedAt] = useState(null)
   const [ocrPrefilledValue, setOcrPrefilledValue] = useState(null)
-  const onCamera = useCallback(() => { setShowOcr(true) }, [])
-  const onGallery = useCallback(() => {}, [])
+  const patrolCamRef = useRef(null)
+  const patrolGalRef = useRef(null)
+  function handlePatrolFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setOcrInitialFile(file)
+    setShowOcr(true)
+    e.target.value = ''
+  }
+  // iOS Safari: input.click() は同一イベントハンドラ内(同期)なら動く
+  const onCamera  = useCallback(() => { patrolCamRef.current?.click() }, [])
+  const onGallery = useCallback(() => { patrolGalRef.current?.click() }, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -602,6 +613,10 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
 
     </div>
 
+    {/* iOS: input 自身に display:none、同期 .click() でネイティブカメラ/ギャラリー起動 */}
+    <input ref={patrolCamRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePatrolFileChange} />
+    <input ref={patrolGalRef} type="file" accept="image/*"                       style={{ display: 'none' }} onChange={handlePatrolFileChange} />
+
     {showOcr && (
       <OcrCaptureScreen
         boothCode={booth.booth_code}
@@ -609,8 +624,9 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
         lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
         mode={outCount >= 2 ? 'three' : 'single'}
+        initialFile={ocrInitialFile}
         onConfirm={handleOcrApply}
-        onCancel={() => setShowOcr(false)}
+        onCancel={() => { setShowOcr(false); setOcrInitialFile(null) }}
       />
     )}
     <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

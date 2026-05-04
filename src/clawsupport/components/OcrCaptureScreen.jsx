@@ -11,11 +11,10 @@ function getBoothSide(boothCode) {
   return parseInt(m[1], 10) % 2 === 0 ? 'right' : 'left'
 }
 
-// 画像をクロップして base64 返す（img タグ経由 → EXIF 補正済み）
-function cropImageToB64(imgEl, cropRatio) {
+// クロップして { b64, dataUrl } を返す
+function cropImage(imgEl, cropRatio) {
   const { x, y, w, h } = cropRatio
-  const nw = imgEl.naturalWidth
-  const nh = imgEl.naturalHeight
+  const nw = imgEl.naturalWidth, nh = imgEl.naturalHeight
   const canvas = document.createElement('canvas')
   canvas.width  = Math.round(nw * w)
   canvas.height = Math.round(nh * h)
@@ -24,12 +23,12 @@ function cropImageToB64(imgEl, cropRatio) {
     Math.round(nw * x), Math.round(nh * y), canvas.width, canvas.height,
     0, 0, canvas.width, canvas.height
   )
-  const b64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1]
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
   canvas.width = 0; canvas.height = 0
-  return b64
+  return { b64: dataUrl.split(',')[1], dataUrl }
 }
 
-// 画像表示領域を計算（object-fit:contain のレターボックス込み）
+// object-fit:contain の実際の表示領域を計算
 function calcDispRect(imgEl, containerEl) {
   if (!imgEl || !containerEl || !imgEl.naturalWidth) return null
   const nw = imgEl.naturalWidth, nh = imgEl.naturalHeight
@@ -43,13 +42,13 @@ function calcDispRect(imgEl, containerEl) {
   }
 }
 
-export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastOut, onConfirm, onCancel, mode = 'single' }) {
+export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastOut, onConfirm, onCancel, mode = 'single', initialFile }) {
   const [phase, setPhase] = useState('idle') // idle | cropping | processing | confirming
   const [imageSrc, setImageSrc] = useState(null)
   const [dispRect, setDispRect] = useState(null)
-  // cropRect: x,y,w,h すべて自然サイズに対する比率 (0-1)
   const [cropRect, setCropRect] = useState({ x: 0.05, y: 0.30, w: 0.90, h: 0.35 })
-  const [ocrStatus, setOcrStatus] = useState(null) // null | 'success' | 'failed'
+  const [croppedDataUrl, setCroppedDataUrl] = useState(null)
+  const [ocrStatus, setOcrStatus] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [elapsed, setElapsed] = useState(0)
   const [inValue, setInValue]   = useState('')
@@ -63,28 +62,32 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   const containerRef = useRef(null)
   const timerRef   = useRef(null)
   const mountedRef = useRef(true)
-  const dragRef    = useRef(null) // { type, startX, startY, startRect }
+  const dragRef    = useRef(null)
   const cropRectRef = useRef(cropRect)
 
   const side = getBoothSide(boothCode)
 
+  // initialFile が渡された場合は cropping フェーズへ直行
   useEffect(() => {
     mountedRef.current = true
+    if (initialFile) {
+      const url = URL.createObjectURL(initialFile)
+      setImageSrc(url)
+      setPhase('cropping')
+    }
     return () => {
       mountedRef.current = false
       clearInterval(timerRef.current)
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // cropRect → ref 同期（touch handler がクロージャ内で最新値を使えるように）
   useEffect(() => { cropRectRef.current = cropRect }, [cropRect])
 
   function handleFileChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
     if (imageSrc) URL.revokeObjectURL(imageSrc)
-    const url = URL.createObjectURL(file)
-    setImageSrc(url)
+    setImageSrc(URL.createObjectURL(file))
     setPhase('cropping')
     setDispRect(null)
     e.target.value = ''
@@ -94,7 +97,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     setDispRect(calcDispRect(imgRef.current, containerRef.current))
   }
 
-  // ── Touch: クロップ枠操作 ─────────────────────────────────────
+  // ── Touch: クロップ枠操作 ──────────────────────────────────────
   function onCropTouchStart(e, type) {
     e.stopPropagation()
     const t = e.touches[0]
@@ -133,7 +136,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
 
   function onContainerTouchEnd() { dragRef.current = null }
 
-  // ── OCR 送信 ──────────────────────────────────────────────────
+  // ── OCR 送信 ───────────────────────────────────────────────────
   async function doOcr() {
     const img = imgRef.current
     if (!img) return
@@ -142,7 +145,9 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     timerRef.current = setInterval(() => setElapsed(n => n + 1), 1000)
 
     try {
-      const b64 = cropImageToB64(img, cropRectRef.current)
+      const { b64, dataUrl } = cropImage(img, cropRectRef.current)
+      setCroppedDataUrl(dataUrl)
+
       const { data, error } = await Promise.race([
         supabase.functions.invoke('ocr-meter', { body: { image_base64: b64, media_type: 'image/jpeg' } }),
         new Promise((_, rej) => setTimeout(() => rej(new Error('OCR_TIMEOUT')), OCR_TIMEOUT_MS)),
@@ -174,6 +179,9 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   }
 
   function retake() {
+    if (imageSrc) URL.revokeObjectURL(imageSrc)
+    setImageSrc(null)
+    setCroppedDataUrl(null)
     setCropRect({ x: 0.05, y: 0.30, w: 0.90, h: 0.35 })
     setOcrStatus(null); setErrorMsg('')
     setInValue(''); setOutValue(''); setOut2Value('')
@@ -203,7 +211,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     onConfirm({ inMeter: inValue || null, outMeter: outValue || null, outMeter2: out2Value || null })
   }
 
-  // ── クロップ枠オーバーレイ ───────────────────────────────────
+  // ── クロップ枠オーバーレイ ──────────────────────────────────────
   function renderCropOverlay() {
     if (!dispRect) return null
     const { offsetX, offsetY, displayW, displayH } = dispRect
@@ -214,28 +222,23 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
       h: cropRect.h * displayH,
     }
     const HANDLE = 30
-    const dimStyle = { position: 'absolute', background: 'rgba(0,0,0,0.55)' }
-    const corners = [
-      ['tl', px.l - HANDLE / 2,        px.t - HANDLE / 2],
-      ['tr', px.l + px.w - HANDLE / 2, px.t - HANDLE / 2],
-      ['bl', px.l - HANDLE / 2,        px.t + px.h - HANDLE / 2],
-      ['br', px.l + px.w - HANDLE / 2, px.t + px.h - HANDLE / 2],
-    ]
+    const dim = { position: 'absolute', background: 'rgba(0,0,0,0.55)' }
     return (
       <>
-        {/* 暗幕4辺 */}
-        <div style={{ ...dimStyle, top: offsetY,          left: offsetX,        width: displayW,                    height: px.t - offsetY }} />
-        <div style={{ ...dimStyle, top: px.t + px.h,     left: offsetX,        width: displayW,                    height: offsetY + displayH - (px.t + px.h) }} />
-        <div style={{ ...dimStyle, top: px.t,            left: offsetX,        width: px.l - offsetX,              height: px.h }} />
-        <div style={{ ...dimStyle, top: px.t,            left: px.l + px.w,    width: offsetX + displayW - (px.l + px.w), height: px.h }} />
-        {/* 枠線 + 中央ドラッグ */}
+        <div style={{ ...dim, top: offsetY,      left: offsetX,     width: displayW,                         height: px.t - offsetY }} />
+        <div style={{ ...dim, top: px.t + px.h,  left: offsetX,     width: displayW,                         height: offsetY + displayH - (px.t + px.h) }} />
+        <div style={{ ...dim, top: px.t,         left: offsetX,     width: px.l - offsetX,                   height: px.h }} />
+        <div style={{ ...dim, top: px.t,         left: px.l + px.w, width: offsetX + displayW - (px.l + px.w), height: px.h }} />
         <div
           onTouchStart={e => onCropTouchStart(e, 'move')}
           style={{ position: 'absolute', left: px.l, top: px.t, width: px.w, height: px.h,
             border: '2px solid #facc15', boxSizing: 'border-box' }}
         />
-        {/* コーナーハンドル */}
-        {corners.map(([type, l, t]) => (
+        {[['tl', px.l - HANDLE/2, px.t - HANDLE/2],
+          ['tr', px.l + px.w - HANDLE/2, px.t - HANDLE/2],
+          ['bl', px.l - HANDLE/2, px.t + px.h - HANDLE/2],
+          ['br', px.l + px.w - HANDLE/2, px.t + px.h - HANDLE/2],
+        ].map(([type, l, t]) => (
           <div key={type}
             onTouchStart={e => onCropTouchStart(e, type)}
             style={{ position: 'absolute', left: l, top: t, width: HANDLE, height: HANDLE,
@@ -246,11 +249,54 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     )
   }
 
-  // ── レンダリング ─────────────────────────────────────────────
+  // ── 値カード ────────────────────────────────────────────────────
+  function renderValueCards() {
+    if (mode === 'three') {
+      return (
+        <div className="grid grid-cols-3 gap-1.5 mb-2">
+          {[
+            { label: 'A段OUT', value: outValue,  field: 'out',  last: lastOut, diff: outDiff },
+            { label: 'IN',     value: inValue,   field: 'in',   last: lastIn,  diff: inDiff },
+            { label: 'B段OUT', value: out2Value, field: 'out2', last: null,    diff: null },
+          ].map(({ label, value, field, last, diff }) => (
+            <button key={field} onClick={() => setActiveField(field)}
+              className={`rounded-lg p-1.5 text-center border-2 transition-colors ${
+                activeField === field ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 bg-slate-900'
+              }`}>
+              <div className="text-[9px] text-slate-400">{label}</div>
+              <div className="text-sm font-mono font-bold text-white">{value || '------'}</div>
+              {last != null && <div className="text-[8px] text-slate-500">前回 {last.toLocaleString()}</div>}
+              {diff != null && <div className={`text-[8px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{diff >= 0 ? '+' : ''}{diff}</div>}
+            </button>
+          ))}
+        </div>
+      )
+    }
+    return (
+      <div className="flex gap-2 mb-2">
+        {[
+          { label: 'IN',  value: inValue,  field: 'in',  last: lastIn,  diff: inDiff },
+          { label: 'OUT', value: outValue, field: 'out', last: lastOut, diff: outDiff },
+        ].map(({ label, value, field, last, diff }) => (
+          <button key={field} onClick={() => setActiveField(field)}
+            className={`flex-1 rounded-lg p-2 text-center border-2 transition-colors ${
+              activeField === field ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 bg-slate-900'
+            }`}>
+            <div className="text-[10px] text-slate-400">{label}</div>
+            <div className="text-lg font-mono font-bold text-white">{value || '------'}</div>
+            {last != null && <div className="text-[10px] text-slate-500">前回 {last.toLocaleString()}</div>}
+            {diff != null && <div className={`text-[10px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{diff >= 0 ? '+' : ''}{diff}</div>}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  // ────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col" style={{ touchAction: 'none' }}>
 
-      {/* ─── idle: カメラ / ギャラリー 選択 ─── */}
+      {/* ─── idle: カメラ / ギャラリー 選択（再撮影時に表示） ─── */}
       {phase === 'idle' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6">
           <button onClick={onCancel}
@@ -262,20 +308,18 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
             撮影後にクロップ枠をメーター部分に合わせます
           </p>
           <div className="flex gap-4 w-full max-w-xs">
-            <button onClick={() => cameraRef.current?.click()}
-              className="flex-1 flex flex-col items-center gap-2 bg-blue-600 text-white font-bold py-7 rounded-2xl active:scale-95 transition-transform">
+            <label className="flex-1 flex flex-col items-center gap-2 bg-blue-600 text-white font-bold py-7 rounded-2xl cursor-pointer active:scale-95 transition-transform">
               <span className="text-4xl">📷</span>
               <span className="text-sm">撮影する</span>
-            </button>
-            <button onClick={() => galleryRef.current?.click()}
-              className="flex-1 flex flex-col items-center gap-2 bg-slate-700 text-white font-bold py-7 rounded-2xl active:scale-95 transition-transform">
+              {/* iOS Safari: input 自身に display:none */}
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
+            </label>
+            <label className="flex-1 flex flex-col items-center gap-2 bg-slate-700 text-white font-bold py-7 rounded-2xl cursor-pointer active:scale-95 transition-transform">
               <span className="text-4xl">🖼️</span>
               <span className="text-sm">ギャラリー</span>
-            </button>
+              <input ref={galleryRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+            </label>
           </div>
-          {/* iOS Safari: input 自身に display:none (親 div に入れると change 未発火) */}
-          <input ref={cameraRef}  type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
-          <input ref={galleryRef} type="file" accept="image/*"                       style={{ display: 'none' }} onChange={handleFileChange} />
         </div>
       )}
 
@@ -324,6 +368,9 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
             className="absolute top-4 right-4 w-10 h-10 bg-white/10 rounded-full text-lg font-bold flex items-center justify-center">
             ✕
           </button>
+          {croppedDataUrl && (
+            <img src={croppedDataUrl} alt="OCR中" className="w-4/5 max-h-32 object-contain rounded mb-2" />
+          )}
           <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">読み取り中... {elapsed}s</p>
           {elapsed >= 5 && (
@@ -332,77 +379,50 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
         </div>
       )}
 
-      {/* ─── confirming: 値確認 ─── */}
+      {/* ─── confirming: 上1/3=クロップ画像、下2/3=入力 ─── */}
       {phase === 'confirming' && (
         <div className="flex-1 flex flex-col">
-          <div className="flex-shrink-0 bg-slate-800 px-3 py-2">
-            {/* ステータスバッジ */}
-            {ocrStatus === 'success' && (
-              <div className="text-emerald-400 text-[11px] mb-1">✓ 読み取り成功 — 値を確認して確定</div>
-            )}
-            {ocrStatus === 'failed' && (
-              <div className="text-amber-400 text-[11px] mb-1">⚠ {errorMsg}</div>
-            )}
 
-            {/* 値カード */}
-            {mode === 'three' ? (
-              <div className="grid grid-cols-3 gap-2 mb-2">
-                {[
-                  { label: 'A段OUT', value: outValue,  field: 'out',  last: lastOut, diff: outDiff },
-                  { label: 'IN',     value: inValue,   field: 'in',   last: lastIn,  diff: inDiff },
-                  { label: 'B段OUT', value: out2Value, field: 'out2', last: null,    diff: null },
-                ].map(({ label, value, field, last, diff }) => (
-                  <button key={field} onClick={() => setActiveField(field)}
-                    className={`rounded-lg p-2 text-center border-2 transition-colors ${
-                      activeField === field ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 bg-slate-900'
-                    }`}>
-                    <div className="text-[9px] text-slate-400 mb-0.5">{label}</div>
-                    <div className="text-base font-mono font-bold text-white">{value || '------'}</div>
-                    {last != null && <div className="text-[9px] text-slate-500">前回 {last.toLocaleString()}</div>}
-                    {diff != null && <div className={`text-[9px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{diff >= 0 ? '+' : ''}{diff}</div>}
-                  </button>
-                ))}
-              </div>
+          {/* 上1/3: クロップ画像（手入力時の参考用） */}
+          <div className="flex-shrink-0 bg-black flex items-center justify-center" style={{ height: '33vh' }}>
+            {croppedDataUrl ? (
+              <img src={croppedDataUrl} alt="OCR結果" className="max-w-full max-h-full object-contain" />
             ) : (
-              <div className="flex gap-2 mb-2">
-                {[
-                  { label: 'IN',  value: inValue,  field: 'in',  last: lastIn,  diff: inDiff },
-                  { label: 'OUT', value: outValue, field: 'out', last: lastOut, diff: outDiff },
-                ].map(({ label, value, field, last, diff }) => (
-                  <button key={field} onClick={() => setActiveField(field)}
-                    className={`flex-1 rounded-lg p-2 text-center border-2 transition-colors ${
-                      activeField === field ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 bg-slate-900'
-                    }`}>
-                    <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
-                    <div className="text-xl font-mono font-bold text-white">{value || '------'}</div>
-                    {last != null && <div className="text-[10px] text-slate-500">前回 {last.toLocaleString()}</div>}
-                    {diff != null && <div className={`text-[10px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{diff >= 0 ? '+' : ''}{diff}</div>}
-                  </button>
-                ))}
-              </div>
+              <div className="text-slate-600 text-xs">画像なし</div>
             )}
-
-            <button onClick={handleConfirm} disabled={!canConfirm}
-              className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors ${
-                canConfirm ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500'
-              }`}>
-              ✓ 確定
-            </button>
-            <button onClick={retake} className="w-full text-cyan-400 text-xs py-1.5 mt-1 bg-transparent border-none cursor-pointer">
-              ↻ 再撮影
-            </button>
           </div>
 
-          {/* Numpad */}
-          <div className="flex-1">
-            <NumpadField
-              value={getActiveValue()}
-              onChange={setActiveValue}
-              alwaysOpen={true}
-              max={999999}
-              onClose={handleConfirm}
-            />
+          {/* 下2/3: ステータス + 値カード + 確定ボタン + Numpad */}
+          <div className="flex flex-col bg-slate-900" style={{ height: '67vh' }}>
+            <div className="flex-shrink-0 bg-slate-800 px-3 pt-2 pb-1">
+              {ocrStatus === 'success' && (
+                <div className="text-emerald-400 text-[11px] mb-1">✓ 読み取り成功 — 確認して確定</div>
+              )}
+              {ocrStatus === 'failed' && (
+                <div className="text-amber-400 text-[11px] mb-1">⚠ {errorMsg}</div>
+              )}
+              {renderValueCards()}
+              <button onClick={handleConfirm} disabled={!canConfirm}
+                className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors ${
+                  canConfirm ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-500'
+                }`}>
+                ✓ 確定
+              </button>
+              <button onClick={retake} className="w-full text-cyan-400 text-xs py-1 mt-0.5 bg-transparent border-none cursor-pointer">
+                ↻ 再撮影
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <NumpadField
+                value={getActiveValue()}
+                onChange={setActiveValue}
+                alwaysOpen={true}
+                max={999999}
+                onClose={handleConfirm}
+              />
+            </div>
           </div>
+
         </div>
       )}
 
