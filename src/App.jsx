@@ -56,7 +56,6 @@ const DataSearch = lazy(() => import('./manesupport/pages/DataSearch'))
 const PatrolScan = lazy(() => import('./clawsupport/pages/PatrolScan'))
 const PatrolInput = lazy(() => import('./clawsupport/pages/PatrolInput'))
 const PatrolPage  = lazy(() => import('./clawsupport/pages/PatrolPage'))
-const PatrolOverview = lazy(() => import('./clawsupport/pages/PatrolOverview'))
 const LockerList = lazy(() => import('./manesupport/pages/LockerList'))
 const ImportSlips = lazy(() => import('./manesupport/pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./manesupport/pages/SetupSheets'))
@@ -157,7 +156,7 @@ function AppInner() {
       <Route path="/clawsupport/store/:storeCode/patrol" element={<ProtectedRoute><PatrolScreenV1 /></ProtectedRoute>} />
 
       {/* 巡回 — 全ロール */}
-      <Route path="/patrol/overview" element={<ProtectedRoute><PatrolOverview /></ProtectedRoute>} />
+      <Route path="/patrol/overview" element={<Navigate to="/clawsupport" replace />} />
       <Route path="/patrol" element={<ProtectedRoute><PatrolScan /></ProtectedRoute>} />
       <Route path="/patrol/input" element={<ProtectedRoute><PatrolPage /></ProtectedRoute>} />
       <Route path="/patrol/input-legacy" element={<ProtectedRoute><PatrolInput /></ProtectedRoute>} />

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
@@ -47,6 +48,7 @@ export default function PatrolPage() {
   const { state } = useLocation()
   const navigate  = useNavigate()
   const { staffId } = useAuth()
+  const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const booth = state?.booth
   const machine = state?.machine
 
@@ -219,6 +221,10 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
   }
 
   async function handleSave() {
+    if (!patrolEnabled) {
+      setSaveError('現在メンテナンス中のため保存できません。しばらくお待ちください。')
+      return
+    }
     setSaveError(null)
     setSaving(true)
     try {

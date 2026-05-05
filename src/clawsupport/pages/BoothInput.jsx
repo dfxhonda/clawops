@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { getLastReading, saveBoothReading } from '../../services/patrol'
 import { parseNum } from '../../services/utils'
 import PrizeSearchModal from '../components/PrizeSearchModal'
@@ -10,13 +11,14 @@ export default function BoothInput() {
   const navigate = useNavigate()
   const location = useLocation()
   const { staffId } = useAuth()
+  const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
 
   const { booth, machine, storeCode, storeName, lockers = [], isGacha = false } = location.state || {}
 
   // Guard: no state → back to overview
   useEffect(() => {
     if (!location.state) {
-      navigate('/patrol/overview', { replace: true })
+      navigate('/clawsupport', { replace: true })
     }
   }, [location.state, navigate])
 
@@ -66,6 +68,10 @@ export default function BoothInput() {
 
   // ── Save handler ────────────────────────────────────────
   async function handleSave() {
+    if (!patrolEnabled) {
+      setSaveError('現在メンテナンス中のため保存できません。しばらくお待ちください。')
+      return
+    }
     if (!inMeter) {
       setSaveError('INメーターを入力してください')
       return
