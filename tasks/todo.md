@@ -48,8 +48,8 @@
   - `date`: 「M/D(曜)」
   - `time`: 「HH:MM」
   - JST強制（Asia/Tokyo）
-- [ ] 既存画面の日付テキスト直書きを DateTime.jsx に差し替え（F-6 "全テキスト取り回し禁止"）
-- [ ] F-7 ダメ出しケース巡回：text-[10px] 以下 / タップ44px未満 / 行間過剰 を検出・修正
+- [x] 既存画面の日付テキスト直書きを DateTime.jsx に差し替え（F-6: 15画面の formatDate/formatTime 系ヘルパー廃止、short/datetime フォーマット追加）
+- [x] F-7 ダメ出しケース巡回：text-[8px]/text-[9px] → text-[10px] に修正（MainInput, OcrCaptureScreen）
 
 ---
 
