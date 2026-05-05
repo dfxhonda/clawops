@@ -9,7 +9,7 @@
 -- ── RPC 1: ブースID配列 → 最新2件/ブース ────────────────────────────
 CREATE OR REPLACE FUNCTION get_latest_readings_per_booth(p_booth_codes text[])
 RETURNS TABLE(
-  reading_id           uuid,
+  reading_id           text,
   booth_id             text,
   full_booth_code      text,
   patrol_date          date,
@@ -33,7 +33,7 @@ SECURITY INVOKER
 AS $$
   WITH ranked AS (
     SELECT
-      mr.reading_id,
+      mr.reading_id::text,
       mr.booth_id::text              AS booth_id,
       mr.full_booth_code,
       mr.patrol_date,
