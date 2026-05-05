@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getVisibleTiles } from '../shared/auth/roles'
 import { useRole } from '../shared/auth/useRole'
 import { supabase } from '../lib/supabase'
+import { logout } from '../lib/auth/session'
 
 function useTodayCount() {
   const [count, setCount] = useState(null)
@@ -22,6 +23,12 @@ export default function Launcher() {
   const navigate = useNavigate()
   const { role, staffName, loading } = useRole()
   const todayCount = useTodayCount()
+
+  async function handleLogout() {
+    await logout()
+    sessionStorage.removeItem('clawops_staff')
+    window.location.replace('/login')
+  }
 
   const now = new Date()
   const dateLabel = now.toLocaleDateString('ja-JP', {
@@ -75,9 +82,14 @@ export default function Launcher() {
         ))}
       </div>
 
-      {role === 'admin' && (
-        <p className="text-center text-slate-700 text-xs pb-4">{role}</p>
-      )}
+      <div className="px-4 pb-8 flex justify-center">
+        <button
+          onClick={handleLogout}
+          className="text-xs text-slate-600 hover:text-slate-400 transition-colors px-4 py-2"
+        >
+          ログアウト
+        </button>
+      </div>
     </div>
   )
 }

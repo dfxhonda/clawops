@@ -234,7 +234,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
 
         {/* 閉じるボタン */}
         <button onClick={onCancel}
-          className="absolute top-2 right-2 w-9 h-9 bg-black/60 text-white rounded-full flex items-center justify-center text-base font-bold">
+          className="absolute top-2 right-2 z-10 w-9 h-9 bg-black/60 text-white rounded-full flex items-center justify-center text-base font-bold">
           ✕
         </button>
 

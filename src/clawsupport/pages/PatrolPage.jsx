@@ -493,7 +493,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           boothLabel={boothLabel}
           badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
           playPrice={machineInfo?.playPrice}
-          onBack={() => navigate('/')}
+          onBack={() => navigate(-1)}
           dateLocked={dateLocked}
         />
 

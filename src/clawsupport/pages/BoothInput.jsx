@@ -112,7 +112,7 @@ export default function BoothInput() {
       {/* ── Header ── */}
       <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <button
-          onClick={() => navigate('/patrol/overview')}
+          onClick={() => navigate(-1)}
           className="text-xl text-muted hover:text-accent transition-colors"
         >
           ←

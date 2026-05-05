@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores } from '../../services/masters'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
-import { logout } from '../../lib/auth/session'
 import { exportPatrolDetailSheet, exportRound0FullReport } from '../../services/excelExport'
 import FullshotCamera from '../components/FullshotCamera'
 import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
@@ -181,16 +180,6 @@ export default function PatrolOverview() {
           title="更新"
         >
           🔄
-        </button>
-        <button
-          onClick={async () => {
-            await logout()
-            sessionStorage.removeItem('clawops_staff')
-            window.location.replace('/login')
-          }}
-          className="h-9 px-3 flex items-center rounded-xl text-[10px] text-muted active:bg-surface2 transition-colors"
-        >
-          ログアウト
         </button>
       </div>
 
