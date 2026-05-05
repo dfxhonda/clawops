@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { getPublishedManual } from '../../services/manuals'
+import DateTime from '../../shared/ui/DateTime'
 
 const SECTION_ORDER = ['error_codes', 'troubleshooting', 'settings']
 const SECTION_LABELS = {
@@ -74,9 +75,7 @@ export default function ManualView() {
   const activeSection = sections.find(s => s.section_type === activeTab)
   const content = activeSection?.content || ''
 
-  const updatedLabel = manual.updated_at
-    ? new Date(manual.updated_at).toLocaleDateString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric' })
-    : null
+  const updatedAt = manual.updated_at || null
 
   return (
     <div className="h-dvh flex flex-col bg-surface text-text max-w-lg md:max-w-3xl mx-auto">
@@ -93,8 +92,8 @@ export default function ManualView() {
           <h1 className="text-base font-bold truncate">
             {manual.model_name || 'マニュアル'}
           </h1>
-          {updatedLabel && (
-            <p className="text-xs text-muted">{updatedLabel}</p>
+          {updatedAt && (
+            <p className="text-xs text-muted"><DateTime value={updatedAt} format="date" /></p>
           )}
         </div>
       </div>

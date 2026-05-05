@@ -2,19 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import { approveSession, getSessionDetail, rejectSession } from './api'
+import DateTime from '../../../shared/ui/DateTime'
 
 const STATUS_LABELS = {
   in_progress: '入力中',
   submitted:   '提出済み',
   approved:    '承認済み',
   rejected:    '差し戻し',
-}
-
-function formatDateTime(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString('ja-JP', {
-    month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
 }
 
 export default function SessionDetail() {
@@ -91,7 +85,7 @@ export default function SessionDetail() {
         <div className="bg-surface border border-border rounded-xl p-4 space-y-2">
           <Row label="店舗" value={session?.store_code} />
           <Row label="開始日" value={session?.start_date} />
-          <Row label="提出日時" value={formatDateTime(session?.submitted_at)} />
+          <Row label="提出日時" value={<DateTime value={session?.submitted_at} format="datetime" />} />
           <Row label="カウント" value={`${items.length}品目中 ${countedCount}完了`} />
           <Row
             label="差異あり"

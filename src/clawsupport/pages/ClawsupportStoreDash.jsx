@@ -3,12 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
-
-function todayLabel() {
-  return new Date().toLocaleDateString('ja-JP', {
-    timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short',
-  })
-}
+import DateTime from '../../shared/ui/DateTime'
 
 const TILES = [
   { key: 'patrol',     emoji: '📍', label: '巡回',   desc: 'メーター計測・補充・入替', active: true },
@@ -57,7 +52,7 @@ export default function ClawsupportStoreDash() {
         module="clawsupport"
         title={storeName}
         variant="compact"
-        rightSlot={todayLabel()}
+        rightSlot={<DateTime value={new Date()} format="date" />}
         onBack={() => navigate('/clawsupport')}
       />
 

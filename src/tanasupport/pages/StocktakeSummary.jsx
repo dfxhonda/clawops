@@ -2,14 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabase'
-
-function formatDateTime(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString('ja-JP', {
-    month: 'numeric', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
+import DateTime from '../../shared/ui/DateTime'
 
 export default function StocktakeSummary() {
   const { sessionId } = useParams()
@@ -161,7 +154,7 @@ export default function StocktakeSummary() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted">実施日時</span>
-            <span>{formatDateTime(session?.started_at)}</span>
+            <span><DateTime value={session?.started_at} format="datetime" /></span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted">カウント</span>

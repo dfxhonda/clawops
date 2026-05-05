@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getPrizeStocksExtended } from '../../services/inventory'
+import DateTime from '../../shared/ui/DateTime'
 
 const MIN_THRESHOLD = 3 // min_threshold は DB 未定義のためローカル定数で代替
 
@@ -10,11 +11,6 @@ const TABS = [
   { key: 'store',     label: '店舗' },
   { key: 'staff',     label: 'スタッフ' },
 ]
-
-function formatDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
-}
 
 export default function StockDashboard() {
   const navigate = useNavigate()
@@ -132,7 +128,7 @@ export default function StockDashboard() {
                     <td className={`px-3 py-2.5 text-right font-bold tabular-nums ${alert ? 'text-red-400' : ''}`}>
                       {s.quantity}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-muted text-xs">{formatDate(s.last_counted_at)}</td>
+                    <td className="px-3 py-2.5 text-right text-muted text-xs"><DateTime value={s.last_counted_at} format="short" /></td>
                   </tr>
                 )
               })}

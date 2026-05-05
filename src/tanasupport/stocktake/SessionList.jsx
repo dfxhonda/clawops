@@ -4,11 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import { createSession, getActiveSessions } from './api'
-
-function formatDate(d) {
-  if (!d) return '未定'
-  return new Date(d).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
-}
+import DateTime from '../../shared/ui/DateTime'
 
 function todayISO() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
@@ -154,7 +150,7 @@ export default function SessionList() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold truncate">{s.session_name}</div>
                   <div className="text-xs text-muted mt-0.5">
-                    {formatDate(s.start_date)} 〜 {formatDate(s.end_date)}
+                    {s.start_date ? <DateTime value={s.start_date} format="short" /> : '未定'} 〜 {s.end_date ? <DateTime value={s.end_date} format="short" /> : '未定'}
                   </div>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${

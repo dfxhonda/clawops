@@ -4,12 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
-
-function todayLabel() {
-  return new Date().toLocaleDateString('ja-JP', {
-    timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short',
-  })
-}
+import DateTime from '../../shared/ui/DateTime'
 
 export default function ClawsupportHub() {
   const navigate = useNavigate()
@@ -79,7 +74,7 @@ export default function ClawsupportHub() {
         module="clawsupport"
         title="クレサポ"
         variant="compact"
-        rightSlot={todayLabel()}
+        rightSlot={<DateTime value={new Date()} format="date" />}
       />
 
       <KanaIndex

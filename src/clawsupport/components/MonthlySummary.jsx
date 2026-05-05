@@ -1,4 +1,5 @@
 import { fmtYen } from '../../utils/format'
+import DateTime from '../../shared/ui/DateTime'
 
 export default function MonthlySummary({ currRevenue, currRate, histRows }) {
   return (
@@ -38,7 +39,7 @@ export default function MonthlySummary({ currRevenue, currRate, histRows }) {
               {histRows.map((r, i) => (
                 <tr key={i}>
                   <td style={{ padding: '3px 4px', color: '#8888a8', borderBottom: '1px solid rgba(42,42,68,.4)' }}>
-                    {r.patrol_date ? r.patrol_date.slice(5).replace('-', '/') : r.read_time ? String(r.read_time).slice(5, 10).replace('-', '/') : '—'}
+                    {(r.patrol_date || r.read_time) ? <DateTime value={r.patrol_date || r.read_time} format="short" /> : '—'}
                   </td>
                   <td style={{ padding: '3px 4px', textAlign: 'right', color: '#d0d0e0', borderBottom: '1px solid rgba(42,42,68,.4)' }}>
                     {r.in_diff != null ? fmtYen(r.revenue ?? r.in_diff * (r.play_price || 100)) : '—'}

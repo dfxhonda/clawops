@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useRole } from '../../shared/auth/useRole'
 import { PageHeader } from '../../shared/ui/PageHeader'
+import DateTime from '../../shared/ui/DateTime'
 
 const TABS = [
   { key: 'shipped', label: '入荷待ち', color: 'text-rose-400' },
@@ -11,11 +12,6 @@ const TABS = [
 ]
 
 const PAGE_SIZE = 30
-
-function fmtDate(d) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric' })
-}
 
 export default function OrderList() {
   const navigate = useNavigate()
@@ -118,10 +114,10 @@ export default function OrderList() {
                   {o.destination && <span>{o.destination}</span>}
                   <span>
                     {isOverdue(o)
-                      ? <span className="text-amber-400">⚠️ 遅延 {fmtDate(o.expected_date)}予定</span>
+                      ? <span className="text-amber-400">⚠️ 遅延 <DateTime value={o.expected_date} format="short" />予定</span>
                       : tab === 'arrived'
-                        ? `入荷 ${fmtDate(o.arrived_at)}`
-                        : `予定 ${fmtDate(o.expected_date)}`
+                        ? <><span>入荷 </span><DateTime value={o.arrived_at} format="short" /></>
+                        : <><span>予定 </span><DateTime value={o.expected_date} format="short" /></>
                     }
                   </span>
                 </div>

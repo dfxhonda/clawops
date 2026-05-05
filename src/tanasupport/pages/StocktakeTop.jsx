@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import DateTime from '../../shared/ui/DateTime'
 
 const TABS = [
   { key: 'warehouse', label: '倉庫' },
   { key: 'staff',     label: '自分の車' },
   { key: 'store',     label: '店舗' },
 ]
-
-function formatDate(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
-}
 
 export default function StocktakeTop() {
   const navigate = useNavigate()
@@ -216,7 +212,7 @@ export default function StocktakeTop() {
                     <span className="text-base">{done ? '✅' : '🔄'}</span>
                     <div className="flex-1">
                       <div className="text-sm font-semibold">{label}</div>
-                      <div className="text-xs text-muted">{formatDate(s.started_at)} · {s.total_items}品目</div>
+                      <div className="text-xs text-muted"><DateTime value={s.started_at} format="short" /> · {s.total_items}品目</div>
                     </div>
                     {!done && (
                       <span className="text-[10px] text-accent px-2 py-0.5 rounded-full border border-accent/40">

@@ -287,10 +287,10 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
                 className={`rounded-lg p-2 text-center border-2 transition-colors ${
                   activeField === field ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 bg-slate-900'
                 }`}>
-                <div className="text-[9px] text-slate-400 mb-0.5">{label}</div>
+                <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
                 <div className="text-base font-mono font-bold text-white">{value || '------'}</div>
-                {last != null && <div className="text-[9px] text-slate-500">前回 {last.toLocaleString()}</div>}
-                {diff != null && <div className={`text-[9px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {last != null && <div className="text-[10px] text-slate-500">前回 {last.toLocaleString()}</div>}
+                {diff != null && <div className={`text-[10px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {diff >= 0 ? '+' : ''}{diff}
                 </div>}
               </button>

@@ -6,6 +6,7 @@ import { getLastReading, saveBoothReading } from '../../services/patrol'
 import { parseNum } from '../../services/utils'
 import PrizeSearchModal from '../components/PrizeSearchModal'
 import LockerInput from '../components/LockerInput'
+import DateTime from '../../shared/ui/DateTime'
 
 export default function BoothInput() {
   const navigate = useNavigate()
@@ -149,7 +150,7 @@ export default function BoothInput() {
               {' '}OUT <span className="text-accent font-bold">{parseNum(String(lastReading.out_meter)).toLocaleString()}</span>
             </span>
             <span className="text-muted text-xs ml-auto shrink-0">
-              {lastReading.read_date || lastReading.created_at?.slice(0, 10) || ''}
+              <DateTime value={lastReading.read_date || lastReading.created_at} format="short" />
             </span>
           </div>
         )}

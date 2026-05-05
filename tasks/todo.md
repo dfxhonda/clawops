@@ -114,11 +114,12 @@
 
 ---
 
-## ロード高速化 Phase C（長期）
+## ロード高速化 Phase C（長期）✅ 2026-05-05 完了
 
-- [ ] Supabase RPC `get_last_readings_by_store(store_code)` 追加（DISTINCT ON で1クエリ）
-- [ ] `getAllMeterReadings()` を完全廃止（useMainInput など残り箇所）
-- [ ] 店舗遷移を 1リクエスト以下に削減
+- [x] Supabase RPC `get_last_readings_per_booth` 追加（ROW_NUMBER 最新2件/ブース）
+- [x] `get_last_readings_by_store` RPC 追加（DISTINCT ON で1クエリ、店舗レベル）
+- [x] `getAllMeterReadings()` を services/index.js 公開 API から廃止
+- [x] `getLastReadingsMap()` を全件取得 → RPC 最適化版に置換
 
 ---
 

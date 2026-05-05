@@ -3,13 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
-
-function formatTime(isoStr) {
-  if (!isoStr) return ''
-  return new Date(isoStr).toLocaleTimeString('ja-JP', {
-    timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit',
-  })
-}
+import DateTime from '../../shared/ui/DateTime'
 
 export default function PatrolScreenV1() {
   const { storeCode } = useParams()
@@ -153,7 +147,7 @@ export default function PatrolScreenV1() {
                       </span>
                       {isDone ? (
                         <span className="ml-auto text-xs text-emerald-400">
-                          {formatTime(reading.read_time)} 入力済み
+                          <DateTime value={reading.read_time} format="time" /> 入力済み
                         </span>
                       ) : (
                         <span className="ml-auto text-xs text-muted">未入力</span>
