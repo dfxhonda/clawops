@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { getMachines, getBooths } from '../../services/masters'
-import { getAllMeterReadings } from '../../services/readings'
+import { getPatrolMachines } from '../../services/patrol'
+import { fetchReadingsByBoothIds } from '../../services/readings'
 import { parseNum } from '../../services/utils'
 import LogoutButton from '../../components/LogoutButton'
 
@@ -17,11 +17,12 @@ export default function RankingView() {
 
   async function loadStats() {
     setLoading(true)
-    const [machines, allReadings] = await Promise.all([getMachines(storeId), getAllMeterReadings()])
-    const allBooths = await Promise.all(machines.map(m => getBooths(m.machine_code)))
+    const machines = await getPatrolMachines(storeId)
+    const allBoothCodes = machines.flatMap(m => (m.booths || []).map(b => b.booth_code))
+    const allReadings = await fetchReadingsByBoothIds(allBoothCodes)
     const stats = []
-    machines.forEach((m, mi) => {
-      allBooths[mi].forEach(b => {
+    machines.forEach(m => {
+      (m.booths || []).forEach(b => {
         const br = allReadings.filter(r => String(r.booth_id) === String(b.booth_code))
         const price = parseNum(b.play_price||'100')
         let prevDiff = 0, prevSales = 0, prevNoData = true

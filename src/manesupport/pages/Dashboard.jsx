@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getStores, getMachines, getBooths } from '../../services/masters'
-import { getAllMeterReadings } from '../../services/readings'
+import { getStores } from '../../services/masters'
+import { getPatrolMachines } from '../../services/patrol'
+import { fetchReadingsByBoothIds } from '../../services/readings'
 import { parseNum } from '../../services/utils'
 import LogoutButton from '../../components/LogoutButton'
 import { useAuth } from '../../hooks/useAuth'
@@ -28,16 +29,15 @@ export default function Dashboard() {
   useEffect(() => {
     if (!storeId) return
     async function load() {
-      const [machines, allReadings] = await Promise.all([
-        getMachines(storeId), getAllMeterReadings()
-      ])
-      const allBooths = await Promise.all(machines.map(m => getBooths(m.machine_code)))
+      const machines = await getPatrolMachines(storeId)
+      const allBoothCodes = machines.flatMap(m => (m.booths || []).map(b => b.booth_code))
+      const allReadings = await fetchReadingsByBoothIds(allBoothCodes)
 
       let totalSales = 0, totalPrev = 0, boothRankings = [], inputCount = 0, totalBooths = 0
 
-      machines.forEach((m, mi) => {
-        const mBooths = allBooths[mi]
-        const price = parseNum(m.default_price) || 100
+      for (const m of machines) {
+        const mBooths = m.booths || []
+        const price = parseNum(m.machine_models?.[0]?.meter_unit_price || m.default_price) || 100
         totalBooths += mBooths.length
 
         for (const booth of mBooths) {
@@ -77,7 +77,7 @@ export default function Dashboard() {
             }
           }
         }
-      })
+      }
 
       boothRankings.sort((a, b) => b.sales - a.sales)
       setRankings(boothRankings.slice(0, 10))

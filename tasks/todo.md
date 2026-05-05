@@ -34,9 +34,9 @@
 
 > Phase A では MachineList を直した。残り2箇所の全件キャッシュを置換
 
-- [ ] `RankingView.jsx`: `getAllMeterReadings()` → `fetchReadingsByBoothIds(boothCodes)` に置換
-- [ ] `Dashboard.jsx` (manesupport): `getAllMeterReadings()` → ターゲットクエリに置換
-- [ ] `useMainInput.js`: `getAllMeterReadings()` 呼び出しの重複 fetch を整理
+- [x] `RankingView.jsx`: `getAllMeterReadings()` → `fetchReadingsByBoothIds(boothCodes)` に置換
+- [x] `Dashboard.jsx` (manesupport): `getAllMeterReadings()` → ターゲットクエリに置換
+- [x] `useMainInput.js`: `getAllMeterReadings()` 呼び出しの重複 fetch を整理
 
 ---
 

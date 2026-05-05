@@ -5,7 +5,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { getStores, getMachines, getBooths } from '../services/masters'
-import { getLastReadingsMap, getAllMeterReadings, saveReading } from '../services/readings'
+import { getLastReadingsMap, saveReading } from '../services/readings'
 import { parseNum } from '../services/utils'
 import { getDrafts, setDrafts, clearDraftBooths, saveDraftBooth } from './useDrafts'
 
@@ -18,7 +18,6 @@ export function useMainInput() {
   const [machines, setMachines] = useState([])
   const [booths, setBooths] = useState([])
   const [readingsMap, setReadingsMap] = useState({})
-  const [allReadings, setAllReadings] = useState([])
 
   // 選択状態
   const [storeId, setStoreId] = useState(null)
@@ -63,7 +62,6 @@ export function useMainInput() {
       if (ms.length > 0) setMachineId(ms[0].machine_code)
       else setMachineId(null)
     })
-    getAllMeterReadings().then(r => setAllReadings(r))
   }, [storeId])
 
   // 機械変更 → ブース + 最新読み取り取得
@@ -150,9 +148,6 @@ export function useMainInput() {
         for (const r of toSave) delete next[r.booth_id]
         return next
       })
-      // readings更新
-      const fresh = await getAllMeterReadings(true)
-      setAllReadings(fresh)
       const map = await getLastReadingsMap(booths.map(b => b.booth_code))
       setReadingsMap(map)
       setSaving(false)
