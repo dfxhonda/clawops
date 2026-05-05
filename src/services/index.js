@@ -10,7 +10,7 @@ export { logout } from './auth'
 export { parseNum, clearCache } from './utils'
 
 // メーター読み値
-export { getAllMeterReadings, getLastReadingsMap, getStaffMap, saveReading, updateReading } from './readings'
+export { getLastReadingsMap, getLastReadingsByStore, getStaffMap, saveReading, updateReading } from './readings'
 
 // マスター参照
 export { getStores, getMachines, getBooths, findBoothByCode, findMachineById, findStoreById, getLocations } from './masters'
