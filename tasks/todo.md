@@ -2,7 +2,7 @@
 
 ---
 
-## ✅ 完了済み（今日まで）
+## ✅ 完了済み（2026-05-05 更新）
 
 - [x] OCR v2 — NativeCamera廃止、OcrCaptureScreen 4フェーズ化（idle→cropping→processing→confirming）
 - [x] ロード高速化 Phase A — getLastReadingsMap N+1解消、MachineList booth fetch削除
@@ -26,7 +26,8 @@
 - [x] N-3: meter_readings に `ocr_attempted_at`, `ocr_raw_text` 列追加（Supabase migration）
   - 目的: クロップ＋Otsu 化後の認識率を実測してチューニングする基盤
   - Edge Function `ocr-meter` の戻り値を保存し、後でしきい値や前処理を比較できるようにする
-- [ ] N-4: OcrCaptureScreen → PatrolPage 確定後に MeterInputRow へ値プリセット済みであること確認（QA タスク）
+- [x] N-4: OcrCaptureScreen → PatrolPage 確定後に MeterInputRow へ値プリセット済みであること確認
+  - `handleOcrApply` で inMeter/outMeter/outMeter2 を setPatrolIn/setPatrolOut に正しく渡すことを確認 ✅
 
 ---
 
@@ -42,7 +43,7 @@
 
 ## Phase F: 共通 UI コンポーネント（F章準拠）
 
-- [ ] `src/shared/ui/DateTime.jsx` 作成（F-6 仕様: `<DateTime value={d} format="full|date|time" />`）
+- [x] `src/shared/ui/DateTime.jsx` 作成（F-6 仕様: `<DateTime value={d} format="full|date|time" />`）
   - `full`: 「M/D(曜) HH:MM」
   - `date`: 「M/D(曜)」
   - `time`: 「HH:MM」
@@ -65,13 +66,11 @@
 
 ## Phase 1.5–1.7: H章 実装順序（中期）
 
-- [ ] **1.5** 店舗ダッシュ画面 `/clawsupport/store/:storeId`
-  - アクションタイル 4枚（巡回/集金/入替/売上）
-  - 今日の進捗サマリ（「巡回 12/15 機」）
-  - 集金・入替・売上は v1.0 でグレーアウト+「準備中」トースト
+- [x] **1.5** 店舗ダッシュ画面 `/clawsupport/store/:storeId`
+  - ClawsupportStoreDash.jsx で実装済み：4タイル、進捗サマリ、準備中トースト ✅
 - [ ] **1.6** 既存パトロール画面を店舗ダッシュに接続
-  - `/clawsupport/store/:storeId/patrol` が正規パス
-  - 旧 `/patrol` ルートからの移行
+  - `/clawsupport/store/:storeId/patrol` 正規パスは接続済み ✅
+  - 旧 `/patrol/overview` (PatrolOverview) の廃止/リダイレクト → 要検討
 - [ ] **1.7** タナサポ店舗ダッシュ設計・実装
   - 棚卸し画面を `/tanasupport/store/:storeCode/stocktake/:sessionId` に整合
   - 入荷チェック（v1.4 module）の設計書作成
@@ -92,10 +91,10 @@
 
 ## Feature Flags 基盤（J章原則4、v1.x 追加前提）
 
-- [ ] `feature_flags` テーブル作成（flag_key / enabled / description）
-- [ ] `src/hooks/useFeatureFlag.js` 作成
-- [ ] Vercel 環境変数 `VITE_FF_KILL_<flag>=true` Kill Switch 対応
-- [ ] ど安定ver5点を Feature Flag でガード
+- [x] `feature_flags` テーブル作成（supabase/migrations/20260505001000_add_feature_flags.sql）
+- [x] `src/hooks/useFeatureFlag.js` 作成（Supabase参照 + Kill Switch対応）
+- [x] Vercel 環境変数 `VITE_FF_KILL_<FLAG_KEY_UPPER>=true` Kill Switch 対応
+- [ ] ど安定ver5点を Feature Flag でガード（useFeatureFlag('patrol_core') 等を各画面に組み込む）
 
 ---
 
