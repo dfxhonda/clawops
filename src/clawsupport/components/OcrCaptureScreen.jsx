@@ -75,6 +75,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   const [cameraError, setCameraError] = useState('')
   const timerRef = useRef(null)
   const mountedRef = useRef(true)
+  const ocrMetaRef = useRef({ ocrAttemptedAt: null, ocrRawText: null })
 
   const side = getBoothSide(boothCode)
 
@@ -103,6 +104,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   async function sendOcr(b64) {
     setPhase('processing')
     setElapsed(0)
+    const attemptedAt = new Date().toISOString()
     timerRef.current = setInterval(() => setElapsed(n => n + 1), 1000)
 
     const invokePromise = supabase.functions.invoke('ocr-meter', {
@@ -116,6 +118,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
       clearInterval(timerRef.current)
       if (!mountedRef.current) return
       if (error) throw new Error(error.message || 'OCR失敗')
+      ocrMetaRef.current = { ocrAttemptedAt: attemptedAt, ocrRawText: data?.raw_text ?? null }
 
       if (mode === 'three') {
         const a = data.left_out != null ? String(data.left_out) : ''
@@ -193,7 +196,13 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   const outDiff = outValue && lastOut != null ? Number(outValue) - lastOut : null
 
   function handleConfirm() {
-    onConfirm({ inMeter: inValue || null, outMeter: outValue || null, outMeter2: out2Value || null })
+    onConfirm({
+      inMeter: inValue || null,
+      outMeter: outValue || null,
+      outMeter2: out2Value || null,
+      ocrAttemptedAt: ocrMetaRef.current.ocrAttemptedAt,
+      ocrRawText: ocrMetaRef.current.ocrRawText,
+    })
   }
 
   const canConfirm = mode === 'three'

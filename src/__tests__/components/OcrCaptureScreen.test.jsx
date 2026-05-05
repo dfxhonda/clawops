@@ -94,11 +94,13 @@ describe('OcrCaptureScreen', () => {
       expect(confirmBtn).not.toBeDisabled()
       fireEvent.click(confirmBtn)
 
-      expect(onConfirm).toHaveBeenCalledWith({
-        inMeter: '50000',
-        outMeter: '45000',
-        outMeter2: null,
-      })
+      expect(onConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inMeter: '50000',
+          outMeter: '45000',
+          outMeter2: null,
+        })
+      )
     })
 
     it('OCR API がエラーを返したときエラーメッセージを表示する', async () => {

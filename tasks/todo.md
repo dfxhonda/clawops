@@ -23,7 +23,7 @@
 
 > 画面側の主要改善は 2026-05-05 で完了。残りは認識率の効果測定のための DB 列追加のみ。
 
-- [ ] N-3: meter_readings に `ocr_attempted_at`, `ocr_raw_text` 列追加（Supabase migration）
+- [x] N-3: meter_readings に `ocr_attempted_at`, `ocr_raw_text` 列追加（Supabase migration）
   - 目的: クロップ＋Otsu 化後の認識率を実測してチューニングする基盤
   - Edge Function `ocr-meter` の戻り値を保存し、後でしきい値や前処理を比較できるようにする
 - [ ] N-4: OcrCaptureScreen → PatrolPage 確定後に MeterInputRow へ値プリセット済みであること確認（QA タスク）
@@ -52,12 +52,14 @@
 
 ---
 
-## Phase L: Hooks 4本（L章機械的強制）
+## Phase L: Hooks 4本（L章機械的強制）✅ 2026-05-05 完了
 
-- [ ] L-1: `pre-write-check.sh` — .env*ファイル / VITE_*=sk-* を deny、ど安定ver5点ファイル警告
-- [ ] L-2: `post-commit-todo.sh` — git commit 後に TODO/FIXME/HACK/XXX 件数チェック
-- [ ] L-3: `stop-check.sh` — Stop Hook でアンチパターン（「おそらく」等）を検知
-- [ ] L-4: `lessons-sync.sh` — staged diff と lessons.md パターンを照合
+- [x] L-1: `pre-write-check.sh` — .env*ファイル / VITE_*=sk-* を deny、ど安定ver5点ファイル警告
+- [x] L-2: `post-commit-todo.sh` — git commit 後に TODO/FIXME/HACK/XXX 件数チェック
+- [x] L-3: `stop-check.sh` — Stop Hook でアンチパターン（「おそらく」等）を検知
+- [x] L-4: `lessons-sync.sh` — staged diff と lessons.md パターンを照合
+
+実装ファイル: `.cursor/hooks.json` + `.cursor/hooks/{pre-write-check,post-commit-todo,stop-check,lessons-sync}.sh`
 
 ---
 

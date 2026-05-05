@@ -126,6 +126,7 @@ Deno.serve(async (req: Request) => {
         right_in: result.right_in ?? null,
         right_out: result.right_out ?? null,
         confidence: typeof result.confidence === 'number' ? result.confidence : 0.5,
+        raw_text: rawText,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

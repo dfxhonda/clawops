@@ -414,6 +414,8 @@ export function usePatrolForm(booth, machine) {
         entryType,
         photoUrl: extraData.photoUrl || null,
         croppedPhotoUrl: extraData.croppedPhotoUrl || null,
+        ocrAttemptedAt: extraData.ocrAttemptedAt || null,
+        ocrRawText: extraData.ocrRawText || null,
       })
       return { ok: true }
     } catch (e) {

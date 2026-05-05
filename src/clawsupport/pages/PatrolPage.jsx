@@ -61,6 +61,8 @@ export default function PatrolPage() {
   const [showOcr, setShowOcr] = useState(false)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
+  const [ocrAttemptedAt, setOcrAttemptedAt] = useState(null)
+  const [ocrRawText, setOcrRawText] = useState(null)
   const onCamera = useCallback(() => { setShowOcr(true) }, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
@@ -205,12 +207,14 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     )
   }
 
-  function handleOcrApply({ inMeter, outMeter, outMeter2, photoUrl: pUrl, croppedPhotoUrl: cUrl } = {}) {
+  function handleOcrApply({ inMeter, outMeter, outMeter2, photoUrl: pUrl, croppedPhotoUrl: cUrl, ocrAttemptedAt: oAt, ocrRawText: oRaw } = {}) {
     if (inMeter) setPatrolIn(inMeter)
     if (outMeter) setPatrolOut(0, 'meter', outMeter)
     if (outMeter2) setPatrolOut(1, 'meter', outMeter2)
     if (pUrl) setPhotoUrl(pUrl)
     if (cUrl) setCroppedPhotoUrl(cUrl)
+    if (oAt)  setOcrAttemptedAt(oAt)
+    if (oRaw) setOcrRawText(oRaw)
     setShowOcr(false)
   }
 
@@ -236,7 +240,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         })
       } else {
         // new_patrol
-        const result = await save(staffId, { photoUrl, croppedPhotoUrl })
+        const result = await save(staffId, { photoUrl, croppedPhotoUrl, ocrAttemptedAt, ocrRawText })
         if (!result.ok) {
           setSaveError(result.message)
           setSaving(false)
