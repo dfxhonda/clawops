@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "/Users/dfx/.config/clawops/supabase-mcp.sh",
+      "args": []
+    }
+  }
+}
