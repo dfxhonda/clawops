@@ -19,7 +19,7 @@ vi.mock('../../utils/format', () => ({
   ]),
 }))
 
-import { usePatrolForm } from '../../hooks/usePatrolForm'
+import { usePatrolForm, detectPattern } from '../../hooks/usePatrolForm'
 import { getLastReadingV2, getMachineInfo } from '../../services/patrolV2'
 
 const MOCK_BOOTH = {
@@ -37,6 +37,53 @@ const MOCK_MACHINE_INFO = {
   hasLocker: false,
   playPrice: 100,
 }
+
+// ============================================
+// detectPattern — 純粋関数（renderHook 不要）
+// ============================================
+describe('detectPattern', () => {
+  describe('crane', () => {
+    it('outCount=0 → A0（OUT メーターなし機種）', () => {
+      expect(detectPattern('crane', 0)).toBe('A0')
+    })
+    it('outCount=1 → A', () => {
+      expect(detectPattern('crane', 1)).toBe('A')
+    })
+    it('outCount=2 → A（crane は outCount>=1 でまとめて A）', () => {
+      expect(detectPattern('crane', 2)).toBe('A')
+    })
+  })
+
+  describe('gacha', () => {
+    it('outCount=1 → D1', () => {
+      expect(detectPattern('gacha', 1)).toBe('D1')
+    })
+    it('outCount=2 → D2', () => {
+      expect(detectPattern('gacha', 2)).toBe('D2')
+    })
+    it('outCount=3 → D2（2以上はすべて D2）', () => {
+      expect(detectPattern('gacha', 3)).toBe('D2')
+    })
+  })
+
+  describe('other', () => {
+    it('outCount=0 → A0', () => {
+      expect(detectPattern('other', 0)).toBe('A0')
+    })
+    it('outCount=3 → B', () => {
+      expect(detectPattern('other', 3)).toBe('B')
+    })
+    it('outCount=1 → A（フォールバック）', () => {
+      expect(detectPattern('other', 1)).toBe('A')
+    })
+  })
+
+  it('未知カテゴリはフォールバックで A', () => {
+    expect(detectPattern('unknown', 1)).toBe('A')
+    expect(detectPattern(null, 1)).toBe('A')
+    expect(detectPattern(undefined, 0)).toBe('A')
+  })
+})
 
 describe('usePatrolForm — inMeter 初期化', () => {
   beforeEach(() => {
