@@ -80,7 +80,7 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
         console.warn('[NativeCamera] Storage upload failed:', storageErr)
       }
 
-      // Claude Vision OCR
+      // Claude Vision OCR — Edge Function 経由 (ADR-003, クライアント側 API キー不使用)
       try {
         const cropB64 = await new Promise(resolve => {
           const reader = new FileReader()
@@ -88,33 +88,16 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
           reader.readAsDataURL(croppedBlob)
         })
 
-        const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-        if (!apiKey) {
-          console.warn('[NativeCamera] VITE_ANTHROPIC_API_KEY not set, skipping OCR')
+        const { data: ocrData, error: ocrError } = await supabase.functions.invoke('ocr-meter', {
+          body: { image_base64: cropB64, media_type: 'image/jpeg' },
+        })
+        if (ocrError) {
+          console.warn('[NativeCamera] OCR Edge Function error:', ocrError)
         } else {
-          const resp = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-              'anthropic-version': '2023-06-01',
-              'content-type': 'application/json',
-              'anthropic-dangerous-client-side-key-warning': 'true',
-            },
-            body: JSON.stringify({
-              model: 'claude-haiku-4-5-20251001',
-              max_tokens: 64,
-              messages: [{
-                role: 'user',
-                content: [
-                  { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: cropB64 } },
-                  { type: 'text', text: 'この画像のメーター数値を読み取って、数字だけを返してください。数字以外は一切出力しないこと。' },
-                ],
-              }],
-            }),
-          })
-          const json = await resp.json()
-          const text = json.content?.[0]?.text?.replace(/[^0-9]/g, '')
-          if (text) extractedNumber = parseInt(text, 10)
+          // ocr-meter は left_in/left_out/right_in/right_out を返す
+          // NativeCamera は IN メーター単独取込なので left_in を優先使用
+          const val = ocrData?.left_in ?? ocrData?.left_out ?? null
+          if (val != null) extractedNumber = Number(val)
         }
       } catch (ocrErr) {
         console.warn('[NativeCamera] OCR failed:', ocrErr)

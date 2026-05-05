@@ -93,7 +93,8 @@ export async function getBoothHistory(boothCode, limit = 6) {
   const rows = (data || []).reverse()
   return rows.map((current, i) => {
     const previous = rows[i - 1]
-    if (!previous) return { ...current, in_diff: 0, out_diff: 0, revenue: 0 }
+    // 先頭レコード: ウィンドウ外の前回値との差分は DB 保存値をそのまま使う
+    if (!previous) return current
     if (current.in_meter == null || previous.in_meter == null) return current
     const in_diff = Number(current.in_meter) - Number(previous.in_meter)
     const out_diff = current.out_meter != null && previous.out_meter != null
