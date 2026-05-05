@@ -10,9 +10,6 @@ import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
 
 import OcrCaptureScreen from '../components/OcrCaptureScreen'
-import NativeCamera from '../components/NativeCamera'
-
-const USE_NEW_CAMERA = import.meta.env.VITE_USE_NEW_CAMERA !== 'false'
 import PatrolHeader    from '../components/PatrolHeader'
 import PrevRow         from '../components/PrevRow'
 import MeterInputRow   from '../components/MeterInputRow'
@@ -64,10 +61,7 @@ export default function PatrolPage() {
   const [showOcr, setShowOcr] = useState(false)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
-  const nativeCamRef = useRef(null)
-  const onCamera = useCallback(() => {
-    if (USE_NEW_CAMERA) { nativeCamRef.current?.trigger() } else { setShowOcr(true) }
-  }, [])
+  const onCamera = useCallback(() => { setShowOcr(true) }, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -218,12 +212,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     if (pUrl) setPhotoUrl(pUrl)
     if (cUrl) setCroppedPhotoUrl(cUrl)
     setShowOcr(false)
-  }
-
-  function handleNativeCameraResult({ extractedNumber, photoUrl: pUrl, croppedPhotoUrl: cUrl }) {
-    if (extractedNumber !== null && extractedNumber !== undefined) setPatrolIn(String(extractedNumber))
-    if (pUrl) setPhotoUrl(pUrl)
-    if (cUrl) setCroppedPhotoUrl(cUrl)
   }
 
   async function handleSave() {
@@ -583,7 +571,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
 
     </div>
 
-    {showOcr && !USE_NEW_CAMERA && (
+    {showOcr && (
       <OcrCaptureScreen
         boothCode={booth.booth_code}
         machineInfo={machineInfo}
@@ -592,13 +580,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         mode={outCount >= 2 ? 'three' : 'single'}
         onConfirm={handleOcrApply}
         onCancel={() => setShowOcr(false)}
-      />
-    )}
-    {USE_NEW_CAMERA && (
-      <NativeCamera
-        ref={nativeCamRef}
-        onOcrResult={handleNativeCameraResult}
-        storagePrefix={`meter-captures/${booth?.store_code || 'unknown'}/${booth?.booth_code || 'unknown'}/${new Date().toISOString().slice(0, 10)}`}
       />
     )}
 

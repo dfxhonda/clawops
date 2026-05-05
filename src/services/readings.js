@@ -55,8 +55,38 @@ export async function getBoothHistory(boothId, limit = 10) {
   return data || []
 }
 
+// ブース指定の全読み値を取得（店舗スコープに限定、全件キャッシュ不使用）
+// MachineList や getLastReadingsMap から使用。boothIds は booth_id 列の値
+export async function fetchReadingsByBoothIds(boothIds) {
+  if (!boothIds.length) return []
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select('reading_id, booth_id, full_booth_code, patrol_date, read_time, in_meter, out_meter, prize_restock_count, prize_stock_count, prize_name, set_a, set_c, set_l, set_r, set_o, note, source')
+    .in('booth_id', boothIds)
+    .order('patrol_date', { ascending: true, nullsFirst: true })
+    .order('read_time', { ascending: true })
+  if (error) { console.error('fetchReadingsByBoothIds error:', error.message); return [] }
+  return (data || []).map(r => ({
+    reading_id: r.reading_id,
+    booth_id: r.booth_id || '',
+    full_booth_code: r.full_booth_code || '',
+    patrol_date: r.patrol_date || '',
+    read_time: r.read_time || '',
+    in_meter: r.in_meter != null ? String(r.in_meter) : '',
+    out_meter: r.out_meter != null ? String(r.out_meter) : '',
+    prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+    prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+    prize_name: r.prize_name || '',
+    set_a: r.set_a || '', set_c: r.set_c || '', set_l: r.set_l || '',
+    set_r: r.set_r || '', set_o: r.set_o || '',
+    note: r.note || '', source: r.source || 'manual',
+  }))
+}
+
+// ブースIDリストに対して { latest, last } マップを返す
+// 全件キャッシュ(getAllMeterReadings)の代わりにブース指定クエリを使用
 export async function getLastReadingsMap(boothIds) {
-  const all = await getAllMeterReadings()
+  const all = await fetchReadingsByBoothIds(boothIds)
   const map = {}
   for (const id of boothIds) {
     const rows = all.filter(r => String(r.booth_id) === String(id))

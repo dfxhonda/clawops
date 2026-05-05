@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getMachines, getStores, getBooths } from '../../services/masters'
-import { getAllMeterReadings } from '../../services/readings'
+import { getStores } from '../../services/masters'
+import { getPatrolMachines } from '../../services/patrol'
+import { fetchReadingsByBoothIds } from '../../services/readings'
 import { parseNum } from '../../services/utils'
 import { getPublishedModelIds } from '../../services/manuals'
 
@@ -16,37 +17,44 @@ export default function MachineList() {
 
   useEffect(() => {
     async function load() {
-      const [allMachines, stores, allReadings, pubIds] = await Promise.all([
-        getMachines(storeId), getStores(), getAllMeterReadings(), getPublishedModelIds()
+      // getPatrolMachines は booths 込みで1クエリ。N+1の getBooths 呼び出しを排除
+      const [allMachines, stores, pubIds] = await Promise.all([
+        getPatrolMachines(storeId), getStores(), getPublishedModelIds()
       ])
       setMachines(allMachines)
       setPublishedModelIds(pubIds)
       const store = stores.find(x => String(x.store_code) === String(storeId))
       if (store) setStoreName(store.store_name)
 
-      const allBooths = await Promise.all(allMachines.map(m => getBooths(m.machine_code)))
+      // 全ブースコードを収集してターゲット読み値クエリ（全件キャッシュ不使用）
+      const allBoothCodes = allMachines.flatMap(m => (m.booths || []).map(b => b.booth_code))
+      const allReadings = await fetchReadingsByBoothIds(allBoothCodes)
+
+      const defaultPrice = m => parseNum(m.machine_models?.[0]?.meter_unit_price || '100')
       const stats = {}
-      allMachines.forEach((m, i) => {
-        const booths = allBooths[i]
+      for (const m of allMachines) {
+        const booths = m.booths || []
         let totalDiff = 0, inputCount = 0
         for (const booth of booths) {
           const br = allReadings.filter(r => String(r.booth_id) === String(booth.booth_code))
           if (br.length >= 2) {
-            const prev = parseNum(br[br.length-2].in_meter)
-            const curr = parseNum(br[br.length-1].in_meter)
+            const prev = parseNum(br[br.length - 2].in_meter)
+            const curr = parseNum(br[br.length - 1].in_meter)
             if (!isNaN(prev) && !isNaN(curr) && curr >= prev) {
               totalDiff += curr - prev
               inputCount++
             }
           } else if (br.length === 1) inputCount++
         }
-        const lastRead = booths[0] && allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_code)).slice(-1)[0]
+        const lastRead = booths[0]
+          ? allReadings.filter(r => String(r.booth_id) === String(booths[0].booth_code)).slice(-1)[0]
+          : null
         stats[m.machine_code] = {
           inputCount, totalBooths: booths.length,
-          totalDiff, totalSales: totalDiff * (parseNum(m.default_price) || 100),
-          lastReadTime: lastRead?.read_time?.slice(0,10)||''
+          totalDiff, totalSales: totalDiff * defaultPrice(m),
+          lastReadTime: lastRead?.read_time?.slice(0, 10) || '',
         }
-      })
+      }
       setMachineStats(stats)
       setLoading(false)
     }
@@ -88,7 +96,7 @@ export default function MachineList() {
         {machines.map(m => {
           const stat = machineStats[m.machine_code]
           const done = stat?.inputCount || 0
-          const total = stat?.totalBooths || Number(m.booth_count)
+          const total = stat?.totalBooths || (m.booths?.length ?? 0)
           const allDone = done >= total
           const sales = stat?.totalSales || 0
           const diff = stat?.totalDiff || 0
