@@ -68,9 +68,9 @@
 
 - [x] **1.5** 店舗ダッシュ画面 `/clawsupport/store/:storeId`
   - ClawsupportStoreDash.jsx で実装済み：4タイル、進捗サマリ、準備中トースト ✅
-- [ ] **1.6** 既存パトロール画面を店舗ダッシュに接続
+- [x] **1.6** 既存パトロール画面を店舗ダッシュに接続
   - `/clawsupport/store/:storeId/patrol` 正規パスは接続済み ✅
-  - 旧 `/patrol/overview` (PatrolOverview) の廃止/リダイレクト → 要検討
+  - `/patrol/overview` → `/clawsupport` へリダイレクト ✅（PatrolOverview 廃止）
 - [ ] **1.7** タナサポ店舗ダッシュ設計・実装
   - 棚卸し画面を `/tanasupport/store/:storeCode/stocktake/:sessionId` に整合
   - 入荷チェック（v1.4 module）の設計書作成
@@ -94,7 +94,7 @@
 - [x] `feature_flags` テーブル作成（supabase/migrations/20260505001000_add_feature_flags.sql）
 - [x] `src/hooks/useFeatureFlag.js` 作成（Supabase参照 + Kill Switch対応）
 - [x] Vercel 環境変数 `VITE_FF_KILL_<FLAG_KEY_UPPER>=true` Kill Switch 対応
-- [ ] ど安定ver5点を Feature Flag でガード（useFeatureFlag('patrol_core') 等を各画面に組み込む）
+- [x] ど安定ver5点を Feature Flag でガード（PatrolPage + BoothInput の handleSave に patrol_core チェック追加）
 
 ---
 
