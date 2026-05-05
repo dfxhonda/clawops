@@ -11,7 +11,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "release": "bash scripts/release.sh"
+    "release": "bash scripts/release.sh",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -49,7 +50,10 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "happy-dom": "^20.8.9",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.1",
+    "lint-staged": "^16.4.0",
+    "msw": "^2.14.3",
     "tailwindcss": "^4.2.1",
     "vitest": "^4.1.2"
   }

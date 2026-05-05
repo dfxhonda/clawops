@@ -1,0 +1,3 @@
+#!/bin/sh
+# pre-push: ユニット + E2E フルセット（push 前の品質ゲート）
+npm test -- --run && npm run test:e2e

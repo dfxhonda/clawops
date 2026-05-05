@@ -224,7 +224,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
 
         {/* シャッターボタン (停止画像なし時のみ) */}
         {!capturedImage && ocrStatus !== 'loading' && (
-          <button onClick={shutter}
+          <button onClick={shutter} aria-label="シャッター"
             className="absolute bottom-3 left-1/2 -translate-x-1/2 w-14 h-14 bg-white border-4 border-slate-700 rounded-full active:scale-90 transition-transform"
           />
         )}
