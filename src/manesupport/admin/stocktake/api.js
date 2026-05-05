@@ -13,10 +13,16 @@ export async function getAllSessions() {
 export async function getStores() {
   const { data, error } = await supabase
     .from('stores')
-    .select('store_code, store_name')
-    .order('store_code')
+    .select('store_code, store_name, locality, locality_kana')
+    .eq('is_active', true)
+    .order('locality_kana', { nullsLast: true })
   if (error) throw error
-  return data ?? []
+  return (data ?? []).map(r => ({
+    store_code: r.store_code,
+    store_name: r.store_name,
+    locality: r.locality ?? '',
+    locality_kana: r.locality_kana ?? '',
+  }))
 }
 
 export async function getStaff() {

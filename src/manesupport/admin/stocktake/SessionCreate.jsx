@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../hooks/useAuth'
 import { createSession, getStaff, getStores } from './api'
+import StoreSelectSheet, { StoreSelectTrigger } from '../../../shared/ui/StoreSelectSheet'
 
 export default function SessionCreate() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function SessionCreate() {
   const [error, setError] = useState('')
 
   const [storeCode, setStoreCode]       = useState('')
+  const [sheetOpen, setSheetOpen]       = useState(false)
   const [sessionName, setSessionName]   = useState('')
   const [startDate, setStartDate]       = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }))
   const [endDate, setEndDate]           = useState('')
@@ -75,16 +77,17 @@ export default function SessionCreate() {
       <div className="px-5 space-y-5 pb-32">
         <div>
           <label className="text-[10px] text-muted font-bold uppercase tracking-wider">店舗 *</label>
-          <select
-            value={storeCode}
-            onChange={e => setStoreCode(e.target.value)}
-            className="w-full mt-1.5 px-3 py-2.5 rounded-xl border border-border bg-surface text-text text-sm outline-none [color-scheme:dark]"
-          >
-            <option value="">選択してください</option>
-            {stores.map(s => (
-              <option key={s.store_code} value={s.store_code}>{s.store_name}</option>
-            ))}
-          </select>
+          <StoreSelectTrigger
+            storeName={stores.find(s => s.store_code === storeCode)?.store_name}
+            onClick={() => setSheetOpen(true)}
+            className="w-full mt-1.5"
+          />
+          <StoreSelectSheet
+            open={sheetOpen}
+            onClose={() => setSheetOpen(false)}
+            stores={stores}
+            onSelect={setStoreCode}
+          />
         </div>
 
         <div>

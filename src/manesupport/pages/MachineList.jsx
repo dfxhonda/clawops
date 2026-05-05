@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 import {
   getAllStores,
   getMachineModels,
@@ -96,6 +97,7 @@ export default function AdminMachineList() {
   const [storeCode, setStoreCode] = useState(
     () => sessionStorage.getItem('admin_machine_store') || ''
   )
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [machineModels, setMachineModels] = useState([])
   const [machines, setMachines] = useState([])
   const [loading, setLoading] = useState(false)
@@ -264,18 +266,17 @@ export default function AdminMachineList() {
       {/* Store selector */}
       <div className="mx-4 mt-4">
         <label className="block text-xs text-muted mb-1">店舗を選択</label>
-        <select
-          value={storeCode}
-          onChange={e => setStoreCode(e.target.value)}
-          className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
-        >
-          <option value="">— 店舗を選択してください —</option>
-          {stores.map(s => (
-            <option key={s.store_code} value={s.store_code}>
-              {s.store_name}（{s.store_code}）
-            </option>
-          ))}
-        </select>
+        <StoreSelectTrigger
+          storeName={stores.find(s => s.store_code === storeCode)?.store_name}
+          onClick={() => setSheetOpen(true)}
+          className="w-full"
+        />
+        <StoreSelectSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          stores={stores}
+          onSelect={code => { setStoreCode(code); sessionStorage.setItem('admin_machine_store', code) }}
+        />
       </div>
 
       {/* Add machine form */}

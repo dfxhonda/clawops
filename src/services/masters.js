@@ -9,13 +9,15 @@ export async function getStores() {
   if (getCache('stores')) return getCache('stores')
   const { data, error } = await supabase
     .from('stores')
-    .select('store_code, store_name, is_active')
+    .select('store_code, store_name, locality, locality_kana, is_active')
     .eq('is_active', true)
     .order('store_name')
   if (error) { console.error('stores取得エラー:', error.message); return [] }
   const result = data.map(r => ({
     store_code: r.store_code,
     store_name: r.store_name,
+    locality: r.locality ?? '',
+    locality_kana: r.locality_kana ?? '',
     active_flag: r.is_active ? 1 : 0,
   }))
   setCache('stores', result)
@@ -258,11 +260,16 @@ export async function deleteMachine(machineCode) {
 export async function getAllStores() {
   const { data, error } = await supabase
     .from('stores')
-    .select('store_code, store_name, is_active')
+    .select('store_code, store_name, locality, locality_kana, is_active')
     .eq('is_active', true)
     .order('store_code')
   if (error) { console.error('stores取得エラー:', error.message); return [] }
-  return data.map(r => ({ store_code: r.store_code, store_name: r.store_name }))
+  return data.map(r => ({
+    store_code: r.store_code,
+    store_name: r.store_name,
+    locality: r.locality ?? '',
+    locality_kana: r.locality_kana ?? '',
+  }))
 }
 
 // ============================================

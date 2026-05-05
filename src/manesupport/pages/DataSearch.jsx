@@ -6,6 +6,7 @@ import { parseNum } from '../../services/utils'
 import { useAsync } from '../../hooks/useAsync'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
+import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 
 export default function DataSearch() {
   const navigate = useNavigate()
@@ -15,6 +16,7 @@ export default function DataSearch() {
   const [successMsg, setSuccessMsg] = useState('')
   const { loading: saving, execute, errorProps } = useAsync()
   const [filterStore, setFilterStore] = useState(() => sessionStorage.getItem('clawops_selected_store') || '')
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [filterBooth, setFilterBooth] = useState('')
   const [filterPrize, setFilterPrize] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
@@ -196,10 +198,11 @@ export default function DataSearch() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div className="text-[10px] text-muted uppercase tracking-wider mb-1">店舗</div>
-              <select className={selectCls} value={filterStore} onChange={e=>handleStoreChange(e.target.value)}>
-                <option value="">-- 店舗を選択 --</option>
-                {stores.map(s=><option key={s.store_id} value={s.store_code}>{s.store_name}</option>)}
-              </select>
+              <StoreSelectTrigger
+                storeName={stores.find(s => s.store_code === filterStore)?.store_name}
+                onClick={() => setSheetOpen(true)}
+                className="w-full"
+              />
             </div>
             <div>
               <div className="text-[10px] text-muted uppercase tracking-wider mb-1">ブース</div>
@@ -238,24 +241,24 @@ export default function DataSearch() {
         )}
       </div>
 
-      {/* 店舗選択グリッド（店舗未選択時・スクロール可能） */}
+      {/* 店舗未選択時: 選択ボタンを表示 */}
       {!filterStore && stores.length > 0 && (
-        <div className="flex-1 overflow-y-auto px-4 pb-6">
-          <div className="flex flex-col items-center pt-8 pb-6">
-            <div className="text-5xl mb-3">🏪</div>
-            <div className="text-[15px] text-muted mb-5">検索する店舗を選択してください</div>
-            <div className="grid grid-cols-1 gap-2.5 w-full max-w-[360px]">
-              {stores.map(s => (
-                <button key={s.store_id} onClick={() => handleStoreChange(s.store_code)}
-                  className="bg-surface border border-border rounded-lg p-4 text-left text-text text-[15px] font-bold cursor-pointer">
-                  {s.store_name}
-                  <div className="text-[11px] text-muted font-normal mt-0.5">{s.store_code}</div>
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <div className="text-5xl">🏪</div>
+          <p className="text-muted text-sm">検索する店舗を選択してください</p>
+          <StoreSelectTrigger
+            onClick={() => setSheetOpen(true)}
+            className="w-64"
+          />
         </div>
       )}
+
+      <StoreSelectSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        stores={stores}
+        onSelect={handleStoreChange}
+      />
 
       {/* スクロール可能なデータリスト（店舗選択済み時のみ） */}
       {filterStore && (
