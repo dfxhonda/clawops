@@ -127,3 +127,55 @@ describe('usePatrolForm — inMeter 初期化', () => {
     expect(result.current.machineInfo.playPrice).toBe('200')
   })
 })
+
+// ── Plan B: machine 引数による getMachineInfo スキップ最適化 ─────────────────────
+describe('usePatrolForm — machine 引数による getMachineInfo スキップ', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getLastReadingV2.mockResolvedValue(null)
+  })
+
+  it('machine が null のとき getMachineInfo が呼ばれる', async () => {
+    getMachineInfo.mockResolvedValue(MOCK_MACHINE_INFO)
+
+    const { result } = renderHook(() => usePatrolForm(MOCK_BOOTH, null))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(getMachineInfo).toHaveBeenCalledWith(MOCK_BOOTH.machine_code)
+  })
+
+  it('machine に machine_types が埋め込まれているとき getMachineInfo を呼ばない', async () => {
+    // getPatrolMachines が返す形式（machine_types / machine_models 埋め込み済み）
+    const machineWithEmbedded = {
+      machine_code: 'TEST01-M01',
+      machine_name: 'テスト機1',
+      store_code: 'TEST01',
+      machine_types: [{ category: 'crane', locker_slots: 0 }],
+      machine_models: [{ out_meter_count: 1, meter_unit_price: 150 }],
+    }
+
+    const { result } = renderHook(() => usePatrolForm(MOCK_BOOTH, machineWithEmbedded))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // DB クエリをスキップ
+    expect(getMachineInfo).not.toHaveBeenCalled()
+  })
+
+  it('machine 埋め込みから正しく machineInfo が導出される', async () => {
+    const machineWithEmbedded = {
+      machine_code: 'TEST01-M01',
+      machine_name: 'テスト機1',
+      store_code: 'TEST01',
+      machine_types: [{ category: 'gacha', locker_slots: 0 }],
+      machine_models: [{ out_meter_count: 2, meter_unit_price: 200 }],
+    }
+
+    const { result } = renderHook(() => usePatrolForm(MOCK_BOOTH, machineWithEmbedded))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.machineInfo.category).toBe('gacha')
+    expect(result.current.machineInfo.outCount).toBe(2)
+    // booth.play_price='100' が優先
+    expect(result.current.machineInfo.playPrice).toBe('100')
+  })
+})

@@ -43,4 +43,25 @@ describe('PatrolHeader', () => {
     )
     expect(getByText('ガチャ')).toBeTruthy()
   })
+
+  it('playPrice が渡されたとき @{n}円 が表示される', () => {
+    const { getByText } = render(
+      <PatrolHeader machineName="テスト機" playPrice={150} />
+    )
+    expect(getByText('@150円')).toBeTruthy()
+  })
+
+  it('playPrice が undefined のとき @{n}円 は表示されない', () => {
+    const { container } = render(
+      <PatrolHeader machineName="テスト機" />
+    )
+    expect(container.textContent).not.toMatch(/@\d+円/)
+  })
+
+  it('playPrice=100 でも表示される（最小単価）', () => {
+    const { getByText } = render(
+      <PatrolHeader machineName="テスト機" playPrice={100} />
+    )
+    expect(getByText('@100円')).toBeTruthy()
+  })
 })

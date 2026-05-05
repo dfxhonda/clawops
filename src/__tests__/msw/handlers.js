@@ -119,9 +119,36 @@ export const handlers = [
     return HttpResponse.json(MOCK_MACHINE_MODELS)
   }),
 
-  // stores — getStores (array)
-  http.get(`${BASE}/rest/v1/stores`, () => {
+  // stores — getStores (array) / createSession (.single())
+  http.get(`${BASE}/rest/v1/stores`, ({ request }) => {
+    if (isSingle(request)) return HttpResponse.json(MOCK_STORES[0])
     return HttpResponse.json(MOCK_STORES)
+  }),
+
+  // locations — createSession で店舗-location マッチング
+  http.get(`${BASE}/rest/v1/locations`, () => {
+    return HttpResponse.json([])
+  }),
+
+  // prize_stocks — createSession でアイテム自動投入用
+  http.get(`${BASE}/rest/v1/prize_stocks`, () => {
+    return HttpResponse.json([])
+  }),
+
+  // stocktake_sessions INSERT (.single())
+  http.post(`${BASE}/rest/v1/stocktake_sessions`, ({ request }) => {
+    if (isSingle(request)) return HttpResponse.json({ session_id: 'sess-test-001' })
+    return HttpResponse.json([{ session_id: 'sess-test-001' }])
+  }),
+
+  // stocktake_items INSERT (bulk, no return value expected)
+  http.post(`${BASE}/rest/v1/stocktake_items`, () => {
+    return new HttpResponse(null, { status: 201 })
+  }),
+
+  // stocktake_sessions GET (getActiveSessions)
+  http.get(`${BASE}/rest/v1/stocktake_sessions`, () => {
+    return HttpResponse.json([])
   }),
 
   // prize_masters — getPrizeMasters (array)
