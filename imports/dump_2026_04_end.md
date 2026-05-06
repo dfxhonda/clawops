@@ -1,0 +1,369 @@
+# 4末付データ取込: Excel構造ダンプ (作業2)
+
+候補ファイル:
+- /Users/dfx/clawops/docs/lists/景品棚卸リスト　3期 (1).xlsx
+- /Users/dfx/clawops/archive/取込/景品棚卸リスト　3期.xlsx
+
+### /Users/dfx/clawops/docs/lists/景品棚卸リスト　3期 (1).xlsx
+- size: 197,835 bytes / mtime: 2026-05-02T03:59:13.473784
+- sheet_names (11): ['本田', '吉井', '中島', '久留米 ', '久留米(ドンキ景品)', '飯塚', '堤', '鹿児島', '塩川', '坂本', '合計']
+
+#### sheet: 本田
+- max_row x max_col: 131 x 20
+- merged_cells_total: 0 (上位30: []...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額', None, None, None, None, None, None, None, None, None, None, None, None]
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row4: [None, None, None, None, 0, 0, 1846, 1800520, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row5: ['合志', 'ガチャコロ２', 'スイッチ2本体', 49980, None, None, 1, 49980, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row6: [None, None, 'スイッチ本体', 39800, None, None, 1, 39800, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row7: [None, None, 'instax', 19800, None, None, 1, 19800, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row8: [None, None, 'fire11max', 39800, None, None, 1, 39800, None, None, None, None, None, None, None, None, None, None, None, None]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 7, 'col_1': 10, 'col_2': 86, 'col_3': 86, 'col_4': 3, 'col_5': 2, 'col_6': 88, 'col_7': 118}
+
+#### sheet: 吉井
+- max_row x max_col: 120 x 8
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None]
+  - row4: [None, None, None, None, None, None, None, 2713894]
+  - row5: ['鞍手', 'ガチャコロ2', 'A景品', 1050, None, None, 2, 2100]
+  - row6: [None, 'ガチャコロ2', '1000円カプセル景品', 150, None, None, 142, 21300]
+  - row7: [None, 'ガチャコロ2', '2000円カプセル景品', 450, None, None, 132, 59400]
+  - row8: [None, 'ガチャコロ2', 'ｐｓ5デジタル', 60000, None, None, 1, 60000]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 8, 'col_1': 97, 'col_2': 106, 'col_3': 106, 'col_4': 2, 'col_5': 1, 'col_6': 106, 'col_7': 117}
+
+#### sheet: 中島
+- max_row x max_col: 103 x 26
+- merged_cells_total: 18 (上位30: ['T2:T3', 'E2:G2', 'S2:S3', 'N2:P2', 'C2:C3', 'W2:Y2', 'D2:D3', 'Z2:Z3']...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None, None, 46081, None, None, None, None, None, None, None, None, 46112, None, None, None, None, None, None, None]
+  - row2: ['店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額', None, '店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額', None, '店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '手持ち', '倉庫②', '機械内', None, None, None, None, None, None, '手持ち', '倉庫②', '機械内', None, None, None, None, None, None, '手持ち', '倉庫②', '機械内', None]
+  - row4: ['\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', 952171, None, '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', 1266633, None, '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', 1137158]
+  - row5: ['八女店', 'PS5', 'ガチャコロ（2000）', 70000, '\u3000', '\u3000', 1, 70000, None, 'ドンキ八女店', 'PS5', 'ガチャコロ（2000）', 70000, None, None, 1, 70000, None, 'ドンキ八女店', 'PS5', 'ガチャコロ（2000）', 70000, None, None, 1, 70000]
+  - row6: ['\u3000', 'DWリング', 'ガチャコロ（2000）', 10000, '\u3000', '\u3000', 0, 0, None, '\u3000', 'DWリング', 'ガチャコロ（2000）', 10000, None, 1, None, 10000, None, '\u3000', 'ニューモ', 'ガチャコロ（2000）', 7306, None, None, 1, 7306]
+  - row7: ['\u3000', 'UGGブーツ', 'ガチャコロ（2000）', 20000, '\u3000', 1, 0, 20000, None, '\u3000', 'UGGブーツ', 'ガチャコロ（2000）', 20000, None, None, None, 0, None, '\u3000', 'アディダス中国限定トラックジャケット', 'ガチャコロ（2000）', 14000, None, None, 1, 14000]
+  - row8: ['\u3000', 'ラブブBOX', 'ガチャコロ（2000）', 25000, '\u3000', '\u3000', '\u3000', 0, None, '\u3000', 'ラブブBOX', 'ガチャコロ（2000）', 25000, None, None, 1, 25000, None, '\u3000', 'サクセス', 'ガチャコロ（2000）', 5000, None, None, 1, 5000]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'float64', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'object', 'col_13': 'object', 'col_14': 'object', 'col_15': 'object', 'col_16': 'object', 'col_17': 'float64', 'col_18': 'object', 'col_19': 'object', 'col_20': 'object', 'col_21': 'object', 'col_22': 'object', 'col_23': 'object', 'col_24': 'object', 'col_25': 'object'}
+- non_null_counts (first200rows): {'col_0': 76, 'col_1': 98, 'col_2': 82, 'col_3': 98, 'col_4': 98, 'col_5': 75, 'col_6': 101, 'col_7': 101, 'col_8': 0, 'col_9': 74, 'col_10': 75, 'col_11': 75, 'col_12': 75, 'col_13': 20, 'col_14': 8, 'col_15': 63, 'col_16': 75, 'col_17': 0, 'col_18': 66, 'col_19': 67, 'col_20': 67, 'col_21': 67, 'col_22': 14, 'col_23': 3, 'col_24': 67, 'col_25': 68}
+
+#### sheet: 久留米 
+- max_row x max_col: 215 x 26
+- merged_cells_total: 18 (上位30: ['T2:T3', 'E2:G2', 'S2:S3', 'N2:P2', 'C2:C3', 'W2:Y2', 'D2:D3', 'Z2:Z3']...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None, None, 46081, None, None, None, None, None, None, None, None, 46112, None, None, None, None, None, None, None]
+  - row2: ['店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額', None, '店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額', None, '店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None, None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None, None, None, None, None, '倉庫①', '倉庫②', '機械内', None]
+  - row4: [None, None, None, None, None, None, None, 9461050, None, None, None, None, None, None, None, None, 7323379, None, None, None, None, None, None, None, None, 7703370]
+  - row5: [None, 'モンチッチスノーLサイズぬいぐるみ', 'デカクレα', 1183, None, 10, 25, 41405, None, None, 'クレヨンしんちゃん\u3000ふわふわクッションver7', 'デカクレ③', 1100, None, 9, None, 9900, None, None, 'ポケモンキラキラサンシャイン', '100円ガチャ', 120, 0, 0, 56, 6720]
+  - row6: [None, 'クレヨンしんちゃん\u3000ふわふわクッションver7', 'デカクレ③', 1100, None, 10, 6, 17600, None, None, 'クレヨンしんちゃん\u3000フランネルボアブランケット', 'デカクレ③', 1100, None, None, 4, 4400, None, None, 'ﾎﾟｹピースミニクッションマスコット', '100円ガチャ', 180, 0, 7, 0, 1260]
+  - row7: [None, 'クマぬいぐるみ他', 'クレナグラン', 1050, None, None, 30, 31500, None, None, 'クマぬいぐるみ他', 'クレナグラン', 1050, None, None, 22, 23100, None, None, 'パックンチョ\u3000ディズニープリンセス', '100円ガチャ', 180, 0, 0, 115, 20700]
+  - row8: [None, '神袋', 'キューブモール③', 400, 36, None, 107, 57200, None, None, '神袋', 'キューブモール③', 400, 40, None, 99, 55600, None, None, '白くま', '100円ガチャ', 180, 0, 0, 12, 2160]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'float64', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'object', 'col_13': 'object', 'col_14': 'object', 'col_15': 'object', 'col_16': 'object', 'col_17': 'float64', 'col_18': 'object', 'col_19': 'object', 'col_20': 'object', 'col_21': 'object', 'col_22': 'object', 'col_23': 'object', 'col_24': 'object', 'col_25': 'object'}
+- non_null_counts (first200rows): {'col_0': 2, 'col_1': 196, 'col_2': 197, 'col_3': 196, 'col_4': 110, 'col_5': 20, 'col_6': 109, 'col_7': 198, 'col_8': 0, 'col_9': 2, 'col_10': 197, 'col_11': 197, 'col_12': 197, 'col_13': 105, 'col_14': 23, 'col_15': 94, 'col_16': 197, 'col_17': 0, 'col_18': 2, 'col_19': 197, 'col_20': 197, 'col_21': 197, 'col_22': 198, 'col_23': 197, 'col_24': 197, 'col_25': 198}
+
+#### sheet: 久留米(ドンキ景品)
+- max_row x max_col: 52 x 23
+- merged_cells_total: 6 (上位30: ['N1:O1', 'C1:D1', 'V1:W1', 'K1:L1', 'S1:T1', 'F1:G1']...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None, 46081, None, None, None, None, None, None, None, 46112, None, None, None, None, None, None]
+  - row2: ['景品名', '機械名', '単価', '倉庫①', '倉庫②', '機械', '金額', None, '景品名', '機械名', '単価', '倉庫①', '倉庫②', '機械', '金額', None, '景品名', '機械名', '単価', '倉庫①', '倉庫②', '機械', '金額']
+  - row3: [None, None, None, None, None, None, 1410626, None, None, None, None, None, None, None, 874222, None, None, None, None, None, None, None, 1117156]
+  - row4: ['ほっと一息NOODLE CUP', '倉庫②', 1050, None, 30, None, 31500, None, 'ほっと一息NOODLE CUP', '倉庫②', 1050, None, 31, None, 32550, None, 'ほっと一息NOODLE CUP', '倉庫②', 1050, None, 25, None, 26250]
+  - row5: ['５秒でぽかぽかHEATING', '倉庫②', 110, None, 16, None, 1760, None, '５秒でぽかぽかHEATING', '倉庫②', 1050, None, 11, None, 11550, None, '５秒でぽかぽかHEATING', '倉庫②', 1050, None, 5, None, 5250]
+  - row6: ['ジャグラーティッシュクロック', '倉庫②', 1133, None, None, None, 0, None, 'ジャグラーティッシュクロック', '倉庫②', 1050, None, None, None, 0, None, 'ジャグラーティッシュクロック', '倉庫②', 1050, None, 0, None, 0]
+  - row7: ['じゃがりこ\u3000マルチ収納ボックス', '倉庫②', 1100, None, 10, None, 11000, None, 'じゃがりこ\u3000マルチ収納ボックス', '倉庫②', 1050, None, 10, None, 10500, None, 'じゃがりこ\u3000マルチ収納ボックス', '倉庫②', 1050, None, 4, None, 4200]
+  - row8: ['クロミ・ポチャッコ ダストBOX', '倉庫②', 1100, None, 5, None, 5500, None, 'クロミ・ポチャッコ ダストBOX', '倉庫②', 1050, None, None, None, 0, None, 'クロミ・ポチャッコ ダストBOX', '倉庫②', 1050, None, 0, None, 0]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'float64', 'col_8': 'object', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'object', 'col_13': 'object', 'col_14': 'object', 'col_15': 'float64', 'col_16': 'object', 'col_17': 'object', 'col_18': 'object', 'col_19': 'object', 'col_20': 'object', 'col_21': 'object', 'col_22': 'object'}
+- non_null_counts (first200rows): {'col_0': 41, 'col_1': 38, 'col_2': 40, 'col_3': 1, 'col_4': 39, 'col_5': 1, 'col_6': 51, 'col_7': 0, 'col_8': 43, 'col_9': 40, 'col_10': 42, 'col_11': 1, 'col_12': 31, 'col_13': 1, 'col_14': 51, 'col_15': 0, 'col_16': 49, 'col_17': 46, 'col_18': 48, 'col_19': 1, 'col_20': 48, 'col_21': 1, 'col_22': 51}
+
+#### sheet: 飯塚
+- max_row x max_col: 368 x 8
+- merged_cells_total: 0 (上位30: []...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None]
+  - row2: [None, '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②(棚)', '機械内', None]
+  - row4: ['飯塚', None, None, None, None, None, None, 3437686]
+  - row5: [None, 'サンリオ\u3000MCポーチギャル２', 'BUZZミニクレーン①', 1009, 0, 10, 20, 30270]
+  - row6: [None, 'サンリオボアミラーポーチ', 'BUZZミニクレーン②', 1000, 0, 40, 7, 47000]
+  - row7: [None, 'AIモンスターぬいぐるみ15種', 'BUZZミニクレーン③', 500, 0, 128, 18, 73000]
+  - row8: [None, 'PIN\u3000FOR\u3000LOVE\u3000ラブブ', 'BUZZミニクレーン④', 2622, 0, 0, 14, 36708]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 4, 'col_1': 192, 'col_2': 143, 'col_3': 192, 'col_4': 194, 'col_5': 191, 'col_6': 192, 'col_7': 194}
+
+#### sheet: 堤
+- max_row x max_col: 303 x 8
+- merged_cells_total: 0 (上位30: []...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None]
+  - row2: ['店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②(棚)', '機械内', 1923889]
+  - row4: ['小倉1000円ガチャ', 'A景品', 'ティアラ1000', 1050, 0, 0, 4, 4200]
+  - row5: [None, '1000円カプセル景品', 'ティアラ1000', 150, 0, 0, 126, 18900]
+  - row6: [None, 'スイッチライト本体', 'ティアラ1000', 21970, 0, 0, 2, 43940]
+  - row7: [None, 'スイッチソフト', 'ティアラ1000', 5600, 0, 0, 4, 22400]
+  - row8: [None, 'ＮＩＫＥスニーカー', 'ティアラ1000', 21970, 1, 0, 0, 21970]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 17, 'col_1': 182, 'col_2': 180, 'col_3': 182, 'col_4': 135, 'col_5': 129, 'col_6': 181, 'col_7': 192}
+
+#### sheet: 鹿児島
+- max_row x max_col: 276 x 8
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None]
+  - row4: [None, None, None, None, 2381, 1084, 3091, 4332895]
+  - row5: ['鹿屋', '1000GATCHA(2000)', 'スイッチ本体', 39800, None, None, 1, 39800]
+  - row6: [None, None, 'NIKEスニーカー', 20000, None, None, 1, 20000]
+  - row7: [None, None, 'ブランドコスメ', 5000, None, None, None, 0]
+  - row8: [None, None, 'シュプリームバッグ', 29800, None, None, 3, 89400]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 9, 'col_1': 16, 'col_2': 172, 'col_3': 144, 'col_4': 63, 'col_5': 38, 'col_6': 80, 'col_7': 178}
+
+#### sheet: 塩川
+- max_row x max_col: 63 x 9
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額', None]
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None]
+  - row4: [None, None, None, None, 0, 0, 0, 181061, None]
+  - row5: ['西新', None, '機械内景品', None, None, None, None, 53097, '詳細は別紙']
+  - row6: [None, None, None, None, None, None, None, 0, None]
+  - row7: [None, None, None, None, None, None, None, 0, None]
+  - row8: ['浜の町', None, '機械内景品', None, None, None, None, 65742, '詳細は別紙']
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'object'}
+- non_null_counts (first200rows): {'col_0': 6, 'col_1': 3, 'col_2': 4, 'col_3': 1, 'col_4': 3, 'col_5': 2, 'col_6': 2, 'col_7': 61, 'col_8': 3}
+
+#### sheet: 坂本
+- max_row x max_col: 373 x 9
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額', None]
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None]
+  - row4: [None, None, None, None, None, None, None, 2510491, None]
+  - row5: ['福重', 'BUZZクレーン他', 'クレーン景品', None, None, None, None, 688594, '詳細は別表']
+  - row6: [None, '500GACHA', 'カプセル景品', 55, None, None, 150, 8250, None]
+  - row7: [None, None, 'A景品', 1050, None, None, 3, 3150, None]
+  - row8: [None, None, 'スイッチソフト', 5500, None, None, None, 0, None]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'object'}
+- non_null_counts (first200rows): {'col_0': 8, 'col_1': 14, 'col_2': 136, 'col_3': 63, 'col_4': 2, 'col_5': 1, 'col_6': 122, 'col_7': 188, 'col_8': 5}
+
+#### sheet: 合計
+- max_row x max_col: 13 x 32
+- merged_cells_total: 6 (上位30: ['I1:L1', 'N1:Q1', 'D1:G1', 'X1:AA1', 'AC1:AF1', 'S1:V1']...)
+- head rows (1-8):
+  - row1: [45930, None, None, 45961, None, None, None, None, 45991, None, None, None, None, 46022, None, None, None, None, 46053, None, None, None, None, 46081, None, None, None, None, 46112, None, None, None]
+  - row2: [None, '棚卸額', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比']
+  - row3: ['本田', 3993973, None, '本田', None, -3993973, 0, None, '本田', None, 0, '#DIV/0!', None, '本田', None, 0, '#DIV/0!', None, '本田', None, 0, '#DIV/0!', None, '本田', None, 0, '#DIV/0!', None, '本田', 0, 0, '#DIV/0!']
+  - row4: ['吉井', 2540534, None, '吉井', None, -2540534, 0, None, '吉井', None, 0, '#DIV/0!', None, '吉井', None, 0, '#DIV/0!', None, '吉井', None, 0, '#DIV/0!', None, '吉井', None, 0, '#DIV/0!', None, '吉井', 0, 0, '#DIV/0!']
+  - row5: ['中島', 1619867, None, '中島', None, -1619867, 0, None, '中島', None, 0, '#DIV/0!', None, '中島', None, 0, '#DIV/0!', None, '中島', None, 0, '#DIV/0!', None, '中島', None, 0, '#DIV/0!', None, '中島', '\u3000', '#VALUE!', '#VALUE!']
+  - row6: ['堤', 1923889, None, '堤', None, None, None, None, '堤', None, 0, None, None, '堤', None, 0, None, None, '堤', None, 0, '#DIV/0!', None, '堤', None, 0, '#DIV/0!', None, '堤', 0, 0, '#DIV/0!']
+  - row7: ['塩川', 181061, None, '塩川', None, None, None, None, '塩川', None, None, None, None, '塩川', None, None, None, None, '塩川', None, None, None, None, '塩川', None, 0, '#DIV/0!', None, '塩川', None, None, None]
+  - row8: ['坂本', 3555420, None, '坂本', None, -3555420, 0, None, '坂本', None, 0, '#DIV/0!', None, '坂本', None, 0, '#DIV/0!', None, '坂本', None, 0, '#DIV/0!', None, '坂本', None, 0, '#DIV/0!', None, '坂本', 0, 0, '#DIV/0!']
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'float64', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'float64', 'col_8': 'object', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'float64', 'col_13': 'object', 'col_14': 'object', 'col_15': 'object', 'col_16': 'object', 'col_17': 'float64', 'col_18': 'object', 'col_19': 'object', 'col_20': 'object', 'col_21': 'object', 'col_22': 'float64', 'col_23': 'object', 'col_24': 'object', 'col_25': 'object', 'col_26': 'object', 'col_27': 'float64', 'col_28': 'object', 'col_29': 'object', 'col_30': 'object', 'col_31': 'object'}
+- non_null_counts (first200rows): {'col_0': 11, 'col_1': 11, 'col_2': 0, 'col_3': 11, 'col_4': 2, 'col_5': 9, 'col_6': 9, 'col_7': 0, 'col_8': 11, 'col_9': 2, 'col_10': 10, 'col_11': 1, 'col_12': 0, 'col_13': 11, 'col_14': 2, 'col_15': 10, 'col_16': 1, 'col_17': 0, 'col_18': 11, 'col_19': 2, 'col_20': 10, 'col_21': 1, 'col_22': 0, 'col_23': 11, 'col_24': 2, 'col_25': 12, 'col_26': 1, 'col_27': 0, 'col_28': 11, 'col_29': 8, 'col_30': 7, 'col_31': 1}
+
+---
+
+### /Users/dfx/clawops/archive/取込/景品棚卸リスト　3期.xlsx
+- size: 159,325 bytes / mtime: 2026-03-12T11:43:14
+- sheet_names (11): ['本田', '吉井', '中島', '久留米 ', '久留米(ドンキ景品)', '飯塚', '堤', '鹿児島', '塩川', '坂本', '合計']
+
+#### sheet: 本田
+- max_row x max_col: 131 x 20
+- merged_cells_total: 0 (上位30: []...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額', None, None, None, None, None, None, None, None, None, None, None, None]
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row4: [None, None, None, None, 0, 0, 1846, 1800520, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row5: ['合志', 'ガチャコロ２', 'スイッチ2本体', 49980, None, None, 1, 49980, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row6: [None, None, 'スイッチ本体', 39800, None, None, 1, 39800, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row7: [None, None, 'instax', 19800, None, None, 1, 19800, None, None, None, None, None, None, None, None, None, None, None, None]
+  - row8: [None, None, 'fire11max', 39800, None, None, 1, 39800, None, None, None, None, None, None, None, None, None, None, None, None]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 7, 'col_1': 10, 'col_2': 86, 'col_3': 86, 'col_4': 3, 'col_5': 2, 'col_6': 88, 'col_7': 118}
+
+#### sheet: 吉井
+- max_row x max_col: 120 x 8
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None]
+  - row4: [None, None, None, None, None, None, None, 2713894]
+  - row5: ['鞍手', 'ガチャコロ2', 'A景品', 1050, None, None, 2, 2100]
+  - row6: [None, 'ガチャコロ2', '1000円カプセル景品', 150, None, None, 142, 21300]
+  - row7: [None, 'ガチャコロ2', '2000円カプセル景品', 450, None, None, 132, 59400]
+  - row8: [None, 'ガチャコロ2', 'ｐｓ5デジタル', 60000, None, None, 1, 60000]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 8, 'col_1': 97, 'col_2': 106, 'col_3': 106, 'col_4': 2, 'col_5': 1, 'col_6': 106, 'col_7': 117}
+
+#### sheet: 中島
+- max_row x max_col: 103 x 17
+- merged_cells_total: 12 (上位30: ['E2:G2', 'N2:P2', 'C2:C3', 'J2:J3', 'M2:M3', 'B2:B3', 'A2:A3', 'Q2:Q3']...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None, None, 46081, None, None, None, None, None, None, None]
+  - row2: ['店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額', None, '店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '手持ち', '倉庫②', '機械内', None, None, None, None, None, None, '手持ち', '倉庫②', '機械内', None]
+  - row4: ['\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', 952171, None, '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', '\u3000', 1266633]
+  - row5: ['八女店', 'PS5', 'ガチャコロ（2000）', 70000, '\u3000', '\u3000', 1, 70000, None, 'ドンキ八女店', 'PS5', 'ガチャコロ（2000）', 70000, None, None, 1, 70000]
+  - row6: ['\u3000', 'DWリング', 'ガチャコロ（2000）', 10000, '\u3000', '\u3000', 0, 0, None, '\u3000', 'DWリング', 'ガチャコロ（2000）', 10000, None, 1, None, 10000]
+  - row7: ['\u3000', 'UGGブーツ', 'ガチャコロ（2000）', 20000, '\u3000', 1, 0, 20000, None, '\u3000', 'UGGブーツ', 'ガチャコロ（2000）', 20000, None, None, None, 0]
+  - row8: ['\u3000', 'ラブブBOX', 'ガチャコロ（2000）', 25000, '\u3000', '\u3000', '\u3000', 0, None, '\u3000', 'ラブブBOX', 'ガチャコロ（2000）', 25000, None, None, 1, 25000]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'float64', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'object', 'col_13': 'object', 'col_14': 'object', 'col_15': 'object', 'col_16': 'object'}
+- non_null_counts (first200rows): {'col_0': 76, 'col_1': 98, 'col_2': 82, 'col_3': 98, 'col_4': 98, 'col_5': 75, 'col_6': 101, 'col_7': 101, 'col_8': 0, 'col_9': 74, 'col_10': 75, 'col_11': 75, 'col_12': 75, 'col_13': 20, 'col_14': 8, 'col_15': 63, 'col_16': 75}
+
+#### sheet: 久留米 
+- max_row x max_col: 215 x 17
+- merged_cells_total: 12 (上位30: ['E2:G2', 'N2:P2', 'C2:C3', 'J2:J3', 'M2:M3', 'B2:B3', 'A2:A3', 'Q2:Q3']...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None, None, 46081, None, None, None, None, None, None, None]
+  - row2: ['店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額', None, '店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None, None, None, None, None, '倉庫①', '倉庫②', '機械内', None]
+  - row4: [None, None, None, None, None, None, None, 9461050, None, None, None, None, None, None, None, None, 7323379]
+  - row5: [None, 'モンチッチスノーLサイズぬいぐるみ', 'デカクレα', 1183, None, 10, 25, 41405, None, None, 'クレヨンしんちゃん\u3000ふわふわクッションver7', 'デカクレ③', 1100, None, 9, None, 9900]
+  - row6: [None, 'クレヨンしんちゃん\u3000ふわふわクッションver7', 'デカクレ③', 1100, None, 10, 6, 17600, None, None, 'クレヨンしんちゃん\u3000フランネルボアブランケット', 'デカクレ③', 1100, None, None, 4, 4400]
+  - row7: [None, 'クマぬいぐるみ他', 'クレナグラン', 1050, None, None, 30, 31500, None, None, 'クマぬいぐるみ他', 'クレナグラン', 1050, None, None, 22, 23100]
+  - row8: [None, '神袋', 'キューブモール③', 400, 36, None, 107, 57200, None, None, '神袋', 'キューブモール③', 400, 40, None, 99, 55600]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'float64', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'object', 'col_13': 'object', 'col_14': 'object', 'col_15': 'object', 'col_16': 'object'}
+- non_null_counts (first200rows): {'col_0': 2, 'col_1': 196, 'col_2': 197, 'col_3': 196, 'col_4': 110, 'col_5': 20, 'col_6': 109, 'col_7': 198, 'col_8': 0, 'col_9': 2, 'col_10': 197, 'col_11': 197, 'col_12': 197, 'col_13': 105, 'col_14': 23, 'col_15': 94, 'col_16': 197}
+
+#### sheet: 久留米(ドンキ景品)
+- max_row x max_col: 47 x 15
+- merged_cells_total: 4 (上位30: ['C1:D1', 'N1:O1', 'F1:G1', 'K1:L1']...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None, 46081, None, None, None, None, None, None]
+  - row2: ['景品名', '機械名', '単価', '倉庫①', '倉庫②', '機械', '金額', None, '景品名', '機械名', '単価', '倉庫①', '倉庫②', '機械', '金額']
+  - row3: [None, None, None, None, None, None, 1413176, None, None, None, None, None, None, None, 964222]
+  - row4: ['ほっと一息NOODLE CUP', '倉庫②', 1050, None, 30, None, 31500, None, 'ほっと一息NOODLE CUP', '倉庫②', 1050, None, 31, None, 32550]
+  - row5: ['５秒でぽかぽかHEATING', '倉庫②', 110, None, 16, None, 1760, None, '５秒でぽかぽかHEATING', '倉庫②', 1050, None, 11, None, 11550]
+  - row6: ['ジャグラーティッシュクロック', '倉庫②', 1133, None, None, None, 0, None, 'ジャグラーティッシュクロック', '倉庫②', 1050, None, None, None, 0]
+  - row7: ['じゃがりこ\u3000マルチ収納ボックス', '倉庫②', 1100, None, 10, None, 11000, None, 'じゃがりこ\u3000マルチ収納ボックス', '倉庫②', 1050, None, 10, None, 10500]
+  - row8: ['クロミ・ポチャッコ ダストBOX', '倉庫②', 1100, None, 5, None, 5500, None, 'クロミ・ポチャッコ ダストBOX', '倉庫②', 1050, None, None, None, 0]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'float64', 'col_8': 'object', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'object', 'col_13': 'object', 'col_14': 'object'}
+- non_null_counts (first200rows): {'col_0': 42, 'col_1': 39, 'col_2': 41, 'col_3': 1, 'col_4': 40, 'col_5': 1, 'col_6': 46, 'col_7': 0, 'col_8': 44, 'col_9': 41, 'col_10': 43, 'col_11': 1, 'col_12': 32, 'col_13': 1, 'col_14': 46}
+
+#### sheet: 飯塚
+- max_row x max_col: 266 x 8
+- merged_cells_total: 0 (上位30: []...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None]
+  - row2: [None, '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②(棚)', '機械内', None]
+  - row4: ['飯塚', None, None, None, None, None, None, 3437686]
+  - row5: [None, 'サンリオ\u3000MCポーチギャル２', 'BUZZミニクレーン①', 1009, 0, 10, 20, 30270]
+  - row6: [None, 'サンリオボアミラーポーチ', 'BUZZミニクレーン②', 1000, 0, 40, 7, 47000]
+  - row7: [None, 'AIモンスターぬいぐるみ15種', 'BUZZミニクレーン③', 500, 0, 128, 18, 73000]
+  - row8: [None, 'PIN\u3000FOR\u3000LOVE\u3000ラブブ', 'BUZZミニクレーン④', 2622, 0, 0, 14, 36708]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 4, 'col_1': 192, 'col_2': 143, 'col_3': 192, 'col_4': 194, 'col_5': 191, 'col_6': 192, 'col_7': 194}
+
+#### sheet: 堤
+- max_row x max_col: 194 x 8
+- merged_cells_total: 0 (上位30: []...)
+- head rows (1-8):
+  - row1: [46053, None, None, None, None, None, None, None]
+  - row2: ['店舗', '景品名', '機械名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②(棚)', '機械内', 1923889]
+  - row4: ['小倉1000円ガチャ', 'A景品', 'ティアラ1000', 1050, 0, 0, 4, 4200]
+  - row5: [None, '1000円カプセル景品', 'ティアラ1000', 150, 0, 0, 126, 18900]
+  - row6: [None, 'スイッチライト本体', 'ティアラ1000', 21970, 0, 0, 2, 43940]
+  - row7: [None, 'スイッチソフト', 'ティアラ1000', 5600, 0, 0, 4, 22400]
+  - row8: [None, 'ＮＩＫＥスニーカー', 'ティアラ1000', 21970, 1, 0, 0, 21970]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 14, 'col_1': 179, 'col_2': 177, 'col_3': 179, 'col_4': 131, 'col_5': 126, 'col_6': 178, 'col_7': 188}
+
+#### sheet: 鹿児島
+- max_row x max_col: 276 x 8
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額']
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None]
+  - row4: [None, None, None, None, 2381, 1084, 3091, 4332895]
+  - row5: ['鹿屋', '1000GATCHA(2000)', 'スイッチ本体', 39800, None, None, 1, 39800]
+  - row6: [None, None, 'NIKEスニーカー', 20000, None, None, 1, 20000]
+  - row7: [None, None, 'ブランドコスメ', 5000, None, None, None, 0]
+  - row8: [None, None, 'シュプリームバッグ', 29800, None, None, 3, 89400]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object'}
+- non_null_counts (first200rows): {'col_0': 9, 'col_1': 16, 'col_2': 172, 'col_3': 144, 'col_4': 63, 'col_5': 38, 'col_6': 80, 'col_7': 178}
+
+#### sheet: 塩川
+- max_row x max_col: 63 x 9
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額', None]
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None]
+  - row4: [None, None, None, None, 0, 0, 0, 181061, None]
+  - row5: ['西新', None, '機械内景品', None, None, None, None, 53097, '詳細は別紙']
+  - row6: [None, None, None, None, None, None, None, 0, None]
+  - row7: [None, None, None, None, None, None, None, 0, None]
+  - row8: ['浜の町', None, '機械内景品', None, None, None, None, 65742, '詳細は別紙']
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'object'}
+- non_null_counts (first200rows): {'col_0': 6, 'col_1': 3, 'col_2': 4, 'col_3': 1, 'col_4': 3, 'col_5': 2, 'col_6': 2, 'col_7': 61, 'col_8': 3}
+
+#### sheet: 坂本
+- max_row x max_col: 373 x 9
+- merged_cells_total: 6 (上位30: ['E2:G2', 'C2:C3', 'B2:B3', 'A2:A3', 'D2:D3', 'H2:H3']...)
+- head rows (1-8):
+  - row1: [46081, None, None, None, None, None, None, None, None]
+  - row2: ['店舗', '機械名', '景品名', '単価', '在庫数', None, None, '金額', None]
+  - row3: [None, None, None, None, '倉庫①', '倉庫②', '機械内', None, None]
+  - row4: [None, None, None, None, None, None, None, 2510491, None]
+  - row5: ['福重', 'BUZZクレーン他', 'クレーン景品', None, None, None, None, 688594, '詳細は別表']
+  - row6: [None, '500GACHA', 'カプセル景品', 55, None, None, 150, 8250, None]
+  - row7: [None, None, 'A景品', 1050, None, None, 3, 3150, None]
+  - row8: [None, None, 'スイッチソフト', 5500, None, None, None, 0, None]
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'object', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'object', 'col_8': 'object'}
+- non_null_counts (first200rows): {'col_0': 8, 'col_1': 14, 'col_2': 136, 'col_3': 63, 'col_4': 2, 'col_5': 1, 'col_6': 122, 'col_7': 188, 'col_8': 5}
+
+#### sheet: 合計
+- max_row x max_col: 13 x 32
+- merged_cells_total: 6 (上位30: ['I1:L1', 'N1:Q1', 'D1:G1', 'X1:AA1', 'AC1:AF1', 'S1:V1']...)
+- head rows (1-8):
+  - row1: [45930, None, None, 45961, None, None, None, None, 45991, None, None, None, None, 46022, None, None, None, None, 46053, None, None, None, None, 46081, None, None, None, None, 46112, None, None, None]
+  - row2: [None, '棚卸額', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比', None, None, '棚卸額', '前月差', '前月比']
+  - row3: ['本田', 3993973, None, '本田', None, -3993973, 0, None, '本田', None, 0, '#DIV/0!', None, '本田', None, 0, '#DIV/0!', None, '本田', None, 0, '#DIV/0!', None, '本田', None, 0, '#DIV/0!', None, '本田', 0, 0, '#DIV/0!']
+  - row4: ['吉井', 2540534, None, '吉井', None, -2540534, 0, None, '吉井', None, 0, '#DIV/0!', None, '吉井', None, 0, '#DIV/0!', None, '吉井', None, 0, '#DIV/0!', None, '吉井', None, 0, '#DIV/0!', None, '吉井', 0, 0, '#DIV/0!']
+  - row5: ['中島', 1619867, None, '中島', None, -1619867, 0, None, '中島', None, 0, '#DIV/0!', None, '中島', None, 0, '#DIV/0!', None, '中島', None, 0, '#DIV/0!', None, '中島', None, 0, '#DIV/0!', None, '中島', '\u3000', '#VALUE!', '#VALUE!']
+  - row6: ['堤', 1923889, None, '堤', None, None, None, None, '堤', None, 0, None, None, '堤', None, 0, None, None, '堤', None, 0, '#DIV/0!', None, '堤', None, 0, '#DIV/0!', None, '堤', 0, 0, '#DIV/0!']
+  - row7: ['塩川', 181061, None, '塩川', None, None, None, None, '塩川', None, None, None, None, '塩川', None, None, None, None, '塩川', None, None, None, None, '塩川', None, 0, '#DIV/0!', None, '塩川', None, None, None]
+  - row8: ['坂本', 3555420, None, '坂本', None, -3555420, 0, None, '坂本', None, 0, '#DIV/0!', None, '坂本', None, 0, '#DIV/0!', None, '坂本', None, 0, '#DIV/0!', None, '坂本', None, 0, '#DIV/0!', None, '坂本', 0, 0, '#DIV/0!']
+- dtypes (first200rows):
+  - {'col_0': 'object', 'col_1': 'object', 'col_2': 'float64', 'col_3': 'object', 'col_4': 'object', 'col_5': 'object', 'col_6': 'object', 'col_7': 'float64', 'col_8': 'object', 'col_9': 'object', 'col_10': 'object', 'col_11': 'object', 'col_12': 'float64', 'col_13': 'object', 'col_14': 'object', 'col_15': 'object', 'col_16': 'object', 'col_17': 'float64', 'col_18': 'object', 'col_19': 'object', 'col_20': 'object', 'col_21': 'object', 'col_22': 'float64', 'col_23': 'object', 'col_24': 'object', 'col_25': 'object', 'col_26': 'object', 'col_27': 'float64', 'col_28': 'object', 'col_29': 'object', 'col_30': 'object', 'col_31': 'object'}
+- non_null_counts (first200rows): {'col_0': 11, 'col_1': 11, 'col_2': 0, 'col_3': 11, 'col_4': 2, 'col_5': 9, 'col_6': 9, 'col_7': 0, 'col_8': 11, 'col_9': 2, 'col_10': 10, 'col_11': 1, 'col_12': 0, 'col_13': 11, 'col_14': 2, 'col_15': 10, 'col_16': 1, 'col_17': 0, 'col_18': 11, 'col_19': 2, 'col_20': 10, 'col_21': 1, 'col_22': 0, 'col_23': 11, 'col_24': 2, 'col_25': 12, 'col_26': 1, 'col_27': 0, 'col_28': 11, 'col_29': 8, 'col_30': 7, 'col_31': 1}
+
+---

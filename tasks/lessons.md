@@ -54,3 +54,11 @@
 - src/clawsupport/components/NativeCamera.jsx — 5/1新規実装、VITE_ANTHROPIC_API_KEY 直叩き、漏洩リスクあり
 - src/shared/ui/KanaIndex.jsx — 50音ナビ共通、再利用前提
 - src/shared/auth/LogoutButton.jsx — 全画面PageHeader rightSlot に配置必須
+
+## I. 先祖返り
+
+## 2026-05-06 | v4.0ゼロ組み直し（仕様書肥大化＋過去資産積み増し問題）
+- v3.0 H章「マスター仕様書1本」決めた翌日に分散ページ再生産＋U章積み増し→ヒロさん「v4.0でゼロから組み直し」指示
+- 根本原因: Layer 3-4 後回し + 「次やる」アナウンスで指示書置くだけで満足
+- 対策: spec-read+post-git-push Hook 物理強制、v4.0ハブ50行以内、過去資産は📚転写禁止
+- 参考: v4.0 Now 3586440a-374b-8112-b439-f99ffcd7c6a8

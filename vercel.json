@@ -1,4 +1,5 @@
 {
+  "skewProtection": true,
   "crons": [
     {
       "path": "/api/health",
