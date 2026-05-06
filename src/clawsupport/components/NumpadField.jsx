@@ -92,7 +92,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
       </button>
 
       {mounted && createPortal(
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
+        <div data-testid="numpad-portal" style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
           <div
             style={{
               position: 'absolute', inset: 0,
@@ -123,17 +123,20 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
                 {value !== '' && value != null ? value : '—'}
               </span>
             </div>
-            <div style={{
-              flex: 1,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gridTemplateRows: 'repeat(4, 1fr)',
-              gap: 2,
-              padding: 6,
-            }}>
+            <div
+              data-testid="numpad-sheet"
+              style={{
+                flex: 1,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateRows: 'repeat(4, 1fr)',
+                gap: 2,
+                padding: 6,
+              }}>
               {KEYS.map(k => (
                 <button
                   key={k}
+                  data-numpad-key={k}
                   onPointerDown={e => { e.preventDefault(); handleKey(k) }}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
