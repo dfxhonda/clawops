@@ -80,6 +80,7 @@ const StocktakeSessionPage = lazy(() => import('./tanasupport/stocktake/Stocktak
 const StocktakeSessionListAdmin = lazy(() => import('./manesupport/admin/stocktake/SessionListAdmin'))
 const StocktakeSessionCreate    = lazy(() => import('./manesupport/admin/stocktake/SessionCreate'))
 const StocktakeSessionDetail    = lazy(() => import('./manesupport/admin/stocktake/SessionDetail'))
+const StocktakeDashboard        = lazy(() => import('./manesupport/admin/stocktake/StocktakeDashboard'))
 
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
@@ -202,6 +203,7 @@ function AppInner() {
       {/* 棚卸し管理 — admin のみ */}
       <Route path="/admin/stocktake" element={<AdminRoute><StocktakeSessionListAdmin /></AdminRoute>} />
       <Route path="/admin/stocktake/create" element={<AdminRoute><StocktakeSessionCreate /></AdminRoute>} />
+      <Route path="/admin/stocktake/dashboard" element={<AdminRoute><StocktakeDashboard /></AdminRoute>} />
       <Route path="/admin/stocktake/:sessionId" element={<AdminRoute><StocktakeSessionDetail /></AdminRoute>} />
 
       {/* ヘルプ — 全認証ユーザー */}

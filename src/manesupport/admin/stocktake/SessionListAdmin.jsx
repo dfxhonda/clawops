@@ -31,6 +31,13 @@ export default function SessionListAdmin() {
       >
         <button onClick={() => navigate('/admin')} className="text-muted text-xl leading-none shrink-0">‹</button>
         <p className="text-text text-xl font-bold flex-1">棚卸し管理</p>
+        <button
+          onClick={() => navigate('/admin/stocktake/dashboard')}
+          className="text-[10px] text-accent border border-accent/40 px-2 py-0.5 rounded-full active:scale-95 transition-transform shrink-0"
+          data-testid="btn-dashboard"
+        >
+          ダッシュボード
+        </button>
       </div>
 
       {/* ステータスフィルター */}

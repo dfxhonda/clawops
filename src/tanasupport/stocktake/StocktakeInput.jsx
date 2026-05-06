@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
+import { writeAuditLog } from '../../services/audit'
 import {
   getOrCreateMonthSession,
   getLocationPrizes,
@@ -9,15 +10,30 @@ import {
   upsertItem,
 } from './api'
 
-// location の場合は /tanasupport/location/:locationId/stocktake で遷移
+// Stage 3: 乖離率閾値
+const WARN_THRESHOLD  = 0.10
+const ALERT_THRESHOLD = 0.30
 
-function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerCode }) {
+function varianceClass(rate) {
+  if (rate === null || rate === undefined) return 'text-emerald-400'
+  if (rate < WARN_THRESHOLD)  return 'text-emerald-400'
+  if (rate < ALERT_THRESHOLD) return 'text-amber-400'
+  return 'text-rose-400'
+}
+
+function borderClass(isFilled, rate) {
+  if (!isFilled) return 'border-border'
+  if (rate === null || rate < WARN_THRESHOLD)  return 'border-emerald-500/30'
+  if (rate < ALERT_THRESHOLD) return 'border-amber-500/40'
+  return 'border-rose-500/60'
+}
+
+function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerCode, isLocked }) {
   const saved = existingCount ?? ''
   const [qty, setQty] = useState(saved !== '' ? String(saved) : '')
   const [saving, setSaving] = useState(false)
   const prevSavedRef = useRef(saved)
 
-  // セッション切り替え時に既存値を同期
   useEffect(() => {
     const next = existingCount ?? ''
     if (next !== prevSavedRef.current) {
@@ -26,10 +42,37 @@ function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerC
     }
   }, [existingCount])
 
+  const theoCnt  = prize.theoretical_count ?? 0
+  const isFilled = qty !== '' && !isNaN(parseInt(qty, 10))
+  const n        = isFilled ? parseInt(qty, 10) : null
+  const varRate  = (n != null && theoCnt > 0) ? Math.abs(n - theoCnt) / theoCnt : null
+  const diff     = n != null ? n - theoCnt : null
+
   const handleBlur = useCallback(async () => {
-    if (qty === '') return
-    const n = parseInt(qty, 10)
-    if (isNaN(n) || n < 0) return
+    if (isLocked || qty === '') return
+    const parsed = parseInt(qty, 10)
+    if (isNaN(parsed) || parsed < 0) return
+
+    const curRate = (theoCnt > 0) ? Math.abs(parsed - theoCnt) / theoCnt : null
+    if (curRate != null && curRate >= ALERT_THRESHOLD) {
+      const confirmed = window.confirm(
+        `理論値から ${Math.round(curRate * 100)}% 乖離しています。\n本当に保存しますか？\n（この操作は記録に残ります）`
+      )
+      if (!confirmed) {
+        setQty(prevSavedRef.current !== '' ? String(prevSavedRef.current) : '')
+        return
+      }
+      writeAuditLog({
+        action: 'stocktake_variance_override',
+        target_table: 'stocktake_items',
+        target_id: `${sessionId}:${prize.prize_id}:${ownerType}:${ownerCode}`,
+        detail: `乖離率 ${Math.round(curRate * 100)}% を確認の上で保存`,
+        staff_id: staffId,
+        after_data: { actual_count: parsed, theoretical_count: theoCnt, variance_rate: curRate },
+        reason_code: 'COUNT_DIFF',
+      })
+    }
+
     setSaving(true)
     try {
       await upsertItem({
@@ -37,23 +80,19 @@ function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerC
         prizeId:          prize.prize_id,
         ownerType,
         ownerCode,
-        actualCount:      n,
-        theoreticalCount: prize.theoretical_count ?? null,
+        actualCount:      parsed,
+        theoreticalCount: theoCnt || null,
         staffId,
       })
-      prevSavedRef.current = n
+      prevSavedRef.current = parsed
     } finally {
       setSaving(false)
     }
-  }, [qty, sessionId, prize, ownerType, ownerCode, staffId])
-
-  const isFilled  = qty !== '' && !isNaN(parseInt(qty, 10))
-  const theoCnt   = prize.theoretical_count ?? 0
-  const diff      = isFilled ? parseInt(qty, 10) - theoCnt : null
+  }, [isLocked, qty, theoCnt, sessionId, prize.prize_id, ownerType, ownerCode, staffId])
 
   return (
     <div
-      className={`bg-surface border rounded-xl p-2.5 ${isFilled ? 'border-emerald-500/30' : 'border-border'}`}
+      className={`bg-surface border rounded-xl p-2.5 ${borderClass(isFilled, varRate)}`}
       data-testid={`prize-card-${prize.prize_id}`}
     >
       <p className="text-xs text-text truncate font-medium leading-snug">{prize.prize_name}</p>
@@ -63,17 +102,24 @@ function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerC
         inputMode="numeric"
         pattern="[0-9]*"
         value={qty}
-        onChange={e => setQty(e.target.value.replace(/[^0-9]/g, ''))}
+        onChange={e => !isLocked && setQty(e.target.value.replace(/[^0-9]/g, ''))}
         onBlur={handleBlur}
+        disabled={isLocked}
         style={{ fontSize: 16 }}
-        className="w-full h-9 bg-bg border border-border text-text text-center rounded-lg mt-1.5 outline-none focus:border-accent font-mono font-bold"
+        className={`w-full h-9 bg-bg border border-border text-text text-center rounded-lg mt-1.5 outline-none focus:border-accent font-mono font-bold ${
+          isLocked ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
         data-testid={`prize-input-${prize.prize_id}`}
       />
       {diff != null && (
-        <p className={`text-xs mt-1 text-center font-bold ${
-          diff === 0 ? 'text-emerald-400' : diff > 0 ? 'text-amber-400' : 'text-rose-400'
-        }`}>
-          {diff === 0 ? '✓' : diff > 0 ? `+${diff}` : diff}
+        <p
+          className={`text-xs mt-1 text-center font-bold ${varianceClass(varRate)}`}
+          data-testid={`variance-rate-${prize.prize_id}`}
+        >
+          {varRate != null
+            ? (varRate === 0 ? '✓' : `${diff > 0 ? '+' : ''}${diff} (${Math.round(varRate * 100)}%)`)
+            : (diff === 0 ? '✓' : diff > 0 ? `+${diff}` : String(diff))
+          }
         </p>
       )}
       {saving && <p className="text-[10px] text-muted text-center mt-0.5">保存中</p>}
@@ -100,6 +146,7 @@ export default function StocktakeInput() {
   const [error,        setError]        = useState(null)
   const [filter,       setFilter]       = useState('unfilled')
 
+  const isLocked  = session?.status === 'locked'
   const ownerType = 'location'
   const ownerCode = locationId
 
@@ -169,6 +216,17 @@ export default function StocktakeInput() {
         onBack={() => navigate('/tanasupport')}
       />
 
+      {isLocked && (
+        <div
+          className="px-5 py-2.5 bg-rose-500/10 border-b border-rose-500/30 text-center"
+          data-testid="lock-banner"
+        >
+          <p className="text-rose-400 text-xs font-bold">
+            🔒 このセッションはロック済みです — 修正不可
+          </p>
+        </div>
+      )}
+
       {/* フィルターバー */}
       <div className="px-5 flex gap-2 py-3 border-b border-border">
         {FILTERS.map(f => (
@@ -207,6 +265,7 @@ export default function StocktakeInput() {
                 staffId={staffId}
                 ownerType={ownerType}
                 ownerCode={ownerCode}
+                isLocked={isLocked}
               />
             ))}
           </div>
