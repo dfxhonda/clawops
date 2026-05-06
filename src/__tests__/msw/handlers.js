@@ -151,6 +151,14 @@ export const handlers = [
     return HttpResponse.json([])
   }),
 
+  // stocktake_zero_declarations
+  http.get(`${BASE}/rest/v1/stocktake_zero_declarations`, () => {
+    return HttpResponse.json([])
+  }),
+  http.post(`${BASE}/rest/v1/stocktake_zero_declarations`, () => {
+    return new HttpResponse(null, { status: 201 })
+  }),
+
   // prize_masters — getPrizeMasters (array)
   http.get(`${BASE}/rest/v1/prize_masters`, () => {
     return HttpResponse.json(MOCK_PRIZES)

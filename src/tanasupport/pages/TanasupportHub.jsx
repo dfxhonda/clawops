@@ -98,11 +98,13 @@ export default function TanasupportHub() {
       <div className="px-5 pt-3 pb-1 shrink-0">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-muted font-bold tracking-wide">倉庫 · カウント入力</span>
-          {hasOpenSession && (
-            <span className="text-[10px] text-emerald-400 border border-emerald-400/40 px-2 py-0.5 rounded-full">
-              {Object.keys(sessionMonths).length}セッション進行中
-            </span>
-          )}
+          <button
+            onClick={() => navigate('/tanasupport/stocktake')}
+            className="text-[10px] text-accent border border-accent/40 px-2 py-0.5 rounded-full active:scale-95 transition-transform"
+            data-testid="btn-session-detail"
+          >
+            機械・個人・合計 →
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {warehouses.map(loc => (

@@ -105,6 +105,95 @@ export async function getWarehouseLocations() {
   return data ?? []
 }
 
+// ────────────────────────────────────────────────────────────────
+// Stage 2 API
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * 機械タブ: 機械内スナップショットアイテム (owner_type='booth', READ ONLY)
+ */
+export async function getMachineItems(sessionId) {
+  const { data, error } = await supabase
+    .from('stocktake_items')
+    .select('prize_id, owner_code, theoretical_count, prize:prize_masters(prize_name)')
+    .eq('session_id', sessionId)
+    .eq('owner_type', 'booth')
+    .order('owner_code')
+    .order('prize_id')
+  if (error) throw error
+  return (data ?? []).map(item => ({
+    prize_id:          item.prize_id,
+    owner_code:        item.owner_code,
+    prize_name:        item.prize?.prize_name ?? item.prize_id,
+    theoretical_count: item.theoretical_count ?? 0,
+  }))
+}
+
+/**
+ * 個人タブ: スタッフの申告済みアイテム
+ */
+export async function getStaffItems(sessionId, staffId) {
+  const { data, error } = await supabase
+    .from('stocktake_items')
+    .select('prize_id, actual_count, prize:prize_masters(prize_name)')
+    .eq('session_id', sessionId)
+    .eq('owner_type', 'staff')
+    .eq('owner_code', staffId)
+  if (error) throw error
+  return (data ?? []).map(item => ({
+    prize_id:     item.prize_id,
+    prize_name:   item.prize?.prize_name ?? item.prize_id,
+    actual_count: item.actual_count,
+  }))
+}
+
+/**
+ * 個人ゼロ申告 (1タップで「個人持ち回りゼロ」を記録)
+ */
+export async function declareZero(sessionId, staffId) {
+  const { error } = await supabase
+    .from('stocktake_zero_declarations')
+    .upsert(
+      { session_id: sessionId, staff_id: staffId, declared_at: new Date().toISOString() },
+      { onConflict: 'session_id,staff_id' }
+    )
+  if (error) throw error
+}
+
+/**
+ * ゼロ申告の有無を返す ({ declared_at } or null)
+ */
+export async function getZeroDeclaration(sessionId, staffId) {
+  const { data } = await supabase
+    .from('stocktake_zero_declarations')
+    .select('declared_at')
+    .eq('session_id', sessionId)
+    .eq('staff_id', staffId)
+    .maybeSingle()
+  return data ?? null
+}
+
+/**
+ * 全社合計サマリー: { location, booth, staff } の actual_count 合計
+ * booth は theoretical_count を使用 (READ ONLY スナップショット)
+ */
+export async function getSessionSummary(sessionId) {
+  const { data, error } = await supabase
+    .from('stocktake_items')
+    .select('owner_type, actual_count, theoretical_count')
+    .eq('session_id', sessionId)
+  if (error) throw error
+  const totals = { location: 0, booth: 0, staff: 0 }
+  for (const item of data ?? []) {
+    if (item.owner_type === 'booth') {
+      totals.booth += item.theoretical_count ?? 0
+    } else {
+      totals[item.owner_type] = (totals[item.owner_type] ?? 0) + (item.actual_count ?? 0)
+    }
+  }
+  return totals
+}
+
 /**
  * セッション一覧 (admin 用)
  */
