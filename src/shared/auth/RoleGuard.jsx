@@ -10,6 +10,6 @@ export function RoleGuard({ moduleKey, children }) {
     </div>
   )
   if (!role) return <Navigate to="/login" replace />
-  if (!canAccess(role, moduleKey)) return <Navigate to="/" replace />
+  if (!canAccess(role, moduleKey)) return <Navigate to="/launcher" replace />
   return children
 }

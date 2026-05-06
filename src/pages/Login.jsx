@@ -42,7 +42,7 @@ export default function Login() {
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) { navigate('/', { replace: true }); return }
+      if (session) { navigate('/launcher', { replace: true }); return }
 
       // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため
       // org_id で絞ると環境によっては空配列になる
@@ -100,7 +100,7 @@ export default function Login() {
     await upsertLoginHistory(staff.staff_id)
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    setTimeout(() => navigate('/', { replace: true }), 1200)
+    setTimeout(() => navigate('/launcher', { replace: true }), 1200)
   }
 
   if (!initDone) {

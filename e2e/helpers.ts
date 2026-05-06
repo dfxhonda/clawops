@@ -2,7 +2,7 @@ import { type Page } from '@playwright/test'
 
 // ── Auth bypass ──────────────────────────────────────────────────────────
 
-const FAKE_USER = {
+const BASE_FAKE_USER = {
   id: 'test-user-001',
   email: 'patrol@test.com',
   aud: 'authenticated',
@@ -10,19 +10,26 @@ const FAKE_USER = {
   user_metadata: {
     staff_id: 'staff-test-001',
     name: 'テスト巡回員',
-    role: 'patrol',
+    role: 'patrol' as const,
   },
   app_metadata: { provider: 'email' },
 }
 
-// Supabase JS v2 が localStorage に保存するセッション形式（v1 の currentSession ラッパーなし）
-const FAKE_SESSION = {
+const BASE_FAKE_SESSION = {
   access_token: 'test-access-token-xxxxxxxx',
   token_type: 'bearer',
   expires_in: 7200,
   expires_at: Math.floor(Date.now() / 1000) + 7200,
   refresh_token: 'test-refresh-token-xxxxxxxx',
-  user: FAKE_USER,
+  user: BASE_FAKE_USER,
+}
+
+export type SetupAuthRole = 'admin' | 'manager' | 'patrol' | 'staff'
+
+export type SetupAuthOptions = {
+  role?: SetupAuthRole
+  name?: string
+  staffId?: string
 }
 
 /**
@@ -30,16 +37,40 @@ const FAKE_SESSION = {
  * localStorage injection（v2 形式）+ /auth/v1/** ネットワークモックを組み合わせる。
  * page.goto() より前に呼ぶこと。
  */
-export async function setupAuth(page: Page) {
+export async function setupAuth(page: Page, options?: SetupAuthOptions) {
+  const role: SetupAuthRole = options?.role ?? 'patrol'
+  const name =
+    options?.name ??
+    (role === 'admin'
+      ? 'テスト管理者'
+      : role === 'manager'
+        ? 'テストマネージャー'
+        : 'テスト巡回員')
+  const staffId = options?.staffId ?? 'staff-test-001'
+
+  const user = {
+    ...BASE_FAKE_USER,
+    user_metadata: {
+      staff_id: staffId,
+      name,
+      role,
+    },
+  }
+
+  const session = {
+    ...BASE_FAKE_SESSION,
+    user,
+  }
+
   // Supabase JS v2 SDK はキー末尾が "-auth-token" の localStorage を読む。
   // addInitScript は React より先に実行されるため SDK 初期化前に差し込める。
-  await page.addInitScript((session: typeof FAKE_SESSION) => {
+  await page.addInitScript((sess: typeof session) => {
     const orig = Storage.prototype.getItem
     Storage.prototype.getItem = function (key: string) {
-      if (key && key.endsWith('-auth-token')) return JSON.stringify(session)
+      if (key && key.endsWith('-auth-token')) return JSON.stringify(sess)
       return orig.call(this, key)
     }
-  }, FAKE_SESSION)
+  }, session)
 
   await page.route('**/auth/v1/**', async (route) => {
     const url = route.request().url()
@@ -49,7 +80,7 @@ export async function setupAuth(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(FAKE_USER),
+        body: JSON.stringify(user),
       })
     }
   })

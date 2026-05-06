@@ -19,7 +19,7 @@ export default function DailyStatsAdmin() {
   const [error, setError] = useState(null)
 
   if (role === 'staff') {
-    navigate('/', { replace: true })
+    navigate('/launcher', { replace: true })
     return null
   }
 

@@ -17,39 +17,47 @@ export const MODULE_ACCESS = {
   admin:     ['admin'],
 }
 
-export const LAUNCHER_TILES = [
-  {
-    key: 'clawsupport_stable',
-    label: 'クレサポ(安定)',
-    emoji: '🎯',
-    desc: '巡回・集金・補充',
-    path: '/patrol/overview',
-    requiredModules: ['patrol'],
-  },
+/** ランチャー・モジュールタイル（ロールで表示切替） */
+export const LAUNCHER_MODULE_TILES = [
   {
     key: 'clawsupport',
-    label: 'クレサポ(試験)',
-    emoji: '🎯',
-    desc: '新ハブ・50音・★ピン留め',
+    label: 'クレサポ巡回',
+    emoji: '📊',
+    desc: '店舗・ブースのメーター入力',
     path: '/clawsupport',
     requiredModules: ['patrol'],
-    badge: '🟢 NEW',
   },
   {
     key: 'tanasupport',
-    label: 'タナサポ',
+    label: 'タナサポ棚卸し',
     emoji: '📦',
-    desc: '入荷チェック・棚卸し・発注',
+    desc: '棚卸し・倉庫カウント',
     path: '/tanasupport',
-    requiredModules: ['arrivals'],
+    requiredModules: ['stocktake'],
   },
   {
     key: 'manesupport',
-    label: '管理運営',
+    label: 'マネサポ管理',
     emoji: '⚙️',
-    desc: 'スタッフ・マスタ・統計',
+    desc: 'マスタ・監査・運用ツール',
     path: '/admin',
     requiredModules: ['admin'],
+  },
+]
+
+/** 未実装モジュール（全ロールで disabled 表示） */
+export const LAUNCHER_COMING_SOON_TILES = [
+  {
+    key: 'm3_sales',
+    label: '売上集計',
+    emoji: '📈',
+    desc: 'M3 · Coming Soon',
+  },
+  {
+    key: 'm4_master',
+    label: 'マスタ参照',
+    emoji: '📚',
+    desc: 'M4 · Coming Soon',
   },
 ]
 
@@ -59,8 +67,8 @@ export function canAccess(role, moduleKey) {
   return MODULE_ACCESS[moduleKey]?.includes(role) ?? false
 }
 
-export function getVisibleTiles(role) {
-  return LAUNCHER_TILES.filter(tile =>
+export function getModuleTilesForRole(role) {
+  return LAUNCHER_MODULE_TILES.filter(tile =>
     tile.requiredModules.some(m => canAccess(role, m))
   )
 }

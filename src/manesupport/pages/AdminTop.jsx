@@ -14,7 +14,14 @@ export default function AdminTop() {
   return (
     <div className="h-full flex flex-col">
       <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
+        <button
+          type="button"
+          onClick={() => navigate('/launcher')}
+          data-testid="header-launcher-menu"
+          className="text-sm font-bold text-muted shrink-0 py-1 active:opacity-70"
+        >
+          ☰ メニュー
+        </button>
         <div className="flex-1 text-base font-bold">管理メニュー</div>
         <LogoutButton to="/admin/menu" />
       </div>

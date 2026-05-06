@@ -92,6 +92,7 @@ export default function TanasupportHub() {
         module="tanasupport"
         title="タナサポ"
         variant="compact"
+        menuToLauncher
       />
 
       {/* 倉庫セクション（本社倉庫 + 各倉庫） */}

@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+
 const THEME_COLORS = {
   clawsupport: '#ec4899',
   tanasupport:  '#10b981',
@@ -6,7 +8,8 @@ const THEME_COLORS = {
 
 // variant: 'default'(通常画面) | 'compact'(ハブ・リスト画面)
 // rightSlot: ヘッダー右端に表示する要素 (例: 今日の日付)
-export function PageHeader({ module, title, subtitle, onBack, backLabel, children, rightSlot, variant = 'default' }) {
+export function PageHeader({ module, title, subtitle, onBack, backLabel, children, rightSlot, variant = 'default', menuToLauncher = false }) {
+  const navigate = useNavigate()
   const color = THEME_COLORS[module] ?? '#888899'
   const isCompact = variant === 'compact'
   return (
@@ -16,8 +19,18 @@ export function PageHeader({ module, title, subtitle, onBack, backLabel, childre
         : 'shrink-0 flex items-center gap-3 px-5 pt-10 pb-6'}
       style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: color }}
     >
+      {menuToLauncher && (
+        <button
+          type="button"
+          onClick={() => navigate('/launcher')}
+          data-testid="header-launcher-menu"
+          className="shrink-0 text-muted text-sm font-bold leading-tight py-1 px-0.5 -ml-1 active:opacity-70 text-left"
+        >
+          ☰ メニュー
+        </button>
+      )}
       {onBack && (
-        <button onClick={onBack} className="text-muted text-xl leading-none shrink-0">
+        <button type="button" onClick={onBack} className="text-muted text-xl leading-none shrink-0">
           {backLabel ?? '‹'}
         </button>
       )}

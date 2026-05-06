@@ -144,7 +144,8 @@ function AppInner() {
       <Route path="/login" element={<Login />} />
 
       {/* ホーム = ランチャー（ロール別タイル表示） */}
-      <Route path="/" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
+      <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
+      <Route path="/" element={<ProtectedRoute><Navigate to="/launcher" replace /></ProtectedRoute>} />
       <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
       <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -242,7 +243,7 @@ function AppInner() {
       <Route path="/stock/dashboard" element={<ManagerRoute><StockDashboard /></ManagerRoute>} />
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
 
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to="/launcher" replace />} />
     </Routes>
     </Suspense>
     </ErrorBoundary>

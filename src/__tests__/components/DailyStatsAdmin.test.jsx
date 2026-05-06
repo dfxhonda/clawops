@@ -39,7 +39,7 @@ describe('DailyStatsAdmin', () => {
   it('staff ロールはホームへリダイレクト', () => {
     useAuth.mockReturnValue({ role: 'staff' })
     renderPage()
-    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
+    expect(mockNavigate).toHaveBeenCalledWith('/launcher', { replace: true })
   })
 
   it('昨日の日付がデフォルトで入っている', () => {
