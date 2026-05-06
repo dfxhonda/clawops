@@ -20,6 +20,8 @@ import { RoleGuard } from './shared/auth/RoleGuard'
 import UpdateBanner from './components/UpdateBanner'
 import { useVersionCheck } from './hooks/useVersionCheck'
 import { buildLabel } from './lib/buildInfo'
+import { useIdleLogout } from './hooks/useIdleLogout'
+import { IdleWarningBanner } from './shared/ui/IdleWarningBanner'
 
 // ===== 遅延読み込み =====
 // 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
@@ -116,6 +118,7 @@ function PageLoader() {
 function AppInner() {
   const { isLoggedIn } = useAuth()
   const { updateAvailable, dismiss } = useVersionCheck()
+  const { showWarning, reset: resetIdle } = useIdleLogout(isLoggedIn)
   const initGlossary = useGlossaryStore(s => s.init)
   const cleanupGlossary = useGlossaryStore(s => s.cleanup)
 
@@ -125,6 +128,7 @@ function AppInner() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <ErrorBoundary>
+      {isLoggedIn && showWarning && <IdleWarningBanner onDismiss={resetIdle} />}
       {updateAvailable && isLoggedIn && <UpdateBanner onDismiss={dismiss} />}
       {isLoggedIn && (
         <div className="fixed bottom-1 right-1 z-[90] text-[8px] text-muted/20 pointer-events-none select-none">
