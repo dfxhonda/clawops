@@ -169,3 +169,47 @@ test('J-STOCKTAKE-05b: /admin/stocktake/dashboard にクロス集計テーブル
   // 一貫方向フラグが表示されていること
   await expect(page.getByTestId('pattern-staff-001')).toContainText('常過多')
 })
+
+test('J-STOCKTAKE-05c: 月末締切後（当月23:59 JST経過）は deadline-banner と入力不可', async ({ page }) => {
+  await setupAuth(page)
+
+  const PAST_MONTH_OPEN = {
+    session_id: 'sess-past-open',
+    month:      '2020-01-01',
+    status:     'open',
+  }
+
+  await page.route('**/rest/v1/feature_flags**', async (r) => {
+    await r.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify([{ flag_key: 'tanasupport_core', enabled: true }]) })
+  })
+  await page.route('**/rest/v1/glossary_terms**', async (r) => {
+    await r.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+  })
+  await page.route('**/rest/v1/stocktake_sessions**', async (r) => {
+    const accept = r.request().headers()['accept'] ?? ''
+    await r.fulfill({ status: 200, contentType: 'application/json',
+      body: accept.includes('pgrst.object')
+        ? JSON.stringify(PAST_MONTH_OPEN)
+        : JSON.stringify([PAST_MONTH_OPEN]),
+    })
+  })
+  await page.route('**/rest/v1/locations**', async (r) => {
+    await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([MOCK_LOCATION]) })
+  })
+  await page.route('**/rest/v1/prize_stocks**', async (r) => {
+    await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([MOCK_PRIZE]) })
+  })
+  await page.route('**/rest/v1/stocktake_items**', async (r) => {
+    await r.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+  })
+
+  await page.goto('/tanasupport/location/KRM02/stocktake')
+  await expect(page.getByTestId('stocktake-input')).toBeVisible({ timeout: 8000 })
+  await expect(page.getByTestId('deadline-banner')).toBeVisible({ timeout: 5000 })
+  await expect(page.getByText('月末23:59 JST')).toBeVisible()
+
+  await page.getByText('全て').click()
+  await expect(page.getByText('テスト景品A')).toBeVisible({ timeout: 3000 })
+  await expect(page.getByTestId('prize-input-P001')).toBeDisabled()
+})

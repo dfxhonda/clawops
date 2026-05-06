@@ -72,7 +72,6 @@ async function setupManagerAuth(page) {
 }
 
 async function setupStocktakeMocks(page) {
-  // feature_flags
   await page.route('**/rest/v1/feature_flags**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -81,12 +80,10 @@ async function setupStocktakeMocks(page) {
     })
   })
 
-  // glossary (global)
   await page.route('**/rest/v1/glossary_terms**', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
   })
 
-  // stores (hub)
   await page.route('**/rest/v1/stores**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -97,7 +94,6 @@ async function setupStocktakeMocks(page) {
     })
   })
 
-  // locations (warehouses for hub)
   await page.route('**/rest/v1/locations**', async (route) => {
     const url = route.request().url()
     if (url.includes('location_type=in.')) {
@@ -117,12 +113,10 @@ async function setupStocktakeMocks(page) {
     }
   })
 
-  // staff_pinned_stores
   await page.route('**/rest/v1/staff_pinned_stores**', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
   })
 
-  // stocktake_sessions (GET → return existing, POST → create)
   await page.route('**/rest/v1/stocktake_sessions**', async (route) => {
     const method = route.request().method()
     if (method === 'GET') {
@@ -144,7 +138,6 @@ async function setupStocktakeMocks(page) {
     }
   })
 
-  // prize_stocks (prizes for location)
   await page.route('**/rest/v1/prize_stocks**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -153,47 +146,44 @@ async function setupStocktakeMocks(page) {
     })
   })
 
-  // stocktake_items (GET existing items, POST/PATCH UPSERT)
-  let upsertCalled = false
   await page.route('**/rest/v1/stocktake_items**', async (route) => {
     const method = route.request().method()
     if (method === 'GET') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
     } else if (method === 'POST' || method === 'PATCH') {
-      upsertCalled = true
       await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' })
     } else {
       await route.continue()
     }
   })
 
-  return { getUpsertCalled: () => upsertCalled }
+  await page.route('**/rest/v1/audit_logs**', async (route) => {
+    await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' })
+  })
 }
 
-test.skip('J-STOCKTAKE-01: ハブ→倉庫タップ→セッション作成→景品カウント入力', async ({ page }) => {
+test('J-STOCKTAKE-01: ハブ→倉庫タップ→セッション作成→景品カウント入力', async ({ page }) => {
   await setupManagerAuth(page)
-  const { getUpsertCalled } = await setupStocktakeMocks(page)
+  await setupStocktakeMocks(page)
 
-  // 1. ハブ表示
   await page.goto('/tanasupport')
   await expect(page.getByText('久留米倉庫')).toBeVisible({ timeout: 8000 })
 
-  // 2. 倉庫カードをタップ
+  const upsertPost = page.waitForRequest(
+    req =>
+      req.url().includes('/rest/v1/stocktake_items') &&
+      req.method() === 'POST',
+    { timeout: 15_000 }
+  )
+
   await page.getByText('久留米倉庫').click()
 
-  // 3. 棚卸し入力画面に遷移
   await expect(page).toHaveURL(/\/tanasupport\/location\/KRM02\/stocktake/, { timeout: 5000 })
   await expect(page.getByTestId('stocktake-input')).toBeVisible({ timeout: 8000 })
-
-  // 4. 景品が表示されていること
   await expect(page.getByText('テスト景品A')).toBeVisible({ timeout: 5000 })
 
-  // 5. カウント入力 → UPSERT
   const input = page.getByTestId('prize-input-P001')
-  await input.fill('5')
+  await input.fill('9')
   await input.blur()
-
-  // 6. 保存確認（UPSERT が呼ばれた）
-  await page.waitForTimeout(500)
-  expect(getUpsertCalled()).toBe(true)
+  await upsertPost
 })

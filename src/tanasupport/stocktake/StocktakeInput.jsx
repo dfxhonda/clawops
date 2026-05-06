@@ -9,6 +9,7 @@ import {
   getOwnerItemsMap,
   upsertItem,
 } from './api'
+import { isPastMonthEndJst } from './stocktakeMonth'
 
 // Stage 3: 乖離率閾値
 const WARN_THRESHOLD  = 0.10
@@ -33,6 +34,10 @@ function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerC
   const [qty, setQty] = useState(saved !== '' ? String(saved) : '')
   const [saving, setSaving] = useState(false)
   const prevSavedRef = useRef(saved)
+  const qtyRef = useRef(qty)
+  useEffect(() => {
+    qtyRef.current = qty
+  }, [qty])
 
   useEffect(() => {
     const next = existingCount ?? ''
@@ -49,17 +54,20 @@ function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerC
   const diff     = n != null ? n - theoCnt : null
 
   const handleBlur = useCallback(async () => {
-    if (isLocked || qty === '') return
-    const parsed = parseInt(qty, 10)
+    const currentQty = qtyRef.current
+    if (isLocked || currentQty === '') return
+    const parsed = parseInt(currentQty, 10)
     if (isNaN(parsed) || parsed < 0) return
 
     const curRate = (theoCnt > 0) ? Math.abs(parsed - theoCnt) / theoCnt : null
     if (curRate != null && curRate >= ALERT_THRESHOLD) {
       const confirmed = window.confirm(
-        `理論値から ${Math.round(curRate * 100)}% 乖離しています。\n本当に保存しますか？\n（この操作は記録に残ります）`
+        `理論値から ${Math.round(curRate * 100)}% 乖離しています。\n本当によろしいですか？\n（押し切って保存した場合は記録に残ります）`
       )
       if (!confirmed) {
-        setQty(prevSavedRef.current !== '' ? String(prevSavedRef.current) : '')
+        const reset = prevSavedRef.current !== '' ? String(prevSavedRef.current) : ''
+        qtyRef.current = reset
+        setQty(reset)
         return
       }
       writeAuditLog({
@@ -88,7 +96,7 @@ function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerC
     } finally {
       setSaving(false)
     }
-  }, [isLocked, qty, theoCnt, sessionId, prize.prize_id, ownerType, ownerCode, staffId])
+  }, [isLocked, theoCnt, sessionId, prize.prize_id, ownerType, ownerCode, staffId])
 
   return (
     <div
@@ -146,7 +154,9 @@ export default function StocktakeInput() {
   const [error,        setError]        = useState(null)
   const [filter,       setFilter]       = useState('unfilled')
 
-  const isLocked  = session?.status === 'locked'
+  const sessionLocked = session?.status === 'locked'
+  const pastMonthEnd = session?.month ? isPastMonthEndJst(session.month) : false
+  const isEditLocked = sessionLocked || pastMonthEnd
   const ownerType = 'location'
   const ownerCode = locationId
 
@@ -216,13 +226,23 @@ export default function StocktakeInput() {
         onBack={() => navigate('/tanasupport')}
       />
 
-      {isLocked && (
+      {sessionLocked && (
         <div
           className="px-5 py-2.5 bg-rose-500/10 border-b border-rose-500/30 text-center"
           data-testid="lock-banner"
         >
           <p className="text-rose-400 text-xs font-bold">
             🔒 このセッションはロック済みです — 修正不可
+          </p>
+        </div>
+      )}
+      {!sessionLocked && pastMonthEnd && (
+        <div
+          className="px-5 py-2.5 bg-rose-500/10 border-b border-rose-500/30 text-center"
+          data-testid="deadline-banner"
+        >
+          <p className="text-rose-400 text-xs font-bold">
+            🔒 当月締切（月末23:59 JST）を過ぎたため修正できません
           </p>
         </div>
       )}
@@ -265,7 +285,7 @@ export default function StocktakeInput() {
                 staffId={staffId}
                 ownerType={ownerType}
                 ownerCode={ownerCode}
-                isLocked={isLocked}
+                isLocked={isEditLocked}
               />
             ))}
           </div>
