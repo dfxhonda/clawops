@@ -39,7 +39,7 @@ export default function ClawsupportStoreDash() {
 
   function handleTileClick(tile) {
     if (tile.key === 'patrol') {
-      navigate(`/clawsupport/store/${storeCode}/patrol`)
+      navigate(`/patrol/input?storeCode=${storeCode}`)
       return
     }
     setToast(`${tile.label}は準備中です`)
