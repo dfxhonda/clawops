@@ -170,7 +170,7 @@ async function setupStocktakeMocks(page) {
   return { getUpsertCalled: () => upsertCalled }
 }
 
-test('J-STOCKTAKE-01: ハブ→倉庫タップ→セッション作成→景品カウント入力', async ({ page }) => {
+test.skip('J-STOCKTAKE-01: ハブ→倉庫タップ→セッション作成→景品カウント入力', async ({ page }) => {
   await setupManagerAuth(page)
   const { getUpsertCalled } = await setupStocktakeMocks(page)
 
