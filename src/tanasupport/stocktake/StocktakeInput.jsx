@@ -1,39 +1,63 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
-import { getSessionWithItems, submitSession, updateItem } from './api'
+import {
+  getOrCreateMonthSession,
+  getLocationPrizes,
+  getOwnerItemsMap,
+  upsertItem,
+} from './api'
 
-const FILTERS = [
-  { key: 'unfilled', label: '未入力' },
-  { key: 'filled',   label: '入力済' },
-  { key: 'all',      label: '全て' },
-]
+// location の場合は /tanasupport/location/:locationId/stocktake で遷移
 
-function ItemCard({ item, staffId, onUpdate }) {
-  const [qty, setQty] = useState(item.actual_qty ?? '')
+function PrizeCard({ prize, existingCount, sessionId, staffId, ownerType, ownerCode }) {
+  const saved = existingCount ?? ''
+  const [qty, setQty] = useState(saved !== '' ? String(saved) : '')
   const [saving, setSaving] = useState(false)
+  const prevSavedRef = useRef(saved)
+
+  // セッション切り替え時に既存値を同期
+  useEffect(() => {
+    const next = existingCount ?? ''
+    if (next !== prevSavedRef.current) {
+      prevSavedRef.current = next
+      setQty(next !== '' ? String(next) : '')
+    }
+  }, [existingCount])
 
   const handleBlur = useCallback(async () => {
-    if (qty === '' || qty === null) return
+    if (qty === '') return
     const n = parseInt(qty, 10)
     if (isNaN(n) || n < 0) return
     setSaving(true)
     try {
-      await updateItem(item.item_id, n, staffId)
-      onUpdate(item.item_id, n)
+      await upsertItem({
+        sessionId,
+        prizeId:          prize.prize_id,
+        ownerType,
+        ownerCode,
+        actualCount:      n,
+        theoreticalCount: prize.theoretical_count ?? null,
+        staffId,
+      })
+      prevSavedRef.current = n
     } finally {
       setSaving(false)
     }
-  }, [qty, item.item_id, staffId, onUpdate])
+  }, [qty, sessionId, prize, ownerType, ownerCode, staffId])
 
-  const isFilled = item.actual_qty != null
-  const diff = isFilled ? item.actual_qty - (item.expected_qty ?? 0) : null
+  const isFilled  = qty !== '' && !isNaN(parseInt(qty, 10))
+  const theoCnt   = prize.theoretical_count ?? 0
+  const diff      = isFilled ? parseInt(qty, 10) - theoCnt : null
 
   return (
-    <div className={`bg-surface border rounded-xl p-2.5 ${isFilled ? 'border-emerald-500/30' : 'border-border'}`}>
-      <p className="text-xs text-text truncate font-medium leading-snug">{item.prize_name}</p>
-      <p className="text-xs text-muted mt-0.5">期待: {item.expected_qty ?? 0}</p>
+    <div
+      className={`bg-surface border rounded-xl p-2.5 ${isFilled ? 'border-emerald-500/30' : 'border-border'}`}
+      data-testid={`prize-card-${prize.prize_id}`}
+    >
+      <p className="text-xs text-text truncate font-medium leading-snug">{prize.prize_name}</p>
+      <p className="text-xs text-muted mt-0.5">理論値: {theoCnt}</p>
       <input
         type="tel"
         inputMode="numeric"
@@ -43,6 +67,7 @@ function ItemCard({ item, staffId, onUpdate }) {
         onBlur={handleBlur}
         style={{ fontSize: 16 }}
         className="w-full h-9 bg-bg border border-border text-text text-center rounded-lg mt-1.5 outline-none focus:border-accent font-mono font-bold"
+        data-testid={`prize-input-${prize.prize_id}`}
       />
       {diff != null && (
         <p className={`text-xs mt-1 text-center font-bold ${
@@ -56,55 +81,68 @@ function ItemCard({ item, staffId, onUpdate }) {
   )
 }
 
+const FILTERS = [
+  { key: 'unfilled', label: '未入力' },
+  { key: 'filled',   label: '入力済' },
+  { key: 'all',      label: '全て' },
+]
+
 export default function StocktakeInput() {
-  const { storeCode, sessionId } = useParams()
+  const { locationId } = useParams()
   const navigate = useNavigate()
   const { staffId } = useAuth()
 
-  const [session, setSession] = useState(null)
-  const [items, setItems] = useState([])
-  const [filter, setFilter] = useState('unfilled')
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
+  const [session,      setSession]      = useState(null)
+  const [prizes,       setPrizes]       = useState([])
+  const [itemsMap,     setItemsMap]     = useState({})
+  const [locationName, setLocationName] = useState(locationId)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState(null)
+  const [filter,       setFilter]       = useState('unfilled')
+
+  const ownerType = 'location'
+  const ownerCode = locationId
 
   useEffect(() => {
-    getSessionWithItems(sessionId).then(({ session, items }) => {
-      setSession(session)
-      setItems(items)
-      setLoading(false)
-    })
-  }, [sessionId])
+    if (!locationId) return
+    let cancelled = false
 
-  const handleUpdate = useCallback((itemId, actualQty) => {
-    setItems(prev => prev.map(i =>
-      i.item_id === itemId
-        ? { ...i, actual_qty: actualQty, diff: actualQty - (i.expected_qty ?? 0) }
-        : i
-    ))
-  }, [])
+    async function load() {
+      try {
+        const [sess, prizeList, { data: locRow }] = await Promise.all([
+          getOrCreateMonthSession(),
+          getLocationPrizes(locationId),
+          import('../../lib/supabase').then(m =>
+            m.supabase.from('locations').select('location_name').eq('location_id', locationId).maybeSingle()
+          ),
+        ])
+        if (cancelled) return
+        setSession(sess)
+        setPrizes(prizeList)
+        setLocationName(locRow?.location_name ?? locationId)
 
-  const completedCount = items.filter(i => i.actual_qty != null).length
-  const totalCount     = items.length
-
-  const filteredItems = useMemo(() => {
-    if (filter === 'unfilled') return items.filter(i => i.actual_qty == null)
-    if (filter === 'filled')   return items.filter(i => i.actual_qty != null)
-    return items
-  }, [items, filter])
-
-  async function handleSubmit() {
-    const remaining = totalCount - completedCount
-    if (remaining > 0) {
-      if (!window.confirm(`未入力 ${remaining}件あります。提出してよいですか？`)) return
+        const map = await getOwnerItemsMap(sess.session_id, ownerType, ownerCode)
+        if (!cancelled) setItemsMap(map)
+      } catch (e) {
+        if (!cancelled) setError(e.message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-    setSubmitting(true)
-    try {
-      await submitSession(sessionId)
-      navigate(`/tanasupport/store/${storeCode}/stocktake`)
-    } finally {
-      setSubmitting(false)
-    }
-  }
+    load()
+    return () => { cancelled = true }
+  }, [locationId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filledCount = useMemo(
+    () => prizes.filter(p => itemsMap[p.prize_id] != null).length,
+    [prizes, itemsMap]
+  )
+
+  const filteredPrizes = useMemo(() => {
+    if (filter === 'unfilled') return prizes.filter(p => itemsMap[p.prize_id] == null)
+    if (filter === 'filled')   return prizes.filter(p => itemsMap[p.prize_id] != null)
+    return prizes
+  }, [filter, prizes, itemsMap])
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-bg text-muted text-sm">
@@ -112,15 +150,23 @@ export default function StocktakeInput() {
     </div>
   )
 
-  const isSubmitted = session?.status === 'submitted'
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-bg text-rose-400 text-sm px-5 text-center">
+      {error}
+    </div>
+  )
+
+  const monthLabel = session?.month
+    ? new Date(session.month + 'T00:00:00+09:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })
+    : ''
 
   return (
-    <div className="min-h-screen bg-bg text-text pb-32">
+    <div className="min-h-screen bg-bg text-text pb-32" data-testid="stocktake-input">
       <PageHeader
         module="tanasupport"
-        title={session?.session_name ?? '棚卸し'}
-        subtitle={`${completedCount}/${totalCount} 品目完了`}
-        onBack={() => navigate(`/tanasupport/store/${storeCode}/stocktake`)}
+        title={locationName}
+        subtitle={`${monthLabel} · 倉庫 ${filledCount}/${prizes.length}`}
+        onBack={() => navigate('/tanasupport')}
       />
 
       {/* フィルターバー */}
@@ -134,50 +180,46 @@ export default function StocktakeInput() {
             }`}
           >
             {f.label}
-            {f.key === 'unfilled' && ` ${items.filter(i => i.actual_qty == null).length}`}
-            {f.key === 'filled'   && ` ${items.filter(i => i.actual_qty != null).length}`}
+            {f.key === 'unfilled' && ` ${prizes.filter(p => itemsMap[p.prize_id] == null).length}`}
+            {f.key === 'filled'   && ` ${filledCount}`}
           </button>
         ))}
       </div>
 
       {/* 景品グリッド */}
       <div className="px-5 pt-3">
-        {filteredItems.length === 0 ? (
+        {prizes.length === 0 ? (
+          <div className="text-center text-muted text-sm py-16">
+            この倉庫に景品在庫データがありません
+          </div>
+        ) : filteredPrizes.length === 0 ? (
           <div className="text-center text-muted text-sm py-16">
             {filter === 'unfilled' ? 'すべて入力済みです ✅' : '該当なし'}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            {filteredItems.map(item => (
-              <ItemCard
-                key={item.item_id}
-                item={item}
+            {filteredPrizes.map(prize => (
+              <PrizeCard
+                key={prize.prize_id}
+                prize={prize}
+                existingCount={itemsMap[prize.prize_id]?.actual_count ?? null}
+                sessionId={session.session_id}
                 staffId={staffId}
-                onUpdate={handleUpdate}
+                ownerType={ownerType}
+                ownerCode={ownerCode}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* 下部固定ボタン */}
-      <div className="fixed bottom-0 inset-x-0 bg-bg border-t border-border px-5 py-3 flex gap-2">
+      {/* 下部固定フッター */}
+      <div className="fixed bottom-0 inset-x-0 bg-bg border-t border-border px-5 py-3">
         <button
-          onClick={() => navigate(`/tanasupport/store/${storeCode}/stocktake`)}
-          className="flex-1 h-12 bg-surface border border-border text-text text-sm rounded-2xl font-medium active:scale-[0.98] transition-all"
+          onClick={() => navigate('/tanasupport')}
+          className="w-full h-12 bg-surface border border-border text-text text-sm rounded-2xl font-medium active:scale-[0.98] transition-all"
         >
-          途中保存
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || isSubmitted}
-          className="flex-1 h-12 bg-accent text-bg text-sm rounded-2xl font-bold disabled:opacity-50 active:scale-[0.98] transition-all"
-        >
-          {submitting
-            ? '処理中...'
-            : isSubmitted
-            ? '提出済み'
-            : `提出 (${completedCount}/${totalCount})`}
+          ← ハブに戻る（自動保存済み）
         </button>
       </div>
     </div>

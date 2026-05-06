@@ -16,8 +16,7 @@ export default function StoreDashboard() {
         supabase.from('stores').select('store_name').eq('store_code', storeCode).single(),
         supabase.from('stocktake_sessions')
           .select('*', { count: 'exact', head: true })
-          .eq('store_code', storeCode)
-          .in('status', ['in_progress', 'submitted']),
+          .in('status', ['open', 'submitted']),
         supabase.from('prize_orders')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'shipped'),

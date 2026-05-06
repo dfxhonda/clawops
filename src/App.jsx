@@ -73,7 +73,6 @@ const AdminGlossary = lazy(() => import('./manesupport/pages/AdminGlossary'))
 const TanasupportHub  = lazy(() => import('./tanasupport/pages/TanasupportHub'))
 const OrderList       = lazy(() => import('./tanasupport/pages/OrderList'))
 const StoreDashboard  = lazy(() => import('./tanasupport/StoreDashboard'))
-const SessionList     = lazy(() => import('./tanasupport/stocktake/SessionList'))
 const StocktakeInput  = lazy(() => import('./tanasupport/stocktake/StocktakeInput'))
 
 // 遅延ロード — タナサポ 棚卸し管理 (マネサポ側)
@@ -184,8 +183,11 @@ function AppInner() {
       <Route path="/tanasupport" element={<ManagerRoute><TanasupportHub /></ManagerRoute>} />
       <Route path="/tanasupport/orders" element={<ManagerRoute><OrderList /></ManagerRoute>} />
       <Route path="/tanasupport/store/:storeCode" element={<ManagerRoute><StoreDashboard /></ManagerRoute>} />
-      <Route path="/tanasupport/store/:storeCode/stocktake" element={<ManagerRoute><SessionList /></ManagerRoute>} />
-      <Route path="/tanasupport/store/:storeCode/stocktake/:sessionId" element={<ManagerRoute><StocktakeInput /></ManagerRoute>} />
+      {/* M2 Stage 1: 倉庫ロケーション棚卸し */}
+      <Route path="/tanasupport/location/:locationId/stocktake" element={<ManagerRoute><StocktakeInput /></ManagerRoute>} />
+      {/* 旧 store/stocktake ルートはハブへリダイレクト (M2 Stage 1 で session 粒度変更) */}
+      <Route path="/tanasupport/store/:storeCode/stocktake" element={<Navigate to="/tanasupport" replace />} />
+      <Route path="/tanasupport/store/:storeCode/stocktake/:sessionId" element={<Navigate to="/tanasupport" replace />} />
 
       {/* 棚卸し管理 — admin のみ */}
       <Route path="/admin/stocktake" element={<AdminRoute><StocktakeSessionListAdmin /></AdminRoute>} />
