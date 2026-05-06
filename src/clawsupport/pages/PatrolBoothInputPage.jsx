@@ -50,6 +50,31 @@ function PrevReadingRow({ prev }) {
   )
 }
 
+/** 前回レコードの理論値・出率（参照のみ） */
+function TheoryRow({ prev }) {
+  if (!prev) return null
+  const payout = prev.payout_rate
+  const payoutLabel =
+    payout == null || payout === ''
+      ? '—'
+      : Number(payout) <= 1 && Number(payout) > 0
+        ? `${(Number(payout) * 100).toFixed(1)}%`
+        : `${payout}%`
+  return (
+    <div
+      data-testid="theory-row"
+      className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/40 border border-border/80 text-xs text-muted"
+    >
+      <span className="font-bold text-text/90 mr-2">理論・出率（前回記録）</span>
+      <span>出率 {payoutLabel}</span>
+      <span className="mx-2">|</span>
+      <span data-testid="theoretical-stock-label">
+        理論在庫 {prev.theoretical_stock != null ? prev.theoretical_stock : '—'}
+      </span>
+    </div>
+  )
+}
+
 // ─── 数値フィールド行 ───────────────────────────────────
 function FieldRow({ label, fieldId, value, onChange, allowDecimal = false }) {
   return (
@@ -71,8 +96,8 @@ function FieldRow({ label, fieldId, value, onChange, allowDecimal = false }) {
   )
 }
 
-// ─── テキスト入力フィールド行（景品名・設定値） ──────────
-function TextFieldRow({ label, fieldId, value, onChange, placeholder }) {
+// ─── テキスト入力フィールド行（景品名・設定値・原価） ──────────
+function TextFieldRow({ label, fieldId, value, onChange, placeholder, testId }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
       <label htmlFor={fieldId} className="w-28 shrink-0 text-sm text-muted font-bold">
@@ -81,7 +106,8 @@ function TextFieldRow({ label, fieldId, value, onChange, placeholder }) {
       <input
         id={fieldId}
         type="text"
-        inputMode="none"
+        inputMode="text"
+        data-testid={testId}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
@@ -93,6 +119,16 @@ function TextFieldRow({ label, fieldId, value, onChange, placeholder }) {
 }
 
 // ─── メインコンポーネント ────────────────────────────────
+const EMPTY_TOUCHED = {
+  prizeName: false,
+  prizeCost: false,
+  setA: false,
+  setC: false,
+  setL: false,
+  setR: false,
+  setO: false,
+}
+
 export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
   const { state }    = useLocation()
@@ -109,7 +145,13 @@ export default function PatrolBoothInputPage() {
   const [stock,          setStk]    = useState('')
   const [restock,        setRst]    = useState('')
   const [prizeName,      setPrize]  = useState('')
+  const [prizeCost,      setCost]   = useState('')
   const [setA,           setSetA]   = useState('')
+  const [setC,           setSetC]   = useState('')
+  const [setL,           setSetL]   = useState('')
+  const [setR,           setSetR]   = useState('')
+  const [setO,           setSetO]   = useState('')
+  const [touched,        setTouched] = useState(() => ({ ...EMPTY_TOUCHED }))
   const [isCollectionDay, setIsCollectionDay] = useState(false)
   const [isCollection,   setIsColl] = useState(false)
   const [saving,         setSaving] = useState(false)
@@ -118,6 +160,26 @@ export default function PatrolBoothInputPage() {
   useEffect(() => {
     getLastReadingForBooth(boothCode).then(setPrev)
   }, [boothCode])
+
+  useEffect(() => {
+    setTouched({ ...EMPTY_TOUCHED })
+  }, [boothCode])
+
+  useEffect(() => {
+    if (!prev) return
+    setIn(prev.in_meter != null ? String(prev.in_meter) : '')
+    setOut(prev.out_meter != null ? String(prev.out_meter) : '')
+    setStk(prev.prize_stock_count != null ? String(prev.prize_stock_count) : '')
+    setRst(prev.prize_restock_count != null ? String(prev.prize_restock_count) : '')
+    setPrize(prev.prize_name ?? '')
+    const pc = prev.prize_cost ?? prev.prize_cost_1
+    setCost(pc != null && pc !== '' ? String(pc) : '')
+    setSetA(prev.set_a ?? '')
+    setSetC(prev.set_c ?? '')
+    setSetL(prev.set_l ?? '')
+    setSetR(prev.set_r ?? '')
+    setSetO(prev.set_o ?? '')
+  }, [prev?.reading_id, boothCode])
 
   useEffect(() => {
     if (!resolvedStoreCode) {
@@ -145,13 +207,41 @@ export default function PatrolBoothInputPage() {
   const entryType = useMemo(
     () => classifyEntryType({
       prev,
-      next: { inMeter, outMeter, prizeName, setA },
+      next: {
+        inMeter,
+        outMeter,
+        prizeName,
+        setA,
+        setC,
+        setL,
+        setR,
+        setO,
+      },
       isCollection: recordAsCollection,
     }),
-    [prev, inMeter, outMeter, prizeName, setA, recordAsCollection],
+    [prev, inMeter, outMeter, prizeName, setA, setC, setL, setR, setO, recordAsCollection],
   )
 
   const canSave = inMeter !== '' && outMeter !== '' && stock !== ''
+
+  function buildOptionalPatch() {
+    const patch = {}
+    if (touched.prizeName) patch.prize_name = prizeName.trim() || null
+    if (touched.prizeCost) {
+      const t = prizeCost.trim()
+      if (t === '') patch.prize_cost = null
+      else {
+        const n = parseInt(t, 10)
+        patch.prize_cost = Number.isFinite(n) ? n : null
+      }
+    }
+    if (touched.setA) patch.set_a = setA.trim() || null
+    if (touched.setC) patch.set_c = setC.trim() || null
+    if (touched.setL) patch.set_l = setL.trim() || null
+    if (touched.setR) patch.set_r = setR.trim() || null
+    if (touched.setO) patch.set_o = setO.trim() || null
+    return patch
+  }
 
   async function handleSave() {
     if (!patrolEnabled) {
@@ -169,10 +259,10 @@ export default function PatrolBoothInputPage() {
         outMeter,
         prizeStock:   stock,
         prizeRestock: restock,
-        prizeName:    prizeName || null,
-        setA:         setA     || null,
         entryType,
         staffId,
+        optionalPatch: buildOptionalPatch(),
+        defaultsFromPrev: prev,
       })
       if (res.skipped) {
         setResult('skipped')
@@ -207,6 +297,7 @@ export default function PatrolBoothInputPage() {
         <EntryTypeBadge type={entryType} />
       </div>
       <PrevReadingRow prev={prev} />
+      <TheoryRow prev={prev} />
 
       {/* 入力フォーム */}
       <div className="flex-1 overflow-y-auto">
@@ -217,20 +308,61 @@ export default function PatrolBoothInputPage() {
           <FieldRow label="景品在庫"    fieldId="field-stock"     value={stock}    onChange={setStk} />
           <FieldRow label="補充数"      fieldId="field-restock"   value={restock}  onChange={setRst} />
 
-          {/* 入替/設定変更用（任意） */}
           <TextFieldRow
             label="景品名"
             fieldId="field-prize-name"
+            testId="field-prize-name"
             value={prizeName}
-            onChange={setPrize}
-            placeholder="変更する場合のみ入力"
+            onChange={v => { setTouched(t => ({ ...t, prizeName: true })); setPrize(v) }}
+            placeholder="前回値から補完（変更時のみ差分送信）"
           />
           <TextFieldRow
-            label="設定値"
+            label="原価"
+            fieldId="field-prize-cost"
+            testId="field-prize-cost"
+            value={prizeCost}
+            onChange={v => { setTouched(t => ({ ...t, prizeCost: true })); setCost(v) }}
+            placeholder="円"
+          />
+          <TextFieldRow
+            label="設定A"
             fieldId="field-set-a"
+            testId="field-set-a"
             value={setA}
-            onChange={setSetA}
-            placeholder="変更する場合のみ入力"
+            onChange={v => { setTouched(t => ({ ...t, setA: true })); setSetA(v) }}
+            placeholder="クレーン爪"
+          />
+          <TextFieldRow
+            label="設定C"
+            fieldId="field-set-c"
+            testId="field-set-c"
+            value={setC}
+            onChange={v => { setTouched(t => ({ ...t, setC: true })); setSetC(v) }}
+            placeholder="コア"
+          />
+          <TextFieldRow
+            label="設定L"
+            fieldId="field-set-l"
+            testId="field-set-l"
+            value={setL}
+            onChange={v => { setTouched(t => ({ ...t, setL: true })); setSetL(v) }}
+            placeholder="左"
+          />
+          <TextFieldRow
+            label="設定R"
+            fieldId="field-set-r"
+            testId="field-set-r"
+            value={setR}
+            onChange={v => { setTouched(t => ({ ...t, setR: true })); setSetR(v) }}
+            placeholder="右"
+          />
+          <TextFieldRow
+            label="設定O"
+            fieldId="field-set-o"
+            testId="field-set-o"
+            value={setO}
+            onChange={v => { setTouched(t => ({ ...t, setO: true })); setSetO(v) }}
+            placeholder="その他"
           />
         </div>
 

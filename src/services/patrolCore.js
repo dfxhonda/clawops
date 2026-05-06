@@ -9,6 +9,68 @@ function todayJST() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
+/** UI / 比較用に文字列正規化 */
+function strNorm(v) {
+  if (v == null || v === '') return ''
+  return String(v).trim()
+}
+
+/**
+ * getLastReadingForBooth の完全列（SELECT 欠落 → UI 空白・NULL 上書り事故防止）
+ */
+export const LAST_READING_SELECT =
+  'reading_id, booth_code, prize_id, prize_name, prize_name_2, prize_name_3, ' +
+  'set_a, set_c, set_l, set_r, set_o, ' +
+  'prize_stock_count, prize_restock_count, stock_2, stock_3, restock_2, restock_3, ' +
+  'theoretical_stock, payout_rate, ' +
+  'prize_cost, prize_cost_1, prize_cost_2, prize_cost_3, ' +
+  'in_meter, out_meter, out_meter_2, out_meter_3, patrol_date, read_time'
+
+/** INSERT 時に prev から補完するオプション列（触ってない値＝規定値） */
+const OPTIONAL_DEFAULT_KEYS = [
+  'prize_id',
+  'prize_name',
+  'prize_name_2',
+  'prize_name_3',
+  'set_a',
+  'set_c',
+  'set_l',
+  'set_r',
+  'set_o',
+  'prize_cost',
+  'prize_cost_1',
+  'prize_cost_2',
+  'prize_cost_3',
+]
+
+function pickOptionalDefaultsFromPrev(prev) {
+  if (!prev) return {}
+  const o = {}
+  for (const k of OPTIONAL_DEFAULT_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(prev, k) && prev[k] !== undefined) {
+      o[k] = prev[k]
+    }
+  }
+  return o
+}
+
+/**
+ * optionalPatch: ユーザーが触ったフィールドのみ。キーが無い列は UPDATE しない（NULL 上書き防止）
+ * 値は null 許容（明示クリア）。空文字は null に正規化。
+ */
+function normalizeOptionalPatch(patch) {
+  if (!patch || typeof patch !== 'object') return {}
+  const out = {}
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === '' || v === undefined) {
+      out[k] = null
+    } else {
+      out[k] = v
+    }
+  }
+  return out
+}
+
 /**
  * 今日の巡回記録をブースコードでバルク取得
  * @returns Map<boothCode, { readingId, readTime }>
@@ -30,12 +92,11 @@ export async function getTodayReadingsMap(boothCodes) {
 
 /**
  * ブース直近読み値取得（前回値表示 + 入替判定用）
- * set_a/c/l/r/o, prize_name も取得
  */
 export async function getLastReadingForBooth(boothCode) {
   const { data } = await supabase
     .from('meter_readings')
-    .select('reading_id, in_meter, out_meter, prize_stock_count, prize_restock_count, prize_name, set_a, set_c, set_l, set_r, set_o, patrol_date, read_time')
+    .select(LAST_READING_SELECT)
     .eq('booth_code', boothCode)
     .order('patrol_date', { ascending: false })
     .order('read_time', { ascending: false })
@@ -52,17 +113,9 @@ export async function getLastReadingForBooth(boothCode) {
  * 同一ブース連続2レコードの差分から entry_type を判定
  *
  * @param {object|null} prev  - 直前レコード (DB行)
- * @param {object}       next  - 今回入力値 { inMeter, outMeter, prizeName?, setA? ... }
- * @param {boolean}      isCollection - 集金として記録（stores.is_collection_day かつチェック ON）
+ * @param {object}       next  - 今回入力値 { inMeter, outMeter, prizeName?, setA? ... setO? }
+ * @param {boolean}      isCollection - 集金として寄録（stores.is_collection_day かつチェック ON）
  * @returns 'patrol' | 'replace' | 'collection'
- *
- * 判定優先順:
- *   1. isCollection（集金日 + チェック ON）→ 'collection'
- *   2. prev なし → 'patrol'
- *   3. メーター変化あり → 'patrol'
- *   4. メーター変化なし + 景品変化あり → 'replace'
- *   5. メーター変化なし + 設定変化あり → 'replace'
- *   6. それ以外 → 'patrol'
  */
 export function classifyEntryType({ prev, next, isCollection = false }) {
   if (isCollection) return 'collection'
@@ -77,17 +130,14 @@ export function classifyEntryType({ prev, next, isCollection = false }) {
 
   if (meterChanged) return 'patrol'
 
-  // メーター変化なし: 景品 / 設定を比較
-  const prizeChanged =
-    next.prizeName != null &&
-    next.prizeName !== '' &&
-    prev.prize_name !== next.prizeName
+  const prizeChanged = strNorm(next.prizeName) !== strNorm(prev.prize_name)
 
   const settingChanged =
-    (next.setA != null && next.setA !== '' && prev.set_a !== next.setA) ||
-    (next.setC != null && next.setC !== '' && prev.set_c !== next.setC) ||
-    (next.setL != null && next.setL !== '' && prev.set_l !== next.setL) ||
-    (next.setR != null && next.setR !== '' && prev.set_r !== next.setR)
+    strNorm(next.setA) !== strNorm(prev.set_a) ||
+    strNorm(next.setC) !== strNorm(prev.set_c) ||
+    strNorm(next.setL) !== strNorm(prev.set_l) ||
+    strNorm(next.setR) !== strNorm(prev.set_r) ||
+    strNorm(next.setO) !== strNorm(prev.set_o)
 
   if (prizeChanged || settingChanged) return 'replace'
 
@@ -98,13 +148,20 @@ export function classifyEntryType({ prev, next, isCollection = false }) {
 // M1 Stage 2+3: 巡回記録保存
 // ─────────────────────────────────────────────────────────
 
+const TODAY_EXISTING_SELECT =
+  'reading_id, in_meter, out_meter, prize_stock_count, prize_restock_count, ' +
+  'prize_name, prize_id, set_a, set_c, set_l, set_r, set_o, prize_cost'
+
 /**
  * 巡回記録 UPSERT / INSERT
  *
+ * optionalPatch: ユーザー操作のあった列のみ（差分）。UPDATE 時はこれらのキーのみ列更新。
+ * defaultsFromPrev: INSERT 時・replace/collection INSERT 時に optional を prev から補完。
+ *
  * entry_type 別動作:
- *   'patrol'     → (booth_code, patrol_date) で1レコード収束、値変化なしなら skip
- *   'replace'    → 新規 INSERT（同日でも複数可、入替・設定変更を別レコードで管理）
- *   'collection' → 新規 INSERT（集金記録）
+ *   'patrol'     → (booth_code, patrol_date) で1レコード収束、コア値＋optional 差分とも変化なしなら skip
+ *   'replace'    → 新規 INSERT（optional は prev マージ＋patch）
+ *   'collection' → 新規 INSERT
  */
 export async function savePatrolReading({
   boothCode,
@@ -114,14 +171,10 @@ export async function savePatrolReading({
   outMeter,
   prizeStock,
   prizeRestock,
-  prizeName,
-  setA,
-  setC,
-  setL,
-  setR,
-  setO,
   entryType = 'patrol',
   staffId,
+  optionalPatch = {},
+  defaultsFromPrev = null,
 }) {
   const today  = todayJST()
   const now    = new Date().toISOString()
@@ -130,17 +183,9 @@ export async function savePatrolReading({
   const numStk = prizeStock  !== '' && prizeStock  != null ? parseInt(prizeStock, 10) : 0
   const numRst = prizeRestock !== '' && prizeRestock != null ? parseInt(prizeRestock, 10) : 0
 
-  const setFields = {}
-  if (setA !== undefined && setA !== null && setA !== '') setFields.set_a = setA
-  if (setC !== undefined && setC !== null && setC !== '') setFields.set_c = setC
-  if (setL !== undefined && setL !== null && setL !== '') setFields.set_l = setL
-  if (setR !== undefined && setR !== null && setR !== '') setFields.set_r = setR
-  if (setO !== undefined && setO !== null && setO !== '') setFields.set_o = setO
-
-  const prizeFields = {}
-  if (prizeName !== undefined && prizeName !== null && prizeName !== '') {
-    prizeFields.prize_name = prizeName
-  }
+  const patch = normalizeOptionalPatch(optionalPatch)
+  const defaults = pickOptionalDefaultsFromPrev(defaultsFromPrev)
+  const mergedOptionalForInsert = { ...defaults, ...patch }
 
   const basePayload = {
     booth_id:            boothCode,
@@ -159,15 +204,17 @@ export async function savePatrolReading({
     input_method:        'manual',
     created_by:          staffId ?? null,
     organization_id:     DFX_ORG_ID,
-    ...prizeFields,
-    ...setFields,
   }
 
-  // 'replace' / 'collection' → 新規 INSERT 確定（carry_forward チェックなし）
+  // 'replace' / 'collection' → 新規 INSERT
   if (entryType === 'replace' || entryType === 'collection') {
     const { data, error } = await supabase
       .from('meter_readings')
-      .insert({ ...basePayload, reading_id: crypto.randomUUID() })
+      .insert({
+        ...basePayload,
+        ...mergedOptionalForInsert,
+        reading_id: crypto.randomUUID(),
+      })
       .select('reading_id')
       .single()
     if (error) throw new Error(`${entryType} 記録エラー: ` + error.message)
@@ -177,33 +224,48 @@ export async function savePatrolReading({
   // 'patrol' → (booth_code, patrol_date) UPSERT + carry_forward 停止
   const { data: existing } = await supabase
     .from('meter_readings')
-    .select('reading_id, in_meter, out_meter, prize_stock_count, prize_restock_count')
+    .select(TODAY_EXISTING_SELECT)
     .eq('booth_code', boothCode)
     .eq('patrol_date', today)
     .eq('entry_type', 'patrol')
     .maybeSingle()
 
+  const patchKeys = Object.keys(patch)
+  const optionalUnchanged =
+    patchKeys.length === 0 ||
+    patchKeys.every((k) => {
+      const a = existing?.[k]
+      const b = patch[k]
+      if (a == null && b == null) return true
+      if (typeof a === 'number' || typeof b === 'number') {
+        return Number(a) === Number(b)
+      }
+      return strNorm(a) === strNorm(b)
+    })
+
   if (existing) {
-    const unchanged =
+    const coreUnchanged =
       Number(existing.in_meter)            === numIn  &&
       Number(existing.out_meter)           === numOut &&
       Number(existing.prize_stock_count)   === numStk &&
       Number(existing.prize_restock_count) === numRst
-    if (unchanged) return { skipped: true }
+
+    if (coreUnchanged && optionalUnchanged) return { skipped: true }
+
+    const updatePayload = {
+      in_meter:            numIn,
+      out_meter:           numOut,
+      prize_stock_count:   numStk,
+      prize_restock_count: numRst,
+      entry_type:          'patrol',
+      updated_at:          now,
+      created_by:          staffId ?? null,
+      ...patch,
+    }
 
     const { error } = await supabase
       .from('meter_readings')
-      .update({
-        in_meter:            numIn,
-        out_meter:           numOut,
-        prize_stock_count:   numStk,
-        prize_restock_count: numRst,
-        entry_type:          'patrol',
-        updated_at:          now,
-        created_by:          staffId ?? null,
-        ...prizeFields,
-        ...setFields,
-      })
+      .update(updatePayload)
       .eq('reading_id', existing.reading_id)
     if (error) throw new Error('メーター更新エラー: ' + error.message)
     return { updated: true, entryType: 'patrol', readingId: existing.reading_id }
@@ -211,7 +273,11 @@ export async function savePatrolReading({
 
   const { data, error } = await supabase
     .from('meter_readings')
-    .insert({ ...basePayload, reading_id: crypto.randomUUID() })
+    .insert({
+      ...basePayload,
+      ...mergedOptionalForInsert,
+      reading_id: crypto.randomUUID(),
+    })
     .select('reading_id')
     .single()
   if (error) throw new Error('メーター保存エラー: ' + error.message)
