@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import * as Sentry from '@sentry/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
-import { getYesterdayPatrol, getLatestReading, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
+import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
 
 import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
@@ -48,6 +48,7 @@ export default function PatrolPage() {
   const { state } = useLocation()
   const navigate  = useNavigate()
   const { staffId } = useAuth()
+  const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const booth = state?.booth
   const machine = state?.machine
 
@@ -60,24 +61,11 @@ export default function PatrolPage() {
   })
   const [lockerView, setLockerView] = useState(null) // null | 'check' | 'edit'
   const [showOcr, setShowOcr] = useState(false)
-  const [ocrInitialFile, setOcrInitialFile] = useState(null)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [croppedPhotoUrl, setCroppedPhotoUrl] = useState(null)
-  const [ocrRawText, setOcrRawText] = useState(null)
   const [ocrAttemptedAt, setOcrAttemptedAt] = useState(null)
-  const [ocrPrefilledValue, setOcrPrefilledValue] = useState(null)
-  const patrolCamRef = useRef(null)
-  const patrolGalRef = useRef(null)
-  function handlePatrolFileChange(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setOcrInitialFile(file)
-    setShowOcr(true)
-    e.target.value = ''
-  }
-  // iOS Safari: input.click() は同一イベントハンドラ内(同期)なら動く
-  const onCamera  = useCallback(() => { patrolCamRef.current?.click() }, [])
-  const onGallery = useCallback(() => { patrolGalRef.current?.click() }, [])
+  const [ocrRawText, setOcrRawText] = useState(null)
+  const onCamera = useCallback(() => { setShowOcr(true) }, [])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [saved, setSaved] = useState(false)
@@ -116,26 +104,11 @@ export default function PatrolPage() {
     })
   }
 
-  const form = usePatrolForm(booth)
+  const form = usePatrolForm(booth, machine)
   const lockerState = useLockerState(lockers)
 
-  // ブース切り替え時にローカル状態をリセット
-  // replace:true ナビゲーションは同一コンポーネントを再利用するため useState がリセットされない
-  useEffect(() => {
-    setSaved(false)
-    setSaving(false)
-    setSaveError(null)
-    setShowOcr(false)
-    setOcrInitialFile(null)
-    setPhotoUrl(null)
-    setCroppedPhotoUrl(null)
-    setOcrRawText(null)
-    setOcrAttemptedAt(null)
-    setOcrPrefilledValue(null)
-    setLockerView(null)
-  }, [booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // フォームロード完了後、最新レコードを確認してモード決定（確認ダイアログなし、自動で修正モードへ）
+  // フォームロード完了後、最新レコードを確認してモード決定
+  // getLatestReading の代わりに usePatrolForm から返る prevRecord（_raw）を使ってクエリを1本削減
   useEffect(() => {
     if (form.loading) {
       setMode('loading')
@@ -143,15 +116,16 @@ export default function PatrolPage() {
       return
     }
     if (!booth?.booth_code) return
-    getLatestReading(booth.booth_code).then(async record => {
-      // 今日(JST)の created_at または updated_at があるレコードのみ修正モードに入る
-      const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-      const isToday = r => {
-        if (!r) return false
-        const ca = r.created_at ? new Date(r.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
-        const ua = r.updated_at ? new Date(r.updated_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
-        return ca === todayJST || ua === todayJST
-      }
+    const record = form.prevRecord
+    // 今日(JST)の created_at または updated_at があるレコードのみ修正モードに入る
+    const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    const isToday = r => {
+      if (!r) return false
+      const ca = r.created_at ? new Date(r.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
+      const ua = r.updated_at ? new Date(r.updated_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }) : null
+      return ca === todayJST || ua === todayJST
+    }
+    ;(async () => {
       if (record && isToday(record)) {
         setExistingRecord(record)
         form.loadCorrectionData(record)
@@ -161,7 +135,7 @@ export default function PatrolPage() {
       } else {
         setMode('new_patrol')
       }
-    })
+    })()
   }, [form.loading, booth?.booth_code]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 入替変更モードへの切り替え（修正モードヘッダーから呼ぶ）
@@ -235,16 +209,22 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
     )
   }
 
-  function handleOcrApply({ inMeter, outMeter, outMeter2, photoUrl: pUrl, croppedPhotoUrl: cUrl } = {}) {
+  function handleOcrApply({ inMeter, outMeter, outMeter2, photoUrl: pUrl, croppedPhotoUrl: cUrl, ocrAttemptedAt: oAt, ocrRawText: oRaw } = {}) {
     if (inMeter) setPatrolIn(inMeter)
     if (outMeter) setPatrolOut(0, 'meter', outMeter)
     if (outMeter2) setPatrolOut(1, 'meter', outMeter2)
     if (pUrl) setPhotoUrl(pUrl)
     if (cUrl) setCroppedPhotoUrl(cUrl)
+    if (oAt)  setOcrAttemptedAt(oAt)
+    if (oRaw) setOcrRawText(oRaw)
     setShowOcr(false)
   }
 
   async function handleSave() {
+    if (!patrolEnabled) {
+      setSaveError('現在メンテナンス中のため保存できません。しばらくお待ちください。')
+      return
+    }
     setSaveError(null)
     setSaving(true)
     try {
@@ -266,28 +246,27 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         })
       } else {
         // new_patrol
-        let inputMethod = 'manual'
-        if (ocrAttemptedAt) {
-          if (ocrPrefilledValue === null) inputMethod = 'ocr_failed'
-          else if (patrol.inMeter === String(ocrPrefilledValue)) inputMethod = 'ocr'
-          else inputMethod = 'ocr_corrected'
-        }
-        const result = await save(staffId, { photoUrl, croppedPhotoUrl, ocrRawText, ocrAttemptedAt, inputMethod })
+        const result = await save(staffId, { photoUrl, croppedPhotoUrl, ocrAttemptedAt, ocrRawText })
         if (!result.ok) {
           setSaveError(result.message)
           setSaving(false)
           return
         }
       }
+      setSaving(false)
       setSaved(true)
       setTimeout(() => {
+        setSaved(false)
+        // 次ブースへ遷移、最後のブースなら巡回一覧に戻る
         const nextIdx = currentIdx + 1
-        if (nextIdx >= 0 && nextIdx < allBooths.length) {
+        if (nextIdx < allBooths.length) {
           const { machine: nm, booth: nb } = allBooths[nextIdx]
-          navigate('/patrol/input', { replace: true, state: { ...state, machine: nm, booth: nb } })
+          navigate('/patrol/input', { state: { ...state, machine: nm, booth: nb } })
         } else {
-          const sc = state?.storeCode
-          navigate(sc ? `/clawsupport/store/${sc}/patrol` : '/patrol/overview', { replace: true })
+          const overviewPath = state?.storeCode
+            ? `/clawsupport/store/${state.storeCode}/patrol`
+            : '/clawsupport'
+          navigate(overviewPath)
         }
       }, 800)
     } catch (e) {
@@ -295,8 +274,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
       setSaving(false)
     }
   }
-
-  const ocrStatusLabel = null
 
   // ─── パターン別レンダリング ──────────────────────────────────
   function renderPatrolContent() {
@@ -317,8 +294,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <MeterInputRow
                 inMeter={p.inMeter} inTouched={p.inTouched}
                 inDiff={c?.inDiff} showDiff={true}
-                onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery}
-                ocrStatusText={ocrStatusLabel} />
+                onChange={setPatrolIn} onCamera={onCamera} />
               {p.outs.slice(0, displayCount).map((o, i) => (
                 <OutGroupRow key={i} idx={i} label={OUT_LABELS_B[i]}
                   out={o} touched={p.touchedOuts[i]}
@@ -347,7 +323,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             {/* IN + OUT + 残 + 補 */}
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
               <button onClick={onCamera} style={{ width: 38, height: 38, borderRadius: 6, background: '#5dade2', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>📷</button>
-              <button onClick={onGallery} style={{ width: 38, height: 38, borderRadius: 6, background: '#7c6cd4', color: '#000', border: 'none', fontSize: 17, flexShrink: 0, cursor: 'pointer' }}>🖼️</button>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
@@ -357,30 +332,22 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
                     label="INメーター"
                     max={999999}
                     style={inp(p.inTouched)}
-                    onNext={() => document.getElementById('_pf_out')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))}
                   />
                 </div>
                 <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
                   前回 {prev?.inMeter != null ? Number(prev.inMeter).toLocaleString() : '—'}
                 </div>
-                {ocrStatusLabel && (
-                  <div style={{ fontSize: 10, color: '#6b7280', paddingLeft: 4, marginTop: 1 }}>
-                    {ocrStatusLabel}
-                  </div>
-                )}
               </div>
               {pattern !== 'A0' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
                     <NumpadField
-                      id="_pf_out"
                       value={o0.meter}
                       onChange={v => setPatrolOut(0, 'meter', v)}
                       label="OUTメーター"
                       max={999999}
                       style={inp(t0.meter)}
-                      onNext={() => document.getElementById('_pf_zan')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))}
                     />
                   </div>
                   <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
@@ -391,19 +358,16 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Term id="residual" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>残</Term>
                 <NumpadField
-                  id="_pf_zan"
                   value={o0.zan}
                   onChange={v => setPatrolZan(0, v)}
                   label="残"
                   max={9999}
                   style={{ ...INP_BASE, width: 48, color: '#d0d0e0', boxSizing: 'border-box' }}
-                  onNext={() => document.getElementById('_pf_ho')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))}
                 />
               </div>
               <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Term id="refill" style={{ fontSize: 10, color: '#f0c040', fontWeight: 700 }}>補</Term>
                 <NumpadField
-                  id="_pf_ho"
                   value={o0.ho}
                   onChange={v => setPatrolOut(0, 'ho', v)}
                   label="補充数"
@@ -444,8 +408,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
             <MeterInputRow
               inMeter={p.inMeter} inTouched={p.inTouched}
               inDiff={calc?.inDiff} showDiff={true}
-              onChange={setPatrolIn} onCamera={onCamera} onGallery={onGallery}
-              ocrStatusText={ocrStatusLabel} />
+              onChange={setPatrolIn} onCamera={onCamera} />
 
             {p.outs.map((o, i) => (
               <OutGroupRow key={i} idx={i} label={outLabels[i]}
@@ -475,30 +438,22 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
       case 'D1':
       case 'D2': {
         return (
-          <>
-            <GachaInputV3
-              pattern={pattern}
-              boothCode={booth.booth_code}
-              p={p}
-              prev={prev}
-              calc={c}
-              lockers={lockers}
-              lockerState={lockerState}
-              staffId={staffId}
-              setPatrolIn={setPatrolIn}
-              setPatrolOut={setPatrolOut}
-              setPatrolZan={setPatrolZan}
-              onCamera={onCamera}
-              onGallery={onGallery}
-              resetPatrolInMeter={resetPatrolInMeter}
-              resetPatrolOutMeter={resetPatrolOutMeter}
-            />
-            {ocrStatusLabel && (
-              <div style={{ fontSize: 10, color: '#6b7280', paddingLeft: 4, marginTop: -2, marginBottom: 4 }}>
-                {ocrStatusLabel}
-              </div>
-            )}
-          </>
+          <GachaInputV3
+            pattern={pattern}
+            boothCode={booth.booth_code}
+            p={p}
+            prev={prev}
+            calc={c}
+            lockers={lockers}
+            lockerState={lockerState}
+            staffId={staffId}
+            setPatrolIn={setPatrolIn}
+            setPatrolOut={setPatrolOut}
+            setPatrolZan={setPatrolZan}
+            onCamera={onCamera}
+            resetPatrolInMeter={resetPatrolInMeter}
+            resetPatrolOutMeter={resetPatrolOutMeter}
+          />
         )
       }
 
@@ -544,10 +499,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           boothLabel={boothLabel}
           badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
           playPrice={machineInfo?.playPrice}
-          onBack={() => {
-            const sc = state?.storeCode
-            navigate(sc ? `/clawsupport/store/${sc}/patrol` : '/patrol/overview')
-          }}
+          onBack={() => navigate(-1)}
           dateLocked={dateLocked}
         />
 
@@ -629,10 +581,6 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
 
     </div>
 
-    {/* iOS: input 自身に display:none、同期 .click() でネイティブカメラ/ギャラリー起動 */}
-    <input ref={patrolCamRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePatrolFileChange} />
-    <input ref={patrolGalRef} type="file" accept="image/*"                       style={{ display: 'none' }} onChange={handlePatrolFileChange} />
-
     {showOcr && (
       <OcrCaptureScreen
         boothCode={booth.booth_code}
@@ -640,11 +588,11 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
         lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
         mode={outCount >= 2 ? 'three' : 'single'}
-        initialFile={ocrInitialFile}
         onConfirm={handleOcrApply}
-        onCancel={() => { setShowOcr(false); setOcrInitialFile(null) }}
+        onCancel={() => setShowOcr(false)}
       />
     )}
+
     <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     <HelpFAB />
     </>

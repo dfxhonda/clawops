@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { getLastReading, saveBoothReading } from '../../services/patrol'
 import { parseNum } from '../../services/utils'
 import PrizeSearchModal from '../components/PrizeSearchModal'
 import LockerInput from '../components/LockerInput'
+import DateTime from '../../shared/ui/DateTime'
 
 export default function BoothInput() {
   const navigate = useNavigate()
   const location = useLocation()
   const { staffId } = useAuth()
+  const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
 
   const { booth, machine, storeCode, storeName, lockers = [], isGacha = false } = location.state || {}
 
   // Guard: no state → back to overview
   useEffect(() => {
     if (!location.state) {
-      navigate('/patrol/overview', { replace: true })
+      navigate('/clawsupport', { replace: true })
     }
   }, [location.state, navigate])
 
@@ -66,6 +69,10 @@ export default function BoothInput() {
 
   // ── Save handler ────────────────────────────────────────
   async function handleSave() {
+    if (!patrolEnabled) {
+      setSaveError('現在メンテナンス中のため保存できません。しばらくお待ちください。')
+      return
+    }
     if (!inMeter) {
       setSaveError('INメーターを入力してください')
       return
@@ -112,7 +119,7 @@ export default function BoothInput() {
       {/* ── Header ── */}
       <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <button
-          onClick={() => navigate('/patrol/overview')}
+          onClick={() => navigate(-1)}
           className="text-xl text-muted hover:text-accent transition-colors"
         >
           ←
@@ -143,7 +150,7 @@ export default function BoothInput() {
               {' '}OUT <span className="text-accent font-bold">{parseNum(String(lastReading.out_meter)).toLocaleString()}</span>
             </span>
             <span className="text-muted text-xs ml-auto shrink-0">
-              {lastReading.read_date || lastReading.created_at?.slice(0, 10) || ''}
+              <DateTime value={lastReading.read_date || lastReading.created_at} format="short" />
             </span>
           </div>
         )}

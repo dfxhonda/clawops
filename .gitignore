@@ -23,6 +23,9 @@ archive/
 .env.local.scripts
 *.key
 
+# Cursor IDE (MCP設定はローカル固有 - コミット対象外)
+.cursor/
+
 # 資料・写真（git管理対象外）
 docs/screenshots/
 docs/photos/

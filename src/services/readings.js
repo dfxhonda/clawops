@@ -55,13 +55,94 @@ export async function getBoothHistory(boothId, limit = 10) {
   return data || []
 }
 
+// ブース指定 最新2件/ブース を RPC で取得（getLastReadingsMap 専用最適化版）
+// 全件取得 → ROW_NUMBER 2件/ブースに削減。RPC 未対応環境はフォールバック
+export async function getLatestReadingsPerBooth(boothCodes) {
+  if (!boothCodes.length) return []
+  try {
+    const { data, error } = await supabase.rpc('get_latest_readings_per_booth', {
+      p_booth_codes: boothCodes,
+    })
+    if (error) throw new Error(error.message)
+    return (data || []).map(r => ({
+      reading_id: r.reading_id,
+      booth_id: r.booth_id || '',
+      full_booth_code: r.full_booth_code || '',
+      patrol_date: r.patrol_date || '',
+      read_time: r.read_time || '',
+      in_meter: r.in_meter != null ? String(r.in_meter) : '',
+      out_meter: r.out_meter != null ? String(r.out_meter) : '',
+      prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+      prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+      prize_name: r.prize_name || '',
+      set_a: r.set_a || '', set_c: r.set_c || '', set_l: r.set_l || '',
+      set_r: r.set_r || '', set_o: r.set_o || '',
+      note: r.note || '', source: r.source || 'manual',
+    }))
+  } catch (e) {
+    console.warn('getLatestReadingsPerBooth RPC unavailable, fallback:', e.message)
+    return fetchReadingsByBoothIds(boothCodes)
+  }
+}
+
+// 店舗コード → 最新1件/ブース（DISTINCT ON、PatrolScreenV1 等でのプリロード用）
+export async function getLastReadingsByStore(storeCode) {
+  if (!storeCode) return []
+  const { data, error } = await supabase.rpc('get_last_readings_by_store', {
+    p_store_code: storeCode,
+  })
+  if (error) { console.error('getLastReadingsByStore error:', error.message); return [] }
+  return (data || []).map(r => ({
+    full_booth_code: r.full_booth_code || '',
+    read_time: r.read_time || '',
+    in_meter: r.in_meter != null ? String(r.in_meter) : '',
+    out_meter: r.out_meter != null ? String(r.out_meter) : '',
+    prize_name: r.prize_name || '',
+    patrol_date: r.patrol_date || '',
+  }))
+}
+
+// ブース指定の全読み値を取得（店舗スコープに限定、全件キャッシュ不使用）
+// MachineList / RankingView / Dashboard など全履歴が必要な画面向け
+// getLastReadingsMap には getLatestReadingsPerBooth を使うこと
+export async function fetchReadingsByBoothIds(boothIds) {
+  if (!boothIds.length) return []
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select('reading_id, booth_id, full_booth_code, patrol_date, read_time, in_meter, out_meter, prize_restock_count, prize_stock_count, prize_name, set_a, set_c, set_l, set_r, set_o, note, source')
+    .in('booth_id', boothIds)
+    .order('patrol_date', { ascending: true, nullsFirst: true })
+    .order('read_time', { ascending: true })
+  if (error) { console.error('fetchReadingsByBoothIds error:', error.message); return [] }
+  return (data || []).map(r => ({
+    reading_id: r.reading_id,
+    booth_id: r.booth_id || '',
+    full_booth_code: r.full_booth_code || '',
+    patrol_date: r.patrol_date || '',
+    read_time: r.read_time || '',
+    in_meter: r.in_meter != null ? String(r.in_meter) : '',
+    out_meter: r.out_meter != null ? String(r.out_meter) : '',
+    prize_restock_count: r.prize_restock_count != null ? String(r.prize_restock_count) : '',
+    prize_stock_count: r.prize_stock_count != null ? String(r.prize_stock_count) : '',
+    prize_name: r.prize_name || '',
+    set_a: r.set_a || '', set_c: r.set_c || '', set_l: r.set_l || '',
+    set_r: r.set_r || '', set_o: r.set_o || '',
+    note: r.note || '', source: r.source || 'manual',
+  }))
+}
+
+// ブースIDリストに対して { latest, last } マップを返す
+// RPC get_latest_readings_per_booth で最新2件/ブース取得（全件取得を廃止）
 export async function getLastReadingsMap(boothIds) {
-  const all = await getAllMeterReadings()
+  const all = await getLatestReadingsPerBooth(boothIds)
   const map = {}
   for (const id of boothIds) {
-    const rows = all.filter(r => String(r.booth_id) === String(id))
-    const latest = rows.length ? rows[rows.length - 1] : null
-    const last = [...rows].reverse().find(r => isOldEnough(r.read_time)) || null
+    // RPC は DESC、フォールバックは ASC の可能性があるため明示的に DESC ソート
+    const rows = all
+      .filter(r => String(r.booth_id) === String(id))
+      .sort((a, b) => (b.read_time || '') > (a.read_time || '') ? 1 : -1)
+    const latest = rows.length ? rows[0] : null
+    const last = rows.find(r => isOldEnough(r.read_time)) || null
     map[id] = { latest, last }
   }
   return map

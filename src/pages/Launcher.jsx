@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { getVisibleTiles } from '../shared/auth/roles'
 import { useRole } from '../shared/auth/useRole'
 import { supabase } from '../lib/supabase'
+import { logout } from '../lib/auth/session'
+import DateTime from '../shared/ui/DateTime'
 
 function useTodayCount() {
   const [count, setCount] = useState(null)
@@ -23,13 +25,13 @@ export default function Launcher() {
   const { role, staffName, loading } = useRole()
   const todayCount = useTodayCount()
 
+  async function handleLogout() {
+    await logout()
+    sessionStorage.removeItem('clawops_staff')
+    window.location.replace('/login')
+  }
+
   const now = new Date()
-  const dateLabel = now.toLocaleDateString('ja-JP', {
-    timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
-  })
-  const timeLabel = now.toLocaleTimeString('ja-JP', {
-    timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit',
-  })
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen text-slate-400">読み込み中...</div>
@@ -44,7 +46,7 @@ export default function Launcher() {
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <div className="px-4 pt-10 pb-6">
-        <p className="text-slate-400 text-sm">{dateLabel}　{timeLabel}</p>
+        <p className="text-slate-400 text-sm"><DateTime value={now} format="date" />　<DateTime value={now} format="time" /></p>
         <h1 className="text-xl font-bold mt-1">
           こんにちは、{staffName || 'ゲスト'}さん
         </h1>
@@ -103,9 +105,14 @@ export default function Launcher() {
         </div>
       </div>
 
-      {role === 'admin' && (
-        <p className="text-center text-slate-700 text-xs pb-4">{role}</p>
-      )}
+      <div className="px-4 pb-8 flex justify-center">
+        <button
+          onClick={handleLogout}
+          className="text-xs text-slate-600 hover:text-slate-400 transition-colors px-4 py-2"
+        >
+          ログアウト
+        </button>
+      </div>
     </div>
   )
 }

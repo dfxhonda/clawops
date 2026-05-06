@@ -1,5 +1,4 @@
 import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
-import * as Sentry from '@sentry/react'
 import { supabase } from '../../lib/supabase'
 
 function otsuThreshold(imageData) {
@@ -27,29 +26,20 @@ function otsuThreshold(imageData) {
   return threshold
 }
 
-const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePrefix, onStatusChange }, ref) {
-  const cameraInputRef = useRef(null)
-  const galleryInputRef = useRef(null)
+const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePrefix }, ref) {
+  const inputRef = useRef(null)
 
   useImperativeHandle(ref, () => ({
-    trigger: () => cameraInputRef.current?.click(),
-    triggerCamera: () => cameraInputRef.current?.click(),
-    triggerGallery: () => galleryInputRef.current?.click(),
+    trigger: () => inputRef.current?.click(),
   }))
 
   const handleCapture = useCallback(async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const inputEl = e.target
-    const ocrAttemptedAt = new Date().toISOString()
-
-    Sentry.captureMessage('ocr.file_received', { level: 'info', extra: { size: file.size, type: file.type } })
-    onStatusChange?.({ phase: 'binarizing' })
 
     let photoUrl = null
     let croppedPhotoUrl = null
     let extractedNumber = null
-    let ocrRawText = null
 
     try {
       const img = await createImageBitmap(file)
@@ -71,9 +61,8 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
       cropCtx.putImageData(imageData, 0, 0)
 
       const croppedBlob = await new Promise(resolve => cropCanvas.toBlob(resolve, 'image/jpeg', 0.85))
-      Sentry.captureMessage('ocr.binarization_done', { level: 'info' })
 
-      onStatusChange?.({ phase: 'uploading' })
+      // Supabase Storage upload
       try {
         const ts = Date.now()
         const base = storagePrefix || `meter-captures/unknown/unknown/${new Date().toISOString().slice(0, 10)}`
@@ -87,99 +76,66 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
 
         photoUrl = supabase.storage.from('meter-captures').getPublicUrl(origPath).data.publicUrl
         croppedPhotoUrl = supabase.storage.from('meter-captures').getPublicUrl(cropPath).data.publicUrl
-        Sentry.captureMessage('ocr.storage_upload_success', { level: 'info', extra: { origPath } })
       } catch (storageErr) {
-        Sentry.captureException(storageErr, { tags: { ocr_step: 'storage_upload' } })
         console.warn('[NativeCamera] Storage upload failed:', storageErr)
       }
 
-      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-      if (!apiKey) {
-        Sentry.captureMessage('ocr.api_key_missing', { level: 'warning' })
-        onStatusChange?.({ phase: 'failed', detail: 'APIキー未設定' })
-      } else {
-        onStatusChange?.({ phase: 'calling_api' })
-        Sentry.captureMessage('ocr.api_call_started', { level: 'info', extra: { model: 'claude-haiku-4-5-20251001' } })
-        try {
-          const cropB64 = await new Promise(resolve => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result.split(',')[1])
-            reader.readAsDataURL(croppedBlob)
-          })
+      // Claude Vision OCR — Edge Function 経由 (ADR-003, クライアント側 API キー不使用)
+      try {
+        const cropB64 = await new Promise(resolve => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result.split(',')[1])
+          reader.readAsDataURL(croppedBlob)
+        })
 
-          const resp = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-              'anthropic-version': '2023-06-01',
-              'content-type': 'application/json',
-              'anthropic-dangerous-client-side-key-warning': 'true',
-            },
-            body: JSON.stringify({
-              model: 'claude-haiku-4-5-20251001',
-              max_tokens: 64,
-              messages: [{
-                role: 'user',
-                content: [
-                  { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: cropB64 } },
-                  { type: 'text', text: 'この画像のメーター数値を読み取って、数字だけを返してください。数字以外は一切出力しないこと。' },
-                ],
-              }],
-            }),
-          })
-
-          if (!resp.ok) {
-            const errText = await resp.text()
-            Sentry.captureException(new Error(`Anthropic ${resp.status}: ${errText}`), { tags: { ocr_step: 'api_response' } })
-            onStatusChange?.({ phase: 'failed', detail: `HTTP ${resp.status}` })
-          } else {
-            const json = await resp.json()
-            ocrRawText = json.content?.[0]?.text || null
-            Sentry.captureMessage('ocr.api_call_success', { level: 'info', extra: { raw: ocrRawText } })
-            const digits = ocrRawText?.replace(/[^0-9]/g, '') || ''
-            if (digits) {
-              extractedNumber = parseInt(digits, 10)
-              Sentry.captureMessage('ocr.value_extracted', { level: 'info', extra: { extractedNumber } })
-              onStatusChange?.({ phase: 'success', number: extractedNumber })
-            } else {
-              Sentry.captureMessage('ocr.value_empty', { level: 'warning', extra: { raw: ocrRawText } })
-              onStatusChange?.({ phase: 'failed', detail: '数値抽出不可' })
-            }
-          }
-        } catch (ocrErr) {
-          Sentry.captureException(ocrErr, { tags: { ocr_step: 'api_call' } })
-          console.warn('[NativeCamera] OCR failed:', ocrErr)
-          onStatusChange?.({ phase: 'failed', detail: ocrErr.message })
+        const { data: ocrData, error: ocrError } = await supabase.functions.invoke('ocr-meter', {
+          body: { image_base64: cropB64, media_type: 'image/jpeg' },
+        })
+        if (ocrError) {
+          console.warn('[NativeCamera] OCR Edge Function error:', ocrError)
+        } else {
+          // ocr-meter は left_in/left_out/right_in/right_out を返す
+          // NativeCamera は IN メーター単独取込なので left_in を優先使用
+          const val = ocrData?.left_in ?? ocrData?.left_out ?? null
+          if (val != null) extractedNumber = Number(val)
         }
+      } catch (ocrErr) {
+        console.warn('[NativeCamera] OCR failed:', ocrErr)
       }
     } catch (err) {
-      Sentry.captureException(err, { tags: { ocr_step: 'binarization' } })
       console.error('[NativeCamera] handleCapture error:', err)
-      onStatusChange?.({ phase: 'failed', detail: err.message })
     }
 
-    onOcrResult?.({ extractedNumber, photoUrl, croppedPhotoUrl, ocrRawText, ocrAttemptedAt })
-    inputEl.value = ''
-  }, [onOcrResult, storagePrefix, onStatusChange])
+    onOcrResult?.({ extractedNumber, photoUrl, croppedPhotoUrl })
+    if (inputRef.current) inputRef.current.value = ''
+  }, [onOcrResult, storagePrefix])
 
   return (
-    <>
+    <div>
       <input
-        ref={cameraInputRef}
+        ref={inputRef}
         type="file"
         accept="image/*"
         capture="environment"
         style={{ display: 'none' }}
         onChange={handleCapture}
       />
-      <input
-        ref={galleryInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleCapture}
-      />
-    </>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '10px 16px', borderRadius: 8, border: 'none',
+          backgroundColor: '#0f766e', color: '#fff',
+          fontSize: 15, fontWeight: 600, cursor: 'pointer',
+        }}
+      >
+        📸 撮影
+      </button>
+      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+        💡フラッシュONで撮ると認識精度UP
+      </div>
+    </div>
   )
 })
 

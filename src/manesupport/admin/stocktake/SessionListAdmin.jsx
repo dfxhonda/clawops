@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllSessions } from './api'
+import DateTime from '../../../shared/ui/DateTime'
 
 const STATUS_LABELS = {
   in_progress: { label: '入力中',   color: 'text-emerald-400 border-emerald-400/40' },
   submitted:   { label: '提出済み', color: 'text-yellow-400 border-yellow-400/40' },
   approved:    { label: '承認済み', color: 'text-blue-400 border-blue-400/40' },
   rejected:    { label: '差し戻し', color: 'text-rose-400 border-rose-400/40' },
-}
-
-function formatDate(d) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
 }
 
 export default function SessionListAdmin() {
@@ -77,7 +73,7 @@ export default function SessionListAdmin() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold truncate">{s.session_name}</div>
                     <div className="text-xs text-muted mt-0.5">
-                      {s.store_code} · {formatDate(s.start_date)}
+                      {s.store_code} · <DateTime value={s.start_date} format="short" />
                     </div>
                   </div>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${st.color}`}>

@@ -30,6 +30,11 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ['./src/__tests__/setup.js'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    env: {
+      VITE_SUPABASE_URL: 'http://localhost:54321',
+      VITE_SUPABASE_ANON_KEY: 'test-anon-key-for-vitest-only',
+    },
   },
   build: {
     sourcemap: true,

@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores } from '../../services/masters'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
-import { logout } from '../../lib/auth/session'
 import { exportPatrolDetailSheet, exportRound0FullReport } from '../../services/excelExport'
 import FullshotCamera from '../components/FullshotCamera'
+import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 
 function isGacha(machine) {
   return (
@@ -24,6 +24,7 @@ export default function PatrolOverview() {
   const navigate = useNavigate()
   const [stores, setStores] = useState([])
   const [selStore, setSelStore] = useState(() => sessionStorage.getItem('patrol_overview_store') || '')
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [loading, setLoading] = useState(false)
@@ -180,16 +181,6 @@ export default function PatrolOverview() {
         >
           🔄
         </button>
-        <button
-          onClick={async () => {
-            await logout()
-            sessionStorage.removeItem('clawops_staff')
-            window.location.replace('/login')
-          }}
-          className="h-9 px-3 flex items-center rounded-xl text-[10px] text-muted active:bg-surface2 transition-colors"
-        >
-          ログアウト
-        </button>
       </div>
 
       {xlsxError && (
@@ -200,20 +191,20 @@ export default function PatrolOverview() {
 
       {/* ━━━ 店舗セレクター + 日付 ━━━ */}
       <div className="shrink-0 px-4 py-2 flex items-center gap-3">
-        <select
-          value={selStore}
-          onChange={e => handleStoreChange(e.target.value)}
-          className="flex-1 px-3 py-2 rounded-lg border border-border bg-surface text-text text-sm outline-none focus:border-accent [color-scheme:dark]"
-        >
-          <option value="">店舗を選択…</option>
-          {stores.map(s => (
-            <option key={s.store_code} value={s.store_code}>
-              {s.store_name}
-            </option>
-          ))}
-        </select>
+        <StoreSelectTrigger
+          storeName={stores.find(s => s.store_code === selStore)?.store_name}
+          onClick={() => setSheetOpen(true)}
+          className="flex-1"
+        />
         <span className="shrink-0 text-xs text-muted">{todayLabel}</span>
       </div>
+
+      <StoreSelectSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        stores={stores}
+        onSelect={handleStoreChange}
+      />
 
       {/* ━━━ 進捗バー ━━━ */}
       {selStore && (

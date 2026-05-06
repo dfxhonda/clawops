@@ -61,13 +61,13 @@ beforeEach(() => {
 })
 
 describe('BoothInput — ガード', () => {
-  it('location.state が null のとき /patrol/overview に遷移する', () => {
+  it('location.state が null のとき /clawsupport に遷移する', () => {
     render(
       <MemoryRouter initialEntries={[{ pathname: '/patrol/booth', state: null }]}>
         <BoothInput />
       </MemoryRouter>
     )
-    expect(mockNavigate).toHaveBeenCalledWith('/patrol/overview', { replace: true })
+    expect(mockNavigate).toHaveBeenCalledWith('/clawsupport', { replace: true })
   })
 })
 

@@ -1,25 +1,39 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-
-const MODULE_COLOR = '#10b981'
+import { useAuth } from '../../hooks/useAuth'
+import { PageHeader } from '../../shared/ui/PageHeader'
+import KanaIndex from '../../shared/ui/KanaIndex'
 
 export default function TanasupportHub() {
   const navigate = useNavigate()
+  const { staffId } = useAuth()
+
   const [stores, setStores]               = useState([])
+  const [pinnedCodes, setPinnedCodes]     = useState([])
   const [sessionCounts, setSessionCounts] = useState({})
-  const [search, setSearch]               = useState('')
   const [loading, setLoading]             = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [{ data: storeData }, { data: sessionData }] = await Promise.all([
-        supabase.from('stores').select('store_code, store_name').order('store_code'),
-        supabase.from('stocktake_sessions')
+      const [{ data: storeData }, { data: sessionData }, { data: pinData }] = await Promise.all([
+        supabase
+          .from('stores')
+          .select('store_code, store_name, locality, locality_kana')
+          .eq('is_active', true)
+          .order('locality_kana', { nullsLast: true }),
+        supabase
+          .from('stocktake_sessions')
           .select('store_code')
           .in('status', ['in_progress', 'submitted']),
+        staffId
+          ? supabase.from('staff_pinned_stores').select('store_code').eq('staff_id', staffId)
+          : Promise.resolve({ data: [] }),
       ])
+
       setStores(storeData ?? [])
+      setPinnedCodes((pinData ?? []).map(p => p.store_code))
+
       const counts = {}
       for (const s of sessionData ?? []) {
         counts[s.store_code] = (counts[s.store_code] ?? 0) + 1
@@ -28,72 +42,107 @@ export default function TanasupportHub() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [staffId])
 
-  const dateLabel = new Date().toLocaleDateString('ja-JP', {
-    timeZone: 'Asia/Tokyo', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short',
-  })
+  const handlePin = useCallback(async (storeCode) => {
+    const isPinned = pinnedCodes.includes(storeCode)
+    if (isPinned) {
+      setPinnedCodes(prev => prev.filter(c => c !== storeCode))
+      await supabase.from('staff_pinned_stores')
+        .delete()
+        .eq('staff_id', staffId)
+        .eq('store_code', storeCode)
+    } else {
+      setPinnedCodes(prev => [...prev, storeCode])
+      await supabase.from('staff_pinned_stores')
+        .upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
+    }
+  }, [pinnedCodes, staffId])
 
-  const filteredStores = search
-    ? stores.filter(s =>
-        s.store_name.includes(search) || s.store_code.toLowerCase().includes(search.toLowerCase())
-      )
-    : stores
+  function renderCard(store, isPinned) {
+    const cnt = sessionCounts[store.store_code] ?? 0
+    return (
+      <StoreCard
+        key={store.store_code}
+        store={store}
+        isPinned={isPinned}
+        sessionCount={cnt}
+        onSelect={() => navigate(`/tanasupport/store/${store.store_code}`)}
+        onPin={() => handlePin(store.store_code)}
+      />
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg text-muted text-sm">
+        読み込み中...
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-bg text-text">
-      <div
-        className="px-5 pt-10 pb-5"
-        style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLOR }}
-      >
-        <button onClick={() => navigate('/')} className="text-muted text-sm mb-3">← ランチャー</button>
-        <p className="text-muted text-sm">{dateLabel}</p>
-        <h1 className="text-xl font-bold mt-0.5">📦 タナサポ</h1>
-      </div>
+    <div className="h-dvh flex flex-col bg-bg text-text">
+      <PageHeader
+        module="tanasupport"
+        title="タナサポ"
+        variant="compact"
+      />
 
-      {/* 検索 */}
-      <div className="px-5 py-3 border-b border-border">
-        <input
-          type="search"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="店舗名で絞り込み"
-          style={{ fontSize: 16 }}
-          className="w-full px-3 py-2 rounded-lg bg-surface border border-border text-text outline-none focus:border-accent placeholder:text-muted"
-        />
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-muted text-sm">読み込み中...</div>
-      ) : (
-        <div className="px-5 pt-3 pb-10 space-y-2">
-          <div className="text-[10px] text-muted font-bold uppercase tracking-wider mb-3">
-            担当店舗 ({filteredStores.length})
-          </div>
-          {filteredStores.map(store => {
-            const cnt = sessionCounts[store.store_code] ?? 0
-            return (
-              <button
-                key={store.store_code}
-                onClick={() => navigate(`/tanasupport/store/${store.store_code}`)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-all hover:border-emerald-500/30"
-              >
-                <span className="text-base">🏪</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold truncate">{store.store_name}</div>
-                  <div className="text-xs text-muted">{store.store_code}</div>
-                </div>
-                {cnt > 0 && (
-                  <span className="text-[10px] text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-400/40 shrink-0">
-                    棚卸し {cnt}件
-                  </span>
-                )}
-                <span className="text-muted shrink-0">›</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <KanaIndex
+        items={stores}
+        pinnedKeys={pinnedCodes}
+        idKey="store_code"
+        groupKey="locality_kana"
+        renderCard={renderCard}
+      />
     </div>
+  )
+}
+
+function StoreCard({ store, isPinned, sessionCount, onSelect, onPin }) {
+  const timerRef = useRef(null)
+  const movedRef = useRef(false)
+
+  function handlePointerDown() {
+    movedRef.current = false
+    timerRef.current = setTimeout(() => {
+      if (!movedRef.current) onPin()
+    }, 500)
+  }
+
+  function handlePointerUp() {
+    clearTimeout(timerRef.current)
+  }
+
+  function handlePointerMove() {
+    movedRef.current = true
+    clearTimeout(timerRef.current)
+  }
+
+  return (
+    <button
+      onClick={onSelect}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerMove={handlePointerMove}
+      onPointerCancel={handlePointerUp}
+      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
+      style={{ minHeight: 72 }}
+    >
+      {isPinned && <span className="text-yellow-400 text-sm shrink-0">★</span>}
+      <div className="flex-1 min-w-0">
+        <p className="text-text text-base font-bold truncate">{store.store_name}</p>
+        {store.locality && (
+          <p className="text-muted text-xs mt-0.5">{store.locality}</p>
+        )}
+      </div>
+      {sessionCount > 0 && (
+        <span className="text-[10px] text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-400/40 shrink-0">
+          棚卸し {sessionCount}件
+        </span>
+      )}
+      <span className="text-muted text-lg shrink-0">›</span>
+    </button>
   )
 }

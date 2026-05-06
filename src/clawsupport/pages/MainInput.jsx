@@ -163,12 +163,12 @@ export default function MainInput() {
                 {/* IN */}
                 <div>
                   <div className="flex justify-between px-0.5 mb-0.5">
-                    <span className="text-[9px] text-muted font-bold">IN（売上）</span>
+                    <span className="text-[10px] text-muted font-bold">IN（売上）</span>
                     {s.inDiff !== null
-                      ? <span className={`text-[9px] font-bold ${s.inDiff < 0 || s.inDiff > 50000 ? 'text-accent2' : 'text-green-400'}`}>
+                      ? <span className={`text-[10px] font-bold ${s.inDiff < 0 || s.inDiff > 50000 ? 'text-accent2' : 'text-green-400'}`}>
                           +{s.inDiff.toLocaleString()} ¥{s.sales?.toLocaleString()}
                         </span>
-                      : <span className="text-[8px] text-muted/50">{s.prevIn !== null ? s.prevIn.toLocaleString() : ''}</span>
+                      : <span className="text-[10px] text-muted/50">{s.prevIn !== null ? s.prevIn.toLocaleString() : ''}</span>
                     }
                   </div>
                   <input ref={getRef(booth.booth_code, 'in_meter')}
@@ -187,12 +187,12 @@ export default function MainInput() {
                 {/* OUT */}
                 <div>
                   <div className="flex justify-between px-0.5 mb-0.5">
-                    <span className="text-[9px] text-muted font-bold">OUT（払出）</span>
+                    <span className="text-[10px] text-muted font-bold">OUT（払出）</span>
                     {s.outDiff !== null
-                      ? <span className={`text-[9px] font-bold ${s.outDiff < 0 ? 'text-accent2' : 'text-green-400'}`}>
+                      ? <span className={`text-[10px] font-bold ${s.outDiff < 0 ? 'text-accent2' : 'text-green-400'}`}>
                           +{s.outDiff.toLocaleString()}
                         </span>
-                      : <span className="text-[8px] text-muted/50">{s.prevOut !== null ? s.prevOut.toLocaleString() : ''}</span>
+                      : <span className="text-[10px] text-muted/50">{s.prevOut !== null ? s.prevOut.toLocaleString() : ''}</span>
                     }
                   </div>
                   <input ref={getRef(booth.booth_code, 'out_meter')}
@@ -209,7 +209,7 @@ export default function MainInput() {
 
                 {/* 残 */}
                 <div>
-                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残数</div>
+                  <div className="text-[10px] text-muted font-bold text-center mb-0.5" title="景品の残り個数">残数</div>
                   <input ref={getRef(booth.booth_code, 'prize_stock')}
                     type="number" inputMode="numeric"
                     className="w-full py-1 px-1 text-[12px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
@@ -223,7 +223,7 @@ export default function MainInput() {
 
                 {/* 補 */}
                 <div>
-                  <div className="text-[9px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補充</div>
+                  <div className="text-[10px] text-muted font-bold text-center mb-0.5" title="景品の補充数">補充</div>
                   <input ref={getRef(booth.booth_code, 'prize_restock')}
                     type="number" inputMode="numeric"
                     className="w-full py-1 px-1 text-[12px] font-semibold text-center rounded-md border border-border bg-bg text-text outline-none focus:border-blue-500"
@@ -247,7 +247,7 @@ export default function MainInput() {
                   { key: 'set_o', label: 'O', title: '固有設定',       w: 'flex-1'   },
                 ].map(st => (
                   <div key={st.key} className={`flex items-center gap-0.5 ${st.w}`} title={st.title}>
-                    <span className="text-[8px] text-purple-400 font-bold shrink-0">{st.label}</span>
+                    <span className="text-[10px] text-purple-400 font-bold shrink-0">{st.label}</span>
                     <input
                       className="w-full p-1 text-[11px] text-center rounded border border-border bg-bg text-text outline-none focus:border-purple-400"
                       type={st.key === 'set_o' ? 'text' : 'number'}
@@ -308,12 +308,12 @@ export default function MainInput() {
 function StatBox({ label, value, sub, positive, negative }) {
   return (
     <div className="bg-bg border border-border rounded-md p-1.5 text-center">
-      <div className="text-[8px] text-muted">{label}</div>
+      <div className="text-[10px] text-muted">{label}</div>
       <div className={`text-[13px] font-extrabold mt-0.5
         ${positive ? 'text-green-400' : negative ? 'text-accent2' : 'text-text'}`}>
         {value}
       </div>
-      {sub && <div className="text-[8px] text-muted/50 mt-0.5">{sub}</div>}
+      {sub && <div className="text-[10px] text-muted/50 mt-0.5">{sub}</div>}
     </div>
   )
 }

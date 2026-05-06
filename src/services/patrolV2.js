@@ -39,6 +39,7 @@ export async function getMachineInfo(machineCode) {
 }
 
 // ブース直近読み値 (multi-OUT対応)
+// _raw: 生DBレコード（修正モード判定などに使う）
 export async function getLastReadingV2(boothCode) {
   const { data, error } = await supabase
     .from('meter_readings')
@@ -49,6 +50,7 @@ export async function getLastReadingV2(boothCode) {
     .single()
   if (error || !data) return null
   return {
+    _raw: data,
     readTime: data.read_time,
     inMeter: data.in_meter,
     outMeter: data.out_meter,
@@ -91,7 +93,8 @@ export async function getBoothHistory(boothCode, limit = 6) {
   const rows = (data || []).reverse()
   return rows.map((current, i) => {
     const previous = rows[i - 1]
-    if (!previous) return { ...current, in_diff: 0, out_diff: 0, revenue: 0 }
+    // 先頭レコード: ウィンドウ外の前回値との差分は DB 保存値をそのまま使う
+    if (!previous) return current
     if (current.in_meter == null || previous.in_meter == null) return current
     const in_diff = Number(current.in_meter) - Number(previous.in_meter)
     const out_diff = current.out_meter != null && previous.out_meter != null
@@ -153,13 +156,12 @@ export async function updateLockerSlot(slotId, { prizeName, prizeValue, status, 
 }
 
 // メーター読み値保存 V2
-export async function saveReadingV2({ boothCode, patrol, change, outCount, staffId, entryType = 'patrol', photoUrl = null, croppedPhotoUrl = null, ocrRawText = null, ocrAttemptedAt = null, inputMethod = null }) {
+export async function saveReadingV2({ boothCode, patrol, change, outCount, staffId, entryType = 'patrol', photoUrl = null, croppedPhotoUrl = null, ocrAttemptedAt = null, ocrRawText = null }) {
   const patrolPayload = _buildPayload(boothCode, entryType, patrol, outCount, staffId)
   if (photoUrl) patrolPayload.photo_url = photoUrl
   if (croppedPhotoUrl) patrolPayload.cropped_photo_url = croppedPhotoUrl
-  if (ocrRawText) patrolPayload.ocr_raw_text = ocrRawText
   if (ocrAttemptedAt) patrolPayload.ocr_attempted_at = ocrAttemptedAt
-  if (inputMethod) patrolPayload.input_method = inputMethod
+  if (ocrRawText)     patrolPayload.ocr_raw_text      = ocrRawText
   const { error: e1 } = await supabase.from('meter_readings').insert(patrolPayload)
   if (e1) throw new Error('巡回保存エラー: ' + e1.message)
 

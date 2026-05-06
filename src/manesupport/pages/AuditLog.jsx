@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
 import { useAsync } from '../../hooks/useAsync'
+import DateTime from '../../shared/ui/DateTime'
 
 const PAGE_SIZE = 100
 
@@ -218,7 +219,7 @@ export default function AuditLog() {
                     <div className="text-xs text-text/80 mt-0.5 truncate">{log.detail}</div>
                   </div>
                   <div className="text-[10px] text-muted shrink-0 ml-2 text-right">
-                    {log.created_at ? new Date(log.created_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {log.created_at ? <DateTime value={log.created_at} format="datetime" /> : '—'}
                   </div>
                 </div>
 

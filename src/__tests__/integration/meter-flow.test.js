@@ -14,7 +14,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 // テスト対象（モック設定後にインポート）
-const { saveReading, getAllMeterReadings, getLastReadingsMap } = await import('../../services/readings')
+const { saveReading, getLatestReadingsPerBooth, getLastReadingsMap } = await import('../../services/readings')
 const { clearCache } = await import('../../services/utils')
 
 beforeEach(() => {
@@ -77,7 +77,7 @@ describe('メーター入力→保存フロー', () => {
     }
   })
 
-  it('saveReading後にgetAllMeterReadingsが新しい値を返す', async () => {
+  it('saveReading後にgetLatestReadingsPerBoothが新しい値を返す', async () => {
     await saveReading({
       booth_id: 'B003',
       full_booth_code: 'S01-M01-B003',
@@ -88,10 +88,10 @@ describe('メーター入力→保存フロー', () => {
       created_by: 'STAFF01',
     })
 
-    // キャッシュがクリアされているのでDB再取得
-    const all = await getAllMeterReadings(true)
-    expect(all.length).toBe(2)
-    const newReading = all.find(r => r.booth_id === 'B003')
+    // RPC 未対応モックなのでフォールバック経由（fetchReadingsByBoothIds）
+    const rows = await getLatestReadingsPerBooth(['B003'])
+    expect(rows.length).toBeGreaterThanOrEqual(1)
+    const newReading = rows.find(r => r.booth_id === 'B003')
     expect(newReading).toBeTruthy()
     expect(newReading.in_meter).toBe('3000')
   })

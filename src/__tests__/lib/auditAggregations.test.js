@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   aggregateByMetric,
+  aggregateByMonth,
+  aggregateByStaff,
   aggregateByLocation,
 } from '../../lib/auditAggregations'
 
@@ -38,6 +40,86 @@ describe('aggregateByMetric', () => {
     expect(result.stock_count_adjust).toBe(1)
     expect(result.stock_transfer).toBe(2)
     expect(result.order_arrived).toBe(1)
+  })
+})
+
+describe('aggregateByMonth', () => {
+  it('同月のログがひとつのキーにまとまる', () => {
+    const result = aggregateByMonth(makeLogs())
+    expect(Object.keys(result)).toEqual(['2026-04'])
+  })
+
+  it('月別に各指標が正しくカウントされる', () => {
+    const result = aggregateByMonth(makeLogs())
+    const apr = result['2026-04']
+    expect(apr.stock_count_adjust).toBe(1)
+    expect(apr.input_fix).toBe(1)
+    expect(apr.stock_transfer).toBe(2)
+    expect(apr.order_arrived).toBe(1)
+  })
+
+  it('複数月にまたがるログが分割される', () => {
+    const logs = [
+      { action: 'stock_transfer', reason_code: null, staff_id: 'S1', created_at: '2026-03-31T23:59:00Z' },
+      { action: 'stock_transfer', reason_code: null, staff_id: 'S1', created_at: '2026-04-01T00:00:00Z' },
+      { action: 'order_arrived',  reason_code: null, staff_id: 'S1', created_at: '2026-05-01T00:00:00Z' },
+    ]
+    const result = aggregateByMonth(logs)
+    expect(result['2026-03'].stock_transfer).toBe(1)
+    expect(result['2026-04'].stock_transfer).toBe(1)
+    expect(result['2026-05'].order_arrived).toBe(1)
+  })
+
+  it('created_at が空のログはスキップされる', () => {
+    const logs = [
+      { action: 'stock_transfer', reason_code: null, staff_id: 'S1', created_at: '' },
+      { action: 'order_arrived',  reason_code: null, staff_id: 'S1', created_at: null },
+    ]
+    expect(aggregateByMonth(logs)).toEqual({})
+  })
+})
+
+describe('aggregateByStaff', () => {
+  it('担当者ごとに集計される', () => {
+    const result = aggregateByStaff(makeLogs())
+    const staff01 = result.find(r => r.staffId === 'STAFF01')
+    const staff02 = result.find(r => r.staffId === 'STAFF02')
+    expect(staff01).toBeDefined()
+    expect(staff02).toBeDefined()
+    // STAFF01: stock_count_adjust(1) + stock_transfer(1) + order_arrived(1) = 3
+    expect(staff01.counts.stock_count_adjust).toBe(1)
+    expect(staff01.counts.stock_transfer).toBe(1)
+    expect(staff01.counts.order_arrived).toBe(1)
+    expect(staff01.total).toBe(3)
+    // STAFF02: input_fix(1) + stock_transfer(1) = 2
+    expect(staff02.counts.input_fix).toBe(1)
+    expect(staff02.counts.stock_transfer).toBe(1)
+    expect(staff02.total).toBe(2)
+  })
+
+  it('total 降順でソートされる', () => {
+    const result = aggregateByStaff(makeLogs())
+    expect(result[0].staffId).toBe('STAFF01')
+    expect(result[1].staffId).toBe('STAFF02')
+  })
+
+  it('staffMap で名前が解決される', () => {
+    const staffMap = { STAFF01: '山田太郎', STAFF02: '鈴木花子' }
+    const result = aggregateByStaff(makeLogs(), staffMap)
+    expect(result.find(r => r.staffId === 'STAFF01').name).toBe('山田太郎')
+    expect(result.find(r => r.staffId === 'STAFF02').name).toBe('鈴木花子')
+  })
+
+  it('staffMap 未登録の場合は staff_id をそのまま name にする', () => {
+    const result = aggregateByStaff(makeLogs(), {})
+    expect(result.find(r => r.staffId === 'STAFF01').name).toBe('STAFF01')
+  })
+
+  it('staff_id が null のログは unknown バケットに入る', () => {
+    const logs = [{ action: 'order_arrived', reason_code: null, staff_id: null, created_at: '2026-04-01T00:00:00Z' }]
+    const result = aggregateByStaff(logs)
+    expect(result[0].staffId).toBe('unknown')
+    expect(result[0].total).toBe(1)
   })
 })
 

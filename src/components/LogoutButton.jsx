@@ -1,5 +1,5 @@
 // ============================================
-// HomeButton: メニュー（PatrolOverview）に戻るボタン
+// HomeButton: メニュー（Launcher or 上位ハブ）に戻るボタン
 // 全ページの共通ヘッダー右端に配置
 // ============================================
 import { useNavigate } from 'react-router-dom'

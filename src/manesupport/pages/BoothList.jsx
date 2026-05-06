@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { getAllStores, getMachines, getBooths, updateBooth } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../components/AdminNav'
+import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 
 export default function BoothList() {
   const navigate = useNavigate()
 
   const [stores, setStores] = useState([])
   const [storeCode, setStoreCode] = useState(() => sessionStorage.getItem('admin_booth_store') || '')
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [machines, setMachines] = useState([])
   const [machineCode, setMachineCode] = useState(() => sessionStorage.getItem('admin_booth_machine') || '')
   const [booths, setBooths] = useState([])
@@ -104,18 +106,17 @@ export default function BoothList() {
       <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">
         <div>
           <label className="block text-xs text-muted mb-1">店舗</label>
-          <select
-            value={storeCode}
-            onChange={e => setStoreCode(e.target.value)}
-            className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
-          >
-            <option value="">-- 店舗を選択 --</option>
-            {stores.map(s => (
-              <option key={s.store_code} value={s.store_code}>
-                {s.store_name} ({s.store_code})
-              </option>
-            ))}
-          </select>
+          <StoreSelectTrigger
+            storeName={stores.find(s => s.store_code === storeCode)?.store_name}
+            onClick={() => setSheetOpen(true)}
+            className="w-full"
+          />
+          <StoreSelectSheet
+            open={sheetOpen}
+            onClose={() => setSheetOpen(false)}
+            stores={stores}
+            onSelect={code => { setStoreCode(code); sessionStorage.setItem('admin_booth_store', code) }}
+          />
         </div>
 
         {storeCode && (

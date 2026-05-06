@@ -15,7 +15,7 @@ const SECTIONS = [
     title: '現場作業',
     minRole: 'staff',
     items: [
-      { icon: '🚶', title: '巡回入力', desc: '売上・メーターデータ入力', path: '/patrol/overview' },
+      { icon: '🚶', title: '巡回入力', desc: '売上・メーターデータ入力', path: '/clawsupport' },
       { icon: '📊', title: 'ダッシュボード', desc: '今日の売上サマリ', path: '/dashboard' },
     ]
   },

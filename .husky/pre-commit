@@ -1,0 +1,3 @@
+#!/bin/sh
+# pre-commit: ユニットテストのみ高速実行（push 前の最低保証ライン）
+npm test -- --run

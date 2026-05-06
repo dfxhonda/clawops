@@ -31,26 +31,30 @@ function getKanaTab(kana) {
 // idKey: アイテムの識別キー (例: 'store_code')
 // groupKey: 50音グループキー (例: 'locality_kana')
 // pinnedKeys: ★に表示するidの配列
+// showPinned: false にすると★タブを非表示（デフォルト true）
 // renderCard(item, isPinned): カードJSX
-export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_code', groupKey = 'locality_kana', renderCard }) {
-  const [activeTab, setActiveTab] = useState('★')
+export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_code', groupKey = 'locality_kana', showPinned = true, renderCard }) {
+  const [activeTab, setActiveTab] = useState(showPinned ? '★' : null)
 
   const pinnedSet = useMemo(() => new Set(pinnedKeys), [pinnedKeys])
 
   const availableTabs = useMemo(() => {
     const used = new Set(items.map(i => getKanaTab(i[groupKey])).filter(Boolean))
-    const tabs = ['★', ...KANA_ORDER.filter(t => used.has(t))]
+    const tabs = [...(showPinned ? ['★'] : []), ...KANA_ORDER.filter(t => used.has(t))]
     const hasOther = items.some(i => !getKanaTab(i[groupKey]))
     if (hasOther) tabs.push('他')
     return tabs
-  }, [items, groupKey])
+  }, [items, groupKey, showPinned])
+
+  // activeTab が null（showPinned=false の初期状態）なら最初のタブを使う
+  const resolvedTab = activeTab ?? availableTabs[0] ?? null
 
   const displayItems = useMemo(() => {
-    if (activeTab === '★') return items.filter(i => pinnedSet.has(i[idKey]))
-    if (activeTab === '他') return items.filter(i => !getKanaTab(i[groupKey]))
-    const regex = KANA_GROUPS[activeTab]
+    if (resolvedTab === '★') return items.filter(i => pinnedSet.has(i[idKey]))
+    if (resolvedTab === '他') return items.filter(i => !getKanaTab(i[groupKey]))
+    const regex = KANA_GROUPS[resolvedTab]
     return regex ? items.filter(i => regex.test(toKatakana(i[groupKey] || ''))) : []
-  }, [activeTab, items, pinnedSet, idKey, groupKey])
+  }, [resolvedTab, items, pinnedSet, idKey, groupKey])
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -64,7 +68,7 @@ export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`min-w-[28px] h-8 px-2 rounded-lg text-sm font-bold shrink-0 transition-colors ${
-              activeTab === tab ? 'bg-accent text-bg' : 'bg-surface text-muted'
+              resolvedTab === tab ? 'bg-accent text-bg' : 'bg-surface text-muted'
             }`}
           >
             {tab}
@@ -74,7 +78,7 @@ export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_
 
       {/* リスト */}
       <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
-        {activeTab === '★' && displayItems.length === 0 ? (
+        {resolvedTab === '★' && displayItems.length === 0 ? (
           <p className="text-center text-muted text-sm py-8">長押しで★登録</p>
         ) : displayItems.length === 0 ? (
           <p className="text-center text-muted text-sm py-8">該当なし</p>

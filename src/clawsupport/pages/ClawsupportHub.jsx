@@ -4,13 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
-import LogoutButton from '../../components/LogoutButton'
-
-function todayLabel() {
-  return new Date().toLocaleDateString('ja-JP', {
-    timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short',
-  })
-}
+import DateTime from '../../shared/ui/DateTime'
 
 export default function ClawsupportHub() {
   const navigate = useNavigate()
@@ -80,12 +74,7 @@ export default function ClawsupportHub() {
         module="clawsupport"
         title="クレサポ"
         variant="compact"
-        rightSlot={
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted">{todayLabel()}</span>
-            <LogoutButton className="h-10 px-3 text-xs text-muted bg-surface border border-border rounded-xl active:opacity-70" />
-          </div>
-        }
+        rightSlot={<DateTime value={new Date()} format="date" />}
       />
 
       <KanaIndex
