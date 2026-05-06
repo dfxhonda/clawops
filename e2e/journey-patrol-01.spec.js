@@ -29,7 +29,7 @@ async function fillNumpadField(page, fieldId, digits, advance = true) {
 //   - 保存 → meter_readings UPSERT 実行
 //   - 値変化なし → upsert しない（carry_forward 停止）
 
-const MOCK_STORE = { store_code: 'TST01', store_name: 'テスト一番街店' }
+const MOCK_STORE = { store_code: 'TST01', store_name: 'テスト一番街店', is_collection_day: false }
 const MOCK_MACHINE = {
   machine_code:   'TST01-M001',
   machine_name:   'テスト機1',

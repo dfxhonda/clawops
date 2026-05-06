@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -100,30 +101,54 @@ export default function PatrolBoothInputPage() {
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
 
   const { machine, booth, storeCode } = state ?? {}
+  const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
 
-  const [prev,         setPrev]   = useState(null)
-  const [inMeter,      setIn]     = useState('')
-  const [outMeter,     setOut]    = useState('')
-  const [stock,        setStk]    = useState('')
-  const [restock,      setRst]    = useState('')
-  const [prizeName,    setPrize]  = useState('')
-  const [setA,         setSetA]   = useState('')
-  const [isCollection, setIsColl] = useState(false)
-  const [saving,       setSaving] = useState(false)
-  const [result,       setResult] = useState(null)
+  const [prev,           setPrev]   = useState(null)
+  const [inMeter,        setIn]     = useState('')
+  const [outMeter,       setOut]    = useState('')
+  const [stock,          setStk]    = useState('')
+  const [restock,        setRst]    = useState('')
+  const [prizeName,      setPrize]  = useState('')
+  const [setA,           setSetA]   = useState('')
+  const [isCollectionDay, setIsCollectionDay] = useState(false)
+  const [isCollection,   setIsColl] = useState(false)
+  const [saving,         setSaving] = useState(false)
+  const [result,         setResult] = useState(null)
 
   useEffect(() => {
     getLastReadingForBooth(boothCode).then(setPrev)
   }, [boothCode])
 
-  // entry_type リアルタイム判定
+  useEffect(() => {
+    if (!resolvedStoreCode) {
+      setIsCollectionDay(false)
+      return
+    }
+    let cancel = false
+    supabase
+      .from('stores')
+      .select('is_collection_day')
+      .eq('store_code', resolvedStoreCode)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancel) setIsCollectionDay(!!data?.is_collection_day)
+      })
+    return () => { cancel = true }
+  }, [resolvedStoreCode])
+
+  useEffect(() => {
+    if (!isCollectionDay) setIsColl(false)
+  }, [isCollectionDay])
+
+  const recordAsCollection = isCollectionDay && isCollection
+
   const entryType = useMemo(
     () => classifyEntryType({
       prev,
       next: { inMeter, outMeter, prizeName, setA },
-      isCollection,
+      isCollection: recordAsCollection,
     }),
-    [prev, inMeter, outMeter, prizeName, setA, isCollection],
+    [prev, inMeter, outMeter, prizeName, setA, recordAsCollection],
   )
 
   const canSave = inMeter !== '' && outMeter !== '' && stock !== ''
@@ -209,21 +234,23 @@ export default function PatrolBoothInputPage() {
           />
         </div>
 
-        {/* 集金チェック */}
-        <label
-          data-testid="collection-checkbox-label"
-          className="flex items-center gap-3 mx-4 mt-3 px-4 py-3 rounded-2xl bg-surface/30 border border-border cursor-pointer"
-        >
-          <input
-            data-testid="collection-checkbox"
-            type="checkbox"
-            checked={isCollection}
-            onChange={e => setIsColl(e.target.checked)}
-            className="w-5 h-5 accent-blue-500"
-          />
-          <span className="text-sm text-text font-bold">集金あり</span>
-          {isCollection && <span className="text-xs text-blue-400 ml-1">集金記録として保存</span>}
-        </label>
+        {/* 集金（stores.is_collection_day のときのみ） */}
+        {isCollectionDay && (
+          <label
+            data-testid="collection-checkbox-label"
+            className="flex items-center gap-3 mx-4 mt-3 px-4 py-3 rounded-2xl bg-surface/30 border border-border cursor-pointer"
+          >
+            <input
+              data-testid="collection-checkbox"
+              type="checkbox"
+              checked={isCollection}
+              onChange={e => setIsColl(e.target.checked)}
+              className="w-5 h-5 accent-blue-500"
+            />
+            <span className="text-sm text-text font-bold">集金あり</span>
+            {isCollection && <span className="text-xs text-blue-400 ml-1">集金記録として保存</span>}
+          </label>
+        )}
 
         {/* 保存ボタン */}
         <div className="px-4 pt-4 pb-8">

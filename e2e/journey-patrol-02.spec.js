@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test'
 import { setupAuth } from './helpers'
 
+function isSingleRequest(route) {
+  const accept = route.request().headers()['accept'] ?? ''
+  return accept.includes('vnd.pgrst.object')
+}
+
+async function mockStoreCollectionDay(page, isCollectionDay) {
+  await page.route('**/rest/v1/stores**', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const row = {
+      store_code: 'TST01',
+      store_name: 'テスト店舗',
+      is_collection_day: isCollectionDay,
+    }
+    const body = isSingleRequest(route) ? JSON.stringify(row) : JSON.stringify([row])
+    await route.fulfill({ status: 200, contentType: 'application/json', body })
+  })
+}
+
 // J-PATROL-02: 入替判定 — 同一ブース連続2レコード差分から entry_type='replace' 自動分類
 // Acceptance:
 //   - 前回と同じメーター値 + 異なる景品名 → entry_type='replace' で新規 INSERT
@@ -25,6 +43,8 @@ const PREV_READING = {
 
 async function setupBoothMocks(page, opts = {}) {
   const { prevReading = PREV_READING } = opts
+
+  await mockStoreCollectionDay(page, false)
 
   await page.route('**/rest/v1/meter_readings**', async (route) => {
     const method = route.request().method()
@@ -87,6 +107,16 @@ async function injectBoothState(page) {
   })
 }
 
+async function gotoPatrolBooth(page) {
+  const done = page.waitForResponse(
+    r => r.url().includes('/rest/v1/stores') && r.request().method() === 'GET',
+    { timeout: 10_000 },
+  )
+  await page.goto('/clawsupport/booth/TST-B01')
+  await done
+  await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+}
+
 async function fillNumpadField(page, fieldId, digits) {
   await page.locator(fieldId).click()
   await page.waitForSelector('[data-testid="numpad-sheet"]', { timeout: 3000 })
@@ -94,7 +124,7 @@ async function fillNumpadField(page, fieldId, digits) {
   for (const d of String(digits)) {
     await sheet.locator(`[data-numpad-key="${d}"]`).click()
   }
-  await sheet.locator('[data-numpad-key="→"]').click()
+  await page.locator('[data-testid="numpad-sheet"] [data-numpad-key="→"]').click()
   await page.waitForSelector('[data-testid="numpad-portal"]', { state: 'detached', timeout: 1500 }).catch(() => {})
 }
 
@@ -103,9 +133,7 @@ test.describe('J-PATROL-02: 入替判定', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
-
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await gotoPatrolBooth(page)
 
     // 前回と同じメーター値を入力
     await fillNumpadField(page, '#field-in-meter',  '50000')
@@ -136,9 +164,7 @@ test.describe('J-PATROL-02: 入替判定', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
-
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await gotoPatrolBooth(page)
 
     await fillNumpadField(page, '#field-in-meter',  '50000')
     await fillNumpadField(page, '#field-out-meter', '45000')
@@ -165,9 +191,7 @@ test.describe('J-PATROL-02: 入替判定', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
-
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await gotoPatrolBooth(page)
 
     // メーター値を変更 → patrol
     await fillNumpadField(page, '#field-in-meter',  '51000')

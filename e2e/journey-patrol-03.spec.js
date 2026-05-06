@@ -1,13 +1,31 @@
 import { test, expect } from '@playwright/test'
 import { setupAuth } from './helpers'
 
-// J-PATROL-03: 集金チェック — チェックボックス ON で entry_type='collection' で記録
+function isSingleRequest(route) {
+  const accept = route.request().headers()['accept'] ?? ''
+  return accept.includes('vnd.pgrst.object')
+}
+
+async function mockStoreCollectionDay(page, isCollectionDay) {
+  await page.route('**/rest/v1/stores**', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const row = {
+      store_code: 'TST01',
+      store_name: 'テスト店舗',
+      is_collection_day: isCollectionDay,
+    }
+    const body = isSingleRequest(route) ? JSON.stringify(row) : JSON.stringify([row])
+    await route.fulfill({ status: 200, contentType: 'application/json', body })
+  })
+}
+
+// J-PATROL-03: 集金 — stores.is_collection_day ON の日のみチェック表示、ON+チェックで collection 記録
 // Acceptance:
-//   - 集金チェックボックスが画面に表示される
-//   - チェック ON → entry_type バッジが「集金」になる
-//   - 保存 → entry_type='collection' で POST される
+//   - stores.is_collection_day true のときのみ集金チェックが表示
+//   - チェック ON → バッジ「集金」、保存で entry_type=collection
 
 async function setupBoothMocks(page) {
+  await mockStoreCollectionDay(page, true)
   await page.route('**/rest/v1/meter_readings**', async (route) => {
     const method = route.request().method()
     if (method === 'GET') {
@@ -48,6 +66,16 @@ async function injectBoothState(page) {
   })
 }
 
+async function gotoPatrolBooth(page) {
+  const done = page.waitForResponse(
+    r => r.url().includes('/rest/v1/stores') && r.request().method() === 'GET',
+    { timeout: 10_000 },
+  )
+  await page.goto('/clawsupport/booth/TST-B01')
+  await done
+  await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+}
+
 async function fillNumpadField(page, fieldId, digits) {
   await page.locator(fieldId).click()
   await page.waitForSelector('[data-testid="numpad-sheet"]', { timeout: 3000 })
@@ -64,9 +92,8 @@ test.describe('J-PATROL-03: 集金チェック', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
+    await gotoPatrolBooth(page)
 
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
     await expect(page.getByTestId('collection-checkbox')).toBeVisible()
     await expect(page.getByText('集金あり')).toBeVisible()
   })
@@ -75,9 +102,7 @@ test.describe('J-PATROL-03: 集金チェック', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
-
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await gotoPatrolBooth(page)
 
     // 初期状態: 通常巡回バッジ
     await expect(page.getByText('通常巡回')).toBeVisible()
@@ -94,9 +119,7 @@ test.describe('J-PATROL-03: 集金チェック', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
-
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await gotoPatrolBooth(page)
 
     // 集金チェック ON
     await page.getByTestId('collection-checkbox').check()
@@ -124,9 +147,7 @@ test.describe('J-PATROL-03: 集金チェック', () => {
     await setupAuth(page)
     await setupBoothMocks(page)
     await injectBoothState(page)
-    await page.goto('/clawsupport/booth/TST-B01')
-
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await gotoPatrolBooth(page)
 
     // チェックしない
     await fillNumpadField(page, '#field-in-meter',  '53000')

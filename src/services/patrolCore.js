@@ -53,11 +53,11 @@ export async function getLastReadingForBooth(boothCode) {
  *
  * @param {object|null} prev  - 直前レコード (DB行)
  * @param {object}       next  - 今回入力値 { inMeter, outMeter, prizeName?, setA? ... }
- * @param {boolean}      isCollection - 集金チェックON
+ * @param {boolean}      isCollection - 集金として記録（stores.is_collection_day かつチェック ON）
  * @returns 'patrol' | 'replace' | 'collection'
  *
  * 判定優先順:
- *   1. isCollection → 'collection'
+ *   1. isCollection（集金日 + チェック ON）→ 'collection'
  *   2. prev なし → 'patrol'
  *   3. メーター変化あり → 'patrol'
  *   4. メーター変化なし + 景品変化あり → 'replace'
