@@ -9,6 +9,13 @@ test.describe('smoke', () => {
     await page.route('**/auth/v1/**', async (route) => {
       await route.fulfill({ status: 401, body: JSON.stringify({ message: 'Not authorized' }) })
     })
+    // Login.jsx が staff / staff_public を fetch する前に空配列を返してスピナーを即解除
+    await page.route('**/rest/v1/staff**', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
+    await page.route('**/rest/v1/staff_public**', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
     await page.goto('/', { waitUntil: 'domcontentloaded' })
     await page.waitForURL('**/login', { timeout: 8000 })
     // ログイン画面: PIN 入力 UI（スタッフ選択 + PIN）
