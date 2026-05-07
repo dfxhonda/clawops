@@ -4,6 +4,12 @@
 import { supabase } from '../lib/supabase'
 import { parseNum, getCache, setCache, clearCache } from './utils'
 import { writeAuditLog } from './audit'
+import { MachineRowSchema, StoreRowSchema } from './schemas/index.js'
+
+// getStores 用部分スキーマ (INC-005: SELECT列不一致防止)
+const StoreSearchSchema = StoreRowSchema.pick({
+  store_code: true, store_name: true, locality: true, locality_kana: true, is_active: true,
+}).array()
 
 export async function getStores() {
   if (getCache('stores')) return getCache('stores')
@@ -13,7 +19,9 @@ export async function getStores() {
     .eq('is_active', true)
     .order('store_name')
   if (error) { console.error('stores取得エラー:', error.message); return [] }
-  const result = data.map(r => ({
+  const _storesParsed = StoreSearchSchema.safeParse(data ?? [])
+  const rows = _storesParsed.success ? _storesParsed.data : (data ?? [])
+  const result = rows.map(r => ({
     store_code: r.store_code,
     store_name: r.store_name,
     locality: r.locality ?? '',
@@ -45,7 +53,9 @@ export async function getMachines(storeId) {
     .eq('is_active', true)
     .order('machine_code')
   if (error) { console.error('machines取得エラー:', error.message); return [] }
-  const result = data.map(r => ({
+  const _machinesParsed = MachineRowSchema.array().safeParse(data ?? [])
+  const rows = _machinesParsed.success ? _machinesParsed.data : (data ?? [])
+  const result = rows.map(r => ({
     machine_code: r.machine_code,
     store_code: r.store_code,
     machine_name: r.machine_name || '',

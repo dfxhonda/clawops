@@ -14,7 +14,8 @@
     "release": "bash scripts/release.sh",
     "prepare": "husky",
     "test:coverage": "vitest run --coverage",
-    "depcruise": "depcruise src --validate .dependency-cruiser.cjs"
+    "depcruise": "depcruise src --validate .dependency-cruiser.cjs",
+    "gen-types": "bash scripts/gen-supabase-types.sh"
   },
   "repository": {
     "type": "git",
@@ -43,6 +44,7 @@
     "react-router-dom": "^7.13.1",
     "vite": "^7.3.1",
     "xlsx": "^0.18.5",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -61,6 +63,7 @@
     "jsdom": "^29.0.1",
     "lint-staged": "^16.4.0",
     "msw": "^2.14.3",
+    "supabase": "^2.98.2",
     "tailwindcss": "^4.2.1",
     "vitest": "^4.1.2"
   }

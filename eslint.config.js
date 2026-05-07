@@ -25,6 +25,8 @@ const reactHooksStub = {
 const domainModules = ['clawsupport', 'tanasupport', 'admin', 'launcher', 'auth']
 
 module.exports = [
+  // Ignore generated TypeScript declaration files (no parser configured for .d.ts)
+  { ignores: ['src/types/**/*.d.ts'] },
   {
     files: ['src/**/*.{js,jsx,ts,tsx}'],
     plugins: {

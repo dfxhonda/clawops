@@ -5,6 +5,13 @@ import { supabase } from '../lib/supabase'
 import { getCache, setCache, clearCache, supName, SUPPLIER_MAP } from './utils'
 import { writeAuditLog } from './audit'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { z } from 'zod'
+import { PrizeMasterRowSchema } from './schemas/index.js'
+
+// prize_masters の getPrizeMasters 用部分スキーマ (INC-005: SELECT列不一致防止)
+const PrizeMasterSearchSchema = PrizeMasterRowSchema.pick({
+  prize_id: true, prize_name: true, original_cost: true, category: true,
+}).array()
 
 // 景品名検索用リスト（prize_id + prize_name + original_cost）
 export async function getPrizeMasters() {
@@ -16,7 +23,8 @@ export async function getPrizeMasters() {
     .eq('status', 'active')
     .order('prize_name')
   if (error) { console.error('prize_masters取得エラー:', error.message); return [] }
-  const result = data || []
+  const _prizesParsed = PrizeMasterSearchSchema.safeParse(data ?? [])
+  const result = _prizesParsed.success ? _prizesParsed.data : (data ?? [])
   setCache(KEY, result)
   return result
 }

@@ -1,0 +1,22 @@
+import { z } from 'zod'
+
+export const PrizeMasterRowSchema = z.object({
+  prize_id:               z.string(),
+  prize_name:             z.string(),
+  prize_name_kana:        z.string().nullable(),
+  aliases:                z.string().nullable(),
+  short_name:             z.string().nullable(),
+  jan_code:               z.string().nullable(),
+  original_cost:          z.number().nullable(),
+  category:               z.string().nullable(),
+  size:                   z.string().nullable(),
+  supplier_id:            z.string().nullable(),
+  supplier_name:          z.string().nullable(),
+  default_case_quantity:  z.number().nullable(),
+  status:                 z.enum(['active', 'inactive']),
+  notes:                  z.string().nullable(),
+  image_url:              z.string().nullable(),
+  organization_id:        z.string(),
+  created_at:             z.string().nullable(),
+  updated_at:             z.string().nullable(),
+})
