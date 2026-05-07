@@ -23,13 +23,9 @@ const CWD = process.cwd()
 function makeMockBin(verdicts = {}) {
   const tmpBin = mkdtempSync(join(tmpdir(), 'mock-eval-'))
 
-  // Mock claude: detect judge type from prompt keywords, return configured VERDICT.
-  // Forbidden pattern literals are split here to avoid triggering check-forbidden-patterns.sh.
-  const SCOPE_KW = 'scope' + '.write'
-  const FORBIDDEN_KW = 'forbidden' + '_patterns'
-  const ACCEPTANCE_KW = 'acceptance' + ' criteria'
-  const TESTQUALITY_KW = 'INC' + '-005'
-
+  // Mock claude: detect judge type from the FIRST LINE of the prompt (always the judge header).
+  // First-line matching is robust — runner.sh appends git data after the header,
+  // so content-based keywords bleed across judges when files are in the same commit.
   const mockClaude = [
     '#!/usr/bin/env bash',
     'PROMPT=""',
@@ -37,13 +33,14 @@ function makeMockBin(verdicts = {}) {
     '  if [[ "$1" == "-p" && $# -gt 1 ]]; then PROMPT="$2"; shift 2',
     '  else shift; fi',
     'done',
-    `if echo "$PROMPT" | grep -q "${SCOPE_KW}"; then`,
+    'FIRST_LINE=$(printf "%s" "$PROMPT" | head -1)',
+    'if [[ "$FIRST_LINE" == "# Scope Judge"* ]]; then',
     '  echo "VERDICT: ${MOCK_SCOPE:-PASSED}"',
-    `elif echo "$PROMPT" | grep -q "${FORBIDDEN_KW}"; then`,
+    'elif [[ "$FIRST_LINE" == "# Forbidden Patterns Judge"* ]]; then',
     '  echo "VERDICT: ${MOCK_FORBIDDEN:-PASSED}"',
-    `elif echo "$PROMPT" | grep -q "${ACCEPTANCE_KW}"; then`,
+    'elif [[ "$FIRST_LINE" == "# Acceptance Judge"* ]]; then',
     '  echo "VERDICT: ${MOCK_ACCEPTANCE:-PASSED}"',
-    `elif echo "$PROMPT" | grep -q "${TESTQUALITY_KW}"; then`,
+    'elif [[ "$FIRST_LINE" == "# Test Quality Judge"* ]]; then',
     '  echo "VERDICT: ${MOCK_TESTQUALITY:-PASSED}"',
     'else',
     '  echo "VERDICT: PASSED"',

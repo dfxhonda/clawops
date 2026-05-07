@@ -35,7 +35,8 @@ const MainInput = lazy(() => import('./clawsupport/pages/MainInput'))
 const Dashboard = lazy(() => import('./manesupport/pages/Dashboard'))
 const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 const AdminMenu = lazy(() => import('./manesupport/pages/AdminMenu'))
-const AdminTop = lazy(() => import('./manesupport/pages/AdminTop'))
+const AdminTop = lazy(() => import('./admin/AdminTop'))
+const RevenueDashboard = lazy(() => import('./admin/revenue/RevenueDashboard'))
 
 // 遅延ロード — 巡回入力
 const BoothInput = lazy(() => import('./clawsupport/pages/BoothInput'))
@@ -151,6 +152,7 @@ function AppInner() {
       <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
+      <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
 
       {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
