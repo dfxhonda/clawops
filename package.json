@@ -15,7 +15,8 @@
     "prepare": "husky",
     "test:coverage": "vitest run --coverage",
     "depcruise": "depcruise src --validate .dependency-cruiser.cjs",
-    "gen-types": "bash scripts/gen-supabase-types.sh"
+    "gen-types": "bash scripts/gen-supabase-types.sh",
+    "evaluator": "bash scripts/run-evaluator.sh"
   },
   "repository": {
     "type": "git",
