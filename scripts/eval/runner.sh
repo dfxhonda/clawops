@@ -16,8 +16,14 @@ case "$JUDGE" in
     echo "=== Changed files (git diff --name-only) ==="
     git diff --name-only "${COMMIT}~1" "${COMMIT}" 2>/dev/null \
       || git show --name-only --format= "$COMMIT"
+    echo ""
+    echo "=== Commit message ==="
+    git log -1 "$COMMIT" --format="%B"
     ;;
   forbidden)
+    echo "=== Commit message ==="
+    git log -1 "$COMMIT" --format="%B"
+    echo ""
     echo "=== Added lines in this commit ==="
     git show "$COMMIT" --format= \
       | grep "^+" | grep -v "^+++" \

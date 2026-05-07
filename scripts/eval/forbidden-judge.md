@@ -38,3 +38,25 @@ or
 ```
 VERDICT: FAILED
 ```
+
+---
+
+## J-INFRA-06 Addition: Commit Message Scope-Creep Detection (INC-008)
+
+Review the **Commit message** block shown in the Input Data section. If the commit message contains any of the following scope-creep indicator phrases, it signals unauthorized additional work bundled into the commit:
+
+| Pattern | Language | Meaning |
+|---------|----------|---------|
+| ボーナス | Japanese | "bonus" — extra unrequested work |
+| ついでに | Japanese | "while I'm at it" — scope creep |
+| 以外にも | Japanese | "in addition to" — extra additions |
+| bonus fix | English | compound scope-creep indicator |
+| also fixed | English | compound scope-creep indicator |
+| while at it | English | scope-creep idiom |
+
+**Note:** The word `fix` in isolation is **NOT** a violation. Only the compound phrases listed above are flagged.
+
+Exceptions (not violations):
+- These phrases appearing in string literals within quoted test fixture or mock data in code files (not the commit message itself)
+
+→ If any of the above patterns appear in the **commit message**, end with **VERDICT: FAILED**.
