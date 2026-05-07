@@ -1,3 +1,18 @@
 #!/bin/sh
-# pre-push: ユニット + E2E フルセット（push 前の品質ゲート）
-npm test -- --run && npm run test:e2e
+# pre-push: J-INFRA-02 quality gate
+# Steps: ESLint --max-warnings 0 → forbidden patterns → depcruise → vitest coverage
+set -e
+
+echo "=== [1/4] ESLint boundaries ==="
+npx eslint src/ --max-warnings 0
+
+echo "=== [2/4] Forbidden patterns ==="
+sh scripts/check-forbidden-patterns.sh
+
+echo "=== [3/4] dependency-cruiser (no-circular) ==="
+npx depcruise src --validate .dependency-cruiser.cjs
+
+echo "=== [4/4] vitest --coverage ==="
+npm run test:coverage
+
+echo "=== pre-push gate: all passed ==="
