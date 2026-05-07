@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField from '../components/NumpadField'
+import PrizeNameAutocomplete from '../components/PrizeNameAutocomplete'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -111,7 +112,7 @@ function TextFieldRow({ label, fieldId, value, onChange, placeholder, testId }) 
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-transparent text-right text-sm text-text outline-none placeholder:text-muted/40"
+        className="flex-1 bg-transparent text-right text-sm text-text outline-none placeholder:text-gray-500"
         style={{ WebkitAppearance: 'none' }}
       />
     </div>
@@ -152,6 +153,7 @@ export default function PatrolBoothInputPage() {
   const [setR,           setSetR]   = useState('')
   const [setO,           setSetO]   = useState('')
   const [touched,        setTouched] = useState(() => ({ ...EMPTY_TOUCHED }))
+  const [selectedPrizeId, setSelectedPrizeId] = useState(null)
   const [isCollectionDay, setIsCollectionDay] = useState(false)
   const [isCollection,   setIsColl] = useState(false)
   const [saving,         setSaving] = useState(false)
@@ -179,6 +181,7 @@ export default function PatrolBoothInputPage() {
     setSetL(prev.set_l ?? '')
     setSetR(prev.set_r ?? '')
     setSetO(prev.set_o ?? '')
+    setSelectedPrizeId(null)
   }, [prev?.reading_id, boothCode])
 
   useEffect(() => {
@@ -227,6 +230,7 @@ export default function PatrolBoothInputPage() {
   function buildOptionalPatch() {
     const patch = {}
     if (touched.prizeName) patch.prize_name = prizeName.trim() || null
+    if (touched.prizeName && selectedPrizeId != null) patch.prize_id = selectedPrizeId
     if (touched.prizeCost) {
       const t = prizeCost.trim()
       if (t === '') patch.prize_cost = null
@@ -300,7 +304,7 @@ export default function PatrolBoothInputPage() {
       <TheoryRow prev={prev} />
 
       {/* 入力フォーム */}
-      <div className="flex-1 overflow-y-auto">
+      <div data-testid="booth-input-upper" className="flex-1 overflow-y-auto pb-[33vh]">
         <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
           {/* 4必須値（業務動線: IN → OUT → 在庫 → 補充） */}
           <FieldRow label="INメーター"  fieldId="field-in-meter"  value={inMeter}  onChange={setIn}  allowDecimal />
@@ -308,14 +312,28 @@ export default function PatrolBoothInputPage() {
           <FieldRow label="景品在庫"    fieldId="field-stock"     value={stock}    onChange={setStk} />
           <FieldRow label="補充数"      fieldId="field-restock"   value={restock}  onChange={setRst} />
 
-          <TextFieldRow
-            label="景品名"
-            fieldId="field-prize-name"
-            testId="field-prize-name"
-            value={prizeName}
-            onChange={v => { setTouched(t => ({ ...t, prizeName: true })); setPrize(v) }}
-            placeholder="前回値から補完（変更時のみ差分送信）"
-          />
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+            <label htmlFor="field-prize-name" className="w-28 shrink-0 text-sm text-muted font-bold">
+              景品名
+            </label>
+            <PrizeNameAutocomplete
+              value={prizeName}
+              onChange={v => {
+                setTouched(t => ({ ...t, prizeName: true }))
+                setPrize(v)
+                setSelectedPrizeId(null)
+              }}
+              onSelect={({ prize_id, prize_name, original_cost }) => {
+                setPrize(prize_name)
+                setSelectedPrizeId(prize_id)
+                setCost(original_cost != null ? String(original_cost) : '')
+                setTouched(t => ({ ...t, prizeName: true, prizeCost: true }))
+              }}
+              placeholder="前回値から補完（変更時のみ差分送信）"
+              fieldId="field-prize-name"
+              testId="field-prize-name"
+            />
+          </div>
           <TextFieldRow
             label="原価"
             fieldId="field-prize-cost"
