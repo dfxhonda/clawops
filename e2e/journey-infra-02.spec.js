@@ -33,10 +33,9 @@ test.describe('J-INFRA-02: pre-push gate components', () => {
     mkdirSync(tmpDir, { recursive: true })
 
     try {
-      writeFileSync(
-        join(tmpDir, 'bad.test.js'),
-        "test.skip('forbidden skip', () => {})\n"
-      )
+      // Split the forbidden pattern so this source file itself doesn't trip the grep check
+      const badContent = ['test', '.skip(', "'forbidden', () => {})"].join('') + '\n'
+      writeFileSync(join(tmpDir, 'bad.test.js'), badContent)
 
       // スクリプトに一時ディレクトリを渡して検査
       const result = spawnSync(
