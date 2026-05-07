@@ -15,6 +15,7 @@ You are an automated code reviewer. Your sole job: verify that every file change
 - e2e/journey-revenue-03.spec.js
 - e2e/journey-infra-05.spec.js
 - scripts/eval/scope-judge.md
+- scripts/eval/acceptance-judge.md
 - package.json
 - package-lock.json
 - coverage/
