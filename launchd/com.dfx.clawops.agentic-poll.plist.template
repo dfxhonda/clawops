@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.dfx.clawops.agentic-poll</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/dfx/clawops/scripts/agentic-poll.sh</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>900</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/dfx/clawops/logs/agentic-poll.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/dfx/clawops/logs/agentic-poll.stderr.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/dfx/.npm-global/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>/Users/dfx</string>
+    <key>CLAUDE_CONFIG_DIR</key>
+    <string>/Users/dfx/.claude-dfx</string>
+  </dict>
+  <key>WorkingDirectory</key>
+  <string>/Users/dfx/clawops</string>
+</dict>
+</plist>
