@@ -170,8 +170,8 @@ test.describe('J-PATROL-02: 入替判定', () => {
     await fillNumpadField(page, '#field-out-meter', '45000')
     await fillNumpadField(page, '#field-stock',     '20')
 
-    // 設定値を変更（設定調整トリガー）
-    await page.locator('#field-set-a').fill('5')
+    // 設定値を変更（設定調整トリガー）: NumpadField に変更されたため fillNumpadField を使用
+    await fillNumpadField(page, '#field-set-a', '5')
 
     await expect(page.getByText('入替/設定変更')).toBeVisible({ timeout: 2000 })
 

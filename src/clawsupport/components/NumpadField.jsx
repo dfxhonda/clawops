@@ -3,21 +3,47 @@ import { createPortal } from 'react-dom'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
-export default function NumpadField({ value, onChange, label, max = 99999, allowDecimal = false, alwaysOpen = false, onClose, onNext, id, style }) {
+// 同時に1つだけ開く — 新しく開く前に他の numpad を即時 close
+let _globalClose = null
+
+export default function NumpadField({
+  value,
+  onChange,
+  label,
+  max = 99999,
+  allowDecimal = false,
+  alwaysOpen = false,
+  onClose,
+  onNext,
+  id,
+  style,
+  dataTabindex,
+  inputClassName,
+  testId,
+  inputPlaceholder,
+}) {
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
-  const freshRef = useRef(false) // 開いた直後の最初キーで値をクリア（全選択相当）
+  const freshRef = useRef(false)
+  const inputRef = useRef(null)
+  const closeRef = useRef(null)
 
-  function handleOpen() {
-    setMounted(true)
-    setTimeout(() => setVisible(true), 10)
-    freshRef.current = true
-  }
   function handleClose() {
+    if (_globalClose === closeRef.current) _globalClose = null
     setVisible(false)
     setTimeout(() => setMounted(false), 210)
     freshRef.current = false
     if (onClose) onClose()
+  }
+  closeRef.current = handleClose
+
+  function handleOpen() {
+    if (mounted) return
+    if (_globalClose && _globalClose !== closeRef.current) _globalClose()
+    _globalClose = closeRef.current
+    setMounted(true)
+    setTimeout(() => setVisible(true), 10)
+    freshRef.current = true
   }
 
   function handleKey(k) {
@@ -33,7 +59,6 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
     }
     if (k === '.' && !allowDecimal) return
 
-    // 最初のキー押下で既存値をクリア（全選択→上書き 相当）
     const base = freshRef.current ? '' : String(value || '')
     freshRef.current = false
 
@@ -66,12 +91,36 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
     )
   }
 
-  // Bottom sheet mode
+  const displayVal = value !== '' && value != null ? String(value) : ''
+
   return (
     <>
-      <button
+      <input
+        ref={inputRef}
         id={id}
-        onPointerDown={e => { e.preventDefault(); handleOpen() }}
+        type="text"
+        readOnly
+        inputMode="none"
+        data-tabindex={dataTabindex}
+        data-testid={testId}
+        value={displayVal}
+        placeholder={inputPlaceholder ?? '—'}
+        onPointerDown={e => {
+          e.preventDefault()
+          inputRef.current?.focus()
+          handleOpen()
+        }}
+        onFocus={e => {
+          e.target.select()
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            handleClose()
+            if (onNext) onNext()
+          }
+        }}
+        className={inputClassName ?? ''}
         style={{
           cursor: 'pointer',
           border: '1px solid #2a2a44',
@@ -81,15 +130,13 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
           fontFamily: "'Courier New', Courier, monospace",
           fontWeight: 'bold',
           textAlign: 'right',
-          color: '#e8e8f0',
           outline: 'none',
           boxSizing: 'border-box',
           WebkitAppearance: 'none',
+          fontSize: 16,
           ...style,
         }}
-      >
-        {value !== '' && value != null ? value : <span style={{ opacity: 0.35, fontWeight: 400 }}>—</span>}
-      </button>
+      />
 
       {mounted && createPortal(
         <div data-testid="numpad-portal" style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
@@ -120,7 +167,7 @@ export default function NumpadField({ value, onChange, label, max = 99999, allow
                 fontSize: 22, fontFamily: "'Courier New', monospace",
                 fontWeight: 'bold', color: '#e8e8f0',
               }}>
-                {value !== '' && value != null ? value : '—'}
+                {displayVal || '—'}
               </span>
             </div>
             <div
