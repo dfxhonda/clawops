@@ -98,16 +98,6 @@ export default function PatrolStorePage() {
       >
         <div className="flex gap-2 overflow-x-auto pb-1">
           <SummaryChip
-            testId="summary-chip-revenue"
-            label="売上"
-            value={fmtMoney(summary?.totalRevenue)}
-          />
-          <SummaryChip
-            testId="summary-chip-profit"
-            label="粗利"
-            value={fmtMoney(summary?.totalProfit)}
-          />
-          <SummaryChip
             testId="summary-chip-payout"
             label="出率"
             value={fmtRate(summary?.avgPayoutRate)}

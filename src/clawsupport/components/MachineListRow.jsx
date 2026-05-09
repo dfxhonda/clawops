@@ -50,8 +50,6 @@ export default function MachineListRow({ booth, done, diff, onClick }) {
         <div className="flex flex-wrap gap-1 ml-auto shrink-0 max-w-[60%] justify-end">
           <DiffChip label="IN"  value={diff.inDiff}  />
           <DiffChip label="OUT" value={diff.outDiff} />
-          <DiffChip label="売上" value={diff.revenue} isMoney />
-          <DiffChip label="粗利" value={diff.profit}  isMoney />
         </div>
       )}
       <span className="text-muted text-lg shrink-0">›</span>
