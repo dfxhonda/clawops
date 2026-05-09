@@ -35,13 +35,11 @@ export default function BoothHistoryList({ boothCode, meterUnitPrice = 100, stor
     >
       <div className="px-3 py-2 bg-surface/50 border-b border-border">
         <div className="grid gap-2 text-base font-bold text-muted/60 uppercase tracking-wide"
-          style={{ gridTemplateColumns: '70px 1fr 70px 70px 70px 70px' }}>
+          style={{ gridTemplateColumns: '70px 1fr 70px 70px' }}>
           <span>日付</span>
           <span>景品</span>
           <span className="text-right">IN差</span>
           <span className="text-right">OUT差</span>
-          <span className="text-right">売上</span>
-          <span className="text-right">粗利</span>
         </div>
       </div>
 

@@ -93,7 +93,7 @@ export default function BoothHistoryRow({
         onClick={handleClick}
       >
         <div className="grid gap-2 px-2 py-2 text-base items-center"
-          style={{ gridTemplateColumns: '70px 1fr 70px 70px 70px 70px' }}>
+          style={{ gridTemplateColumns: '70px 1fr 70px 70px' }}>
 
           {/* 日付 chip — text-sm 例外許容 */}
           <div className="flex flex-col items-center gap-0.5">
@@ -114,11 +114,6 @@ export default function BoothHistoryRow({
           {/* OUT差 */}
           <div className={`font-mono text-right ${outD.cls}`}>{outD.text}</div>
 
-          {/* 売上 */}
-          <div className={`font-mono text-right ${rev.cls}`}>{rev.text}</div>
-
-          {/* 粗利 */}
-          <div className={`font-mono text-right ${prof.cls}`}>{prof.text}</div>
         </div>
       </button>
 
