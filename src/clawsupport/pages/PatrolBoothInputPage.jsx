@@ -7,6 +7,7 @@ import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField from '../components/NumpadField'
 import Tooltip from '../components/Tooltip'
 import PrizeNameAutocomplete from '../components/PrizeNameAutocomplete'
+import BoothHistoryList from '../components/BoothHistoryList'
 import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import {
   savePatrolReading,
@@ -550,6 +551,14 @@ export default function PatrolBoothInputPage() {
           </div>
 
         </div>
+
+        <BoothHistoryList
+          boothCode={boothCode}
+          meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+          storeCode={storeCode}
+          machine={machine}
+          booth={booth}
+        />
       </div>
     </div>
   )

@@ -6,9 +6,32 @@ import DateTime from '../../shared/ui/DateTime'
 import { getPatrolMachines } from '../../services/patrol'
 import { getTodayReadingsMap } from '../../services/patrolCore'
 import { fetchBoothDiffMap } from '../../services/boothHistory'
+import { fetchStoreSummary } from '../../services/storeSummary'
 import MachineListRow from '../components/MachineListRow'
 
-export default function PatrolMachineListPage() {
+function fmtMoney(val) {
+  if (val == null) return '—'
+  return `¥${Math.round(Math.abs(val)).toLocaleString()}`
+}
+
+function fmtRate(val) {
+  if (val == null) return '—'
+  return val <= 1 ? `${(val * 100).toFixed(1)}%` : `${val.toFixed(1)}%`
+}
+
+function SummaryChip({ label, value, testId }) {
+  return (
+    <div
+      data-testid={testId}
+      className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-surface border border-border min-w-[70px]"
+    >
+      <span className="text-[9px] text-muted uppercase tracking-wide leading-none mb-0.5">{label}</span>
+      <span className="text-xs font-bold font-mono text-text leading-tight">{value}</span>
+    </div>
+  )
+}
+
+export default function PatrolStorePage() {
   const { storeCode } = useParams()
   const navigate = useNavigate()
 
@@ -16,6 +39,7 @@ export default function PatrolMachineListPage() {
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
+  const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -33,12 +57,14 @@ export default function PatrolMachineListPage() {
       for (const b of m.booths) meterUnitPriceMap[b.booth_code] = mup
     }
 
-    const [map, diffs] = await Promise.all([
+    const [map, diffs, sum] = await Promise.all([
       getTodayReadingsMap(boothCodes),
       fetchBoothDiffMap(boothCodes, meterUnitPriceMap),
+      fetchStoreSummary(machineList),
     ])
     setTodayMap(map)
     setDiffMap(diffs)
+    setSummary(sum)
     setLoading(false)
   }, [storeCode])
 
@@ -65,6 +91,36 @@ export default function PatrolMachineListPage() {
         onBack={() => navigate('/clawsupport')}
       />
 
+      {/* Sticky summary bar */}
+      <div
+        data-testid="store-summary-bar"
+        className="shrink-0 px-4 py-2 border-b border-border bg-bg/95 backdrop-blur-sm sticky top-0 z-10"
+      >
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <SummaryChip
+            testId="summary-chip-revenue"
+            label="売上"
+            value={fmtMoney(summary?.totalRevenue)}
+          />
+          <SummaryChip
+            testId="summary-chip-profit"
+            label="粗利"
+            value={fmtMoney(summary?.totalProfit)}
+          />
+          <SummaryChip
+            testId="summary-chip-payout"
+            label="出率"
+            value={fmtRate(summary?.avgPayoutRate)}
+          />
+          <SummaryChip
+            testId="summary-chip-underperform"
+            label="低調台"
+            value={summary?.underperformingCount != null ? String(summary.underperformingCount) : '—'}
+          />
+        </div>
+      </div>
+
+      {/* Progress chip */}
       {totalCnt > 0 && (
         <div className="px-5 py-2 shrink-0">
           <span
@@ -81,6 +137,7 @@ export default function PatrolMachineListPage() {
         </div>
       )}
 
+      {/* Machine → Booth list */}
       <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4">
         {machines.length === 0 && (
           <p className="text-center text-muted text-sm py-12">機械データがありません</p>
