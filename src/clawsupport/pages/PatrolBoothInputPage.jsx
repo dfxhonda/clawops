@@ -108,10 +108,13 @@ function CompactCell({
   fieldId, value, onChange, onTouched,
   allowDecimal = false, dataTabindex,
   inputClassName, onNext, testId, inputPlaceholder, onRegister,
+  isActive = false, className = '',
 }) {
   return (
-    <div className="flex flex-col p-1">
-      <Tooltip id={ttId} content={ttContent} label={label} />
+    <div className={`flex flex-col p-1 rounded transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
+      <div className={isActive ? '[&_button]:text-blue-600' : ''}>
+        <Tooltip id={ttId} content={ttContent} label={label} />
+      </div>
       <NumpadField
         id={fieldId}
         value={value}
@@ -119,12 +122,13 @@ function CompactCell({
         label={label}
         allowDecimal={allowDecimal}
         dataTabindex={dataTabindex}
-        inputClassName={inputClassName}
+        inputClassName={isActive ? '' : (inputClassName ?? '')}
         onNext={onNext}
         testId={testId ?? fieldId}
         inputPlaceholder={inputPlaceholder}
         style={{ fontSize: 16, width: '100%' }}
         onRegister={onRegister}
+        isActive={isActive}
       />
     </div>
   )
@@ -135,10 +139,13 @@ function CompactTextCell({
   ttId, ttContent, label,
   fieldId, value, onChange, placeholder,
   testId, dataTabindex, inputClassName, onNext,
+  isActive = false, className = '',
 }) {
   return (
-    <div className="flex flex-col p-1">
-      <Tooltip id={ttId} content={ttContent} label={label} />
+    <div className={`flex flex-col p-1 rounded transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
+      <div className={isActive ? '[&_button]:text-blue-600' : ''}>
+        <Tooltip id={ttId} content={ttContent} label={label} />
+      </div>
       <input
         id={fieldId}
         type="text"
@@ -149,11 +156,11 @@ function CompactTextCell({
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onNext?.() } }}
         placeholder={placeholder}
-        className={inputClassName ?? 'text-text'}
+        className={isActive ? '' : (inputClassName ?? 'text-text')}
         style={{
           cursor: 'text',
-          border: '1px solid #2a2a44',
-          background: '#0a0a14',
+          border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+          background: isActive ? '#eff6ff' : '#0a0a14',
           borderRadius: 4,
           padding: '0.4em 0.35em',
           fontFamily: "'Courier New', Courier, monospace",
@@ -164,6 +171,7 @@ function CompactTextCell({
           WebkitAppearance: 'none',
           fontSize: 16,
           width: '100%',
+          ...(isActive ? { color: '#1e3a5f' } : {}),
         }}
       />
     </div>
@@ -186,6 +194,7 @@ export default function PatrolBoothInputPage() {
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const { navigateNext, currentField, registerField } = useFieldNavigation()
+  const activeTabindex = currentField?.dataTabindex ?? null
 
   const { machine, booth, storeCode } = state ?? {}
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
@@ -355,11 +364,6 @@ export default function PatrolBoothInputPage() {
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
 
-  const row1Cols =
-    outMeterCount === 1 ? 'grid-cols-5' :
-    outMeterCount === 2 ? 'grid-cols-6' :
-    'grid-cols-7'
-
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
       <PageHeader
@@ -378,40 +382,46 @@ export default function PatrolBoothInputPage() {
       <div data-testid="booth-input-upper" className="flex-1 overflow-y-auto pb-[300px]">
         <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
 
-          {/* Row 1: IN + OUT(s) + 残 + 補 */}
-          <div data-testid="meter-row" className={`grid ${row1Cols} gap-1 p-1 border-b border-border`}>
+          {/* Row 1: IN + OUT(s) + 差 + 残 + 補 — flex比率 IN5/OUT5/差3/残4/補2 */}
+          <div data-testid="meter-row" className="flex gap-1 p-1 border-b border-border">
             <CompactCell
+              className="flex-[5] min-w-0"
               ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
               fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch('inMeter')}
               allowDecimal dataTabindex={1}
               inputClassName={!touched.inMeter ? 'text-gray-400' : ''}
               onNext={() => navigateNext(1)}
               onRegister={registerField}
+              isActive={activeTabindex === 1}
             />
             {outMeterCount === 1 ? (
               <CompactCell
+                className="flex-[5] min-w-0"
                 ttId="tt-field-out-meter" ttContent={TT.out_meter} label="OUT"
                 fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch('outMeter1')}
                 allowDecimal dataTabindex={2}
                 inputClassName={!touched.outMeter1 ? 'text-gray-400' : ''}
                 onNext={() => navigateNext(2)}
                 onRegister={registerField}
+                isActive={activeTabindex === 2}
               />
             ) : (
               outFields.map((f, i) => (
                 <CompactCell
                   key={f.id}
+                  className="flex-[5] min-w-0"
                   ttId={`tt-${f.id}`} ttContent={TT.out_meter} label={`OUT${i + 1}`}
                   fieldId={f.id} value={f.val} onChange={f.set} onTouched={touch(f.key)}
                   allowDecimal dataTabindex={f.tab}
                   inputClassName={!touched[f.key] ? 'text-gray-400' : ''}
                   onNext={() => navigateNext(f.tab)}
                   onRegister={registerField}
+                  isActive={activeTabindex === f.tab}
                 />
               ))
             )}
             {/* 差 cell — IN差分(上) / OUT差分(下) */}
-            <div className="flex flex-col p-1">
+            <div className="flex flex-col p-1 flex-[3] min-w-0">
               <Tooltip id="tt-field-diff" content={TT.diff} label="差" />
               <div
                 data-testid="diff-cell"
@@ -423,20 +433,24 @@ export default function PatrolBoothInputPage() {
             </div>
 
             <CompactCell
+              className="flex-[4] min-w-0"
               ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
               fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch('stock')}
               dataTabindex={5}
               inputClassName={!touched.stock ? 'text-gray-400' : ''}
               onNext={() => navigateNext(5)}
               onRegister={registerField}
+              isActive={activeTabindex === 5}
             />
             <CompactCell
+              className="flex-[2] min-w-0"
               ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
               fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch('restock')}
               dataTabindex={6}
               inputClassName={!touched.restock ? 'text-gray-400' : ''}
               onNext={() => navigateNext(6)}
               onRegister={registerField}
+              isActive={activeTabindex === 6}
             />
           </div>
 
@@ -471,51 +485,67 @@ export default function PatrolBoothInputPage() {
               inputClassName={!touched.prizeCost ? 'text-gray-400' : ''}
               onNext={() => navigateNext(8)}
               onRegister={registerField}
+              isActive={activeTabindex === 8}
             />
           </div>
 
-          {/* Row 3: A/C/L/R/O */}
-          <div className="grid grid-cols-5 gap-1 p-1 border-b border-border">
-            <CompactCell
-              ttId="tt-field-set-a" ttContent={TT.set_a} label="A"
-              fieldId="field-set-a" value={setA} onChange={setSetA} onTouched={touch('setA')}
-              dataTabindex={9} testId="field-set-a" inputPlaceholder=""
-              inputClassName={!touched.setA ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(9)}
-              onRegister={registerField}
-            />
-            <CompactCell
-              ttId="tt-field-set-c" ttContent={TT.set_c} label="C"
-              fieldId="field-set-c" value={setC} onChange={setSetC} onTouched={touch('setC')}
-              dataTabindex={10} testId="field-set-c" inputPlaceholder=""
-              inputClassName={!touched.setC ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(10)}
-              onRegister={registerField}
-            />
-            <CompactCell
-              ttId="tt-field-set-l" ttContent={TT.set_l} label="L"
-              fieldId="field-set-l" value={setL} onChange={setSetL} onTouched={touch('setL')}
-              dataTabindex={11} testId="field-set-l" inputPlaceholder=""
-              inputClassName={!touched.setL ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(11)}
-              onRegister={registerField}
-            />
-            <CompactCell
-              ttId="tt-field-set-r" ttContent={TT.set_r} label="R"
-              fieldId="field-set-r" value={setR} onChange={setSetR} onTouched={touch('setR')}
-              dataTabindex={12} testId="field-set-r" inputPlaceholder=""
-              inputClassName={!touched.setR ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(12)}
-              onRegister={registerField}
-            />
-            <CompactTextCell
-              ttId="tt-field-set-o" ttContent={TT.set_o} label="O"
-              fieldId="field-set-o" value={setO}
-              onChange={v => { setTouched(t => ({ ...t, setO: true })); setSetO(v) }}
-              placeholder="メモ" testId="field-set-o" dataTabindex={13}
-              inputClassName={!touched.setO ? 'text-gray-400' : undefined}
-              onNext={() => navigateNext(13)}
-            />
+          {/* Row 3+4: 設定ACLR + O — single flex row to stay within 07d height budget */}
+          <div className="flex gap-1 p-1 border-b border-border">
+            {[
+              { tab: 9,  id: 'field-set-a', testId: 'field-set-a', label: 'A', val: setA, set: setSetA, touchKey: 'setA'  },
+              { tab: 10, id: 'field-set-c', testId: 'field-set-c', label: 'C', val: setC, set: setSetC, touchKey: 'setC'  },
+              { tab: 11, id: 'field-set-l', testId: 'field-set-l', label: 'L', val: setL, set: setSetL, touchKey: 'setL'  },
+              { tab: 12, id: 'field-set-r', testId: 'field-set-r', label: 'R', val: setR, set: setSetR, touchKey: 'setR'  },
+            ].map(f => (
+              <div
+                key={f.id}
+                className={`flex-1 min-w-0 rounded transition-all duration-200${activeTabindex === f.tab ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}
+              >
+                <NumpadField
+                  id={f.id}
+                  value={f.val}
+                  onChange={v => { touch(f.touchKey)(); f.set(v) }}
+                  label={f.label}
+                  dataTabindex={f.tab}
+                  testId={f.testId}
+                  inputPlaceholder={f.label}
+                  inputClassName={!touched[f.touchKey] ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext(f.tab)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === f.tab}
+                  style={{ fontSize: 16, width: '100%', padding: '0.1em 0.35em' }}
+                />
+              </div>
+            ))}
+            <div className={`flex-[6] min-w-0 rounded transition-all duration-200${activeTabindex === 13 ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+              <input
+                id="field-set-o"
+                type="text"
+                inputMode="text"
+                data-testid="field-set-o"
+                data-tabindex={13}
+                value={setO}
+                onChange={e => { touch('setO')(); setSetO(e.target.value) }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); navigateNext(13) } }}
+                placeholder="メモ"
+                style={{
+                  cursor: 'text',
+                  border: activeTabindex === 13 ? '1px solid #3b82f6' : '1px solid #2a2a44',
+                  background: activeTabindex === 13 ? '#eff6ff' : '#0a0a14',
+                  borderRadius: 4,
+                  padding: '0.1em 0.35em',
+                  fontFamily: "'Courier New', Courier, monospace",
+                  fontWeight: 'bold',
+                  textAlign: 'right',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  WebkitAppearance: 'none',
+                  fontSize: 16,
+                  width: '100%',
+                  ...(activeTabindex === 13 ? { color: '#1e3a5f' } : {}),
+                }}
+              />
+            </div>
           </div>
 
           {/* 集金 row */}

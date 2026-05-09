@@ -59,11 +59,21 @@ export function NumpadFooterPanel({ currentField }) {
       }}
     >
       <div style={{
-        height: 36, padding: '0 16px', borderBottom: '1px solid #2a2a44',
+        height: 44, padding: '0 12px', borderBottom: '1px solid #2a2a44',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 13, color: '#8888a8' }}>{currentField?.label ?? '—'}</span>
+        <span
+          data-testid="numpad-active-label"
+          style={isActive ? {
+            fontSize: 16, fontWeight: 'bold', color: '#2563eb',
+            background: '#eff6ff', padding: '2px 12px', borderRadius: 6,
+          } : {
+            fontSize: 14, color: '#6b7280',
+          }}
+        >
+          {isActive ? `入力中: ${currentField.label}` : 'タップして選択'}
+        </span>
         <span style={{
           fontSize: 22, fontFamily: "'Courier New', monospace",
           fontWeight: 'bold', color: '#e8e8f0',
@@ -124,6 +134,7 @@ export default function NumpadField({
   testId,
   inputPlaceholder,
   onRegister,
+  isActive = false,
 }) {
   const inputRef = useRef(null)
   const freshRef = useRef(false)
@@ -228,8 +239,8 @@ export default function NumpadField({
       className={inputClassName ?? ''}
       style={{
         cursor: 'pointer',
-        border: '1px solid #2a2a44',
-        background: '#0a0a14',
+        border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+        background: isActive ? '#eff6ff' : '#0a0a14',
         borderRadius: 4,
         padding: '0.4em 0.35em',
         fontFamily: "'Courier New', Courier, monospace",
@@ -239,6 +250,7 @@ export default function NumpadField({
         boxSizing: 'border-box',
         WebkitAppearance: 'none',
         fontSize: 16,
+        ...(isActive ? { color: '#1e3a5f' } : {}),
         ...style,
       }}
     />
