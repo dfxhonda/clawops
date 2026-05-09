@@ -5,6 +5,8 @@ const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
 // 同時に1つだけ開く — 新しく開く前に他の numpad を即時 close
 let _globalClose = null
+// キーボード Enter で navigateNext → onFocus した次フィールドを自動 open するフラグ
+let _pendingOpen = false
 
 export default function NumpadField({
   value,
@@ -27,6 +29,7 @@ export default function NumpadField({
   const freshRef = useRef(false)
   const inputRef = useRef(null)
   const closeRef = useRef(null)
+  const blockCloseRef = useRef(false)
 
   function handleClose() {
     if (_globalClose === closeRef.current) _globalClose = null
@@ -44,6 +47,8 @@ export default function NumpadField({
     setMounted(true)
     setTimeout(() => setVisible(true), 10)
     freshRef.current = true
+    blockCloseRef.current = true
+    setTimeout(() => { blockCloseRef.current = false }, 350)
   }
 
   function handleKey(k) {
@@ -111,11 +116,16 @@ export default function NumpadField({
           handleOpen()
         }}
         onFocus={e => {
+          if (_pendingOpen) {
+            _pendingOpen = false
+            handleOpen()
+          }
           e.target.select()
         }}
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault()
+            _pendingOpen = true
             handleClose()
             if (onNext) onNext()
           }
@@ -146,7 +156,7 @@ export default function NumpadField({
               background: visible ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
               transition: 'background 200ms ease-out',
             }}
-            onPointerDown={handleClose}
+            onPointerDown={() => { if (!blockCloseRef.current) handleClose() }}
           />
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,

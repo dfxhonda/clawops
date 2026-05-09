@@ -6,7 +6,6 @@ export function useFieldNavigation() {
     const next = all[idx + 1]
     if (next) {
       next.focus()
-      if (typeof next.select === 'function') next.select()
     }
   }
   return { navigateNext }
