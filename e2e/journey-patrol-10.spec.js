@@ -7,8 +7,8 @@ function isSingleObjectRequest(route) {
 }
 
 const PREV_READING = {
-  reading_id: 'prev-009',
-  booth_code: 'TST-B09',
+  reading_id: 'prev-010',
+  booth_code: 'TST-B10',
   in_meter: 70000,
   out_meter: 0,
   out_meter_2: null,
@@ -34,14 +34,14 @@ const PREV_READING = {
   prize_cost_1: null,
   prize_cost_2: null,
   prize_cost_3: null,
-  patrol_date: '2026-05-07',
-  read_time: '2026-05-07T10:00:00+09:00',
+  patrol_date: '2026-05-09',
+  read_time: '2026-05-09T10:00:00+09:00',
 }
 
 function makeMachine(outMeterCount = 1) {
   return {
-    machine_code: 'TST01-M009',
-    machine_name: 'テスト機9',
+    machine_code: 'TST01-M010',
+    machine_name: 'テスト機10',
     store_code: 'TST01',
     machine_models: { out_meter_count: outMeterCount, meter_unit_price: 100 },
     machine_lockers: [],
@@ -75,58 +75,90 @@ async function mockCommon(page) {
   await page.route('**/rest/v1/staff_public**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
 }
 
-async function gotoPatrolBooth(page) {
+async function gotoPatrolBooth(page, { outMeterCount = 1 } = {}) {
   await setupAuth(page)
   await mockCommon(page)
-  await injectRouteState(page, '/clawsupport/booth/TST-B09', {
-    machine: makeMachine(1),
-    booth: { booth_code: 'TST-B09', booth_number: 9 },
+  await injectRouteState(page, '/clawsupport/booth/TST-B10', {
+    machine: makeMachine(outMeterCount),
+    booth: { booth_code: 'TST-B10', booth_number: 10 },
     storeCode: 'TST01',
   })
   const done = page.waitForResponse(
     r => r.url().includes('/rest/v1/stores') && r.request().method() === 'GET',
     { timeout: 10_000 },
   )
-  await page.goto('/clawsupport/booth/TST-B09')
+  await page.goto('/clawsupport/booth/TST-B10')
   await done
   await page.waitForSelector('[data-testid="booth-input-upper"]', { timeout: 5_000 })
 }
 
-// J-PATROL-09a: tap → select → numpad visible のまま (spurious close バグの修正確認)
-test('J-PATROL-09a: tap → numpad stays open after select (no spurious close)', async ({ page }) => {
+// J-PATROL-10a: tap → numpad visible, no spurious close (onFocus select 廃止確認)
+test('J-PATROL-10a: tap → numpad stays open (no spurious close, no select)', async ({ page }) => {
   await gotoPatrolBooth(page)
 
   await page.locator('[data-tabindex="1"]').click()
   await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
 
-  // 350ms 経過後も numpad が開いたままであること
+  // 350ms grace period 後も numpad が開いたままであること
   await page.waitForTimeout(450)
   await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
 })
 
-// J-PATROL-09b: keyboard Enter → 次フィールドの numpad が開く + value binding 正常
-test('J-PATROL-09b: keyboard Enter → next NumpadField opens and value binding works', async ({ page }) => {
+// J-PATROL-10b: 既存値ありフィールドを tap → numpad open、値が保持される
+test('J-PATROL-10b: field with existing value → tap → numpad open, value preserved', async ({ page }) => {
+  await gotoPatrolBooth(page)
+
+  // in_meter は前回値 70000 でプリフィル済み
+  const inMeterInput = page.locator('[data-tabindex="1"]')
+  await expect(inMeterInput).toHaveValue('70000')
+
+  await inMeterInput.click()
+  await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
+
+  // tap 後も値は保持 (select→上書きがないことの確認)
+  await expect(inMeterInput).toHaveValue('70000')
+})
+
+// J-PATROL-10c: in_meter Enter → out_meter_1 focused + numpad visible + value binding 正常
+test('J-PATROL-10c: in_meter Enter → out_meter_1 focused + numpad visible + value binding', async ({ page }) => {
   await gotoPatrolBooth(page)
 
   // フィールド1 を開く
   await page.locator('[data-tabindex="1"]').click()
   await page.waitForSelector('[data-testid="numpad-sheet"]', { timeout: 3000 })
 
-  // キーボード Enter でフィールド2 へ移動 (numpad が自動 open される)
+  // Enter でフィールド2 へ移動
   await page.locator('[data-tabindex="1"]').press('Enter')
   await page.waitForTimeout(300)
 
-  // フィールド2 (out_meter) の numpad が開いていること
-  await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
+  // フィールド2 (out_meter) にフォーカス + numpad が開いていること
   await expect(page.locator('[data-tabindex="2"]')).toBeFocused()
+  await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
 
   // フィールド2 に '5' を入力 → value binding 確認
   await page.locator('[data-testid="numpad-sheet"]').last().locator('[data-numpad-key="5"]').click()
   await expect(page.locator('[data-tabindex="2"]')).toHaveValue('5')
 })
 
-// J-PATROL-09c: 本物の外側タップ (grace period 後) → numpad が閉じる
-test('J-PATROL-09c: genuine outside tap after grace period → numpad closes', async ({ page }) => {
+// J-PATROL-10d: out_meter_1 Enter → out_meter_2 (outMeterCount>=2) → numpad visible
+test('J-PATROL-10d: out_meter_1 Enter → out_meter_2 numpad opens (outMeterCount=2)', async ({ page }) => {
+  await gotoPatrolBooth(page, { outMeterCount: 2 })
+
+  // フィールド2 (out_meter_1) を開く
+  await page.locator('[data-tabindex="2"]').click()
+  await page.waitForSelector('[data-testid="numpad-sheet"]', { timeout: 3000 })
+
+  // Enter でフィールド3 (out_meter_2) へ移動
+  await page.locator('[data-tabindex="2"]').press('Enter')
+  await page.waitForTimeout(300)
+
+  // フィールド3 にフォーカス + numpad が開いていること
+  await expect(page.locator('[data-tabindex="3"]')).toBeFocused()
+  await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
+})
+
+// J-PATROL-10e: grace period 後の外側タップ → numpad が閉じる
+test('J-PATROL-10e: genuine outside tap after grace period → numpad closes', async ({ page }) => {
   await gotoPatrolBooth(page)
 
   await page.locator('[data-tabindex="1"]').click()
@@ -135,22 +167,20 @@ test('J-PATROL-09c: genuine outside tap after grace period → numpad closes', a
   // grace period (350ms) が明けるのを待つ
   await page.waitForTimeout(450)
 
-  // backdrop (numpad-portal の第1子 div) を直接クリック
+  // backdrop をクリック
   const backdrop = page.locator('[data-testid="numpad-portal"] > div').first()
   await backdrop.click({ position: { x: 100, y: 20 } })
 
   await expect(page.locator('[data-testid="numpad-portal"]')).toBeHidden({ timeout: 1500 })
 })
 
-// J-PATROL-09d: J-PATROL-06b リグレッション — Enter: in_meter → out_meter フォーカス
-test('J-PATROL-09d: regression J-PATROL-06b — Enter: in_meter → out_meter focused', async ({ page }) => {
+// J-PATROL-10f: programmatic focus() は numpad を開かない (onFocus handler 削除の確認)
+test('J-PATROL-10f: programmatic focus() does NOT open numpad', async ({ page }) => {
   await gotoPatrolBooth(page)
 
-  const inMeterInput  = page.locator('[data-tabindex="1"]')
-  const outMeterInput = page.locator('[data-tabindex="2"]')
+  // プログラマチックに focus → numpad は開かないはず
+  await page.locator('[data-tabindex="1"]').focus()
+  await page.waitForTimeout(200)
 
-  await inMeterInput.focus()
-  await inMeterInput.press('Enter')
-  await expect(outMeterInput).toBeFocused()
+  await expect(page.locator('[data-testid="numpad-portal"]')).toHaveCount(0)
 })
-

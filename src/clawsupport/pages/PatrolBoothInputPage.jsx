@@ -28,6 +28,14 @@ const TT = {
   set_r:        '右側設定。数値で記録。',
   set_o:        '自由メモ。何でも書いてOK、書かなくてもOK。',
   collection:   '集金日のみ表示。チェックすると集金記録として保存される。',
+  diff:         '前回保存値からの差分。上段=IN差分(集金額相当)、下段=OUT差分(出回数)。打ち間違い検知用。',
+}
+
+function diffDisplay(diff) {
+  if (diff === null) return { text: '--', cls: 'text-gray-400' }
+  if (diff === 0)    return { text: '0',  cls: 'text-gray-400' }
+  if (diff > 0)      return { text: `+${diff}`, cls: 'text-green-600' }
+  return               { text: String(diff),  cls: 'text-red-600' }
 }
 
 // ─── entry_type バッジ ─────────────────────────────────────
@@ -137,7 +145,6 @@ function CompactTextCell({
         data-tabindex={dataTabindex}
         value={value}
         onChange={e => onChange(e.target.value)}
-        onFocus={e => e.target.select()}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onNext?.() } }}
         placeholder={placeholder}
         className={inputClassName ?? 'text-text'}
@@ -337,10 +344,19 @@ export default function PatrolBoothInputPage() {
     { key: 'outMeter3', val: outMeter3, set: setOut3, tab: 4, id: 'field-out-meter-3' },
   ].slice(0, outMeterCount)
 
+  const inDiff = touched.inMeter && prev != null && inMeter !== ''
+    ? Number(inMeter) - Number(prev.in_meter ?? 0)
+    : null
+  const outDiff = touched.outMeter1 && prev != null && outMeter1 !== ''
+    ? Number(outMeter1) - Number(prev.out_meter ?? 0)
+    : null
+  const inDiffDisp  = diffDisplay(inDiff)
+  const outDiffDisp = diffDisplay(outDiff)
+
   const row1Cols =
-    outMeterCount === 1 ? 'grid-cols-4' :
-    outMeterCount === 2 ? 'grid-cols-5' :
-    'grid-cols-6'
+    outMeterCount === 1 ? 'grid-cols-5' :
+    outMeterCount === 2 ? 'grid-cols-6' :
+    'grid-cols-7'
 
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
@@ -389,6 +405,18 @@ export default function PatrolBoothInputPage() {
                 />
               ))
             )}
+            {/* 差 cell — IN差分(上) / OUT差分(下) */}
+            <div className="flex flex-col p-1">
+              <Tooltip id="tt-field-diff" content={TT.diff} label="差" />
+              <div
+                data-testid="diff-cell"
+                className="flex flex-col items-center justify-center text-xs h-full min-h-[2.5rem]"
+              >
+                <div data-testid="in-diff"  className={`font-mono font-bold ${inDiffDisp.cls}`}>{inDiffDisp.text}</div>
+                <div data-testid="out-diff" className={`font-mono font-bold ${outDiffDisp.cls}`}>{outDiffDisp.text}</div>
+              </div>
+            </div>
+
             <CompactCell
               ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
               fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch('stock')}

@@ -1,12 +1,10 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
 // 同時に1つだけ開く — 新しく開く前に他の numpad を即時 close
 let _globalClose = null
-// キーボード Enter で navigateNext → onFocus した次フィールドを自動 open するフラグ
-let _pendingOpen = false
 
 export default function NumpadField({
   value,
@@ -30,6 +28,7 @@ export default function NumpadField({
   const inputRef = useRef(null)
   const closeRef = useRef(null)
   const blockCloseRef = useRef(false)
+  const handleOpenRef = useRef(null)
 
   function handleClose() {
     if (_globalClose === closeRef.current) _globalClose = null
@@ -50,6 +49,14 @@ export default function NumpadField({
     blockCloseRef.current = true
     setTimeout(() => { blockCloseRef.current = false }, 350)
   }
+  handleOpenRef.current = handleOpen
+
+  // expose openNumpad on the DOM input so keyboard-Enter navigation can invoke it directly
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current._numpadOpen = () => handleOpenRef.current()
+    }
+  }, [])
 
   function handleKey(k) {
     if (k === '⌫') {
@@ -115,19 +122,19 @@ export default function NumpadField({
           inputRef.current?.focus()
           handleOpen()
         }}
-        onFocus={e => {
-          if (_pendingOpen) {
-            _pendingOpen = false
-            handleOpen()
-          }
-          e.target.select()
-        }}
         onKeyDown={e => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            _pendingOpen = true
             handleClose()
             if (onNext) onNext()
+            // explicitly open the next NumpadField via its _numpadOpen handle
+            const all = Array.from(document.querySelectorAll('[data-tabindex]'))
+              .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
+            const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
+            const nextEl = all[idx + 1]
+            if (nextEl && typeof nextEl._numpadOpen === 'function') {
+              nextEl._numpadOpen()
+            }
           }
         }}
         className={inputClassName ?? ''}

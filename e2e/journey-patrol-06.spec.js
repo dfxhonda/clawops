@@ -228,23 +228,3 @@ test('J-PATROL-06f: out_meter_count=3 で OUT1/OUT2/OUT3 表示', async ({ page 
   await expect(page.getByText('OUT3')).toBeVisible()
 })
 
-// J-PATROL-06g: in_meter フィールドに focus で全選択 (selectionStart=0, selectionEnd=length)
-test('J-PATROL-06g: focus で全選択', async ({ page }) => {
-  await gotoPatrolBooth(page)
-
-  const inMeterInput = page.locator('[data-tabindex="1"]')
-
-  // focus (programmatic) → onFocus fires → e.target.select()
-  await inMeterInput.focus()
-
-  const sel = await inMeterInput.evaluate(el => ({
-    start: el.selectionStart,
-    end:   el.selectionEnd,
-    len:   el.value.length,
-  }))
-
-  expect(sel.start).toBe(0)
-  expect(sel.end).toBe(sel.len)
-  // prev がある場合 value は '70000' → len=5, start=0, end=5
-  expect(sel.len).toBeGreaterThan(0)
-})
