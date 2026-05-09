@@ -159,10 +159,10 @@ test.describe('J-PATROL-01: 機械リスト → ブース入力 → UPSERT', () 
     })
     await page.goto('/clawsupport/booth/TST-B01')
 
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText('OUTメーター')).toBeVisible()
-    await expect(page.getByText('景品在庫')).toBeVisible()
-    await expect(page.getByText('補充数')).toBeVisible()
+    await expect(page.locator('[data-testid="tooltip-label-tt-field-in-meter"]')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('[data-testid="tooltip-label-tt-field-out-meter"]')).toBeVisible()
+    await expect(page.locator('[data-testid="tooltip-label-tt-field-stock"]')).toBeVisible()
+    await expect(page.locator('[data-testid="tooltip-label-tt-field-restock"]')).toBeVisible()
   })
 
   test('保存ボタン: 4値入力後に UPSERT が実行される', async ({ page }) => {
@@ -209,7 +209,7 @@ test.describe('J-PATROL-01: 機械リスト → ブース入力 → UPSERT', () 
     })
     await page.goto('/clawsupport/booth/TST-B01')
 
-    await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('[data-testid="tooltip-label-tt-field-in-meter"]')).toBeVisible({ timeout: 5000 })
 
     // 4値を Numpad で入力（IN → OUT → 在庫 → 補充の順）
     await fillNumpadField(page, '#field-in-meter',  '50000')

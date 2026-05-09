@@ -137,27 +137,27 @@ test('J-PATROL-06b: Enter ナビゲーション in_meter → out_meter_1', async
   await expect(outMeterInput).toBeFocused()
 })
 
-// J-PATROL-06c: in_meter ⓘ tap → tooltip 開く / 外側 tap → close / 別 ⓘ tap → 前 close 新 open
+// J-PATROL-06c: in_meter label tap → tooltip 開く / 外側 tap → close / 別 label tap → 前 close 新 open
 test('J-PATROL-06c: tooltip 開閉・排他制御', async ({ page }) => {
   await gotoPatrolBooth(page)
 
-  const inIcon     = page.locator('[data-testid="tooltip-icon-tt-field-in-meter"]')
+  const inLabel    = page.locator('[data-testid="tooltip-label-tt-field-in-meter"]')
   const inBalloon  = page.locator('[data-testid="tooltip-balloon-tt-field-in-meter"]')
-  const outIcon    = page.locator('[data-testid="tooltip-icon-tt-field-out-meter"]')
+  const outLabel   = page.locator('[data-testid="tooltip-label-tt-field-out-meter"]')
   const outBalloon = page.locator('[data-testid="tooltip-balloon-tt-field-out-meter"]')
 
   // open in_meter tooltip
-  await inIcon.click()
+  await inLabel.click()
   await expect(inBalloon).toBeVisible()
 
   // click outside (theory row has no interactive elements)
   await page.locator('[data-testid="theory-row"]').click()
   await expect(inBalloon).toBeHidden()
 
-  // open in_meter, then click out_meter icon → in closes, out opens
-  await inIcon.click()
+  // open in_meter, then click out_meter label → in closes, out opens
+  await inLabel.click()
   await expect(inBalloon).toBeVisible()
-  await outIcon.click()
+  await outLabel.click()
   await expect(inBalloon).toBeHidden()
   await expect(outBalloon).toBeVisible()
 })

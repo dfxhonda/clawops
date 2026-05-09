@@ -114,7 +114,7 @@ async function gotoPatrolBooth(page) {
   )
   await page.goto('/clawsupport/booth/TST-B01')
   await done
-  await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+  await page.waitForSelector('[data-testid="booth-input-upper"]', { timeout: 5000 })
 }
 
 async function fillNumpadField(page, fieldId, digits) {

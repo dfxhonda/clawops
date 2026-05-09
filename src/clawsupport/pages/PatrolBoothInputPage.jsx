@@ -21,7 +21,7 @@ const TT = {
   prize_stock:  'ブース内に残ってる景品の個数。今数えた数。',
   prize_restock:'今回追加で入れた景品の個数。0なら空欄でOK。',
   prize_name:   '景品マスタから候補が出る。新景品は手入力で追加。',
-  prize_cost:   '1個あたりの仕入れ価格(円)。景品マスタ選択で自動入る。',
+  prize_cost:   '景品 1個あたりの仕入れ価格(円)。景品マスタ選択で自動入る。',
   set_a:        'クレーン爪の力。数値で記録。',
   set_c:        'コア設定。数値で記録。',
   set_l:        '左側設定。数値で記録。',
@@ -93,62 +93,42 @@ function TheoryRow({ prev }) {
   )
 }
 
-// ─── フィールド行（full-width / compact grid 兼用） ─────────────
-function FieldRow({
-  label, fieldId, value, onChange, onTouched,
-  allowDecimal = false, compact = false,
-  dataTabindex, inputClassName, onNext, tooltip,
-  testId, inputPlaceholder,
+// ─── compact セル (label上 / numpad下) ─────────────────────────
+function CompactCell({
+  ttId, ttContent, label,
+  fieldId, value, onChange, onTouched,
+  allowDecimal = false, dataTabindex,
+  inputClassName, onNext, testId, inputPlaceholder,
 }) {
-  const numpad = (
-    <NumpadField
-      id={fieldId}
-      value={value}
-      onChange={v => { onTouched?.(); onChange(v) }}
-      label={label}
-      allowDecimal={allowDecimal}
-      dataTabindex={dataTabindex}
-      inputClassName={inputClassName}
-      onNext={onNext}
-      testId={testId ?? fieldId}
-      inputPlaceholder={inputPlaceholder}
-      style={compact ? { fontSize: 16, width: '100%' } : { width: 120, fontSize: 16 }}
-    />
-  )
-
-  if (compact) {
-    return (
-      <div className="flex flex-col px-3 py-2 border-b border-border last:border-b-0">
-        <div className="flex items-center gap-1 mb-1">
-          <label htmlFor={fieldId} className="text-[11px] text-muted font-bold">{label}</label>
-          {tooltip && <Tooltip id={`tt-${fieldId}`} content={tooltip} />}
-        </div>
-        {numpad}
-      </div>
-    )
-  }
-
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-      <div className="flex items-center gap-1 w-28 shrink-0">
-        <label htmlFor={fieldId} className="text-sm text-muted font-bold">{label}</label>
-        {tooltip && <Tooltip id={`tt-${fieldId}`} content={tooltip} />}
-      </div>
-      <div className="flex-1 flex justify-end">
-        {numpad}
-      </div>
+    <div className="flex flex-col p-1">
+      <Tooltip id={ttId} content={ttContent} label={label} />
+      <NumpadField
+        id={fieldId}
+        value={value}
+        onChange={v => { onTouched?.(); onChange(v) }}
+        label={label}
+        allowDecimal={allowDecimal}
+        dataTabindex={dataTabindex}
+        inputClassName={inputClassName}
+        onNext={onNext}
+        testId={testId ?? fieldId}
+        inputPlaceholder={inputPlaceholder}
+        style={{ fontSize: 16, width: '100%' }}
+      />
     </div>
   )
 }
 
-// ─── テキスト入力フィールド行 ───────────────────────────────────
-function TextFieldRow({ label, fieldId, value, onChange, placeholder, testId, dataTabindex, inputClassName, onNext, tooltip }) {
+// ─── compact テキストセル (label上 / テキスト入力下) ─────────────
+function CompactTextCell({
+  ttId, ttContent, label,
+  fieldId, value, onChange, placeholder,
+  testId, dataTabindex, inputClassName, onNext,
+}) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-      <div className="flex items-center gap-1 w-28 shrink-0">
-        <label htmlFor={fieldId} className="text-sm text-muted font-bold">{label}</label>
-        {tooltip && <Tooltip id={`tt-${fieldId}`} content={tooltip} />}
-      </div>
+    <div className="flex flex-col p-1">
+      <Tooltip id={ttId} content={ttContent} label={label} />
       <input
         id={fieldId}
         type="text"
@@ -160,8 +140,22 @@ function TextFieldRow({ label, fieldId, value, onChange, placeholder, testId, da
         onFocus={e => e.target.select()}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onNext?.() } }}
         placeholder={placeholder}
-        className={`flex-1 bg-transparent text-right text-base outline-none placeholder:text-gray-500 ${inputClassName ?? 'text-text'}`}
-        style={{ WebkitAppearance: 'none', fontSize: 16 }}
+        className={inputClassName ?? 'text-text'}
+        style={{
+          cursor: 'text',
+          border: '1px solid #2a2a44',
+          background: '#0a0a14',
+          borderRadius: 4,
+          padding: '0.4em 0.35em',
+          fontFamily: "'Courier New', Courier, monospace",
+          fontWeight: 'bold',
+          textAlign: 'right',
+          outline: 'none',
+          boxSizing: 'border-box',
+          WebkitAppearance: 'none',
+          fontSize: 16,
+          width: '100%',
+        }}
       />
     </div>
   )
@@ -325,8 +319,7 @@ export default function PatrolBoothInputPage() {
         setResult('saved')
         setTimeout(() => navigate(-1), 800)
       }
-    } catch (e) {
-      console.error(e)
+    } catch {
       setResult('error')
     } finally {
       setSaving(false)
@@ -343,6 +336,11 @@ export default function PatrolBoothInputPage() {
     { key: 'outMeter2', val: outMeter2, set: setOut2, tab: 3, id: 'field-out-meter-2' },
     { key: 'outMeter3', val: outMeter3, set: setOut3, tab: 4, id: 'field-out-meter-3' },
   ].slice(0, outMeterCount)
+
+  const row1Cols =
+    outMeterCount === 1 ? 'grid-cols-4' :
+    outMeterCount === 2 ? 'grid-cols-5' :
+    'grid-cols-6'
 
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
@@ -362,63 +360,131 @@ export default function PatrolBoothInputPage() {
       <div data-testid="booth-input-upper" className="flex-1 overflow-y-auto pb-[33vh]">
         <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
 
-          {/* IN — full width */}
-          <FieldRow
-            label="INメーター" fieldId="field-in-meter"
-            value={inMeter} onChange={setIn} onTouched={touch('inMeter')}
-            allowDecimal dataTabindex={1}
-            inputClassName={!touched.inMeter ? 'text-gray-400' : ''}
-            onNext={() => navigateNext(1)} tooltip={TT.in_meter}
-          />
-
-          {/* OUT fields */}
-          {outMeterCount === 1 ? (
-            <FieldRow
-              label="OUTメーター" fieldId="field-out-meter"
-              value={outMeter1} onChange={setOut1} onTouched={touch('outMeter1')}
-              allowDecimal dataTabindex={2}
-              inputClassName={!touched.outMeter1 ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(2)} tooltip={TT.out_meter}
+          {/* Row 1: IN + OUT(s) + 残 + 補 */}
+          <div data-testid="meter-row" className={`grid ${row1Cols} gap-1 p-1 border-b border-border`}>
+            <CompactCell
+              ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
+              fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch('inMeter')}
+              allowDecimal dataTabindex={1}
+              inputClassName={!touched.inMeter ? 'text-gray-400' : ''}
+              onNext={() => navigateNext(1)}
             />
-          ) : (
-            <div className="grid grid-cols-2 divide-x divide-border">
-              {outFields.map((f, i) => (
-                <FieldRow
+            {outMeterCount === 1 ? (
+              <CompactCell
+                ttId="tt-field-out-meter" ttContent={TT.out_meter} label="OUT"
+                fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch('outMeter1')}
+                allowDecimal dataTabindex={2}
+                inputClassName={!touched.outMeter1 ? 'text-gray-400' : ''}
+                onNext={() => navigateNext(2)}
+              />
+            ) : (
+              outFields.map((f, i) => (
+                <CompactCell
                   key={f.id}
-                  label={`OUT${i + 1}`} fieldId={f.id} compact
-                  value={f.val} onChange={f.set} onTouched={touch(f.key)}
+                  ttId={`tt-${f.id}`} ttContent={TT.out_meter} label={`OUT${i + 1}`}
+                  fieldId={f.id} value={f.val} onChange={f.set} onTouched={touch(f.key)}
                   allowDecimal dataTabindex={f.tab}
                   inputClassName={!touched[f.key] ? 'text-gray-400' : ''}
-                  onNext={() => navigateNext(f.tab)} tooltip={TT.out_meter}
+                  onNext={() => navigateNext(f.tab)}
                 />
-              ))}
-            </div>
-          )}
-
-          {/* 在庫 + 補充 — grid-cols-2 */}
-          <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
-            <FieldRow
-              label="景品在庫" fieldId="field-stock" compact
-              value={stock} onChange={setStk} onTouched={touch('stock')}
+              ))
+            )}
+            <CompactCell
+              ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
+              fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch('stock')}
               dataTabindex={5}
               inputClassName={!touched.stock ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(5)} tooltip={TT.prize_stock}
+              onNext={() => navigateNext(5)}
             />
-            <FieldRow
-              label="補充数" fieldId="field-restock" compact
-              value={restock} onChange={setRst} onTouched={touch('restock')}
+            <CompactCell
+              ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
+              fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch('restock')}
               dataTabindex={6}
               inputClassName={!touched.restock ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(6)} tooltip={TT.prize_restock}
+              onNext={() => navigateNext(6)}
             />
           </div>
 
-          {/* 集金 */}
+          {/* Row 2: 景 + @ */}
+          <div className="grid grid-cols-2 gap-1 p-1 border-b border-border">
+            <div className="flex flex-col p-1">
+              <Tooltip id="tt-field-prize-name" content={TT.prize_name} label="景" />
+              <PrizeNameAutocomplete
+                value={prizeName}
+                onChange={v => {
+                  setTouched(t => ({ ...t, prizeName: true }))
+                  setPrize(v)
+                  setSelectedPrizeId(null)
+                }}
+                onSelect={({ prize_id, prize_name, original_cost }) => {
+                  setPrize(prize_name)
+                  setSelectedPrizeId(prize_id)
+                  setCost(original_cost != null ? String(original_cost) : '')
+                  setTouched(t => ({ ...t, prizeName: true, prizeCost: true }))
+                }}
+                placeholder="前回値から補完（変更時のみ差分送信）"
+                fieldId="field-prize-name"
+                testId="field-prize-name"
+              />
+            </div>
+            <CompactCell
+              ttId="tt-field-prize-cost" ttContent={TT.prize_cost} label="@"
+              fieldId="field-prize-cost" value={prizeCost} onChange={setCost} onTouched={touch('prizeCost')}
+              allowDecimal={false} dataTabindex={8}
+              testId="field-prize-cost"
+              inputPlaceholder=""
+              inputClassName={!touched.prizeCost ? 'text-gray-400' : ''}
+              onNext={() => navigateNext(8)}
+            />
+          </div>
+
+          {/* Row 3: A/C/L/R/O */}
+          <div className="grid grid-cols-5 gap-1 p-1 border-b border-border">
+            <CompactCell
+              ttId="tt-field-set-a" ttContent={TT.set_a} label="A"
+              fieldId="field-set-a" value={setA} onChange={setSetA} onTouched={touch('setA')}
+              dataTabindex={9} testId="field-set-a" inputPlaceholder=""
+              inputClassName={!touched.setA ? 'text-gray-400' : ''}
+              onNext={() => navigateNext(9)}
+            />
+            <CompactCell
+              ttId="tt-field-set-c" ttContent={TT.set_c} label="C"
+              fieldId="field-set-c" value={setC} onChange={setSetC} onTouched={touch('setC')}
+              dataTabindex={10} testId="field-set-c" inputPlaceholder=""
+              inputClassName={!touched.setC ? 'text-gray-400' : ''}
+              onNext={() => navigateNext(10)}
+            />
+            <CompactCell
+              ttId="tt-field-set-l" ttContent={TT.set_l} label="L"
+              fieldId="field-set-l" value={setL} onChange={setSetL} onTouched={touch('setL')}
+              dataTabindex={11} testId="field-set-l" inputPlaceholder=""
+              inputClassName={!touched.setL ? 'text-gray-400' : ''}
+              onNext={() => navigateNext(11)}
+            />
+            <CompactCell
+              ttId="tt-field-set-r" ttContent={TT.set_r} label="R"
+              fieldId="field-set-r" value={setR} onChange={setSetR} onTouched={touch('setR')}
+              dataTabindex={12} testId="field-set-r" inputPlaceholder=""
+              inputClassName={!touched.setR ? 'text-gray-400' : ''}
+              onNext={() => navigateNext(12)}
+            />
+            <CompactTextCell
+              ttId="tt-field-set-o" ttContent={TT.set_o} label="O"
+              fieldId="field-set-o" value={setO}
+              onChange={v => { setTouched(t => ({ ...t, setO: true })); setSetO(v) }}
+              placeholder="メモ" testId="field-set-o" dataTabindex={13}
+              inputClassName={!touched.setO ? 'text-gray-400' : undefined}
+              onNext={() => navigateNext(13)}
+            />
+          </div>
+
+          {/* 集金 row */}
           {isCollectionDay && (
-            <label
+            <div
               data-testid="collection-checkbox-label"
-              className="flex items-center gap-3 px-4 py-3 border-b border-border cursor-pointer"
+              className="flex items-center gap-3 p-2 border-b border-border"
             >
+              <Tooltip id="tt-collection" content={TT.collection} label="集" />
               <input
                 data-testid="collection-checkbox"
                 type="checkbox"
@@ -426,16 +492,12 @@ export default function PatrolBoothInputPage() {
                 onChange={e => setIsColl(e.target.checked)}
                 className="w-5 h-5 accent-blue-500"
               />
-              <span className="text-sm text-text font-bold flex items-center gap-2">
-                集金あり
-                <Tooltip id="tt-collection" content={TT.collection} />
-              </span>
-              {isCollection && <span className="text-xs text-blue-400 ml-1">集金記録として保存</span>}
-            </label>
+              {isCollection && <span className="text-xs text-blue-400">集金記録として保存</span>}
+            </div>
           )}
 
-          {/* 保存ボタン — 上半分に固定 */}
-          <div className="px-4 py-3 border-b border-border">
+          {/* 保存ボタン */}
+          <div className="px-4 py-3">
             <button
               data-testid="save-button"
               data-tabindex={14}
@@ -458,85 +520,6 @@ export default function PatrolBoothInputPage() {
                 : '保存する'}
             </button>
           </div>
-
-          {/* 景品名 */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-1 w-28 shrink-0">
-              <label htmlFor="field-prize-name" className="text-sm text-muted font-bold">景品名</label>
-              <Tooltip id="tt-field-prize-name" content={TT.prize_name} />
-            </div>
-            <PrizeNameAutocomplete
-              value={prizeName}
-              onChange={v => {
-                setTouched(t => ({ ...t, prizeName: true }))
-                setPrize(v)
-                setSelectedPrizeId(null)
-              }}
-              onSelect={({ prize_id, prize_name, original_cost }) => {
-                setPrize(prize_name)
-                setSelectedPrizeId(prize_id)
-                setCost(original_cost != null ? String(original_cost) : '')
-                setTouched(t => ({ ...t, prizeName: true, prizeCost: true }))
-              }}
-              placeholder="前回値から補完（変更時のみ差分送信）"
-              fieldId="field-prize-name"
-              testId="field-prize-name"
-            />
-          </div>
-
-          {/* 原価 */}
-          <FieldRow
-            label="原価" fieldId="field-prize-cost"
-            value={prizeCost} onChange={setCost} onTouched={touch('prizeCost')}
-            allowDecimal={false} dataTabindex={8}
-            inputClassName={!touched.prizeCost ? 'text-gray-400' : ''}
-            onNext={() => navigateNext(8)} tooltip={TT.prize_cost}
-          />
-
-          {/* 設定 A/C/L/R — grid-cols-2 */}
-          <div className="grid grid-cols-2 divide-x divide-border border-t border-border">
-            <FieldRow
-              label="設定A" fieldId="field-set-a" compact
-              value={setA} onChange={setSetA} onTouched={touch('setA')}
-              dataTabindex={9}
-              inputClassName={!touched.setA ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(9)} tooltip={TT.set_a}
-              inputPlaceholder="クレーン爪"
-            />
-            <FieldRow
-              label="設定C" fieldId="field-set-c" compact
-              value={setC} onChange={setSetC} onTouched={touch('setC')}
-              dataTabindex={10}
-              inputClassName={!touched.setC ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(10)} tooltip={TT.set_c}
-              inputPlaceholder="コア"
-            />
-            <FieldRow
-              label="設定L" fieldId="field-set-l" compact
-              value={setL} onChange={setSetL} onTouched={touch('setL')}
-              dataTabindex={11}
-              inputClassName={!touched.setL ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(11)} tooltip={TT.set_l}
-              inputPlaceholder="左"
-            />
-            <FieldRow
-              label="設定R" fieldId="field-set-r" compact
-              value={setR} onChange={setSetR} onTouched={touch('setR')}
-              dataTabindex={12}
-              inputClassName={!touched.setR ? 'text-gray-400' : ''}
-              onNext={() => navigateNext(12)} tooltip={TT.set_r}
-              inputPlaceholder="右"
-            />
-          </div>
-
-          {/* 設定O — text input */}
-          <TextFieldRow
-            label="設定O" fieldId="field-set-o" testId="field-set-o"
-            value={setO} onChange={v => { setTouched(t => ({ ...t, setO: true })); setSetO(v) }}
-            placeholder="その他" dataTabindex={13}
-            inputClassName={!touched.setO ? 'text-gray-400' : undefined}
-            onNext={() => navigateNext(13)} tooltip={TT.set_o}
-          />
 
         </div>
       </div>

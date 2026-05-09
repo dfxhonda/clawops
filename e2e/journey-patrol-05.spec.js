@@ -109,7 +109,7 @@ async function gotoPatrolBooth(page) {
   )
   await page.goto('/clawsupport/booth/TST-B05')
   await done
-  await expect(page.getByText('INメーター')).toBeVisible({ timeout: 5000 })
+  await page.waitForSelector('[data-testid="booth-input-upper"]', { timeout: 5000 })
 }
 
 async function fillNumpadField(page, fieldId, digits) {
@@ -148,7 +148,7 @@ test.describe('J-PATROL-05a: placeholder コントラスト', () => {
 
     const input = page.getByTestId('field-set-a')
     await expect(input).toBeVisible()
-    await expect(input).toHaveAttribute('placeholder', 'クレーン爪')
+    await expect(input).toHaveAttribute('placeholder', '')
   })
 })
 
