@@ -19,7 +19,7 @@ export default function BoothHistoryList({ boothCode, meterUnitPrice = 100, stor
     return (
       <div
         data-testid="booth-history-list"
-        className="mx-4 mt-2 text-xs text-muted text-center py-3"
+        className="mx-4 mt-2 text-base text-muted text-center py-3"
       >
         履歴読み込み中...
       </div>
@@ -33,9 +33,9 @@ export default function BoothHistoryList({ boothCode, meterUnitPrice = 100, stor
       data-testid="booth-history-list"
       className="mx-4 mt-2 rounded-xl bg-surface/30 border border-border overflow-hidden"
     >
-      <div className="px-3 py-1.5 bg-surface/50 border-b border-border">
-        <div className="grid gap-1 text-[9px] font-bold text-muted/60 uppercase tracking-wide"
-          style={{ gridTemplateColumns: '60px 1fr 52px 52px 60px 60px' }}>
+      <div className="px-3 py-2 bg-surface/50 border-b border-border">
+        <div className="grid gap-2 text-base font-bold text-muted/60 uppercase tracking-wide"
+          style={{ gridTemplateColumns: '70px 1fr 70px 70px 70px 70px' }}>
           <span>日付</span>
           <span>景品</span>
           <span className="text-right">IN差</span>

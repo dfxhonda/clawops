@@ -51,7 +51,7 @@ function EntryTypeBadge({ type }) {
   return (
     <span
       data-testid="entry-type-badge"
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border font-bold ${b.cls}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-base border font-bold ${b.cls}`}
     >
       {b.label}
     </span>
@@ -63,7 +63,7 @@ function PrevReadingRow({ prev }) {
   if (!prev) return null
   const date = prev.patrol_date ?? prev.read_time?.slice(0, 10) ?? '—'
   return (
-    <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-xs text-muted">
+    <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted">
       <span className="font-bold mr-2">前回</span>
       <span>{date}</span>
       <span className="mx-2">|</span>
@@ -90,7 +90,7 @@ function TheoryRow({ prev }) {
   return (
     <div
       data-testid="theory-row"
-      className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/40 border border-border/80 text-xs text-muted"
+      className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/40 border border-border/80 text-base text-muted"
     >
       <span className="font-bold text-text/90 mr-2">理論・出率（前回記録）</span>
       <span>出率 {payoutLabel}</span>
@@ -368,7 +368,7 @@ export default function PatrolBoothInputPage() {
         onBack={() => navigate(-1)}
       />
 
-      <div className="px-4 pb-1 flex items-center gap-2">
+      <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
       </div>
       <PrevReadingRow prev={prev} />
@@ -411,7 +411,7 @@ export default function PatrolBoothInputPage() {
               <Tooltip id="tt-field-diff" content={TT.diff} label="差" />
               <div
                 data-testid="diff-cell"
-                className="flex flex-col items-center justify-center text-xs h-full min-h-[2.5rem]"
+                className="flex flex-col items-center justify-center text-base h-full min-h-[2.5rem]"
               >
                 <div data-testid="in-diff"  className={`font-mono font-bold ${inDiffDisp.cls}`}>{inDiffDisp.text}</div>
                 <div data-testid="out-diff" className={`font-mono font-bold ${outDiffDisp.cls}`}>{outDiffDisp.text}</div>
@@ -521,12 +521,12 @@ export default function PatrolBoothInputPage() {
                 onChange={e => setIsColl(e.target.checked)}
                 className="w-5 h-5 accent-blue-500"
               />
-              {isCollection && <span className="text-xs text-blue-400">集金記録として保存</span>}
+              {isCollection && <span className="text-base text-blue-400">集金記録として保存</span>}
             </div>
           )}
 
           {/* 保存ボタン */}
-          <div className="px-4 py-3">
+          <div className="px-4 py-1">
             <button
               data-testid="save-button"
               data-tabindex={14}

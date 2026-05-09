@@ -18,11 +18,11 @@ function fmtDate(row) {
   return { main: `${m}/${day}`, day: DAYS_JA[dt.getDay()] }
 }
 
-function fmtDiff(val, prefix = '') {
+function fmtDiff(val) {
   if (val == null) return { text: '—', cls: 'text-muted' }
   if (val === 0)   return { text: '0', cls: 'text-muted' }
-  if (val > 0)     return { text: `+${val.toLocaleString()}${prefix}`, cls: 'text-green-400' }
-  return               { text: `${val.toLocaleString()}${prefix}`,  cls: 'text-red-400' }
+  if (val > 0)     return { text: `+${val.toLocaleString()}`, cls: 'text-green-400 font-bold' }
+  return               { text: `${val.toLocaleString()}`,  cls: 'text-red-400 font-bold' }
 }
 
 function fmtMoney(val) {
@@ -30,8 +30,8 @@ function fmtMoney(val) {
   if (val === 0)   return { text: '¥0', cls: 'text-muted' }
   const abs = Math.abs(val)
   const str = `¥${Math.round(abs).toLocaleString()}`
-  if (val > 0) return { text: str, cls: 'text-green-400' }
-  return { text: `-${str}`, cls: 'text-red-400' }
+  if (val > 0) return { text: str, cls: 'text-green-400 font-bold' }
+  return { text: `-${str}`, cls: 'text-red-400 font-bold' }
 }
 
 export default function BoothHistoryRow({
@@ -92,13 +92,13 @@ export default function BoothHistoryRow({
         onPointerCancel={handlePointerUp}
         onClick={handleClick}
       >
-        <div className="grid gap-1 px-2 py-1.5 text-xs items-center"
-          style={{ gridTemplateColumns: '60px 1fr 52px 52px 60px 60px' }}>
+        <div className="grid gap-2 px-2 py-2 text-base items-center"
+          style={{ gridTemplateColumns: '70px 1fr 70px 70px 70px 70px' }}>
 
-          {/* 日付 chip */}
+          {/* 日付 chip — text-sm 例外許容 */}
           <div className="flex flex-col items-center gap-0.5">
-            <span className="font-mono text-text/80 leading-none">{dateMain}</span>
-            <span className={`px-1.5 py-0 rounded text-[9px] font-bold leading-tight ${chip.cls}`}>
+            <span className="font-mono text-text/80 leading-none text-sm">{dateMain}</span>
+            <span className={`px-1.5 py-0 rounded text-sm font-bold leading-tight ${chip.cls}`}>
               {dateDay}{chip.label}
             </span>
           </div>
@@ -125,7 +125,7 @@ export default function BoothHistoryRow({
       {expanded && (
         <div
           data-testid="history-row-detail"
-          className="px-3 pb-2 text-xs text-muted space-y-0.5 bg-surface/20"
+          className="px-3 pb-2 text-base text-muted space-y-1 bg-surface/20"
         >
           <div className="flex gap-4 flex-wrap">
             {row.set_a  != null && <span>A:{row.set_a}</span>}

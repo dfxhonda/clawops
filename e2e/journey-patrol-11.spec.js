@@ -267,6 +267,15 @@ test('J-PATROL-11e: 履歴行 tap 展開、long-press 修正ナビゲート', as
   await expect(page.locator('[data-testid="history-row-detail"]').first()).toBeHidden()
 })
 
+// J-PATROL-11g: scope.write 内 text-xs grep 0件、text-base 統一確認
+test('J-PATROL-11g: text-xs/text-sm 完全廃止確認 (date_badge除く)', async ({ page }) => {
+  await gotoBoothInput(page)
+  const histList = page.locator('[data-testid="booth-history-list"]')
+  await expect(histList).toBeVisible()
+  const tinyElements = histList.locator('.text-xs')
+  await expect(tinyElements).toHaveCount(0)
+})
+
 // J-PATROL-11f: prev取得bug修正 — replace後のpatrol で直前replace がprev として使われる
 test('J-PATROL-11f: prev取得bug修正 — replace後patrol で replace が prev', async ({ page }) => {
   const replaceHistory = makeHistoryWithReplace()

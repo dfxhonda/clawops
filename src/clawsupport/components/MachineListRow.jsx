@@ -20,10 +20,10 @@ function DiffChip({ label, value, isMoney = false }) {
   return (
     <span
       data-testid={`diff-chip-${label}`}
-      className={`inline-flex flex-col items-center px-1.5 py-0.5 rounded text-[9px] leading-tight ${cls}`}
+      className={`inline-flex items-baseline gap-1 px-2 py-1 rounded text-base font-bold leading-tight ${cls}`}
     >
-      <span className="text-[8px] opacity-60">{label}</span>
-      <span className="font-mono font-bold">{text}</span>
+      <span className="opacity-60">{label}</span>
+      <span className="font-mono">{text}</span>
     </span>
   )
 }
@@ -39,15 +39,15 @@ export default function MachineListRow({ booth, done, diff, onClick }) {
         {done ? '✓' : '○'}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-text text-sm font-bold">
+        <p className="text-text text-base font-bold">
           ブース {booth.booth_number}
         </p>
         {done && (
-          <p className="text-emerald-400/70 text-xs mt-0.5">入力済み</p>
+          <p className="text-emerald-400/70 text-base mt-0.5">入力済み</p>
         )}
       </div>
       {diff && (
-        <div className="flex gap-1 ml-auto shrink-0">
+        <div className="flex flex-wrap gap-1 ml-auto shrink-0 max-w-[60%] justify-end">
           <DiffChip label="IN"  value={diff.inDiff}  />
           <DiffChip label="OUT" value={diff.outDiff} />
           <DiffChip label="売上" value={diff.revenue} isMoney />
