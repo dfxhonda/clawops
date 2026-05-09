@@ -111,25 +111,27 @@ function CompactCell({
   isActive = false, className = '',
 }) {
   return (
-    <div className={`flex flex-col p-1 rounded transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
-      <div className={isActive ? '[&_button]:text-blue-600' : ''}>
+    <div className={`flex flex-row items-center gap-1 p-1 rounded transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
+      <div className={`shrink-0 ${isActive ? '[&_button]:text-blue-600' : ''}`}>
         <Tooltip id={ttId} content={ttContent} label={label} />
       </div>
-      <NumpadField
-        id={fieldId}
-        value={value}
-        onChange={v => { onTouched?.(); onChange(v) }}
-        label={label}
-        allowDecimal={allowDecimal}
-        dataTabindex={dataTabindex}
-        inputClassName={isActive ? '' : (inputClassName ?? '')}
-        onNext={onNext}
-        testId={testId ?? fieldId}
-        inputPlaceholder={inputPlaceholder}
-        style={{ fontSize: 16, width: '100%' }}
-        onRegister={onRegister}
-        isActive={isActive}
-      />
+      <div className="flex-1 min-w-0">
+        <NumpadField
+          id={fieldId}
+          value={value}
+          onChange={v => { onTouched?.(); onChange(v) }}
+          label={label}
+          allowDecimal={allowDecimal}
+          dataTabindex={dataTabindex}
+          inputClassName={isActive ? '' : (inputClassName ?? '')}
+          onNext={onNext}
+          testId={testId ?? fieldId}
+          inputPlaceholder={inputPlaceholder}
+          style={{ fontSize: 16, width: '100%' }}
+          onRegister={onRegister}
+          isActive={isActive}
+        />
+      </div>
     </div>
   )
 }
@@ -385,7 +387,7 @@ export default function PatrolBoothInputPage() {
           {/* Row 1: IN + OUT(s) + 差 + 残 + 補 — flex比率 IN5/OUT5/差3/残4/補2 */}
           <div data-testid="meter-row" className="flex gap-1 p-1 border-b border-border">
             <CompactCell
-              className="flex-[5] min-w-0"
+              className="flex-[3] min-w-0"
               ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
               fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch('inMeter')}
               allowDecimal dataTabindex={1}
@@ -396,7 +398,7 @@ export default function PatrolBoothInputPage() {
             />
             {outMeterCount === 1 ? (
               <CompactCell
-                className="flex-[5] min-w-0"
+                className="flex-[3] min-w-0"
                 ttId="tt-field-out-meter" ttContent={TT.out_meter} label="OUT"
                 fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch('outMeter1')}
                 allowDecimal dataTabindex={2}
@@ -409,7 +411,7 @@ export default function PatrolBoothInputPage() {
               outFields.map((f, i) => (
                 <CompactCell
                   key={f.id}
-                  className="flex-[5] min-w-0"
+                  className="flex-[3] min-w-0"
                   ttId={`tt-${f.id}`} ttContent={TT.out_meter} label={`OUT${i + 1}`}
                   fieldId={f.id} value={f.val} onChange={f.set} onTouched={touch(f.key)}
                   allowDecimal dataTabindex={f.tab}
@@ -421,19 +423,19 @@ export default function PatrolBoothInputPage() {
               ))
             )}
             {/* 差 cell — IN差分(上) / OUT差分(下) */}
-            <div className="flex flex-col p-1 flex-[3] min-w-0">
-              <Tooltip id="tt-field-diff" content={TT.diff} label="差" />
+            <div className="flex flex-row items-center gap-1 p-1 flex-[2] min-w-0">
+              <div className="shrink-0"><Tooltip id="tt-field-diff" content={TT.diff} label="差" /></div>
               <div
                 data-testid="diff-cell"
-                className="flex flex-col items-center justify-center text-base h-full min-h-[2.5rem]"
+                className="flex flex-col items-end justify-center flex-1 min-h-[2rem]"
               >
-                <div data-testid="in-diff"  className={`font-mono font-bold ${inDiffDisp.cls}`}>{inDiffDisp.text}</div>
-                <div data-testid="out-diff" className={`font-mono font-bold ${outDiffDisp.cls}`}>{outDiffDisp.text}</div>
+                <div data-testid="in-diff"  className={`font-mono text-xs font-bold ${inDiffDisp.cls}`}>{inDiffDisp.text}</div>
+                <div data-testid="out-diff" className={`font-mono text-xs font-bold ${outDiffDisp.cls}`}>{outDiffDisp.text}</div>
               </div>
             </div>
 
             <CompactCell
-              className="flex-[4] min-w-0"
+              className="flex-[3] min-w-0"
               ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
               fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch('stock')}
               dataTabindex={5}
@@ -455,28 +457,31 @@ export default function PatrolBoothInputPage() {
           </div>
 
           {/* Row 2: 景 + @ */}
-          <div className="grid grid-cols-2 gap-1 p-1 border-b border-border">
-            <div className="flex flex-col p-1">
-              <Tooltip id="tt-field-prize-name" content={TT.prize_name} label="景" />
-              <PrizeNameAutocomplete
-                value={prizeName}
-                onChange={v => {
-                  setTouched(t => ({ ...t, prizeName: true }))
-                  setPrize(v)
-                  setSelectedPrizeId(null)
-                }}
-                onSelect={({ prize_id, prize_name, original_cost }) => {
-                  setPrize(prize_name)
-                  setSelectedPrizeId(prize_id)
-                  setCost(original_cost != null ? String(original_cost) : '')
-                  setTouched(t => ({ ...t, prizeName: true, prizeCost: true }))
-                }}
-                placeholder="前回値から補完（変更時のみ差分送信）"
-                fieldId="field-prize-name"
-                testId="field-prize-name"
-              />
+          <div className="flex gap-1 p-1 border-b border-border">
+            <div className="flex-[4] min-w-0 flex flex-row items-center gap-1 p-1">
+              <div className="shrink-0"><Tooltip id="tt-field-prize-name" content={TT.prize_name} label="景" /></div>
+              <div className="flex-1 min-w-0">
+                <PrizeNameAutocomplete
+                  value={prizeName}
+                  onChange={v => {
+                    setTouched(t => ({ ...t, prizeName: true }))
+                    setPrize(v)
+                    setSelectedPrizeId(null)
+                  }}
+                  onSelect={({ prize_id, prize_name, original_cost }) => {
+                    setPrize(prize_name)
+                    setSelectedPrizeId(prize_id)
+                    setCost(original_cost != null ? String(original_cost) : '')
+                    setTouched(t => ({ ...t, prizeName: true, prizeCost: true }))
+                  }}
+                  placeholder="前回値から補完（変更時のみ差分送信）"
+                  fieldId="field-prize-name"
+                  testId="field-prize-name"
+                />
+              </div>
             </div>
             <CompactCell
+              className="flex-[1] min-w-0"
               ttId="tt-field-prize-cost" ttContent={TT.prize_cost} label="@"
               fieldId="field-prize-cost" value={prizeCost} onChange={setCost} onTouched={touch('prizeCost')}
               allowDecimal={false} dataTabindex={8}
