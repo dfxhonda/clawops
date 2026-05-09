@@ -24,7 +24,6 @@ Violation = STOP_AND_ESCALATE.
 - playwright J-* all green
 - test.skip count 0
 - main push success
-- ntfy notification sent
 
 ## escalation triggers
 - DB column addition needed

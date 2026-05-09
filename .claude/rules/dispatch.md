@@ -19,5 +19,5 @@
 - 【参照CLAUDE.md】 ./CLAUDE.md
 - 【スコープ】 触る範囲完全列挙
 - 【変更禁止】 ど安定ver5点 / 特定ファイル
-- 【完了基準】 build / lint / push / ntfy
+- 【完了基準】 build / lint / push
 - 【迷ったら】 仕様書再読 → TODOログ残して止まる、独自実装禁止
