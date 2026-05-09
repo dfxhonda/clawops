@@ -1,77 +1,35 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
-// 同時に1つだけ開く — 新しく開く前に他の numpad を即時 close
-let _globalClose = null
-
-export default function NumpadField({
-  value,
-  onChange,
-  label,
-  max = 99999,
-  allowDecimal = false,
-  alwaysOpen = false,
-  onClose,
-  onNext,
-  id,
-  style,
-  dataTabindex,
-  inputClassName,
-  testId,
-  inputPlaceholder,
-}) {
-  const [mounted, setMounted] = useState(false)
-  const [visible, setVisible] = useState(false)
-  const freshRef = useRef(false)
-  const inputRef = useRef(null)
-  const closeRef = useRef(null)
-  const blockCloseRef = useRef(false)
-  const handleOpenRef = useRef(null)
-
-  function handleClose() {
-    if (_globalClose === closeRef.current) _globalClose = null
-    setVisible(false)
-    setTimeout(() => setMounted(false), 210)
-    freshRef.current = false
-    if (onClose) onClose()
-  }
-  closeRef.current = handleClose
-
-  function handleOpen() {
-    if (mounted) return
-    if (_globalClose && _globalClose !== closeRef.current) _globalClose()
-    _globalClose = closeRef.current
-    setMounted(true)
-    setTimeout(() => setVisible(true), 10)
-    freshRef.current = true
-    blockCloseRef.current = true
-    setTimeout(() => { blockCloseRef.current = false }, 350)
-  }
-  handleOpenRef.current = handleOpen
-
-  // expose openNumpad on the DOM input so keyboard-Enter navigation can invoke it directly
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current._numpadOpen = () => handleOpenRef.current()
-    }
-  }, [])
+export function NumpadFooterPanel({ currentField }) {
+  const isActive = !!currentField
 
   function handleKey(k) {
+    if (!currentField) return
+
+    const { onChange, allowDecimal, max, freshRef, valueRef, dataTabindex } = currentField
+
     if (k === '⌫') {
       freshRef.current = false
-      onChange(String(value || '').slice(0, -1))
+      onChange(String(valueRef.current ?? '').slice(0, -1))
       return
     }
+
     if (k === '→') {
-      handleClose()
-      if (onNext) onNext()
+      const all = Array.from(document.querySelectorAll('[data-tabindex]'))
+        .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
+      const idx = all.findIndex(el => Number(el.dataset.tabindex) === dataTabindex)
+      const nextEl = all[idx + 1]
+      if (nextEl?._numpadActivate) nextEl._numpadActivate()
+      else if (nextEl) nextEl.focus()
       return
     }
+
     if (k === '.' && !allowDecimal) return
 
-    const base = freshRef.current ? '' : String(value || '')
+    const base = freshRef.current ? '' : String(valueRef.current ?? '')
     freshRef.current = false
 
     const next = base + k
@@ -80,13 +38,148 @@ export default function NumpadField({
     onChange(next)
   }
 
+  const displayVal = currentField ? String(currentField.valueRef.current ?? '') : ''
+
+  return createPortal(
+    <div
+      data-testid="numpad-footer"
+      style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        height: 'calc(280px + env(safe-area-inset-bottom))',
+        background: '#13132a',
+        borderRadius: '12px 12px 0 0',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.7)',
+        zIndex: 10,
+        opacity: isActive ? 1 : 0.5,
+        transition: 'opacity 150ms ease',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <div style={{
+        height: 36, padding: '0 16px', borderBottom: '1px solid #2a2a44',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 13, color: '#8888a8' }}>{currentField?.label ?? '—'}</span>
+        <span style={{
+          fontSize: 22, fontFamily: "'Courier New', monospace",
+          fontWeight: 'bold', color: '#e8e8f0',
+        }}>
+          {displayVal || '—'}
+        </span>
+      </div>
+      <div
+        data-testid="numpad-sheet"
+        style={{
+          flex: 1,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateRows: 'repeat(4, 1fr)',
+          gap: 2,
+          padding: 6,
+        }}
+      >
+        {KEYS.map(k => (
+          <button
+            key={k}
+            data-numpad-key={k}
+            disabled={!isActive}
+            onPointerDown={e => { e.preventDefault(); handleKey(k) }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
+              border: 'none',
+              cursor: isActive ? 'pointer' : 'default',
+              touchAction: 'none',
+              background: !isActive ? '#1e293b' :
+                k === '→' ? '#059669' : k === '⌫' ? '#4b5563' : '#1e293b',
+              color: isActive ? '#f1f5f9' : '#374151',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {k}
+          </button>
+        ))}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+export default function NumpadField({
+  value,
+  onChange,
+  label,
+  max = 99999,
+  allowDecimal = false,
+  alwaysOpen = false,
+  onNext,
+  id,
+  style,
+  dataTabindex,
+  inputClassName,
+  testId,
+  inputPlaceholder,
+  onRegister,
+}) {
+  const inputRef = useRef(null)
+  const freshRef = useRef(false)
+  const valueRef = useRef(value)
+  valueRef.current = value
+
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
+  const activateRef = useRef(null)
+
+  function activate() {
+    inputRef.current?.focus()
+    freshRef.current = true
+    onRegister?.({
+      valueRef,
+      onChange: (v) => onChangeRef.current(v),
+      onNext,
+      dataTabindex: Number(dataTabindex),
+      allowDecimal,
+      max,
+      label,
+      freshRef,
+    })
+  }
+  activateRef.current = activate
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current._numpadActivate = () => activateRef.current()
+    }
+  }, [])
+
+  // alwaysOpen branch kept for OcrCaptureScreen + StockCount usage
   if (alwaysOpen) {
+    function handleKeyInline(k) {
+      if (k === '⌫') {
+        onChange(String(value || '').slice(0, -1))
+        return
+      }
+      if (k === '→') {
+        if (onNext) onNext()
+        return
+      }
+      if (k === '.' && !allowDecimal) return
+      const next = String(value || '') + k
+      if (!allowDecimal && isNaN(Number(next))) return
+      if (Number(next) > max) return
+      onChange(next)
+    }
     return (
       <div className="w-full h-full grid grid-rows-4 gap-1 bg-slate-800 p-2 select-none" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {KEYS.map(k => (
           <button
             key={k}
-            onPointerDown={e => { e.preventDefault(); handleKey(k) }}
+            onPointerDown={e => { e.preventDefault(); handleKeyInline(k) }}
             className={`
               h-full flex items-center justify-center rounded-lg text-xl font-bold
               active:scale-95 transition-transform select-none
@@ -106,119 +199,48 @@ export default function NumpadField({
   const displayVal = value !== '' && value != null ? String(value) : ''
 
   return (
-    <>
-      <input
-        ref={inputRef}
-        id={id}
-        type="text"
-        readOnly
-        inputMode="none"
-        data-tabindex={dataTabindex}
-        data-testid={testId}
-        value={displayVal}
-        placeholder={inputPlaceholder ?? '—'}
-        onPointerDown={e => {
+    <input
+      ref={inputRef}
+      id={id}
+      type="text"
+      readOnly
+      inputMode="none"
+      data-tabindex={dataTabindex}
+      data-testid={testId}
+      value={displayVal}
+      placeholder={inputPlaceholder ?? '—'}
+      onPointerDown={e => {
+        e.preventDefault()
+        activate()
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
           e.preventDefault()
-          inputRef.current?.focus()
-          handleOpen()
-        }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            handleClose()
-            if (onNext) onNext()
-            // explicitly open the next NumpadField via its _numpadOpen handle
-            const all = Array.from(document.querySelectorAll('[data-tabindex]'))
-              .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
-            const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
-            const nextEl = all[idx + 1]
-            if (nextEl && typeof nextEl._numpadOpen === 'function') {
-              nextEl._numpadOpen()
-            }
-          }
-        }}
-        className={inputClassName ?? ''}
-        style={{
-          cursor: 'pointer',
-          border: '1px solid #2a2a44',
-          background: '#0a0a14',
-          borderRadius: 4,
-          padding: '0.4em 0.35em',
-          fontFamily: "'Courier New', Courier, monospace",
-          fontWeight: 'bold',
-          textAlign: 'right',
-          outline: 'none',
-          boxSizing: 'border-box',
-          WebkitAppearance: 'none',
-          fontSize: 16,
-          ...style,
-        }}
-      />
-
-      {mounted && createPortal(
-        <div data-testid="numpad-portal" style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              background: visible ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
-              transition: 'background 200ms ease-out',
-            }}
-            onPointerDown={() => { if (!blockCloseRef.current) handleClose() }}
-          />
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            maxHeight: '45vh',
-            background: '#13132a', borderRadius: '12px 12px 0 0',
-            display: 'flex', flexDirection: 'column',
-            boxShadow: '0 -4px 24px rgba(0,0,0,0.7)',
-            transform: visible ? 'translateY(0)' : 'translateY(100%)',
-            transition: 'transform 200ms ease-out',
-          }}>
-            <div style={{
-              height: 36, padding: '0 16px', borderBottom: '1px solid #2a2a44',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              flexShrink: 0,
-            }}>
-              <span style={{ fontSize: 13, color: '#8888a8' }}>{label || ''}</span>
-              <span style={{
-                fontSize: 22, fontFamily: "'Courier New', monospace",
-                fontWeight: 'bold', color: '#e8e8f0',
-              }}>
-                {displayVal || '—'}
-              </span>
-            </div>
-            <div
-              data-testid="numpad-sheet"
-              style={{
-                flex: 1,
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gridTemplateRows: 'repeat(4, 1fr)',
-                gap: 2,
-                padding: 6,
-              }}>
-              {KEYS.map(k => (
-                <button
-                  key={k}
-                  data-numpad-key={k}
-                  onPointerDown={e => { e.preventDefault(); handleKey(k) }}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
-                    border: 'none', cursor: 'pointer', touchAction: 'none',
-                    background: k === '→' ? '#059669' : k === '⌫' ? '#4b5563' : '#1e293b',
-                    color: '#f1f5f9',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  {k}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-    </>
+          if (onNext) onNext()
+          const all = Array.from(document.querySelectorAll('[data-tabindex]'))
+            .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
+          const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
+          const nextEl = all[idx + 1]
+          if (nextEl?._numpadActivate) nextEl._numpadActivate()
+          else if (nextEl) nextEl.focus()
+        }
+      }}
+      className={inputClassName ?? ''}
+      style={{
+        cursor: 'pointer',
+        border: '1px solid #2a2a44',
+        background: '#0a0a14',
+        borderRadius: 4,
+        padding: '0.4em 0.35em',
+        fontFamily: "'Courier New', Courier, monospace",
+        fontWeight: 'bold',
+        textAlign: 'right',
+        outline: 'none',
+        boxSizing: 'border-box',
+        WebkitAppearance: 'none',
+        fontSize: 16,
+        ...style,
+      }}
+    />
   )
 }

@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { PageHeader } from '../../shared/ui/PageHeader'
-import NumpadField from '../components/NumpadField'
+import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
 import Tooltip from '../components/Tooltip'
 import PrizeNameAutocomplete from '../components/PrizeNameAutocomplete'
 import BoothHistoryList from '../components/BoothHistoryList'
@@ -107,7 +107,7 @@ function CompactCell({
   ttId, ttContent, label,
   fieldId, value, onChange, onTouched,
   allowDecimal = false, dataTabindex,
-  inputClassName, onNext, testId, inputPlaceholder,
+  inputClassName, onNext, testId, inputPlaceholder, onRegister,
 }) {
   return (
     <div className="flex flex-col p-1">
@@ -124,6 +124,7 @@ function CompactCell({
         testId={testId ?? fieldId}
         inputPlaceholder={inputPlaceholder}
         style={{ fontSize: 16, width: '100%' }}
+        onRegister={onRegister}
       />
     </div>
   )
@@ -184,7 +185,7 @@ export default function PatrolBoothInputPage() {
   const navigate     = useNavigate()
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
-  const { navigateNext } = useFieldNavigation()
+  const { navigateNext, currentField, registerField } = useFieldNavigation()
 
   const { machine, booth, storeCode } = state ?? {}
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
@@ -374,7 +375,7 @@ export default function PatrolBoothInputPage() {
       <PrevReadingRow prev={prev} />
       <TheoryRow prev={prev} />
 
-      <div data-testid="booth-input-upper" className="flex-1 overflow-y-auto pb-[33vh]">
+      <div data-testid="booth-input-upper" className="flex-1 overflow-y-auto pb-[300px]">
         <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
 
           {/* Row 1: IN + OUT(s) + 残 + 補 */}
@@ -385,6 +386,7 @@ export default function PatrolBoothInputPage() {
               allowDecimal dataTabindex={1}
               inputClassName={!touched.inMeter ? 'text-gray-400' : ''}
               onNext={() => navigateNext(1)}
+              onRegister={registerField}
             />
             {outMeterCount === 1 ? (
               <CompactCell
@@ -393,6 +395,7 @@ export default function PatrolBoothInputPage() {
                 allowDecimal dataTabindex={2}
                 inputClassName={!touched.outMeter1 ? 'text-gray-400' : ''}
                 onNext={() => navigateNext(2)}
+                onRegister={registerField}
               />
             ) : (
               outFields.map((f, i) => (
@@ -403,6 +406,7 @@ export default function PatrolBoothInputPage() {
                   allowDecimal dataTabindex={f.tab}
                   inputClassName={!touched[f.key] ? 'text-gray-400' : ''}
                   onNext={() => navigateNext(f.tab)}
+                  onRegister={registerField}
                 />
               ))
             )}
@@ -424,6 +428,7 @@ export default function PatrolBoothInputPage() {
               dataTabindex={5}
               inputClassName={!touched.stock ? 'text-gray-400' : ''}
               onNext={() => navigateNext(5)}
+              onRegister={registerField}
             />
             <CompactCell
               ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
@@ -431,6 +436,7 @@ export default function PatrolBoothInputPage() {
               dataTabindex={6}
               inputClassName={!touched.restock ? 'text-gray-400' : ''}
               onNext={() => navigateNext(6)}
+              onRegister={registerField}
             />
           </div>
 
@@ -464,6 +470,7 @@ export default function PatrolBoothInputPage() {
               inputPlaceholder=""
               inputClassName={!touched.prizeCost ? 'text-gray-400' : ''}
               onNext={() => navigateNext(8)}
+              onRegister={registerField}
             />
           </div>
 
@@ -475,6 +482,7 @@ export default function PatrolBoothInputPage() {
               dataTabindex={9} testId="field-set-a" inputPlaceholder=""
               inputClassName={!touched.setA ? 'text-gray-400' : ''}
               onNext={() => navigateNext(9)}
+              onRegister={registerField}
             />
             <CompactCell
               ttId="tt-field-set-c" ttContent={TT.set_c} label="C"
@@ -482,6 +490,7 @@ export default function PatrolBoothInputPage() {
               dataTabindex={10} testId="field-set-c" inputPlaceholder=""
               inputClassName={!touched.setC ? 'text-gray-400' : ''}
               onNext={() => navigateNext(10)}
+              onRegister={registerField}
             />
             <CompactCell
               ttId="tt-field-set-l" ttContent={TT.set_l} label="L"
@@ -489,6 +498,7 @@ export default function PatrolBoothInputPage() {
               dataTabindex={11} testId="field-set-l" inputPlaceholder=""
               inputClassName={!touched.setL ? 'text-gray-400' : ''}
               onNext={() => navigateNext(11)}
+              onRegister={registerField}
             />
             <CompactCell
               ttId="tt-field-set-r" ttContent={TT.set_r} label="R"
@@ -496,6 +506,7 @@ export default function PatrolBoothInputPage() {
               dataTabindex={12} testId="field-set-r" inputPlaceholder=""
               inputClassName={!touched.setR ? 'text-gray-400' : ''}
               onNext={() => navigateNext(12)}
+              onRegister={registerField}
             />
             <CompactTextCell
               ttId="tt-field-set-o" ttContent={TT.set_o} label="O"
@@ -560,6 +571,8 @@ export default function PatrolBoothInputPage() {
           booth={booth}
         />
       </div>
+
+      <NumpadFooterPanel currentField={currentField} />
     </div>
   )
 }

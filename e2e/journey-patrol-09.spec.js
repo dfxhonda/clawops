@@ -125,23 +125,6 @@ test('J-PATROL-09b: keyboard Enter → next NumpadField opens and value binding 
   await expect(page.locator('[data-tabindex="2"]')).toHaveValue('5')
 })
 
-// J-PATROL-09c: 本物の外側タップ (grace period 後) → numpad が閉じる
-test('J-PATROL-09c: genuine outside tap after grace period → numpad closes', async ({ page }) => {
-  await gotoPatrolBooth(page)
-
-  await page.locator('[data-tabindex="1"]').click()
-  await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
-
-  // grace period (350ms) が明けるのを待つ
-  await page.waitForTimeout(450)
-
-  // backdrop (numpad-portal の第1子 div) を直接クリック
-  const backdrop = page.locator('[data-testid="numpad-portal"] > div').first()
-  await backdrop.click({ position: { x: 100, y: 20 } })
-
-  await expect(page.locator('[data-testid="numpad-portal"]')).toBeHidden({ timeout: 1500 })
-})
-
 // J-PATROL-09d: J-PATROL-06b リグレッション — Enter: in_meter → out_meter フォーカス
 test('J-PATROL-09d: regression J-PATROL-06b — Enter: in_meter → out_meter focused', async ({ page }) => {
   await gotoPatrolBooth(page)

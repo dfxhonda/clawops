@@ -157,30 +157,14 @@ test('J-PATROL-10d: out_meter_1 Enter → out_meter_2 numpad opens (outMeterCoun
   await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
 })
 
-// J-PATROL-10e: grace period 後の外側タップ → numpad が閉じる
-test('J-PATROL-10e: genuine outside tap after grace period → numpad closes', async ({ page }) => {
+// J-PATROL-10f: programmatic focus() は numpad field を activate しない (keys disabled のまま)
+test('J-PATROL-10f: programmatic focus() does NOT activate numpad field', async ({ page }) => {
   await gotoPatrolBooth(page)
 
-  await page.locator('[data-tabindex="1"]').click()
-  await expect(page.locator('[data-testid="numpad-sheet"]').last()).toBeVisible()
-
-  // grace period (350ms) が明けるのを待つ
-  await page.waitForTimeout(450)
-
-  // backdrop をクリック
-  const backdrop = page.locator('[data-testid="numpad-portal"] > div').first()
-  await backdrop.click({ position: { x: 100, y: 20 } })
-
-  await expect(page.locator('[data-testid="numpad-portal"]')).toBeHidden({ timeout: 1500 })
-})
-
-// J-PATROL-10f: programmatic focus() は numpad を開かない (onFocus handler 削除の確認)
-test('J-PATROL-10f: programmatic focus() does NOT open numpad', async ({ page }) => {
-  await gotoPatrolBooth(page)
-
-  // プログラマチックに focus → numpad は開かないはず
+  // プログラマチックに focus → numpad footer は表示されるが keys は disabled のまま
   await page.locator('[data-tabindex="1"]').focus()
   await page.waitForTimeout(200)
 
-  await expect(page.locator('[data-testid="numpad-portal"]')).toHaveCount(0)
+  const numpadKey5 = page.locator('[data-testid="numpad-sheet"] [data-numpad-key="5"]')
+  await expect(numpadKey5).toBeDisabled()
 })
