@@ -111,23 +111,25 @@ async function setupMocks(page, opts = {}) {
 }
 
 test.describe('J-PATROL-01: 機械リスト → ブース入力 → UPSERT', () => {
-  test('機械リストが表示され、ブースが patrol_order 順にある', async ({ page }) => {
+  test('機械リストが表示され、機械行が存在する', async ({ page }) => {
     await setupAuth(page)
     await setupMocks(page)
     await page.goto('/clawsupport/store/TST01')
 
     await expect(page.getByText('テスト機1')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByTestId('booth-row-TST-B01')).toBeVisible()
-    await expect(page.getByTestId('booth-row-TST-B02')).toBeVisible()
+    // Multi-booth machine: machine row and chevron visible
+    await expect(page.getByTestId('machine-row-TST01-M001')).toBeVisible()
+    await expect(page.getByTestId('chevron-TST01-M001')).toBeVisible()
   })
 
-  test('完了済みブースに ✓ が表示される', async ({ page }) => {
+  test('完了済みブースに 入力済み が表示される', async ({ page }) => {
     await setupAuth(page)
     await setupMocks(page, { todayDone: ['TST-B01'] })
     await page.goto('/clawsupport/store/TST01')
 
     await expect(page.getByText('テスト機1')).toBeVisible({ timeout: 5000 })
-    // booth-row-TST-B01 の内側に「入力済み」テキスト
+    // Expand multi-booth machine to see individual booths
+    await page.getByTestId('machine-row-btn-TST01-M001').click()
     const b01 = page.getByTestId('booth-row-TST-B01')
     await expect(b01.getByText('入力済み')).toBeVisible({ timeout: 3000 })
   })
@@ -137,7 +139,10 @@ test.describe('J-PATROL-01: 機械リスト → ブース入力 → UPSERT', () 
     await setupMocks(page)
     await page.goto('/clawsupport/store/TST01')
 
-    await expect(page.getByTestId('booth-row-TST-B01')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('machine-row-TST01-M001')).toBeVisible({ timeout: 5000 })
+    // Expand multi-booth machine then click booth row
+    await page.getByTestId('machine-row-btn-TST01-M001').click()
+    await expect(page.getByTestId('booth-row-TST-B01')).toBeVisible({ timeout: 3000 })
     await page.getByTestId('booth-row-TST-B01').click()
     await page.waitForURL('**/clawsupport/booth/TST-B01', { timeout: 5000 })
   })

@@ -184,7 +184,7 @@ async function gotoStorePage(page, { historyRows } = {}) {
   )
   await page.goto(`/clawsupport/store/${STORE_CODE}`)
   await done
-  await page.waitForSelector('[data-testid="store-summary-bar"]', { timeout: 5_000 })
+  await page.waitForSelector('[data-testid="store-inline-total"]', { timeout: 5_000 })
 }
 
 // J-PATROL-11a: BoothHistoryList appears directly below save button, shows up to 10 rows
@@ -209,9 +209,9 @@ test('J-PATROL-11a: 履歴リストが保存ボタン直下に表示', async ({ 
   expect(count).toBeLessThanOrEqual(10)
 })
 
-// J-PATROL-11b: 各行 IN差/OUT差/売上/粗利 計算正 (in_diff=+1000, revenue=¥100,000)
-test('J-PATROL-11b: 履歴行 IN差/OUT差/売上/粗利 計算', async ({ page }) => {
-  // history: newest row has in=71000, prev=70000 → in_diff=+1000 → revenue=¥100,000
+// J-PATROL-11b: 各行 IN差/OUT差 計算正 (in_diff=+1000), 売上/粗利は表示しない
+test('J-PATROL-11b: 履歴行 IN差/OUT差 計算 (売上/粗利なし)', async ({ page }) => {
+  // history: newest row has in=71000, prev=70000 → in_diff=+1000
   await gotoBoothInput(page)
 
   const firstRow = page.locator('[data-testid="history-row"]').first()
@@ -219,36 +219,42 @@ test('J-PATROL-11b: 履歴行 IN差/OUT差/売上/粗利 計算', async ({ page 
 
   // Should show +1000 IN diff in the row
   await expect(firstRow).toContainText('+1,000')
-  // Revenue ¥100,000 (1000 * 100)
-  await expect(firstRow).toContainText('¥100,000')
+  // 売上/粗利は表示しない
+  await expect(firstRow).not.toContainText('¥')
 })
 
-// J-PATROL-11c: 機械リスト行 diff chip 4個
-test('J-PATROL-11c: 機械リスト各ブース行に diff chip 4個', async ({ page }) => {
+// J-PATROL-11c: 機械リスト展開後ブース行 diff chip 2個 (IN/OUT のみ)
+test('J-PATROL-11c: 機械リスト各ブース行に diff chip 2個 (売上/粗利なし)', async ({ page }) => {
   await gotoStorePage(page)
 
-  // Booth rows should have diff chips
-  const boothRow = page.locator(`[data-testid="booth-row-${BOOTH_CODE_1}"]`)
-  await expect(boothRow).toBeVisible()
+  // Multi-booth machine is collapsed by default — expand it
+  const machineBtn = page.locator('[data-testid="machine-row-btn-TST11-M001"]')
+  await expect(machineBtn).toBeVisible()
+  await machineBtn.click()
 
-  // 4 diff chips: IN差/OUT差/売上/粗利
+  // Booth row is now visible
+  const boothRow = page.locator(`[data-testid="booth-row-${BOOTH_CODE_1}"]`)
+  await expect(boothRow).toBeVisible({ timeout: 3_000 })
+
+  // 2 diff chips: IN/OUT only (no 売上/粗利)
   await expect(boothRow.locator('[data-testid="diff-chip-IN"]')).toBeVisible()
   await expect(boothRow.locator('[data-testid="diff-chip-OUT"]')).toBeVisible()
-  await expect(boothRow.locator('[data-testid="diff-chip-売上"]')).toBeVisible()
-  await expect(boothRow.locator('[data-testid="diff-chip-粗利"]')).toBeVisible()
+  await expect(boothRow.locator('[data-testid="diff-chip-売上"]')).toHaveCount(0)
+  await expect(boothRow.locator('[data-testid="diff-chip-粗利"]')).toHaveCount(0)
 })
 
-// J-PATROL-11d: 店舗ハブ sticky bar 4 metrics
-test('J-PATROL-11d: 店舗ページ sticky summary bar に 4 metrics', async ({ page }) => {
+// J-PATROL-11d: 店舗名横 inline 当日総合計 IN差/OUT差 chip 2個 (sticky bar 廃止)
+test('J-PATROL-11d: 店舗名横 store-inline-total に IN差/OUT差 chip 2個', async ({ page }) => {
   await gotoStorePage(page)
 
-  const bar = page.locator('[data-testid="store-summary-bar"]')
-  await expect(bar).toBeVisible()
+  // Sticky bar is removed
+  await expect(page.locator('[data-testid="store-summary-bar"]')).toHaveCount(0)
 
-  await expect(page.locator('[data-testid="summary-chip-revenue"]')).toBeVisible()
-  await expect(page.locator('[data-testid="summary-chip-profit"]')).toBeVisible()
-  await expect(page.locator('[data-testid="summary-chip-payout"]')).toBeVisible()
-  await expect(page.locator('[data-testid="summary-chip-underperform"]')).toBeVisible()
+  // Inline total shows IN/OUT chips
+  const inlineTotal = page.locator('[data-testid="store-inline-total"]')
+  await expect(inlineTotal).toBeVisible()
+  await expect(inlineTotal.locator('[data-testid="diff-chip-IN"]')).toBeVisible()
+  await expect(inlineTotal.locator('[data-testid="diff-chip-OUT"]')).toBeVisible()
 })
 
 // J-PATROL-11e: 履歴行 tap → 展開、long-press → 修正モード(navigate)
