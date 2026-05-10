@@ -39,6 +39,7 @@ export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit =
     .from('meter_readings')
     .select(HISTORY_SELECT)
     .eq('booth_code', boothCode)
+    .order('patrol_date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit + 1)
   if (error) return []

@@ -1,6 +1,46 @@
 import { supabase } from '../lib/supabase'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
+const ADMIN_HISTORY_SELECT =
+  'reading_id, booth_code, patrol_date, read_time, created_at, entry_type, ' +
+  'in_meter, out_meter, out_meter_2, out_meter_3, ' +
+  'prize_name, prize_cost, prize_stock_count, prize_restock_count, ' +
+  'set_a, set_c, set_l, set_r, set_o'
+
+function _sumOut(row) {
+  return (
+    Number(row.out_meter ?? 0) +
+    Number(row.out_meter_2 ?? 0) +
+    Number(row.out_meter_3 ?? 0)
+  )
+}
+
+function _computeDiffs(ascRows) {
+  return ascRows.map((row, i) => {
+    const prev = i > 0 ? ascRows[i - 1] : null
+    const inDiff =
+      prev != null && row.in_meter != null && prev.in_meter != null
+        ? Number(row.in_meter) - Number(prev.in_meter)
+        : null
+    const outDiff = prev != null ? _sumOut(row) - _sumOut(prev) : null
+    return { ...row, in_diff: inDiff, out_diff: outDiff }
+  })
+}
+
+export async function fetchAdminBoothHistory(boothCode, limit = 30) {
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select(ADMIN_HISTORY_SELECT)
+    .eq('booth_code', boothCode)
+    .order('patrol_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit + 1)
+  if (error) return []
+  const asc = [...(data ?? [])].reverse()
+  const withDiffs = _computeDiffs(asc)
+  return withDiffs.slice(-limit).reverse()
+}
+
 const FULL_SELECT =
   'reading_id, booth_code, patrol_date, read_time, created_at, updated_at, entry_type, ' +
   'in_meter, out_meter, out_meter_2, out_meter_3, ' +

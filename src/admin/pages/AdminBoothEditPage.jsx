@@ -4,7 +4,6 @@ import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
 import BoothInputForm, { ALL_TOUCHED } from '../../clawsupport/components/BoothInputForm'
-import BoothHistoryList from '../../clawsupport/components/BoothHistoryList'
 import { useFieldNavigation } from '../../clawsupport/hooks/useFieldNavigation'
 import { isAdmin } from '../../services/permissions'
 import {
@@ -12,6 +11,7 @@ import {
   updateMeterReading,
   deleteMeterReading,
   insertAuditLog,
+  fetchAdminBoothHistory,
 } from '../../services/adminMeterEdit'
 
 function UnauthorizedView() {
@@ -33,6 +33,30 @@ const ENTRY_TYPE_LABEL = {
   patrol:     '通常巡回',
   replace:    '入替/設定変更',
   collection: '集金',
+}
+
+const ENTRY_BADGE = {
+  patrol:        { label: '巡回', cls: 'bg-blue-600 text-white' },
+  replace:       { label: '入替', cls: 'bg-purple-600 text-white' },
+  collection:    { label: '集金', cls: 'bg-green-600 text-white' },
+  carry_forward: { label: '繰越', cls: 'bg-gray-500 text-white' },
+}
+
+function fmtCreatedAt(str) {
+  if (!str) return ''
+  const d = new Date(str)
+  return d.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: '2-digit',
+    day:   '2-digit',
+    hour:  '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function fmtDiff(val) {
+  if (val == null) return '—'
+  return val >= 0 ? `+${val}` : String(val)
 }
 
 export default function AdminBoothEditPage() {
@@ -71,8 +95,19 @@ export default function AdminBoothEditPage() {
   const [result,   setResult]  = useState(null)
   const [historyKey, setHistoryKey] = useState(0)
 
-  // track unsaved changes
   const [hasUnsaved, setHasUnsaved] = useState(false)
+
+  const [historyRows,    setHistoryRows]    = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+
+  useEffect(() => {
+    if (!boothCode) return
+    setHistoryLoading(true)
+    fetchAdminBoothHistory(boothCode, 30).then(rows => {
+      setHistoryRows(rows)
+      setHistoryLoading(false)
+    })
+  }, [boothCode, historyKey])
 
   async function handleRowSelect(row) {
     if (hasUnsaved) {
@@ -207,59 +242,89 @@ export default function AdminBoothEditPage() {
         onBack={() => navigate(-1)}
       />
 
-      <div className="flex-1 overflow-y-auto pb-[300px]">
-        {selectedReading ? (
-          <>
-            {/* 識別子 read-only 表示 */}
-            <div data-testid="admin-edit-readonly" className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted space-y-0.5">
-              <div className="flex gap-3 flex-wrap">
-                <span>ID: <span className="font-mono text-text/70">{selectedReading.reading_id}</span></span>
-                <span>日: <span className="font-bold text-text/80">{selectedReading.patrol_date}</span></span>
-                <span>種別: <span className={`font-bold ${selectedReading.entry_type === 'replace' ? 'text-amber-400' : selectedReading.entry_type === 'collection' ? 'text-blue-400' : 'text-emerald-400'}`}>
-                  {ENTRY_TYPE_LABEL[selectedReading.entry_type] ?? selectedReading.entry_type}
-                </span></span>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Form section — sticky header with its own scroll */}
+        <div className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border">
+          {selectedReading ? (
+            <>
+              <div data-testid="admin-edit-readonly" className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted space-y-0.5">
+                <div className="flex gap-3 flex-wrap">
+                  <span>ID: <span className="font-mono text-text/70">{selectedReading.reading_id}</span></span>
+                  <span>日: <span className="font-bold text-text/80">{selectedReading.patrol_date}</span></span>
+                  <span>種別: <span className={`font-bold ${selectedReading.entry_type === 'replace' ? 'text-amber-400' : selectedReading.entry_type === 'collection' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                    {ENTRY_TYPE_LABEL[selectedReading.entry_type] ?? selectedReading.entry_type}
+                  </span></span>
+                </div>
               </div>
+
+              <BoothInputForm
+                mode="edit"
+                outMeterCount={outMeterCount}
+                inMeter={inMeter} setIn={setIn}
+                outMeter1={outMeter1} setOut1={setOut1}
+                outMeter2={outMeter2} setOut2={setOut2}
+                outMeter3={outMeter3} setOut3={setOut3}
+                stock={stock} setStk={setStk}
+                restock={restock} setRst={setRst}
+                prizeName={prizeName} setPrize={setPrize}
+                prizeCost={prizeCost} setCost={setCost}
+                setA={setA} setSetA={setSetA}
+                setC={setC} setSetC={setSetC}
+                setL={setL} setSetL={setSetL}
+                setR={setR} setSetR={setSetR}
+                setO={setO} setSetO={setSetO}
+                selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
+                touched={touched} touch={touch}
+                navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
+                canSave={canSave} saving={saving} result={result} onSave={handleSave}
+                onDelete={handleDelete} deleting={deleting}
+              />
+            </>
+          ) : (
+            <div className="mx-4 mt-4 px-4 py-8 text-center text-muted text-base rounded-xl bg-surface/30 border border-border">
+              履歴から編集対象を選択してください
             </div>
+          )}
+        </div>
 
-            <BoothInputForm
-              mode="edit"
-              outMeterCount={outMeterCount}
-              inMeter={inMeter} setIn={setIn}
-              outMeter1={outMeter1} setOut1={setOut1}
-              outMeter2={outMeter2} setOut2={setOut2}
-              outMeter3={outMeter3} setOut3={setOut3}
-              stock={stock} setStk={setStk}
-              restock={restock} setRst={setRst}
-              prizeName={prizeName} setPrize={setPrize}
-              prizeCost={prizeCost} setCost={setCost}
-              setA={setA} setSetA={setSetA}
-              setC={setC} setSetC={setSetC}
-              setL={setL} setSetL={setSetL}
-              setR={setR} setSetR={setSetR}
-              setO={setO} setSetO={setSetO}
-              selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
-              touched={touched} touch={touch}
-              navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
-              canSave={canSave} saving={saving} result={result} onSave={handleSave}
-              onDelete={handleDelete} deleting={deleting}
-            />
-          </>
-        ) : (
-          <div className="mx-4 mt-4 px-4 py-8 text-center text-muted text-base rounded-xl bg-surface/30 border border-border">
-            履歴から編集対象を選択してください
-          </div>
-        )}
-
-        <BoothHistoryList
-          key={historyKey}
-          boothCode={boothCode}
-          storeCode={storeCode}
-          machine={machine}
-          booth={booth}
-          limit={30}
-          onRowSelect={handleRowSelect}
-          selectedReadingId={selectedReading?.reading_id}
-        />
+        {/* History section — independent scroll */}
+        <div
+          data-testid="booth-history-list"
+          className="flex-1 overflow-y-auto min-h-[200px] pb-[300px]"
+        >
+          {historyLoading ? (
+            <div className="px-4 py-6 text-center text-muted text-sm">読込中...</div>
+          ) : historyRows.length === 0 ? (
+            <div className="px-4 py-6 text-center text-muted text-sm">履歴なし</div>
+          ) : (
+            historyRows.map(row => {
+              const badge = ENTRY_BADGE[row.entry_type] ?? { label: row.entry_type, cls: 'bg-gray-500 text-white' }
+              const isSelected = selectedReading?.reading_id === row.reading_id
+              return (
+                <div
+                  key={row.reading_id}
+                  data-testid="history-row"
+                  onClick={() => handleRowSelect(row)}
+                  className={`flex items-center gap-2 px-4 py-2.5 border-b border-border cursor-pointer transition-colors ${
+                    isSelected ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-surface/50'
+                  }`}
+                >
+                  <span className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold text-base text-text">{row.patrol_date}</span>
+                    <span className="ml-2 text-xs text-gray-500">入力: {fmtCreatedAt(row.created_at)}</span>
+                  </div>
+                  <div className="shrink-0 text-xs text-muted text-right space-x-2">
+                    <span>IN {fmtDiff(row.in_diff)}</span>
+                    <span>OUT {fmtDiff(row.out_diff)}</span>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
 
       <NumpadFooterPanel currentField={currentField} />
