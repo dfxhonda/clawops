@@ -37,12 +37,10 @@ for judge in "${JUDGES[@]}"; do
 done
 
 if [ ${#FAILED_JUDGES[@]} -eq 0 ]; then
-  curl -s -d "evaluator PASSED commit=$COMMIT" https://ntfy.sh/clawops-hiro-0328 || true
   echo "EVALUATOR: ALL PASSED commit=$COMMIT"
   exit 0
 else
   FAILED_LIST=$(IFS=','; echo "${FAILED_JUDGES[*]}")
-  curl -s -d "evaluator FAILED commit=$COMMIT failed_judges=$FAILED_LIST" https://ntfy.sh/clawops-hiro-0328 || true
   echo "EVALUATOR: FAILED failed_judges=$FAILED_LIST commit=$COMMIT"
   exit 1
 fi
