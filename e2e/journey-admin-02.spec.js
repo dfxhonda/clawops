@@ -66,30 +66,34 @@ async function mockBase(page) {
 }
 
 // J-ADMIN-02a
-test('J-ADMIN-02a: /admin → /admin/masters redirect、MastersHub + sidebar 4 カテゴリ表示', async ({ page }) => {
+test('J-ADMIN-02a: /admin → /admin/masters redirect、MastersHub + 上タブ 4 個表示', async ({ page }) => {
   await setupAuth(page, { role: 'admin' })
   await mockBase(page)
   await page.goto('/admin')
   await page.waitForURL('**/admin/masters', { timeout: 5_000 })
   await expect(page.locator('[data-testid="admin-masters-hub"]')).toBeVisible()
-  await expect(page.locator('[data-testid="admin-nav-masters"]')).toBeVisible()
-  await expect(page.locator('[data-testid="admin-nav-audit"]')).toBeVisible()
-  await expect(page.locator('[data-testid="admin-nav-reports"]')).toBeVisible()
-  await expect(page.locator('[data-testid="admin-nav-settings"]')).toBeVisible()
+  await expect(page.locator('[data-testid="admin-top-tabs"]')).toBeVisible()
+  await expect(page.locator('[data-testid="admin-tab-masters"]')).toBeVisible()
+  await expect(page.locator('[data-testid="admin-tab-audit"]')).toBeVisible()
+  await expect(page.locator('[data-testid="admin-tab-reports"]')).toBeVisible()
+  await expect(page.locator('[data-testid="admin-tab-settings"]')).toBeVisible()
 })
 
 // J-ADMIN-02b
-test('J-ADMIN-02b: マスタカテゴリ展開 → サイドナビ 10 サブカテゴリ表示', async ({ page }) => {
+test('J-ADMIN-02b: 上タブ active 状態 — /admin/masters でマスタタブがアクティブ', async ({ page }) => {
   await setupAuth(page, { role: 'admin' })
   await mockBase(page)
   await page.goto('/admin/masters')
-  await expect(page.locator('[data-testid="admin-sidebar"]')).toBeVisible({ timeout: 5_000 })
-  // Masters is auto-expanded on /admin/masters → 10 li items visible
-  await expect(page.locator('[data-testid="admin-sidebar"] ul li')).toHaveCount(10)
+  await expect(page.locator('[data-testid="admin-top-tabs"]')).toBeVisible({ timeout: 5_000 })
+  const mastersTab = page.locator('[data-testid="admin-tab-masters"]')
+  await expect(mastersTab).toBeVisible()
+  await expect(mastersTab).toHaveClass(/border-blue-500/)
+  const auditTab = page.locator('[data-testid="admin-tab-audit"]')
+  await expect(auditTab).not.toHaveClass(/border-blue-500/)
 })
 
 // J-ADMIN-02c
-test('J-ADMIN-02c: マスタ > 店舗 → AdminStorePage navigate + パンくず正しい', async ({ page }) => {
+test('J-ADMIN-02c: マスタ hub tile「店舗」→ AdminStorePage navigate + パンくず正しい', async ({ page }) => {
   await setupAuth(page, { role: 'admin' })
   await mockBase(page)
   const storeLoaded = page.waitForResponse(
@@ -97,8 +101,8 @@ test('J-ADMIN-02c: マスタ > 店舗 → AdminStorePage navigate + パンくず
     { timeout: 8_000 },
   )
   await page.goto('/admin/masters')
-  await expect(page.locator('[data-testid="admin-nav-masters-stores"]')).toBeVisible({ timeout: 5_000 })
-  await page.locator('[data-testid="admin-nav-masters-stores"]').click()
+  await expect(page.locator('[data-testid="hub-tile-店舗"]')).toBeVisible({ timeout: 5_000 })
+  await page.locator('[data-testid="hub-tile-店舗"]').click()
   await storeLoaded
   await expect(page.locator('[data-testid="admin-store-list"]')).toBeVisible({ timeout: 5_000 })
   const bc = page.locator('[data-testid="admin-breadcrumb"]')
@@ -108,16 +112,17 @@ test('J-ADMIN-02c: マスタ > 店舗 → AdminStorePage navigate + パンくず
 })
 
 // J-ADMIN-02d
-test('J-ADMIN-02d: 監査・履歴 > 過去メーター編集 → 店舗ピッカー navigate', async ({ page }) => {
+test('J-ADMIN-02d: 監査・履歴タブ → AdminAuditHub、過去メーター編集 tile → 店舗ピッカー', async ({ page }) => {
   await setupAuth(page, { role: 'admin' })
   await mockBase(page)
   const storeLoaded = page.waitForResponse(
     r => r.url().includes('/rest/v1/stores') && r.request().method() === 'GET',
     { timeout: 8_000 },
   )
-  await page.goto('/admin/audit')
-  await expect(page.locator('[data-testid="admin-nav-audit-booth-edit"]')).toBeVisible({ timeout: 5_000 })
-  await page.locator('[data-testid="admin-nav-audit-booth-edit"]').click()
+  await page.goto('/admin/masters')
+  await page.locator('[data-testid="admin-tab-audit"]').click()
+  await expect(page.locator('[data-testid="admin-audit-hub"]')).toBeVisible({ timeout: 5_000 })
+  await page.locator('[data-testid="hub-tile-過去メーター編集"]').click()
   await storeLoaded
   await expect(page.locator('[data-testid="admin-store-list"]')).toBeVisible({ timeout: 5_000 })
 })
@@ -164,6 +169,7 @@ test('J-ADMIN-02h: src/admin/_legacy/ 旧実装ファイル移動済み', () => 
   const root = process.cwd()
   expect(existsSync(resolve(root, 'src/admin/_legacy/AdminTop.jsx'))).toBe(true)
   expect(existsSync(resolve(root, 'src/admin/_legacy/revenue/RevenueDashboard.jsx'))).toBe(true)
+  expect(existsSync(resolve(root, 'src/admin/_legacy/AdminSidebar.jsx'))).toBe(true)
+  expect(existsSync(resolve(root, 'src/admin/AdminSidebar.jsx'))).toBe(false)
   expect(existsSync(resolve(root, 'src/admin/AdminTop.jsx'))).toBe(false)
-  expect(existsSync(resolve(root, 'src/admin/revenue/RevenueDashboard.jsx'))).toBe(false)
 })

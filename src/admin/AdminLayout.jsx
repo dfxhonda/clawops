@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isAdmin } from '../services/permissions'
-import AdminSidebar from './AdminSidebar'
+import AdminTopTabs from './AdminTopTabs'
 import AdminBreadcrumb from './AdminBreadcrumb'
 
 function UnauthorizedView() {
@@ -25,13 +25,13 @@ export default function AdminLayout() {
   if (loading) return null
   if (!isAdmin(staffRole)) return <UnauthorizedView />
   return (
-    <div className="h-dvh flex bg-bg text-text" data-testid="admin-layout">
-      <AdminSidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminBreadcrumb />
-        <div className="flex-1 overflow-y-auto">
-          <Outlet />
-        </div>
+    <div className="h-dvh flex flex-col bg-bg text-text" data-testid="admin-layout">
+      <div className="shrink-0 sticky top-0 z-10 bg-bg border-b border-border">
+        <AdminTopTabs />
+      </div>
+      <AdminBreadcrumb />
+      <div className="flex-1 overflow-y-auto">
+        <Outlet />
       </div>
     </div>
   )

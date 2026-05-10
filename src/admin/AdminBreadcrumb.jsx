@@ -45,7 +45,7 @@ export default function AdminBreadcrumb() {
     if (label) segments.push({ path: built, label })
   }
 
-  if (segments.length <= 1) return null
+  if (segments.length <= 2) return null
 
   return (
     <nav data-testid="admin-breadcrumb" className="flex items-center gap-1 px-4 py-2 border-b border-border text-sm text-muted bg-bg shrink-0">
