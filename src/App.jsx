@@ -34,9 +34,13 @@ import Launcher from './pages/Launcher'
 const MainInput = lazy(() => import('./clawsupport/pages/MainInput'))
 const Dashboard = lazy(() => import('./manesupport/pages/Dashboard'))
 const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
-const AdminMenu = lazy(() => import('./manesupport/pages/AdminMenu'))
-const AdminTop = lazy(() => import('./admin/AdminTop'))
-const RevenueDashboard = lazy(() => import('./admin/revenue/RevenueDashboard'))
+// J-ADMIN-02: Admin IA layout + hub pages (旧実装は _legacy/ に移動)
+const AdminLayout           = lazy(() => import('./admin/AdminLayout'))
+const AdminMastersHubPage   = lazy(() => import('./admin/pages/AdminMastersHubPage'))
+const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
+const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
+const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
+const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
 
 // 遅延ロード — 巡回入力
 const BoothInput = lazy(() => import('./clawsupport/pages/BoothInput'))
@@ -157,11 +161,25 @@ function AppInner() {
       <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
       <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
-      <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
-      <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
+      {/* J-ADMIN-02: AdminLayout nested routes (新 IA ナビ骨組) */}
+      <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+        <Route index element={<Navigate to="masters" replace />} />
+        <Route path="masters" element={<AdminMastersHubPage />} />
+        <Route path="masters/stores" element={<AdminStorePage />} />
+        <Route path="masters/*" element={<AdminPlaceholderPage />} />
+        <Route path="audit" element={<AdminAuditHubPage />} />
+        <Route path="audit/booth-edit" element={<AdminStorePage />} />
+        <Route path="audit/booth-edit/:storeCode/machines" element={<AdminMachineListPage />} />
+        <Route path="audit/booth-edit/:boothCode" element={<AdminBoothEditPage />} />
+        <Route path="audit/*" element={<AdminPlaceholderPage />} />
+        <Route path="reports" element={<AdminReportsHubPage />} />
+        <Route path="reports/*" element={<AdminPlaceholderPage />} />
+        <Route path="settings" element={<AdminSettingsHubPage />} />
+        <Route path="settings/*" element={<AdminPlaceholderPage />} />
+        <Route path="*" element={<AdminPlaceholderPage />} />
+      </Route>
 
-      {/* J-ADMIN-01: 管理者ブース編集 (権限チェックはコンポーネント内) */}
+      {/* J-ADMIN-01 backward-compat flat routes (regression keep) */}
       <Route path="/admin/store-list" element={<ProtectedRoute><AdminStorePage /></ProtectedRoute>} />
       <Route path="/admin/store/:storeCode/machines" element={<ProtectedRoute><AdminMachineListPage /></ProtectedRoute>} />
       <Route path="/admin/booth-edit/:boothCode" element={<ProtectedRoute><AdminBoothEditPage /></ProtectedRoute>} />
@@ -189,8 +207,7 @@ function AppInner() {
       <Route path="/patrol/input-legacy" element={<ProtectedRoute><PatrolInput /></ProtectedRoute>} />
       <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
 
-      {/* 監査ログ — manager以上 */}
-      <Route path="/admin/audit" element={<ManagerRoute><AuditLog /></ManagerRoute>} />
+      {/* 監査ログ — manager以上 (旧ルート、/admin/audit は AdminLayout 配下に移行) */}
       <Route path="/admin/audit-summary" element={<ManagerRoute><AuditSummary /></ManagerRoute>} />
 
       {/* データ検索・修正 — manager以上 */}
