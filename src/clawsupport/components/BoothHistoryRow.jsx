@@ -41,6 +41,8 @@ export default function BoothHistoryRow({
   machine,
   booth,
   prevPrizeName,
+  onSelect,
+  isSelected = false,
 }) {
   const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
@@ -75,6 +77,10 @@ export default function BoothHistoryRow({
   }
 
   function handleClick() {
+    if (onSelect) {
+      onSelect(row)
+      return
+    }
     if (didLongPress.current) return
     setExpanded(e => !e)
   }
@@ -82,7 +88,7 @@ export default function BoothHistoryRow({
   return (
     <div
       data-testid="history-row"
-      className="border-b border-border last:border-b-0"
+      className={`border-b border-border last:border-b-0${isSelected ? ' ring-2 ring-blue-500 bg-blue-900/20 rounded' : ''}`}
     >
       <button
         className="w-full text-left select-none"

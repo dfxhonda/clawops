@@ -60,6 +60,8 @@ module.exports = [
             from: { type: mod },
             allow: { to: { type: [mod, 'services', 'shared'] } },
           })),
+          // admin is a superuser view of patrol data; reuses clawsupport UI components
+          { from: { type: 'admin' }, allow: { to: { type: ['clawsupport'] } } },
           { from: { type: 'services' }, allow: { to: { type: ['services', 'shared'] } } },
           { from: { type: 'shared' },   allow: { to: { type: ['shared'] } } },
         ],

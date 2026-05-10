@@ -86,6 +86,11 @@ const StocktakeDashboard        = lazy(() => import('./manesupport/admin/stockta
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 
+// 遅延ロード — J-ADMIN-01 管理者ブース編集
+const AdminStorePage      = lazy(() => import('./admin/pages/AdminStorePage'))
+const AdminMachineListPage = lazy(() => import('./admin/pages/AdminMachineListPage'))
+const AdminBoothEditPage   = lazy(() => import('./admin/pages/AdminBoothEditPage'))
+
 // 遅延ロード — クレサポ v1.0 ハブ
 const ClawsupportHub        = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
 const ClawsupportStoreDash  = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
@@ -155,6 +160,11 @@ function AppInner() {
       <Route path="/admin" element={<ProtectedRoute><AdminTop /></ProtectedRoute>} />
       <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
       <Route path="/admin/revenue" element={<AdminRoute><RevenueDashboard /></AdminRoute>} />
+
+      {/* J-ADMIN-01: 管理者ブース編集 (権限チェックはコンポーネント内) */}
+      <Route path="/admin/store-list" element={<ProtectedRoute><AdminStorePage /></ProtectedRoute>} />
+      <Route path="/admin/store/:storeCode/machines" element={<ProtectedRoute><AdminMachineListPage /></ProtectedRoute>} />
+      <Route path="/admin/booth-edit/:boothCode" element={<ProtectedRoute><AdminBoothEditPage /></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />

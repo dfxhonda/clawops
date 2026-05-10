@@ -2,18 +2,27 @@ import { useEffect, useState } from 'react'
 import { fetchBoothHistory } from '../../services/boothHistory'
 import BoothHistoryRow from './BoothHistoryRow'
 
-export default function BoothHistoryList({ boothCode, meterUnitPrice = 100, storeCode, machine, booth }) {
+export default function BoothHistoryList({
+  boothCode,
+  meterUnitPrice = 100,
+  storeCode,
+  machine,
+  booth,
+  limit = 10,
+  onRowSelect,
+  selectedReadingId,
+}) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!boothCode) return
     setLoading(true)
-    fetchBoothHistory(boothCode, meterUnitPrice, 10).then(data => {
+    fetchBoothHistory(boothCode, meterUnitPrice, limit).then(data => {
       setRows(data)
       setLoading(false)
     })
-  }, [boothCode, meterUnitPrice])
+  }, [boothCode, meterUnitPrice, limit])
 
   if (loading) {
     return (
@@ -52,6 +61,8 @@ export default function BoothHistoryList({ boothCode, meterUnitPrice = 100, stor
           machine={machine}
           booth={booth}
           prevPrizeName={i < rows.length - 1 ? rows[i + 1]?.prize_name : null}
+          onSelect={onRowSelect}
+          isSelected={selectedReadingId === row.reading_id}
         />
       ))}
     </div>
