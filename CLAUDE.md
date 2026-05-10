@@ -122,6 +122,7 @@ notion_status_log_format:
     start: "spec を notion-fetch、scope 確認開始"
     scope_confirmed: "files_to_touch リスト"
     db_schema_verified: "schema_diff (spec の id を reading_id に修正等)"
+    impl_in_progress: "impl 中 (files_done/files_remaining)"
     impl_done: "commit hash"
     test_done: "vitest/playwright 結果"
     push_done: "commit + deploy_url"
@@ -132,6 +133,32 @@ notion_status_log_format:
     timestamp: "2026-05-10T11:00:00+09:00"
     phase: impl_done
     commit: abc1234
+  micro_commit_rule:
+    added: 2026-05-10
+    purpose: ヒロさん iPhone Notion で specs ページ開きっぱなし → 手動リロードで詳細進捗見える化
+    when_to_write:
+      - 各 phase 開始時 (即 entry 追加)
+      - 各 phase 完了時 (entry 更新 or 新 entry)
+      - 5 分以上待機中で進捗あれば中間 entry
+    mandatory_entries:
+      - "phase: start (タスク開始)"
+      - "phase: scope_confirmed (files_to_touch リスト付き)"
+      - "phase: db_schema_verified (該当する場合のみ)"
+      - "phase: impl_in_progress (impl 中、files_done/files_remaining)"
+      - "phase: impl_done (commit hash)"
+      - "phase: test_done (vitest/playwright 結果)"
+      - "phase: push_done (commit + deploy_url)"
+    example_micro_commits:
+      - timestamp: "2026-05-10T14:05:00+09:00"
+        phase: scope_confirmed
+        files_to_touch: [src/admin/AdminLayout.jsx, "..."]
+      - timestamp: "2026-05-10T14:10:00+09:00"
+        phase: impl_in_progress
+        files_done: [AdminLayout.jsx, AdminSidebar.jsx]
+        files_remaining: [AdminBreadcrumb.jsx, "..."]
+      - timestamp: "2026-05-10T14:18:00+09:00"
+        phase: impl_done
+        commit: "<hash>"
 scope_constraint:
   rule: "spec.scope.write 内のファイルだけ touch"
   on_violation: "即停止して Discord 報告、push しない"
@@ -145,6 +172,23 @@ discord_notification:
   on_failure: "J-XXX fail: <reason> (詳細は status_log)"
   no_intermediate: "中間進捗は Discord に流さない、status_log で司令塔Opus 把握"
   on_ad_hoc_done: "<short_desc> done: commit=<hash> (status_log @ specs/<module>)"
+discord_heartbeat_rule:
+  added: 2026-05-10
+  purpose: 長時間タスク (5 分以上) の固まり判別、iPhone Discord で動作確認可能化
+  interval_minutes: 5
+  format: "J-XXX progress: phase=<name>, elapsed=<n>m, <key_metric>"
+  example_messages:
+    - "J-ADMIN-02 progress: phase=impl, elapsed=8m, files_touched=4/8"
+    - "J-ADMIN-02 progress: phase=test, elapsed=15m, vitest 200/285"
+    - "J-ADMIN-02 progress: phase=push, elapsed=18m, build green"
+  when_to_send:
+    - タスク開始時 (J-XXX start)
+    - 各 phase 長期化 5 分超えたら 5 分間隔で elapsed 付き
+    - phase 遷移時 (scope_confirmed, impl_done, test_done, push_done)
+    - 失敗時 (J-XXX fail: <reason>)
+  when_to_skip:
+    - タスク全体 5 分以内完了見込み
+    - 軽い ad-hoc 修正 (1 ファイルだけ等)
 design_charter:
   goals:
     - アルバイト初日の分かりやすさ
