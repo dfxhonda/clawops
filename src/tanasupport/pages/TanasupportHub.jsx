@@ -6,65 +6,86 @@ import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
 import { getWarehouseLocations } from '../stocktake/api'
 
+function loadRecent(staffId) {
+  try { return JSON.parse(localStorage.getItem(`tana_recent_${staffId}`) || '[]') } catch { return [] }
+}
+
+function saveRecent(staffId, storeCode) {
+  const key = `tana_recent_${staffId}`
+  const prev = loadRecent(staffId)
+  const next = [storeCode, ...prev.filter(c => c !== storeCode)].slice(0, 5)
+  localStorage.setItem(key, JSON.stringify(next))
+}
+
 export default function TanasupportHub() {
   const navigate = useNavigate()
   const { staffId } = useAuth()
-
-  const [stores, setStores]               = useState([])
-  const [warehouses, setWarehouses]       = useState([])
-  const [pinnedCodes, setPinnedCodes]     = useState([])
-  const [sessionMonths, setSessionMonths] = useState({})
-  const [loading, setLoading]             = useState(true)
+  const [tab, setTab] = useState('sakugyou')
+  const [stores, setStores]           = useState([])
+  const [warehouses, setWarehouses]   = useState([])
+  const [pinnedCodes, setPinnedCodes] = useState([])
+  const [arrivalsCount, setArrivals]  = useState(0)
+  const [sessionCount, setSessions]   = useState(0)
+  const [recentCodes, setRecent]      = useState([])
+  const [loading, setLoading]         = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [{ data: storeData }, warehouseData, { data: sessionData }, pinResult] = await Promise.all([
-        supabase
-          .from('stores')
+      const [
+        { data: storeData },
+        warehouseData,
+        { count: sc },
+        { count: ac },
+        pinResult,
+      ] = await Promise.all([
+        supabase.from('stores')
           .select('store_code, store_name, locality, locality_kana')
           .eq('is_active', true)
           .order('locality_kana', { nullsLast: true }),
         getWarehouseLocations(),
-        supabase
-          .from('stocktake_sessions')
-          .select('session_id, month, status')
+        supabase.from('stocktake_sessions')
+          .select('*', { count: 'exact', head: true })
           .in('status', ['open', 'submitted']),
+        supabase.from('prize_orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'arrived')
+          .eq('is_fully_received', false),
         staffId
           ? supabase.from('staff_pinned_stores').select('store_code').eq('staff_id', staffId)
           : Promise.resolve({ data: [] }),
       ])
-
       setStores(storeData ?? [])
       setWarehouses(warehouseData)
+      setSessions(sc ?? 0)
+      setArrivals(ac ?? 0)
       setPinnedCodes((pinResult.data ?? []).map(p => p.store_code))
-
-      // 当月セッション有無をマーク (location_id をキーに持たないので session_id だけ管理)
-      const months = {}
-      for (const s of sessionData ?? []) {
-        months[s.session_id] = s.month
-      }
-      setSessionMonths(months)
       setLoading(false)
     }
     load()
   }, [staffId])
 
-  const hasOpenSession = Object.keys(sessionMonths).length > 0
+  useEffect(() => {
+    if (staffId) setRecent(loadRecent(staffId))
+  }, [staffId])
 
   const handlePin = useCallback(async (storeCode) => {
     const isPinned = pinnedCodes.includes(storeCode)
     if (isPinned) {
       setPinnedCodes(prev => prev.filter(c => c !== storeCode))
-      await supabase.from('staff_pinned_stores')
-        .delete()
-        .eq('staff_id', staffId)
-        .eq('store_code', storeCode)
+      await supabase.from('staff_pinned_stores').delete().eq('staff_id', staffId).eq('store_code', storeCode)
     } else {
       setPinnedCodes(prev => [...prev, storeCode])
-      await supabase.from('staff_pinned_stores')
-        .upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
+      await supabase.from('staff_pinned_stores').upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
     }
   }, [pinnedCodes, staffId])
+
+  function handleSelectStore(storeCode) {
+    if (staffId) {
+      saveRecent(staffId, storeCode)
+      setRecent(loadRecent(staffId))
+    }
+    navigate(`/tanasupport/store/${storeCode}`)
+  }
 
   function renderStoreCard(store, isPinned) {
     return (
@@ -72,7 +93,7 @@ export default function TanasupportHub() {
         key={store.store_code}
         store={store}
         isPinned={isPinned}
-        onSelect={() => navigate(`/tanasupport/store/${store.store_code}`)}
+        onSelect={() => handleSelectStore(store.store_code)}
         onPin={() => handlePin(store.store_code)}
       />
     )
@@ -86,6 +107,13 @@ export default function TanasupportHub() {
     )
   }
 
+  const pinnedSet = new Set(pinnedCodes)
+  const pinnedStores = stores.filter(s => pinnedSet.has(s.store_code))
+  const recentStores = recentCodes
+    .filter(c => !pinnedSet.has(c))
+    .map(c => stores.find(s => s.store_code === c))
+    .filter(Boolean)
+
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
       <PageHeader
@@ -95,43 +123,134 @@ export default function TanasupportHub() {
         menuToLauncher
       />
 
-      {/* 倉庫セクション（本社倉庫 + 各倉庫） */}
-      <div className="px-5 pt-3 pb-1 shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted font-bold tracking-wide">倉庫 · カウント入力</span>
+      {/* tab bar */}
+      <div className="sticky top-0 z-10 bg-bg shrink-0 flex gap-1 px-4 py-2 border-b border-border">
+        {[['sakugyou', '作業'], ['basho', '場所']].map(([key, label]) => (
           <button
-            onClick={() => navigate('/tanasupport/stocktake')}
-            className="text-[10px] text-accent border border-accent/40 px-2 py-0.5 rounded-full active:scale-95 transition-transform"
-            data-testid="btn-session-detail"
+            key={key}
+            data-testid={`tab-${key}`}
+            onClick={() => setTab(key)}
+            className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+              tab === key ? 'bg-accent text-white' : 'bg-surface text-muted'
+            }`}
           >
-            機械・個人・合計 →
+            {label}
           </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {warehouses.map(loc => (
-            <WarehouseCard
-              key={loc.location_id}
-              location={loc}
-              onSelect={() => navigate(`/tanasupport/location/${loc.location_id}/stocktake`)}
-            />
-          ))}
-        </div>
+        ))}
       </div>
 
-      <div className="border-b border-border mx-5 my-2 shrink-0" />
+      {/* 作業タブ */}
+      {tab === 'sakugyou' && (
+        <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+          <TaskTile
+            emoji="🚚"
+            title="入荷チェック"
+            sub="入荷品の受取確認"
+            borderColor="#f43f5e"
+            badge={arrivalsCount > 0 ? arrivalsCount : null}
+            badgeBg="bg-rose-500"
+            onClick={() => navigate('/admin/orders')}
+          />
+          <TaskTile
+            emoji="📋"
+            title="棚卸し"
+            sub="棚卸しセッション管理"
+            borderColor="#10b981"
+            badge={sessionCount > 0 ? sessionCount : null}
+            badgeBg="bg-emerald-500"
+            onClick={() => navigate('/tanasupport/stocktake')}
+          />
+          <TaskTile
+            emoji="📦"
+            title="発注追跡"
+            sub="発注履歴を確認"
+            borderColor="var(--color-border, #e5e7eb)"
+            badge={null}
+            onClick={() => navigate('/tanasupport/orders')}
+          />
+        </div>
+      )}
 
-      {/* 店舗セクション */}
-      <div className="px-5 pb-1 shrink-0">
-        <span className="text-xs text-muted font-bold tracking-wide">店舗</span>
-      </div>
-      <KanaIndex
-        items={stores}
-        pinnedKeys={pinnedCodes}
-        idKey="store_code"
-        groupKey="locality_kana"
-        renderCard={renderStoreCard}
-      />
+      {/* 場所タブ */}
+      {tab === 'basho' && (
+        <>
+          {/* ★ ピン留め */}
+          {pinnedStores.length > 0 && (
+            <div className="px-4 pt-3 pb-1 shrink-0">
+              <p className="text-[10px] text-muted font-bold tracking-wider mb-1.5">★ ピン留め</p>
+              <div className="flex flex-col gap-2">
+                {pinnedStores.map(s => (
+                  <StoreCard key={s.store_code} store={s} isPinned={true}
+                    onSelect={() => handleSelectStore(s.store_code)}
+                    onPin={() => handlePin(s.store_code)} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 最近使った */}
+          {recentStores.length > 0 && (
+            <div className="px-4 pt-3 pb-1 shrink-0">
+              <p className="text-[10px] text-muted font-bold tracking-wider mb-1.5">最近使った</p>
+              <div className="flex flex-col gap-2">
+                {recentStores.map(s => (
+                  <StoreCard key={s.store_code} store={s} isPinned={false}
+                    onSelect={() => handleSelectStore(s.store_code)}
+                    onPin={() => handlePin(s.store_code)} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 倉庫 */}
+          <div className="px-4 pt-3 pb-1 shrink-0">
+            <p className="text-[10px] text-muted font-bold tracking-wider mb-1.5">倉庫</p>
+            <div className="grid grid-cols-2 gap-2">
+              {warehouses.map(loc => (
+                <WarehouseCard
+                  key={loc.location_id}
+                  location={loc}
+                  onSelect={() => navigate(`/tanasupport/location/${loc.location_id}/stocktake`)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* 全店 */}
+          <div className="px-4 pt-3 pb-1 shrink-0">
+            <p className="text-[10px] text-muted font-bold tracking-wider">全店</p>
+          </div>
+          <KanaIndex
+            items={stores}
+            pinnedKeys={pinnedCodes}
+            idKey="store_code"
+            groupKey="locality_kana"
+            showPinned={false}
+            renderCard={renderStoreCard}
+          />
+        </>
+      )}
     </div>
+  )
+}
+
+function TaskTile({ emoji, title, sub, borderColor, badge, badgeBg, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
+      style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
+    >
+      <span className="text-xl shrink-0">{emoji}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-text text-sm font-bold">{title}</p>
+        <p className="text-xs mt-0.5" style={{ color: borderColor }}>{sub}</p>
+      </div>
+      {badge != null
+        ? <span className={`shrink-0 ${badgeBg} text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[20px] text-center`}>{badge}</span>
+        : <span className="text-muted text-lg shrink-0">›</span>
+      }
+    </button>
   )
 }
 
