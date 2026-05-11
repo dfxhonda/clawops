@@ -95,6 +95,10 @@ const AdminStorePage      = lazy(() => import('./admin/pages/AdminStorePage'))
 const AdminMachineListPage = lazy(() => import('./admin/pages/AdminMachineListPage'))
 const AdminBoothEditPage   = lazy(() => import('./admin/pages/AdminBoothEditPage'))
 
+// 遅延ロード — J-ADMIN-05 景品マスタ + 発注履歴
+const AdminPrizeMasterPage  = lazy(() => import('./admin/pages/AdminPrizeMasterPage'))
+const AdminOrderHistoryPage = lazy(() => import('./admin/pages/AdminOrderHistoryPage'))
+
 // 遅延ロード — クレサポ v1.0 ハブ
 const ClawsupportHub        = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
 const ClawsupportStoreDash  = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
@@ -166,8 +170,10 @@ function AppInner() {
         <Route index element={<Navigate to="masters" replace />} />
         <Route path="masters" element={<AdminMastersHubPage />} />
         <Route path="masters/stores" element={<AdminStorePage />} />
+        <Route path="masters/prizes" element={<AdminPrizeMasterPage />} />
         <Route path="masters/*" element={<AdminPlaceholderPage />} />
         <Route path="audit" element={<AdminAuditHubPage />} />
+        <Route path="audit/orders" element={<AdminOrderHistoryPage />} />
         <Route path="audit/booth-edit" element={<AdminStorePage />} />
         <Route path="audit/booth-edit/:storeCode/machines" element={<AdminMachineListPage />} />
         <Route path="audit/booth-edit/:boothCode" element={<AdminBoothEditPage />} />

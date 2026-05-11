@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 
 const TILES = [
   { label: '過去メーター編集',   desc: 'メーター記録の修正・削除',     path: '/admin/audit/booth-edit',    impl: true  },
+  { label: '発注履歴',           desc: '景品発注の一覧・詳細閲覧',     path: '/admin/audit/orders',        impl: true  },
   { label: '全操作ログ',         desc: '全スタッフの操作履歴',         path: '/admin/audit/operations',    impl: false },
   { label: 'ログイン履歴',       desc: 'ログイン・ログアウト記録',     path: '/admin/audit/logins',        impl: false },
   { label: '景品phase履歴',      desc: '景品フェーズ変更の記録',       path: '/admin/audit/prize-phases',  impl: false },
