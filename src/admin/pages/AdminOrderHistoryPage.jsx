@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const LIST_SELECT = 'order_id,order_date,prize_name_raw,prize_name_short,supplier_id,case_count,unit_cost,total_tax_included,status,destination,ordered_by,expected_date,arrived_at,is_fully_received'
+const LIST_SELECT = 'order_id,order_date,expected_date,arrived_at,prize_name_raw,prize_name_short,supplier_id,case_count,case_quantity,unit_cost,case_cost,total_tax_included,shipping_cost,shipping_allocation,status,is_fully_received,received_quantity,received_by,destination,ordered_by,for_operator_id,notes,order_source,import_meta'
 
 const STATUS_VALUES = ['ordered', 'arrived', 'cancelled']
 
@@ -16,6 +16,22 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
     >
       {label}{active ? (sortAsc ? ' ▲' : ' ▼') : ''}
     </th>
+  )
+}
+
+function ModalSection({ title, items }) {
+  return (
+    <div>
+      <div className="text-[10px] font-bold text-muted border-b border-border pb-1 mb-2">{title}</div>
+      <div className="grid grid-cols-2 gap-3">
+        {items.map(([label, val]) => (
+          <div key={label} className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted">{label}</span>
+            <span className="text-text">{val ?? '—'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -116,6 +132,7 @@ export default function AdminOrderHistoryPage() {
             <thead className="sticky top-0 bg-bg z-10">
               <tr className="text-muted border-b border-border">
                 <SortTh col="order_date"          label="発注日"      align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+                <th className="text-left py-1 px-2 whitespace-nowrap text-muted">納品予定日</th>
                 <th className="text-left py-1 px-2 whitespace-nowrap">景品名</th>
                 <th className="text-left py-1 px-2 whitespace-nowrap">取引先</th>
                 <SortTh col="case_count"          label="ケース数"    align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
@@ -134,6 +151,7 @@ export default function AdminOrderHistoryPage() {
                   className="border-b border-border/50 hover:bg-surface cursor-pointer"
                 >
                   <td className="py-1 px-2 text-muted whitespace-nowrap">{r.order_date}</td>
+                  <td className="py-1 px-2 text-muted whitespace-nowrap">{r.expected_date ?? ''}</td>
                   <td className="py-1 px-2 max-w-[180px]">
                     <div className="truncate text-text">{r.prize_name_raw}</div>
                     {r.prize_name_short && (
@@ -175,28 +193,34 @@ export default function AdminOrderHistoryPage() {
               <span className="text-sm font-bold text-text">発注詳細</span>
               <button onClick={() => setModal(null)} className="text-muted text-lg leading-none">✕</button>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              {[
-                ['発注日', modal.order_date],
-                ['景品名(raw)', modal.prize_name_raw],
+            <div className="flex flex-col gap-4 text-xs">
+              <ModalSection title="発注情報" items={[
+                ['発注日',       modal.order_date],
+                ['納品予定日',   modal.expected_date],
+                ['入荷日',       modal.arrived_at],
+                ['ステータス',   modal.status],
+                ['入荷済',       modal.is_fully_received ? 'Yes' : 'No'],
+              ]} />
+              <ModalSection title="景品・数量" items={[
+                ['景品名(raw)',  modal.prize_name_raw],
                 ['景品名(短縮)', modal.prize_name_short],
-                ['取引先名', modal.prize_masters?.supplier_name ?? modal.supplier_id],
-                ['取引先ID', modal.supplier_id],
-                ['ケース数', modal.case_count],
-                ['単価', fmt(modal.unit_cost)],
-                ['合計(税込)', fmt(modal.total_tax_included)],
-                ['ステータス', modal.status],
-                ['納品先', modal.destination],
-                ['発注者', modal.ordered_by],
-                ['予定日', modal.expected_date],
-                ['入荷日', modal.arrived_at],
-                ['入荷済', modal.is_fully_received ? 'Yes' : 'No'],
-              ].map(([label, val]) => (
-                <div key={label} className="flex flex-col gap-0.5">
-                  <span className="text-[10px] text-muted">{label}</span>
-                  <span className="text-text">{val ?? '—'}</span>
-                </div>
-              ))}
+                ['ケース数',     modal.case_count],
+                ['入数',         modal.case_quantity],
+                ['単価',         fmt(modal.unit_cost)],
+                ['ケース金額',   fmt(modal.case_cost)],
+                ['合計(税込)',   fmt(modal.total_tax_included)],
+                ['送料',         fmt(modal.shipping_cost)],
+                ['送料按分',     fmt(modal.shipping_allocation)],
+              ]} />
+              <ModalSection title="関係者・備考" items={[
+                ['納品先',           modal.destination],
+                ['発注者',           modal.ordered_by],
+                ['担当オペレーター', modal.for_operator_id],
+                ['受取者',           modal.received_by],
+                ['受取数量',         modal.received_quantity],
+                ['発注元',           modal.order_source],
+                ['備考',             modal.notes],
+              ]} />
             </div>
             <p className="mt-4 text-[10px] text-muted">※ 発注操作は別システムで管理。このページは閲覧専用です。</p>
           </div>
