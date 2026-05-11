@@ -3,7 +3,6 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 
-const PAGE_SIZE = 15
 const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
 const EDIT_SELECT = LIST_SELECT + ',short_name,prize_name_kana,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
@@ -63,32 +62,6 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
   )
 }
 
-function Pagination({ page, totalPages, onPage }) {
-  if (totalPages <= 1) return null
-  const items = []
-  if (totalPages <= 7) {
-    for (let i = 0; i < totalPages; i++) items.push({ type: 'page', p: i })
-  } else {
-    const near = new Set([0, totalPages - 1, page - 1, page, page + 1].filter(p => p >= 0 && p < totalPages))
-    const sorted = [...near].sort((a, b) => a - b)
-    for (let i = 0; i < sorted.length; i++) {
-      if (i > 0 && sorted[i] - sorted[i - 1] > 1) items.push({ type: 'dot' })
-      items.push({ type: 'page', p: sorted[i] })
-    }
-  }
-  return (
-    <div data-testid="prize-pagination" className="flex items-center justify-center gap-1 mt-3 flex-wrap">
-      <button onClick={() => onPage(page - 1)} disabled={page === 0} className="px-2 py-1 text-xs text-muted disabled:opacity-30">‹</button>
-      {items.map((it, i) =>
-        it.type === 'dot'
-          ? <span key={`d${i}`} className="px-1 text-xs text-muted">…</span>
-          : <button key={it.p} onClick={() => onPage(it.p)} className={`px-2 py-1 text-xs rounded ${it.p === page ? 'bg-blue-600 text-white font-bold' : 'text-muted hover:text-text'}`}>{it.p + 1}</button>
-      )}
-      <button onClick={() => onPage(page + 1)} disabled={page >= totalPages - 1} className="px-2 py-1 text-xs text-muted disabled:opacity-30">›</button>
-    </div>
-  )
-}
-
 const EMPTY_FORM = {
   prize_name: '', aliases: '', prize_name_kana: '', category: '',
   series: '', size: '', status: 'active', phase: 'normal',
@@ -102,7 +75,6 @@ export default function AdminPrizeMasterPage() {
   const [rows, setRows]         = useState([])
   const [loading, setLoading]   = useState(true)
   const [totalCount, setTotal]  = useState(null)
-  const [page, setPage]         = useState(0)
   const [sortCol, setSortCol]   = useState('registered_at')
   const [sortAsc, setSortAsc]   = useState(false)
   const [loadKey, setLoadKey]   = useState(0)
@@ -123,7 +95,6 @@ export default function AdminPrizeMasterPage() {
         .from('prize_masters')
         .select(LIST_SELECT, { count: 'exact' })
         .order(sortCol, { ascending: sortAsc })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
       if (search.trim()) q = q.or(`prize_name.ilike.%${search}%,short_name.ilike.%${search}%,aliases.ilike.%${search}%`)
       if (catFilter)     q = q.ilike('category', `%${catFilter}%`)
       if (stFilter)      q = q.eq('status', stFilter)
@@ -135,16 +106,15 @@ export default function AdminPrizeMasterPage() {
     }
     fetchData()
     return () => { cancelled = true }
-  }, [page, sortCol, sortAsc, search, catFilter, stFilter, loadKey]) // eslint-disable-line
+  }, [sortCol, sortAsc, search, catFilter, stFilter, loadKey]) // eslint-disable-line
 
   function handleSort(col) {
     if (col === sortCol) setSortAsc(a => !a)
     else { setSortCol(col); setSortAsc(false) }
-    setPage(0)
   }
-  function handleSearch(v)  { setSearch(v);  setPage(0) }
-  function handleCat(v)     { setCat(v);     setPage(0) }
-  function handleSt(v)      { setSt(v);      setPage(0) }
+  function handleSearch(v)  { setSearch(v) }
+  function handleCat(v)     { setCat(v) }
+  function handleSt(v)      { setSt(v) }
   function reload()         { setLoadKey(k => k + 1) }
 
   function openNew() {
@@ -224,101 +194,101 @@ export default function AdminPrizeMasterPage() {
   }
 
   const f = (v) => setForm(prev => ({ ...prev, ...v }))
-  const totalPages = totalCount !== null ? Math.ceil(totalCount / PAGE_SIZE) : 0
   const caseTotal = (Number(form.original_cost) || 0) * (Number(form.default_case_quantity) || 0)
 
   return (
-    <div className="p-3 min-h-full">
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
-      <div className="flex flex-wrap gap-2 mb-2 items-center">
-        <input
-          data-testid="prize-search"
-          value={search}
-          onChange={e => handleSearch(e.target.value)}
-          placeholder="景品名・alias 検索"
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text flex-1 min-w-[160px]"
-        />
-        <input
-          data-testid="prize-filter-category"
-          value={catFilter}
-          onChange={e => handleCat(e.target.value)}
-          placeholder="カテゴリ絞込"
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-28"
-        />
-        <select
-          data-testid="prize-filter-status"
-          value={stFilter}
-          onChange={e => handleSt(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
-        >
-          <option value="">ステータス ALL</option>
-          {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        {totalCount !== null && (
-          <span data-testid="prize-total-count" className="text-xs text-muted whitespace-nowrap">
-            全{totalCount.toLocaleString()}件
-          </span>
-        )}
-        <button
-          data-testid="prize-new-button"
-          onClick={openNew}
-          className="ml-auto px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold whitespace-nowrap"
-        >
-          + 新規登録
-        </button>
+      <div className="flex-shrink-0 p-3 pb-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            data-testid="prize-search"
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            placeholder="景品名・alias 検索"
+            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text flex-1 min-w-[160px]"
+          />
+          <input
+            data-testid="prize-filter-category"
+            value={catFilter}
+            onChange={e => handleCat(e.target.value)}
+            placeholder="カテゴリ絞込"
+            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-28"
+          />
+          <select
+            data-testid="prize-filter-status"
+            value={stFilter}
+            onChange={e => handleSt(e.target.value)}
+            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+          >
+            <option value="">ステータス ALL</option>
+            {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          {totalCount !== null && (
+            <span data-testid="prize-total-count" className="text-xs text-muted whitespace-nowrap">
+              全{totalCount.toLocaleString()}件
+            </span>
+          )}
+          <button
+            data-testid="prize-new-button"
+            onClick={openNew}
+            className="ml-auto px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold whitespace-nowrap"
+          >
+            + 新規登録
+          </button>
+        </div>
       </div>
-
-      {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-      {!loading && rows.length === 0 && (
-        <p className="text-center text-muted text-xs py-8">該当なし</p>
-      )}
 
       {/* list */}
-      <div data-testid="prize-list" className="overflow-x-auto">
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>
-              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">ST</th>
-              <SortTh col="original_cost"     label="原価"     align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">取引先</th>
-              <SortTh col="latest_order_date" label="最終発注" align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => {
-              const a0 = alias0(r.aliases)
-              return (
-                <tr
-                  key={r.prize_id}
-                  data-testid="prize-row"
-                  onClick={() => openEdit(r)}
-                  className="border-b border-border/50 hover:bg-surface cursor-pointer"
-                >
-                  <td className="py-1 px-2 max-w-[220px]">
-                    <div className="truncate text-text font-medium">{r.prize_name}</div>
-                    {a0 && <div className="truncate text-xs text-gray-400">{a0}</div>}
-                  </td>
-                  <td className="py-1 px-2 text-muted">{r.category}</td>
-                  <td className="py-1 px-2">
-                    <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
-                      r.status === 'active'   ? 'bg-green-600 text-white' :
-                      r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
-                      'bg-amber-600 text-white'
-                    }`}>{r.status}</span>
-                  </td>
-                  <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
-                  <td className="py-1 px-2 text-muted max-w-[120px] truncate">{r.supplier_name}</td>
-                  <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0 overflow-x-auto">
+        {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
+        {!loading && rows.length === 0 && (
+          <p className="text-center text-muted text-xs py-8">該当なし</p>
+        )}
+        <div data-testid="prize-list">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>
+                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">ST</th>
+                <SortTh col="original_cost"     label="原価"     align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">取引先</th>
+                <SortTh col="latest_order_date" label="最終発注" align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const a0 = alias0(r.aliases)
+                return (
+                  <tr
+                    key={r.prize_id}
+                    data-testid="prize-row"
+                    onClick={() => openEdit(r)}
+                    className="border-b border-border/50 hover:bg-surface cursor-pointer"
+                  >
+                    <td className="py-1 px-2 max-w-[220px]">
+                      <div className="truncate text-text font-medium">{r.prize_name}</div>
+                      {a0 && <div className="truncate text-xs text-gray-400">{a0}</div>}
+                    </td>
+                    <td className="py-1 px-2 text-muted">{r.category}</td>
+                    <td className="py-1 px-2">
+                      <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
+                        r.status === 'active'   ? 'bg-green-600 text-white' :
+                        r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
+                        'bg-amber-600 text-white'
+                      }`}>{r.status}</span>
+                    </td>
+                    <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
+                    <td className="py-1 px-2 text-muted max-w-[120px] truncate">{r.supplier_name}</td>
+                    <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
 
       {/* modal */}
       {modal !== null && (
