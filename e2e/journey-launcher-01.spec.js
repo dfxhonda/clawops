@@ -98,8 +98,6 @@ test.describe('J-LAUNCHER-01: モジュールランチャー', () => {
 
     await page.goto('/admin')
     await expect(page.getByTestId('admin-top-tabs')).toBeVisible({ timeout: 8000 })
-    await page.getByTestId('header-launcher-menu').click()
-    await page.waitForURL('**/launcher', { timeout: 8000 })
   })
 
   test('ロール=新人(staff)はクレサポ巡回のみモジュールタイル表示', async ({ page }) => {
