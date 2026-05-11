@@ -247,7 +247,7 @@ export default function AdminPrizeMasterPage() {
         )}
         <div data-testid="prize-list">
           <table className="w-full text-xs border-collapse">
-            <thead>
+            <thead className="sticky top-0 bg-bg z-10">
               <tr className="border-b border-border">
                 <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
                 <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>

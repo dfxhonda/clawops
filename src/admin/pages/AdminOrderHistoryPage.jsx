@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const LIST_SELECT = 'order_id,order_date,prize_name_raw,prize_name_short,supplier_id,supplier_name,case_count,unit_cost,total_tax_included,status,destination,ordered_by,expected_date,arrived_at,is_fully_received'
+const LIST_SELECT = 'order_id,order_date,prize_name_raw,prize_name_short,supplier_id,case_count,unit_cost,total_tax_included,status,destination,ordered_by,expected_date,arrived_at,is_fully_received'
 
 const STATUS_VALUES = ['ordered', 'arrived', 'cancelled']
 
@@ -36,7 +36,7 @@ export default function AdminOrderHistoryPage() {
     setLoading(true)
     let q = supabase
       .from('prize_orders')
-      .select(LIST_SELECT, { count: 'exact' })
+      .select(`${LIST_SELECT}, prize_masters!prize_id(supplier_name)`, { count: 'exact' })
       .order(sortCol, { ascending: sortAsc })
     if (stFilter)     q = q.eq('status', stFilter)
     if (receivedOnly) q = q.eq('is_fully_received', true)
@@ -113,7 +113,7 @@ export default function AdminOrderHistoryPage() {
         )}
         <div data-testid="order-list">
           <table className="w-full text-xs border-collapse">
-            <thead>
+            <thead className="sticky top-0 bg-bg z-10">
               <tr className="text-muted border-b border-border">
                 <SortTh col="order_date"          label="発注日"      align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
                 <th className="text-left py-1 px-2 whitespace-nowrap">景品名</th>
@@ -141,7 +141,7 @@ export default function AdminOrderHistoryPage() {
                     )}
                   </td>
                   <td className="py-1 px-2">
-                    <div className="text-muted">{r.supplier_name}</div>
+                    <div className="text-muted">{r.prize_masters?.supplier_name ?? r.supplier_id}</div>
                     {r.supplier_id && (
                       <div className="text-xs text-gray-400">{r.supplier_id}</div>
                     )}
@@ -180,7 +180,7 @@ export default function AdminOrderHistoryPage() {
                 ['発注日', modal.order_date],
                 ['景品名(raw)', modal.prize_name_raw],
                 ['景品名(短縮)', modal.prize_name_short],
-                ['取引先名', modal.supplier_name],
+                ['取引先名', modal.prize_masters?.supplier_name ?? modal.supplier_id],
                 ['取引先ID', modal.supplier_id],
                 ['ケース数', modal.case_count],
                 ['単価', fmt(modal.unit_cost)],
