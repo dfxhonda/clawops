@@ -3,7 +3,8 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 
-const LIST_SELECT = 'prize_id,prize_name,short_name,category,status,original_cost,supplier_name,phase,registered_at'
+const PAGE_SIZE = 50
+const LIST_SELECT = 'prize_id,prize_name,short_name,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
 const EDIT_SELECT = LIST_SELECT + ',prize_name_kana,aliases,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
 
 const STATUS_VALUES = ['active', 'inactive', 'unknown']
@@ -44,6 +45,54 @@ function Select({ value, onChange, options }) {
   )
 }
 
+function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
+  const active = sortCol === col
+  return (
+    <th
+      onClick={() => onSort(col)}
+      className={`py-1 px-2 whitespace-nowrap cursor-pointer select-none ${align === 'right' ? 'text-right' : 'text-left'} ${active ? 'text-blue-400' : 'text-muted hover:text-text'}`}
+    >
+      {label}{active ? (sortAsc ? ' ▲' : ' ▼') : ''}
+    </th>
+  )
+}
+
+function Pagination({ page, totalPages, onPage }) {
+  if (totalPages <= 1) return null
+  const items = []
+  const add = (p) => items.push({ type: 'page', p })
+  const addDot = () => items.push({ type: 'dot' })
+
+  if (totalPages <= 7) {
+    for (let i = 0; i < totalPages; i++) add(i)
+  } else {
+    const near = new Set([0, totalPages - 1, page - 1, page, page + 1].filter(p => p >= 0 && p < totalPages))
+    const sorted = [...near].sort((a, b) => a - b)
+    for (let i = 0; i < sorted.length; i++) {
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) addDot()
+      add(sorted[i])
+    }
+  }
+
+  return (
+    <div data-testid="prize-pagination" className="flex items-center justify-center gap-1 mt-3 flex-wrap">
+      <button onClick={() => onPage(page - 1)} disabled={page === 0} className="px-2 py-1 text-xs text-muted disabled:opacity-30">‹</button>
+      {items.map((it, i) =>
+        it.type === 'dot'
+          ? <span key={`d${i}`} className="px-1 text-xs text-muted">…</span>
+          : <button
+              key={it.p}
+              onClick={() => onPage(it.p)}
+              className={`px-2 py-1 text-xs rounded ${it.p === page ? 'bg-blue-600 text-white font-bold' : 'text-muted hover:text-text'}`}
+            >
+              {it.p + 1}
+            </button>
+      )}
+      <button onClick={() => onPage(page + 1)} disabled={page >= totalPages - 1} className="px-2 py-1 text-xs text-muted disabled:opacity-30">›</button>
+    </div>
+  )
+}
+
 const EMPTY_FORM = {
   prize_name: '', short_name: '', prize_name_kana: '', aliases: '', category: '',
   series: '', size: '', status: 'active', phase: 'normal',
@@ -56,26 +105,51 @@ export default function AdminPrizeMasterPage() {
   const { staffName } = useAuth()
   const [rows, setRows]         = useState([])
   const [loading, setLoading]   = useState(true)
+  const [totalCount, setTotal]  = useState(null)
+  const [page, setPage]         = useState(0)
+  const [sortCol, setSortCol]   = useState('registered_at')
+  const [sortAsc, setSortAsc]   = useState(false)
+  const [loadKey, setLoadKey]   = useState(0)
   const [search, setSearch]     = useState('')
   const [catFilter, setCat]     = useState('')
   const [stFilter, setSt]       = useState('')
-  const [modal, setModal]       = useState(null) // null | 'new' | row-object
+  const [modal, setModal]       = useState(null)
   const [form, setForm]         = useState(EMPTY_FORM)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState(null)
 
-  async function load() {
-    setLoading(true)
-    const { data, error: e } = await supabase
-      .from('prize_masters')
-      .select(LIST_SELECT)
-      .order('registered_at', { ascending: false })
-    if (e) setError(e.message)
-    else setRows(data ?? [])
-    setLoading(false)
+  useEffect(() => {
+    let cancelled = false
+    async function fetchData() {
+      setLoading(true)
+      let q = supabase
+        .from('prize_masters')
+        .select(LIST_SELECT, { count: 'exact' })
+        .order(sortCol, { ascending: sortAsc })
+        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
+      if (search.trim()) q = q.or(`prize_name.ilike.%${search}%,short_name.ilike.%${search}%,aliases.ilike.%${search}%`)
+      if (catFilter)     q = q.ilike('category', `%${catFilter}%`)
+      if (stFilter)      q = q.eq('status', stFilter)
+      const { data, count, error: e } = await q
+      if (cancelled) return
+      if (e) setError(e.message)
+      else { setRows(data ?? []); if (count !== null) setTotal(count) }
+      setLoading(false)
+    }
+    fetchData()
+    return () => { cancelled = true }
+  }, [page, sortCol, sortAsc, search, catFilter, stFilter, loadKey]) // eslint-disable-line
+
+  function handleSort(col) {
+    if (col === sortCol) setSortAsc(a => !a)
+    else { setSortCol(col); setSortAsc(false) }
+    setPage(0)
   }
 
-  useEffect(() => { load() }, [])
+  function handleSearch(v)  { setSearch(v);   setPage(0) }
+  function handleCat(v)     { setCat(v);       setPage(0) }
+  function handleSt(v)      { setSt(v);        setPage(0) }
+  function reload()         { setLoadKey(k => k + 1) }
 
   function openNew() {
     setForm(EMPTY_FORM)
@@ -139,7 +213,7 @@ export default function AdminPrizeMasterPage() {
     }
     setSaving(false)
     setModal(null)
-    await load()
+    reload()
   }
 
   async function handleSoftDelete() {
@@ -151,54 +225,44 @@ export default function AdminPrizeMasterPage() {
     setSaving(false)
     if (e) { setError(e.message); return }
     setModal(null)
-    await load()
+    reload()
   }
 
   const f = (v) => setForm(prev => ({ ...prev, ...v }))
-
-  const categories = [...new Set(rows.map(r => r.category).filter(Boolean))]
-
-  const filtered = rows.filter(r => {
-    if (catFilter && r.category !== catFilter) return false
-    if (stFilter && r.status !== stFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (r.prize_name ?? '').toLowerCase().includes(q)
-          || (r.short_name ?? '').toLowerCase().includes(q)
-          || (r.aliases ?? '').toLowerCase().includes(q)
-    }
-    return true
-  })
+  const totalPages = totalCount !== null ? Math.ceil(totalCount / PAGE_SIZE) : 0
 
   return (
     <div className="p-3 min-h-full">
       {/* toolbar */}
-      <div className="flex flex-wrap gap-2 mb-3 items-center">
+      <div className="flex flex-wrap gap-2 mb-2 items-center">
         <input
           data-testid="prize-search"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => handleSearch(e.target.value)}
           placeholder="景品名・短縮名・alias 検索"
           className="bg-bg border border-border rounded px-2 py-1 text-xs text-text flex-1 min-w-[160px]"
         />
-        <select
+        <input
           data-testid="prize-filter-category"
           value={catFilter}
-          onChange={e => setCat(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
-        >
-          <option value="">カテゴリ ALL</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+          onChange={e => handleCat(e.target.value)}
+          placeholder="カテゴリ絞込"
+          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-28"
+        />
         <select
           data-testid="prize-filter-status"
           value={stFilter}
-          onChange={e => setSt(e.target.value)}
+          onChange={e => handleSt(e.target.value)}
           className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
         >
           <option value="">ステータス ALL</option>
           {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        {totalCount !== null && (
+          <span data-testid="prize-total-count" className="text-xs text-muted whitespace-nowrap">
+            全{totalCount.toLocaleString()}件
+          </span>
+        )}
         <button
           data-testid="prize-new-button"
           onClick={openNew}
@@ -209,7 +273,7 @@ export default function AdminPrizeMasterPage() {
       </div>
 
       {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-      {!loading && filtered.length === 0 && (
+      {!loading && rows.length === 0 && (
         <p className="text-center text-muted text-xs py-8">該当なし</p>
       )}
 
@@ -217,17 +281,18 @@ export default function AdminPrizeMasterPage() {
       <div data-testid="prize-list" className="overflow-x-auto">
         <table className="w-full text-xs border-collapse">
           <thead>
-            <tr className="text-muted border-b border-border">
-              <th className="text-left py-1 px-2 whitespace-nowrap">景品名</th>
-              <th className="text-left py-1 px-2 whitespace-nowrap">短縮名</th>
-              <th className="text-left py-1 px-2 whitespace-nowrap">カテゴリ</th>
-              <th className="text-left py-1 px-2 whitespace-nowrap">ステータス</th>
-              <th className="text-right py-1 px-2 whitespace-nowrap">原価</th>
-              <th className="text-left py-1 px-2 whitespace-nowrap">取引先</th>
+            <tr className="border-b border-border">
+              <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">短縮名</th>
+              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>
+              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">ST</th>
+              <SortTh col="original_cost"     label="原価"     align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
+              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">取引先</th>
+              <SortTh col="latest_order_date" label="最終発注" align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, 50).map(r => (
+            {rows.map(r => (
               <tr
                 key={r.prize_id}
                 data-testid="prize-row"
@@ -239,18 +304,21 @@ export default function AdminPrizeMasterPage() {
                 <td className="py-1 px-2 text-muted">{r.category}</td>
                 <td className="py-1 px-2">
                   <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
-                    r.status === 'active' ? 'bg-green-600 text-white' :
+                    r.status === 'active'   ? 'bg-green-600 text-white' :
                     r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
                     'bg-amber-600 text-white'
                   }`}>{r.status}</span>
                 </td>
                 <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
                 <td className="py-1 px-2 text-muted max-w-[120px] truncate">{r.supplier_name}</td>
+                <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
 
       {/* modal */}
       {modal !== null && (
