@@ -12,6 +12,12 @@ export default function AdminTopTabs() {
   const { pathname } = useLocation()
   return (
     <nav data-testid="admin-top-tabs" className="flex overflow-x-auto">
+      <button
+        onClick={() => navigate('/launcher')}
+        className="mr-4 text-sm text-gray-400 hover:text-white flex items-center gap-1 whitespace-nowrap px-4 py-3"
+      >
+        ← ホーム
+      </button>
       {TABS.map(tab => {
         const active = pathname.startsWith(tab.path)
         return (
