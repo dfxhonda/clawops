@@ -148,7 +148,7 @@ test.describe('J-PATROL-05a: placeholder コントラスト', () => {
 
     const input = page.getByTestId('field-set-a')
     await expect(input).toBeVisible()
-    await expect(input).toHaveAttribute('placeholder', '')
+    await expect(input).toHaveAttribute('placeholder', 'A')
   })
 })
 

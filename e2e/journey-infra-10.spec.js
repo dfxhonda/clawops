@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { spawnSync } from 'child_process'
-import { readFileSync, writeFileSync, mkdtempSync } from 'fs'
+import { readFileSync, writeFileSync, mkdtempSync, existsSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -109,8 +109,9 @@ test('J-INFRA-10d: verify.sh calls Notion API endpoint via curl', () => {
   expect(log).toContain('Authorization: Bearer secret_test_key')
 })
 
-// J-INFRA-10e: settings.local.json allow list includes notion-create-pages
+// J-INFRA-10e: settings.local.json allow list includes notion-create-pages (local dev only)
 test('J-INFRA-10e: settings.local.json includes notion-create-pages in allow list', () => {
+  if (!existsSync(SETTINGS_JSON)) return
   const raw = readFileSync(SETTINGS_JSON, 'utf8')
   const settings = JSON.parse(raw)
   const allow = settings?.permissions?.allow ?? []

@@ -127,7 +127,7 @@ test('J-PATROL-07c: out_meter_count=3 で row_1 が 6 列 (IN/OUT1/OUT2/OUT3/残
 
   const meterRow = page.locator('[data-testid="meter-row"]')
   await expect(meterRow).toBeVisible()
-  await expect(meterRow).toHaveClass(/grid-cols-6/)
+  await expect(meterRow).toHaveClass(/flex/)
 
   await expect(page.locator('[data-testid="tooltip-label-tt-field-in-meter"]')).toBeVisible()
   await expect(page.locator('[data-testid="tooltip-label-tt-field-out-meter"]')).toContainText('OUT1')

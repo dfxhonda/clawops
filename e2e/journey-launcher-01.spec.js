@@ -79,7 +79,7 @@ test.describe('J-LAUNCHER-01: モジュールランチャー', () => {
     await page.goto('/launcher')
     await page.getByTestId('launcher-tile-manesupport').click()
     await page.waitForURL('**/admin', { timeout: 8000 })
-    await expect(page.getByText('管理メニュー')).toBeVisible()
+    await expect(page.getByTestId('admin-top-tabs')).toBeVisible()
   })
 
   test('ヘッダー「メニュー」でランチャーに戻る', async ({ page }) => {
@@ -97,7 +97,7 @@ test.describe('J-LAUNCHER-01: モジュールランチャー', () => {
     await page.waitForURL('**/launcher', { timeout: 8000 })
 
     await page.goto('/admin')
-    await expect(page.getByText('管理メニュー')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('admin-top-tabs')).toBeVisible({ timeout: 8000 })
     await page.getByTestId('header-launcher-menu').click()
     await page.waitForURL('**/launcher', { timeout: 8000 })
   })

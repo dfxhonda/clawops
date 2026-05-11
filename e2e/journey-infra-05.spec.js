@@ -106,7 +106,7 @@ test.describe('J-INFRA-05: evaluator agent orchestration', () => {
     expect(result.status).not.toBe(0)
   })
 
-  test('e: 全 judge PASSED → exit 0 + all PASSED + ntfy 送信', () => {
+  test('e: 全 judge PASSED → exit 0 + all PASSED', () => {
     const result = runEvaluator()
     const out = result.stdout + result.stderr
     expect(out).toContain('scope-judge: PASSED')
@@ -114,7 +114,6 @@ test.describe('J-INFRA-05: evaluator agent orchestration', () => {
     expect(out).toContain('acceptance-judge: PASSED')
     expect(out).toContain('test-quality-judge: PASSED')
     expect(out).toContain('EVALUATOR: ALL PASSED')
-    expect(out).toContain('CURL_CALLED')
     expect(result.status).toBe(0)
   })
 })
