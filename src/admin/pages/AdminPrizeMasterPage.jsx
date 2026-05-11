@@ -6,7 +6,7 @@ import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 const LIST_SELECT = 'prize_id,prize_name,short_name,category,status,original_cost,supplier_name,phase,registered_at'
 const EDIT_SELECT = LIST_SELECT + ',prize_name_kana,aliases,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
 
-const STATUS_VALUES = ['provisional', 'active', 'discontinued']
+const STATUS_VALUES = ['active', 'inactive', 'unknown']
 const PHASE_VALUES  = ['normal', 'out_of_stock', 'discontinued']
 
 function Field({ label, children }) {
@@ -46,7 +46,7 @@ function Select({ value, onChange, options }) {
 
 const EMPTY_FORM = {
   prize_name: '', short_name: '', prize_name_kana: '', aliases: '', category: '',
-  series: '', size: '', status: 'provisional', phase: 'normal',
+  series: '', size: '', status: 'active', phase: 'normal',
   original_cost: '', supplier_id: '', supplier_name: '', supplier_item_code: '',
   jan_code: '', default_case_quantity: '', image_url: '', notes: '',
   order_rules: '', tags: '', default_tag: '', weight_g: '',
@@ -94,7 +94,7 @@ export default function AdminPrizeMasterPage() {
       prize_name: data.prize_name ?? '', short_name: data.short_name ?? '',
       prize_name_kana: data.prize_name_kana ?? '', aliases: data.aliases ?? '',
       category: data.category ?? '', series: data.series ?? '', size: data.size ?? '',
-      status: data.status ?? 'provisional', phase: data.phase ?? 'normal',
+      status: data.status ?? 'active', phase: data.phase ?? 'normal',
       original_cost: data.original_cost ?? '', supplier_id: data.supplier_id ?? '',
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
       jan_code: data.jan_code ?? '', default_case_quantity: data.default_case_quantity ?? '',
@@ -146,7 +146,7 @@ export default function AdminPrizeMasterPage() {
     if (!modal || modal === 'new') return
     setSaving(true)
     const { error: e } = await supabase.from('prize_masters')
-      .update({ status: 'discontinued', updated_by: staffName, updated_at: new Date().toISOString() })
+      .update({ status: 'inactive', updated_by: staffName, updated_at: new Date().toISOString() })
       .eq('prize_id', modal.prize_id)
     setSaving(false)
     if (e) { setError(e.message); return }
@@ -240,8 +240,8 @@ export default function AdminPrizeMasterPage() {
                 <td className="py-1 px-2">
                   <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
                     r.status === 'active' ? 'bg-green-600 text-white' :
-                    r.status === 'provisional' ? 'bg-amber-600 text-white' :
-                    'bg-gray-600 text-gray-300'
+                    r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
+                    'bg-amber-600 text-white'
                   }`}>{r.status}</span>
                 </td>
                 <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
