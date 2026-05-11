@@ -3,23 +3,29 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 
-const PAGE_SIZE = 50
-const LIST_SELECT = 'prize_id,prize_name,short_name,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
-const EDIT_SELECT = LIST_SELECT + ',prize_name_kana,aliases,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
+const PAGE_SIZE = 15
+const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
+// EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
+const EDIT_SELECT = LIST_SELECT + ',short_name,prize_name_kana,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
 
 const STATUS_VALUES = ['active', 'inactive', 'unknown']
 const PHASE_VALUES  = ['normal', 'out_of_stock', 'discontinued']
 
-function Field({ label, children }) {
+function alias0(val) {
+  try { return JSON.parse(val)?.[0] ?? null } catch { return val || null }
+}
+function wrapAlias(v) { return v.trim() ? JSON.stringify([v.trim()]) : null }
+
+function Field({ label, children, row }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-muted">{label}</span>
+    <div className={`flex ${row ? 'flex-row items-center gap-2' : 'flex-col gap-0.5'}`}>
+      {label && <span className="text-[10px] text-muted whitespace-nowrap">{label}</span>}
       {children}
     </div>
   )
 }
 
-function Input({ value, onChange, placeholder, type = 'text', required }) {
+function Input({ value, onChange, placeholder, type = 'text', required, className = '' }) {
   return (
     <input
       type={type}
@@ -27,12 +33,12 @@ function Input({ value, onChange, placeholder, type = 'text', required }) {
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full"
+      className={`bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full ${className}`}
     />
   )
 }
 
-function Select({ value, onChange, options }) {
+function FSelect({ value, onChange, options }) {
   return (
     <select
       value={value ?? ''}
@@ -60,33 +66,23 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 function Pagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null
   const items = []
-  const add = (p) => items.push({ type: 'page', p })
-  const addDot = () => items.push({ type: 'dot' })
-
   if (totalPages <= 7) {
-    for (let i = 0; i < totalPages; i++) add(i)
+    for (let i = 0; i < totalPages; i++) items.push({ type: 'page', p: i })
   } else {
     const near = new Set([0, totalPages - 1, page - 1, page, page + 1].filter(p => p >= 0 && p < totalPages))
     const sorted = [...near].sort((a, b) => a - b)
     for (let i = 0; i < sorted.length; i++) {
-      if (i > 0 && sorted[i] - sorted[i - 1] > 1) addDot()
-      add(sorted[i])
+      if (i > 0 && sorted[i] - sorted[i - 1] > 1) items.push({ type: 'dot' })
+      items.push({ type: 'page', p: sorted[i] })
     }
   }
-
   return (
     <div data-testid="prize-pagination" className="flex items-center justify-center gap-1 mt-3 flex-wrap">
       <button onClick={() => onPage(page - 1)} disabled={page === 0} className="px-2 py-1 text-xs text-muted disabled:opacity-30">‹</button>
       {items.map((it, i) =>
         it.type === 'dot'
           ? <span key={`d${i}`} className="px-1 text-xs text-muted">…</span>
-          : <button
-              key={it.p}
-              onClick={() => onPage(it.p)}
-              className={`px-2 py-1 text-xs rounded ${it.p === page ? 'bg-blue-600 text-white font-bold' : 'text-muted hover:text-text'}`}
-            >
-              {it.p + 1}
-            </button>
+          : <button key={it.p} onClick={() => onPage(it.p)} className={`px-2 py-1 text-xs rounded ${it.p === page ? 'bg-blue-600 text-white font-bold' : 'text-muted hover:text-text'}`}>{it.p + 1}</button>
       )}
       <button onClick={() => onPage(page + 1)} disabled={page >= totalPages - 1} className="px-2 py-1 text-xs text-muted disabled:opacity-30">›</button>
     </div>
@@ -94,7 +90,7 @@ function Pagination({ page, totalPages, onPage }) {
 }
 
 const EMPTY_FORM = {
-  prize_name: '', short_name: '', prize_name_kana: '', aliases: '', category: '',
+  prize_name: '', aliases: '', prize_name_kana: '', category: '',
   series: '', size: '', status: 'active', phase: 'normal',
   original_cost: '', supplier_id: '', supplier_name: '', supplier_item_code: '',
   jan_code: '', default_case_quantity: '', image_url: '', notes: '',
@@ -115,6 +111,7 @@ export default function AdminPrizeMasterPage() {
   const [stFilter, setSt]       = useState('')
   const [modal, setModal]       = useState(null)
   const [form, setForm]         = useState(EMPTY_FORM)
+  const [showMore, setShowMore] = useState(false)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState(null)
 
@@ -145,15 +142,15 @@ export default function AdminPrizeMasterPage() {
     else { setSortCol(col); setSortAsc(false) }
     setPage(0)
   }
-
-  function handleSearch(v)  { setSearch(v);   setPage(0) }
-  function handleCat(v)     { setCat(v);       setPage(0) }
-  function handleSt(v)      { setSt(v);        setPage(0) }
+  function handleSearch(v)  { setSearch(v);  setPage(0) }
+  function handleCat(v)     { setCat(v);     setPage(0) }
+  function handleSt(v)      { setSt(v);      setPage(0) }
   function reload()         { setLoadKey(k => k + 1) }
 
   function openNew() {
     setForm(EMPTY_FORM)
     setModal('new')
+    setShowMore(false)
     setError(null)
   }
 
@@ -165,9 +162,9 @@ export default function AdminPrizeMasterPage() {
       .single()
     if (e) { setError(e.message); return }
     setForm({
-      prize_name: data.prize_name ?? '', short_name: data.short_name ?? '',
-      prize_name_kana: data.prize_name_kana ?? '', aliases: data.aliases ?? '',
-      category: data.category ?? '', series: data.series ?? '', size: data.size ?? '',
+      prize_name: data.prize_name ?? '', aliases: data.aliases ?? '',
+      prize_name_kana: data.prize_name_kana ?? '', category: data.category ?? '',
+      series: data.series ?? '', size: data.size ?? '',
       status: data.status ?? 'active', phase: data.phase ?? 'normal',
       original_cost: data.original_cost ?? '', supplier_id: data.supplier_id ?? '',
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
@@ -177,6 +174,7 @@ export default function AdminPrizeMasterPage() {
       default_tag: data.default_tag ?? '', weight_g: data.weight_g ?? '',
     })
     setModal(data)
+    setShowMore(false)
     setError(null)
   }
 
@@ -185,29 +183,26 @@ export default function AdminPrizeMasterPage() {
     setSaving(true)
     setError(null)
     const now = new Date().toISOString()
+    const payload = {
+      ...form,
+      aliases: form.aliases || null,
+      original_cost: form.original_cost === '' ? null : Number(form.original_cost),
+      default_case_quantity: form.default_case_quantity === '' ? null : Number(form.default_case_quantity),
+      weight_g: form.weight_g === '' ? null : Number(form.weight_g),
+      updated_by: staffName,
+      updated_at: now,
+    }
     if (modal === 'new') {
       const { error: e } = await supabase.from('prize_masters').insert({
         prize_id: crypto.randomUUID(),
         organization_id: DFX_ORG_ID,
-        ...form,
-        original_cost: form.original_cost === '' ? null : Number(form.original_cost),
-        default_case_quantity: form.default_case_quantity === '' ? null : Number(form.default_case_quantity),
-        weight_g: form.weight_g === '' ? null : Number(form.weight_g),
+        ...payload,
         registered_by: staffName,
-        updated_by: staffName,
-        updated_at: now,
       })
       if (e) { setError(e.message); setSaving(false); return }
     } else {
       const { error: e } = await supabase.from('prize_masters')
-        .update({
-          ...form,
-          original_cost: form.original_cost === '' ? null : Number(form.original_cost),
-          default_case_quantity: form.default_case_quantity === '' ? null : Number(form.default_case_quantity),
-          weight_g: form.weight_g === '' ? null : Number(form.weight_g),
-          updated_by: staffName,
-          updated_at: now,
-        })
+        .update(payload)
         .eq('prize_id', modal.prize_id)
       if (e) { setError(e.message); setSaving(false); return }
     }
@@ -230,6 +225,7 @@ export default function AdminPrizeMasterPage() {
 
   const f = (v) => setForm(prev => ({ ...prev, ...v }))
   const totalPages = totalCount !== null ? Math.ceil(totalCount / PAGE_SIZE) : 0
+  const caseTotal = (Number(form.original_cost) || 0) * (Number(form.default_case_quantity) || 0)
 
   return (
     <div className="p-3 min-h-full">
@@ -239,7 +235,7 @@ export default function AdminPrizeMasterPage() {
           data-testid="prize-search"
           value={search}
           onChange={e => handleSearch(e.target.value)}
-          placeholder="景品名・短縮名・alias 検索"
+          placeholder="景品名・alias 検索"
           className="bg-bg border border-border rounded px-2 py-1 text-xs text-text flex-1 min-w-[160px]"
         />
         <input
@@ -283,7 +279,6 @@ export default function AdminPrizeMasterPage() {
           <thead>
             <tr className="border-b border-border">
               <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-              <th className="py-1 px-2 whitespace-nowrap text-left text-muted">短縮名</th>
               <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>
               <th className="py-1 px-2 whitespace-nowrap text-left text-muted">ST</th>
               <SortTh col="original_cost"     label="原価"     align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
@@ -292,28 +287,33 @@ export default function AdminPrizeMasterPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
-              <tr
-                key={r.prize_id}
-                data-testid="prize-row"
-                onClick={() => openEdit(r)}
-                className="border-b border-border/50 hover:bg-surface cursor-pointer"
-              >
-                <td className="py-1 px-2 text-text font-medium max-w-[200px] truncate">{r.prize_name}</td>
-                <td className="py-1 px-2 text-muted">{r.short_name}</td>
-                <td className="py-1 px-2 text-muted">{r.category}</td>
-                <td className="py-1 px-2">
-                  <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
-                    r.status === 'active'   ? 'bg-green-600 text-white' :
-                    r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
-                    'bg-amber-600 text-white'
-                  }`}>{r.status}</span>
-                </td>
-                <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
-                <td className="py-1 px-2 text-muted max-w-[120px] truncate">{r.supplier_name}</td>
-                <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
-              </tr>
-            ))}
+            {rows.map(r => {
+              const a0 = alias0(r.aliases)
+              return (
+                <tr
+                  key={r.prize_id}
+                  data-testid="prize-row"
+                  onClick={() => openEdit(r)}
+                  className="border-b border-border/50 hover:bg-surface cursor-pointer"
+                >
+                  <td className="py-1 px-2 max-w-[220px]">
+                    <div className="truncate text-text font-medium">{r.prize_name}</div>
+                    {a0 && <div className="truncate text-xs text-gray-400">{a0}</div>}
+                  </td>
+                  <td className="py-1 px-2 text-muted">{r.category}</td>
+                  <td className="py-1 px-2">
+                    <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
+                      r.status === 'active'   ? 'bg-green-600 text-white' :
+                      r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
+                      'bg-amber-600 text-white'
+                    }`}>{r.status}</span>
+                  </td>
+                  <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
+                  <td className="py-1 px-2 text-muted max-w-[120px] truncate">{r.supplier_name}</td>
+                  <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -326,7 +326,7 @@ export default function AdminPrizeMasterPage() {
           className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center"
           onClick={e => { if (e.target === e.currentTarget) setModal(null) }}
         >
-          <div data-testid="prize-modal" className="bg-bg border border-border rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[90dvh] overflow-y-auto p-4">
+          <div data-testid="prize-modal" className="bg-bg border border-border rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold text-text">
                 {modal === 'new' ? '景品 新規登録' : '景品編集'}
@@ -336,74 +336,112 @@ export default function AdminPrizeMasterPage() {
 
             {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* left: 基本情報 */}
-              <div className="flex flex-col gap-3">
-                <Field label="景品名 *">
-                  <Input value={form.prize_name} onChange={v => f({ prize_name: v })} placeholder="景品名" required />
-                </Field>
-                <Field label="短縮名">
-                  <Input value={form.short_name} onChange={v => f({ short_name: v })} placeholder="短縮名" />
-                </Field>
-                <Field label="読み仮名">
-                  <Input value={form.prize_name_kana} onChange={v => f({ prize_name_kana: v })} placeholder="かな" />
-                </Field>
-                <Field label="aliases">
-                  <Input value={form.aliases} onChange={v => f({ aliases: v })} placeholder="別名・検索用" />
-                </Field>
-                <Field label="カテゴリ">
-                  <Input value={form.category} onChange={v => f({ category: v })} placeholder="カテゴリ" />
-                </Field>
-                <Field label="シリーズ">
-                  <Input value={form.series} onChange={v => f({ series: v })} placeholder="シリーズ" />
-                </Field>
-                <Field label="サイズ">
-                  <Input value={form.size} onChange={v => f({ size: v })} placeholder="サイズ" />
-                </Field>
-                <Field label="ステータス">
-                  <Select value={form.status} onChange={v => f({ status: v })} options={STATUS_VALUES} />
-                </Field>
-                <Field label="フェーズ">
-                  <Select value={form.phase} onChange={v => f({ phase: v })} options={PHASE_VALUES} />
-                </Field>
+            <div className="flex flex-col gap-3">
+              {/* 1: 景品名 (短縮形) */}
+              <Field label="景品名 (短縮形) *">
+                <input
+                  type="text"
+                  value={form.prize_name}
+                  onChange={e => f({ prize_name: e.target.value })}
+                  placeholder="景品名"
+                  className="bg-bg border border-border rounded px-2 py-2 text-sm text-text w-full"
+                />
+              </Field>
+
+              {/* 2: 正式名称 (aliases[0]) */}
+              <Field label="正式名称 (aliases[0])">
+                <Input
+                  value={alias0(form.aliases) ?? ''}
+                  onChange={v => f({ aliases: wrapAlias(v) })}
+                  placeholder="正式名称"
+                />
+              </Field>
+
+              {/* 3: 原価 + 入数 + ケース金額 */}
+              <div className="flex gap-2 items-end">
+                <div className="flex flex-col gap-0.5 w-24">
+                  <span className="text-[10px] text-muted">単価</span>
+                  <Input value={form.original_cost} onChange={v => f({ original_cost: v })} type="number" placeholder="0" />
+                </div>
+                <div className="flex flex-col gap-0.5 w-20">
+                  <span className="text-[10px] text-muted">入数</span>
+                  <Input value={form.default_case_quantity} onChange={v => f({ default_case_quantity: v })} type="number" placeholder="0" />
+                </div>
+                <div className="flex flex-col gap-0.5 flex-1">
+                  <span className="text-[10px] text-muted">ケース金額</span>
+                  <div className="bg-bg border border-border/50 rounded px-2 py-1 text-xs text-muted">
+                    {caseTotal > 0 ? caseTotal.toLocaleString() : '—'}
+                  </div>
+                </div>
               </div>
 
-              {/* right: 仕入れ・分類・備考 */}
-              <div className="flex flex-col gap-3">
-                <Field label="原価">
-                  <Input value={form.original_cost} onChange={v => f({ original_cost: v })} type="number" placeholder="0" />
-                </Field>
-                <Field label="取引先ID">
-                  <Input value={form.supplier_id} onChange={v => f({ supplier_id: v })} placeholder="supplier_id" />
-                </Field>
-                <Field label="取引先名">
+              {/* 4: 取引先名 + 取引先ID */}
+              <div className="flex gap-2">
+                <div className="flex flex-col gap-0.5 flex-1">
+                  <span className="text-[10px] text-muted">取引先名</span>
                   <Input value={form.supplier_name} onChange={v => f({ supplier_name: v })} placeholder="取引先名" />
-                </Field>
-                <Field label="取引先品番">
-                  <Input value={form.supplier_item_code} onChange={v => f({ supplier_item_code: v })} placeholder="品番" />
-                </Field>
-                <Field label="JANコード">
-                  <Input value={form.jan_code} onChange={v => f({ jan_code: v })} placeholder="JAN" />
-                </Field>
-                <Field label="入数">
-                  <Input value={form.default_case_quantity} onChange={v => f({ default_case_quantity: v })} type="number" placeholder="0" />
-                </Field>
-                <Field label="重量(g)">
-                  <Input value={form.weight_g} onChange={v => f({ weight_g: v })} type="number" placeholder="0" />
-                </Field>
-                <Field label="画像URL">
-                  <Input value={form.image_url} onChange={v => f({ image_url: v })} placeholder="https://..." />
-                </Field>
-                <Field label="備考">
-                  <textarea
-                    value={form.notes ?? ''}
-                    onChange={e => f({ notes: e.target.value })}
-                    rows={2}
-                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full resize-none"
-                    placeholder="備考"
-                  />
-                </Field>
+                </div>
+                <div className="flex flex-col gap-0.5 w-28">
+                  <span className="text-[10px] text-muted">取引先ID</span>
+                  <Input value={form.supplier_id} onChange={v => f({ supplier_id: v })} placeholder="ID" />
+                </div>
               </div>
+
+              {/* 5: カテゴリ */}
+              <Field label="カテゴリ">
+                <Input value={form.category} onChange={v => f({ category: v })} placeholder="カテゴリ" />
+              </Field>
+
+              {/* 6: 画像URL */}
+              <Field label="画像URL">
+                <Input value={form.image_url} onChange={v => f({ image_url: v })} placeholder="https://..." />
+              </Field>
+
+              {/* その他 (折りたたみ) */}
+              <button
+                type="button"
+                onClick={() => setShowMore(m => !m)}
+                className="text-left text-xs text-muted border-t border-border pt-2 flex items-center gap-1"
+              >
+                その他 {showMore ? '▲' : '▼'}
+              </button>
+              {showMore && (
+                <div className="flex flex-col gap-3">
+                  <Field label="ステータス">
+                    <FSelect value={form.status} onChange={v => f({ status: v })} options={STATUS_VALUES} />
+                  </Field>
+                  <Field label="フェーズ">
+                    <FSelect value={form.phase} onChange={v => f({ phase: v })} options={PHASE_VALUES} />
+                  </Field>
+                  <Field label="シリーズ">
+                    <Input value={form.series} onChange={v => f({ series: v })} placeholder="シリーズ" />
+                  </Field>
+                  <Field label="サイズ">
+                    <Input value={form.size} onChange={v => f({ size: v })} placeholder="サイズ" />
+                  </Field>
+                  <Field label="JANコード">
+                    <Input value={form.jan_code} onChange={v => f({ jan_code: v })} placeholder="JAN" />
+                  </Field>
+                  <Field label="重量(g)">
+                    <Input value={form.weight_g} onChange={v => f({ weight_g: v })} type="number" placeholder="0" />
+                  </Field>
+                  <Field label="備考">
+                    <textarea
+                      value={form.notes ?? ''}
+                      onChange={e => f({ notes: e.target.value })}
+                      rows={2}
+                      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full resize-none"
+                      placeholder="備考"
+                    />
+                  </Field>
+                  <Field label="発注ルール">
+                    <Input value={form.order_rules} onChange={v => f({ order_rules: v })} placeholder="発注ルール" />
+                  </Field>
+                  <Field label="タグ">
+                    <Input value={form.tags} onChange={v => f({ tags: v })} placeholder="タグ" />
+                  </Field>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 mt-4">
