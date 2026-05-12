@@ -6,7 +6,7 @@ const TILES = [
   { label: '景品',         desc: '景品マスタ管理',         path: '/admin/masters/prizes',            impl: true  },
   { label: 'ロッカー',     desc: 'ロッカーマスタ管理',     path: '/admin/masters/lockers',           impl: false },
   { label: 'スタッフ',     desc: 'スタッフマスタ管理',     path: '/admin/masters/staff',             impl: true  },
-  { label: '取引先',       desc: '取引先マスタ管理',       path: '/admin/masters/suppliers',         impl: false },
+  { label: '取引先',       desc: '取引先マスタ管理',       path: '/admin/masters/suppliers',         impl: true  },
   { label: '区分',         desc: '入替区分マスタ管理',     path: '/admin/masters/categories',        impl: false },
   { label: '設定パターン', desc: '機械設定パターン管理',   path: '/admin/masters/settings-patterns', impl: false },
   { label: '用語マスタ',   desc: '用語・略語マスタ管理',   path: '/admin/masters/glossary',          impl: false },

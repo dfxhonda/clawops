@@ -318,8 +318,8 @@ export default function AdminPrizeMasterPage() {
                 />
               </Field>
 
-              {/* 2: 正式名称 (aliases[0]) */}
-              <Field label="正式名称 (aliases[0])">
+              {/* 2: 正式名称 */}
+              <Field label="正式名称">
                 <Input
                   value={alias0(form.aliases) ?? ''}
                   onChange={v => f({ aliases: wrapAlias(v) })}
