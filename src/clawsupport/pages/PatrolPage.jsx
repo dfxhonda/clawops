@@ -11,6 +11,7 @@ import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
 
 import OcrCaptureScreen from '../components/OcrCaptureScreen'
+import OCRMeterInput   from '../components/OCRMeterInput'
 import PatrolHeader    from '../components/PatrolHeader'
 import PrevRow         from '../components/PrevRow'
 import MeterInputRow   from '../components/MeterInputRow'
@@ -82,6 +83,11 @@ export default function PatrolPage() {
     return machines.flatMap(m => m.booths.map(b => ({ machine: m, booth: b })))
   }, [state?.machines])
   const currentIdx = allBooths.findIndex(x => x.booth.booth_code === booth?.booth_code)
+
+  const handleQR = useCallback((code) => {
+    const match = allBooths.find(({ booth: b }) => b.booth_code === code)
+    if (match) navigate('/patrol/input', { replace: true, state: { ...state, machine: match.machine, booth: match.booth } })
+  }, [allBooths, navigate, state])
 
   function handleTouchStart(e) {
     touchStartX.current = e.touches[0].clientX
@@ -326,12 +332,12 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Term id="in" style={{ fontSize: 10, color: '#8888a8', width: 18, textAlign: 'center', flexShrink: 0 }}>IN</Term>
-                  <NumpadField
+                  <OCRMeterInput
                     value={p.inMeter}
                     onChange={setPatrolIn}
                     label="INメーター"
-                    max={999999}
-                    style={inp(p.inTouched)}
+                    boothCode={booth?.booth_code}
+                    onQR={handleQR}
                   />
                 </div>
                 <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
@@ -342,12 +348,12 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Term id="out" style={{ fontSize: 10, color: '#8888a8', width: 20, textAlign: 'center', flexShrink: 0 }}>OUT</Term>
-                    <NumpadField
+                    <OCRMeterInput
                       value={o0.meter}
                       onChange={v => setPatrolOut(0, 'meter', v)}
                       label="OUTメーター"
-                      max={999999}
-                      style={inp(t0.meter)}
+                      boothCode={booth?.booth_code}
+                      onQR={handleQR}
                     />
                   </div>
                   <div style={{ fontSize: 10, color: '#8888a8', paddingLeft: 4, marginTop: 2 }}>
