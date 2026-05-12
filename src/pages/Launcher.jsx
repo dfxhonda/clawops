@@ -91,6 +91,28 @@ export default function Launcher() {
         ))}
       </div>
 
+      <div className="px-4 pb-4">
+        <button
+          type="button"
+          data-testid="launcher-tile-ocr-test"
+          onClick={() => navigate('/ocr-test')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800/40 border border-dashed border-slate-600 text-left active:scale-[0.98] transition-transform min-h-[88px] opacity-70"
+        >
+          <span
+            className="shrink-0 flex items-center justify-center text-[44px] leading-none"
+            style={{ width: 44, height: 44 }}
+            aria-hidden
+          >
+            📷
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-bold leading-tight text-white">OCRテスト</p>
+            <p className="text-[13px] text-slate-400 mt-1 leading-snug">開発用 精度テストページ</p>
+          </div>
+          <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
+        </button>
+      </div>
+
       <div className="px-4 pb-8 flex justify-center">
         <button
           type="button"
