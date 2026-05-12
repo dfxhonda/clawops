@@ -151,7 +151,7 @@ test('J-ADMIN-02f: 未実装ハブタイル tap → AdminPlaceholderPage 表示'
   await mockBase(page)
   await page.goto('/admin/masters')
   await expect(page.locator('[data-testid="admin-masters-hub"]')).toBeVisible({ timeout: 5_000 })
-  await page.locator('[data-testid="hub-tile-機械"]').click()
+  await page.locator('[data-testid="hub-tile-ロッカー"]').click()
   await expect(page.locator('[data-testid="admin-placeholder"]')).toBeVisible({ timeout: 5_000 })
 })
 
