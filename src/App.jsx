@@ -44,7 +44,11 @@ const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderP
 const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
 const AdminMasterMachinePage = lazy(() => import('./admin/pages/AdminMasterMachinePage'))
 const AdminStaffListPage     = lazy(() => import('./admin/pages/AdminStaffListPage'))
-const AdminSupplierPage      = lazy(() => import('./admin/pages/AdminSupplierPage'))
+const AdminSupplierPage           = lazy(() => import('./admin/pages/AdminSupplierPage'))
+const AdminOperationLogsPage      = lazy(() => import('./admin/pages/AdminOperationLogsPage'))
+const AdminLoginLogsPage          = lazy(() => import('./admin/pages/AdminLoginLogsPage'))
+const AdminPrizePhaseHistoryPage  = lazy(() => import('./admin/pages/AdminPrizePhaseHistoryPage'))
+const AdminStockMovementsPage     = lazy(() => import('./admin/pages/AdminStockMovementsPage'))
 
 // 遅延ロード — 巡回入力
 const BoothInput = lazy(() => import('./clawsupport/pages/BoothInput'))
@@ -185,6 +189,10 @@ function AppInner() {
         <Route path="audit/booth-edit" element={<AdminStorePage />} />
         <Route path="audit/booth-edit/:storeCode/machines" element={<AdminMachineListPage />} />
         <Route path="audit/booth-edit/:boothCode" element={<AdminBoothEditPage />} />
+        <Route path="audit/operations"  element={<AdminOperationLogsPage />} />
+        <Route path="audit/logins"      element={<AdminLoginLogsPage />} />
+        <Route path="audit/prize-phases" element={<AdminPrizePhaseHistoryPage />} />
+        <Route path="audit/stock-moves" element={<AdminStockMovementsPage />} />
         <Route path="audit/*" element={<AdminPlaceholderPage />} />
         <Route path="reports" element={<AdminReportsHubPage />} />
         <Route path="reports/*" element={<AdminPlaceholderPage />} />
