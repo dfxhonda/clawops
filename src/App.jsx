@@ -115,6 +115,7 @@ const PatrolStorePage       = lazy(() => import('./clawsupport/pages/PatrolStore
 // 遅延ロード — OCRアプリ
 const PatrolCameraPage  = lazy(() => import('./clawsupport/pages/PatrolCameraPage'))
 const PatrolBatchOcrPage = lazy(() => import('./clawsupport/pages/PatrolBatchOcrPage'))
+const OCRTestPage = lazy(() => import('./clawsupport/pages/OCRTestPage'))
 
 // 遅延ロード — 棚卸しアプリ（PIN認証）
 const StocktakeLogin = lazy(() => import('./tanasupport/pages/StocktakeLogin'))
@@ -274,6 +275,7 @@ function AppInner() {
       {/* OCR巡回入力 — 全ロール */}
       <Route path="/patrol/camera"    element={<ProtectedRoute><PatrolCameraPage /></ProtectedRoute>} />
       <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
+      <Route path="/ocr-test"         element={<ProtectedRoute><OCRTestPage /></ProtectedRoute>} />
 
       {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
       <Route path="/stock" element={<StocktakeLogin />} />
