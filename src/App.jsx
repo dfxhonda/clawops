@@ -41,6 +41,7 @@ const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage
 const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
 const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
+const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
 
 // 遅延ロード — 巡回入力
 const BoothInput = lazy(() => import('./clawsupport/pages/BoothInput'))
@@ -182,6 +183,7 @@ function AppInner() {
         <Route path="reports/*" element={<AdminPlaceholderPage />} />
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
+        <Route path="labels" element={<AdminQRLabelPage />} />
         <Route path="*" element={<AdminPlaceholderPage />} />
       </Route>
 

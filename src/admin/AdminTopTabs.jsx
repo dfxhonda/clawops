@@ -5,6 +5,7 @@ const TABS = [
   { key: 'audit',    label: '監査・履歴',     path: '/admin/audit'    },
   { key: 'reports',  label: '集計・レポート', path: '/admin/reports'  },
   { key: 'settings', label: '設定',           path: '/admin/settings' },
+  { key: 'labels',   label: 'QRラベル',       path: '/admin/labels'   },
 ]
 
 export default function AdminTopTabs() {
