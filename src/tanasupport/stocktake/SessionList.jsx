@@ -1,120 +1,70 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
-import { createSession, getActiveSessions } from './api'
-import DateTime from '../../shared/ui/DateTime'
+import { getAllSessions, getOrCreateMonthSession } from './api'
 
-function todayISO() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+function borderClass(status) {
+  if (status === 'open')      return 'border-l-emerald-500'
+  if (status === 'submitted') return 'border-l-amber-500'
+  return 'border-l-border'
 }
 
-function NewSessionSheet({ storeCode, onCreated, onClose }) {
-  const { staffId } = useAuth()
-  const today = todayISO()
-  const [name, setName] = useState(today)
-  const [startDate, setStartDate] = useState(today)
-  const [creating, setCreating] = useState(false)
-  const [error, setError] = useState(null)
-
-  async function handleCreate() {
-    setCreating(true)
-    setError(null)
-    try {
-      const sessionId = await createSession({
-        storeCode,
-        sessionName: name.trim() || today,
-        startDate,
-        staffId,
-      })
-      onCreated(sessionId)
-    } catch (e) {
-      setError(e.message)
-      setCreating(false)
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
-      style={{ background: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-surface rounded-t-2xl px-5 pt-5 pb-8 space-y-4"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-bold text-text">新規棚卸し開始</h2>
-          <button onClick={onClose} className="text-muted text-sm px-2 py-1">キャンセル</button>
-        </div>
-
-        <div>
-          <label className="text-xs text-muted block mb-1">セッション名</label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder={today}
-            style={{ fontSize: 16 }}
-            className="w-full px-3 py-2.5 rounded-lg bg-bg border border-border text-text outline-none focus:border-accent"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs text-muted block mb-1">開始日</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-            style={{ fontSize: 16 }}
-            className="w-full px-3 py-2.5 rounded-lg bg-bg border border-border text-text outline-none focus:border-accent"
-          />
-        </div>
-
-        {error && (
-          <div className="text-xs text-red-400 bg-red-400/10 border border-red-400/30 rounded-lg px-3 py-2">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleCreate}
-          disabled={creating}
-          className="w-full h-12 rounded-xl font-bold text-sm bg-emerald-500 text-white active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          {creating ? '作成中...' : '棚卸しを開始する'}
-        </button>
-      </div>
-    </div>
-  )
+function statusChip(status) {
+  if (status === 'open')      return { text: '入力中',    cls: 'text-emerald-400 border-emerald-400/40' }
+  if (status === 'submitted') return { text: '提出済み',  cls: 'text-amber-400 border-amber-400/40' }
+  if (status === 'locked')    return { text: 'ロック済み', cls: 'text-muted border-border' }
+  return { text: status, cls: 'text-muted border-border' }
 }
 
 export default function SessionList() {
-  const { storeCode } = useParams()
   const navigate = useNavigate()
-  const [storeName, setStoreName] = useState('')
   const [sessions, setSessions] = useState([])
+  const [progressMap, setProgressMap] = useState({})
   const [loading, setLoading] = useState(true)
-  const [showSheet, setShowSheet] = useState(false)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
-      const [{ data: store }, sessnData] = await Promise.all([
-        supabase.from('stores').select('store_name').eq('store_code', storeCode).single(),
-        getActiveSessions(storeCode),
-      ])
-      setStoreName(store?.store_name ?? storeCode)
-      setSessions(sessnData)
-      setLoading(false)
+      const list = await getAllSessions()
+      if (cancelled) return
+      setSessions(list)
+
+      if (list.length > 0) {
+        const { data } = await supabase
+          .from('stocktake_items')
+          .select('session_id, actual_count, owner_type')
+          .in('session_id', list.map(s => s.session_id))
+        if (!cancelled) {
+          const map = {}
+          for (const s of list) {
+            const items = (data ?? []).filter(
+              i => i.session_id === s.session_id && i.owner_type !== 'booth'
+            )
+            map[s.session_id] = {
+              total:  items.length,
+              filled: items.filter(i => i.actual_count != null).length,
+            }
+          }
+          setProgressMap(map)
+        }
+      }
+      if (!cancelled) setLoading(false)
     }
     load()
-  }, [storeCode])
+    return () => { cancelled = true }
+  }, [])
 
-  function handleCreated(sessionId) {
-    setShowSheet(false)
-    navigate(`/tanasupport/store/${storeCode}/stocktake/${sessionId}`)
+  async function handleNewSession() {
+    if (creating) return
+    setCreating(true)
+    try {
+      await getOrCreateMonthSession()
+      navigate('/tanasupport/stocktake')
+    } finally {
+      setCreating(false)
+    }
   }
 
   if (loading) return (
@@ -127,62 +77,71 @@ export default function SessionList() {
     <div className="min-h-screen bg-bg text-text">
       <PageHeader
         module="tanasupport"
-        title={storeName}
-        onBack={() => navigate(`/tanasupport/store/${storeCode}`)}
-      >
-        <span className="text-xs text-muted shrink-0">棚卸しセッション</span>
-      </PageHeader>
+        title="棚卸しセッション"
+        onBack={() => navigate('/tanasupport')}
+      />
 
-      <div className="px-5 pb-28">
-        {sessions.length === 0 ? (
-          <div className="text-center text-muted text-sm py-16">
-            進行中の棚卸しセッションはありません
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {sessions.map(s => (
-              <button
-                key={s.session_id}
-                onClick={() => navigate(`/tanasupport/store/${storeCode}/stocktake/${s.session_id}`)}
-                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-all"
-              >
-                <span className="text-lg">{s.status === 'submitted' ? '📤' : '📋'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold truncate">{s.session_name}</div>
-                  <div className="text-xs text-muted mt-0.5">
-                    {s.start_date ? <DateTime value={s.start_date} format="short" /> : '未定'} 〜 {s.end_date ? <DateTime value={s.end_date} format="short" /> : '未定'}
-                  </div>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${
-                  s.status === 'submitted'
-                    ? 'text-yellow-400 border-yellow-400/40'
-                    : 'text-emerald-400 border-emerald-400/40'
-                }`}>
-                  {s.status === 'submitted' ? '提出済み' : '入力中'}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 新規棚卸し開始ボタン（固定フッター） */}
-      <div className="fixed bottom-0 left-0 right-0 px-5 pb-6 pt-3 bg-bg border-t border-border">
+      {/* 上部: 新しい棚卸しを開始 */}
+      <div className="px-5 pt-3 pb-3 border-b border-border">
         <button
-          onClick={() => setShowSheet(true)}
-          className="w-full h-12 rounded-xl font-bold text-sm bg-emerald-500 text-white active:scale-[0.98] transition-all"
+          onClick={handleNewSession}
+          disabled={creating}
+          className="w-full h-12 bg-accent text-white font-bold text-sm rounded-2xl active:scale-[0.98] transition-all disabled:opacity-60"
+          data-testid="btn-new-session"
         >
-          ＋ 新規棚卸し開始
+          {creating ? '作成中...' : '＋ 新しい棚卸しを開始'}
         </button>
       </div>
 
-      {showSheet && (
-        <NewSessionSheet
-          storeCode={storeCode}
-          onCreated={handleCreated}
-          onClose={() => setShowSheet(false)}
-        />
-      )}
+      {/* セッション一覧 */}
+      <div className="px-5 pt-3 pb-10 space-y-2">
+        {sessions.length === 0 ? (
+          <div className="text-center text-muted text-sm py-16">
+            セッションがありません
+          </div>
+        ) : (
+          sessions.map(s => {
+            const prog = progressMap[s.session_id]
+            const pct  = prog && prog.total > 0 ? Math.round((prog.filled / prog.total) * 100) : null
+            const chip = statusChip(s.status)
+            const monthLabel = new Date(s.month + 'T00:00:00+09:00')
+              .toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })
+            return (
+              <button
+                key={s.session_id}
+                onClick={() => navigate('/tanasupport/stocktake')}
+                data-testid={`session-card-${s.session_id}`}
+                className={`w-full text-left bg-surface border border-border border-l-4 ${borderClass(s.status)} rounded-xl px-4 py-3 active:scale-[0.98] transition-all`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold truncate">{monthLabel}</div>
+                    {prog != null && (
+                      <div className="mt-1.5">
+                        <div className="flex justify-between text-[10px] text-muted mb-0.5">
+                          <span>入力済 {prog.filled}/{prog.total}</span>
+                          {pct != null && <span>{pct}%</span>}
+                        </div>
+                        <div className="w-full h-1.5 bg-bg rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              pct === 100 ? 'bg-emerald-500' : 'bg-accent'
+                            }`}
+                            style={{ width: `${pct ?? 0}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${chip.cls}`}>
+                    {chip.text}
+                  </span>
+                </div>
+              </button>
+            )
+          })
+        )}
+      </div>
     </div>
   )
 }
