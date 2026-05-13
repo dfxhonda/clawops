@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import LiveCameraView from '../components/LiveCameraView'
@@ -16,6 +17,7 @@ const S = {
 }
 
 export default function OCRTestPage() {
+  const navigate = useNavigate()
   const { organizationId } = useAuth()
   const [stores, setStores]         = useState([])
   const [storeCode, setStoreCode]   = useState('')
@@ -140,6 +142,9 @@ export default function OCRTestPage() {
 
   return (
     <div style={S.page}>
+      <button onClick={() => navigate('/launcher')} className="text-sm text-gray-400 hover:text-white flex items-center gap-1 mb-4">
+        ← ホーム
+      </button>
       <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: '#e0e0f0' }}>OCR 精度テスト</h1>
 
       <div style={S.card}>
