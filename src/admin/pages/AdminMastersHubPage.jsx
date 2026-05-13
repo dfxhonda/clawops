@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 const TILES = [
-  { label: '店舗',         desc: '店舗マスタ管理',         path: '/admin/masters/stores',            impl: true  },
+  { label: '店舗',         desc: '店舗マスタ管理',         path: '/admin/masters/store-list',        impl: true  },
   { label: '機械',         desc: '機械/機種マスタ管理',    path: '/admin/masters/machines',          impl: true  },
   { label: '景品',         desc: '景品マスタ管理',         path: '/admin/masters/prizes',            impl: true  },
   { label: 'ロッカー',     desc: 'ロッカーマスタ管理',     path: '/admin/masters/lockers',           impl: false },

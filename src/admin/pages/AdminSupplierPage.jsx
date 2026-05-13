@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 
-const LIST_SELECT = 'supplier_id,supplier_name,supplier_kana,phone,email,website,notes,is_active'
+const LIST_SELECT = 'supplier_id,supplier_name,supplier_type,contact_method,contact_detail,order_method,default_prize_tag,lead_time_days,payment_terms,is_active,notes'
 
 const EMPTY_FORM = {
-  supplier_name: '', supplier_kana: '', phone: '', email: '',
-  website: '', notes: '', is_active: true,
+  supplier_name: '', supplier_type: '', contact_method: '',
+  contact_detail: '', order_method: '', default_prize_tag: '',
+  lead_time_days: '', payment_terms: '', is_active: true, notes: '',
 }
 
 function Field({ label, children }) {
@@ -32,16 +34,17 @@ function TInput({ value, onChange, placeholder, type = 'text' }) {
 }
 
 export default function AdminSupplierPage() {
+  const navigate = useNavigate()
   const { staffName } = useAuth()
-  const [rows, setRows]       = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState('')
+  const [rows, setRows]             = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [search, setSearch]         = useState('')
   const [activeOnly, setActiveOnly] = useState(false)
-  const [modal, setModal]     = useState(null)
-  const [form, setForm]       = useState(EMPTY_FORM)
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState(null)
-  const [loadKey, setLoadKey] = useState(0)
+  const [modal, setModal]           = useState(null)
+  const [form, setForm]             = useState(EMPTY_FORM)
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState(null)
+  const [loadKey, setLoadKey]       = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -70,16 +73,20 @@ export default function AdminSupplierPage() {
 
   async function openEdit(row) {
     const { data, error: loadErr } = await supabase
-      .from('suppliers')
-      .select(LIST_SELECT)
-      .eq('supplier_id', row.supplier_id)
-      .single()
+      .from('suppliers').select(LIST_SELECT)
+      .eq('supplier_id', row.supplier_id).single()
     if (loadErr) { setError(loadErr.message); return }
     setForm({
-      supplier_name: data.supplier_name ?? '', supplier_kana: data.supplier_kana ?? '',
-      phone: data.phone ?? '', email: data.email ?? '',
-      website: data.website ?? '', notes: data.notes ?? '',
-      is_active: data.is_active ?? true,
+      supplier_name:    data.supplier_name ?? '',
+      supplier_type:    data.supplier_type ?? '',
+      contact_method:   data.contact_method ?? '',
+      contact_detail:   data.contact_detail ?? '',
+      order_method:     data.order_method ?? '',
+      default_prize_tag: data.default_prize_tag ?? '',
+      lead_time_days:   data.lead_time_days ?? '',
+      payment_terms:    data.payment_terms ?? '',
+      is_active:        data.is_active ?? true,
+      notes:            data.notes ?? '',
     })
     setModal(data)
     setError(null)
@@ -90,19 +97,22 @@ export default function AdminSupplierPage() {
     setSaving(true)
     setError(null)
     const payload = {
-      supplier_name: form.supplier_name.trim(),
-      supplier_kana: form.supplier_kana || null,
-      phone:    form.phone || null,
-      email:    form.email || null,
-      website:  form.website || null,
-      notes:    form.notes || null,
-      is_active: form.is_active,
-      updated_by: staffName,
-      updated_at: new Date().toISOString(),
+      supplier_name:     form.supplier_name.trim(),
+      supplier_type:     form.supplier_type || null,
+      contact_method:    form.contact_method || null,
+      contact_detail:    form.contact_detail || null,
+      order_method:      form.order_method || null,
+      default_prize_tag: form.default_prize_tag || null,
+      lead_time_days:    form.lead_time_days !== '' ? Number(form.lead_time_days) : null,
+      payment_terms:     form.payment_terms || null,
+      is_active:         form.is_active,
+      notes:             form.notes || null,
+      updated_by:        staffName,
+      updated_at:        new Date().toISOString(),
     }
     if (modal === 'new') {
       const { error: saveErr } = await supabase.from('suppliers').insert({
-        supplier_id: crypto.randomUUID(),
+        supplier_id:     crypto.randomUUID(),
         organization_id: DFX_ORG_ID,
         ...payload,
         created_by: staffName,
@@ -110,8 +120,7 @@ export default function AdminSupplierPage() {
       if (saveErr) { setError(saveErr.message); setSaving(false); return }
     } else {
       const { error: saveErr } = await supabase.from('suppliers')
-        .update(payload)
-        .eq('supplier_id', modal.supplier_id)
+        .update(payload).eq('supplier_id', modal.supplier_id)
       if (saveErr) { setError(saveErr.message); setSaving(false); return }
     }
     setSaving(false)
@@ -119,12 +128,18 @@ export default function AdminSupplierPage() {
     reload()
   }
 
-  const f = (v) => setForm(prev => ({ ...prev, ...v }))
+  const f = v => setForm(prev => ({ ...prev, ...v }))
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
       <div className="flex-shrink-0 p-3 pb-2">
+        <button
+          onClick={() => navigate('/admin/masters')}
+          className="text-sm text-gray-400 hover:text-white flex items-center gap-1 mb-3"
+        >
+          ← 戻る
+        </button>
         <div className="flex flex-wrap gap-2 items-center">
           <input
             data-testid="supplier-search"
@@ -143,9 +158,7 @@ export default function AdminSupplierPage() {
             />
             有効のみ
           </label>
-          <span className="text-xs text-muted whitespace-nowrap">
-            {rows.length}件
-          </span>
+          <span className="text-xs text-muted whitespace-nowrap">{rows.length}件</span>
           <button
             data-testid="supplier-new-button"
             onClick={openNew}
@@ -159,18 +172,18 @@ export default function AdminSupplierPage() {
       {/* list */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0">
         {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-        {!loading && rows.length === 0 && (
-          <p className="text-center text-muted text-xs py-8">該当なし</p>
-        )}
+        {!loading && rows.length === 0 && <p className="text-center text-muted text-xs py-8">該当なし</p>}
         {error && !modal && <p className="text-red-400 text-xs px-3 py-2">{error}</p>}
         <div data-testid="supplier-list">
           <table className="w-full text-xs border-collapse">
             <thead className="sticky top-0 bg-bg z-10">
               <tr className="border-b border-border">
                 <th className="py-1 px-2 text-left text-muted">取引先名</th>
-                <th className="py-1 px-2 text-left text-muted">カナ</th>
-                <th className="py-1 px-2 text-left text-muted">電話</th>
-                <th className="py-1 px-2 text-left text-muted">メール</th>
+                <th className="py-1 px-2 text-left text-muted hidden md:table-cell">種別</th>
+                <th className="py-1 px-2 text-left text-muted hidden md:table-cell">連絡方法</th>
+                <th className="py-1 px-2 text-left text-muted">連絡先</th>
+                <th className="py-1 px-2 text-left text-muted hidden md:table-cell">発注方法</th>
+                <th className="py-1 px-2 text-right text-muted hidden md:table-cell">LT</th>
                 <th className="py-1 px-2 text-left text-muted">ST</th>
               </tr>
             </thead>
@@ -182,10 +195,14 @@ export default function AdminSupplierPage() {
                   onClick={() => openEdit(r)}
                   className="border-b border-border/50 hover:bg-surface cursor-pointer"
                 >
-                  <td className="py-1.5 px-2 text-text font-medium max-w-[180px] truncate">{r.supplier_name}</td>
-                  <td className="py-1.5 px-2 text-muted max-w-[120px] truncate">{r.supplier_kana}</td>
-                  <td className="py-1.5 px-2 text-muted">{r.phone}</td>
-                  <td className="py-1.5 px-2 text-muted max-w-[160px] truncate">{r.email}</td>
+                  <td className="py-1.5 px-2 text-text font-medium max-w-[160px] truncate">{r.supplier_name}</td>
+                  <td className="py-1.5 px-2 text-muted hidden md:table-cell">{r.supplier_type}</td>
+                  <td className="py-1.5 px-2 text-muted hidden md:table-cell">{r.contact_method}</td>
+                  <td className="py-1.5 px-2 text-muted max-w-[140px] truncate">{r.contact_detail}</td>
+                  <td className="py-1.5 px-2 text-muted hidden md:table-cell">{r.order_method}</td>
+                  <td className="py-1.5 px-2 text-right text-muted font-mono hidden md:table-cell">
+                    {r.lead_time_days != null ? `${r.lead_time_days}日` : ''}
+                  </td>
                   <td className="py-1.5 px-2">
                     <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
                       r.is_active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
@@ -220,17 +237,26 @@ export default function AdminSupplierPage() {
               <Field label="取引先名 *">
                 <TInput value={form.supplier_name} onChange={v => f({ supplier_name: v })} placeholder="取引先名" />
               </Field>
-              <Field label="カナ">
-                <TInput value={form.supplier_kana} onChange={v => f({ supplier_kana: v })} placeholder="カタカナ" />
+              <Field label="種別">
+                <TInput value={form.supplier_type} onChange={v => f({ supplier_type: v })} placeholder="景品メーカー / 問屋 など" />
               </Field>
-              <Field label="電話番号">
-                <TInput value={form.phone} onChange={v => f({ phone: v })} placeholder="0120-..." type="tel" />
+              <Field label="連絡方法">
+                <TInput value={form.contact_method} onChange={v => f({ contact_method: v })} placeholder="電話 / メール / LINE など" />
               </Field>
-              <Field label="メールアドレス">
-                <TInput value={form.email} onChange={v => f({ email: v })} placeholder="info@example.com" type="email" />
+              <Field label="連絡先">
+                <TInput value={form.contact_detail} onChange={v => f({ contact_detail: v })} placeholder="電話番号 / メールアドレス など" />
               </Field>
-              <Field label="Webサイト">
-                <TInput value={form.website} onChange={v => f({ website: v })} placeholder="https://..." />
+              <Field label="発注方法">
+                <TInput value={form.order_method} onChange={v => f({ order_method: v })} placeholder="電話 / FAX / Web など" />
+              </Field>
+              <Field label="デフォルト景品タグ">
+                <TInput value={form.default_prize_tag} onChange={v => f({ default_prize_tag: v })} placeholder="タグ" />
+              </Field>
+              <Field label="リードタイム (日)">
+                <TInput value={form.lead_time_days} onChange={v => f({ lead_time_days: v })} placeholder="3" type="number" />
+              </Field>
+              <Field label="支払条件">
+                <TInput value={form.payment_terms} onChange={v => f({ payment_terms: v })} placeholder="月末締め翌月払い など" />
               </Field>
               <Field label="備考">
                 <textarea
@@ -242,12 +268,7 @@ export default function AdminSupplierPage() {
                 />
               </Field>
               <label className="flex items-center gap-2 text-xs text-text cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={e => f({ is_active: e.target.checked })}
-                  className="accent-accent"
-                />
+                <input type="checkbox" checked={form.is_active} onChange={e => f({ is_active: e.target.checked })} className="accent-accent" />
                 有効 (is_active)
               </label>
             </div>
