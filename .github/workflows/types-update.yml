@@ -26,6 +26,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: npm run gen-types
+        # exits 0 with warning when token not set (see scripts/gen-supabase-types.sh)
 
       - name: Check for type changes
         id: diff
