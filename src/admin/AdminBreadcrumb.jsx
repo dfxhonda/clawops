@@ -4,6 +4,7 @@ const LABELS = {
   admin:               'マネサポ',
   masters:             'マスタ',
   stores:              '店舗',
+  'store-list':        '店舗',
   machines:            '機械',
   prizes:              '景品',
   lockers:             'ロッカー',
