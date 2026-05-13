@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -29,6 +29,7 @@ export default function OCRTestPage() {
   const [draft, setDraft]           = useState('')
   const [logs, setLogs]             = useState([])
 
+  const fileInputRef = useRef(null)
   const { engine, toggleEngine, loading, error, boundingBox, runOCR } = useOCR({ boothCode, orgId: organizationId })
 
   function addLog(entry) {
@@ -167,13 +168,40 @@ export default function OCRTestPage() {
         >
           {engine === 'C' ? '🤖 Claude Vision' : '🔤 Tesseract'} ← タップで切替
         </button>
-        <button
-          onClick={() => setShowCamera(true)}
-          disabled={!boothCode}
-          style={{ ...S.btn, background: boothCode ? '#22c55e' : '#2a2a44', color: boothCode ? '#000' : '#666', marginBottom: 0 }}
-        >
-          📷 カメラ起動
-        </button>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 0 }}>
+          <button
+            onClick={() => setShowCamera(true)}
+            disabled={!boothCode}
+            style={{ ...S.btn, flex: 1, background: boothCode ? '#22c55e' : '#2a2a44', color: boothCode ? '#000' : '#666', marginBottom: 0 }}
+          >
+            📷 カメラ起動
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!boothCode}
+            style={{ ...S.btn, flex: 1, background: boothCode ? '#f59e0b' : '#2a2a44', color: boothCode ? '#000' : '#666', marginBottom: 0 }}
+          >
+            🖼️ ギャラリーから選択
+          </button>
+        </div>
+        {/* display:none はinput要素自身に直接指定 (iOS Safari規則) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            const reader = new FileReader()
+            reader.onload = () => {
+              const base64 = reader.result.split(',')[1]
+              handleCapture(base64, file)
+            }
+            reader.readAsDataURL(file)
+            e.target.value = ''
+          }}
+        />
         {!boothCode && <p style={{ ...S.label, color: '#f87171', marginTop: 4 }}>ブースを選択してください</p>}
       </div>
 
