@@ -152,7 +152,7 @@ export default function AdminStoreListPage() {
   const f = v => setForm(prev => ({ ...prev, ...v }))
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
+    <div data-testid="admin-store-list" className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
       <div className="flex-shrink-0 p-3 pb-2">
         <button
