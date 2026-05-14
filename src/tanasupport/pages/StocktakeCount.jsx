@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { logWithLocation } from '../../services/audit'
+import { useGeolocation } from '../../shared/hooks/useGeolocation'
 
 const FILTERS = [
   { key: 'uncounted', label: '未カウント' },
@@ -113,6 +115,7 @@ export default function StocktakeCount() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
   const staffId   = sessionStorage.getItem('stocktake_staff_id')
+  const { getLocation } = useGeolocation()
 
   const [session, setSession]   = useState(null)
   const [lines, setLines]       = useState([])
@@ -247,6 +250,15 @@ export default function StocktakeCount() {
     await supabase.from('stocktake_sessions')
       .update({ status: 'completed', finished_at: new Date().toISOString(), counted_items: countedCount })
       .eq('session_id', sessionId)
+    // fire-and-forget: 業務優先
+    getLocation().then(location => logWithLocation({
+      staff_id: staffId,
+      action: 'stocktake_confirm',
+      target_table: 'stocktake_sessions',
+      target_id: sessionId,
+      organization_id: '14e907a7-65a3-4891-9a3c-20ea0a7c14fd',
+      location,
+    }))
     navigate(`/stock/summary/${sessionId}`)
   }
 

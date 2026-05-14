@@ -89,6 +89,42 @@ export async function writeAuditLog(entry) {
 }
 
 /**
+ * 位置情報付き監査ログを書き込む (fire-and-forget 想定)
+ * @param {object} entry
+ * @param {string} entry.staff_id
+ * @param {string} entry.action
+ * @param {string} entry.target_table
+ * @param {string} entry.target_id
+ * @param {string} [entry.detail]
+ * @param {object} [entry.before_data]
+ * @param {object} [entry.after_data]
+ * @param {string} entry.organization_id
+ * @param {{ lat: number|null, lng: number|null, accuracy: number|null }} [entry.location]
+ */
+export async function logWithLocation({
+  staff_id, action, target_table, target_id,
+  detail = null, before_data = null, after_data = null,
+  organization_id, location = { lat: null, lng: null, accuracy: null },
+}) {
+  const { error } = await supabase.from('audit_logs').insert({
+    staff_id,
+    action,
+    target_table,
+    target_id: String(target_id),
+    detail,
+    before_data,
+    after_data,
+    lat: location.lat,
+    lng: location.lng,
+    location_accuracy: location.accuracy,
+    organization_id,
+  })
+  if (error && typeof window !== 'undefined' && window.Sentry) {
+    window.Sentry.captureException(error, { tags: { audit: 'location_witness' } })
+  }
+}
+
+/**
  * 監査ログを検索・取得する
  * @param {object} filters
  * @param {number} [offset=0]

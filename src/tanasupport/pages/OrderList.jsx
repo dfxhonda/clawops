@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useRole } from '../../shared/auth/useRole'
+import { logWithLocation } from '../../services/audit'
+import { useGeolocation } from '../../shared/hooks/useGeolocation'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
 
@@ -20,6 +22,7 @@ export default function OrderList() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(null)
   const { staffId } = useRole()
+  const { getLocation } = useGeolocation()
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 
   useEffect(() => {
@@ -63,6 +66,15 @@ export default function OrderList() {
     if (!error) {
       setOrders(prev => prev.filter(o => o.order_id !== orderId))
       setCounts(c => ({ ...c, shipped: Math.max(0, c.shipped - 1), arrived: c.arrived + 1 }))
+      // fire-and-forget: 業務優先
+      getLocation().then(location => logWithLocation({
+        staff_id: staffId,
+        action: 'order_received',
+        target_table: 'prize_orders',
+        target_id: orderId,
+        organization_id: '14e907a7-65a3-4891-9a3c-20ea0a7c14fd',
+        location,
+      }))
     }
     setSaving(null)
   }

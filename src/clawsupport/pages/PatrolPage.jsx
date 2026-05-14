@@ -6,6 +6,8 @@ import { detectAlerts } from '../../utils/patrolAlerts'
 import { usePatrolForm } from '../../hooks/usePatrolForm'
 import { useLockerState } from '../../hooks/useLockerState'
 import { getYesterdayPatrol, updatePatrolReading, saveReplaceReadingV2, getReadingBefore } from '../../services/patrolV2'
+import { logWithLocation } from '../../services/audit'
+import { useGeolocation } from '../../shared/hooks/useGeolocation'
 
 import Term    from '../../components/Term'
 import HelpFAB from '../../components/HelpFAB'
@@ -48,6 +50,7 @@ export default function PatrolPage() {
   const { state } = useLocation()
   const navigate  = useNavigate()
   const { staffId } = useAuth()
+  const { getLocation } = useGeolocation()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const booth = state?.booth
   const machine = state?.machine
@@ -253,6 +256,16 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           return
         }
       }
+      // fire-and-forget: 業務優先、audit失敗は業務を止めない
+      getLocation().then(location => logWithLocation({
+        staff_id: staffId,
+        action: 'patrol_confirm',
+        target_table: 'meter_readings',
+        target_id: existingRecord?.reading_id || booth?.booth_code || '',
+        after_data: { mode },
+        organization_id: '14e907a7-65a3-4891-9a3c-20ea0a7c14fd',
+        location,
+      }))
       setSaving(false)
       setSaved(true)
       setTimeout(() => {
