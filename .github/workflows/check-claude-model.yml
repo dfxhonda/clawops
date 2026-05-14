@@ -1,0 +1,54 @@
+name: Claude Model Check
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # 毎週月曜 09:00 JST (UTC 00:00)
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check Claude model availability
+        id: check
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: bash scripts/check-claude-model.sh
+        continue-on-error: true
+
+      - name: Create GitHub Issue on failure
+        if: steps.check.outcome == 'failure'
+        uses: actions/github-script@v7
+        env:
+          MODEL: ${{ steps.check.outputs.model }}
+          RETIRED_AT: ${{ steps.check.outputs.retired_at }}
+          REASON: ${{ steps.check.outputs.reason }}
+        with:
+          script: |
+            const model = process.env.MODEL || 'claude-sonnet-4-6'
+            const retiredAt = process.env.RETIRED_AT || 'unknown'
+            const reason = process.env.REASON || 'unknown'
+
+            const title = `\u{1F6A8} Claude model ${model} の廃止が近づいています`
+            const body = reason === 'not_found'
+              ? `## Claude モデル廃止検知\n\n**モデル:** \`${model}\`\n**状態:** Anthropic API から削除済み（廃止済み）\n\n### 対応手順\n1. [Anthropic モデル一覧](https://docs.anthropic.com/en/docs/about-claude/models) で後継モデルを確認\n2. \`api/ocr.js\` のデフォルト値を更新\n3. Vercel 環境変数 \`CLAUDE_MODEL\` を更新`
+              : `## Claude モデル廃止警告\n\n**モデル:** \`${model}\`\n**廃止予定日:** ${retiredAt}\n\n### 対応手順\n1. [Anthropic モデル一覧](https://docs.anthropic.com/en/docs/about-claude/models) で後継モデルを確認\n2. \`api/ocr.js\` のデフォルト値を更新\n3. Vercel 環境変数 \`CLAUDE_MODEL\` を更新`
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['infra'],
+            })
+
+      - name: Fail job if model check failed
+        if: steps.check.outcome == 'failure'
+        run: exit 1
