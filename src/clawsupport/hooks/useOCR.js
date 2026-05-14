@@ -45,9 +45,6 @@ export function useOCR({ boothCode, orgId }) {
         photoUrl = await uploadPhoto(blob)
       }
 
-      let value = null
-      let bb = null
-
       if (engine === 'C') {
         const resp = await fetch('/api/ocr', {
           method: 'POST',
@@ -58,11 +55,14 @@ export function useOCR({ boothCode, orgId }) {
           const errorBody = await resp.json().catch(() => ({}))
           const errMsg = errorBody.error || `HTTP ${resp.status}`
           setError(errMsg)
-          return { error: errMsg, detail: errorBody.anthropic_detail || '', value: null, photoUrl }
+          return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl }
         }
         const data = await resp.json()
-        value = data.value
-        bb = data.bounding_box ?? null
+        const ocrMeters = data.meters || []
+        const value = ocrMeters.find(m => m.type === 'in')?.value ?? ocrMeters[0]?.value ?? data.value ?? null
+        const bb = ocrMeters[0]?.bounding_box ?? data.bounding_box ?? null
+        if (bb) setBoundingBox(bb)
+        return { meters: ocrMeters, value, photoUrl }
       } else {
         // T = Tesseract path: fall back to Supabase ocr-meter
         const { data, error: e } = await supabase.functions.invoke('ocr-meter', {
@@ -70,14 +70,13 @@ export function useOCR({ boothCode, orgId }) {
         })
         if (e) throw new Error(e.message)
         // ocr-meter returns left_in/left_out/right_in/right_out; take left_in as fallback
-        value = data?.left_in ?? data?.right_in ?? null
+        const value = data?.left_in ?? data?.right_in ?? null
+        const meters = value != null ? [{ value, type: 'unknown' }] : []
+        return { meters, value, photoUrl }
       }
-
-      if (bb) setBoundingBox(bb)
-      return { value, photoUrl }
     } catch (e) {
       setError(e.message || 'OCR失敗')
-      return { value: null, photoUrl }
+      return { meters: [], value: null, photoUrl }
     } finally {
       setLoading(false)
     }

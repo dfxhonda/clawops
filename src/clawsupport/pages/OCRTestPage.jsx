@@ -28,6 +28,8 @@ export default function OCRTestPage() {
   const [captured, setCaptured]     = useState(null)
   const [draft, setDraft]           = useState('')
   const [ocrDetail, setOcrDetail]   = useState(null)
+  const [meters, setMeters]         = useState([])
+  const [focusedIdx, setFocusedIdx] = useState(0)
   const [logs, setLogs]             = useState([])
 
   const fileInputRef = useRef(null)
@@ -62,12 +64,20 @@ export default function OCRTestPage() {
     setConfirming(true)
     setDraft('')
     setOcrDetail(null)
+    setMeters([])
+    setFocusedIdx(0)
     addLog({ event: 'capture', engine, boothCode })
 
     const result = await runOCR(base64, blob)
-    const { value, photoUrl, detail } = result
+    const { value, photoUrl, detail, meters: ocrMeters } = result
     if (detail) setOcrDetail(detail)
-    addLog({ event: 'ocr_done', engine, value, photoUrl: photoUrl ?? null, boundingBox: boundingBox ?? null })
+    const meterList = ocrMeters || []
+    setMeters(meterList)
+    if (meterList.length >= 2) {
+      const inIdx = meterList.findIndex(m => m.type === 'in')
+      setFocusedIdx(inIdx >= 0 ? inIdx : 0)
+    }
+    addLog({ event: 'ocr_done', engine, value, photoUrl: photoUrl ?? null, boundingBox: boundingBox ?? null, meters_count: meterList.length })
     if (value != null) setDraft(String(value))
   }
 
@@ -78,20 +88,43 @@ export default function OCRTestPage() {
   }
 
   function handleNumKey(k) {
-    if (k === '⌫') setDraft(d => d.slice(0, -1))
-    else setDraft(d => { const n = d + k; return parseInt(n, 10) > MAX ? d : n })
+    if (meters.length >= 2) {
+      setMeters(prev => prev.map((m, i) => {
+        if (i !== focusedIdx) return m
+        const cur = String(m.value ?? '')
+        if (k === '⌫') return { ...m, value: cur.slice(0, -1) }
+        const n = cur + k
+        return parseInt(n, 10) > MAX ? m : { ...m, value: n }
+      }))
+    } else {
+      if (k === '⌫') setDraft(d => d.slice(0, -1))
+      else setDraft(d => { const n = d + k; return parseInt(n, 10) > MAX ? d : n })
+    }
   }
 
   function confirmDraft() {
-    addLog({ event: 'confirmed', value: draft })
+    let confirmedValue
+    if (meters.length >= 2) {
+      const inM = meters.find(m => m.type === 'in')
+      const outM = meters.find(m => m.type === 'out')
+      const parts = []
+      if (inM?.value) parts.push(`IN:${inM.value}`)
+      if (outM?.value) parts.push(`OUT:${outM.value}`)
+      confirmedValue = parts.length > 0 ? parts.join('/') : ''
+    } else {
+      confirmedValue = draft
+    }
+    addLog({ event: 'confirmed', value: confirmedValue })
     setConfirming(false)
     setCaptured(null)
+    setMeters([])
   }
 
   function cancelConfirm() {
     addLog({ event: 'cancelled' })
     setConfirming(false)
     setCaptured(null)
+    setMeters([])
   }
 
   if (showCamera) {
@@ -107,12 +140,15 @@ export default function OCRTestPage() {
   }
 
   if (confirming) {
+    const isMulti = meters.length >= 2
+    const confirmDisabled = isMulti ? meters.every(m => !m.value) : !draft
+
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column' }}>
         {captured?.url && (
           <div style={{ position: 'relative', maxHeight: '33dvh', overflow: 'hidden', flexShrink: 0 }}>
             <img src={captured.url} alt="captured" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-            {error && boundingBox && (
+            {!isMulti && error && boundingBox && (
               <div style={{
                 position: 'absolute',
                 left: `${boundingBox.x * 100}%`, top: `${boundingBox.y * 100}%`,
@@ -136,10 +172,39 @@ export default function OCRTestPage() {
               )}
             </>
           )}
-          <input
-            readOnly value={draft}
-            style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #5dade2', borderRadius: 0, fontSize: 28, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
-          />
+
+          {isMulti ? (
+            <div style={{ overflowY: 'auto', maxHeight: '22dvh' }}>
+              {meters.map((m, i) => {
+                const isFocused = i === focusedIdx
+                const badgeBg = m.type === 'in' ? '#10b981' : m.type === 'out' ? '#f59e0b' : '#6b7280'
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setFocusedIdx(i)}
+                    style={{ ...S.card, marginBottom: 8, border: isFocused ? '2px solid #5dade2' : '1px solid #2a2a44', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: '#8888a8' }}>{m.label || '—'}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, background: badgeBg, color: '#000', padding: '1px 6px', borderRadius: 4 }}>
+                        {m.type === 'in' ? 'IN' : m.type === 'out' ? 'OUT' : '?'}
+                      </span>
+                    </div>
+                    <input
+                      readOnly
+                      value={String(m.value ?? '')}
+                      style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: isFocused ? '2px solid #5dade2' : '1px solid #444', borderRadius: 0, fontSize: 22, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <input
+              readOnly value={draft}
+              style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #5dade2', borderRadius: 0, fontSize: 28, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
+            />
+          )}
         </div>
 
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -148,7 +213,7 @@ export default function OCRTestPage() {
 
         <div style={{ display: 'flex', gap: 8, padding: '8px 16px 32px' }}>
           <button onClick={cancelConfirm} style={{ ...S.btn, flex: 1, background: '#2a2a44', color: '#e0e0f0' }}>キャンセル</button>
-          <button onClick={confirmDraft} disabled={!draft} style={{ ...S.btn, flex: 2, background: draft ? '#5dade2' : '#2a2a44', color: '#000' }}>確定</button>
+          <button onClick={confirmDraft} disabled={confirmDisabled} style={{ ...S.btn, flex: 2, background: confirmDisabled ? '#2a2a44' : '#5dade2', color: '#000' }}>確定</button>
         </div>
       </div>
     )

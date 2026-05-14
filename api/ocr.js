@@ -1,9 +1,11 @@
 export const config = { runtime: 'edge' }
 
-const PROMPT = `この画像のメーター数値を読み取ってください。
-数値のみ返し、bounding_boxも付けてください。
-JSON形式のみ: {"value": 12345, "bounding_box": {"x": 0.1, "y": 0.3, "w": 0.8, "h": 0.2}}
-値が読めない場合: {"value": null, "bounding_box": null}`
+const PROMPT = `ゲーム機のメーター(黒枠の回転ドラム式数字窓)を全て読み取って。
+ラベル(¥1000,IN,OUT等)は無視。先頭0含めて全桁。
+下のラベルでtype分類: IN系=in, OUT系=out, 不明=unknown
+JSON形式のみで返却:
+{"meters":[{"label":"¥1000 IN","value":"010160","type":"in","confidence":"high","bounding_box":{"x":0.1,"y":0.4,"w":0.3,"h":0.15}}]}
+見つからない場合 meters:[]`
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
@@ -42,7 +44,7 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 64,
+      max_tokens: 256,
       messages: [{
         role: 'user',
         content: [
@@ -73,8 +75,7 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch {
-    const match = raw.match(/\d+/)
-    return new Response(JSON.stringify({ value: match ? parseInt(match[0], 10) : null, bounding_box: null, raw_text: raw }), {
+    return new Response(JSON.stringify({ meters: [], value: null, bounding_box: null, raw_text: raw }), {
       headers: { 'Content-Type': 'application/json' },
     })
   }
