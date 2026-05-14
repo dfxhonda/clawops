@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const ENGINE_KEY = 'ocr_engine'
+const OCR_TIMEOUT_MS = 8000
+const HALFWAY_MS = 5000
 
 function jstDate() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
@@ -13,6 +15,8 @@ export function useOCR({ boothCode, orgId }) {
   const [error, setError] = useState(null)
   const [boundingBox, setBoundingBox] = useState(null)
   const [capturedImageUrl, setCapturedImageUrl] = useState(null)
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const [showHalfwayBadge, setShowHalfwayBadge] = useState(false)
 
   function toggleEngine() {
     const next = engine === 'C' ? 'T' : 'C'
@@ -36,6 +40,8 @@ export function useOCR({ boothCode, orgId }) {
     setError(null)
     setBoundingBox(null)
     setCapturedImageUrl(null)
+    setElapsedMs(0)
+    setShowHalfwayBadge(false)
 
     let photoUrl = null
     try {
@@ -46,30 +52,58 @@ export function useOCR({ boothCode, orgId }) {
       }
 
       if (engine === 'C') {
-        const resp = await fetch('/api/ocr', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image_base64: imageBase64, media_type: 'image/jpeg' }),
-        })
-        if (!resp.ok) {
-          const errorBody = await resp.json().catch(() => ({}))
-          const errMsg = errorBody.error || `HTTP ${resp.status}`
-          setError(errMsg)
-          return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl }
+        const start = Date.now()
+        let halfwayShown = false
+        const tickTimer = setInterval(() => {
+          const e = Date.now() - start
+          setElapsedMs(e)
+          if (e >= HALFWAY_MS && !halfwayShown) {
+            halfwayShown = true
+            setShowHalfwayBadge(true)
+          }
+        }, 100)
+
+        let data
+        try {
+          const resp = await Promise.race([
+            fetch('/api/ocr', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image_base64: imageBase64, media_type: 'image/jpeg' }),
+            }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('OCR_TIMEOUT_8S')), OCR_TIMEOUT_MS)
+            ),
+          ])
+          if (!resp.ok) {
+            const errorBody = await resp.json().catch(() => ({}))
+            const errMsg = errorBody.error || `HTTP ${resp.status}`
+            setError(errMsg)
+            return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl }
+          }
+          data = await resp.json()
+        } catch (err) {
+          if (err.message === 'OCR_TIMEOUT_8S') {
+            setError('OCR_TIMEOUT_8S')
+            return { meters: [], value: null, photoUrl, timeout: true }
+          }
+          throw err
+        } finally {
+          clearInterval(tickTimer)
+          setShowHalfwayBadge(false)
         }
-        const data = await resp.json()
+
         const ocrMeters = data.meters || []
         const value = ocrMeters.find(m => m.type === 'in')?.value ?? ocrMeters[0]?.value ?? data.value ?? null
         const bb = ocrMeters[0]?.bounding_box ?? data.bounding_box ?? null
         if (bb) setBoundingBox(bb)
         return { meters: ocrMeters, value, photoUrl }
       } else {
-        // T = Tesseract path: fall back to Supabase ocr-meter
+        // T = Tesseract path
         const { data, error: e } = await supabase.functions.invoke('ocr-meter', {
           body: { image_base64: imageBase64, media_type: 'image/jpeg' },
         })
         if (e) throw new Error(e.message)
-        // ocr-meter returns left_in/left_out/right_in/right_out; take left_in as fallback
         const value = data?.left_in ?? data?.right_in ?? null
         const meters = value != null ? [{ value, type: 'unknown' }] : []
         return { meters, value, photoUrl }
@@ -82,5 +116,5 @@ export function useOCR({ boothCode, orgId }) {
     }
   }, [engine, boothCode, orgId])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { engine, toggleEngine, loading, error, boundingBox, capturedImageUrl, runOCR }
+  return { engine, toggleEngine, loading, error, boundingBox, capturedImageUrl, elapsedMs, showHalfwayBadge, runOCR }
 }

@@ -7,6 +7,7 @@ import CustomNumpad from '../components/CustomNumpad'
 import { useOCR } from '../hooks/useOCR'
 
 const MAX = 999999
+
 const S = {
   page:   { minHeight: '100dvh', background: '#0a0a16', color: '#d0d0e0', fontFamily: 'sans-serif', padding: 16 },
   label:  { fontSize: 11, color: '#8888a8', marginBottom: 4 },
@@ -14,6 +15,34 @@ const S = {
   btn:    { padding: '10px 0', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 14, cursor: 'pointer', width: '100%', marginBottom: 8 },
   card:   { background: '#16162a', border: '1px solid #2a2a44', borderRadius: 8, padding: 12, marginBottom: 12 },
   mono:   { fontFamily: 'monospace', fontSize: 12, color: '#8888a8', whiteSpace: 'pre-wrap', wordBreak: 'break-all' },
+}
+
+function meterMeta(type) {
+  if (type === 'in')    return { label: 'IN',  color: '#0ea5e9', border: '#0ea5e9' }
+  if (type === 'out_a') return { label: 'A段', color: '#22d3ee', border: '#06b6d4' }
+  if (type === 'out_b') return { label: 'B段', color: '#a78bfa', border: '#8b5cf6' }
+  if (type === 'out')   return { label: 'OUT', color: '#f59e0b', border: '#d97706' }
+  return { label: '?', color: '#6b7280', border: '#4b5563' }
+}
+
+function confBadge(conf) {
+  const n = typeof conf === 'number'
+    ? conf
+    : conf === 'high' ? 0.95 : conf === 'medium' ? 0.75 : conf === 'low' ? 0.45 : null
+  if (n == null) return null
+  if (n >= 0.9) return { label: '高', bg: '#064e3b', color: '#6ee7b7', border: '1px solid #059669' }
+  if (n >= 0.7) return { label: '中', bg: '#1f2937', color: '#9ca3af', border: '1px solid #4b5563' }
+  return { label: '低', bg: '#422006', color: '#fcd34d', border: '1px solid #d97706' }
+}
+
+function reconcile(meterList) {
+  if (meterList.length !== 3) return null
+  const nv = v => parseInt(String(v ?? 0), 10) || 0
+  const A  = nv(meterList.find(m => m.type === 'out_a')?.value)
+  const B  = nv(meterList.find(m => m.type === 'out_b')?.value)
+  const IN = nv(meterList.find(m => m.type === 'in')?.value)
+  const diff = (A + B) - IN
+  return { A, B, IN, diff, ok: Math.abs(diff) <= 5 }
 }
 
 export default function OCRTestPage() {
@@ -30,10 +59,12 @@ export default function OCRTestPage() {
   const [ocrDetail, setOcrDetail]   = useState(null)
   const [meters, setMeters]         = useState([])
   const [focusedIdx, setFocusedIdx] = useState(0)
+  const [timedOut, setTimedOut]     = useState(false)
   const [logs, setLogs]             = useState([])
 
   const fileInputRef = useRef(null)
-  const { engine, toggleEngine, loading, error, boundingBox, runOCR } = useOCR({ boothCode, orgId: organizationId })
+  const { engine, toggleEngine, loading, error, boundingBox, elapsedMs, showHalfwayBadge, runOCR } =
+    useOCR({ boothCode, orgId: organizationId })
 
   function addLog(entry) {
     setLogs(prev => [{ ts: new Date().toLocaleTimeString('ja-JP'), ...entry }, ...prev].slice(0, 50))
@@ -66,18 +97,24 @@ export default function OCRTestPage() {
     setOcrDetail(null)
     setMeters([])
     setFocusedIdx(0)
+    setTimedOut(false)
     addLog({ event: 'capture', engine, boothCode })
 
     const result = await runOCR(base64, blob)
-    const { value, photoUrl, detail, meters: ocrMeters } = result
+    const { value, photoUrl, detail, meters: ocrMeters, timeout } = result
     if (detail) setOcrDetail(detail)
+    if (timeout) {
+      setTimedOut(true)
+      addLog({ event: 'ocr_timeout', elapsed_ms: elapsedMs })
+      return
+    }
     const meterList = ocrMeters || []
     setMeters(meterList)
     if (meterList.length >= 2) {
       const inIdx = meterList.findIndex(m => m.type === 'in')
       setFocusedIdx(inIdx >= 0 ? inIdx : 0)
     }
-    addLog({ event: 'ocr_done', engine, value, photoUrl: photoUrl ?? null, boundingBox: boundingBox ?? null, meters_count: meterList.length })
+    addLog({ event: 'ocr_done', engine, value, photoUrl: photoUrl ?? null, meters_count: meterList.length })
     if (value != null) setDraft(String(value))
   }
 
@@ -102,51 +139,91 @@ export default function OCRTestPage() {
     }
   }
 
+  function handleFinalize() {
+    const parts = meters.map(m => {
+      const meta = meterMeta(m.type)
+      return `${meta.label}: ${m.value ?? '—'}`
+    })
+    alert(`確定: ${parts.join(' / ')}\n(試験画面のため DB保存なし)`)
+    addLog({ event: 'finalized', meters: meters.map(m => ({ type: m.type, value: m.value })) })
+    resetConfirm()
+  }
+
   function confirmDraft() {
     let confirmedValue
     if (meters.length >= 2) {
-      const inM = meters.find(m => m.type === 'in')
+      const outA = meters.find(m => m.type === 'out_a')
+      const inM  = meters.find(m => m.type === 'in')
+      const outB = meters.find(m => m.type === 'out_b')
       const outM = meters.find(m => m.type === 'out')
       const parts = []
-      if (inM?.value) parts.push(`IN:${inM.value}`)
-      if (outM?.value) parts.push(`OUT:${outM.value}`)
-      confirmedValue = parts.length > 0 ? parts.join('/') : ''
+      if (outA?.value != null) parts.push(`A段:${outA.value}`)
+      if (inM?.value != null)  parts.push(`IN:${inM.value}`)
+      if (outB?.value != null) parts.push(`B段:${outB.value}`)
+      if (!outA && outM?.value != null) parts.push(`OUT:${outM.value}`)
+      confirmedValue = parts.join('/')
     } else {
       confirmedValue = draft
     }
     addLog({ event: 'confirmed', value: confirmedValue })
+    resetConfirm()
+  }
+
+  function resetConfirm() {
     setConfirming(false)
     setCaptured(null)
     setMeters([])
+    setTimedOut(false)
+    setDraft('')
   }
 
   function cancelConfirm() {
     addLog({ event: 'cancelled' })
-    setConfirming(false)
-    setCaptured(null)
-    setMeters([])
+    resetConfirm()
   }
 
+  // ─── カメラ画面 (3分割ガイドオーバーレイ付き) ───────────────────
   if (showCamera) {
     return (
-      <LiveCameraView
-        engine={engine}
-        onToggleEngine={toggleEngine}
-        onCapture={handleCapture}
-        onQR={handleQR}
-        onCancel={() => setShowCamera(false)}
-      />
+      <>
+        <LiveCameraView
+          engine={engine}
+          onToggleEngine={toggleEngine}
+          onCapture={handleCapture}
+          onQR={handleQR}
+          onCancel={() => setShowCamera(false)}
+        />
+        {/* 3分割ガイド: pointer-events:none でカメラ操作を妨げない */}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '92%', height: '38%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
+            {[
+              { label: 'A段', color: '#22d3ee' },
+              { label: 'IN',  color: '#0ea5e9' },
+              { label: 'B段', color: '#a78bfa' },
+            ].map(col => (
+              <div key={col.label} style={{ border: `2px solid ${col.color}`, borderRadius: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 4, opacity: 0.85 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 3 }}>{col.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
     )
   }
 
+  // ─── 確認画面 ─────────────────────────────────────────────────────
   if (confirming) {
-    const isMulti = meters.length >= 2
+    const isMulti    = meters.length >= 2
+    const isTriple   = meters.length === 3
+    const recon      = isTriple ? reconcile(meters) : null
+    const elapsedSec = (elapsedMs / 1000).toFixed(1)
     const confirmDisabled = isMulti ? meters.every(m => !m.value) : !draft
 
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column' }}>
+        {/* 撮影画像プレビュー */}
         {captured?.url && (
-          <div style={{ position: 'relative', maxHeight: '33dvh', overflow: 'hidden', flexShrink: 0 }}>
+          <div style={{ position: 'relative', maxHeight: '28dvh', overflow: 'hidden', flexShrink: 0 }}>
             <img src={captured.url} alt="captured" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
             {!isMulti && error && boundingBox && (
               <div style={{
@@ -159,66 +236,125 @@ export default function OCRTestPage() {
           </div>
         )}
 
-        <div style={{ padding: '12px 16px', flexShrink: 0 }}>
+        {/* OCR状態表示エリア */}
+        <div style={{ padding: '10px 16px 0', flexShrink: 0 }}>
           <p style={S.label}>読み取り結果 ({engine === 'C' ? 'Claude Vision' : 'Tesseract'})</p>
-          {loading && <p style={{ color: '#8888a8', fontSize: 13 }}>読み取り中…</p>}
-          {error && !loading && (
+
+          {/* ローディング: 経過時間 + halfway バッジ */}
+          {loading && (
+            <div style={{ marginBottom: 8 }}>
+              <p style={{ color: '#8888a8', fontSize: 13, marginBottom: 4 }}>読み取り中 {elapsedSec}秒</p>
+              {showHalfwayBadge && (
+                <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', border: '1px solid #d97706', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>
+                  あと3秒で手入力モード
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* タイムアウトエラー */}
+          {timedOut && !loading && (
+            <p style={{ color: '#f87171', fontSize: 13, marginBottom: 8 }}>OCR失敗、手入力してください</p>
+          )}
+
+          {/* 通常エラー (非タイムアウト) */}
+          {error && error !== 'OCR_TIMEOUT_8S' && !loading && (
             <>
-              <p style={{ color: '#f87171', fontSize: 12 }}>{error} — 手動入力で補正可</p>
+              <p style={{ color: '#f87171', fontSize: 12, marginBottom: 4 }}>{error} — 手動入力で補正可</p>
               {ocrDetail && (
-                <pre style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, overflow: 'auto', maxHeight: 128, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                <pre style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, overflow: 'auto', maxHeight: 80, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                   {ocrDetail}
                 </pre>
               )}
             </>
           )}
+        </div>
 
+        {/* メーター値エリア */}
+        <div style={{ padding: '0 16px', flexShrink: 0, overflowY: 'auto', maxHeight: '30dvh' }}>
           {isMulti ? (
-            <div style={{ overflowY: 'auto', maxHeight: '22dvh' }}>
-              {meters.map((m, i) => {
-                const isFocused = i === focusedIdx
-                const badgeBg = m.type === 'in' ? '#10b981' : m.type === 'out' ? '#f59e0b' : '#6b7280'
-                return (
-                  <div
-                    key={i}
-                    onClick={() => setFocusedIdx(i)}
-                    style={{ ...S.card, marginBottom: 8, border: isFocused ? '2px solid #5dade2' : '1px solid #2a2a44', cursor: 'pointer' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: '#8888a8' }}>{m.label || '—'}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, background: badgeBg, color: '#000', padding: '1px 6px', borderRadius: 4 }}>
-                        {m.type === 'in' ? 'IN' : m.type === 'out' ? 'OUT' : '?'}
-                      </span>
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${meters.length}, 1fr)`, gap: 6, marginBottom: 6 }}>
+                {meters.map((m, i) => {
+                  const isFocused = i === focusedIdx
+                  const meta = meterMeta(m.type)
+                  const badge = confBadge(m.confidence)
+                  return (
+                    <div
+                      key={i}
+                      data-testid={`meter-card-${i}`}
+                      onClick={() => setFocusedIdx(i)}
+                      style={{ ...S.card, marginBottom: 0, border: `2px solid ${isFocused ? meta.border : '#2a2a44'}`, cursor: 'pointer', padding: 8 }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{meta.label}</span>
+                        {badge && (
+                          <span style={{ fontSize: 9, fontWeight: 700, background: badge.bg, color: badge.color, border: badge.border, padding: '1px 4px', borderRadius: 3 }}>
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        readOnly
+                        value={String(m.value ?? '')}
+                        style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: `2px solid ${isFocused ? meta.border : '#333'}`, borderRadius: 0, fontSize: 20, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
+                      />
                     </div>
-                    <input
-                      readOnly
-                      value={String(m.value ?? '')}
-                      style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: isFocused ? '2px solid #5dade2' : '1px solid #444', borderRadius: 0, fontSize: 22, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+
+              {/* 整合チェック (3メーター時のみ) */}
+              {recon && !loading && (
+                <div
+                  data-testid="reconciliation"
+                  style={{ borderRadius: 6, padding: '6px 10px', marginBottom: 6, fontSize: 12, fontWeight: 700, background: recon.ok ? '#064e3b' : '#422006', color: recon.ok ? '#6ee7b7' : '#fcd34d', border: `1px solid ${recon.ok ? '#059669' : '#d97706'}` }}
+                >
+                  {recon.ok
+                    ? `整合 OK (A+B=${recon.A + recon.B}, IN=${recon.IN})`
+                    : `警告: A+B=${recon.A + recon.B}, IN=${recon.IN}, 差=${recon.diff}`}
+                </div>
+              )}
+            </>
           ) : (
             <input
               readOnly value={draft}
-              style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #5dade2', borderRadius: 0, fontSize: 28, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #5dade2', borderRadius: 0, fontSize: 28, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
             />
           )}
         </div>
 
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        {/* テンキー */}
+        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
           <CustomNumpad onKey={handleNumKey} />
         </div>
 
-        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 32px' }}>
-          <button onClick={cancelConfirm} style={{ ...S.btn, flex: 1, background: '#2a2a44', color: '#e0e0f0' }}>キャンセル</button>
-          <button onClick={confirmDraft} disabled={confirmDisabled} style={{ ...S.btn, flex: 2, background: confirmDisabled ? '#2a2a44' : '#5dade2', color: '#000' }}>確定</button>
+        {/* アクションボタン */}
+        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 32px', flexShrink: 0 }}>
+          <button onClick={cancelConfirm} style={{ ...S.btn, flex: 1, background: '#2a2a44', color: '#e0e0f0', marginBottom: 0 }}>キャンセル</button>
+          {isMulti ? (
+            <button
+              onClick={handleFinalize}
+              disabled={confirmDisabled || loading}
+              style={{ ...S.btn, flex: 2, background: (confirmDisabled || loading) ? '#2a2a44' : '#0891b2', color: (confirmDisabled || loading) ? '#666' : '#fff', marginBottom: 0 }}
+            >
+              この値で全て確定
+            </button>
+          ) : (
+            <button
+              onClick={confirmDraft}
+              disabled={confirmDisabled || loading}
+              style={{ ...S.btn, flex: 2, background: (confirmDisabled || loading) ? '#2a2a44' : '#5dade2', color: '#000', marginBottom: 0 }}
+            >
+              確定
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
+  // ─── メイン画面 ──────────────────────────────────────────────────
   return (
     <div style={S.page}>
       <button onClick={() => navigate('/launcher')} className="text-sm text-gray-400 hover:text-white flex items-center gap-1 mb-4">

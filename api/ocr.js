@@ -1,11 +1,16 @@
 export const config = { runtime: 'edge' }
 
-const PROMPT = `ゲーム機のメーター(黒枠の回転ドラム式数字窓)を全て読み取って。
-ラベル(¥1000,IN,OUT等)は無視。先頭0含めて全桁。
-下のラベルでtype分類: IN系=in, OUT系=out, 不明=unknown
-JSON形式のみで返却:
-{"meters":[{"label":"¥1000 IN","value":"010160","type":"in","confidence":"high","bounding_box":{"x":0.1,"y":0.4,"w":0.3,"h":0.15}}]}
-見つからない場合 meters:[]`
+const PROMPT = `クレーンゲームのメーター画像を読む。1-3個の7セグメントメーターが写っている。
+
+JSONのみ返却 (他のテキスト不要):
+{"meters":[{"value":12345,"type":"in","confidence":0.95,"bounding_box":{"x":0.1,"y":0.4,"w":0.3,"h":0.15}}]}
+
+ルール:
+- value は整数のみ (ラベル・単位・ステッカー除外)
+- type: 中央またはINラベル=in、左=out_a(A段)、右=out_b(B段)、不明=unknown
+- confidence: 0.0-1.0、鮮明で確実=0.95、読み取りギリギリ=0.4
+- bounding_box: 画像全体を1.0とした相対値
+- 見つからない場合 meters:[]`
 
 export default async function handler(req) {
   if (req.method !== 'POST') {
@@ -44,7 +49,7 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 256,
+      max_tokens: 512,
       messages: [{
         role: 'user',
         content: [
