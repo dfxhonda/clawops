@@ -21,6 +21,7 @@ function meterMeta(type) {
   if (type === 'in')    return { label: 'IN',  color: '#0ea5e9', border: '#0ea5e9' }
   if (type === 'out_a') return { label: 'A段', color: '#22d3ee', border: '#06b6d4' }
   if (type === 'out_b') return { label: 'B段', color: '#a78bfa', border: '#8b5cf6' }
+  if (type === 'out_c') return { label: 'C段', color: '#34d399', border: '#10b981' }
   if (type === 'out')   return { label: 'OUT', color: '#f59e0b', border: '#d97706' }
   return { label: '?', color: '#6b7280', border: '#4b5563' }
 }
@@ -35,15 +36,6 @@ function confBadge(conf) {
   return { label: '低', bg: '#422006', color: '#fcd34d', border: '1px solid #d97706' }
 }
 
-function reconcile(meterList) {
-  if (meterList.length !== 3) return null
-  const nv = v => parseInt(String(v ?? 0), 10) || 0
-  const A  = nv(meterList.find(m => m.type === 'out_a')?.value)
-  const B  = nv(meterList.find(m => m.type === 'out_b')?.value)
-  const IN = nv(meterList.find(m => m.type === 'in')?.value)
-  const diff = (A + B) - IN
-  return { A, B, IN, diff, ok: Math.abs(diff) <= 5 }
-}
 
 export default function OCRTestPage() {
   const navigate = useNavigate()
@@ -214,8 +206,6 @@ export default function OCRTestPage() {
   // ─── 確認画面 ─────────────────────────────────────────────────────
   if (confirming) {
     const isMulti    = meters.length >= 2
-    const isTriple   = meters.length === 3
-    const recon      = isTriple ? reconcile(meters) : null
     const elapsedSec = (elapsedMs / 1000).toFixed(1)
     const confirmDisabled = isMulti ? meters.every(m => !m.value) : !draft
 
@@ -304,15 +294,13 @@ export default function OCRTestPage() {
                 })}
               </div>
 
-              {/* 整合チェック (3メーター時のみ) */}
-              {recon && !loading && (
+              {/* 整合チェックは本番統合で実施 (J-PATROL-OCR-fix-04) */}
+              {!loading && (
                 <div
-                  data-testid="reconciliation"
-                  style={{ borderRadius: 6, padding: '6px 10px', marginBottom: 6, fontSize: 12, fontWeight: 700, background: recon.ok ? '#064e3b' : '#422006', color: recon.ok ? '#6ee7b7' : '#fcd34d', border: `1px solid ${recon.ok ? '#059669' : '#d97706'}` }}
+                  data-testid="reconciliation-deferred"
+                  style={{ fontSize: 11, color: '#6b7280', marginBottom: 6, textAlign: 'center' }}
                 >
-                  {recon.ok
-                    ? `整合 OK (A+B=${recon.A + recon.B}, IN=${recon.IN})`
-                    : `警告: A+B=${recon.A + recon.B}, IN=${recon.IN}, 差=${recon.diff}`}
+                  整合チェックは本番統合 (J-PATROL-OCR-fix-04) で動作
                 </div>
               )}
             </>

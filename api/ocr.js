@@ -1,15 +1,15 @@
 export const config = { runtime: 'edge' }
 
-const PROMPT = `クレーンゲームのメーター画像を読む。1-3個の7セグメントメーターが写っている。
+const PROMPT = `クレーンゲームのメーター画像を読む。1-4個の7セグメントメーター (in + out_a/out_b/out_c) が写っている。
 
 JSONのみ返却 (他のテキスト不要):
-{"meters":[{"value":12345,"type":"in","confidence":0.95,"bounding_box":{"x":0.1,"y":0.4,"w":0.3,"h":0.15}}]}
+{"meters":[{"value":12345,"type":"in","confidence":0.95}]}
 
 ルール:
 - value は整数のみ (ラベル・単位・ステッカー除外)
-- type: 中央またはINラベル=in、左=out_a(A段)、右=out_b(B段)、不明=unknown
+- type: 中央またはINラベル=in、左=out_a(A段)、右=out_b(B段)、三重OUT機の3つ目=out_c、不明=unknown
 - confidence: 0.0-1.0、鮮明で確実=0.95、読み取りギリギリ=0.4
-- bounding_box: 画像全体を1.0とした相対値
+- 座標情報は不要、今フェーズはスキップ
 - 見つからない場合 meters:[]`
 
 export default async function handler(req) {
@@ -49,7 +49,7 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 512,
+      max_tokens: 384,
       messages: [{
         role: 'user',
         content: [
@@ -67,7 +67,6 @@ export default async function handler(req) {
       anthropic_status: resp.status,
       anthropic_detail: text.slice(0, 500),
       value: null,
-      bounding_box: null,
     }), { status: 502, headers: { 'Content-Type': 'application/json' } })
   }
 
@@ -80,7 +79,7 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch {
-    return new Response(JSON.stringify({ meters: [], value: null, bounding_box: null, raw_text: raw }), {
+    return new Response(JSON.stringify({ meters: [], value: null, raw_text: raw }), {
       headers: { 'Content-Type': 'application/json' },
     })
   }
