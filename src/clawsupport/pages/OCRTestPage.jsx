@@ -27,6 +27,7 @@ export default function OCRTestPage() {
   const [confirming, setConfirming] = useState(false)
   const [captured, setCaptured]     = useState(null)
   const [draft, setDraft]           = useState('')
+  const [ocrDetail, setOcrDetail]   = useState(null)
   const [logs, setLogs]             = useState([])
 
   const fileInputRef = useRef(null)
@@ -60,9 +61,12 @@ export default function OCRTestPage() {
     setCaptured({ base64, url })
     setConfirming(true)
     setDraft('')
+    setOcrDetail(null)
     addLog({ event: 'capture', engine, boothCode })
 
-    const { value, photoUrl } = await runOCR(base64, blob)
+    const result = await runOCR(base64, blob)
+    const { value, photoUrl, detail } = result
+    if (detail) setOcrDetail(detail)
     addLog({ event: 'ocr_done', engine, value, photoUrl: photoUrl ?? null, boundingBox: boundingBox ?? null })
     if (value != null) setDraft(String(value))
   }
@@ -122,7 +126,16 @@ export default function OCRTestPage() {
         <div style={{ padding: '12px 16px', flexShrink: 0 }}>
           <p style={S.label}>読み取り結果 ({engine === 'C' ? 'Claude Vision' : 'Tesseract'})</p>
           {loading && <p style={{ color: '#8888a8', fontSize: 13 }}>読み取り中…</p>}
-          {error && !loading && <p style={{ color: '#f87171', fontSize: 12 }}>{error} — 手動入力で補正可</p>}
+          {error && !loading && (
+            <>
+              <p style={{ color: '#f87171', fontSize: 12 }}>{error} — 手動入力で補正可</p>
+              {ocrDetail && (
+                <pre style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, overflow: 'auto', maxHeight: 128, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  {ocrDetail}
+                </pre>
+              )}
+            </>
+          )}
           <input
             readOnly value={draft}
             style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #5dade2', borderRadius: 0, fontSize: 28, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}

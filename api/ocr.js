@@ -55,9 +55,13 @@ export default async function handler(req) {
 
   if (!resp.ok) {
     const text = await resp.text()
-    return new Response(JSON.stringify({ error: `Anthropic error: ${resp.status}`, detail: text }), {
-      status: 502, headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(JSON.stringify({
+      error: `Anthropic error: ${resp.status}`,
+      anthropic_status: resp.status,
+      anthropic_detail: text.slice(0, 500),
+      value: null,
+      bounding_box: null,
+    }), { status: 502, headers: { 'Content-Type': 'application/json' } })
   }
 
   const data = await resp.json()

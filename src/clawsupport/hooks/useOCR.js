@@ -54,7 +54,12 @@ export function useOCR({ boothCode, orgId }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image_base64: imageBase64, media_type: 'image/jpeg' }),
         })
-        if (!resp.ok) throw new Error(`OCR API error: ${resp.status}`)
+        if (!resp.ok) {
+          const errorBody = await resp.json().catch(() => ({}))
+          const errMsg = errorBody.error || `HTTP ${resp.status}`
+          setError(errMsg)
+          return { error: errMsg, detail: errorBody.anthropic_detail || '', value: null, photoUrl }
+        }
         const data = await resp.json()
         value = data.value
         bb = data.bounding_box ?? null
