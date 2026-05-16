@@ -100,7 +100,7 @@ export default function OCRTestPage() {
     addLog({ event: 'capture', engine, boothCode })
 
     const result = await runOCR(base64, blob)
-    const { value, photoUrl, detail, meters: ocrMeters, timeout } = result
+    const { value, photoUrl, detail, meters: ocrMeters, timeout, raw_text, anthropic_status, image_size_bytes, uploadError } = result
     if (detail) setOcrDetail(detail)
     if (timeout) {
       setTimedOut(true)
@@ -113,7 +113,18 @@ export default function OCRTestPage() {
       const inIdx = meterList.findIndex(m => m.type === 'in')
       setFocusedIdx(inIdx >= 0 ? inIdx : 0)
     }
-    addLog({ event: 'ocr_done', engine, value, photoUrl: photoUrl ?? null, meters_count: meterList.length })
+    addLog({
+      event: 'ocr_done',
+      engine,
+      value,
+      photoUrl: photoUrl ?? null,
+      meters_count: meterList.length,
+      anthropic_status: anthropic_status ?? undefined,
+      image_size_bytes: image_size_bytes ?? undefined,
+      upload_error: uploadError ?? undefined,
+      raw_text: raw_text ? raw_text.slice(0, 200) : undefined,
+      raw_text_full: raw_text || undefined,
+    })
     if (value != null) setDraft(String(value))
   }
 
@@ -422,12 +433,21 @@ export default function OCRTestPage() {
           )}
         </div>
         {logs.length === 0 && <p style={S.label}>まだログなし</p>}
-        {logs.map((l, i) => (
-          <div key={i} style={{ ...S.card, marginBottom: 6 }}>
-            <p style={{ fontSize: 11, color: '#5dade2', marginBottom: 2 }}>{l.ts} — {l.event}</p>
-            <p style={S.mono}>{JSON.stringify(l, null, 2).replace(/^{\s*|\s*}$/g, '').trim()}</p>
-          </div>
-        ))}
+        {logs.map((l, i) => {
+          const { raw_text_full, ...logDisplay } = l
+          return (
+            <div key={i} style={{ ...S.card, marginBottom: 6 }}>
+              <p style={{ fontSize: 11, color: '#5dade2', marginBottom: 2 }}>{l.ts} — {l.event}</p>
+              <p style={S.mono}>{JSON.stringify(logDisplay, null, 2).replace(/^{\s*|\s*}$/g, '').trim()}</p>
+              {raw_text_full && (
+                <details style={{ marginTop: 6 }}>
+                  <summary style={{ fontSize: 11, color: '#8888a8', cursor: 'pointer' }}>raw_text 全文 ({raw_text_full.length}字)</summary>
+                  <pre style={{ ...S.mono, marginTop: 4, maxHeight: 200, overflow: 'auto', background: '#0d0d1a', padding: 8, borderRadius: 4 }}>{raw_text_full}</pre>
+                </details>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

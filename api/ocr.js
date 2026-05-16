@@ -39,6 +39,8 @@ export default async function handler(req) {
     })
   }
 
+  const image_size_bytes = Math.round(image_base64.length / 4 * 3)
+
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -65,6 +67,8 @@ export default async function handler(req) {
       error: `Anthropic error: ${resp.status}`,
       anthropic_status: resp.status,
       anthropic_detail: text.slice(0, 500),
+      raw_text: text.slice(0, 500),
+      image_size_bytes,
       value: null,
     }), { status: 502, headers: { 'Content-Type': 'application/json' } })
   }
@@ -74,11 +78,11 @@ export default async function handler(req) {
 
   try {
     const parsed = JSON.parse(raw)
-    return new Response(JSON.stringify({ ...parsed, raw_text: raw }), {
+    return new Response(JSON.stringify({ ...parsed, raw_text: raw, anthropic_status: 200, image_size_bytes }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch {
-    return new Response(JSON.stringify({ meters: [], value: null, raw_text: raw }), {
+    return new Response(JSON.stringify({ meters: [], value: null, raw_text: raw, anthropic_status: 200, image_size_bytes }), {
       headers: { 'Content-Type': 'application/json' },
     })
   }

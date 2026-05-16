@@ -25,14 +25,14 @@ export function useOCR({ boothCode, orgId }) {
   }
 
   async function uploadPhoto(blob) {
-    if (!orgId || !boothCode) return null
+    if (!orgId || !boothCode) return { url: null, uploadError: null }
     const path = `${orgId}/${boothCode}/${jstDate()}.jpg`
     const { data, error: e } = await supabase.storage
       .from('meter-photos')
       .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
-    if (e) return null
+    if (e) return { url: null, uploadError: e?.message }
     const { data: { publicUrl } } = supabase.storage.from('meter-photos').getPublicUrl(data.path)
-    return publicUrl
+    return { url: publicUrl, uploadError: null }
   }
 
   const runOCR = useCallback(async (imageBase64, blob) => {
@@ -44,11 +44,14 @@ export function useOCR({ boothCode, orgId }) {
     setShowHalfwayBadge(false)
 
     let photoUrl = null
+    let uploadError = null
     try {
       if (blob) {
         const localUrl = URL.createObjectURL(blob)
         setCapturedImageUrl(localUrl)
-        photoUrl = await uploadPhoto(blob)
+        const up = await uploadPhoto(blob)
+        photoUrl = up.url
+        uploadError = up.uploadError
       }
 
       if (engine === 'C') {
@@ -79,13 +82,13 @@ export function useOCR({ boothCode, orgId }) {
             const errorBody = await resp.json().catch(() => ({}))
             const errMsg = errorBody.error || `HTTP ${resp.status}`
             setError(errMsg)
-            return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl }
+            return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl, raw_text: errorBody.raw_text, anthropic_status: errorBody.anthropic_status, image_size_bytes: errorBody.image_size_bytes, uploadError }
           }
           data = await resp.json()
         } catch (err) {
           if (err.message === 'OCR_TIMEOUT_8S') {
             setError('OCR_TIMEOUT_8S')
-            return { meters: [], value: null, photoUrl, timeout: true }
+            return { meters: [], value: null, photoUrl, timeout: true, uploadError }
           }
           throw err
         } finally {
@@ -98,7 +101,7 @@ export function useOCR({ boothCode, orgId }) {
         const value = ocrMeters.find(inLike)?.value ?? ocrMeters[0]?.value ?? data.value ?? null
         const bb = ocrMeters[0]?.bounding_box ?? data.bounding_box ?? null
         if (bb) setBoundingBox(bb)
-        return { meters: ocrMeters, value, photoUrl }
+        return { meters: ocrMeters, value, photoUrl, raw_text: data.raw_text, anthropic_status: data.anthropic_status, image_size_bytes: data.image_size_bytes, uploadError }
       } else {
         // T = Tesseract path
         const { data, error: e } = await supabase.functions.invoke('ocr-meter', {
@@ -111,7 +114,7 @@ export function useOCR({ boothCode, orgId }) {
       }
     } catch (e) {
       setError(e.message || 'OCR失敗')
-      return { meters: [], value: null, photoUrl }
+      return { meters: [], value: null, photoUrl, uploadError }
     } finally {
       setLoading(false)
     }
