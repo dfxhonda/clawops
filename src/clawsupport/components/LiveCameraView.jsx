@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 
 function canvasToBlob(canvas) {
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8))
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
 }
 
 function compressFrame(videoEl) {
   const { videoWidth: sw, videoHeight: sh } = videoEl
-  const MAX = 800
+  const MAX = 1600
   const scale = Math.min(1, MAX / Math.max(sw, sh))
   const w = Math.round(sw * scale)
   const h = Math.round(sh * scale)
@@ -14,7 +14,7 @@ function compressFrame(videoEl) {
   canvas.width = w
   canvas.height = h
   canvas.getContext('2d').drawImage(videoEl, 0, 0, w, h)
-  const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
+  const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1]
   return { canvas, base64 }
 }
 
