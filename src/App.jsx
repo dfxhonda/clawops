@@ -42,7 +42,8 @@ const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPa
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
 const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
 const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
-const AdminMasterMachinePage = lazy(() => import('./admin/pages/AdminMasterMachinePage'))
+const AdminMasterMachinePage   = lazy(() => import('./admin/pages/AdminMasterMachinePage'))
+const AdminMachineLayoutPage   = lazy(() => import('./admin/pages/AdminMachineLayoutPage'))
 const AdminStaffListPage     = lazy(() => import('./admin/pages/AdminStaffListPage'))
 const AdminSupplierPage           = lazy(() => import('./admin/pages/AdminSupplierPage'))
 const AdminOperationLogsPage      = lazy(() => import('./admin/pages/AdminOperationLogsPage'))
@@ -269,6 +270,7 @@ function AppInner() {
       {/* マスタ管理 — admin のみ */}
       <Route path="/admin/lockers" element={<AdminRoute><LockerList /></AdminRoute>} />
       <Route path="/admin/models" element={<AdminRoute><AdminModelList /></AdminRoute>} />
+      <Route path="/admin/machine-models" element={<AdminRoute><AdminMachineLayoutPage /></AdminRoute>} />
       <Route path="/admin/machines" element={<AdminRoute><AdminMachineList /></AdminRoute>} />
       <Route path="/admin/booths" element={<AdminRoute><AdminBoothList /></AdminRoute>} />
       {/* マニュアル — admin管理 + 全ロール閲覧 */}
