@@ -75,9 +75,10 @@ export default async function handler(req) {
 
   const data = await resp.json()
   const raw = data.content?.[0]?.text ?? ''
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
 
   try {
-    const parsed = JSON.parse(raw)
+    const parsed = JSON.parse(cleaned)
     return new Response(JSON.stringify({ ...parsed, raw_text: raw, anthropic_status: 200, image_size_bytes }), {
       headers: { 'Content-Type': 'application/json' },
     })
