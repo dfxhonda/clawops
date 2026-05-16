@@ -1,15 +1,14 @@
 export const config = { runtime: 'edge' }
 
-const PROMPT = `クレーンゲームのメーター画像を読む。1-4個の7セグメントメーター (in + out_a/out_b/out_c) が写っている。
-
-JSONのみ返却 (他のテキスト不要):
-{"meters":[{"value":12345,"type":"in","confidence":0.95}]}
+const PROMPT = `画像から6-7桁の数字メーターを全て抽出。JSONのみ返却 (他のテキスト不要):
+{"meters":[{"label":"画像内ラベル原文","value":整数,"type":"in/out_a/out_b/out_c/yen1000_in/capsule_out/prize_out/yen500_in/yen100_in/change_in/change_out/unknown","confidence":0.0-1.0}]}
 
 ルール:
-- value は整数のみ (ラベル・単位・ステッカー除外)
-- type: 中央またはINラベル=in、左=out_a(A段)、右=out_b(B段)、三重OUT機の3つ目=out_c、不明=unknown
+- 機種(クレーン/ガチャ/両替)問わず数字メーター全部を対象にする
+- label: 画像内の文字をそのまま記載 (例: ¥1000 IN, 左側IN, CAPSULE OUT, in)
+- type: ラベルから推定。IN系=in/yen1000_in/yen500_in/yen100_in/change_in、OUT系=out_a/out_b/out_c/capsule_out/prize_out/change_out、不明=unknown
+- value は整数のみ (ラベル・単位・ステッカーの文字を数値として読まない)
 - confidence: 0.0-1.0、鮮明で確実=0.95、読み取りギリギリ=0.4
-- 座標情報は不要、今フェーズはスキップ
 - 見つからない場合 meters:[]`
 
 export default async function handler(req) {
@@ -49,7 +48,7 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 384,
+      max_tokens: 768,
       messages: [{
         role: 'user',
         content: [

@@ -94,7 +94,8 @@ export function useOCR({ boothCode, orgId }) {
         }
 
         const ocrMeters = data.meters || []
-        const value = ocrMeters.find(m => m.type === 'in')?.value ?? ocrMeters[0]?.value ?? data.value ?? null
+        const inLike = m => m.type === 'in' || m.type === 'yen1000_in' || m.type === 'change_in' || /IN/i.test(m.label || '')
+        const value = ocrMeters.find(inLike)?.value ?? ocrMeters[0]?.value ?? data.value ?? null
         const bb = ocrMeters[0]?.bounding_box ?? data.bounding_box ?? null
         if (bb) setBoundingBox(bb)
         return { meters: ocrMeters, value, photoUrl }

@@ -18,12 +18,19 @@ const S = {
 }
 
 function meterMeta(type) {
-  if (type === 'in')    return { label: 'IN',  color: '#0ea5e9', border: '#0ea5e9' }
-  if (type === 'out_a') return { label: 'A段', color: '#22d3ee', border: '#06b6d4' }
-  if (type === 'out_b') return { label: 'B段', color: '#a78bfa', border: '#8b5cf6' }
-  if (type === 'out_c') return { label: 'C段', color: '#34d399', border: '#10b981' }
-  if (type === 'out')   return { label: 'OUT', color: '#f59e0b', border: '#d97706' }
-  return { label: '?', color: '#6b7280', border: '#4b5563' }
+  if (type === 'in')          return { label: 'IN',       color: '#0ea5e9', border: '#0ea5e9' }
+  if (type === 'out_a')       return { label: 'A段',      color: '#22d3ee', border: '#06b6d4' }
+  if (type === 'out_b')       return { label: 'B段',      color: '#a78bfa', border: '#8b5cf6' }
+  if (type === 'out_c')       return { label: 'C段',      color: '#34d399', border: '#10b981' }
+  if (type === 'out')         return { label: 'OUT',      color: '#f59e0b', border: '#d97706' }
+  if (type === 'yen1000_in')  return { label: '¥1000 IN', color: '#fbbf24', border: '#d97706' }
+  if (type === 'yen500_in')   return { label: '¥500 IN',  color: '#fb923c', border: '#ea580c' }
+  if (type === 'yen100_in')   return { label: '¥100 IN',  color: '#f87171', border: '#dc2626' }
+  if (type === 'change_in')   return { label: '両替IN',   color: '#60a5fa', border: '#2563eb' }
+  if (type === 'change_out')  return { label: '両替OUT',  color: '#f472b6', border: '#db2777' }
+  if (type === 'capsule_out') return { label: 'CAPS OUT', color: '#c084fc', border: '#9333ea' }
+  if (type === 'prize_out')   return { label: 'PRIZE',    color: '#4ade80', border: '#16a34a' }
+  return { label: type || '?', color: '#6b7280', border: '#4b5563' }
 }
 
 function confBadge(conf) {
