@@ -1,12 +1,14 @@
 export const config = { runtime: 'edge' }
 
 const PROMPT = `画像から6-7桁の数字メーターを全て抽出。JSONのみ返却 (他のテキスト不要):
-{"meters":[{"label":"画像内ラベル原文","value":整数,"type":"in/out_a/out_b/out_c/yen1000_in/capsule_out/prize_out/yen500_in/yen100_in/change_in/change_out/unknown","confidence":0.0-1.0}]}
+{"meters":[{"label":"画像内ラベル原文","value":整数,"type":"in/out/out_a/out_b/out_c/yen1000_in/yen500_in/yen100_in/change_in/change_out/capsule_out/prize_out/unknown","confidence":0.0-1.0}]}
 
 ルール:
 - 機種(クレーン/ガチャ/両替)問わず数字メーター全部を対象にする
 - label: 画像内の文字をそのまま記載 (例: ¥1000 IN, 左側IN, CAPSULE OUT, in)
-- type: ラベルから推定。IN系=in/yen1000_in/yen500_in/yen100_in/change_in、OUT系=out_a/out_b/out_c/capsule_out/prize_out/change_out、不明=unknown
+- type: ラベルから推定。IN系=in/yen1000_in/yen500_in/yen100_in/change_in、OUT系=out/out_a/out_b/out_c/capsule_out/prize_out/change_out、不明=unknown
+  - out: 単純OUT (1段機。label が「OUT」のみで A段/B段区別なし)
+  - out_a/out_b/out_c: 段別OUT (2-3段機で A段/B段/C段が明示されている場合のみ)
 - value は整数のみ (ラベル・単位・ステッカーの文字を数値として読まない)
 - confidence: 0.0-1.0、鮮明で確実=0.95、読み取りギリギリ=0.4
 - 見つからない場合 meters:[]`
