@@ -25,14 +25,16 @@ export function useOCR({ boothCode, orgId }) {
   }
 
   async function uploadPhoto(blob) {
-    if (!orgId || !boothCode) return { url: null, uploadError: null }
-    const path = `${orgId}/${boothCode}/${jstDate()}.jpg`
+    if (!orgId || !boothCode) return { url: null, path: null, uploadError: null }
+    const path = `${orgId}/${boothCode}/${jstDate()}_${Date.now()}.jpg`
     const { data, error: e } = await supabase.storage
       .from('meter-photos')
       .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
-    if (e) return { url: null, uploadError: e?.message }
-    const { data: { publicUrl } } = supabase.storage.from('meter-photos').getPublicUrl(data.path)
-    return { url: publicUrl, uploadError: null }
+    if (e) return { url: null, path: null, uploadError: e?.message }
+    const { data: signedData, error: signErr } = await supabase.storage
+      .from('meter-photos')
+      .createSignedUrl(data.path, 60 * 60 * 24 * 365)
+    return { url: signedData?.signedUrl ?? null, path: data.path, uploadError: signErr?.message ?? null }
   }
 
   const runOCR = useCallback(async (imageBase64, blob) => {
@@ -45,12 +47,14 @@ export function useOCR({ boothCode, orgId }) {
 
     let photoUrl = null
     let uploadError = null
+    let storagePath = null
     try {
       if (blob) {
         const localUrl = URL.createObjectURL(blob)
         setCapturedImageUrl(localUrl)
         const up = await uploadPhoto(blob)
         photoUrl = up.url
+        storagePath = up.path ?? null
         uploadError = up.uploadError
       }
 
@@ -82,13 +86,13 @@ export function useOCR({ boothCode, orgId }) {
             const errorBody = await resp.json().catch(() => ({}))
             const errMsg = errorBody.error || `HTTP ${resp.status}`
             setError(errMsg)
-            return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl, raw_text: errorBody.raw_text, anthropic_status: errorBody.anthropic_status, image_size_bytes: errorBody.image_size_bytes, uploadError }
+            return { error: errMsg, detail: errorBody.anthropic_detail || '', meters: [], value: null, photoUrl, storagePath, raw_text: errorBody.raw_text, anthropic_status: errorBody.anthropic_status, image_size_bytes: errorBody.image_size_bytes, uploadError }
           }
           data = await resp.json()
         } catch (err) {
           if (err.message === 'OCR_TIMEOUT_8S') {
             setError('OCR_TIMEOUT_8S')
-            return { meters: [], value: null, photoUrl, timeout: true, uploadError }
+            return { meters: [], value: null, photoUrl, storagePath, timeout: true, uploadError }
           }
           throw err
         } finally {
@@ -101,7 +105,7 @@ export function useOCR({ boothCode, orgId }) {
         const value = ocrMeters.find(inLike)?.value ?? ocrMeters[0]?.value ?? data.value ?? null
         const bb = ocrMeters[0]?.bounding_box ?? data.bounding_box ?? null
         if (bb) setBoundingBox(bb)
-        return { meters: ocrMeters, value, photoUrl, raw_text: data.raw_text, anthropic_status: data.anthropic_status, image_size_bytes: data.image_size_bytes, uploadError }
+        return { meters: ocrMeters, value, photoUrl, storagePath, raw_text: data.raw_text, anthropic_status: data.anthropic_status, image_size_bytes: data.image_size_bytes, uploadError }
       } else {
         // T = Tesseract path
         const { data, error: e } = await supabase.functions.invoke('ocr-meter', {
@@ -110,11 +114,11 @@ export function useOCR({ boothCode, orgId }) {
         if (e) throw new Error(e.message)
         const value = data?.left_in ?? data?.right_in ?? null
         const meters = value != null ? [{ value, type: 'unknown' }] : []
-        return { meters, value, photoUrl }
+        return { meters, value, photoUrl, storagePath }
       }
     } catch (e) {
       setError(e.message || 'OCR失敗')
-      return { meters: [], value: null, photoUrl, uploadError }
+      return { meters: [], value: null, photoUrl, storagePath, uploadError }
     } finally {
       setLoading(false)
     }

@@ -8,6 +8,34 @@ import { useOCR } from '../hooks/useOCR'
 
 const MAX = 999999
 
+function jstDate() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+}
+
+function mapMetersToColumns(meters) {
+  const cols = {}
+  for (const m of meters) {
+    const v = m.value != null ? parseInt(m.value, 10) : null
+    if (v == null || isNaN(v)) continue
+    switch (m.type) {
+      case 'in':          cols.in_meter = v; break
+      case 'out':         cols.out_meter = v; break
+      case 'out_a':       cols.out_meter = v; break
+      case 'out_b':       cols.out_meter_2 = v; break
+      case 'out_c':       cols.out_meter_3 = v; break
+      case 'yen1000_in':  cols.yen1000_in = v; break
+      case 'yen500_in':   cols.yen500_in = v; break
+      case 'yen100_in':   cols.yen100_in = v; break
+      case 'change_in':   cols.change_in = v; break
+      case 'change_out':  cols.change_out = v; break
+      case 'capsule_out': cols.capsule_out = v; break
+      case 'prize_out':   cols.prize_out = v; break
+      default: break
+    }
+  }
+  return cols
+}
+
 const S = {
   page:   { minHeight: '100dvh', background: '#0a0a16', color: '#d0d0e0', fontFamily: 'sans-serif', padding: 16 },
   label:  { fontSize: 11, color: '#8888a8', marginBottom: 4 },
@@ -60,6 +88,8 @@ export default function OCRTestPage() {
   const [focusedIdx, setFocusedIdx] = useState(0)
   const [timedOut, setTimedOut]     = useState(false)
   const [logs, setLogs]             = useState([])
+  const [rawText, setRawText]       = useState(null)
+  const [storagePath, setStoragePath] = useState(null)
 
   const fileInputRef = useRef(null)
   const { engine, toggleEngine, loading, error, boundingBox, elapsedMs, showHalfwayBadge, runOCR } =
@@ -100,7 +130,9 @@ export default function OCRTestPage() {
     addLog({ event: 'capture', engine, boothCode })
 
     const result = await runOCR(base64, blob)
-    const { value, photoUrl, detail, meters: ocrMeters, timeout, raw_text, anthropic_status, image_size_bytes, uploadError } = result
+    const { value, photoUrl, detail, meters: ocrMeters, timeout, raw_text, anthropic_status, image_size_bytes, uploadError, storagePath: sp } = result
+    setRawText(raw_text ?? null)
+    setStoragePath(sp ?? null)
     if (detail) setOcrDetail(detail)
     if (timeout) {
       setTimedOut(true)
@@ -149,13 +181,38 @@ export default function OCRTestPage() {
     }
   }
 
-  function handleFinalize() {
-    const parts = meters.map(m => {
-      const meta = meterMeta(m.type)
-      return `${meta.label}: ${m.value ?? '—'}`
-    })
-    alert(`確定: ${parts.join(' / ')}\n(試験画面のため DB保存なし)`)
-    addLog({ event: 'finalized', meters: meters.map(m => ({ type: m.type, value: m.value })) })
+  async function handleFinalize() {
+    const cols = mapMetersToColumns(meters)
+    const confList = meters.filter(m => m.confidence != null)
+    const avgConf = confList.length
+      ? confList.reduce((s, m) => s + m.confidence, 0) / confList.length
+      : null
+    const payload = {
+      booth_id: boothCode,
+      booth_code: boothCode,
+      store_code: boothCode.split('-')[0],
+      machine_code: boothCode.split('-').slice(0, 2).join('-'),
+      organization_id: organizationId,
+      patrol_date: jstDate(),
+      ...cols,
+      entry_type: 'ocr_test',
+      source: 'ocr_test',
+      input_method: 'ocr',
+      ocr_confidence: avgConf,
+      ocr_raw_text: rawText,
+      ocr_attempted_at: new Date().toISOString(),
+      photo_url: storagePath,
+      note: JSON.stringify({ ocr_meters_raw: meters }),
+    }
+    const { data, error } = await supabase.from('meter_readings').insert(payload).select('reading_id').single()
+    if (error) {
+      localStorage.setItem('ocr_test_queue_' + Date.now(), JSON.stringify(payload))
+      addLog({ event: 'finalized_queued', error: error.message })
+      alert('DB保存失敗 (ローカルキュー保存): ' + error.message)
+    } else {
+      addLog({ event: 'finalized_saved', reading_id: data.reading_id })
+      alert('保存完了: ' + data.reading_id)
+    }
     resetConfirm()
   }
 
@@ -185,6 +242,8 @@ export default function OCRTestPage() {
     setMeters([])
     setTimedOut(false)
     setDraft('')
+    setRawText(null)
+    setStoragePath(null)
   }
 
   function cancelConfirm() {
