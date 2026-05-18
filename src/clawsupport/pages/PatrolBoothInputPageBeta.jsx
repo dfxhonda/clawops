@@ -220,32 +220,16 @@ export default function PatrolBoothInputPageBeta() {
     resetConfirm()
   }
 
-  // ─── カメラ画面 (3分割ガイドオーバーレイ付き) ───────────────────
+  // ─── カメラ画面 ────────────────────────────────────────────────────
   if (showCamera) {
     return (
-      <>
-        <LiveCameraView
-          engine={engine}
-          onToggleEngine={toggleEngine}
-          onCapture={handleCapture}
-          onQR={() => {}}
-          onCancel={() => setShowCamera(false)}
-        />
-        {/* 3分割ガイド: pointer-events:none でカメラ操作を妨げない */}
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '92%', height: '38%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
-            {[
-              { label: 'A段', color: '#22d3ee' },
-              { label: 'IN',  color: '#0ea5e9' },
-              { label: 'B段', color: '#a78bfa' },
-            ].map(col => (
-              <div key={col.label} style={{ border: `2px solid ${col.color}`, borderRadius: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 4, opacity: 0.85 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 3 }}>{col.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </>
+      <LiveCameraView
+        engine={engine}
+        onToggleEngine={toggleEngine}
+        onCapture={handleCapture}
+        onQR={() => {}}
+        onCancel={() => setShowCamera(false)}
+      />
     )
   }
 
@@ -256,58 +240,56 @@ export default function PatrolBoothInputPageBeta() {
     const confirmDisabled = isMulti ? meters.every(m => !m.value) : !draft
 
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column' }}>
-        {/* 撮影画像プレビュー */}
-        {captured?.url && (
-          <div style={{ position: 'relative', maxHeight: '28dvh', overflow: 'hidden', flexShrink: 0 }}>
-            <img src={captured.url} alt="captured" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
-            {!isMulti && error && boundingBox && (
-              <div style={{
-                position: 'absolute',
-                left: `${boundingBox.x * 100}%`, top: `${boundingBox.y * 100}%`,
-                width: `${boundingBox.w * 100}%`, height: `${boundingBox.h * 100}%`,
-                border: '2px solid #facc15', boxSizing: 'border-box',
-              }} />
-            )}
-          </div>
-        )}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-        {/* OCR状態表示エリア */}
-        <div style={{ padding: '10px 16px 0', flexShrink: 0 }}>
-          <p style={S.label}>読み取り結果 ({engine === 'C' ? 'Claude Vision' : 'Tesseract'})</p>
-
-          {/* ローディング: 経過時間 + halfway バッジ */}
-          {loading && (
-            <div style={{ marginBottom: 8 }}>
-              <p style={{ color: '#8888a8', fontSize: 13, marginBottom: 4 }}>読み取り中 {elapsedSec}秒</p>
-              {showHalfwayBadge && (
-                <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', border: '1px solid #d97706', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>
-                  あと3秒で手入力モード
-                </div>
-              )}
-            </div>
+        {/* 撮影画像プレビュー - 上2/3 */}
+        <div style={{ height: '60vh', flexShrink: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          {captured?.url ? (
+            <img src={captured.url} alt="captured" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} />
+          ) : (
+            <div style={{ color: '#555', fontSize: 12 }}>画像なし</div>
           )}
-
-          {/* タイムアウトエラー */}
-          {timedOut && !loading && (
-            <p style={{ color: '#f87171', fontSize: 13, marginBottom: 8 }}>OCR失敗、手入力してください</p>
-          )}
-
-          {/* 通常エラー (非タイムアウト) */}
-          {error && error !== 'OCR_TIMEOUT_8S' && !loading && (
-            <>
-              <p style={{ color: '#f87171', fontSize: 12, marginBottom: 4 }}>{error} — 手動入力で補正可</p>
-              {ocrDetail && (
-                <pre style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, overflow: 'auto', maxHeight: 80, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                  {ocrDetail}
-                </pre>
-              )}
-            </>
+          {!isMulti && error && boundingBox && (
+            <div style={{
+              position: 'absolute',
+              left: `${boundingBox.x * 100}%`, top: `${boundingBox.y * 100}%`,
+              width: `${boundingBox.w * 100}%`, height: `${boundingBox.h * 100}%`,
+              border: '2px solid #facc15', boxSizing: 'border-box',
+            }} />
           )}
         </div>
 
-        {/* メーター値エリア */}
-        <div style={{ padding: '0 16px', flexShrink: 0, overflowY: 'auto', maxHeight: '30dvh' }}>
+        {/* 下1/3: スクロール可能コンテンツ (OCR状態 + メーター + テンキー) */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 0' }}>
+          {/* OCR状態 */}
+          <div style={{ marginBottom: 6 }}>
+            <p style={S.label}>読み取り結果 ({engine === 'C' ? 'Claude Vision' : 'Tesseract'})</p>
+            {loading && (
+              <div style={{ marginBottom: 6 }}>
+                <p style={{ color: '#8888a8', fontSize: 13, marginBottom: 4 }}>読み取り中 {elapsedSec}秒</p>
+                {showHalfwayBadge && (
+                  <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', border: '1px solid #d97706', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>
+                    あと3秒で手入力モード
+                  </div>
+                )}
+              </div>
+            )}
+            {timedOut && !loading && (
+              <p style={{ color: '#f87171', fontSize: 13, marginBottom: 6 }}>OCR失敗、手入力してください</p>
+            )}
+            {error && error !== 'OCR_TIMEOUT_8S' && !loading && (
+              <>
+                <p style={{ color: '#f87171', fontSize: 12, marginBottom: 4 }}>{error} — 手動入力で補正可</p>
+                {ocrDetail && (
+                  <pre style={{ fontSize: 11, color: '#9ca3af', marginTop: 4, overflow: 'auto', maxHeight: 60, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {ocrDetail}
+                  </pre>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* メーター値カード */}
           {isMulti ? (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${meters.length}, 1fr)`, gap: 6, marginBottom: 6 }}>
@@ -339,8 +321,6 @@ export default function PatrolBoothInputPageBeta() {
                   )
                 })}
               </div>
-
-              {/* 整合チェックは本番統合で実施 (J-PATROL-OCR-fix-04) */}
               {!loading && (
                 <div
                   data-testid="reconciliation-deferred"
@@ -356,15 +336,15 @@ export default function PatrolBoothInputPageBeta() {
               style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #5dade2', borderRadius: 0, fontSize: 28, color: '#d0d0e0', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
             />
           )}
+
+          {/* テンキー */}
+          <div style={{ marginBottom: 8 }}>
+            <CustomNumpad onKey={handleNumKey} />
+          </div>
         </div>
 
-        {/* テンキー */}
-        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-          <CustomNumpad onKey={handleNumKey} />
-        </div>
-
-        {/* アクションボタン */}
-        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 32px', flexShrink: 0 }}>
+        {/* アクションボタン - 最下部固定 */}
+        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 32px', flexShrink: 0, background: '#0a0a16' }}>
           <button onClick={cancelConfirm} style={{ ...S.btn, flex: 1, background: '#2a2a44', color: '#e0e0f0', marginBottom: 0 }}>キャンセル</button>
           {isMulti ? (
             <button
