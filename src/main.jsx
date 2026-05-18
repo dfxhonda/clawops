@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import * as Sentry from '@sentry/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import App from './App'
+import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 
 Sentry.init({
@@ -24,9 +25,9 @@ Sentry.init({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
-    <Sentry.ErrorBoundary fallback={<div style={{padding:20}}>エラーが発生しました。アプリを再起動してください。</div>}>
+    <ErrorBoundary>
       <App />
       <SpeedInsights />
-    </Sentry.ErrorBoundary>
+    </ErrorBoundary>
   </BrowserRouter>
 )
