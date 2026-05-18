@@ -13,26 +13,19 @@ function jstDate() {
 }
 
 function mapMetersToColumns(meters) {
-  const cols = {}
-  for (const m of meters) {
-    const v = m.value != null ? parseInt(m.value, 10) : null
-    if (v == null || isNaN(v)) continue
-    switch (m.type) {
-      case 'in':          cols.in_meter = v; break
-      case 'out':         cols.out_meter = v; break
-      case 'out_a':       cols.out_meter = v; break
-      case 'out_b':       cols.out_meter_2 = v; break
-      case 'out_c':       cols.out_meter_3 = v; break
-      case 'yen1000_in':  cols.yen1000_in = v; break
-      case 'yen500_in':   cols.yen500_in = v; break
-      case 'yen100_in':   cols.yen100_in = v; break
-      case 'change_in':   cols.change_in = v; break
-      case 'change_out':  cols.change_out = v; break
-      case 'capsule_out': cols.capsule_out = v; break
-      case 'prize_out':   cols.prize_out = v; break
-      default: break
-    }
+  const inTypes = ['in','yen1000_in','yen500_in','yen100_in','in_a','in_b','change_in']
+  const cols = { in_meter: null, out_meter: null, out_meter_2: null, out_meter_3: null }
+  for (const t of inTypes) {
+    const m = meters.find(x => x.type === t && x.value != null)
+    if (m) { cols.in_meter = parseInt(m.value, 10); break }
   }
+  const outOrder = ['out_a','out','capsule_out','prize_out','out_b','out_c','change_out']
+  const outs = meters
+    .filter(m => /out/i.test(m.type) && m.value != null)
+    .sort((a,b) => outOrder.indexOf(a.type) - outOrder.indexOf(b.type))
+  if (outs[0]) cols.out_meter   = parseInt(outs[0].value, 10)
+  if (outs[1]) cols.out_meter_2 = parseInt(outs[1].value, 10)
+  if (outs[2]) cols.out_meter_3 = parseInt(outs[2].value, 10)
   return cols
 }
 
