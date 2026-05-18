@@ -246,29 +246,14 @@ export default function OCRTestPage() {
   // ─── カメラ画面 (3分割ガイドオーバーレイ付き) ───────────────────
   if (showCamera) {
     return (
-      <>
-        <LiveCameraView
+      <LiveCameraView
           engine={engine}
           onToggleEngine={toggleEngine}
           onCapture={handleCapture}
           onQR={handleQR}
           onCancel={() => setShowCamera(false)}
+          showGuide={true}
         />
-        {/* 3分割ガイド: pointer-events:none でカメラ操作を妨げない */}
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '92%', height: '38%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
-            {[
-              { label: 'A段', color: '#22d3ee' },
-              { label: 'IN',  color: '#0ea5e9' },
-              { label: 'B段', color: '#a78bfa' },
-            ].map(col => (
-              <div key={col.label} style={{ border: `2px solid ${col.color}`, borderRadius: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 4, opacity: 0.85 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 3 }}>{col.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </>
     )
   }
 
