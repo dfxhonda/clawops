@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../hooks/useAuth'
+import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import LiveCameraView from '../components/LiveCameraView'
 import CustomNumpad from '../components/CustomNumpad'
 import { useOCR } from '../hooks/useOCR'
@@ -67,7 +67,6 @@ function confBadge(conf) {
 
 export default function OCRTestPage() {
   const navigate = useNavigate()
-  const { organizationId } = useAuth()
   const [stores, setStores]         = useState([])
   const [storeCode, setStoreCode]   = useState('')
   const [booths, setBooths]         = useState([])
@@ -86,7 +85,7 @@ export default function OCRTestPage() {
 
   const fileInputRef = useRef(null)
   const { engine, toggleEngine, loading, error, boundingBox, elapsedMs, showHalfwayBadge, runOCR } =
-    useOCR({ boothCode, orgId: organizationId })
+    useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   function addLog(entry) {
     setLogs(prev => [{ ts: new Date().toLocaleTimeString('ja-JP'), ...entry }, ...prev].slice(0, 50))
@@ -185,7 +184,7 @@ export default function OCRTestPage() {
       booth_code: boothCode,
       store_code: boothCode.split('-')[0],
       machine_code: boothCode.split('-').slice(0, 2).join('-'),
-      organization_id: organizationId,
+      organization_id: DFX_ORG_ID,
       patrol_date: jstDate(),
       ...cols,
       entry_type: 'ocr_test',
