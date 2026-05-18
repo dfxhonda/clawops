@@ -109,6 +109,10 @@ const AdminBoothEditPage   = lazy(() => import('./admin/pages/AdminBoothEditPage
 const AdminPrizeMasterPage  = lazy(() => import('./admin/pages/AdminPrizeMasterPage'))
 const AdminOrderHistoryPage = lazy(() => import('./admin/pages/AdminOrderHistoryPage'))
 
+// 遅延ロード — J-PATROL-ALERTS-HUB-01
+const AlertListPage       = lazy(() => import('./clawsupport/pages/AlertListPage'))
+const AdminAlertTypesPage = lazy(() => import('./admin/pages/AdminAlertTypesPage'))
+
 // 遅延ロード — クレサポ v1.0 ハブ
 const ClawsupportHub        = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
 const ClawsupportStoreDash  = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
@@ -217,6 +221,10 @@ function AppInner() {
       <Route path="/complete" element={<ProtectedRoute><Complete /></ProtectedRoute>} />
       <Route path="/ranking/:storeId" element={<ProtectedRoute><RankingView /></ProtectedRoute>} />
       <Route path="/machines/:storeId" element={<ProtectedRoute><MachineList /></ProtectedRoute>} />
+
+      {/* J-PATROL-ALERTS-HUB-01 */}
+      <Route path="/clawsupport/alerts" element={<ProtectedRoute><AlertListPage /></ProtectedRoute>} />
+      <Route path="/admin/alert-types"  element={<AdminRoute><AdminAlertTypesPage /></AdminRoute>} />
 
       {/* クレサポ v1.0 — 全ロール */}
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />

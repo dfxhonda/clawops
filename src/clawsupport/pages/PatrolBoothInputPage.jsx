@@ -8,7 +8,9 @@ import { NumpadFooterPanel } from '../components/NumpadField'
 import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
 import BoothInputForm, { EMPTY_TOUCHED, diffDisplay } from '../components/BoothInputForm'
+import AlertSheetModal from '../components/AlertSheetModal'
 import { useFieldNavigation } from '../hooks/useFieldNavigation'
+import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -107,8 +109,9 @@ export default function PatrolBoothInputPage() {
   const [selectedPrizeId, setSelectedPrizeId] = useState(null)
   const [isCollectionDay, setIsCollectionDay] = useState(false)
   const [isCollection,   setIsColl] = useState(false)
-  const [saving,         setSaving] = useState(false)
-  const [result,         setResult] = useState(null)
+  const [saving,         setSaving]    = useState(false)
+  const [result,         setResult]    = useState(null)
+  const [showAlert,      setShowAlert] = useState(false)
 
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }))
 
@@ -295,7 +298,28 @@ export default function PatrolBoothInputPage() {
         />
       </div>
 
+      <div className="px-4 py-2 border-t border-border/30 shrink-0">
+        <button
+          type="button"
+          onClick={() => setShowAlert(true)}
+          className="w-full py-2 text-sm font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-xl flex items-center justify-center gap-1.5"
+        >
+          📝 気づきを記録
+        </button>
+      </div>
       <NumpadFooterPanel currentField={currentField} />
+
+      <AlertSheetModal
+        open={showAlert}
+        onClose={() => setShowAlert(false)}
+        boothCode={boothCode}
+        machineCode={machine?.machine_code ?? boothCode}
+        storeCode={resolvedStoreCode ?? ''}
+        readingId={prev?.reading_id ?? null}
+        photoUrl={null}
+        orgId={DFX_ORG_ID}
+        staffId={staffId}
+      />
     </div>
   )
 }

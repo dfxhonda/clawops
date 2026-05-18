@@ -2,8 +2,10 @@ import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { useAuth } from '../../hooks/useAuth'
 import LiveCameraView from '../components/LiveCameraView'
 import CustomNumpad from '../components/CustomNumpad'
+import AlertSheetModal from '../components/AlertSheetModal'
 import { useOCR } from '../hooks/useOCR'
 
 const MAX = 999999
@@ -70,7 +72,9 @@ export default function PatrolBoothInputPageBeta() {
   const machineCode = boothCode.split('-').slice(0, 2).join('-')
 
   const navigate = useNavigate()
+  const { staffId } = useAuth()
   const [showCamera, setShowCamera] = useState(false)
+  const [showAlert,  setShowAlert]  = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [captured, setCaptured]     = useState(null)
   const [draft, setDraft]           = useState('')
@@ -434,6 +438,26 @@ export default function PatrolBoothInputPageBeta() {
           )
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowAlert(true)}
+        style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: '1px solid #78350f', background: 'rgba(251,191,36,0.08)', color: '#fbbf24', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}
+      >
+        📝 気づきを記録
+      </button>
+
+      <AlertSheetModal
+        open={showAlert}
+        onClose={() => setShowAlert(false)}
+        boothCode={boothCode}
+        machineCode={machineCode}
+        storeCode={storeCode}
+        readingId={null}
+        photoUrl={storagePath ?? null}
+        orgId={DFX_ORG_ID}
+        staffId={staffId}
+      />
     </div>
   )
 }
