@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
@@ -11,7 +11,9 @@ import MachineRow from '../components/MachineRow'
 
 export default function PatrolStorePage() {
   const { storeCode } = useParams()
+  const { pathname } = useLocation()
   const navigate = useNavigate()
+  const isBeta = pathname.startsWith('/clawsupport/beta/')
 
   const [storeName, setStoreName] = useState(storeCode)
   const [machines, setMachines] = useState([])
@@ -99,7 +101,7 @@ export default function PatrolStorePage() {
             todayMap={todayMap}
             diffMap={diffMap}
             onBoothClick={booth =>
-              navigate(`/clawsupport/booth/${booth.booth_code}`, {
+              navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${booth.booth_code}`, {
                 state: { machine, booth, storeCode },
               })
             }

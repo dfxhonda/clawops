@@ -13,6 +13,7 @@ export default function ClawsupportHub() {
   const [stores, setStores] = useState([])
   const [pinnedCodes, setPinnedCodes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [betaMode, setBetaMode] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -54,7 +55,9 @@ export default function ClawsupportHub() {
         key={store.store_code}
         store={store}
         isPinned={isPinned}
-        onSelect={() => navigate(`/clawsupport/store/${store.store_code}`)}
+        onSelect={() => navigate(betaMode
+        ? `/clawsupport/beta/store/${store.store_code}`
+        : `/clawsupport/store/${store.store_code}`)}
         onPin={() => handlePin(store.store_code)}
       />
     )
@@ -77,6 +80,20 @@ export default function ClawsupportHub() {
         menuToLauncher
         rightSlot={<DateTime value={new Date()} format="date" />}
       />
+
+      <div className="shrink-0 px-4 py-2 flex items-center justify-between border-b border-border">
+        <span className="text-xs text-muted">巡回モード</span>
+        <button
+          onClick={() => setBetaMode(v => !v)}
+          className={`text-xs px-3 py-1 rounded-full border font-bold transition-colors ${
+            betaMode
+              ? 'bg-amber-500/20 text-amber-400 border-amber-400/40'
+              : 'bg-surface text-muted border-border'
+          }`}
+        >
+          {betaMode ? '巡回ベータ(OCR有) ✓' : '巡回ベータ(OCR有)'}
+        </button>
+      </div>
 
       <KanaIndex
         items={stores}
