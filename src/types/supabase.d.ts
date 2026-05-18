@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          after: Json | null
+          before: Json | null
+          created_at: string
+          device_info: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: number
+          ip_address: string | null
+          operation: string
+          previous_hash: string
+          record_id: string
+          table_name: string
+          this_hash: string
+          user_id: string | null
+        }
+        Insert: {
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          device_info?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: number
+          ip_address?: string | null
+          operation: string
+          previous_hash?: string
+          record_id: string
+          table_name: string
+          this_hash: string
+          user_id?: string | null
+        }
+        Update: {
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          device_info?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: number
+          ip_address?: string | null
+          operation?: string
+          previous_hash?: string
+          record_id?: string
+          table_name?: string
+          this_hash?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -22,6 +73,9 @@ export type Database = {
           created_at: string | null
           detail: string | null
           id: number
+          lat: number | null
+          lng: number | null
+          location_accuracy: number | null
           organization_id: string
           reason: string | null
           reason_code: string | null
@@ -37,6 +91,9 @@ export type Database = {
           created_at?: string | null
           detail?: string | null
           id?: never
+          lat?: number | null
+          lng?: number | null
+          location_accuracy?: number | null
           organization_id: string
           reason?: string | null
           reason_code?: string | null
@@ -52,6 +109,9 @@ export type Database = {
           created_at?: string | null
           detail?: string | null
           id?: never
+          lat?: number | null
+          lng?: number | null
+          location_accuracy?: number | null
           organization_id?: string
           reason?: string | null
           reason_code?: string | null
@@ -1676,6 +1736,7 @@ export type Database = {
           in_meter_count: number
           manufacturer: string | null
           meter_count: number | null
+          meter_layout: Json | null
           meter_unit_price: number | null
           model_id: string
           model_name: string
@@ -1696,6 +1757,7 @@ export type Database = {
           in_meter_count?: number
           manufacturer?: string | null
           meter_count?: number | null
+          meter_layout?: Json | null
           meter_unit_price?: number | null
           model_id: string
           model_name: string
@@ -1716,6 +1778,7 @@ export type Database = {
           in_meter_count?: number
           manufacturer?: string | null
           meter_count?: number | null
+          meter_layout?: Json | null
           meter_unit_price?: number | null
           model_id?: string
           model_name?: string
@@ -3427,8 +3490,11 @@ export type Database = {
           brand_name: string | null
           closed_at: string | null
           created_at: string | null
+          gps_verified_at: string | null
           is_active: boolean | null
           is_collection_day: boolean
+          lat: number | null
+          lng: number | null
           locality: string | null
           locality_kana: string | null
           manager_id: string | null
@@ -3450,8 +3516,11 @@ export type Database = {
           brand_name?: string | null
           closed_at?: string | null
           created_at?: string | null
+          gps_verified_at?: string | null
           is_active?: boolean | null
           is_collection_day?: boolean
+          lat?: number | null
+          lng?: number | null
           locality?: string | null
           locality_kana?: string | null
           manager_id?: string | null
@@ -3473,8 +3542,11 @@ export type Database = {
           brand_name?: string | null
           closed_at?: string | null
           created_at?: string | null
+          gps_verified_at?: string | null
           is_active?: boolean | null
           is_collection_day?: boolean
+          lat?: number | null
+          lng?: number | null
           locality?: string | null
           locality_kana?: string | null
           manager_id?: string | null
