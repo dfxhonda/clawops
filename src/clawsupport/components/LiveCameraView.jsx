@@ -20,6 +20,7 @@ function compressFrame(videoEl) {
 
 export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR, onCancel, showGuide: showGuideProp = false }) {
   const videoRef = useRef(null)
+  const videoWrapperRef = useRef(null)
   const streamRef = useRef(null)
   const zoomRef = useRef(1)
   const pinchStartRef = useRef(null)
@@ -97,9 +98,9 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
 
   function handleZoomButton(level) {
     setZoomLevel(level)
-    if (videoRef.current) {
-      videoRef.current.style.transform = `scale(${level})`
-      videoRef.current.style.transformOrigin = 'center center'
+    if (videoWrapperRef.current) {
+      videoWrapperRef.current.style.transform = `scale(${level})`
+      videoWrapperRef.current.style.transformOrigin = 'center center'
     }
   }
 
@@ -155,29 +156,30 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
           {cameraError}
         </div>
       ) : (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{ flex: 1, objectFit: 'cover', width: '100%' }}
-        />
-      )}
-
-      {/* 3分割ガイド */}
-      {showGuide && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '92%', height: '38%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
-            {[
-              { label: 'A段', color: '#22d3ee' },
-              { label: 'IN',  color: '#0ea5e9' },
-              { label: 'B段', color: '#a78bfa' },
-            ].map(col => (
-              <div key={col.label} style={{ border: `2px solid ${col.color}`, borderRadius: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 4, opacity: 0.85 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 3 }}>{col.label}</span>
+        <div ref={videoWrapperRef} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          {/* 3分割ガイド — transform wrapper 内で絶対配置 */}
+          {showGuide && (
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '92%', height: '38%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
+                {[
+                  { label: 'A段', color: '#22d3ee' },
+                  { label: 'IN',  color: '#0ea5e9' },
+                  { label: 'B段', color: '#a78bfa' },
+                ].map(col => (
+                  <div key={col.label} style={{ border: `2px solid ${col.color}`, borderRadius: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 4, opacity: 0.85 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: col.color, background: 'rgba(0,0,0,0.6)', padding: '1px 6px', borderRadius: 3 }}>{col.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       )}
 

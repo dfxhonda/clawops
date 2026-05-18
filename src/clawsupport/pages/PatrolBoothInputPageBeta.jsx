@@ -240,14 +240,14 @@ export default function PatrolBoothInputPageBeta() {
     const confirmDisabled = isMulti ? meters.every(m => !m.value) : !draft
 
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column' }}>
 
         {/* 撮影画像プレビュー - 上2/3 */}
         {captured?.url && (
           <img
             src={captured.url}
             alt="captured"
-            style={{ maxHeight: '60vh', width: '100%', objectFit: 'contain', background: '#000', display: 'block', flexShrink: 0 }}
+            style={{ height: '60vh', maxHeight: '60vh', width: '100%', objectFit: 'contain', background: '#000', display: 'block', flexShrink: 0 }}
           />
         )}
 
