@@ -255,4 +255,25 @@ multi_tenant_isolation:
   anon_fetch_rule: "organization_id フィルタ禁止 (RLS で担保)"
   reason: "anon 画面 fetch で organization_id 絞ると空配列になるバグ実績 (2026-04-26 ログイン v4)"
   on_new_table: RLS ポリシー必ず同時投入
+notion_writeback_procedure:
+  added: 2026-05-19
+  source: NOTION-WRITEBACK-STANDARD-V1
+  purpose: "spec の completion_report_required.write_back_to_notion: true を受けて実装完了時に必ず Notion status_log へ YAML 追記する"
+  when_required: "spec に write_back_to_notion: true AND notion_page_id が記載されている場合は必須"
+  mcp_json_status:
+    token_type: "Bearer (ntn_***)"
+    server: "@notionhq/notion-mcp-server"
+    read_confirmed: true
+    update_confirmed: "2026-05-19 NOTION-WRITEBACK-STANDARD-V1 self_test で検証済"
+  how_to_write:
+    step_1: "mcp__notion__API-get-block-children で spec ページの code ブロック ID を取得"
+    step_2: "mcp__notion__API-update-a-block で code.rich_text[0].text.content を 既存内容 + 新 YAML エントリ で更新"
+    step_3: "失敗時は mcp__notion__API-patch-block-children で新規 code ブロックを末尾に追加 (フォールバック)"
+  writeback_yaml_template: |
+    - <ISO8601+09:00> / Claude Code (Sonnet 4.6)
+      phase: push_done
+      commit: <hash>
+      build_result: pass (vitest N/N, npm run build ok)
+      自己評価: <実装内容1行>
+  important: "自己評価は参考値。司令塔Opusが Vercel/Supabase 実態照合して二重チェックする"
 ```
