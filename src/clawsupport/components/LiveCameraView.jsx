@@ -18,7 +18,7 @@ function compressFrame(videoEl) {
   return { canvas, base64 }
 }
 
-export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR, onCancel, showGuide = false }) {
+export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR, onCancel, showGuide: showGuideProp = false }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const zoomRef = useRef(1)
@@ -27,7 +27,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
   const [zoom, setZoom] = useState(1)
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 1 })
   const [shooting, setShooting] = useState(false)
-  const [guideOn, setGuideOn] = useState(showGuide)
+  const [showGuide, setShowGuide] = useState(showGuideProp)
   const [zoomLevel, setZoomLevel] = useState(1)
   const detectorRef = useRef(null)
   const mountedRef = useRef(true)
@@ -165,7 +165,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
       )}
 
       {/* 3分割ガイド */}
-      {guideOn && (
+      {showGuide && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: '92%', height: '38%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
             {[
@@ -191,10 +191,10 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
         </button>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={() => setGuideOn(v => !v)}
-            style={{ color: guideOn ? '#000' : '#fff', background: guideOn ? '#fff' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+            onClick={() => setShowGuide(v => !v)}
+            style={{ color: showGuide ? '#000' : '#fff', background: showGuide ? '#fff' : 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
           >
-            ガイド {guideOn ? 'ON' : 'OFF'}
+            ガイド {showGuide ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={onToggleEngine}

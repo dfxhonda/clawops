@@ -243,24 +243,16 @@ export default function PatrolBoothInputPageBeta() {
       <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#0a0a16', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* 撮影画像プレビュー - 上2/3 */}
-        <div style={{ height: '60vh', flexShrink: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          {captured?.url ? (
-            <img src={captured.url} alt="captured" style={{ width: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }} />
-          ) : (
-            <div style={{ color: '#555', fontSize: 12 }}>画像なし</div>
-          )}
-          {!isMulti && error && boundingBox && (
-            <div style={{
-              position: 'absolute',
-              left: `${boundingBox.x * 100}%`, top: `${boundingBox.y * 100}%`,
-              width: `${boundingBox.w * 100}%`, height: `${boundingBox.h * 100}%`,
-              border: '2px solid #facc15', boxSizing: 'border-box',
-            }} />
-          )}
-        </div>
+        {captured?.url && (
+          <img
+            src={captured.url}
+            alt="captured"
+            style={{ maxHeight: '60vh', width: '100%', objectFit: 'contain', background: '#000', display: 'block', flexShrink: 0 }}
+          />
+        )}
 
         {/* 下1/3: スクロール可能コンテンツ (OCR状態 + メーター + テンキー) */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 0' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 100px' }}>
           {/* OCR状態 */}
           <div style={{ marginBottom: 6 }}>
             <p style={S.label}>読み取り結果 ({engine === 'C' ? 'Claude Vision' : 'Tesseract'})</p>
@@ -344,7 +336,7 @@ export default function PatrolBoothInputPageBeta() {
         </div>
 
         {/* アクションボタン - 最下部固定 */}
-        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 32px', flexShrink: 0, background: '#0a0a16' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, display: 'flex', gap: 8, padding: '8px 16px 32px', background: '#0a0a16', zIndex: 9999 }}>
           <button onClick={cancelConfirm} style={{ ...S.btn, flex: 1, background: '#2a2a44', color: '#e0e0f0', marginBottom: 0 }}>キャンセル</button>
           {isMulti ? (
             <button
