@@ -129,10 +129,14 @@ export default function PatrolBoothInputPageBeta() {
   const [saving,         setSaving] = useState(false)
   const [result,         setResult] = useState(null)
 
-  const [showCamera, setShowCamera] = useState(false)
-  const [photoUrl,   setPhotoUrl]   = useState(null)
+  const [showCamera,       setShowCamera]       = useState(false)
+  const [photoUrl,         setPhotoUrl]         = useState(null)
+  const [capturedImageUrl, setCapturedImageUrl] = useState(null)
+  const [ocrResultMeters,  setOcrResultMeters]  = useState([])
+  const [showOcrConfirm,   setShowOcrConfirm]   = useState(false)
+  const [ocrErrMsg,        setOcrErrMsg]        = useState(null)
 
-  const { engine, toggleEngine, loading: ocrLoading, runOCR } =
+  const { engine, toggleEngine, loading: ocrLoading, error: ocrError, runOCR } =
     useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }))
@@ -200,18 +204,27 @@ export default function PatrolBoothInputPageBeta() {
 
   const canSave = inMeter !== '' && outMeter1 !== '' && stock !== ''
 
-  async function handleCapture(base64, blob) {
+  async function handleOcrCapture(base64, blob) {
     setShowCamera(false)
+    setOcrErrMsg(null)
+    if (blob) setCapturedImageUrl(URL.createObjectURL(blob))
     const res = await runOCR(base64, blob)
-    const { meters: ocrMeters, storagePath: sp } = res ?? {}
+    const { meters: ocrMeters, storagePath: sp, error: resErr } = res ?? {}
     if (sp) setPhotoUrl(sp)
-    if (ocrMeters?.length) {
-      const cols = mapMetersToColumns(ocrMeters)
+    if (resErr) setOcrErrMsg(resErr)
+    setOcrResultMeters(ocrMeters ?? [])
+    setShowOcrConfirm(true)
+  }
+
+  function applyOcrValues() {
+    if (ocrResultMeters.length) {
+      const cols = mapMetersToColumns(ocrResultMeters)
       if (cols.in_meter != null) { setIn(String(cols.in_meter)); setTouched(t => ({ ...t, inMeter: true })) }
       if (cols.out_meter != null) { setOut1(String(cols.out_meter)); setTouched(t => ({ ...t, outMeter1: true })) }
       if (cols.out_meter_2 != null) { setOut2(String(cols.out_meter_2)); setTouched(t => ({ ...t, outMeter2: true })) }
       if (cols.out_meter_3 != null) { setOut3(String(cols.out_meter_3)); setTouched(t => ({ ...t, outMeter3: true })) }
     }
+    setShowOcrConfirm(false)
   }
 
   function buildOptionalPatch() {
@@ -285,18 +298,95 @@ export default function PatrolBoothInputPageBeta() {
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
 
+  // ─── カメラ ────────────────────────────────────────────────────────
   if (showCamera) {
     return (
       <LiveCameraView
         engine={engine}
         onToggleEngine={toggleEngine}
-        onCapture={handleCapture}
+        onCapture={handleOcrCapture}
         onQR={() => {}}
         onCancel={() => setShowCamera(false)}
       />
     )
   }
 
+  // ─── OCR確認画面 ───────────────────────────────────────────────────
+  if (showOcrConfirm) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#0a0a16', display: 'flex', flexDirection: 'column', zIndex: 9998 }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2a44', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <span style={{ color: '#d0d0e0', fontSize: 14, fontWeight: 700 }}>OCR読み取り結果確認</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: '#8888a8' }}>{boothCode}</span>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+          {capturedImageUrl && (
+            <div style={{ marginBottom: 12 }}>
+              <img
+                src={capturedImageUrl}
+                alt="captured"
+                style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 8, border: '1px solid #2a2a44', background: '#111' }}
+              />
+            </div>
+          )}
+
+          {(ocrErrMsg || ocrError || !ocrResultMeters.length) && (
+            <div style={{ background: '#422006', border: '1px solid #d97706', borderRadius: 8, padding: '10px 14px', marginBottom: 12, color: '#fcd34d', fontSize: 13 }}>
+              {ocrErrMsg || ocrError
+                ? `OCR読取失敗: ${ocrErrMsg || ocrError}`
+                : 'メーターが検出されませんでした'}
+              <br />
+              <span style={{ fontSize: 12, color: '#fbbf24' }}>「採用」で閉じて手入力フィールドに直接入力できます</span>
+            </div>
+          )}
+
+          {ocrResultMeters.map((m, i) => {
+            const conf = typeof m.confidence === 'number' ? m.confidence : null
+            const confColor = conf == null ? '#6b7280' : conf >= 0.9 ? '#6ee7b7' : conf >= 0.7 ? '#9ca3af' : '#fcd34d'
+            const confLabel = conf == null ? null : conf >= 0.9 ? '高' : conf >= 0.7 ? '中' : '低'
+            return (
+              <div key={i} style={{ background: '#16162a', border: '1px solid #2a2a44', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: '#8888a8' }}>{m.label || m.type}</span>
+                  {confLabel && (
+                    <span style={{ fontSize: 9, color: confColor, border: `1px solid ${confColor}`, borderRadius: 3, padding: '1px 4px', fontWeight: 700 }}>
+                      {confLabel}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  value={m.value ?? ''}
+                  onChange={e => setOcrResultMeters(prev => prev.map((x, j) =>
+                    j === i ? { ...x, value: e.target.value === '' ? null : e.target.value } : x
+                  ))}
+                  style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '2px solid #3a3a54', color: '#d0d0e0', fontSize: 22, fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ padding: '12px 16px 40px', display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button
+            onClick={() => { setShowOcrConfirm(false); setShowCamera(true) }}
+            style={{ flex: 1, padding: '12px 0', borderRadius: 10, background: '#2a2a44', color: '#d0d0e0', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          >
+            ↻ 再撮影
+          </button>
+          <button
+            onClick={applyOcrValues}
+            style={{ flex: 2, padding: '12px 0', borderRadius: 10, background: '#0891b2', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          >
+            ✓ この値を採用
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── メイン入力画面 ────────────────────────────────────────────────
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
       <PageHeader
