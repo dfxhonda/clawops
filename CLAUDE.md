@@ -276,4 +276,61 @@ notion_writeback_procedure:
       build_result: pass (vitest N/N, npm run build ok)
       自己評価: <実装内容1行>
   important: "自己評価は参考値。司令塔Opusが Vercel/Supabase 実態照合して二重チェックする"
+  v2_note: "J-INFRA-CLAUDE-MD-PROCEDURES-V2: 自己評価 → self_verification+implementation_notes に格上げ。二重チェックは司令塔レビューのみで完結"
+completion_self_verification_procedure:
+  added: 2026-05-20
+  source: J-INFRA-CLAUDE-MD-PROCEDURES-V2
+  purpose: "実装+commit+push 完了後、Discord 完了報告投稿前に Claude Code 自身が実行する機械照合 4 ステップ"
+  step_1_vercel:
+    tool: "Vercel MCP (list_deployments 等)"
+    verify:
+      - 自分の commit_hash が Vercel 最新 deployment に存在
+      - "state == 'READY', target == 'production'"
+      - inspectorUrl を completion_report に記録
+    on_fail:
+      building_or_queued: "30 秒 sleep → 再 poll、最大 5 回"
+      error: "build logs 取得 → error 内容を report に含めて停止"
+  step_2_supabase:
+    tool: mcp__supabase__execute_sql
+    verify:
+      - spec.acceptance に SQL 検証可能条件があれば実行
+      - スキーマ変更があれば information_schema.columns で確認
+    report: SQL クエリと結果を completion_report に含める
+    when_to_skip: "DB 変更なし / acceptance に SQL 条件なし"
+  step_3_acceptance_trivalue:
+    values: ["○ (検証済み+根拠)", "× (未達+内容明記)", "? (自動検証不可、ヒロ実機テスト必要)"]
+    required: "spec.acceptance 全項目を 1 行ずつ ○×? 判定して completion_report に記載"
+    on_cross: "自動で原因究明 → 修正 → 再 commit → 再検証、最大 3 周"
+    on_3_rounds_failed: "Discord に '× 残: <理由>' 付きで報告して司令塔判断を待つ"
+    ok_to_report: "○ のみ、または ? 混在なら通常完了報告"
+  step_4_notion_writeback:
+    tool: mcp__notion__API-patch-block-children
+    required: "本 spec page に paragraph append (timestamp/author/commit/acceptance三値/implementation_notes)"
+    on_fail: "Discord 完了報告に 'Notion書き戻し失敗' 明記、司令塔Opus 代行依頼"
+implementation_notes_requirement:
+  added: 2026-05-20
+  source: J-INFRA-CLAUDE-MD-PROCEDURES-V2
+  purpose: "完了報告 Notion paragraph に必ず含める 6 項目。spec 通り実装部分と Claude Code 独自判断を区別して記録"
+  six_categories:
+    1_decisions_not_in_spec: "spec 不在で勝手に決定した点 (ライブラリ選択/命名規則/ファイル分割等) 形式: 決定内容/候補/採用理由"
+    2_ambiguity_resolutions: "spec 解釈で迷った点と採用した解釈・根拠 (depends_on の類似条項参照等)"
+    3_compromises: "時間的・技術的制約による妥協点と後続 fix 計画"
+    4_deviations_from_spec: "spec 逸脱 (最小限必須、必ずヒロ確認推奨フラグ付与)"
+    5_considered_but_rejected: "検討したが採用しなかった案と理由"
+    6_deferred_tbd: "未確定/保留事項と次 spec での扱い予定"
+  format_rule: "全 6 項目を列挙、該当なしの場合は 'なし' と明記 (省略禁止)"
+spec_reference_priority:
+  added: 2026-05-20
+  source: "J-INFRA-CLAUDE-MD-PROCEDURES-V2 (SPEC-AUTHORING-V1 準拠)"
+  purpose: "spec 実装中に曖昧点に遭遇したら、以下の順で参照して自己解決"
+  order:
+    a: "該当 spec 本文 (implementation_scope, scope.write, acceptance, forbidden)"
+    b: "depends_on に含まれる累積要件 spec (Layer 3: 機能別 _REQUIREMENTS-V1)"
+    c: "共通規格 spec (Layer 2: UI-CHARTER-V2 / DESIGN-TOKENS-V1 / LOG-SPEC-01 / ERROR-HANDLING-V1)"
+    d: "similar_implementations に列挙された既存コード"
+    e: "上記 a-d で不明な場合のみ司令塔 Opus に問い合わせ (Discord or Notion comment)"
+  unresolved_list_rule: |
+    a-d で自己解決できなかった項目は status_log paragraph に「不明点リスト」として記録。
+    クリティカルなもののみ実装前に司令塔へ問い合わせ。
+    ノンクリティカルなものは「類似実装踏襲」で進め、完了報告 implementation_notes に明示。
 ```
