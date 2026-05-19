@@ -294,7 +294,7 @@ export default function PatrolBoothInputPage() {
     if (finalOut != null) { setOut1(String(finalOut)); setTouched(t => ({ ...t, outMeter1: true })) }
     setOcrPhotoUrl(photoUrl ?? null)
     setOcrConf(avgConf ?? null)
-    setOcrIM(ocrEdited ? 'ocr_corrected' : 'ocr')
+    setOcrIM('ocr')
     setOcrState('idle')
     setOcrCapture(null)
     setOcrEditIn('')
