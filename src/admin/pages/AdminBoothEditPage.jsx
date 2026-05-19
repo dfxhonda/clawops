@@ -6,11 +6,13 @@ import { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
 import BoothInputForm, { ALL_TOUCHED } from '../../clawsupport/components/BoothInputForm'
 import { useFieldNavigation } from '../../clawsupport/hooks/useFieldNavigation'
 import { isAdmin } from '../../services/permissions'
+import { logger } from '../../lib/logger'
 import {
   getFullReading,
   updateMeterReading,
   deleteMeterReading,
   insertAuditLog,
+  insertPastDateReading,
   fetchAdminBoothHistory,
 } from '../../services/adminMeterEdit'
 
@@ -97,6 +99,12 @@ export default function AdminBoothEditPage() {
 
   const [hasUnsaved, setHasUnsaved] = useState(false)
 
+  const [showDatePicker,  setShowDatePicker]  = useState(false)
+  const [pickerDate,      setPickerDate]      = useState('')
+  const [insertingPast,   setInsertingPast]   = useState(false)
+
+  const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+
   const [historyRows,    setHistoryRows]    = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
 
@@ -113,6 +121,7 @@ export default function AdminBoothEditPage() {
     if (hasUnsaved) {
       if (!window.confirm('破棄して切替?')) return
     }
+    logger.info('admin_patrol_edit_open_record', { boothCode, patrol_date: row.patrol_date })
     const full = await getFullReading(row.reading_id)
     setSelectedReading(full)
     setLockTimestamp(full.updated_at)
@@ -138,6 +147,7 @@ export default function AdminBoothEditPage() {
   }
 
   const touch = key => () => {
+    logger.info('admin_patrol_field_edited', { field_name: key })
     setTouched(t => ({ ...t, [key]: true }))
     setHasUnsaved(true)
   }
@@ -188,6 +198,7 @@ export default function AdminBoothEditPage() {
       setHasUnsaved(false)
       setResult('saved')
       setHistoryKey(k => k + 1)
+      logger.info('admin_patrol_record_saved')
     } catch (err) {
       if (err.message === 'CONFLICT') {
         setResult('conflict')
@@ -217,12 +228,38 @@ export default function AdminBoothEditPage() {
       setHasUnsaved(false)
       setResult(null)
       setHistoryKey(k => k + 1)
+      logger.info('admin_patrol_record_deleted')
     } catch (err) {
       if (err.message === 'CONFLICT') {
         alert('他の操作で変更されています。ページを再読み込みしてください。')
       }
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handlePastDateInsert() {
+    if (!pickerDate || pickerDate > todayJST || insertingPast) return
+    setInsertingPast(true)
+    logger.info('admin_patrol_past_date_insert_saved', { selected_date: pickerDate })
+    try {
+      const newRow = await insertPastDateReading({ boothCode, patrolDate: pickerDate, staffId })
+      await insertAuditLog({
+        action: 'admin_patrol_past_date_insert',
+        targetId: newRow.reading_id,
+        before: null,
+        after: newRow,
+        staffId,
+        boothCode,
+      })
+      setShowDatePicker(false)
+      setPickerDate('')
+      setHistoryKey(k => k + 1)
+      await handleRowSelect(newRow)
+    } catch {
+      setResult('error')
+    } finally {
+      setInsertingPast(false)
     }
   }
 
@@ -292,6 +329,16 @@ export default function AdminBoothEditPage() {
           data-testid="booth-history-list"
           className="flex-1 overflow-y-auto min-h-[200px] pb-[300px]"
         >
+          <div className="sticky top-0 bg-bg z-10 px-4 py-2 border-b border-border flex items-center gap-2">
+            <span className="text-sm font-bold text-muted flex-1">巡回履歴</span>
+            <button
+              type="button"
+              onClick={() => { logger.info('admin_patrol_past_date_insert_clicked'); setShowDatePicker(true) }}
+              className="text-sm font-bold text-blue-400 border border-blue-400/30 bg-blue-500/10 rounded-lg px-3 min-h-[44px] flex items-center"
+            >
+              + 過去日追加
+            </button>
+          </div>
           {historyLoading ? (
             <div className="px-4 py-6 text-center text-muted text-sm">読込中...</div>
           ) : historyRows.length === 0 ? (
@@ -328,6 +375,38 @@ export default function AdminBoothEditPage() {
       </div>
 
       <NumpadFooterPanel currentField={currentField} />
+
+      {showDatePicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-bg border border-border rounded-2xl p-6 mx-4 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-bold mb-4">過去日付で追加</h3>
+            <input
+              type="date"
+              value={pickerDate}
+              max={todayJST}
+              onChange={e => setPickerDate(e.target.value)}
+              className="w-full border-2 border-border rounded-xl px-3 py-3 text-base bg-surface2 text-text mb-4 outline-none focus:border-accent"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handlePastDateInsert}
+                disabled={!pickerDate || pickerDate > todayJST || insertingPast}
+                className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl text-base disabled:opacity-40"
+              >
+                {insertingPast ? '追加中...' : '追加する'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowDatePicker(false); setPickerDate('') }}
+                className="flex-1 py-3 border border-border text-text font-bold rounded-xl text-base"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

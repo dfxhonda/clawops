@@ -101,3 +101,28 @@ export async function insertAuditLog({ action, targetId, before, after, staffId,
     detail: `/admin/booth-edit/${boothCode}`,
   })
 }
+
+export async function insertPastDateReading({ boothCode, patrolDate, staffId }) {
+  const readingId = crypto.randomUUID()
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .insert({
+      reading_id: readingId,
+      booth_id: boothCode,
+      booth_code: boothCode,
+      patrol_date: patrolDate,
+      entry_type: 'patrol',
+      in_meter: null,
+      out_meter: null,
+      out_meter_2: null,
+      out_meter_3: null,
+      prize_restock_count: 0,
+      prize_stock_count: null,
+      organization_id: DFX_ORG_ID,
+      created_by: staffId,
+      updated_by: staffId,
+    })
+    .select()
+  if (error) throw error
+  return data[0]
+}

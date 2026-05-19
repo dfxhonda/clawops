@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import NumpadField from './NumpadField'
 import Tooltip from './Tooltip'
 import PrizeNameAutocomplete from './PrizeNameAutocomplete'
@@ -18,8 +19,12 @@ function CompactCell({
   inputClassName, onNext, testId, inputPlaceholder, onRegister,
   isActive = false, className = '',
 }) {
+  const cellRef = useRef(null)
+  useEffect(() => {
+    if (isActive) cellRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [isActive])
   return (
-    <div className={`flex flex-row items-center gap-1 p-1 rounded transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
+    <div ref={cellRef} className={`flex flex-row items-center gap-1 p-1 rounded transition-all duration-200 ${isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
       <div className={`shrink-0 ${isActive ? '[&_button]:text-blue-600' : ''}`}>
         <Tooltip id={ttId} content={ttContent} label={label} />
       </div>
@@ -94,6 +99,7 @@ export default function BoothInputForm({
   canSave, saving, result, onSave,
   onDelete, deleting,
 }) {
+  const isEditMode = mode === 'edit'
   const outFields = [
     { key: 'outMeter1', val: outMeter1, set: setOut1, tab: 2, id: 'field-out-meter' },
     { key: 'outMeter2', val: outMeter2, set: setOut2, tab: 3, id: 'field-out-meter-2' },
@@ -108,21 +114,21 @@ export default function BoothInputForm({
       <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
 
         {/* Row 1: IN + OUT(s) + 差 + 残 + 補 */}
-        <div data-testid="meter-row" className="flex gap-1 p-1 border-b border-border">
-          <CompactCell
-            className="flex-[3] min-w-0"
-            ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
-            fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
-            allowDecimal dataTabindex={1}
-            inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
-            onNext={() => navigateNext?.(1)}
-            onRegister={registerField}
-            isActive={activeTabindex === 1}
-          />
-          {outMeterCount === 1 ? (
+        {isEditMode ? (
+          <div data-testid="meter-row" className="grid grid-cols-2 gap-x-2 gap-y-1 p-2 border-b border-border">
             <CompactCell
-              className="flex-[3] min-w-0"
-              ttId="tt-field-out-meter" ttContent={TT.out_meter} label="OUT"
+              className="w-full min-w-[7ch]"
+              ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
+              fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
+              allowDecimal dataTabindex={1}
+              inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(1)}
+              onRegister={registerField}
+              isActive={activeTabindex === 1}
+            />
+            <CompactCell
+              className="w-full min-w-[7ch]"
+              ttId="tt-field-out-meter" ttContent={TT.out_meter} label={outMeterCount > 1 ? 'OUT1' : 'OUT'}
               fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch?.('outMeter1')}
               allowDecimal dataTabindex={2}
               inputClassName={!touched?.outMeter1 ? 'text-gray-400' : ''}
@@ -130,51 +136,126 @@ export default function BoothInputForm({
               onRegister={registerField}
               isActive={activeTabindex === 2}
             />
-          ) : (
-            outFields.map((f, i) => (
+            {outMeterCount > 1 && (
               <CompactCell
-                key={f.id}
-                className="flex-[3] min-w-0"
-                ttId={`tt-${f.id}`} ttContent={TT.out_meter} label={`OUT${i + 1}`}
-                fieldId={f.id} value={f.val} onChange={f.set} onTouched={touch?.(f.key)}
-                allowDecimal dataTabindex={f.tab}
-                inputClassName={!touched?.[f.key] ? 'text-gray-400' : ''}
-                onNext={() => navigateNext?.(f.tab)}
+                className="w-full min-w-[7ch]"
+                ttId="tt-field-out-meter-2" ttContent={TT.out_meter} label="OUT2"
+                fieldId="field-out-meter-2" value={outMeter2} onChange={setOut2} onTouched={touch?.('outMeter2')}
+                allowDecimal dataTabindex={3}
+                inputClassName={!touched?.outMeter2 ? 'text-gray-400' : ''}
+                onNext={() => navigateNext?.(3)}
                 onRegister={registerField}
-                isActive={activeTabindex === f.tab}
+                isActive={activeTabindex === 3}
               />
-            ))
-          )}
-          {/* 差 cell */}
-          <div className="flex flex-row items-center gap-1 p-1 flex-[2] min-w-0">
-            <div className="shrink-0"><Tooltip id="tt-field-diff" content={TT.diff} label="差" /></div>
-            <div data-testid="diff-cell" className="flex flex-col items-end justify-center flex-1 min-h-[2rem]">
-              <div data-testid="in-diff"  className={`font-mono text-xs font-bold ${inDiff.cls}`}>{inDiff.text}</div>
-              <div data-testid="out-diff" className={`font-mono text-xs font-bold ${outDiff.cls}`}>{outDiff.text}</div>
+            )}
+            <div className="flex flex-row items-center gap-2 px-2 py-1 min-w-[7ch]">
+              <div className="shrink-0"><Tooltip id="tt-field-diff" content={TT.diff} label="差" /></div>
+              <div data-testid="diff-cell" className="flex flex-col items-end flex-1 min-h-[2rem]">
+                <div data-testid="in-diff"  className={`font-mono text-xs font-bold ${inDiff.cls}`}>{inDiff.text}</div>
+                <div data-testid="out-diff" className={`font-mono text-xs font-bold ${outDiff.cls}`}>{outDiff.text}</div>
+              </div>
             </div>
+            {outMeterCount > 2 && (
+              <CompactCell
+                className="w-full min-w-[7ch]"
+                ttId="tt-field-out-meter-3" ttContent={TT.out_meter} label="OUT3"
+                fieldId="field-out-meter-3" value={outMeter3} onChange={setOut3} onTouched={touch?.('outMeter3')}
+                allowDecimal dataTabindex={4}
+                inputClassName={!touched?.outMeter3 ? 'text-gray-400' : ''}
+                onNext={() => navigateNext?.(4)}
+                onRegister={registerField}
+                isActive={activeTabindex === 4}
+              />
+            )}
+            <CompactCell
+              className="w-full min-w-[7ch]"
+              ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
+              fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch?.('stock')}
+              dataTabindex={5}
+              inputClassName={!touched?.stock ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(5)}
+              onRegister={registerField}
+              isActive={activeTabindex === 5}
+            />
+            <CompactCell
+              className="w-full min-w-[7ch]"
+              ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
+              fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch?.('restock')}
+              dataTabindex={6}
+              inputClassName={!touched?.restock ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(6)}
+              onRegister={registerField}
+              isActive={activeTabindex === 6}
+            />
           </div>
-
-          <CompactCell
-            className="flex-[3] min-w-0"
-            ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
-            fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch?.('stock')}
-            dataTabindex={5}
-            inputClassName={!touched?.stock ? 'text-gray-400' : ''}
-            onNext={() => navigateNext?.(5)}
-            onRegister={registerField}
-            isActive={activeTabindex === 5}
-          />
-          <CompactCell
-            className="flex-[2] min-w-0"
-            ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
-            fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch?.('restock')}
-            dataTabindex={6}
-            inputClassName={!touched?.restock ? 'text-gray-400' : ''}
-            onNext={() => navigateNext?.(6)}
-            onRegister={registerField}
-            isActive={activeTabindex === 6}
-          />
-        </div>
+        ) : (
+          <div data-testid="meter-row" className="flex gap-1 p-1 border-b border-border">
+            <CompactCell
+              className="flex-[3] min-w-0"
+              ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
+              fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
+              allowDecimal dataTabindex={1}
+              inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(1)}
+              onRegister={registerField}
+              isActive={activeTabindex === 1}
+            />
+            {outMeterCount === 1 ? (
+              <CompactCell
+                className="flex-[3] min-w-0"
+                ttId="tt-field-out-meter" ttContent={TT.out_meter} label="OUT"
+                fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch?.('outMeter1')}
+                allowDecimal dataTabindex={2}
+                inputClassName={!touched?.outMeter1 ? 'text-gray-400' : ''}
+                onNext={() => navigateNext?.(2)}
+                onRegister={registerField}
+                isActive={activeTabindex === 2}
+              />
+            ) : (
+              outFields.map((f, i) => (
+                <CompactCell
+                  key={f.id}
+                  className="flex-[3] min-w-0"
+                  ttId={`tt-${f.id}`} ttContent={TT.out_meter} label={`OUT${i + 1}`}
+                  fieldId={f.id} value={f.val} onChange={f.set} onTouched={touch?.(f.key)}
+                  allowDecimal dataTabindex={f.tab}
+                  inputClassName={!touched?.[f.key] ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext?.(f.tab)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === f.tab}
+                />
+              ))
+            )}
+            {/* 差 cell */}
+            <div className="flex flex-row items-center gap-1 p-1 flex-[2] min-w-0">
+              <div className="shrink-0"><Tooltip id="tt-field-diff" content={TT.diff} label="差" /></div>
+              <div data-testid="diff-cell" className="flex flex-col items-end justify-center flex-1 min-h-[2rem]">
+                <div data-testid="in-diff"  className={`font-mono text-xs font-bold ${inDiff.cls}`}>{inDiff.text}</div>
+                <div data-testid="out-diff" className={`font-mono text-xs font-bold ${outDiff.cls}`}>{outDiff.text}</div>
+              </div>
+            </div>
+            <CompactCell
+              className="flex-[3] min-w-0"
+              ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
+              fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch?.('stock')}
+              dataTabindex={5}
+              inputClassName={!touched?.stock ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(5)}
+              onRegister={registerField}
+              isActive={activeTabindex === 5}
+            />
+            <CompactCell
+              className="flex-[2] min-w-0"
+              ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
+              fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch?.('restock')}
+              dataTabindex={6}
+              inputClassName={!touched?.restock ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(6)}
+              onRegister={registerField}
+              isActive={activeTabindex === 6}
+            />
+          </div>
+        )}
 
         {/* Row 2: 景 + @ */}
         <div className="flex gap-1 p-1 border-b border-border">
