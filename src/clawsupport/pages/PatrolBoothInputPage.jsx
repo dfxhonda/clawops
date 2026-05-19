@@ -9,13 +9,31 @@ import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
 import BoothInputForm, { EMPTY_TOUCHED, diffDisplay } from '../components/BoothInputForm'
 import AlertSheetModal from '../components/AlertSheetModal'
+import LiveCameraView from '../components/LiveCameraView'
 import { useFieldNavigation } from '../hooks/useFieldNavigation'
+import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { logger } from '../../lib/logger'
 import {
   savePatrolReading,
   getLastReadingForBooth,
   classifyEntryType,
 } from '../../services/patrolCore'
+
+function mapMetersToColumns(meters) {
+  const inTypes = ['in','yen1000_in','yen500_in','yen100_in','in_a','in_b','change_in']
+  const cols = { in_meter: null, out_meter: null }
+  for (const t of inTypes) {
+    const m = meters.find(x => x.type === t && x.value != null)
+    if (m) { cols.in_meter = parseInt(m.value, 10); break }
+  }
+  const outOrder = ['out_a','out','capsule_out','prize_out','out_b','out_c','change_out']
+  const outs = meters
+    .filter(m => /out/i.test(m.type) && m.value != null)
+    .sort((a, b) => outOrder.indexOf(a.type) - outOrder.indexOf(b.type))
+  if (outs[0]) cols.out_meter = parseInt(outs[0].value, 10)
+  return cols
+}
 
 const ENTRY_BADGES = {
   patrol:     { label: '通常巡回',      cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30' },
@@ -90,6 +108,9 @@ export default function PatrolBoothInputPage() {
   const { machine, booth, storeCode } = state ?? {}
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
+
+  const [showOcr,        setShowOcr] = useState(false)
+  const { engine, toggleEngine, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   const [prev,           setPrev]   = useState(null)
   const [inMeter,        setIn]     = useState('')
@@ -200,6 +221,28 @@ export default function PatrolBoothInputPage() {
     return patch
   }
 
+  async function handleOCRCapture(base64, blob) {
+    setShowOcr(false)
+    const result = await runOCR(base64, blob)
+    if (!result || result.timeout) return
+    const { meters: ocrMeters } = result
+    if (!ocrMeters?.length) return
+    const cols = mapMetersToColumns(ocrMeters)
+    const confList = ocrMeters.filter(m => typeof m.confidence === 'number')
+    const avgConf = confList.length
+      ? confList.reduce((s, m) => s + m.confidence, 0) / confList.length
+      : null
+    logger.info('ocr_result_returned', { confidence: avgConf })
+    if (cols.in_meter != null) {
+      setIn(String(cols.in_meter))
+      setTouched(t => ({ ...t, inMeter: true }))
+    }
+    if (cols.out_meter != null) {
+      setOut1(String(cols.out_meter))
+      setTouched(t => ({ ...t, outMeter1: true }))
+    }
+  }
+
   async function handleSave() {
     if (!patrolEnabled) {
       alert('patrol_core フラグが無効です。管理者に連絡してください。')
@@ -248,6 +291,19 @@ export default function PatrolBoothInputPage() {
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
 
+  if (showOcr) {
+    return (
+      <LiveCameraView
+        engine={engine}
+        onToggleEngine={toggleEngine}
+        onCapture={handleOCRCapture}
+        onQR={null}
+        onCancel={() => setShowOcr(false)}
+        showGuide={false}
+      />
+    )
+  }
+
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
       <PageHeader
@@ -264,6 +320,15 @@ export default function PatrolBoothInputPage() {
       <TheoryRow prev={prev} />
 
       <div className="flex-1 overflow-y-auto pb-[300px]">
+        <div className="px-4 pt-3 pb-1">
+          <button
+            type="button"
+            onClick={() => { logger.info('ocr_button_pressed'); setShowOcr(true) }}
+            className="w-full py-3 text-base font-bold text-sky-300 bg-sky-500/10 border border-sky-400/30 rounded-xl flex items-center justify-center gap-2"
+          >
+            📷 OCR取込
+          </button>
+        </div>
         <BoothInputForm
           mode="patrol"
           outMeterCount={outMeterCount}
