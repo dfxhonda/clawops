@@ -1,340 +1,515 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { logger } from '../../lib/logger'
+import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 
-const LIST_SELECT = 'machine_code,machine_name,play_price,is_active,maintenance_status,installed_at,store_code,stores!store_code(store_name)'
-const EDIT_SELECT = LIST_SELECT + ',meter_per_play,meter_unit_price,out_meter_count,floor,zone,ownership_type,acquisition_cost,acquired_at,lease_monthly,lease_months,lease_end_date,billing_order,notes,created_at,organization_id'
+const TYPE_OPTIONS = ['crane', 'gacha', 'other']
+const TYPE_LABELS  = { crane: 'クレーン', gacha: 'ガチャ', other: 'その他' }
 
-const MAINTENANCE_VALUES = ['normal', 'needs_repair', 'in_repair', 'retired']
-const OWNERSHIP_VALUES   = ['owned', 'leased', 'rental']
+const SORT_OPTIONS = [
+  { v: 'name_asc',    l: '名前 ↑' },
+  { v: 'name_desc',   l: '名前 ↓' },
+  { v: 'newest',      l: '登録日 新' },
+  { v: 'oldest',      l: '登録日 古' },
+]
 
-function Field({ label, children }) {
+const EMPTY_FORM = {
+  model_name: '', type_id: 'crane', meter_unit_price: 100,
+  in_meter_count: 1, out_meter_count: 1, manufacturer: '', notes: '',
+}
+
+function SkeletonCard() {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-muted whitespace-nowrap">{label}</span>
-      {children}
+    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[88px] flex items-center gap-3 animate-pulse">
+      <div className="flex-1 space-y-2">
+        <div className="h-5 bg-slate-200 rounded w-2/5" />
+        <div className="h-4 bg-slate-200 rounded w-1/3" />
+      </div>
     </div>
   )
 }
 
-function Input({ value, onChange, type = 'text', placeholder, readOnly, className = '' }) {
-  return (
-    <input
-      type={type}
-      readOnly={readOnly}
-      value={value ?? ''}
-      onChange={e => onChange?.(e.target.value)}
-      placeholder={placeholder}
-      className={`bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full ${readOnly ? 'opacity-60 cursor-not-allowed' : ''} ${className}`}
-    />
-  )
-}
-
-function FSelect({ value, onChange, options, emptyLabel = 'ALL' }) {
-  return (
-    <select
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value)}
-      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
-    >
-      <option value="">{emptyLabel}</option>
-      {options.map(o => <option key={o.v ?? o} value={o.v ?? o}>{o.l ?? o}</option>)}
-    </select>
-  )
+async function insertAuditLog({ staffId, action, targetId, before, after }) {
+  try {
+    await supabase.from('audit_logs').insert({
+      staff_id: staffId,
+      action,
+      target_id: targetId,
+      target_table: 'machine_models',
+      before_data: before ?? null,
+      after_data: after ?? null,
+      detail: 'AdminMasterMachinePage',
+      organization_id: DFX_ORG_ID,
+    })
+  } catch {}
 }
 
 export default function AdminMasterMachinePage() {
-  const { staffName } = useAuth()
-  const [rows, setRows]           = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [stores, setStores]       = useState([])
-  const [storeFilter, setStore]   = useState('')
-  const [maintFilter, setMaint]   = useState('')
-  const [activeFilter, setActive] = useState('')
-  const [search, setSearch]       = useState('')
-  const [modal, setModal]         = useState(null)
-  const [form, setForm]           = useState({})
-  const [saving, setSaving]       = useState(false)
-  const [error, setError]         = useState(null)
-  const [loadKey, setLoadKey]     = useState(0)
+  const navigate = useNavigate()
+  const { staffName, staffId } = useAuth()
 
-  useEffect(() => {
-    supabase.from('stores').select('store_code,store_name').order('store_code')
-      .then(({ data }) => setStores(data ?? []))
-  }, [])
+  const [rows, setRows]       = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
+  const [loadKey, setLoadKey] = useState(0)
+
+  const [search, setSearch]         = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [sort, setSort]             = useState('name_asc')
+
+  const [modal, setModal]         = useState(null)
+  const [form, setForm]           = useState(EMPTY_FORM)
+  const [saving, setSaving]       = useState(false)
+  const [formError, setFormError] = useState(null)
+
+  const [deleteTarget, setDeleteTarget]       = useState(null)
+  const [deleteUsageCount, setDeleteUsageCount] = useState(0)
+  const [deleting, setDeleting]               = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    async function load() {
-      let q = supabase
-        .from('machines')
-        .select(LIST_SELECT)
-        .order('store_code', { ascending: true })
-        .order('billing_order', { ascending: true, nullsLast: true })
-      if (storeFilter)         q = q.eq('store_code', storeFilter)
-      if (maintFilter)         q = q.eq('maintenance_status', maintFilter)
-      if (activeFilter !== '') q = q.eq('is_active', activeFilter === 'true')
-      if (search.trim())       q = q.or(`machine_code.ilike.%${search}%,machine_name.ilike.%${search}%`)
-      const { data, error: loadErr } = await q
-      if (!cancelled) {
-        if (loadErr) setError(loadErr.message)
-        else { setRows(data ?? []); setError(null) }
+    supabase
+      .from('machine_models')
+      .select('model_id,model_name,type_id,manufacturer,meter_unit_price,in_meter_count,out_meter_count,notes,created_at')
+      .then(({ data, error: e }) => {
+        if (cancelled) return
+        if (e) {
+          logger.error('machine_list_fetch_error', { code: 'ERR-MACHINE-001', err: e })
+          setError('読み込みに失敗しました (ERR-MACHINE-001)')
+        } else {
+          setRows(data ?? [])
+          setError(null)
+        }
         setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [storeFilter, maintFilter, activeFilter, search, loadKey])
-
-  function openModal(row) {
-    supabase.from('machines').select(EDIT_SELECT).eq('machine_code', row.machine_code).single()
-      .then(({ data }) => {
-        if (!data) return
-        setForm({ ...data, store_name: data.stores?.store_name ?? '' })
-        setModal(data)
-        setError(null)
       })
-  }
+    return () => { cancelled = true }
+  }, [loadKey])
 
-  function setF(k) { return v => setForm(f => ({ ...f, [k]: v })) }
-
-  async function handleSave(e) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
-    const num = v => (v !== '' && v != null) ? Number(v) : null
-    const str = v => v || null
-    const patch = {
-      machine_name:       form.machine_name,
-      play_price:         num(form.play_price),
-      meter_per_play:     num(form.meter_per_play),
-      meter_unit_price:   num(form.meter_unit_price),
-      out_meter_count:    num(form.out_meter_count),
-      floor:              str(form.floor),
-      zone:               str(form.zone),
-      notes:              str(form.notes),
-      ownership_type:     str(form.ownership_type),
-      acquisition_cost:   num(form.acquisition_cost),
-      acquired_at:        str(form.acquired_at),
-      lease_monthly:      num(form.lease_monthly),
-      lease_months:       num(form.lease_months),
-      lease_end_date:     str(form.lease_end_date),
-      maintenance_status: str(form.maintenance_status),
-      billing_order:      num(form.billing_order),
-      is_active:          form.is_active,
-      updated_at:         new Date().toISOString(),
-      updated_by:         staffName || null,
+  const filtered = useMemo(() => {
+    let r = rows
+    if (typeFilter) r = r.filter(m => m.type_id === typeFilter)
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      r = r.filter(m =>
+        m.model_name?.toLowerCase().includes(q) ||
+        m.manufacturer?.toLowerCase().includes(q)
+      )
     }
-    const { error: saveErr } = await supabase
-      .from('machines')
-      .update(patch)
-      .eq('machine_code', modal.machine_code)
-    setSaving(false)
-    if (saveErr) { setError(saveErr.message); return }
-    setModal(null)
-    setLoadKey(k => k + 1)
+    switch (sort) {
+      case 'name_asc':  return [...r].sort((a, b) => (a.model_name ?? '').localeCompare(b.model_name ?? '', 'ja'))
+      case 'name_desc': return [...r].sort((a, b) => (b.model_name ?? '').localeCompare(a.model_name ?? '', 'ja'))
+      case 'newest':    return [...r].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+      case 'oldest':    return [...r].sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? ''))
+      default:          return r
+    }
+  }, [rows, typeFilter, search, sort])
+
+  function openNew() {
+    setForm({ ...EMPTY_FORM })
+    setModal('new')
+    setFormError(null)
   }
+
+  function openEdit(row) {
+    setForm({
+      model_name:       row.model_name      ?? '',
+      type_id:          row.type_id         ?? 'crane',
+      meter_unit_price: row.meter_unit_price ?? 100,
+      in_meter_count:   row.in_meter_count  ?? 1,
+      out_meter_count:  row.out_meter_count ?? 1,
+      manufacturer:     row.manufacturer    ?? '',
+      notes:            row.notes           ?? '',
+    })
+    setModal(row)
+    setFormError(null)
+  }
+
+  async function handleSave() {
+    if (!form.model_name.trim()) { setFormError('機種名は必須です'); return }
+    if (!form.type_id)           { setFormError('種別は必須です');   return }
+    setSaving(true)
+    setFormError(null)
+    try {
+      if (modal === 'new') {
+        const newId = crypto.randomUUID()
+        const payload = {
+          model_id:         newId,
+          model_name:       form.model_name.trim(),
+          type_id:          form.type_id,
+          meter_unit_price: Number(form.meter_unit_price) || 100,
+          in_meter_count:   Number(form.in_meter_count)   || 1,
+          out_meter_count:  Number(form.out_meter_count)  || 1,
+          manufacturer:     form.manufacturer.trim() || null,
+          notes:            form.notes.trim()        || null,
+          organization_id:  DFX_ORG_ID,
+          updated_at:       new Date().toISOString(),
+          updated_by:       staffName || null,
+        }
+        const { error: e } = await supabase.from('machine_models').insert(payload)
+        if (e) throw e
+        await insertAuditLog({ staffId, action: 'machine_model_create', targetId: newId, after: payload })
+        logger.info('machine_create_success', { model_name: form.model_name })
+      } else {
+        const before = { ...modal }
+        const patch = {
+          model_name:       form.model_name.trim(),
+          type_id:          form.type_id,
+          meter_unit_price: Number(form.meter_unit_price) || 100,
+          in_meter_count:   Number(form.in_meter_count)   || 1,
+          out_meter_count:  Number(form.out_meter_count)  || 1,
+          manufacturer:     form.manufacturer.trim() || null,
+          notes:            form.notes.trim()        || null,
+          updated_at:       new Date().toISOString(),
+          updated_by:       staffName || null,
+        }
+        const { error: e } = await supabase.from('machine_models')
+          .update(patch)
+          .eq('model_id', modal.model_id)
+        if (e) throw e
+        await insertAuditLog({ staffId, action: 'machine_model_update', targetId: modal.model_id, before, after: patch })
+        logger.info('machine_update_success', { model_id: modal.model_id })
+      }
+      setModal(null)
+      setLoadKey(k => k + 1)
+    } catch (e) {
+      const code = modal === 'new' ? 'ERR-MACHINE-002' : 'ERR-MACHINE-003'
+      logger.error(`machine_${modal === 'new' ? 'create' : 'update'}_error`, { code, err: e })
+      setFormError(`保存できませんでした (${code})`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function openDelete(row) {
+    const { count } = await supabase
+      .from('machines')
+      .select('*', { count: 'exact', head: true })
+      .eq('model_id', row.model_id)
+    setDeleteUsageCount(count ?? 0)
+    setDeleteTarget(row)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const before = { ...deleteTarget }
+    try {
+      const { error: e } = await supabase.from('machine_models')
+        .delete()
+        .eq('model_id', deleteTarget.model_id)
+      if (e) throw e
+      await insertAuditLog({ staffId, action: 'machine_model_delete', targetId: deleteTarget.model_id, before })
+      logger.info('machine_delete_success', { model_id: deleteTarget.model_id })
+      setDeleteTarget(null)
+      setLoadKey(k => k + 1)
+    } catch (e) {
+      logger.error('machine_delete_error', { code: 'ERR-MACHINE-004', err: e })
+      setError('削除に失敗しました (ERR-MACHINE-004)')
+      setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const inputCls = 'w-full border border-slate-300 rounded-lg px-4 py-3 text-base bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 min-h-[44px]'
+  const labelCls = 'text-sm font-medium text-slate-700'
 
   return (
-    <div data-testid="machine-master-page" className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
-      {/* toolbar */}
-      <div className="flex-shrink-0 p-3 pb-2 flex flex-wrap gap-2 items-center border-b border-border">
-        <input
-          data-testid="machine-search"
-          type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="機械コード / 機械名"
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-44"
-        />
-        <select
-          data-testid="machine-filter-store"
-          value={storeFilter} onChange={e => setStore(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+    <div className="min-h-screen bg-white text-slate-900">
+
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-slate-500 text-sm hover:text-slate-900 min-h-[44px] flex items-center pr-2"
         >
-          <option value="">全店</option>
-          {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-        </select>
-        <FSelect value={maintFilter} onChange={setMaint}
-          options={MAINTENANCE_VALUES.map(v => ({ v, l: v }))} />
-        <FSelect value={activeFilter} onChange={setActive}
-          options={[{ v: 'true', l: '稼働中' }, { v: 'false', l: '停止中' }]} />
-        <span className="text-xs text-muted ml-auto">{rows.length}件</span>
+          ← 戻る
+        </button>
+        <h1 className="text-2xl font-bold flex-1">機種マスタ</h1>
+        <button
+          type="button"
+          onClick={openNew}
+          className="px-5 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-base font-bold rounded-lg min-h-[44px]"
+        >
+          + 新規追加
+        </button>
       </div>
 
-      {/* list */}
-      <div className="flex-1 overflow-auto min-h-0">
-        {error && <p className="text-red-400 text-xs p-3">{error}</p>}
-        {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-        {!loading && rows.length === 0 && <p className="text-center text-muted text-xs py-8">該当なし</p>}
-        {!loading && rows.length > 0 && (
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-bg z-10">
-              <tr className="border-b border-border text-muted">
-                <th className="py-1 px-2 text-left whitespace-nowrap">機械コード</th>
-                <th className="py-1 px-2 text-left whitespace-nowrap">機械名</th>
-                <th className="py-1 px-2 text-left whitespace-nowrap">店舗</th>
-                <th className="py-1 px-2 text-right whitespace-nowrap">料金</th>
-                <th className="py-1 px-2 text-left whitespace-nowrap">メンテ</th>
-                <th className="py-1 px-2 text-left whitespace-nowrap">設置日</th>
-                <th className="py-1 px-2 text-center whitespace-nowrap">稼働</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(r => (
-                <tr
-                  key={r.machine_code}
-                  data-testid={`machine-row-${r.machine_code}`}
-                  onClick={() => openModal(r)}
-                  className="border-b border-border/50 hover:bg-surface cursor-pointer"
-                >
-                  <td className="py-1 px-2 font-mono">{r.machine_code}</td>
-                  <td className="py-1 px-2">{r.machine_name ?? '—'}</td>
-                  <td className="py-1 px-2 text-muted">{r.stores?.store_name ?? r.store_code}</td>
-                  <td className="py-1 px-2 text-right">{r.play_price != null ? `¥${r.play_price}` : '—'}</td>
-                  <td className="py-1 px-2 text-muted">{r.maintenance_status ?? '—'}</td>
-                  <td className="py-1 px-2 text-muted">{r.installed_at ? r.installed_at.slice(0, 10) : '—'}</td>
-                  <td className="py-1 px-2 text-center">{r.is_active ? '●' : '○'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Search / filter / sort */}
+      <div className="px-4 py-3 border-b border-slate-200 space-y-2">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="名前 / メーカーで検索"
+          className={inputCls}
+        />
+        <div className="flex gap-2 flex-wrap items-center">
+          <button
+            type="button"
+            onClick={() => setTypeFilter('')}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors min-h-[36px] ${
+              typeFilter === ''
+                ? 'bg-blue-500 text-white border-blue-500'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+            }`}
+          >
+            全種別
+          </button>
+          {TYPE_OPTIONS.map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTypeFilter(prev => prev === t ? '' : t)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors min-h-[36px] ${
+                typeFilter === t
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              {TYPE_LABELS[t]}
+            </button>
+          ))}
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+            className="ml-auto border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-700 min-h-[36px]"
+          >
+            {SORT_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+          <span className="text-sm text-slate-500">{filtered.length}件</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 py-4 space-y-2">
+
+        {/* Error banner */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between">
+            <span className="text-red-700 text-base">{error}</span>
+            <button
+              type="button"
+              onClick={() => { setError(null); setLoadKey(k => k + 1) }}
+              className="text-red-700 text-sm underline ml-4 whitespace-nowrap"
+            >
+              再読み込み
+            </button>
+          </div>
         )}
+
+        {/* Skeleton */}
+        {loading && Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)}
+
+        {/* Empty state */}
+        {!loading && !error && rows.length === 0 && (
+          <div className="text-center py-16 space-y-4">
+            <p className="text-slate-500 text-base">まだ機種が登録されていません</p>
+            <button
+              type="button"
+              onClick={openNew}
+              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg text-base min-h-[44px]"
+            >
+              初めて追加
+            </button>
+          </div>
+        )}
+
+        {/* No match */}
+        {!loading && !error && rows.length > 0 && filtered.length === 0 && (
+          <p className="text-center text-slate-500 text-base py-8">検索条件に一致する機種がありません</p>
+        )}
+
+        {/* Card list */}
+        {!loading && filtered.map(row => (
+          <div
+            key={row.model_id}
+            onClick={() => openEdit(row)}
+            className="bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[88px] flex items-center gap-3 cursor-pointer hover:bg-slate-100 hover:shadow-md transition-all"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-lg font-bold text-slate-900 truncate">{row.model_name}</p>
+              <p className="text-sm text-slate-500 mt-0.5">
+                {TYPE_LABELS[row.type_id] ?? row.type_id}
+                {' · '}¥{row.meter_unit_price ?? '—'}
+                {' · '}IN{row.in_meter_count}/OUT{row.out_meter_count}
+                {row.manufacturer && ` · ${row.manufacturer}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); openDelete(row) }}
+                className="px-3 py-1.5 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50 min-h-[36px]"
+              >
+                削除
+              </button>
+              <span className="text-slate-400 text-xl leading-none">›</span>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* detail modal */}
+      {/* Edit / New Modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setModal(null)}>
-          <form
-            data-testid="machine-detail-modal"
-            onSubmit={handleSave}
-            onClick={e => e.stopPropagation()}
-            className="bg-bg w-full max-w-lg rounded-t-2xl overflow-y-auto"
+        <div className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setModal(null)} />
+          <div
+            className="relative w-full md:max-w-lg bg-white rounded-t-2xl md:rounded-2xl px-6 pb-10 pt-5 space-y-4 overflow-y-auto"
             style={{ maxHeight: '90dvh' }}
           >
-            <div className="px-4 pt-4 pb-2 border-b border-border">
-              <p className="text-base font-bold text-text">{form.machine_name || '—'}</p>
-              <p className="text-xs text-muted font-mono">{modal.machine_code}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xl font-bold">
+                {modal === 'new' ? '新規機種追加' : `編集: ${modal.model_name}`}
+              </p>
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="text-slate-400 text-2xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-slate-700"
+              >
+                ×
+              </button>
             </div>
-            <div className="p-4 flex flex-col gap-3">
-              {error && <p className="text-red-400 text-xs">{error}</p>}
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="機械名">
-                  <Input value={form.machine_name} onChange={setF('machine_name')} />
-                </Field>
-                <Field label="料金 (¥)">
-                  <Input type="number" value={form.play_price} onChange={setF('play_price')} />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="単位価格">
-                  <Input type="number" value={form.meter_unit_price} onChange={setF('meter_unit_price')} />
-                </Field>
-                <Field label="消費/1play">
-                  <Input type="number" value={form.meter_per_play} onChange={setF('meter_per_play')} />
-                </Field>
-                <Field label="OUTメーター数">
-                  <Input type="number" value={form.out_meter_count} onChange={setF('out_meter_count')} />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="店舗 (読取専用)">
-                  <Input value={form.store_name || form.store_code} readOnly />
-                </Field>
-                <Field label="フロア">
-                  <Input value={form.floor} onChange={setF('floor')} />
-                </Field>
-                <Field label="ゾーン">
-                  <Input value={form.zone} onChange={setF('zone')} />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="所有形態">
-                  <select
-                    value={form.ownership_type ?? ''}
-                    onChange={e => setF('ownership_type')(e.target.value)}
-                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
-                  >
-                    <option value="">—</option>
-                    {OWNERSHIP_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </Field>
-                <Field label="取得費 (¥)">
-                  <Input type="number" value={form.acquisition_cost} onChange={setF('acquisition_cost')} />
-                </Field>
-                <Field label="取得日">
-                  <Input type="date" value={form.acquired_at ? form.acquired_at.slice(0, 10) : ''} onChange={setF('acquired_at')} />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Field label="リース月額 (¥)">
-                  <Input type="number" value={form.lease_monthly} onChange={setF('lease_monthly')} />
-                </Field>
-                <Field label="リース月数">
-                  <Input type="number" value={form.lease_months} onChange={setF('lease_months')} />
-                </Field>
-                <Field label="リース終了日">
-                  <Input type="date" value={form.lease_end_date ? form.lease_end_date.slice(0, 10) : ''} onChange={setF('lease_end_date')} />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="メンテ状況">
-                  <select
-                    value={form.maintenance_status ?? ''}
-                    onChange={e => setF('maintenance_status')(e.target.value)}
-                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
-                  >
-                    <option value="">—</option>
-                    {MAINTENANCE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </Field>
-                <Field label="並び順">
-                  <Input type="number" value={form.billing_order} onChange={setF('billing_order')} />
-                </Field>
-              </div>
-
-              <label className="flex items-center gap-1.5 text-xs text-text cursor-pointer">
+            <div className="space-y-3">
+              <label className="block">
+                <span className={labelCls}>機種名 <span className="text-red-500">*</span></span>
                 <input
-                  type="checkbox"
-                  checked={form.is_active ?? false}
-                  onChange={e => setF('is_active')(e.target.checked)}
-                  className="accent-blue-500"
+                  type="text"
+                  value={form.model_name}
+                  onChange={e => setForm(f => ({ ...f, model_name: e.target.value }))}
+                  placeholder="例: BUZZCRE 4"
+                  className={`mt-1 ${inputCls}`}
                 />
-                稼働中
               </label>
 
-              <Field label="備考">
-                <textarea
-                  value={form.notes ?? ''}
-                  onChange={e => setF('notes')(e.target.value)}
-                  rows={2}
-                  className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full resize-none"
-                />
-              </Field>
+              <label className="block">
+                <span className={labelCls}>種別 <span className="text-red-500">*</span></span>
+                <select
+                  value={form.type_id}
+                  onChange={e => setForm(f => ({ ...f, type_id: e.target.value }))}
+                  className={`mt-1 ${inputCls}`}
+                >
+                  {TYPE_OPTIONS.map(t => (
+                    <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+              </label>
 
-              <div className="grid grid-cols-2 gap-3 text-[10px] text-muted">
-                <span>コード: {modal.machine_code}</span>
-                <span>登録: {modal.created_at ? modal.created_at.slice(0, 10) : '—'}</span>
+              <div className="grid grid-cols-3 gap-3">
+                <label className="block">
+                  <span className={labelCls}>単価 (¥)</span>
+                  <input
+                    type="number"
+                    value={form.meter_unit_price}
+                    onChange={e => setForm(f => ({ ...f, meter_unit_price: e.target.value }))}
+                    min="0"
+                    className={`mt-1 ${inputCls}`}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelCls}>INメーター数</span>
+                  <input
+                    type="number"
+                    value={form.in_meter_count}
+                    onChange={e => setForm(f => ({ ...f, in_meter_count: e.target.value }))}
+                    min="0"
+                    className={`mt-1 ${inputCls}`}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelCls}>OUTメーター数</span>
+                  <input
+                    type="number"
+                    value={form.out_meter_count}
+                    onChange={e => setForm(f => ({ ...f, out_meter_count: e.target.value }))}
+                    min="1"
+                    className={`mt-1 ${inputCls}`}
+                  />
+                </label>
               </div>
+
+              <label className="block">
+                <span className={labelCls}>メーカー</span>
+                <input
+                  type="text"
+                  value={form.manufacturer}
+                  onChange={e => setForm(f => ({ ...f, manufacturer: e.target.value }))}
+                  placeholder="例: 株式会社BUZZGAMES"
+                  className={`mt-1 ${inputCls}`}
+                />
+              </label>
+
+              <label className="block">
+                <span className={labelCls}>備考</span>
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  className="mt-1 w-full border border-slate-300 rounded-lg px-4 py-3 text-base bg-white text-slate-900 focus:outline-none focus:border-blue-500 resize-none"
+                />
+              </label>
             </div>
 
-            <div className="px-4 pb-6 flex gap-2">
-              <button type="button" onClick={() => setModal(null)}
-                className="flex-1 py-2 rounded-lg bg-surface text-text text-sm font-bold">
+            {formError && <p className="text-red-600 text-sm">{formError}</p>}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 text-base font-bold hover:bg-slate-100 min-h-[44px]"
+              >
                 キャンセル
               </button>
-              <button type="submit" data-testid="machine-save-button"
+              <button
+                type="button"
+                onClick={handleSave}
                 disabled={saving}
-                className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-40">
+                className="flex-[2] py-3 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white text-base font-bold min-h-[44px]"
+              >
                 {saving ? '保存中…' : '保存'}
               </button>
             </div>
-          </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[9001] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setDeleteTarget(null)} />
+          <div className="relative w-[320px] bg-white rounded-2xl p-6 space-y-4 shadow-xl">
+            <p className="text-lg font-bold">削除しますか？</p>
+            <p className="text-base text-slate-700">
+              「{deleteTarget.model_name}」を削除します。この操作は取り消せません。
+            </p>
+            {deleteUsageCount > 0 && (
+              <p className="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                この機種は {deleteUsageCount} 件の機械で使用中です
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-100 min-h-[44px]"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-700 disabled:opacity-40 text-white font-bold min-h-[44px]"
+              >
+                {deleting ? '削除中…' : '削除'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
