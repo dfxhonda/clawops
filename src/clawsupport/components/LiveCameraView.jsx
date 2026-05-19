@@ -4,16 +4,20 @@ function canvasToBlob(canvas) {
   return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
 }
 
-function compressFrame(videoEl) {
+function compressFrame(videoEl, zoom = 1) {
   const { videoWidth: sw, videoHeight: sh } = videoEl
+  const cropW = sw / zoom
+  const cropH = sh / zoom
+  const sx = (sw - cropW) / 2
+  const sy = (sh - cropH) / 2
   const MAX = 1600
-  const scale = Math.min(1, MAX / Math.max(sw, sh))
-  const w = Math.round(sw * scale)
-  const h = Math.round(sh * scale)
+  const scale = Math.min(1, MAX / Math.max(cropW, cropH))
+  const w = Math.round(cropW * scale)
+  const h = Math.round(cropH * scale)
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
-  canvas.getContext('2d').drawImage(videoEl, 0, 0, w, h)
+  canvas.getContext('2d').drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, w, h)
   const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1]
   return { canvas, base64 }
 }
@@ -133,7 +137,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
     if (!vid || shooting) return
     setShooting(true)
     try {
-      const { canvas, base64 } = compressFrame(vid)
+      const { canvas, base64 } = compressFrame(vid, zoomLevel)
       const blob = await canvasToBlob(canvas)
       canvas.width = 0; canvas.height = 0
       onCapture(base64, blob)

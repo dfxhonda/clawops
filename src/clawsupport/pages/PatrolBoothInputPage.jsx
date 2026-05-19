@@ -114,6 +114,7 @@ export default function PatrolBoothInputPage() {
   const [ocrCapture,     setOcrCapture] = useState(null)   // { imageUrl, cols, photoUrl, avgConf }
   const [ocrPhotoUrl,    setOcrPhotoUrl]  = useState(null)
   const [ocrConfidence,  setOcrConf]   = useState(null)
+  const [ocrInputMethod, setOcrIM]     = useState('ocr')
   const { engine, toggleEngine, loading: ocrLoading, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   const [prev,           setPrev]   = useState(null)
@@ -225,7 +226,7 @@ export default function PatrolBoothInputPage() {
     if (ocrPhotoUrl) {
       patch.photo_url      = ocrPhotoUrl
       patch.has_photo      = true
-      patch.input_method   = 'ocr'
+      patch.input_method   = ocrInputMethod
       patch.ocr_confidence = ocrConfidence ?? null
     }
     return patch
@@ -270,10 +271,10 @@ export default function PatrolBoothInputPage() {
     setOcrState('confirming')
   }
 
-  function handleOCRUse() {
+  function handleOCRUse(inputMethod = 'ocr') {
     if (!ocrCapture) return
     const { cols, photoUrl, avgConf } = ocrCapture
-    logger.info('ocr_confirmation_use_clicked', { in: cols.in_meter, out: cols.out_meter, confidence: avgConf })
+    logger.info('ocr_confirmation_use_clicked', { in: cols.in_meter, out: cols.out_meter, confidence: avgConf, input_method: inputMethod })
     if (cols.in_meter != null) {
       setIn(String(cols.in_meter))
       setTouched(t => ({ ...t, inMeter: true }))
@@ -284,6 +285,7 @@ export default function PatrolBoothInputPage() {
     }
     setOcrPhotoUrl(photoUrl ?? null)
     setOcrConf(avgConf ?? null)
+    setOcrIM(inputMethod)
     setOcrState('idle')
     setOcrCapture(null)
   }
@@ -398,13 +400,20 @@ export default function PatrolBoothInputPage() {
               {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={handleOCRUse}
+              onClick={() => handleOCRUse('ocr')}
               className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
             >
               使う
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOCRUse('ocr_corrected')}
+              className="flex-1 py-4 bg-amber-500 text-white font-bold text-base rounded-2xl min-h-[44px]"
+            >
+              手動修正
             </button>
             <button
               type="button"
