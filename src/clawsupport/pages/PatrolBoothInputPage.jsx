@@ -109,8 +109,12 @@ export default function PatrolBoothInputPage() {
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
 
-  const [showOcr,        setShowOcr] = useState(false)
-  const { engine, toggleEngine, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
+  const [showOcr,        setShowOcr]    = useState(false)
+  const [ocrState,       setOcrState]   = useState('idle') // 'idle' | 'loading' | 'confirming'
+  const [ocrCapture,     setOcrCapture] = useState(null)   // { imageUrl, cols, photoUrl, avgConf }
+  const [ocrPhotoUrl,    setOcrPhotoUrl]  = useState(null)
+  const [ocrConfidence,  setOcrConf]   = useState(null)
+  const { engine, toggleEngine, loading: ocrLoading, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   const [prev,           setPrev]   = useState(null)
   const [inMeter,        setIn]     = useState('')
@@ -218,21 +222,58 @@ export default function PatrolBoothInputPage() {
     if (touched.setO) patch.set_o = setO.trim() || null
     if (touched.outMeter2) patch.out_meter_2 = outMeter2 !== '' ? parseFloat(outMeter2) : null
     if (touched.outMeter3) patch.out_meter_3 = outMeter3 !== '' ? parseFloat(outMeter3) : null
+    if (ocrPhotoUrl) {
+      patch.photo_url      = ocrPhotoUrl
+      patch.has_photo      = true
+      patch.input_method   = 'ocr'
+      patch.ocr_confidence = ocrConfidence ?? null
+    }
     return patch
   }
 
   async function handleOCRCapture(base64, blob) {
     setShowOcr(false)
+    setOcrState('loading')
+    logger.info('ocr_button_pressed')
+    logger.info('ocr_photo_captured', { boothCode, blob_size: blob?.size ?? 0 })
+
     const result = await runOCR(base64, blob)
-    if (!result || result.timeout) return
-    const { meters: ocrMeters } = result
-    if (!ocrMeters?.length) return
+
+    if (!result || result.timeout) {
+      setOcrState('idle')
+      return
+    }
+
+    const { meters: ocrMeters, photoUrl, uploadError } = result
+
+    if (photoUrl) {
+      logger.info('ocr_photo_uploaded', { photo_url: photoUrl })
+    } else if (uploadError) {
+      logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
+    }
+
+    if (!ocrMeters?.length) {
+      setOcrState('idle')
+      return
+    }
+
     const cols = mapMetersToColumns(ocrMeters)
     const confList = ocrMeters.filter(m => typeof m.confidence === 'number')
     const avgConf = confList.length
       ? confList.reduce((s, m) => s + m.confidence, 0) / confList.length
       : null
+
     logger.info('ocr_result_returned', { confidence: avgConf })
+
+    const imageUrl = blob ? URL.createObjectURL(blob) : null
+    setOcrCapture({ imageUrl, cols, photoUrl: photoUrl ?? null, avgConf })
+    setOcrState('confirming')
+  }
+
+  function handleOCRUse() {
+    if (!ocrCapture) return
+    const { cols, photoUrl, avgConf } = ocrCapture
+    logger.info('ocr_confirmation_use_clicked', { in: cols.in_meter, out: cols.out_meter, confidence: avgConf })
     if (cols.in_meter != null) {
       setIn(String(cols.in_meter))
       setTouched(t => ({ ...t, inMeter: true }))
@@ -241,6 +282,17 @@ export default function PatrolBoothInputPage() {
       setOut1(String(cols.out_meter))
       setTouched(t => ({ ...t, outMeter1: true }))
     }
+    setOcrPhotoUrl(photoUrl ?? null)
+    setOcrConf(avgConf ?? null)
+    setOcrState('idle')
+    setOcrCapture(null)
+  }
+
+  function handleOCRRecapture() {
+    logger.info('ocr_confirmation_recapture_clicked')
+    setOcrCapture(null)
+    setOcrState('idle')
+    setShowOcr(true)
   }
 
   async function handleSave() {
@@ -301,6 +353,69 @@ export default function PatrolBoothInputPage() {
         onCancel={() => setShowOcr(false)}
         showGuide={false}
       />
+    )
+  }
+
+  if (ocrState === 'loading') {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
+        <div className="text-sky-300 text-base font-bold">OCR解析中...</div>
+      </div>
+    )
+  }
+
+  if (ocrState === 'confirming' && ocrCapture) {
+    const { imageUrl, cols, photoUrl, avgConf } = ocrCapture
+    const confPct = avgConf != null ? Math.round(avgConf * 100) : null
+    const confCls = confPct == null ? 'text-muted' : confPct >= 90 ? 'text-green-400' : confPct >= 70 ? 'text-yellow-400' : 'text-red-400'
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        {imageUrl && (
+          <div className="shrink-0 bg-black" style={{ height: '60vh' }}>
+            <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 pb-6">
+          <div className="rounded-2xl border border-border bg-surface/60 p-4 mb-4">
+            <div className="text-xs font-bold text-muted mb-3">OCR認識値 — 写真と照合して確認</div>
+            <div className="grid grid-cols-2 gap-4 mb-2">
+              <div>
+                <div className="text-xs text-muted mb-1">IN</div>
+                <div className="text-2xl font-bold text-text tabular-nums">
+                  {cols.in_meter != null ? cols.in_meter.toLocaleString() : '—'}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted mb-1">OUT</div>
+                <div className="text-2xl font-bold text-text tabular-nums">
+                  {cols.out_meter != null ? cols.out_meter.toLocaleString() : '—'}
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-muted">
+              信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span>
+              {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleOCRUse}
+              className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
+            >
+              使う
+            </button>
+            <button
+              type="button"
+              onClick={handleOCRRecapture}
+              className="flex-1 py-4 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]"
+            >
+              再撮影
+            </button>
+          </div>
+        </div>
+      </div>
     )
   }
 
