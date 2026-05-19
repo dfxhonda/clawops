@@ -3,6 +3,8 @@
 // ============================================
 import { supabase } from '../lib/supabase'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { logger } from '../lib/logger'
+import { ERR } from '../lib/errorCodes'
 
 // JST の今日の日付文字列 (YYYY-MM-DD)
 function todayJST() {
@@ -176,38 +178,127 @@ export async function savePatrolReading({
   optionalPatch = {},
   defaultsFromPrev = null,
 }) {
-  const today  = todayJST()
-  const now    = new Date().toISOString()
-  const numIn  = inMeter     !== '' && inMeter     != null ? parseFloat(inMeter)      : null
-  const numOut = outMeter    !== '' && outMeter    != null ? parseFloat(outMeter)     : null
-  const numStk = prizeStock  !== '' && prizeStock  != null ? parseInt(prizeStock, 10) : 0
-  const numRst = prizeRestock !== '' && prizeRestock != null ? parseInt(prizeRestock, 10) : 0
-
-  const patch = normalizeOptionalPatch(optionalPatch)
-  const defaults = pickOptionalDefaultsFromPrev(defaultsFromPrev)
-  const mergedOptionalForInsert = { ...defaults, ...patch }
-
-  const basePayload = {
-    booth_id:            boothCode,
-    full_booth_code:     boothCode,
-    booth_code:          boothCode,
-    store_code:          storeCode   ?? null,
-    machine_code:        machineCode ?? null,
-    patrol_date:         today,
-    read_time:           now,
-    in_meter:            numIn,
-    out_meter:           numOut,
-    prize_stock_count:   numStk,
-    prize_restock_count: numRst,
-    entry_type:          entryType,
-    source:              'manual',
-    input_method:        'manual',
-    created_by:          staffId ?? null,
-    organization_id:     DFX_ORG_ID,
+  if (!DFX_ORG_ID) {
+    logger.error(ERR.AUTH_001, { message: 'DFX_ORG_ID is not set', boothCode })
+    return { ok: false, errCode: ERR.AUTH_001, message: 'organization_id が設定されていません', raw: null }
   }
 
-  // 'replace' / 'collection' → 新規 INSERT
-  if (entryType === 'replace' || entryType === 'collection') {
+  const today  = todayJST()
+  const now    = new Date().toISOString()
+  const numIn  = inMeter      !== '' && inMeter      != null ? parseFloat(inMeter)       : null
+  const numOut = outMeter     !== '' && outMeter     != null ? parseFloat(outMeter)      : null
+  const numStk = prizeStock   !== '' && prizeStock   != null ? parseInt(prizeStock, 10)  : 0
+  const numRst = prizeRestock !== '' && prizeRestock != null ? parseInt(prizeRestock, 10): 0
+
+  logger.info('patrol_save_attempted', {
+    boothCode,
+    patrol_date: today,
+    organization_id: DFX_ORG_ID,
+    entryType,
+    has_in_meter: numIn != null,
+    has_out_meter: numOut != null,
+    patch_keys: Object.keys(optionalPatch ?? {}),
+  })
+
+  try {
+    const patch = normalizeOptionalPatch(optionalPatch)
+    const defaults = pickOptionalDefaultsFromPrev(defaultsFromPrev)
+    const mergedOptionalForInsert = { ...defaults, ...patch }
+
+    const basePayload = {
+      booth_id:            boothCode,
+      full_booth_code:     boothCode,
+      booth_code:          boothCode,
+      store_code:          storeCode   ?? null,
+      machine_code:        machineCode ?? null,
+      patrol_date:         today,
+      read_time:           now,
+      in_meter:            numIn,
+      out_meter:           numOut,
+      prize_stock_count:   numStk,
+      prize_restock_count: numRst,
+      entry_type:          entryType,
+      source:              'manual',
+      input_method:        'manual',
+      created_by:          staffId ?? null,
+      organization_id:     DFX_ORG_ID,
+    }
+
+    // 'replace' / 'collection' → 新規 INSERT
+    if (entryType === 'replace' || entryType === 'collection') {
+      const { data, error } = await supabase
+        .from('meter_readings')
+        .insert({
+          ...basePayload,
+          ...mergedOptionalForInsert,
+          reading_id: crypto.randomUUID(),
+        })
+        .select('reading_id')
+        .single()
+      if (error) {
+        const ctx = { boothCode, patrol_date: today, entryType, raw: error }
+        logger.error(ERR.METER_002, ctx)
+        return { ok: false, errCode: ERR.METER_002, message: `${entryType} 記録エラー: ${error.message}`, raw: error }
+      }
+      logger.info('patrol_save_succeeded', { boothCode, entryType, readingId: data.reading_id })
+      return { ok: true, inserted: true, entryType, readingId: data.reading_id }
+    }
+
+    // 'patrol' → (booth_code, patrol_date) UPSERT
+    const { data: existing } = await supabase
+      .from('meter_readings')
+      .select(TODAY_EXISTING_SELECT)
+      .eq('booth_code', boothCode)
+      .eq('patrol_date', today)
+      .eq('entry_type', 'patrol')
+      .maybeSingle()
+
+    const patchKeys = Object.keys(patch)
+    const optionalUnchanged =
+      patchKeys.length === 0 ||
+      patchKeys.every((k) => {
+        const a = existing?.[k]
+        const b = patch[k]
+        if (a == null && b == null) return true
+        if (typeof a === 'number' || typeof b === 'number') {
+          return Number(a) === Number(b)
+        }
+        return strNorm(a) === strNorm(b)
+      })
+
+    if (existing) {
+      const coreUnchanged =
+        Number(existing.in_meter)            === numIn  &&
+        Number(existing.out_meter)           === numOut &&
+        Number(existing.prize_stock_count)   === numStk &&
+        Number(existing.prize_restock_count) === numRst
+
+      if (coreUnchanged && optionalUnchanged) return { ok: true, skipped: true }
+
+      const updatePayload = {
+        in_meter:            numIn,
+        out_meter:           numOut,
+        prize_stock_count:   numStk,
+        prize_restock_count: numRst,
+        entry_type:          'patrol',
+        updated_at:          now,
+        created_by:          staffId ?? null,
+        ...patch,
+      }
+
+      const { error } = await supabase
+        .from('meter_readings')
+        .update(updatePayload)
+        .eq('reading_id', existing.reading_id)
+      if (error) {
+        const ctx = { boothCode, patrol_date: today, entryType, readingId: existing.reading_id, raw: error }
+        logger.error(ERR.METER_001, ctx)
+        return { ok: false, errCode: ERR.METER_001, message: 'メーター更新エラー: ' + error.message, raw: error }
+      }
+      logger.info('patrol_save_succeeded', { boothCode, entryType: 'patrol', readingId: existing.reading_id })
+      return { ok: true, updated: true, entryType: 'patrol', readingId: existing.reading_id }
+    }
+
     const { data, error } = await supabase
       .from('meter_readings')
       .insert({
@@ -217,71 +308,18 @@ export async function savePatrolReading({
       })
       .select('reading_id')
       .single()
-    if (error) throw new Error(`${entryType} 記録エラー: ` + error.message)
-    return { inserted: true, entryType, readingId: data.reading_id }
-  }
-
-  // 'patrol' → (booth_code, patrol_date) UPSERT + carry_forward 停止
-  const { data: existing } = await supabase
-    .from('meter_readings')
-    .select(TODAY_EXISTING_SELECT)
-    .eq('booth_code', boothCode)
-    .eq('patrol_date', today)
-    .eq('entry_type', 'patrol')
-    .maybeSingle()
-
-  const patchKeys = Object.keys(patch)
-  const optionalUnchanged =
-    patchKeys.length === 0 ||
-    patchKeys.every((k) => {
-      const a = existing?.[k]
-      const b = patch[k]
-      if (a == null && b == null) return true
-      if (typeof a === 'number' || typeof b === 'number') {
-        return Number(a) === Number(b)
-      }
-      return strNorm(a) === strNorm(b)
-    })
-
-  if (existing) {
-    const coreUnchanged =
-      Number(existing.in_meter)            === numIn  &&
-      Number(existing.out_meter)           === numOut &&
-      Number(existing.prize_stock_count)   === numStk &&
-      Number(existing.prize_restock_count) === numRst
-
-    if (coreUnchanged && optionalUnchanged) return { skipped: true }
-
-    const updatePayload = {
-      in_meter:            numIn,
-      out_meter:           numOut,
-      prize_stock_count:   numStk,
-      prize_restock_count: numRst,
-      entry_type:          'patrol',
-      updated_at:          now,
-      created_by:          staffId ?? null,
-      ...patch,
+    if (error) {
+      const ctx = { boothCode, patrol_date: today, entryType, raw: error }
+      logger.error(ERR.METER_001, ctx)
+      return { ok: false, errCode: ERR.METER_001, message: 'メーター保存エラー: ' + error.message, raw: error }
     }
+    logger.info('patrol_save_succeeded', { boothCode, entryType: 'patrol', readingId: data.reading_id })
+    return { ok: true, inserted: true, entryType: 'patrol', readingId: data.reading_id }
 
-    const { error } = await supabase
-      .from('meter_readings')
-      .update(updatePayload)
-      .eq('reading_id', existing.reading_id)
-    if (error) throw new Error('メーター更新エラー: ' + error.message)
-    return { updated: true, entryType: 'patrol', readingId: existing.reading_id }
+  } catch (e) {
+    logger.error('patrol_save_failed_unexpected', { message: e?.message, boothCode, entryType })
+    return { ok: false, errCode: ERR.METER_001, message: e?.message ?? '予期しないエラー', raw: e }
   }
-
-  const { data, error } = await supabase
-    .from('meter_readings')
-    .insert({
-      ...basePayload,
-      ...mergedOptionalForInsert,
-      reading_id: crypto.randomUUID(),
-    })
-    .select('reading_id')
-    .single()
-  if (error) throw new Error('メーター保存エラー: ' + error.message)
-  return { inserted: true, entryType: 'patrol', readingId: data.reading_id }
 }
 
 /**

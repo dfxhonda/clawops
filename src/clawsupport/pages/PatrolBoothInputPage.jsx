@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
+import { useSaveState } from '../../hooks/useSaveState'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
 import Tooltip from '../components/Tooltip'
@@ -10,6 +11,7 @@ import BoothHistoryList from '../components/BoothHistoryList'
 import BoothInputForm, { EMPTY_TOUCHED, diffDisplay } from '../components/BoothInputForm'
 import AlertSheetModal from '../components/AlertSheetModal'
 import LiveCameraView from '../components/LiveCameraView'
+import ErrorBanner from '../../components/ErrorBanner'
 import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
@@ -129,8 +131,8 @@ export default function PatrolBoothInputPage() {
   const [selectedPrizeId, setSelectedPrizeId] = useState(null)
   const [isCollectionDay, setIsCollectionDay] = useState(false)
   const [isCollection,  setIsColl] = useState(false)
-  const [saving,        setSaving]    = useState(false)
-  const [result,        setResult]    = useState(null)
+  const [saveState, saveActions] = useSaveState()
+  const [skipped,       setSkipped]   = useState(false)
   const [showAlert,     setShowAlert] = useState(false)
   const [historyKey,    setHistoryKey] = useState(0)
 
@@ -246,7 +248,6 @@ export default function PatrolBoothInputPage() {
     // OCR photo
     if (ocrPhotoUrl) {
       patch.photo_url      = ocrPhotoUrl
-      patch.has_photo      = true
       patch.input_method   = ocrInputMethod
       patch.ocr_confidence = ocrConfidence ?? null
     }
@@ -318,7 +319,9 @@ export default function PatrolBoothInputPage() {
       return
     }
     if (!canSave) return
-    setSaving(true)
+    const didStart = saveActions.setLoading()
+    if (!didStart) return
+    logger.info('patrol_save_attempted', { boothCode, entryType, has_photo: !!ocrPhotoUrl })
     try {
       const res = await savePatrolReading({
         boothCode,
@@ -333,20 +336,28 @@ export default function PatrolBoothInputPage() {
         optionalPatch: buildOptionalPatch(),
         defaultsFromPrev: prev,
       })
-      if (res.skipped) {
-        setResult('skipped')
+      if (!res.ok) {
+        saveActions.setError(res.errCode, res.message)
+      } else if (res.skipped) {
+        setSkipped(true)
+        saveActions.reset()
         setTimeout(() => navigate(-1), 1000)
       } else {
-        setResult('saved')
+        saveActions.setSuccess()
         setHistoryKey(k => k + 1)
         setTimeout(() => navigate(-1), 800)
       }
-    } catch {
-      setResult('error')
-    } finally {
-      setSaving(false)
+    } catch (e) {
+      logger.error('patrol_save_failed_unexpected', { message: e?.message, boothCode })
+      saveActions.setError('ERR-UNKNOWN', e?.message ?? '予期しないエラー')
     }
   }
+
+  const savingProp = saveState.status === 'loading'
+  const resultProp = saveState.status === 'success' ? 'saved'
+    : saveState.status === 'error' ? 'error'
+    : skipped ? 'skipped'
+    : null
 
   const boothLabel = booth
     ? `${machine?.machine_name ?? ''} ブース ${booth.booth_number}`
@@ -480,6 +491,14 @@ export default function PatrolBoothInputPage() {
       <PrevReadingRow prev={prev} />
 
       <div className="flex-1 overflow-y-auto pb-[300px]">
+        {saveState.status === 'error' && (
+          <ErrorBanner
+            errCode={saveState.errCode}
+            message={saveState.errMessage}
+            onClose={saveActions.reset}
+            onRetry={handleSave}
+          />
+        )}
         <BoothInputForm
           mode="patrol"
           outMeterCount={outMeterCount}
@@ -512,7 +531,7 @@ export default function PatrolBoothInputPage() {
           entryType={entryType}
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
-          canSave={canSave} saving={saving} result={result} onSave={handleSave}
+          canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
           onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'camera' }); setShowOcr(true) }}
         />
         <BoothHistoryList
@@ -524,7 +543,7 @@ export default function PatrolBoothInputPage() {
           limit={10}
           historyKey={historyKey}
           draftRow={{
-            active: result !== 'saved' && (inDiff != null || outDiff != null),
+            active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
             inDiff,
             outDiff,
           }}
