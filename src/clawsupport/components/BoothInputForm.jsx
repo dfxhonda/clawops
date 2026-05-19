@@ -6,7 +6,10 @@ import PrizeNameAutocomplete from './PrizeNameAutocomplete'
 export const EMPTY_TOUCHED = {
   inMeter: false, outMeter1: false, outMeter2: false, outMeter3: false,
   stock: false, restock: false,
+  stock2: false, restock2: false, stock3: false, restock3: false,
   prizeName: false, prizeCost: false,
+  prizeName2: false, prizeCost2: false,
+  prizeName3: false, prizeCost3: false,
   setA: false, setC: false, setL: false, setR: false, setO: false,
 }
 
@@ -74,6 +77,58 @@ function diffDisplay(diff) {
 
 export { diffDisplay }
 
+// field row wrapper (active highlight)
+function FRow({ tab, active, children }) {
+  return (
+    <div className={`rounded transition-all duration-200 ${active ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+// prize row used per OUT section
+function PrizeRow({ prizeName, setPrize, prizeCost, setCost, selectedPrizeId, setSelectedPrizeId, touch, touched, costTouchKey, prizeNameTouchKey, costTabindex, activeTabindex, navigateNext, registerField }) {
+  return (
+    <div className="flex gap-1 p-1 border-b border-border">
+      <div className="flex-[4] min-w-0 flex flex-row items-center gap-1 p-1">
+        <div className="shrink-0"><Tooltip id={`tt-pn-${costTabindex}`} content={TT.prize_name} label="景" /></div>
+        <div className="flex-1 min-w-0">
+          <PrizeNameAutocomplete
+            value={prizeName}
+            onChange={v => {
+              touch?.(prizeNameTouchKey)()
+              setPrize(v)
+              setSelectedPrizeId?.(null)
+            }}
+            onSelect={({ prize_id, prize_name, original_cost }) => {
+              setPrize(prize_name)
+              setSelectedPrizeId?.(prize_id)
+              setCost(original_cost != null ? String(original_cost) : '')
+              touch?.(prizeNameTouchKey)()
+              touch?.(costTouchKey)()
+            }}
+            placeholder="前回値から補完（変更時のみ差分送信）"
+            fieldId={`field-prize-name-${costTabindex}`}
+            testId={`field-prize-name-${costTabindex}`}
+          />
+        </div>
+      </div>
+      <CompactCell
+        className="flex-[1] min-w-0"
+        ttId={`tt-cost-${costTabindex}`} ttContent={TT.prize_cost} label="@"
+        fieldId={`field-prize-cost-${costTabindex}`} value={prizeCost} onChange={setCost} onTouched={touch?.(costTouchKey)}
+        allowDecimal={false} dataTabindex={costTabindex}
+        testId={`field-prize-cost-${costTabindex}`}
+        inputPlaceholder=""
+        inputClassName={!touched?.[costTouchKey] ? 'text-gray-400' : ''}
+        onNext={() => navigateNext?.(costTabindex)}
+        onRegister={registerField}
+        isActive={activeTabindex === costTabindex}
+      />
+    </div>
+  )
+}
+
 export default function BoothInputForm({
   mode = 'patrol',
   outMeterCount = 1,
@@ -83,14 +138,24 @@ export default function BoothInputForm({
   outMeter3, setOut3,
   stock, setStk,
   restock, setRst,
+  stock2, setStk2,
+  restock2, setRst2,
+  stock3, setStk3,
+  restock3, setRst3,
   prizeName, setPrize,
   prizeCost, setCost,
+  prizeName2, setPrize2,
+  prizeCost2, setCost2,
+  prizeName3, setPrize3,
+  prizeCost3, setCost3,
   setA, setSetA,
   setC, setSetC,
   setL, setSetL,
   setR, setSetR,
   setO, setSetO,
   selectedPrizeId, setSelectedPrizeId,
+  selectedPrizeId2, setSelectedPrizeId2,
+  selectedPrizeId3, setSelectedPrizeId3,
   touched, touch,
   isCollectionDay, isCollection, setIsColl,
   entryType,
@@ -98,6 +163,7 @@ export default function BoothInputForm({
   navigateNext, registerField, activeTabindex,
   canSave, saving, result, onSave,
   onDelete, deleting,
+  onOCR,
 }) {
   const isEditMode = mode === 'edit'
   const outFields = [
@@ -109,11 +175,13 @@ export default function BoothInputForm({
   const inDiff  = inDiffDisp  ?? diffDisplay(null)
   const outDiff = outDiffDisp ?? diffDisplay(null)
 
+  const pf = { touch, touched, navigateNext, registerField, activeTabindex }
+
   return (
     <div data-testid="booth-input-upper">
       <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
 
-        {/* Row 1: IN + OUT(s) + 差 + 残 + 補 */}
+        {/* ===== edit mode: compact grid ===== */}
         {isEditMode ? (
           <div data-testid="meter-row" className="grid grid-cols-2 gap-x-2 gap-y-1 p-2 border-b border-border">
             <CompactCell
@@ -188,115 +256,218 @@ export default function BoothInputForm({
               isActive={activeTabindex === 6}
             />
           </div>
+
         ) : (
-          <div data-testid="meter-row" className="flex gap-1 p-1 border-b border-border">
-            <CompactCell
-              className="flex-[3] min-w-0"
-              ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
-              fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
-              allowDecimal dataTabindex={1}
-              inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(1)}
-              onRegister={registerField}
-              isActive={activeTabindex === 1}
+
+          /* ===== patrol mode: 2-line label+field layout ===== */
+          <>
+            {/* OUT1 section */}
+            <div data-testid="meter-row" className="border-b border-border">
+              <div
+                className="grid px-2 pt-2 pb-0.5 gap-x-1 text-xs font-bold text-muted"
+                style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
+              >
+                <span>IN</span>
+                <span>{outMeterCount > 1 ? 'OUT1' : 'OUT'}</span>
+                <span>残</span>
+                <span>補</span>
+              </div>
+              <div
+                className="grid px-1 pb-1 gap-x-1"
+                style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
+              >
+                <FRow tab={1} active={activeTabindex === 1}>
+                  <NumpadField id="field-in-meter" value={inMeter}
+                    onChange={v => { touch?.('inMeter')(); setIn(v) }}
+                    label="IN" allowDecimal dataTabindex={1}
+                    inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(1)} onRegister={registerField} isActive={activeTabindex === 1}
+                    style={{ fontSize: 16, width: '100%' }} testId="field-in-meter" />
+                </FRow>
+                <FRow tab={2} active={activeTabindex === 2}>
+                  <NumpadField id="field-out-meter" value={outMeter1}
+                    onChange={v => { touch?.('outMeter1')(); setOut1(v) }}
+                    label={outMeterCount > 1 ? 'OUT1' : 'OUT'} allowDecimal dataTabindex={2}
+                    inputClassName={!touched?.outMeter1 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(2)} onRegister={registerField} isActive={activeTabindex === 2}
+                    style={{ fontSize: 16, width: '100%' }} testId="field-out-meter" />
+                </FRow>
+                <FRow tab={5} active={activeTabindex === 5}>
+                  <NumpadField id="field-stock" value={stock}
+                    onChange={v => { touch?.('stock')(); setStk(v) }}
+                    label="残" dataTabindex={5}
+                    inputClassName={!touched?.stock ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(5)} onRegister={registerField} isActive={activeTabindex === 5}
+                    style={{ fontSize: 16, width: '100%' }} testId="field-stock" />
+                </FRow>
+                <FRow tab={6} active={activeTabindex === 6}>
+                  <NumpadField id="field-restock" value={restock}
+                    onChange={v => { touch?.('restock')(); setRst(v) }}
+                    label="補" dataTabindex={6}
+                    inputClassName={!touched?.restock ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(6)} onRegister={registerField} isActive={activeTabindex === 6}
+                    style={{ fontSize: 16, width: '100%' }} testId="field-restock" />
+                </FRow>
+              </div>
+            </div>
+
+            {/* Prize row 1 */}
+            <PrizeRow
+              prizeName={prizeName} setPrize={setPrize}
+              prizeCost={prizeCost} setCost={setCost}
+              selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
+              prizeNameTouchKey="prizeName" costTouchKey="prizeCost" costTabindex={8}
+              {...pf}
             />
-            {outMeterCount === 1 ? (
-              <CompactCell
-                className="flex-[3] min-w-0"
-                ttId="tt-field-out-meter" ttContent={TT.out_meter} label="OUT"
-                fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch?.('outMeter1')}
-                allowDecimal dataTabindex={2}
-                inputClassName={!touched?.outMeter1 ? 'text-gray-400' : ''}
-                onNext={() => navigateNext?.(2)}
-                onRegister={registerField}
-                isActive={activeTabindex === 2}
-              />
-            ) : (
-              outFields.map((f, i) => (
-                <CompactCell
-                  key={f.id}
-                  className="flex-[3] min-w-0"
-                  ttId={`tt-${f.id}`} ttContent={TT.out_meter} label={`OUT${i + 1}`}
-                  fieldId={f.id} value={f.val} onChange={f.set} onTouched={touch?.(f.key)}
-                  allowDecimal dataTabindex={f.tab}
-                  inputClassName={!touched?.[f.key] ? 'text-gray-400' : ''}
-                  onNext={() => navigateNext?.(f.tab)}
-                  onRegister={registerField}
-                  isActive={activeTabindex === f.tab}
+
+            {/* OUT2 section */}
+            {outMeterCount >= 2 && (
+              <>
+                <div className="border-b border-border">
+                  <div
+                    className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
+                    style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
+                  >
+                    <span>OUT2</span>
+                    <span>残</span>
+                    <span>補</span>
+                  </div>
+                  <div
+                    className="grid px-1 pb-1 gap-x-1"
+                    style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
+                  >
+                    <FRow tab={3} active={activeTabindex === 3}>
+                      <NumpadField id="field-out-meter-2" value={outMeter2}
+                        onChange={v => { touch?.('outMeter2')(); setOut2(v) }}
+                        label="OUT2" allowDecimal dataTabindex={3}
+                        inputClassName={!touched?.outMeter2 ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(3)} onRegister={registerField} isActive={activeTabindex === 3}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-out-meter-2" />
+                    </FRow>
+                    <FRow tab={15} active={activeTabindex === 15}>
+                      <NumpadField id="field-stock-2" value={stock2 ?? ''}
+                        onChange={v => { touch?.('stock2')(); setStk2?.(v) }}
+                        label="残2" dataTabindex={15}
+                        inputClassName={!touched?.stock2 ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(15)} onRegister={registerField} isActive={activeTabindex === 15}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-stock-2" />
+                    </FRow>
+                    <FRow tab={16} active={activeTabindex === 16}>
+                      <NumpadField id="field-restock-2" value={restock2 ?? ''}
+                        onChange={v => { touch?.('restock2')(); setRst2?.(v) }}
+                        label="補2" dataTabindex={16}
+                        inputClassName={!touched?.restock2 ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(16)} onRegister={registerField} isActive={activeTabindex === 16}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-restock-2" />
+                    </FRow>
+                  </div>
+                </div>
+                <PrizeRow
+                  prizeName={prizeName2 ?? ''} setPrize={setPrize2 ?? (() => {})}
+                  prizeCost={prizeCost2 ?? ''} setCost={setCost2 ?? (() => {})}
+                  selectedPrizeId={selectedPrizeId2} setSelectedPrizeId={setSelectedPrizeId2}
+                  prizeNameTouchKey="prizeName2" costTouchKey="prizeCost2" costTabindex={17}
+                  {...pf}
                 />
-              ))
+              </>
             )}
-            {/* 差 cell */}
-            <div className="flex flex-row items-center gap-1 p-1 flex-[2] min-w-0">
-              <div className="shrink-0"><Tooltip id="tt-field-diff" content={TT.diff} label="差" /></div>
-              <div data-testid="diff-cell" className="flex flex-col items-end justify-center flex-1 min-h-[2rem]">
-                <div data-testid="in-diff"  className={`font-mono text-xs font-bold ${inDiff.cls}`}>{inDiff.text}</div>
-                <div data-testid="out-diff" className={`font-mono text-xs font-bold ${outDiff.cls}`}>{outDiff.text}</div>
+
+            {/* OUT3 section */}
+            {outMeterCount >= 3 && (
+              <>
+                <div className="border-b border-border">
+                  <div
+                    className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
+                    style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
+                  >
+                    <span>OUT3</span>
+                    <span>残</span>
+                    <span>補</span>
+                  </div>
+                  <div
+                    className="grid px-1 pb-1 gap-x-1"
+                    style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
+                  >
+                    <FRow tab={4} active={activeTabindex === 4}>
+                      <NumpadField id="field-out-meter-3" value={outMeter3}
+                        onChange={v => { touch?.('outMeter3')(); setOut3(v) }}
+                        label="OUT3" allowDecimal dataTabindex={4}
+                        inputClassName={!touched?.outMeter3 ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(4)} onRegister={registerField} isActive={activeTabindex === 4}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-out-meter-3" />
+                    </FRow>
+                    <FRow tab={18} active={activeTabindex === 18}>
+                      <NumpadField id="field-stock-3" value={stock3 ?? ''}
+                        onChange={v => { touch?.('stock3')(); setStk3?.(v) }}
+                        label="残3" dataTabindex={18}
+                        inputClassName={!touched?.stock3 ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(18)} onRegister={registerField} isActive={activeTabindex === 18}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-stock-3" />
+                    </FRow>
+                    <FRow tab={19} active={activeTabindex === 19}>
+                      <NumpadField id="field-restock-3" value={restock3 ?? ''}
+                        onChange={v => { touch?.('restock3')(); setRst3?.(v) }}
+                        label="補3" dataTabindex={19}
+                        inputClassName={!touched?.restock3 ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(19)} onRegister={registerField} isActive={activeTabindex === 19}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-restock-3" />
+                    </FRow>
+                  </div>
+                </div>
+                <PrizeRow
+                  prizeName={prizeName3 ?? ''} setPrize={setPrize3 ?? (() => {})}
+                  prizeCost={prizeCost3 ?? ''} setCost={setCost3 ?? (() => {})}
+                  selectedPrizeId={selectedPrizeId3} setSelectedPrizeId={setSelectedPrizeId3}
+                  prizeNameTouchKey="prizeName3" costTouchKey="prizeCost3" costTabindex={20}
+                  {...pf}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {/* Prize row 1 (edit mode only — patrol mode uses PrizeRow above) */}
+        {isEditMode && (
+          <div className="flex gap-1 p-1 border-b border-border">
+            <div className="flex-[4] min-w-0 flex flex-row items-center gap-1 p-1">
+              <div className="shrink-0"><Tooltip id="tt-field-prize-name" content={TT.prize_name} label="景" /></div>
+              <div className="flex-1 min-w-0">
+                <PrizeNameAutocomplete
+                  value={prizeName}
+                  onChange={v => {
+                    touch?.('prizeName')()
+                    setPrize(v)
+                    setSelectedPrizeId?.(null)
+                  }}
+                  onSelect={({ prize_id, prize_name, original_cost }) => {
+                    setPrize(prize_name)
+                    setSelectedPrizeId?.(prize_id)
+                    setCost(original_cost != null ? String(original_cost) : '')
+                    touch?.('prizeName')()
+                    touch?.('prizeCost')()
+                  }}
+                  placeholder="前回値から補完（変更時のみ差分送信）"
+                  fieldId="field-prize-name"
+                  testId="field-prize-name"
+                />
               </div>
             </div>
             <CompactCell
-              className="flex-[3] min-w-0"
-              ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
-              fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch?.('stock')}
-              dataTabindex={5}
-              inputClassName={!touched?.stock ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(5)}
+              className="flex-[1] min-w-0"
+              ttId="tt-field-prize-cost" ttContent={TT.prize_cost} label="@"
+              fieldId="field-prize-cost" value={prizeCost} onChange={setCost} onTouched={touch?.('prizeCost')}
+              allowDecimal={false} dataTabindex={8}
+              testId="field-prize-cost"
+              inputPlaceholder=""
+              inputClassName={!touched?.prizeCost ? 'text-gray-400' : ''}
+              onNext={() => navigateNext?.(8)}
               onRegister={registerField}
-              isActive={activeTabindex === 5}
-            />
-            <CompactCell
-              className="flex-[2] min-w-0"
-              ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
-              fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch?.('restock')}
-              dataTabindex={6}
-              inputClassName={!touched?.restock ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(6)}
-              onRegister={registerField}
-              isActive={activeTabindex === 6}
+              isActive={activeTabindex === 8}
             />
           </div>
         )}
 
-        {/* Row 2: 景 + @ */}
-        <div className="flex gap-1 p-1 border-b border-border">
-          <div className="flex-[4] min-w-0 flex flex-row items-center gap-1 p-1">
-            <div className="shrink-0"><Tooltip id="tt-field-prize-name" content={TT.prize_name} label="景" /></div>
-            <div className="flex-1 min-w-0">
-              <PrizeNameAutocomplete
-                value={prizeName}
-                onChange={v => {
-                  touch?.('prizeName')()
-                  setPrize(v)
-                  setSelectedPrizeId?.(null)
-                }}
-                onSelect={({ prize_id, prize_name, original_cost }) => {
-                  setPrize(prize_name)
-                  setSelectedPrizeId?.(prize_id)
-                  setCost(original_cost != null ? String(original_cost) : '')
-                  touch?.('prizeName')()
-                  touch?.('prizeCost')()
-                }}
-                placeholder="前回値から補完（変更時のみ差分送信）"
-                fieldId="field-prize-name"
-                testId="field-prize-name"
-              />
-            </div>
-          </div>
-          <CompactCell
-            className="flex-[1] min-w-0"
-            ttId="tt-field-prize-cost" ttContent={TT.prize_cost} label="@"
-            fieldId="field-prize-cost" value={prizeCost} onChange={setCost} onTouched={touch?.('prizeCost')}
-            allowDecimal={false} dataTabindex={8}
-            testId="field-prize-cost"
-            inputPlaceholder=""
-            inputClassName={!touched?.prizeCost ? 'text-gray-400' : ''}
-            onNext={() => navigateNext?.(8)}
-            onRegister={registerField}
-            isActive={activeTabindex === 8}
-          />
-        </div>
-
-        {/* Row 3: 設定ACLR + O */}
+        {/* Row: 設定ACLR + O */}
         <div className="flex gap-1 p-1 border-b border-border">
           {[
             { tab: 9,  id: 'field-set-a', testId: 'field-set-a', label: 'A', val: setA, set: setSetA, touchKey: 'setA'  },
@@ -374,7 +545,7 @@ export default function BoothInputForm({
         )}
 
         {/* ボタン行 */}
-        <div className={`px-4 py-1 flex gap-2`}>
+        <div className="px-4 py-1 flex gap-2">
           {mode === 'edit' && onDelete && (
             <button
               data-testid="delete-button"
@@ -383,6 +554,15 @@ export default function BoothInputForm({
               className="px-4 py-4 rounded-2xl font-bold text-base border border-red-500 text-red-400 bg-transparent active:scale-[0.98] transition-all disabled:opacity-40"
             >
               {deleting ? '削除中...' : '削除'}
+            </button>
+          )}
+          {onOCR && (
+            <button
+              type="button"
+              onClick={onOCR}
+              className="w-1/4 py-4 rounded-2xl font-bold text-base text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
+            >
+              📷
             </button>
           )}
           <button

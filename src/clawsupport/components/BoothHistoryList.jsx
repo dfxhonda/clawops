@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { fetchBoothHistory } from '../../services/boothHistory'
 import BoothHistoryRow from './BoothHistoryRow'
 
+function draftDiffCls(diff) {
+  if (diff == null) return 'text-muted'
+  if (diff > 0) return 'text-green-400'
+  if (diff < 0) return 'text-red-400'
+  return 'text-muted'
+}
+function draftDiffText(diff) {
+  if (diff == null) return '—'
+  if (diff > 0) return `+${diff}`
+  return String(diff)
+}
+
 export default function BoothHistoryList({
   boothCode,
   meterUnitPrice = 100,
@@ -11,6 +23,8 @@ export default function BoothHistoryList({
   limit = 10,
   onRowSelect,
   selectedReadingId,
+  draftRow,
+  historyKey,
 }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,7 +36,7 @@ export default function BoothHistoryList({
       setRows(data)
       setLoading(false)
     })
-  }, [boothCode, meterUnitPrice, limit])
+  }, [boothCode, meterUnitPrice, limit, historyKey])
 
   if (loading) {
     return (
@@ -35,7 +49,9 @@ export default function BoothHistoryList({
     )
   }
 
-  if (!rows.length) return null
+  const showDraft = draftRow?.active && (draftRow.inDiff != null || draftRow.outDiff != null)
+
+  if (!rows.length && !showDraft) return null
 
   return (
     <div
@@ -51,6 +67,23 @@ export default function BoothHistoryList({
           <span className="text-right">OUT差</span>
         </div>
       </div>
+
+      {showDraft && (
+        <div
+          data-testid="draft-row"
+          className="grid items-center px-3 py-1.5 border-b border-border/50 bg-blue-950/40"
+          style={{ gridTemplateColumns: '70px 1fr 70px 70px' }}
+        >
+          <span className="text-xs font-bold text-blue-400">編集中</span>
+          <span />
+          <span className={`text-right text-xs font-bold tabular-nums ${draftDiffCls(draftRow.inDiff)}`}>
+            {draftDiffText(draftRow.inDiff)}
+          </span>
+          <span className={`text-right text-xs font-bold tabular-nums ${draftDiffCls(draftRow.outDiff)}`}>
+            {draftDiffText(draftRow.outDiff)}
+          </span>
+        </div>
+      )}
 
       {rows.map((row, i) => (
         <BoothHistoryRow

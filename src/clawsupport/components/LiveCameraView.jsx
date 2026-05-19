@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { logger } from '../../lib/logger'
 
 function canvasToBlob(canvas) {
   return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
@@ -28,6 +29,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
   const streamRef = useRef(null)
   const zoomRef = useRef(1)
   const pinchStartRef = useRef(null)
+  const galleryInputRef = useRef(null)
   const [cameraError, setCameraError] = useState('')
   const [zoom, setZoom] = useState(1)
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 1 })
@@ -132,6 +134,19 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
     applyZoom(clamped)
   }
 
+  async function handleGalleryChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    logger.info('ocr_gallery_pick_started')
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const base64 = ev.target.result.split(',')[1]
+      onCapture(base64, file)
+    }
+    reader.readAsDataURL(file)
+  }
+
   async function shutter() {
     const vid = videoRef.current
     if (!vid || shooting) return
@@ -234,6 +249,19 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
             cursor: shooting ? 'default' : 'pointer',
           }}
         />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleGalleryChange}
+        />
+        <button
+          onClick={() => galleryInputRef.current?.click()}
+          style={{ color: '#fff', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+        >
+          ギャラリー
+        </button>
       </div>
     </div>
   )

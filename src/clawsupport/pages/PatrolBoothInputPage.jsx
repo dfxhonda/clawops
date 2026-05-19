@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { PageHeader } from '../../shared/ui/PageHeader'
-import { NumpadFooterPanel } from '../components/NumpadField'
+import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
 import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
 import BoothInputForm, { EMPTY_TOUCHED, diffDisplay } from '../components/BoothInputForm'
@@ -72,30 +72,6 @@ function PrevReadingRow({ prev }) {
   )
 }
 
-function TheoryRow({ prev }) {
-  if (!prev) return null
-  const payout = prev.payout_rate
-  const payoutLabel =
-    payout == null || payout === ''
-      ? '—'
-      : Number(payout) <= 1 && Number(payout) > 0
-        ? `${(Number(payout) * 100).toFixed(1)}%`
-        : `${payout}%`
-  return (
-    <div
-      data-testid="theory-row"
-      className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/40 border border-border/80 text-base text-muted"
-    >
-      <span className="font-bold text-text/90 mr-2">理論・出率（前回記録）</span>
-      <span>出率 {payoutLabel}</span>
-      <span className="mx-2">|</span>
-      <span data-testid="theoretical-stock-label">
-        理論在庫 {prev.theoretical_stock != null ? prev.theoretical_stock : '—'}
-      </span>
-    </div>
-  )
-}
-
 export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
   const { state }    = useLocation()
@@ -109,35 +85,54 @@ export default function PatrolBoothInputPage() {
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
 
-  const [showOcr,        setShowOcr]    = useState(false)
-  const [ocrState,       setOcrState]   = useState('idle') // 'idle' | 'loading' | 'confirming'
-  const [ocrCapture,     setOcrCapture] = useState(null)   // { imageUrl, cols, photoUrl, avgConf }
-  const [ocrPhotoUrl,    setOcrPhotoUrl]  = useState(null)
-  const [ocrConfidence,  setOcrConf]   = useState(null)
-  const [ocrInputMethod, setOcrIM]     = useState('ocr')
+  // OCR state
+  const [showOcr,       setShowOcr]   = useState(false)
+  const [ocrState,      setOcrState]  = useState('idle') // 'idle' | 'loading' | 'confirming'
+  const [ocrCapture,    setOcrCapture] = useState(null)  // { imageUrl, cols, photoUrl, avgConf }
+  const [ocrEditIn,     setOcrEditIn]  = useState('')
+  const [ocrEditOut,    setOcrEditOut] = useState('')
+  const [ocrEdited,     setOcrEdited]  = useState(false)
+  const [ocrPhotoUrl,   setOcrPhotoUrl] = useState(null)
+  const [ocrConfidence, setOcrConf]   = useState(null)
+  const [ocrInputMethod,setOcrIM]     = useState('ocr')
   const { engine, toggleEngine, loading: ocrLoading, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
-  const [prev,           setPrev]   = useState(null)
-  const [inMeter,        setIn]     = useState('')
-  const [outMeter1,      setOut1]   = useState('')
-  const [outMeter2,      setOut2]   = useState('')
-  const [outMeter3,      setOut3]   = useState('')
-  const [stock,          setStk]    = useState('')
-  const [restock,        setRst]    = useState('')
-  const [prizeName,      setPrize]  = useState('')
-  const [prizeCost,      setCost]   = useState('')
-  const [setA,           setSetA]   = useState('')
-  const [setC,           setSetC]   = useState('')
-  const [setL,           setSetL]   = useState('')
-  const [setR,           setSetR]   = useState('')
-  const [setO,           setSetO]   = useState('')
-  const [touched,        setTouched] = useState(() => ({ ...EMPTY_TOUCHED }))
+  // Form state — OUT1
+  const [prev,          setPrev]   = useState(null)
+  const [inMeter,       setIn]     = useState('')
+  const [outMeter1,     setOut1]   = useState('')
+  const [outMeter2,     setOut2]   = useState('')
+  const [outMeter3,     setOut3]   = useState('')
+  const [stock,         setStk]    = useState('')
+  const [restock,       setRst]    = useState('')
+  const [prizeName,     setPrize]  = useState('')
+  const [prizeCost,     setCost]   = useState('')
+  // Form state — OUT2
+  const [stock2,        setStk2]   = useState('')
+  const [restock2,      setRst2]   = useState('')
+  const [prizeName2,    setPrize2] = useState('')
+  const [prizeCost2,    setCost2]  = useState('')
+  const [selectedPrizeId2, setSelectedPrizeId2] = useState(null)
+  // Form state — OUT3
+  const [stock3,        setStk3]   = useState('')
+  const [restock3,      setRst3]   = useState('')
+  const [prizeName3,    setPrize3] = useState('')
+  const [prizeCost3,    setCost3]  = useState('')
+  const [selectedPrizeId3, setSelectedPrizeId3] = useState(null)
+  // Settings
+  const [setA,          setSetA]   = useState('')
+  const [setC,          setSetC]   = useState('')
+  const [setL,          setSetL]   = useState('')
+  const [setR,          setSetR]   = useState('')
+  const [setO,          setSetO]   = useState('')
+  const [touched,       setTouched] = useState(() => ({ ...EMPTY_TOUCHED }))
   const [selectedPrizeId, setSelectedPrizeId] = useState(null)
   const [isCollectionDay, setIsCollectionDay] = useState(false)
-  const [isCollection,   setIsColl] = useState(false)
-  const [saving,         setSaving]    = useState(false)
-  const [result,         setResult]    = useState(null)
-  const [showAlert,      setShowAlert] = useState(false)
+  const [isCollection,  setIsColl] = useState(false)
+  const [saving,        setSaving]    = useState(false)
+  const [result,        setResult]    = useState(null)
+  const [showAlert,     setShowAlert] = useState(false)
+  const [historyKey,    setHistoryKey] = useState(0)
 
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }))
 
@@ -160,6 +155,19 @@ export default function PatrolBoothInputPage() {
     setPrize(prev.prize_name ?? '')
     const pc = prev.prize_cost ?? prev.prize_cost_1
     setCost(pc != null && pc !== '' ? String(pc) : '')
+    // OUT2
+    setStk2(prev.stock_2 != null ? String(prev.stock_2) : '')
+    setRst2(prev.restock_2 != null ? String(prev.restock_2) : '')
+    setPrize2(prev.prize_name_2 ?? '')
+    setCost2(prev.prize_cost_2 != null ? String(prev.prize_cost_2) : '')
+    setSelectedPrizeId2(null)
+    // OUT3
+    setStk3(prev.stock_3 != null ? String(prev.stock_3) : '')
+    setRst3(prev.restock_3 != null ? String(prev.restock_3) : '')
+    setPrize3(prev.prize_name_3 ?? '')
+    setCost3(prev.prize_cost_3 != null ? String(prev.prize_cost_3) : '')
+    setSelectedPrizeId3(null)
+    // Settings
     setSetA(prev.set_a ?? '')
     setSetC(prev.set_c ?? '')
     setSetL(prev.set_l ?? '')
@@ -210,11 +218,7 @@ export default function PatrolBoothInputPage() {
     if (touched.prizeName && selectedPrizeId != null) patch.prize_id = selectedPrizeId
     if (touched.prizeCost) {
       const t = prizeCost.trim()
-      if (t === '') patch.prize_cost = null
-      else {
-        const n = parseInt(t, 10)
-        patch.prize_cost = Number.isFinite(n) ? n : null
-      }
+      patch.prize_cost = t === '' ? null : (Number.isFinite(parseInt(t, 10)) ? parseInt(t, 10) : null)
     }
     if (touched.setA) patch.set_a = setA.trim() || null
     if (touched.setC) patch.set_c = setC.trim() || null
@@ -223,6 +227,23 @@ export default function PatrolBoothInputPage() {
     if (touched.setO) patch.set_o = setO.trim() || null
     if (touched.outMeter2) patch.out_meter_2 = outMeter2 !== '' ? parseFloat(outMeter2) : null
     if (touched.outMeter3) patch.out_meter_3 = outMeter3 !== '' ? parseFloat(outMeter3) : null
+    // OUT2 fields
+    if (touched.stock2)    patch.stock_2    = stock2 !== '' ? parseInt(stock2, 10) : null
+    if (touched.restock2)  patch.restock_2  = restock2 !== '' ? parseInt(restock2, 10) : null
+    if (touched.prizeName2) patch.prize_name_2 = prizeName2.trim() || null
+    if (touched.prizeCost2) {
+      const t = prizeCost2.trim()
+      patch.prize_cost_2 = t === '' ? null : (Number.isFinite(parseInt(t, 10)) ? parseInt(t, 10) : null)
+    }
+    // OUT3 fields
+    if (touched.stock3)    patch.stock_3    = stock3 !== '' ? parseInt(stock3, 10) : null
+    if (touched.restock3)  patch.restock_3  = restock3 !== '' ? parseInt(restock3, 10) : null
+    if (touched.prizeName3) patch.prize_name_3 = prizeName3.trim() || null
+    if (touched.prizeCost3) {
+      const t = prizeCost3.trim()
+      patch.prize_cost_3 = t === '' ? null : (Number.isFinite(parseInt(t, 10)) ? parseInt(t, 10) : null)
+    }
+    // OCR photo
     if (ocrPhotoUrl) {
       patch.photo_url      = ocrPhotoUrl
       patch.has_photo      = true
@@ -235,28 +256,17 @@ export default function PatrolBoothInputPage() {
   async function handleOCRCapture(base64, blob) {
     setShowOcr(false)
     setOcrState('loading')
-    logger.info('ocr_button_pressed')
     logger.info('ocr_photo_captured', { boothCode, blob_size: blob?.size ?? 0 })
 
     const result = await runOCR(base64, blob)
 
-    if (!result || result.timeout) {
-      setOcrState('idle')
-      return
-    }
+    if (!result || result.timeout) { setOcrState('idle'); return }
 
     const { meters: ocrMeters, photoUrl, uploadError } = result
+    if (photoUrl) logger.info('ocr_photo_uploaded', { photo_url: photoUrl })
+    else if (uploadError) logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
 
-    if (photoUrl) {
-      logger.info('ocr_photo_uploaded', { photo_url: photoUrl })
-    } else if (uploadError) {
-      logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
-    }
-
-    if (!ocrMeters?.length) {
-      setOcrState('idle')
-      return
-    }
+    if (!ocrMeters?.length) { setOcrState('idle'); return }
 
     const cols = mapMetersToColumns(ocrMeters)
     const confList = ocrMeters.filter(m => typeof m.confidence === 'number')
@@ -268,31 +278,36 @@ export default function PatrolBoothInputPage() {
 
     const imageUrl = blob ? URL.createObjectURL(blob) : null
     setOcrCapture({ imageUrl, cols, photoUrl: photoUrl ?? null, avgConf })
+    setOcrEditIn(cols.in_meter != null ? String(cols.in_meter) : '')
+    setOcrEditOut(cols.out_meter != null ? String(cols.out_meter) : '')
+    setOcrEdited(false)
     setOcrState('confirming')
   }
 
-  function handleOCRUse(inputMethod = 'ocr') {
+  function handleOCRUse() {
     if (!ocrCapture) return
-    const { cols, photoUrl, avgConf } = ocrCapture
-    logger.info('ocr_confirmation_use_clicked', { in: cols.in_meter, out: cols.out_meter, confidence: avgConf, input_method: inputMethod })
-    if (cols.in_meter != null) {
-      setIn(String(cols.in_meter))
-      setTouched(t => ({ ...t, inMeter: true }))
-    }
-    if (cols.out_meter != null) {
-      setOut1(String(cols.out_meter))
-      setTouched(t => ({ ...t, outMeter1: true }))
-    }
+    const { photoUrl, avgConf } = ocrCapture
+    const finalIn = ocrEditIn !== '' ? parseInt(ocrEditIn, 10) : null
+    const finalOut = ocrEditOut !== '' ? parseInt(ocrEditOut, 10) : null
+    logger.info('ocr_confirmation_use_clicked', { in: finalIn, out: finalOut, confidence: avgConf, edited: ocrEdited })
+    if (finalIn != null) { setIn(String(finalIn)); setTouched(t => ({ ...t, inMeter: true })) }
+    if (finalOut != null) { setOut1(String(finalOut)); setTouched(t => ({ ...t, outMeter1: true })) }
     setOcrPhotoUrl(photoUrl ?? null)
     setOcrConf(avgConf ?? null)
-    setOcrIM(inputMethod)
+    setOcrIM(ocrEdited ? 'ocr_corrected' : 'ocr')
     setOcrState('idle')
     setOcrCapture(null)
+    setOcrEditIn('')
+    setOcrEditOut('')
+    setOcrEdited(false)
   }
 
   function handleOCRRecapture() {
     logger.info('ocr_confirmation_recapture_clicked')
     setOcrCapture(null)
+    setOcrEditIn('')
+    setOcrEditOut('')
+    setOcrEdited(false)
     setOcrState('idle')
     setShowOcr(true)
   }
@@ -323,6 +338,7 @@ export default function PatrolBoothInputPage() {
         setTimeout(() => navigate(-1), 1000)
       } else {
         setResult('saved')
+        setHistoryKey(k => k + 1)
         setTimeout(() => navigate(-1), 800)
       }
     } catch {
@@ -345,6 +361,7 @@ export default function PatrolBoothInputPage() {
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
 
+  // === LiveCamera full-screen ===
   if (showOcr) {
     return (
       <LiveCameraView
@@ -358,6 +375,7 @@ export default function PatrolBoothInputPage() {
     )
   }
 
+  // === OCR loading overlay ===
   if (ocrState === 'loading') {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4">
@@ -367,8 +385,9 @@ export default function PatrolBoothInputPage() {
     )
   }
 
+  // === OCR confirmation screen (editable IN/OUT) ===
   if (ocrState === 'confirming' && ocrCapture) {
-    const { imageUrl, cols, photoUrl, avgConf } = ocrCapture
+    const { imageUrl, photoUrl, avgConf } = ocrCapture
     const confPct = avgConf != null ? Math.round(avgConf * 100) : null
     const confCls = confPct == null ? 'text-muted' : confPct >= 90 ? 'text-green-400' : confPct >= 70 ? 'text-yellow-400' : 'text-red-400'
     return (
@@ -380,40 +399,56 @@ export default function PatrolBoothInputPage() {
         )}
         <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 pb-6">
           <div className="rounded-2xl border border-border bg-surface/60 p-4 mb-4">
-            <div className="text-xs font-bold text-muted mb-3">OCR認識値 — 写真と照合して確認</div>
+            <div className="text-xs font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
             <div className="grid grid-cols-2 gap-4 mb-2">
               <div>
                 <div className="text-xs text-muted mb-1">IN</div>
-                <div className="text-2xl font-bold text-text tabular-nums">
-                  {cols.in_meter != null ? cols.in_meter.toLocaleString() : '—'}
+                <div className={`rounded-xl transition-all ${activeTabindex === 91 ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+                  <NumpadField
+                    id="ocr-confirm-in"
+                    value={ocrEditIn}
+                    onChange={v => { setOcrEdited(true); setOcrEditIn(v); logger.info('ocr_confirmation_value_edited', { field: 'in_meter' }) }}
+                    label="IN"
+                    allowDecimal={false}
+                    dataTabindex={91}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 91}
+                    style={{ fontSize: 24, width: '100%', fontWeight: 'bold' }}
+                    testId="ocr-confirm-in"
+                  />
                 </div>
               </div>
               <div>
                 <div className="text-xs text-muted mb-1">OUT</div>
-                <div className="text-2xl font-bold text-text tabular-nums">
-                  {cols.out_meter != null ? cols.out_meter.toLocaleString() : '—'}
+                <div className={`rounded-xl transition-all ${activeTabindex === 92 ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+                  <NumpadField
+                    id="ocr-confirm-out"
+                    value={ocrEditOut}
+                    onChange={v => { setOcrEdited(true); setOcrEditOut(v); logger.info('ocr_confirmation_value_edited', { field: 'out_meter' }) }}
+                    label="OUT"
+                    allowDecimal={false}
+                    dataTabindex={92}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 92}
+                    style={{ fontSize: 24, width: '100%', fontWeight: 'bold' }}
+                    testId="ocr-confirm-out"
+                  />
                 </div>
               </div>
             </div>
             <div className="text-xs text-muted">
               信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span>
+              {ocrEdited && <span className="ml-3 text-amber-400">修正済み</span>}
               {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => handleOCRUse('ocr')}
+              onClick={handleOCRUse}
               className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
             >
               使う
-            </button>
-            <button
-              type="button"
-              onClick={() => handleOCRUse('ocr_corrected')}
-              className="flex-1 py-4 bg-amber-500 text-white font-bold text-base rounded-2xl min-h-[44px]"
-            >
-              手動修正
             </button>
             <button
               type="button"
@@ -424,10 +459,12 @@ export default function PatrolBoothInputPage() {
             </button>
           </div>
         </div>
+        <NumpadFooterPanel currentField={currentField} />
       </div>
     )
   }
 
+  // === Main patrol form ===
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
       <PageHeader
@@ -441,18 +478,8 @@ export default function PatrolBoothInputPage() {
         <EntryTypeBadge type={entryType} />
       </div>
       <PrevReadingRow prev={prev} />
-      <TheoryRow prev={prev} />
 
       <div className="flex-1 overflow-y-auto pb-[300px]">
-        <div className="px-4 pt-3 pb-1">
-          <button
-            type="button"
-            onClick={() => { logger.info('ocr_button_pressed'); setShowOcr(true) }}
-            className="w-full py-3 text-base font-bold text-sky-300 bg-sky-500/10 border border-sky-400/30 rounded-xl flex items-center justify-center gap-2"
-          >
-            📷 OCR取込
-          </button>
-        </div>
         <BoothInputForm
           mode="patrol"
           outMeterCount={outMeterCount}
@@ -462,20 +489,31 @@ export default function PatrolBoothInputPage() {
           outMeter3={outMeter3} setOut3={setOut3}
           stock={stock} setStk={setStk}
           restock={restock} setRst={setRst}
+          stock2={stock2} setStk2={setStk2}
+          restock2={restock2} setRst2={setRst2}
+          stock3={stock3} setStk3={setStk3}
+          restock3={restock3} setRst3={setRst3}
           prizeName={prizeName} setPrize={setPrize}
           prizeCost={prizeCost} setCost={setCost}
+          prizeName2={prizeName2} setPrize2={setPrize2}
+          prizeCost2={prizeCost2} setCost2={setCost2}
+          prizeName3={prizeName3} setPrize3={setPrize3}
+          prizeCost3={prizeCost3} setCost3={setCost3}
           setA={setA} setSetA={setSetA}
           setC={setC} setSetC={setSetC}
           setL={setL} setSetL={setSetL}
           setR={setR} setSetR={setSetR}
           setO={setO} setSetO={setSetO}
           selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
+          selectedPrizeId2={selectedPrizeId2} setSelectedPrizeId2={setSelectedPrizeId2}
+          selectedPrizeId3={selectedPrizeId3} setSelectedPrizeId3={setSelectedPrizeId3}
           touched={touched} touch={touch}
           isCollectionDay={isCollectionDay} isCollection={isCollection} setIsColl={setIsColl}
           entryType={entryType}
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
           canSave={canSave} saving={saving} result={result} onSave={handleSave}
+          onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'camera' }); setShowOcr(true) }}
         />
         <BoothHistoryList
           boothCode={boothCode}
@@ -484,6 +522,12 @@ export default function PatrolBoothInputPage() {
           machine={machine}
           booth={booth}
           limit={10}
+          historyKey={historyKey}
+          draftRow={{
+            active: result !== 'saved' && (inDiff != null || outDiff != null),
+            inDiff,
+            outDiff,
+          }}
         />
       </div>
 
