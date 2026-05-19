@@ -10,12 +10,15 @@ let buildNumber = '0'
 try { gitSha = execSync('git rev-parse --short HEAD').toString().trim() } catch {}
 try { buildNumber = execSync('git rev-list --count HEAD').toString().trim() } catch {}
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __GIT_SHA__: JSON.stringify(gitSha),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
+  esbuild: {
+    pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
   },
   plugins: [
     tailwindcss(),
@@ -52,4 +55,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))

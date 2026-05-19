@@ -1,5 +1,9 @@
 import { defineConfig, mergeConfig } from 'vitest/config'
-import viteConfig from './vite.config.js'
+import viteConfigFn from './vite.config.js'
+
+const viteConfig = typeof viteConfigFn === 'function'
+  ? viteConfigFn({ mode: 'test', command: 'serve', isSsrBuild: false })
+  : viteConfigFn
 
 export default mergeConfig(viteConfig, defineConfig({
   test: {
