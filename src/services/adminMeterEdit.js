@@ -102,25 +102,51 @@ export async function insertAuditLog({ action, targetId, before, after, staffId,
   })
 }
 
-export async function insertPastDateReading({ boothCode, patrolDate, staffId }) {
+export async function getPrevReadingBeforeDate(boothCode, targetDate) {
+  const { data } = await supabase
+    .from('meter_readings')
+    .select(
+      'reading_id, in_meter, out_meter, out_meter_2, out_meter_3, ' +
+      'prize_stock_count, prize_restock_count, prize_name, prize_id, prize_cost, ' +
+      'set_a, set_c, set_l, set_r, set_o'
+    )
+    .eq('booth_code', boothCode)
+    .lt('patrol_date', targetDate)
+    .order('patrol_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data ?? null
+}
+
+export async function insertPastDateReading({ boothCode, patrolDate, staffId, prevRow = null }) {
   const readingId = crypto.randomUUID()
   const { data, error } = await supabase
     .from('meter_readings')
     .insert({
-      reading_id: readingId,
-      booth_id: boothCode,
-      booth_code: boothCode,
-      patrol_date: patrolDate,
-      entry_type: 'patrol',
-      in_meter: null,
-      out_meter: null,
-      out_meter_2: null,
-      out_meter_3: null,
-      prize_restock_count: 0,
-      prize_stock_count: null,
-      organization_id: DFX_ORG_ID,
-      created_by: staffId,
-      updated_by: staffId,
+      reading_id:          readingId,
+      booth_id:            boothCode,
+      booth_code:          boothCode,
+      patrol_date:         patrolDate,
+      entry_type:          'patrol',
+      source:              'patrol',
+      in_meter:            prevRow?.in_meter            ?? null,
+      out_meter:           prevRow?.out_meter           ?? null,
+      out_meter_2:         prevRow?.out_meter_2         ?? null,
+      out_meter_3:         prevRow?.out_meter_3         ?? null,
+      prize_stock_count:   prevRow?.prize_stock_count   ?? null,
+      prize_restock_count: prevRow?.prize_restock_count ?? 0,
+      prize_name:          prevRow?.prize_name          ?? null,
+      prize_id:            prevRow?.prize_id            ?? null,
+      prize_cost:          prevRow?.prize_cost          ?? null,
+      set_a:               prevRow?.set_a               ?? null,
+      set_c:               prevRow?.set_c               ?? null,
+      set_l:               prevRow?.set_l               ?? null,
+      set_r:               prevRow?.set_r               ?? null,
+      set_o:               prevRow?.set_o               ?? null,
+      organization_id:     DFX_ORG_ID,
+      created_by:          staffId,
+      updated_by:          staffId,
     })
     .select()
   if (error) throw error

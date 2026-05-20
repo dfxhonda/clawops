@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
-import { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
+import NumpadField, { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
 import BoothInputForm, { ALL_TOUCHED } from '../../clawsupport/components/BoothInputForm'
+import LiveCameraView from '../../clawsupport/components/LiveCameraView'
+import ErrorBanner from '../../components/ErrorBanner'
 import { useFieldNavigation } from '../../clawsupport/hooks/useFieldNavigation'
+import { useOCR } from '../../clawsupport/hooks/useOCR'
 import { isAdmin } from '../../services/permissions'
 import { logger } from '../../lib/logger'
+import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import {
   getFullReading,
   updateMeterReading,
@@ -14,6 +18,7 @@ import {
   insertAuditLog,
   insertPastDateReading,
   fetchAdminBoothHistory,
+  getPrevReadingBeforeDate,
 } from '../../services/adminMeterEdit'
 
 function UnauthorizedView() {
@@ -29,6 +34,21 @@ function UnauthorizedView() {
       </div>
     </div>
   )
+}
+
+function mapMetersToColumns(meters) {
+  const inTypes = ['in','yen1000_in','yen500_in','yen100_in','in_a','in_b','change_in']
+  const cols = { in_meter: null, out_meter: null }
+  for (const t of inTypes) {
+    const m = meters.find(x => x.type === t && x.value != null)
+    if (m) { cols.in_meter = parseInt(m.value, 10); break }
+  }
+  const outOrder = ['out_a','out','capsule_out','prize_out','out_b','out_c','change_out']
+  const outs = meters
+    .filter(m => /out/i.test(m.type) && m.value != null)
+    .sort((a, b) => outOrder.indexOf(a.type) - outOrder.indexOf(b.type))
+  if (outs[0]) cols.out_meter = parseInt(outs[0].value, 10)
+  return cols
 }
 
 const ENTRY_TYPE_LABEL = {
@@ -103,6 +123,16 @@ export default function AdminBoothEditPage() {
   const [pickerDate,      setPickerDate]      = useState('')
   const [insertingPast,   setInsertingPast]   = useState(false)
 
+  const [showOcr,      setShowOcr]    = useState(false)
+  const [ocrState,     setOcrState]   = useState('idle') // 'idle' | 'loading' | 'confirming'
+  const [ocrCapture,   setOcrCapture] = useState(null)
+  const [ocrEditIn,    setOcrEditIn]  = useState('')
+  const [ocrEditOut,   setOcrEditOut] = useState('')
+  const [ocrEdited,    setOcrEdited]  = useState(false)
+  const [ocrPhotoUrl,  setOcrPhotoUrl] = useState(null)
+  const [ocrConf,      setOcrConf]    = useState(null)
+  const { engine, toggleEngine, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
+
   const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 
   const [historyRows,    setHistoryRows]    = useState([])
@@ -154,6 +184,57 @@ export default function AdminBoothEditPage() {
 
   const canSave = !!selectedReading && inMeter !== '' && outMeter1 !== '' && stock !== ''
 
+  async function handleOCRCapture(base64, blob) {
+    setShowOcr(false)
+    setOcrState('loading')
+    logger.info('admin_ocr_button_pressed', { boothCode, blob_size: blob?.size ?? 0 })
+    const result = await runOCR(base64, blob)
+    if (!result || result.timeout) { setOcrState('idle'); return }
+    const { meters: ocrMeters, photoUrl, uploadError } = result
+    if (photoUrl) logger.info('admin_ocr_photo_uploaded', { photo_url: photoUrl })
+    else if (uploadError) logger.error('admin_ocr_save_failed', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
+    if (!ocrMeters?.length) { setOcrState('idle'); return }
+    const cols = mapMetersToColumns(ocrMeters)
+    const confList = ocrMeters.filter(m => typeof m.confidence === 'number')
+    const avgConf = confList.length
+      ? confList.reduce((s, m) => s + m.confidence, 0) / confList.length
+      : null
+    logger.info('admin_ocr_result_returned', { confidence: avgConf })
+    const imageUrl = blob ? URL.createObjectURL(blob) : null
+    setOcrCapture({ imageUrl, cols, photoUrl: photoUrl ?? null, avgConf })
+    setOcrEditIn(cols.in_meter != null ? String(cols.in_meter) : '')
+    setOcrEditOut(cols.out_meter != null ? String(cols.out_meter) : '')
+    setOcrEdited(false)
+    setOcrState('confirming')
+  }
+
+  function handleOCRUse() {
+    if (!ocrCapture) return
+    const { photoUrl, avgConf } = ocrCapture
+    const finalIn  = ocrEditIn  !== '' ? parseInt(ocrEditIn,  10) : null
+    const finalOut = ocrEditOut !== '' ? parseInt(ocrEditOut, 10) : null
+    logger.info('admin_ocr_confirmation_use', { in: finalIn, out: finalOut, edited: ocrEdited })
+    if (finalIn  != null) setIn(String(finalIn))
+    if (finalOut != null) setOut1(String(finalOut))
+    setOcrPhotoUrl(photoUrl ?? null)
+    setOcrConf(avgConf ?? null)
+    setOcrState('idle')
+    setOcrCapture(null)
+    setOcrEditIn('')
+    setOcrEditOut('')
+    setOcrEdited(false)
+    setHasUnsaved(true)
+  }
+
+  function handleOCRRecapture() {
+    setOcrCapture(null)
+    setOcrEditIn('')
+    setOcrEditOut('')
+    setOcrEdited(false)
+    setOcrState('idle')
+    setShowOcr(true)
+  }
+
   async function handleSave() {
     if (!canSave || saving) return
     setSaving(true)
@@ -173,6 +254,11 @@ export default function AdminBoothEditPage() {
         set_l:                setL.trim() || null,
         set_r:                setR.trim() || null,
         set_o:                setO.trim() || null,
+        ...(ocrPhotoUrl ? {
+          photo_url:       ocrPhotoUrl,
+          input_method:    'ocr',
+          ocr_confidence:  ocrConf ?? null,
+        } : {}),
       }
 
       const afterRow = await updateMeterReading({
@@ -195,6 +281,8 @@ export default function AdminBoothEditPage() {
       setLockTimestamp(afterRow.updated_at)
       setBeforeSnapshot({ ...afterRow })
       setSelectedReading(afterRow)
+      setOcrPhotoUrl(null)
+      setOcrConf(null)
       setHasUnsaved(false)
       setResult('saved')
       setHistoryKey(k => k + 1)
@@ -243,7 +331,8 @@ export default function AdminBoothEditPage() {
     setInsertingPast(true)
     logger.info('admin_patrol_past_date_insert_saved', { selected_date: pickerDate })
     try {
-      const newRow = await insertPastDateReading({ boothCode, patrolDate: pickerDate, staffId })
+      const prevRow = await getPrevReadingBeforeDate(boothCode, pickerDate)
+      const newRow = await insertPastDateReading({ boothCode, patrolDate: pickerDate, staffId, prevRow })
       await insertAuditLog({
         action: 'admin_patrol_past_date_insert',
         targetId: newRow.reading_id,
@@ -252,6 +341,7 @@ export default function AdminBoothEditPage() {
         staffId,
         boothCode,
       })
+      logger.info('admin_past_date_added_with_prefill', { boothCode, patrol_date: pickerDate, has_prev: !!prevRow })
       setShowDatePicker(false)
       setPickerDate('')
       setHistoryKey(k => k + 1)
@@ -265,6 +355,96 @@ export default function AdminBoothEditPage() {
 
   if (loading) return null
   if (!isAdmin(staffRole)) return <UnauthorizedView />
+
+  if (showOcr) {
+    return (
+      <LiveCameraView
+        engine={engine}
+        onToggleEngine={toggleEngine}
+        onCapture={handleOCRCapture}
+        onQR={null}
+        onCancel={() => setShowOcr(false)}
+        showGuide={false}
+      />
+    )
+  }
+
+  if (ocrState === 'loading') {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
+        <div className="text-sky-300 text-base font-bold">OCR解析中...</div>
+      </div>
+    )
+  }
+
+  if (ocrState === 'confirming' && ocrCapture) {
+    const { imageUrl, photoUrl, avgConf } = ocrCapture
+    const confPct = avgConf != null ? Math.round(avgConf * 100) : null
+    const confCls = confPct == null ? 'text-muted' : confPct >= 90 ? 'text-green-400' : confPct >= 70 ? 'text-yellow-400' : 'text-red-400'
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        {imageUrl && (
+          <div className="shrink-0 bg-black" style={{ height: '60vh' }}>
+            <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 pb-6">
+          <div className="rounded-2xl border border-border bg-surface/60 p-4 mb-4">
+            <div className="text-xs font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
+            <div className="grid grid-cols-2 gap-4 mb-2">
+              <div>
+                <div className="text-xs text-muted mb-1">IN</div>
+                <NumpadField
+                  id="admin-ocr-confirm-in"
+                  value={ocrEditIn}
+                  onChange={v => { setOcrEdited(true); setOcrEditIn(v) }}
+                  label="IN"
+                  allowDecimal={false}
+                  dataTabindex={91}
+                  onRegister={registerField}
+                  isActive={activeTabindex === 91}
+                  style={{ fontSize: 24, width: '100%', fontWeight: 'bold' }}
+                  testId="admin-ocr-confirm-in"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-muted mb-1">OUT</div>
+                <NumpadField
+                  id="admin-ocr-confirm-out"
+                  value={ocrEditOut}
+                  onChange={v => { setOcrEdited(true); setOcrEditOut(v) }}
+                  label="OUT"
+                  allowDecimal={false}
+                  dataTabindex={92}
+                  onRegister={registerField}
+                  isActive={activeTabindex === 92}
+                  style={{ fontSize: 24, width: '100%', fontWeight: 'bold' }}
+                  testId="admin-ocr-confirm-out"
+                />
+              </div>
+            </div>
+            <div className="text-xs text-muted">
+              信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span>
+              {ocrEdited && <span className="ml-3 text-amber-400">修正済み</span>}
+              {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={handleOCRUse}
+              className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]">
+              使う
+            </button>
+            <button type="button" onClick={handleOCRRecapture}
+              className="flex-1 py-4 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]">
+              再撮影
+            </button>
+          </div>
+        </div>
+        <NumpadFooterPanel currentField={currentField} />
+      </div>
+    )
+  }
 
   const boothLabel = booth
     ? `${machine?.machine_name ?? ''} ブース ${booth.booth_number} [管理編集]`
@@ -294,6 +474,15 @@ export default function AdminBoothEditPage() {
                 </div>
               </div>
 
+              {result === 'error' && (
+                <ErrorBanner
+                  errCode="ERR-METER-001"
+                  message="保存エラーが発生しました。再試行してください。"
+                  onClose={() => setResult(null)}
+                  onRetry={handleSave}
+                />
+              )}
+
               <BoothInputForm
                 mode="edit"
                 outMeterCount={outMeterCount}
@@ -315,6 +504,7 @@ export default function AdminBoothEditPage() {
                 navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
                 canSave={canSave} saving={saving} result={result} onSave={handleSave}
                 onDelete={handleDelete} deleting={deleting}
+                onOCR={() => { logger.info('admin_ocr_button_pressed', { boothCode }); setShowOcr(true) }}
               />
             </>
           ) : (
