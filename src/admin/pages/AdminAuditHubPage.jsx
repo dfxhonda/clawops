@@ -8,6 +8,7 @@ const TILES = [
   { label: '景品phase履歴',      desc: '景品フェーズ変更の記録',       path: '/admin/audit/prize-phases',  impl: true  },
   { label: 'ロッカー操作履歴',   desc: 'ロッカー開閉・変更記録',       path: '/admin/audit/locker-ops',    impl: false },
   { label: '在庫移動履歴',       desc: '景品在庫の移動・調整記録',     path: '/admin/audit/stock-moves',   impl: true  },
+  { label: 'Excel一括取込',     desc: '過去ラウンドデータを一括登録', path: '/admin/audit/bulk-import',   impl: true  },
 ]
 
 export default function AdminAuditHubPage() {
