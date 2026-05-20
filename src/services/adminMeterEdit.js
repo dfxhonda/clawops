@@ -129,7 +129,7 @@ export async function insertPastDateReading({ boothCode, patrolDate, staffId, pr
       booth_code:          boothCode,
       patrol_date:         patrolDate,
       entry_type:          'patrol',
-      source:              'patrol',
+      source:              'manual',
       in_meter:            prevRow?.in_meter            ?? null,
       out_meter:           prevRow?.out_meter           ?? null,
       out_meter_2:         prevRow?.out_meter_2         ?? null,

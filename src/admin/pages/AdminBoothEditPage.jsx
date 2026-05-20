@@ -254,10 +254,11 @@ export default function AdminBoothEditPage() {
         set_l:                setL.trim() || null,
         set_r:                setR.trim() || null,
         set_o:                setO.trim() || null,
+        source:        ocrPhotoUrl ? 'ocr' : 'manual',
+        input_method:  ocrPhotoUrl ? 'ocr' : 'manual',
         ...(ocrPhotoUrl ? {
-          photo_url:       ocrPhotoUrl,
-          input_method:    'ocr',
-          ocr_confidence:  ocrConf ?? null,
+          photo_url:      ocrPhotoUrl,
+          ocr_confidence: ocrConf ?? null,
         } : {}),
       }
 
