@@ -247,6 +247,7 @@ export default function PatrolBoothInputPage() {
     }
     // OCR photo
     if (ocrPhotoUrl) {
+      patch.source         = 'ocr'
       patch.photo_url      = ocrPhotoUrl
       patch.input_method   = ocrInputMethod
       patch.ocr_confidence = ocrConfidence ?? null

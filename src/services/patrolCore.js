@@ -218,7 +218,7 @@ export async function savePatrolReading({
       prize_stock_count:   numStk,
       prize_restock_count: numRst,
       entry_type:          entryType,
-      source:              'patrol',
+      source:              'manual',
       input_method:        'manual',
       created_by:          staffId ?? null,
       organization_id:     DFX_ORG_ID,
