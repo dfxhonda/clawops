@@ -1,0 +1,68 @@
+name: Verification Gate
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Build + Test + Auto-Rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      VERCEL_ORG_ID: team_F22QoGaCGFOhBtTyv9JZabxJ
+      VERCEL_PROJECT_ID: prj_qdMtiFVdGZftIqr7fWWvCMtDp6iZ
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: vitest
+        run: npm test
+        env:
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: test-anon-key-for-ci
+
+      - name: build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+
+      - name: rollback Vercel
+        if: failure()
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx vercel@latest rollback \
+            --token="$VERCEL_TOKEN" \
+            --scope=dfxhonda \
+            --timeout=2m \
+            --yes
+
+      - name: notify Discord
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          jq -nc \
+            --arg sha "${GITHUB_SHA:0:8}" \
+            --arg msg "$(git log -1 --pretty=format:'%s' | head -c 120)" \
+            --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{content: ("🚨 **[round-zero-critical]** Verification Gate FAILED\n`commit: " + $sha + "` " + $msg + "\n自動ロールバック実行済み\nrun: " + $run)}' \
+          | curl -fsSL -X POST "$DISCORD_WEBHOOK" \
+              -H "Content-Type: application/json" \
+              -d @- \
+          || true
