@@ -14,7 +14,6 @@ jobs:
     timeout-minutes: 15
 
     env:
-      VERCEL_ORG_ID: team_F22QoGaCGFOhBtTyv9JZabxJ
       VERCEL_PROJECT_ID: prj_qdMtiFVdGZftIqr7fWWvCMtDp6iZ
 
     steps:
