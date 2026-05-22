@@ -47,7 +47,6 @@ jobs:
         run: |
           npx vercel@latest rollback \
             --token="$VERCEL_TOKEN" \
-            --scope=dfxhonda \
             --timeout=2m \
             --yes
 
