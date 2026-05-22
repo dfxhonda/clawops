@@ -13,9 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    env:
-      VERCEL_PROJECT_ID: prj_qdMtiFVdGZftIqr7fWWvCMtDp6iZ
-
     steps:
       - uses: actions/checkout@v6
 
@@ -45,6 +42,9 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
+          mkdir -p .vercel
+          printf '{"projectId":"prj_qdMtiFVdGZftIqr7fWWvCMtDp6iZ","orgId":"team_F22QoGaCGFOhBtTyv9JZabxJ"}' \
+            > .vercel/project.json
           npx vercel@latest rollback \
             --token="$VERCEL_TOKEN" \
             --timeout=2m \
