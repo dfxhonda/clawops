@@ -292,6 +292,12 @@ export default function PatrolBoothInputPage() {
     const finalIn = ocrEditIn !== '' ? parseInt(ocrEditIn, 10) : null
     const finalOut = ocrEditOut !== '' ? parseInt(ocrEditOut, 10) : null
     logger.info('ocr_confirmation_use_clicked', { in: finalIn, out: finalOut, confidence: avgConf, edited: ocrEdited })
+    if (prev != null) {
+      const negDiffs = {}
+      if (finalIn != null && prev.in_meter != null && finalIn - Number(prev.in_meter) < 0) negDiffs.inDiff = finalIn - Number(prev.in_meter)
+      if (finalOut != null && prev.out_meter != null && finalOut - Number(prev.out_meter) < 0) negDiffs.outDiff = finalOut - Number(prev.out_meter)
+      if (Object.keys(negDiffs).length > 0) logger.info('ocr_prev_diff_negative_detected', { boothCode, ...negDiffs })
+    }
     if (finalIn != null) { setIn(String(finalIn)); setTouched(t => ({ ...t, inMeter: true })) }
     if (finalOut != null) { setOut1(String(finalOut)); setTouched(t => ({ ...t, outMeter1: true })) }
     setOcrPhotoUrl(photoUrl ?? null)
@@ -373,6 +379,9 @@ export default function PatrolBoothInputPage() {
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
 
+  const ocrInDiff  = prev != null && ocrEditIn  !== '' ? Number(ocrEditIn)  - Number(prev.in_meter  ?? 0) : null
+  const ocrOutDiff = prev != null && ocrEditOut !== '' ? Number(ocrEditOut) - Number(prev.out_meter ?? 0) : null
+
   // === LiveCamera full-screen ===
   if (showOcr) {
     return (
@@ -429,6 +438,12 @@ export default function PatrolBoothInputPage() {
                     testId="ocr-confirm-in"
                   />
                 </div>
+                {ocrInDiff != null && (
+                  <div className={`text-xs font-bold mt-1 ${ocrInDiff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {ocrInDiff >= 0 ? '+' : ''}{ocrInDiff.toLocaleString()}
+                    {ocrInDiff < 0 && <div className="text-[10px] font-bold leading-tight">前回より小さい 要確認</div>}
+                  </div>
+                )}
               </div>
               <div>
                 <div className="text-xs text-muted mb-1">OUT</div>
@@ -446,6 +461,12 @@ export default function PatrolBoothInputPage() {
                     testId="ocr-confirm-out"
                   />
                 </div>
+                {ocrOutDiff != null && (
+                  <div className={`text-xs font-bold mt-1 ${ocrOutDiff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {ocrOutDiff >= 0 ? '+' : ''}{ocrOutDiff.toLocaleString()}
+                    {ocrOutDiff < 0 && <div className="text-[10px] font-bold leading-tight">前回より小さい 要確認</div>}
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-xs text-muted">
