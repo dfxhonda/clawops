@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import NumpadField from './NumpadField'
-import { logger } from '../../lib/logger'
 import {
   computeCenterCrop,
   preprocessForOcr,
@@ -62,7 +61,7 @@ function MeterGuideFrame() {
 //   cropping   — 撮影直後、前処理済み画像を表示中（OCR送信前の確認）
 //   processing — OCR Edge Function 呼び出し中
 //   confirming — OCR 完了（成功 or タイムアウト）、値確認中
-export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastOut, lastOut2 = null, onConfirm, onCancel, mode = 'single' }) {
+export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastOut, onConfirm, onCancel, mode = 'single' }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const [phase, setPhase] = useState('idle') // idle | cropping | processing | confirming
@@ -104,7 +103,6 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
 
   async function sendOcr(b64) {
     setPhase('processing')
-    logger.info('ocr_loading_shown', { boothCode })
     setElapsed(0)
     const attemptedAt = new Date().toISOString()
     timerRef.current = setInterval(() => setElapsed(n => n + 1), 1000)
@@ -194,18 +192,10 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
     else setOutValue(v)
   }
 
-  const inDiff   = inValue   && lastIn   != null ? Number(inValue)   - lastIn   : null
-  const outDiff  = outValue  && lastOut  != null ? Number(outValue)  - lastOut  : null
-  const out2Diff = out2Value && lastOut2 != null ? Number(out2Value) - lastOut2 : null
+  const inDiff  = inValue  && lastIn  != null ? Number(inValue)  - lastIn  : null
+  const outDiff = outValue && lastOut != null ? Number(outValue) - lastOut : null
 
   function handleConfirm() {
-    const negDiffs = {}
-    if (inDiff != null && inDiff < 0) negDiffs.inDiff = inDiff
-    if (outDiff != null && outDiff < 0) negDiffs.outDiff = outDiff
-    if (out2Diff != null && out2Diff < 0) negDiffs.out2Diff = out2Diff
-    if (Object.keys(negDiffs).length > 0) {
-      logger.info('ocr_prev_diff_negative_detected', { boothCode, ...negDiffs })
-    }
     onConfirm({
       inMeter: inValue || null,
       outMeter: outValue || null,
@@ -222,28 +212,12 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col" style={{ touchAction: 'none' }}>
 
-      {/* R2: 解析中フルスクリーン dim背景 */}
-      {phase === 'processing' && capturedImage && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3">
-          <img src={capturedImage} alt="" aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'brightness(0.45) grayscale(80%) contrast(130%)' }}
-          />
-          <div className="relative z-10 flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-white text-sm font-bold">OCR解析中</span>
-            <span className="text-white/70 text-xs">{elapsed}s</span>
-            {elapsed >= 5 && <span className="text-amber-400 text-xs">あと{8 - elapsed}秒で手入力モード</span>}
-          </div>
-        </div>
-      )}
-
       {/* 上1/3: ライブカメラ または 撮影後停止画像 */}
       <div className="relative flex-shrink-0" style={{ height: '33.33vh' }}>
         {capturedImage ? (
           /* cropping / processing / confirming: 撮影済み停止画像 */
           <img src={capturedImage} alt="撮影画像"
-            className={`w-full h-full ${phase === 'confirming' ? 'object-contain bg-black' : 'object-cover'}`}
+            className="w-full h-full object-cover"
             style={{ filter: 'grayscale(80%) contrast(130%)' }}
           />
         ) : cameraError ? (
@@ -287,6 +261,16 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
           </label>
         )}
 
+        {/* OCR処理中スピナー */}
+        {phase === 'processing' && (
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2">
+            <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <span className="text-white text-xs">読み取り中... {elapsed}s</span>
+            {elapsed >= 5 && (
+              <span className="text-amber-400 text-xs">あと{8 - elapsed}秒で手入力モード</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 中段: 値表示 + 確定 */}
@@ -297,7 +281,7 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
             {[
               { label: 'A段OUT', value: outValue, field: 'out', last: lastOut, diff: outDiff },
               { label: 'IN',     value: inValue,  field: 'in',  last: lastIn,  diff: inDiff },
-              { label: 'B段OUT', value: out2Value, field: 'out2', last: lastOut2, diff: out2Diff },
+              { label: 'B段OUT', value: out2Value, field: 'out2', last: null, diff: null },
             ].map(({ label, value, field, last, diff }) => (
               <button key={field} onClick={() => setActiveField(field)}
                 className={`rounded-lg p-2 text-center border-2 transition-colors ${
@@ -307,11 +291,8 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
                 <div className="text-base font-mono font-bold text-white">{value || '------'}</div>
                 {last != null && <div className="text-[10px] text-slate-500">前回 {last.toLocaleString()}</div>}
                 {diff != null && <div className={`text-[10px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {diff >= 0 ? '+' : ''}{diff.toLocaleString()}
+                  {diff >= 0 ? '+' : ''}{diff}
                 </div>}
-                {diff != null && diff < 0 && (
-                  <div className="text-[9px] text-red-400 font-bold leading-tight">前回より小さい 要確認</div>
-                )}
               </button>
             ))}
           </div>
@@ -330,11 +311,8 @@ export default function OcrCaptureScreen({ boothCode, machineInfo, lastIn, lastO
                 <div className="text-xl font-mono font-bold text-white">{value || '------'}</div>
                 {last != null && <div className="text-[10px] text-slate-500">前回 {last.toLocaleString()}</div>}
                 {diff != null && <div className={`text-[10px] font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {diff >= 0 ? '+' : ''}{diff.toLocaleString()}
+                  {diff >= 0 ? '+' : ''}{diff}
                 </div>}
-                {diff != null && diff < 0 && (
-                  <div className="text-[9px] text-red-400 font-bold leading-tight">前回より小さい 要確認</div>
-                )}
               </button>
             ))}
           </div>

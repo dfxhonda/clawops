@@ -17,7 +17,8 @@ import { AuthProvider } from './lib/auth/AuthProvider'
 import { useAuth } from './hooks/useAuth'
 import ProtectedRoute, { AdminRoute, ManagerRoute } from './components/ProtectedRoute'
 import { RoleGuard } from './shared/auth/RoleGuard'
-import { usePwaUpdate } from './hooks/usePwaUpdate'
+import UpdateBanner from './components/UpdateBanner'
+import { useVersionCheck } from './hooks/useVersionCheck'
 import { buildLabel } from './lib/buildInfo'
 import { useIdleLogout } from './hooks/useIdleLogout'
 import { IdleWarningBanner } from './shared/ui/IdleWarningBanner'
@@ -153,7 +154,7 @@ function PageLoader() {
 
 function AppInner() {
   const { isLoggedIn } = useAuth()
-  const { justUpdated } = usePwaUpdate()
+  const { updateAvailable, dismiss } = useVersionCheck()
   const { showWarning, reset: resetIdle } = useIdleLogout(isLoggedIn)
   const initGlossary = useGlossaryStore(s => s.init)
   const cleanupGlossary = useGlossaryStore(s => s.cleanup)
@@ -165,13 +166,7 @@ function AppInner() {
   return (
     <ErrorBoundary>
       {isLoggedIn && showWarning && <IdleWarningBanner onDismiss={resetIdle} />}
-      {justUpdated && isLoggedIn && (
-        <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center pt-2 pointer-events-none">
-          <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">
-            ✓ 更新しました
-          </div>
-        </div>
-      )}
+      {updateAvailable && isLoggedIn && <UpdateBanner onDismiss={dismiss} />}
       {isLoggedIn && (
         <div className="fixed bottom-1 right-1 z-[90] text-[8px] text-muted/20 pointer-events-none select-none">
           {buildLabel()}

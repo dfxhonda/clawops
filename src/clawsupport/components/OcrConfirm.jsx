@@ -136,9 +136,10 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
 
   return (
     <div className="flex flex-col gap-4">
+      {/* プレビュー */}
       {imageUrl && (
-        <div className="w-full bg-black rounded-xl overflow-hidden" style={{ maxHeight: '60vh' }}>
-          <img src={imageUrl} alt="OCR対象" className="w-full object-contain" style={{ maxHeight: '60vh' }} />
+        <div className="rounded-xl overflow-hidden border border-border max-h-48 flex items-center justify-center bg-black">
+          <img src={imageUrl} alt="OCR対象" className="max-h-48 object-contain w-full" />
         </div>
       )}
 
