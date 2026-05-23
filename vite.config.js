@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'child_process'
 import { readFileSync, writeFileSync } from 'fs'
 
@@ -10,10 +11,13 @@ let buildNumber = '0'
 try { gitSha = execSync('git rev-parse --short HEAD').toString().trim() } catch {}
 try { buildNumber = execSync('git rev-list --count HEAD').toString().trim() } catch {}
 
+// Vercel shallow clone 対策: 環境変数 VERCEL_GIT_COMMIT_SHA を優先
+const resolvedSha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || gitSha
+
 export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __GIT_SHA__: JSON.stringify(gitSha),
+    __GIT_SHA__: JSON.stringify(resolvedSha),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
@@ -23,10 +27,27 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     tailwindcss(),
     react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+      },
+      manifest: {
+        name: 'ClawOps',
+        short_name: 'ClawOps',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#0a0a14',
+        theme_color: '#0a0a14',
+      },
+      devOptions: { enabled: false },
+    }),
     {
       name: 'version-json',
       writeBundle() {
-        writeFileSync('dist/version.json', JSON.stringify({ sha: gitSha, buildNumber, version: pkg.version }))
+        writeFileSync('dist/version.json', JSON.stringify({ sha: resolvedSha, buildNumber, version: pkg.version }))
       }
     },
   ],
