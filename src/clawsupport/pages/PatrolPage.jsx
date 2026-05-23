@@ -600,6 +600,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         machineInfo={machineInfo}
         lastIn={prev?.inMeter != null ? Number(prev.inMeter) : null}
         lastOut={prev?.outMeter != null ? Number(prev.outMeter) : null}
+        lastOut2={prev?.outMeter2 != null ? Number(prev.outMeter2) : null}
         mode={outCount >= 2 ? 'three' : 'single'}
         onConfirm={handleOcrApply}
         onCancel={() => setShowOcr(false)}

@@ -113,14 +113,19 @@ export default function PatrolCameraPage() {
 
         {/* OCR処理中 */}
         {phase === 'ocr_loading' && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            {imageUrl && (
-              <div className="rounded-xl overflow-hidden border border-border max-h-40 w-full flex items-center justify-center bg-black">
-                <img src={imageUrl} alt="" className="max-h-40 object-contain" />
-              </div>
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4">
+            {imageUrl ? (
+              <img src={imageUrl} alt="" aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: 'brightness(0.45)' }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-black" />
             )}
-            <div className="animate-spin w-10 h-10 border-2 border-accent border-t-transparent rounded-full" />
-            <div className="text-sm text-muted">OCR処理中... (2〜5秒)</div>
+            <div className="relative z-10 flex flex-col items-center gap-3">
+              <div className="animate-spin w-10 h-10 border-2 border-white border-t-transparent rounded-full" />
+              <div className="text-white text-sm font-bold">OCR解析中</div>
+            </div>
           </div>
         )}
 
