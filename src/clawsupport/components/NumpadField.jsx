@@ -50,7 +50,7 @@ export function NumpadFooterPanel({ currentField }) {
         background: '#13132a',
         borderRadius: '12px 12px 0 0',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.7)',
-        zIndex: 10,
+        zIndex: 60,
         opacity: isActive ? 1 : 0.5,
         transition: 'opacity 150ms ease',
         display: 'flex',
