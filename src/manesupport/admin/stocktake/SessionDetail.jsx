@@ -16,7 +16,8 @@ export default function SessionDetail() {
   const [session, setSession] = useState(null)
   const [items,   setItems]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [acting,  setActing]  = useState(false)
+  const [acting,    setActing]    = useState(false)
+  const [lockError, setLockError] = useState(null)
 
   useEffect(() => {
     getSessionDetail(sessionId).then(({ session, items }) => {
@@ -42,9 +43,13 @@ export default function SessionDetail() {
 
   async function handleLock() {
     setActing(true)
+    setLockError(null)
     try {
       await lockSession(sessionId)
       setSession(prev => ({ ...prev, status: 'locked' }))
+    } catch (e) {
+      const msg = e?.message ?? ''
+      setLockError(msg.includes('ERR-STOCK-007') ? msg : 'ERR-STOCK-007: 棚卸し調整に失敗しました。ロックは取り消されました。')
     } finally {
       setActing(false)
     }
@@ -112,6 +117,12 @@ export default function SessionDetail() {
           </div>
         )}
       </div>
+
+      {lockError && (
+        <div className="mx-5 mb-3 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+          {lockError}
+        </div>
+      )}
 
       {(canApprove || session?.status === 'approved') && (
         <div className="fixed bottom-0 inset-x-0 bg-bg border-t border-border px-5 py-3 flex gap-2">
