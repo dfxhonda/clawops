@@ -6,6 +6,9 @@ import { logWithLocation } from '../../services/audit'
 import { useGeolocation } from '../../shared/hooks/useGeolocation'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
+import ArrivalConfirmDrawer from '../components/ArrivalConfirmDrawer'
+
+const ARRIVAL_CHECK_ENABLED = import.meta.env.VITE_FF_ARRIVAL_CHECK === 'true'
 
 const TABS = [
   { key: 'shipped', label: '入荷待ち', color: 'text-rose-400' },
@@ -21,6 +24,7 @@ export default function OrderList() {
   const [counts, setCounts] = useState({ shipped: 0, ordered: 0, arrived: 0 })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(null)
+  const [expandedOrderId, setExpandedOrderId] = useState(null)
   const { staffId } = useRole()
   const { getLocation } = useGeolocation()
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
@@ -129,42 +133,69 @@ export default function OrderList() {
           <p className="text-muted text-center py-8">件数ゼロ</p>
         )}
         {orders.map(o => (
-          <div
-            key={o.order_id}
-            className={`bg-surface rounded-xl p-4 border border-border ${
-              isOverdue(o) ? 'border-l-4 border-l-rose-500' : ''
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-text text-sm font-medium leading-snug line-clamp-2">
-                  {o.prize_name_short || o.prize_name_raw}
-                </p>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted">
-                  <span>{o.case_count}ケース</span>
-                  <span>{o.supplier_id}</span>
-                  {o.destination && <span>{o.destination}</span>}
-                  <span>
-                    {isOverdue(o)
-                      ? <span className="text-rose-400">⚠️ 遅延 <DateTime value={o.expected_date} format="short" />予定</span>
-                      : tab === 'arrived'
-                        ? <><span>入荷 </span><DateTime value={o.arrived_at} format="short" /></>
-                        : <><span>予定 </span><DateTime value={o.expected_date} format="short" /></>
-                    }
-                  </span>
+          <div key={o.order_id}>
+            <div
+              className={`bg-surface p-4 border border-border ${
+                isOverdue(o) ? 'border-l-4 border-l-rose-500' : ''
+              } ${
+                ARRIVAL_CHECK_ENABLED && expandedOrderId === o.order_id
+                  ? 'rounded-t-xl'
+                  : 'rounded-xl'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-text text-sm font-medium leading-snug line-clamp-2">
+                    {o.prize_name_short || o.prize_name_raw}
+                  </p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted">
+                    <span>{o.case_count}ケース</span>
+                    <span>{o.supplier_id}</span>
+                    {o.destination && <span>{o.destination}</span>}
+                    <span>
+                      {isOverdue(o)
+                        ? <span className="text-rose-400">⚠️ 遅延 <DateTime value={o.expected_date} format="short" />予定</span>
+                        : tab === 'arrived'
+                          ? <><span>入荷 </span><DateTime value={o.arrived_at} format="short" /></>
+                          : <><span>予定 </span><DateTime value={o.expected_date} format="short" /></>
+                      }
+                    </span>
+                  </div>
                 </div>
+                {tab === 'shipped' && (
+                  ARRIVAL_CHECK_ENABLED ? (
+                    <button
+                      onClick={() => setExpandedOrderId(prev => prev === o.order_id ? null : o.order_id)}
+                      className="shrink-0 bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors"
+                      style={{ fontSize: 13 }}
+                    >
+                      {expandedOrderId === o.order_id ? '▲' : '受取確認'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => markArrived(o.order_id)}
+                      disabled={saving === o.order_id}
+                      className="shrink-0 bg-rose-500 hover:bg-rose-400 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors"
+                      style={{ fontSize: 13 }}
+                    >
+                      {saving === o.order_id ? '…' : '受取済'}
+                    </button>
+                  )
+                )}
               </div>
-              {tab === 'shipped' && (
-                <button
-                  onClick={() => markArrived(o.order_id)}
-                  disabled={saving === o.order_id}
-                  className="shrink-0 bg-rose-500 hover:bg-rose-400 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors"
-                  style={{ fontSize: 13 }}
-                >
-                  {saving === o.order_id ? '…' : '受取済'}
-                </button>
-              )}
             </div>
+            {ARRIVAL_CHECK_ENABLED && tab === 'shipped' && expandedOrderId === o.order_id && (
+              <ArrivalConfirmDrawer
+                order={o}
+                staffId={staffId}
+                onDone={() => {
+                  setOrders(prev => prev.filter(x => x.order_id !== o.order_id))
+                  setCounts(c => ({ ...c, shipped: Math.max(0, c.shipped - 1), arrived: c.arrived + 1 }))
+                  setExpandedOrderId(null)
+                }}
+                onCancel={() => setExpandedOrderId(null)}
+              />
+            )}
           </div>
         ))}
       </div>
