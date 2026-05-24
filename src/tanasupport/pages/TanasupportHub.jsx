@@ -168,6 +168,14 @@ export default function TanasupportHub() {
             badge={null}
             onClick={() => navigate('/tanasupport/orders')}
           />
+          <TaskTile
+            emoji="📤"
+            title="出庫記録"
+            sub="担当持出・他店送付・出庫調整"
+            borderColor="#f59e0b"
+            badge={null}
+            onClick={() => navigate('/stock/out')}
+          />
         </div>
       )}
 
