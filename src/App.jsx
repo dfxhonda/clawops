@@ -138,7 +138,8 @@ const StocktakeSummary = lazy(() => import('./tanasupport/pages/StocktakeSummary
 const StockDashboard = lazy(() => import('./tanasupport/pages/StockDashboard'))
 const StockMove    = lazy(() => import('./tanasupport/pages/StockMove'))
 const StockCount   = lazy(() => import('./tanasupport/pages/StockCount'))
-const StockOutPage = lazy(() => import('./tanasupport/pages/StockOutPage'))
+const StockOutPage       = lazy(() => import('./tanasupport/pages/StockOutPage'))
+const ArrivalCheckPage   = lazy(() => import('./tanasupport/pages/ArrivalCheckPage'))
 
 
 // ローディングスピナー（Suspense フォールバック）
@@ -316,7 +317,8 @@ function AppInner() {
       {/* 在庫管理 — manager以上 */}
       <Route path="/stock/dashboard" element={<ManagerRoute><StockDashboard /></ManagerRoute>} />
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
-      <Route path="/stock/out"  element={<ManagerRoute><StockOutPage /></ManagerRoute>} />
+      <Route path="/stock/out"     element={<ManagerRoute><StockOutPage /></ManagerRoute>} />
+      <Route path="/stock/arrival" element={<ManagerRoute><ArrivalCheckPage /></ManagerRoute>} />
 
       <Route path="*" element={<Navigate to="/launcher" replace />} />
     </Routes>
