@@ -1,9 +1,8 @@
 import { useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
-export function NumpadFooterPanel({ currentField }) {
+export function NumpadFooterPanel({ currentField, idleContent }) {
   const isActive = !!currentField
 
   function handleKey(k) {
@@ -40,82 +39,86 @@ export function NumpadFooterPanel({ currentField }) {
 
   const displayVal = currentField ? String(currentField.valueRef.current ?? '') : ''
 
-  return createPortal(
+  return (
     <div
       data-testid="numpad-footer"
       style={{
-        position: 'fixed',
-        bottom: 0, left: 0, right: 0,
-        height: 'calc(280px + env(safe-area-inset-bottom))',
+        flex: 1,
+        minHeight: 0,
         background: '#13132a',
         borderRadius: '12px 12px 0 0',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.7)',
-        zIndex: 10,
-        opacity: isActive ? 1 : 0.5,
-        transition: 'opacity 150ms ease',
         display: 'flex',
         flexDirection: 'column',
         paddingBottom: 'env(safe-area-inset-bottom)',
+        overflow: 'hidden',
       }}
     >
-      <div style={{
-        height: 44, padding: '0 12px', borderBottom: '1px solid #2a2a44',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexShrink: 0,
-      }}>
-        <span
-          data-testid="numpad-active-label"
-          style={isActive ? {
-            fontSize: 16, fontWeight: 'bold', color: '#2563eb',
-            background: '#eff6ff', padding: '2px 12px', borderRadius: 6,
-          } : {
-            fontSize: 14, color: '#6b7280',
-          }}
-        >
-          {isActive ? `入力中: ${currentField.label}` : 'タップして選択'}
-        </span>
-        <span style={{
-          fontSize: 22, fontFamily: "'Courier New', monospace",
-          fontWeight: 'bold', color: '#e8e8f0',
-        }}>
-          {displayVal || '—'}
-        </span>
-      </div>
-      <div
-        data-testid="numpad-sheet"
-        style={{
-          flex: 1,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gridTemplateRows: 'repeat(4, 1fr)',
-          gap: 2,
-          padding: 6,
-        }}
-      >
-        {KEYS.map(k => (
-          <button
-            key={k}
-            data-numpad-key={k}
-            disabled={!isActive}
-            onPointerDown={e => { e.preventDefault(); handleKey(k) }}
+      {!isActive && idleContent ? (
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {idleContent}
+        </div>
+      ) : (
+        <>
+          <div style={{
+            height: 44, padding: '0 12px', borderBottom: '1px solid #2a2a44',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            flexShrink: 0,
+          }}>
+            <span
+              data-testid="numpad-active-label"
+              style={isActive ? {
+                fontSize: 16, fontWeight: 'bold', color: '#2563eb',
+                background: '#eff6ff', padding: '2px 12px', borderRadius: 6,
+              } : {
+                fontSize: 14, color: '#6b7280',
+              }}
+            >
+              {isActive ? `入力中: ${currentField.label}` : 'タップして選択'}
+            </span>
+            <span style={{
+              fontSize: 22, fontFamily: "'Courier New', monospace",
+              fontWeight: 'bold', color: '#e8e8f0',
+            }}>
+              {displayVal || '—'}
+            </span>
+          </div>
+          <div
+            data-testid="numpad-sheet"
             style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
-              border: 'none',
-              cursor: isActive ? 'pointer' : 'default',
-              touchAction: 'none',
-              background: !isActive ? '#1e293b' :
-                k === '→' ? '#059669' : k === '⌫' ? '#4b5563' : '#1e293b',
-              color: isActive ? '#f1f5f9' : '#374151',
-              WebkitTapHighlightColor: 'transparent',
+              flex: 1,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateRows: 'repeat(4, 1fr)',
+              gap: 2,
+              padding: 6,
             }}
           >
-            {k}
-          </button>
-        ))}
-      </div>
-    </div>,
-    document.body
+            {KEYS.map(k => (
+              <button
+                key={k}
+                data-numpad-key={k}
+                disabled={!isActive}
+                onPointerDown={e => { e.preventDefault(); handleKey(k) }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
+                  border: 'none',
+                  cursor: isActive ? 'pointer' : 'default',
+                  touchAction: 'none',
+                  background: !isActive ? '#1e293b' :
+                    k === '→' ? '#059669' : k === '⌫' ? '#4b5563' : '#1e293b',
+                  color: isActive ? '#f1f5f9' : '#374151',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 

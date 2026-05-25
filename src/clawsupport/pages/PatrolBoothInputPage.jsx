@@ -55,25 +55,6 @@ function EntryTypeBadge({ type }) {
   )
 }
 
-function PrevReadingRow({ prev }) {
-  if (!prev) return null
-  const date = prev.patrol_date ?? prev.read_time?.slice(0, 10) ?? '—'
-  return (
-    <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted">
-      <span className="font-bold mr-2">前回</span>
-      <span>{date}</span>
-      <span className="mx-2">|</span>
-      <span>IN {prev.in_meter ?? '—'}</span>
-      <span className="mx-1">/</span>
-      <span>OUT {prev.out_meter ?? '—'}</span>
-      <span className="mx-2">|</span>
-      <span>在庫 {prev.prize_stock_count ?? '—'}</span>
-      <span className="mx-1">補充 {prev.prize_restock_count ?? '—'}</span>
-      {prev.prize_name && <><span className="mx-2">|</span><span>{prev.prize_name}</span></>}
-    </div>
-  )
-}
-
 export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
   const { state }    = useLocation()
@@ -489,9 +470,8 @@ export default function PatrolBoothInputPage() {
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
       </div>
-      <PrevReadingRow prev={prev} />
 
-      <div className="flex-1 overflow-y-auto pb-[300px]">
+      <div className="flex-shrink-0">
         {saveState.status === 'error' && (
           <ErrorBanner
             errCode={saveState.errCode}
@@ -535,20 +515,6 @@ export default function PatrolBoothInputPage() {
           canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
           onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'camera' }); setShowOcr(true) }}
         />
-        <BoothHistoryList
-          boothCode={boothCode}
-          meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
-          storeCode={storeCode}
-          machine={machine}
-          booth={booth}
-          limit={10}
-          historyKey={historyKey}
-          draftRow={{
-            active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
-            inDiff,
-            outDiff,
-          }}
-        />
       </div>
 
       <div className="px-4 py-2 border-t border-border/30 shrink-0">
@@ -560,7 +526,25 @@ export default function PatrolBoothInputPage() {
           📝 気づきを記録
         </button>
       </div>
-      <NumpadFooterPanel currentField={currentField} />
+      <NumpadFooterPanel
+        currentField={currentField}
+        idleContent={
+          <BoothHistoryList
+            boothCode={boothCode}
+            meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+            storeCode={storeCode}
+            machine={machine}
+            booth={booth}
+            limit={10}
+            historyKey={historyKey}
+            draftRow={{
+              active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
+              inDiff,
+              outDiff,
+            }}
+          />
+        }
+      />
 
       <AlertSheetModal
         open={showAlert}
