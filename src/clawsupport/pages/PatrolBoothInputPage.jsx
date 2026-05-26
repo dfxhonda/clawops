@@ -394,18 +394,13 @@ export default function PatrolBoothInputPage() {
   if (ocrState === 'loading') {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* zone_top: 撮影画像 + 中央スピナーオーバーレイ (暗転フルスクリーン廃止) */}
-        <div className="h-[33vh] flex-none overflow-hidden bg-black relative">
+        {/* zone_top: 撮影画像 (オーバーレイ無し、全表示) */}
+        <div className="h-[33vh] flex-none overflow-hidden bg-black">
           {ocrLoadingImg
             ? <img src={ocrLoadingImg} alt="OCR撮影" className="w-full h-full object-contain" />
             : <div className="w-full h-full" />}
-          {!ocrError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-              <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
-            </div>
-          )}
         </div>
-        {/* zone_middle: 解析中スケルトン or エラーメッセージ */}
+        {/* zone_middle: 解析中スピナーをIN/OUTエリアに重ねる (画像には暗転無し) or エラー */}
         <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
           {ocrError ? (
             <div className="flex flex-col gap-2">
@@ -419,17 +414,20 @@ export default function PatrolBoothInputPage() {
               </button>
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-surface/60 p-2">
+            <div className="relative rounded-xl border border-border bg-surface/60 p-2">
               <div className="text-xs font-bold text-muted mb-1">解析中…</div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="text-xs text-muted mb-0.5">IN</div>
-                  <div className="h-8 rounded-lg bg-surface animate-pulse" />
+                  <div className="h-8 rounded-lg bg-surface" />
                 </div>
                 <div>
                   <div className="text-xs text-muted mb-0.5">OUT</div>
-                  <div className="h-8 rounded-lg bg-surface animate-pulse" />
+                  <div className="h-8 rounded-lg bg-surface" />
                 </div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-sky-400 border-t-transparent rounded-full" />
               </div>
             </div>
           )}
