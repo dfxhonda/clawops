@@ -61,7 +61,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
       ) : (
         <>
           <div style={{
-            height: 44, padding: '0 12px', borderBottom: '1px solid #2a2a44',
+            height: 30, padding: '0 12px', borderBottom: '1px solid #2a2a44',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             flexShrink: 0,
           }}>
@@ -87,11 +87,12 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
             data-testid="numpad-sheet"
             style={{
               flex: 1,
+              minHeight: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
-              gap: 2,
-              padding: 6,
+              gap: 0,
+              padding: 0,
             }}
           >
             {KEYS.map(k => (
@@ -102,7 +103,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
                 onPointerDown={e => { e.preventDefault(); handleKey(k) }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
+                  height: '100%', minHeight: 0, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
                   border: 'none',
                   cursor: isActive ? 'pointer' : 'default',
                   touchAction: 'none',

@@ -560,9 +560,9 @@ export default function BoothInputForm({
             <button
               type="button"
               onClick={onOCR}
-              className="w-1/4 py-4 rounded-2xl font-bold text-base text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
+              className="w-1/4 py-4 rounded-2xl font-bold text-sm text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
             >
-              📷
+              読み取り
             </button>
           )}
           <button
