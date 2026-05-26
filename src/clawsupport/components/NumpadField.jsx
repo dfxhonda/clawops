@@ -103,7 +103,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
                 onPointerDown={e => { e.preventDefault(); handleKey(k) }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  height: 52, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
+                  height: '100%', minHeight: 0, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
                   border: 'none',
                   cursor: isActive ? 'pointer' : 'default',
                   touchAction: 'none',

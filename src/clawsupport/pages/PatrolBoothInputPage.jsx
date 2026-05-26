@@ -413,7 +413,7 @@ export default function PatrolBoothInputPage() {
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
         {renderOcrImageZone(ocrLoadingImg)}
         {/* zone_middle: 解析中スピナーをIN/OUTエリアに重ねる (画像には暗転無し) or エラー */}
-        <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+        <div className="h-[31vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
           {ocrError ? (
             <div className="flex flex-col gap-2">
               <div className="text-red-400 text-sm font-bold">{ocrError}</div>
@@ -445,7 +445,7 @@ export default function PatrolBoothInputPage() {
           )}
         </div>
         {/* zone_bottom: テンキー グレーアウト (操作不可) */}
-        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden pointer-events-none opacity-50">
+        <div className="h-[36vh] flex-none shrink-0 flex flex-col overflow-hidden pointer-events-none opacity-50">
           <NumpadFooterPanel currentField={null} />
         </div>
       </div>
@@ -466,7 +466,7 @@ export default function PatrolBoothInputPage() {
         {/* zone_top: loading と共有 (fix-05) */}
         {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
-        <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+        <div className="h-[31vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
           <div className="rounded-xl border border-border bg-surface/60 p-2 mb-2">
             <div className="text-xs font-bold text-muted mb-1">OCR認識値 — タップして修正可</div>
             <div className="grid grid-cols-2 gap-2 mb-1">
@@ -545,7 +545,7 @@ export default function PatrolBoothInputPage() {
           </div>
         </div>
         {/* zone_bottom: テンキー 45vh 固定 (0/BS含む全キー表示。safe-areaはNumpadFooterPanel内部で処理、二重padding廃止) */}
-        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden">
+        <div className="h-[36vh] flex-none shrink-0 flex flex-col overflow-hidden">
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
