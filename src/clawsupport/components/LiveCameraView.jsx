@@ -37,6 +37,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
   const zoomRef = useRef(1)
   const pinchStartRef = useRef(null)
   const galleryInputRef = useRef(null)
+  const nativeCamInputRef = useRef(null) // OS純正カメラ起動 (capture=environment、フラッシュ/AF/光学ズーム端末側)
   const [cameraError, setCameraError] = useState('')
   const [zoom, setZoom] = useState(1)
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 1 })
@@ -291,6 +292,21 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
           style={{ color: '#fff', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
         >
           ギャラリー
+        </button>
+        {/* J-PATROL-OCR-CAMERA ③: OS純正カメラ起動 (フラッシュ/AF/光学ズーム端末側)。暗所時の代替撮影。戻り画像は handleGalleryChange の縮小→OCR経路を共用 */}
+        <input
+          ref={nativeCamInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleGalleryChange}
+        />
+        <button
+          onClick={() => nativeCamInputRef.current?.click()}
+          style={{ color: '#000', background: '#f0c040', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+        >
+          📷 純正(フラッシュ可)
         </button>
       </div>
     </div>
