@@ -1,24 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 import { logger } from '../../lib/logger'
 
-function canvasToBlob(canvas) {
-  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
-}
+const OCR_MAX_EDGE = 1600
 
-function compressFrame(videoEl, zoom = 1) {
-  const { videoWidth: sw, videoHeight: sh } = videoEl
+// 長辺 OCR_MAX_EDGE px 以内に縮小した canvas を返す (zoom 中央クロップ対応)。
+// video / image どちらの source でも使える共通リサイズ。
+function drawResizedCanvas(source, sw, sh, zoom = 1) {
   const cropW = sw / zoom
   const cropH = sh / zoom
   const sx = (sw - cropW) / 2
   const sy = (sh - cropH) / 2
-  const MAX = 1600
-  const scale = Math.min(1, MAX / Math.max(cropW, cropH))
+  const scale = Math.min(1, OCR_MAX_EDGE / Math.max(cropW, cropH))
   const w = Math.round(cropW * scale)
   const h = Math.round(cropH * scale)
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
-  canvas.getContext('2d').drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, w, h)
+  canvas.getContext('2d').drawImage(source, sx, sy, cropW, cropH, 0, 0, w, h)
+  return canvas
+}
+
+function canvasToBlob(canvas, quality = 0.9) {
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality))
+}
+
+function compressFrame(videoEl, zoom = 1) {
+  const canvas = drawResizedCanvas(videoEl, videoEl.videoWidth, videoEl.videoHeight, zoom)
   const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1]
   return { canvas, base64 }
 }
@@ -139,12 +146,29 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
     if (!file) return
     e.target.value = ''
     logger.info('ocr_gallery_pick_started')
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const base64 = ev.target.result.split(',')[1]
-      onCapture(base64, file)
+    // J-PATROL-OCR-UNIFY-01-fix-01: 原画像をそのまま送ると 5MB 超で Anthropic 400 → ocr-meter 502。
+    // カメラ経路(compressFrame)と同じく長辺1600px に縮小してから送る (q0.85)。
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = async () => {
+      try {
+        const canvas = drawResizedCanvas(img, img.naturalWidth, img.naturalHeight, 1)
+        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
+        const blob = await canvasToBlob(canvas, 0.85)
+        canvas.width = 0; canvas.height = 0
+        onCapture(base64, blob)
+      } finally {
+        URL.revokeObjectURL(url)
+      }
     }
-    reader.readAsDataURL(file)
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      // フォールバック: 縮小失敗時のみ原画像を送る (従来動作)
+      const reader = new FileReader()
+      reader.onload = ev => onCapture(ev.target.result.split(',')[1], file)
+      reader.readAsDataURL(file)
+    }
+    img.src = url
   }
 
   async function shutter() {

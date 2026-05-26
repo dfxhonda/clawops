@@ -303,6 +303,16 @@ export default function PatrolBoothInputPage() {
     setShowOcr(true)
   }
 
+  // J-PATROL-OCR-UNIFY-01-fix-01: 確認画面から手入力に戻る (OCR破棄)。
+  function handleOCRCancel() {
+    logger.info('ocr_confirmation_cancel_clicked')
+    setOcrState('idle')
+    setOcrCapture(null)
+    setOcrEditIn('')
+    setOcrEditOut('')
+    setOcrEdited(false)
+  }
+
   async function handleSave() {
     if (!patrolEnabled) {
       alert('patrol_core フラグが無効です。管理者に連絡してください。')
@@ -408,6 +418,15 @@ export default function PatrolBoothInputPage() {
     const confCls = confPct == null ? 'text-muted' : confPct >= 90 ? 'text-green-400' : confPct >= 70 ? 'text-yellow-400' : 'text-red-400'
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col">
+        {/* J-PATROL-OCR-UNIFY-01-fix-01: 確認画面から手入力に戻る ✕ (右上固定) */}
+        <button
+          type="button"
+          onClick={handleOCRCancel}
+          aria-label="戻る"
+          className="absolute top-3 right-3 z-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-black/60 text-white text-2xl leading-none border border-white/30"
+        >
+          ✕
+        </button>
         {imageUrl && (
           <div className="shrink-0 bg-black" style={{ height: '60vh' }}>
             <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
