@@ -162,6 +162,7 @@ export default function BoothInputForm({
   inDiffDisp, outDiffDisp,
   navigateNext, registerField, activeTabindex,
   canSave, saving, result, onSave,
+  onSaveNext, onSaveList,
   onDelete, deleting,
   onOCR,
 }) {
@@ -565,29 +566,72 @@ export default function BoothInputForm({
               読み取り
             </button>
           )}
-          <button
-            data-testid="save-button"
-            data-tabindex={14}
-            onClick={onSave}
-            disabled={!canSave || saving}
-            className={`flex-1 py-4 rounded-2xl font-bold text-base transition-all ${
-              canSave && !saving
-                ? 'bg-accent text-bg active:scale-[0.98]'
-                : 'bg-surface text-muted opacity-40'
-            }`}
-          >
-            {saving
-              ? '保存中...'
-              : result === 'saved'
-              ? '✓ 保存しました'
-              : result === 'skipped'
-              ? '変化なし — 戻ります'
-              : result === 'conflict'
-              ? '⚠ 競合 — 再読み込み'
-              : result === 'error'
-              ? 'エラー — 再試行'
-              : '保存する'}
-          </button>
+          {(onSaveNext || onSaveList) ? (
+            (saving || result) ? (
+              <button
+                data-testid="save-button"
+                disabled
+                className="flex-1 py-4 rounded-2xl font-bold text-base bg-surface text-muted opacity-60"
+              >
+                {saving ? '保存中...'
+                  : result === 'saved' ? '✓ 保存しました'
+                  : result === 'skipped' ? '変化なし — 戻ります'
+                  : result === 'conflict' ? '⚠ 競合 — 再読み込み'
+                  : result === 'error' ? 'エラー — 再試行'
+                  : '保存する'}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  data-testid="save-list-button"
+                  onClick={onSaveList}
+                  disabled={!canSave}
+                  className={`flex-1 py-4 rounded-2xl font-bold text-sm transition-all ${
+                    canSave ? 'border border-accent/50 text-accent bg-accent/10 active:scale-[0.98]' : 'bg-surface text-muted opacity-40'
+                  }`}
+                >
+                  保存してリストへ
+                </button>
+                <button
+                  type="button"
+                  data-testid="save-next-button"
+                  data-tabindex={14}
+                  onClick={onSaveNext}
+                  disabled={!canSave}
+                  className={`flex-1 py-4 rounded-2xl font-bold text-base transition-all ${
+                    canSave ? 'bg-accent text-bg active:scale-[0.98]' : 'bg-surface text-muted opacity-40'
+                  }`}
+                >
+                  保存して次へ
+                </button>
+              </>
+            )
+          ) : (
+            <button
+              data-testid="save-button"
+              data-tabindex={14}
+              onClick={onSave}
+              disabled={!canSave || saving}
+              className={`flex-1 py-4 rounded-2xl font-bold text-base transition-all ${
+                canSave && !saving
+                  ? 'bg-accent text-bg active:scale-[0.98]'
+                  : 'bg-surface text-muted opacity-40'
+              }`}
+            >
+              {saving
+                ? '保存中...'
+                : result === 'saved'
+                ? '✓ 保存しました'
+                : result === 'skipped'
+                ? '変化なし — 戻ります'
+                : result === 'conflict'
+                ? '⚠ 競合 — 再読み込み'
+                : result === 'error'
+                ? 'エラー — 再試行'
+                : '保存する'}
+            </button>
+          )}
         </div>
       </div>
     </div>

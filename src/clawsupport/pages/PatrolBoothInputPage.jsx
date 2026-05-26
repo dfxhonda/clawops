@@ -16,6 +16,7 @@ import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { logger } from '../../lib/logger'
+import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -88,15 +89,17 @@ function EntryTypeBadge({ type }) {
 
 export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
-  const { state }    = useLocation()
+  const { state, pathname } = useLocation()
   const navigate     = useNavigate()
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const { navigateNext, currentField, registerField } = useFieldNavigation()
   const activeTabindex = currentField?.dataTabindex ?? null
 
-  const { machine, booth, storeCode } = state ?? {}
+  const { machine, booth, storeCode, boothList, boothIndex } = state ?? {}
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
+  const isBeta = pathname.startsWith('/clawsupport/beta/')
+  const setFocusBooth = usePatrolListScrollStore(s => s.setFocusBooth)
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
 
   // OCR state
@@ -390,7 +393,7 @@ export default function PatrolBoothInputPage() {
     setOcrEdited(false)
   }
 
-  async function handleSave() {
+  async function handleSave(onDone) {
     if (!patrolEnabled) {
       alert('patrol_core フラグが無効です。管理者に連絡してください。')
       return
@@ -418,17 +421,52 @@ export default function PatrolBoothInputPage() {
       } else if (res.skipped) {
         setSkipped(true)
         saveActions.reset()
-        setTimeout(() => navigate(-1), 1000)
+        setTimeout(() => (onDone ? onDone() : navigate(-1)), 1000)
       } else {
         saveActions.setSuccess()
         setHistoryKey(k => k + 1)
-        setTimeout(() => navigate(-1), 800)
+        setTimeout(() => (onDone ? onDone() : navigate(-1)), 800)
       }
     } catch (e) {
       logger.error('patrol_save_failed_unexpected', { message: e?.message, boothCode })
       saveActions.setError('ERR-UNKNOWN', e?.message ?? '予期しないエラー')
     }
   }
+
+  // 次ブース (リストのフラット順)。最後なら null。
+  const nextBoothEntry =
+    Array.isArray(boothList) && boothIndex != null && boothIndex >= 0
+      ? (boothList[boothIndex + 1] ?? null)
+      : null
+
+  function goBackToList() {
+    // 展開状態を維持したまま、次ブース(無ければ現ブース)が見える位置へ復帰
+    if (resolvedStoreCode) {
+      setFocusBooth(resolvedStoreCode, nextBoothEntry?.booth?.booth_code ?? boothCode)
+      navigate(`/clawsupport/${isBeta ? 'beta/' : ''}store/${resolvedStoreCode}`)
+    } else {
+      navigate(-1)
+    }
+  }
+
+  function goNextBooth() {
+    if (nextBoothEntry) {
+      navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${nextBoothEntry.booth.booth_code}`, {
+        state: {
+          machine: nextBoothEntry.machine,
+          booth: nextBoothEntry.booth,
+          storeCode: resolvedStoreCode,
+          boothList,
+          boothIndex: boothIndex + 1,
+        },
+      })
+    } else {
+      goBackToList()
+    }
+  }
+
+  const handleSaveNext = () => handleSave(goNextBooth)
+  const handleSaveList = () => handleSave(goBackToList)
 
   const savingProp = saveState.status === 'loading'
   const resultProp = saveState.status === 'success' ? 'saved'
@@ -675,6 +713,7 @@ export default function PatrolBoothInputPage() {
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
           canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
+          onSaveNext={handleSaveNext} onSaveList={handleSaveList}
           onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'file' }); fileInputRef.current?.click() }}
         />
       </div>
