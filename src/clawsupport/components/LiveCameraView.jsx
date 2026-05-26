@@ -217,12 +217,14 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
           >
             ガイド {showGuide ? 'ON' : 'OFF'}
           </button>
-          <button
-            onClick={onToggleEngine}
-            style={{ color: '#fff', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            {engine}
-          </button>
+          {engine != null && (
+            <button
+              onClick={onToggleEngine}
+              style={{ color: '#fff', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 6, padding: '4px 10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {engine}
+            </button>
+          )}
         </div>
       </div>
 

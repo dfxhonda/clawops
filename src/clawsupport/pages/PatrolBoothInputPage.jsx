@@ -78,6 +78,7 @@ export default function PatrolBoothInputPage() {
   const [ocrPhotoUrl,   setOcrPhotoUrl] = useState(null)
   const [ocrConfidence, setOcrConf]   = useState(null)
   const [ocrInputMethod,setOcrIM]     = useState('ocr')
+  const [ocrError,      setOcrError]  = useState(null)
   const { engine, toggleEngine, loading: ocrLoading, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   // Form state — OUT1
@@ -239,17 +240,24 @@ export default function PatrolBoothInputPage() {
   async function handleOCRCapture(base64, blob) {
     setShowOcr(false)
     setOcrState('loading')
+    setOcrError(null)
     logger.info('ocr_photo_captured', { boothCode, blob_size: blob?.size ?? 0 })
 
     const result = await runOCR(base64, blob)
 
-    if (!result || result.timeout) { setOcrState('idle'); return }
+    if (!result || result.timeout) {
+      setOcrError('OCR読取がタイムアウトしました。再試行してください。')
+      return
+    }
 
     const { meters: ocrMeters, photoUrl, uploadError } = result
     if (photoUrl) logger.info('ocr_photo_uploaded', { photo_url: photoUrl })
     else if (uploadError) logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
 
-    if (!ocrMeters?.length) { setOcrState('idle'); return }
+    if (!ocrMeters?.length) {
+      setOcrError('メーター数値を読み取れませんでした。再試行してください。')
+      return
+    }
 
     const cols = mapMetersToColumns(ocrMeters)
     const confList = ocrMeters.filter(m => typeof m.confidence === 'number')
@@ -372,8 +380,23 @@ export default function PatrolBoothInputPage() {
   if (ocrState === 'loading') {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4">
-        <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
-        <div className="text-sky-300 text-base font-bold">OCR解析中...</div>
+        {ocrError ? (
+          <>
+            <div className="text-red-400 text-4xl">✕</div>
+            <div className="text-red-400 text-base font-bold px-6 text-center">{ocrError}</div>
+            <button
+              onClick={() => { setOcrError(null); setOcrState('idle') }}
+              className="px-6 py-2 bg-gray-700 text-white rounded-lg text-base font-bold"
+            >
+              閉じる
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
+            <div className="text-sky-300 text-base font-bold">OCR解析中...</div>
+          </>
+        )}
       </div>
     )
   }
