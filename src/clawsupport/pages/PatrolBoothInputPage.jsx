@@ -6,6 +6,7 @@ import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { useSaveState } from '../../hooks/useSaveState'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
 import BoothInputForm, { EMPTY_TOUCHED, diffDisplay } from '../components/BoothInputForm'
@@ -422,13 +423,17 @@ export default function PatrolBoothInputPage() {
     // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-02: 3分割 (上33vh画像窓枠 / 中25vh値+ボタン / 下42vhテンキー safe-area)
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* zone_top: 33vh 窓枠(outer overflow-hidden でクリップ)。内側のみスクロール/ピンチズーム、下ゾーンに影響しない */}
+        {/* zone_top: 33vh 窓枠(outer overflow-hidden でクリップ)。react-zoom-pan-pinch でピンチズーム+ドラッグ、上ゾーン内に限定 */}
         <div className="h-[33vh] flex-none overflow-hidden bg-black">
-          <div className="w-full h-full overflow-y-auto" style={{ touchAction: 'pinch-zoom' }}>
-            {imageUrl
-              ? <img src={imageUrl} alt="OCR撮影" className="w-full object-contain" />
-              : <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>}
-          </div>
+          {imageUrl ? (
+            <TransformWrapper minScale={1} maxScale={6} doubleClick={{ mode: 'zoomIn' }} centerOnInit>
+              <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%', height: '100%' }}>
+                <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
+              </TransformComponent>
+            </TransformWrapper>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>
+          )}
         </div>
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
@@ -509,8 +514,8 @@ export default function PatrolBoothInputPage() {
             </button>
           </div>
         </div>
-        {/* zone_bottom: テンキー 42vh 固定 (全キー表示、iOS safe-area inset bottom考慮) */}
-        <div className="h-[42vh] flex-none shrink-0 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
+        {/* zone_bottom: テンキー 45vh 固定 (0/BS含む全キー表示、iOS safe-area inset bottom考慮) */}
+        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>

@@ -87,11 +87,12 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
             data-testid="numpad-sheet"
             style={{
               flex: 1,
+              minHeight: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
-              gap: 2,
-              padding: 6,
+              gap: 1,
+              padding: 4,
             }}
           >
             {KEYS.map(k => (
