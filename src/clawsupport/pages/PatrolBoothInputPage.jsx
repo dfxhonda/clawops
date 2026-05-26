@@ -419,23 +419,23 @@ export default function PatrolBoothInputPage() {
     // J-PATROL-OCR-CONFIRM-LAYOUT-01: 前回値との差分 (IN差/OUT差 チップ)
     const ocrInDiff = prev?.in_meter != null && ocrEditIn !== '' ? Number(ocrEditIn) - Number(prev.in_meter) : null
     const ocrOutDiff = prev?.out_meter != null && ocrEditOut !== '' ? Number(ocrEditOut) - Number(prev.out_meter) : null
-    // J-PATROL-OCR-CONFIRM-LAYOUT-01: 3分割固定 (上33vh画像 / 中34vh値+ボタン / 下33vhテンキー)
+    // J-PATROL-OCR-CONFIRM-LAYOUT-01: 3分割固定 (上35vh画像フル幅 / 中25vh値+ボタン圧縮 / 下40vhテンキー全キー)
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* zone_top: 撮影画像 33vh (縦スクロール/ピンチズーム可) */}
-        <div className="h-[33vh] flex-none overflow-y-auto bg-black" style={{ touchAction: 'pan-y pinch-zoom' }}>
+        {/* zone_top: 撮影画像 35vh フル幅 (ピンチズーム、下ゾーンと独立) */}
+        <div className="h-[35vh] flex-none overflow-hidden bg-black" style={{ touchAction: 'pinch-zoom' }}>
           {imageUrl
-            ? <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
+            ? <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-cover" />
             : <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>}
         </div>
-        {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 34vh */}
-        <div className="h-[34vh] flex-none overflow-y-auto bg-bg px-4 pt-3 pb-3">
-          <div className="rounded-2xl border border-border bg-surface/60 p-3 mb-3">
-            <div className="text-xs font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
-            <div className="grid grid-cols-2 gap-4 mb-2">
+        {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
+        <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+          <div className="rounded-xl border border-border bg-surface/60 p-2 mb-2">
+            <div className="text-xs font-bold text-muted mb-1">OCR認識値 — タップして修正可</div>
+            <div className="grid grid-cols-2 gap-2 mb-1">
               <div>
-                <div className="text-xs text-muted mb-1">IN</div>
-                <div className={`rounded-xl transition-all ${activeTabindex === 91 ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+                <div className="text-xs text-muted mb-0.5">IN</div>
+                <div className={`rounded-lg transition-all ${activeTabindex === 91 ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
                   <NumpadField
                     id="ocr-confirm-in"
                     value={ocrEditIn}
@@ -445,14 +445,14 @@ export default function PatrolBoothInputPage() {
                     dataTabindex={91}
                     onRegister={registerField}
                     isActive={activeTabindex === 91}
-                    style={{ fontSize: 24, width: '100%', fontWeight: 'bold' }}
+                    style={{ fontSize: 18, width: '100%', fontWeight: 'bold' }}
                     testId="ocr-confirm-in"
                   />
                 </div>
               </div>
               <div>
-                <div className="text-xs text-muted mb-1">OUT</div>
-                <div className={`rounded-xl transition-all ${activeTabindex === 92 ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+                <div className="text-xs text-muted mb-0.5">OUT</div>
+                <div className={`rounded-lg transition-all ${activeTabindex === 92 ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
                   <NumpadField
                     id="ocr-confirm-out"
                     value={ocrEditOut}
@@ -462,41 +462,38 @@ export default function PatrolBoothInputPage() {
                     dataTabindex={92}
                     onRegister={registerField}
                     isActive={activeTabindex === 92}
-                    style={{ fontSize: 24, width: '100%', fontWeight: 'bold' }}
+                    style={{ fontSize: 18, width: '100%', fontWeight: 'bold' }}
                     testId="ocr-confirm-out"
                   />
                 </div>
               </div>
             </div>
-            <div className="text-xs text-muted">
-              信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span>
-              {ocrEdited && <span className="ml-3 text-amber-400">修正済み</span>}
-              {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
+            {/* 信頼度 + 差分バッジを1行に集約 */}
+            <div className="text-xs text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span></span>
+              {ocrEdited && <span className="text-amber-400">修正済み</span>}
+              {!photoUrl && <span className="text-amber-400">写真UP失敗</span>}
+              {ocrInDiff != null && (
+                <span className={`font-bold px-2 py-0.5 rounded ${ocrInDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>IN差 {ocrInDiff >= 0 ? '+' : ''}{ocrInDiff}</span>
+              )}
+              {ocrOutDiff != null && (
+                <span className={`font-bold px-2 py-0.5 rounded ${ocrOutDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>OUT差 {ocrOutDiff >= 0 ? '+' : ''}{ocrOutDiff}</span>
+              )}
             </div>
-            {(ocrInDiff != null || ocrOutDiff != null) && (
-              <div className="flex gap-2 mt-2">
-                {ocrInDiff != null && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${ocrInDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>IN差 {ocrInDiff >= 0 ? '+' : ''}{ocrInDiff}</span>
-                )}
-                {ocrOutDiff != null && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${ocrOutDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>OUT差 {ocrOutDiff >= 0 ? '+' : ''}{ocrOutDiff}</span>
-                )}
-              </div>
-            )}
           </div>
-          {/* 使う / 撮り直す / ✕ (中ゾーン内、テンキーは置かない) */}
+          {/* 使う / 撮り直す / ✕ (1行、パディング圧縮) */}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={handleOCRUse}
-              className="flex-[2] py-3 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
+              className="flex-[2] py-2 bg-blue-600 text-white font-bold text-sm rounded-xl min-h-[44px]"
             >
               使う
             </button>
             <button
               type="button"
               onClick={handleOCRRecapture}
-              className="flex-1 py-3 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]"
+              className="flex-1 py-2 border-2 border-border text-text font-bold text-sm rounded-xl min-h-[44px]"
             >
               撮り直す
             </button>
@@ -504,14 +501,14 @@ export default function PatrolBoothInputPage() {
               type="button"
               onClick={handleOCRCancel}
               aria-label="閉じる"
-              className="flex-none w-[52px] py-3 border-2 border-border text-text font-bold text-xl rounded-2xl min-h-[44px] flex items-center justify-center"
+              className="flex-none w-[48px] py-2 border-2 border-border text-text font-bold text-lg rounded-xl min-h-[44px] flex items-center justify-center"
             >
               ✕
             </button>
           </div>
         </div>
-        {/* zone_bottom: テンキー 33vh 固定 (スクロールアウト禁止、重要UIを置かない) */}
-        <div className="h-[33vh] flex-none flex flex-col overflow-hidden">
+        {/* zone_bottom: テンキー 40vh 固定 (全キー表示、スクロールアウト禁止) */}
+        <div className="h-[40vh] flex-none shrink-0 flex flex-col overflow-hidden">
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
