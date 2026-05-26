@@ -419,14 +419,16 @@ export default function PatrolBoothInputPage() {
     // J-PATROL-OCR-CONFIRM-LAYOUT-01: 前回値との差分 (IN差/OUT差 チップ)
     const ocrInDiff = prev?.in_meter != null && ocrEditIn !== '' ? Number(ocrEditIn) - Number(prev.in_meter) : null
     const ocrOutDiff = prev?.out_meter != null && ocrEditOut !== '' ? Number(ocrEditOut) - Number(prev.out_meter) : null
-    // J-PATROL-OCR-CONFIRM-LAYOUT-01: 3分割固定 (上35vh画像フル幅 / 中25vh値+ボタン圧縮 / 下40vhテンキー全キー)
+    // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-02: 3分割 (上33vh画像窓枠 / 中25vh値+ボタン / 下42vhテンキー safe-area)
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* zone_top: 撮影画像 35vh フル幅 (ピンチズーム、下ゾーンと独立) */}
-        <div className="h-[35vh] flex-none overflow-hidden bg-black" style={{ touchAction: 'pinch-zoom' }}>
-          {imageUrl
-            ? <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>}
+        {/* zone_top: 33vh 窓枠(outer overflow-hidden でクリップ)。内側のみスクロール/ピンチズーム、下ゾーンに影響しない */}
+        <div className="h-[33vh] flex-none overflow-hidden bg-black">
+          <div className="w-full h-full overflow-y-auto" style={{ touchAction: 'pinch-zoom' }}>
+            {imageUrl
+              ? <img src={imageUrl} alt="OCR撮影" className="w-full object-contain" />
+              : <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>}
+          </div>
         </div>
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
@@ -507,8 +509,8 @@ export default function PatrolBoothInputPage() {
             </button>
           </div>
         </div>
-        {/* zone_bottom: テンキー 40vh 固定 (全キー表示、スクロールアウト禁止) */}
-        <div className="h-[40vh] flex-none shrink-0 flex flex-col overflow-hidden">
+        {/* zone_bottom: テンキー 42vh 固定 (全キー表示、iOS safe-area inset bottom考慮) */}
+        <div className="h-[42vh] flex-none shrink-0 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
