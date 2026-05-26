@@ -57,6 +57,10 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
           if (caps.zoom) {
             setZoomRange({ min: caps.zoom.min, max: caps.zoom.max })
           }
+          // best-effort 連続オートフォーカス (Android Chrome対応。iOS SafariはfocusMode非対応で自動AFのため無視される)
+          if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+            track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {})
+          }
         }
 
         // BarcodeDetector QR scan loop
@@ -229,7 +233,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
       {/* shutter bar */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, padding: '24px 0 40px', background: 'linear-gradient(to top, rgba(0,0,0,0.5), transparent)' }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          {[0.5, 1, 2].map(level => (
+          {[1, 2, 4].map(level => (
             <button
               key={level}
               onClick={() => handleZoomButton(level)}
