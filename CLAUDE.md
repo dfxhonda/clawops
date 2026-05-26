@@ -334,3 +334,14 @@ spec_reference_priority:
     クリティカルなもののみ実装前に司令塔へ問い合わせ。
     ノンクリティカルなものは「類似実装踏襲」で進め、完了報告 implementation_notes に明示。
 ```
+
+## Gate 4: Mobile UX Playwright (MANDATORY - VERIFICATION-GATES-V1)
+Before ANY spec is marked complete, run Playwright on mobile viewport 390x844:
+1. login → target screen → all interactions → back navigation → logout
+2. All buttons must be visible and tappable (not hidden by keyboard/overflow)
+3. Back button or equivalent must exist on every screen
+4. Console errors must be 0
+5. Write results to spec status_log in Notion before Discord report
+If spec acceptance lacks mobile_ux_playwright block, add it before implementing.
+No complete status without gate_4 pass.
+Reference: https://www.notion.so/367c15b9a45881b28099e39334768646
