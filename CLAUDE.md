@@ -345,3 +345,16 @@ Before ANY spec is marked complete, run Playwright on mobile viewport 390x844:
 If spec acceptance lacks mobile_ux_playwright block, add it before implementing.
 No complete status without gate_4 pass.
 Reference: https://www.notion.so/367c15b9a45881b28099e39334768646
+
+## テスト方針 (Test Policy - MANDATORY)
+毎プロンプトで指示しなくても本節が標準動作。ヒロが「今回はTDD無しで」等と明示した時のみ崩してよい。
+1. TDD: 新機能・バグ修正は「失敗ケースのテストを先に書く」。テストが明確なゴールになり実装が迷走しない。
+2. バグ修正の commit には、そのバグを再現する test を必ずペアで入れる(再発防止)。
+3. test 名 = when_X_should_Y 形式(「〜の時 X が起こるべき」)。原則 1 test 1 assertion(壊れた箇所を即特定)。
+4. テストピラミッド:
+   - ロジック(関数単位) = Vitest (最速、最初に書く)
+   - コンポーネント / hook = React Testing Library + Vitest
+   - ユーザー操作シナリオ = Playwright E2E (e2e/、リグレッション最強)
+   - Supabase 等の外部依存は必ず MSW か page.route mock でモック(ネット非依存テスト)
+5. E2E 認証は e2e/helpers.ts の setupAuth({role}) を使う(admin/manager/patrol/staff のペルソナ再現)。supabase は setupPatrolMocks 等でモック。
+6. テストはトークン0で回る (npm test=vitest / npm run test:e2e=playwright、pre-push+CIで自動)。spec 完了前に該当テストが緑であること。
