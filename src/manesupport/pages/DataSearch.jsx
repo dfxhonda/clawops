@@ -25,6 +25,7 @@ export default function DataSearch() {
   const [deletes, setDeletes] = useState(new Set())
   const [editingRow, setEditingRow] = useState(null)
   const [dateSort, setDateSort] = useState('desc') // 'desc' or 'asc'
+  const [gridMode, setGridMode] = useState(false)
 
   useEffect(() => {
     getStores().then(storeList => setStores(storeList)).catch(() => {})
@@ -106,6 +107,20 @@ export default function DataSearch() {
   function cancelEdit(idx) {
     setEdits(prev => { const n={...prev}; delete n[idx]; return n })
     setEditingRow(null)
+  }
+
+  function updateGridCell(r, key, val) {
+    setEdits(prev => {
+      const existing = prev[r._idx]
+      const base = existing ?? {
+        read_time: r.read_time?.slice(0,10) || '',
+        in_meter: r.in_meter || '', out_meter: r.out_meter || '',
+        prize_restock_count: r.prize_restock_count || '',
+        prize_stock_count: r.prize_stock_count || '',
+        prize_name: r.prize_name || '', _original: r,
+      }
+      return { ...prev, [r._idx]: { ...base, [key]: val } }
+    })
   }
 
   function markDelete(idx) {
@@ -231,6 +246,11 @@ export default function DataSearch() {
                 onClick={() => setDateSort(d => d === 'desc' ? 'asc' : 'desc')}>
                 日付{dateSort === 'desc' ? '↓新→古' : '↑古→新'}
               </button>
+              <button
+                className={`text-[11px] px-2 py-0.5 rounded border ${gridMode ? 'bg-accent text-black border-accent font-bold' : 'bg-surface2 border-border text-text'}`}
+                onClick={() => setGridMode(g => !g)}>
+                {gridMode ? '☰ カード' : '⊞ 表'}
+              </button>
             </div>
             <button className="bg-surface2 border border-border text-text text-xs px-3 py-1 rounded-lg"
               onClick={()=>{handleStoreChange('');setFilterPrize('');setFilterDateFrom('');setFilterDateTo('')}}>
@@ -262,13 +282,15 @@ export default function DataSearch() {
 
       {/* スクロール可能なデータリスト（店舗選択済み時のみ） */}
       {filterStore && (
-      <div className="flex-1 overflow-y-auto px-4 pb-28">
+      <div className="flex-1 overflow-auto px-4 pb-28">
       {filtered.length===0 && (
         <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">
           条件に一致するデータがありません
         </div>
       )}
 
+      {/* カードモード */}
+      {!gridMode && (
       <div className="space-y-2">
         {filtered.map(r => {
           const isEditing = editingRow===r._idx
@@ -327,6 +349,74 @@ export default function DataSearch() {
           )
         })}
       </div>
+      )}
+
+      {/* 表計算モード */}
+      {gridMode && filtered.length > 0 && (
+      <div className="overflow-x-auto -mx-4 px-0">
+        <table className="border-collapse text-xs" style={{ minWidth: 640 }}>
+          <thead className="sticky top-0 bg-surface z-10">
+            <tr>
+              <th className="text-left px-2 py-2 text-muted font-medium border-b-2 border-border whitespace-nowrap" style={{minWidth:106}}>日付</th>
+              <th className="text-left px-2 py-2 text-muted font-medium border-b-2 border-border whitespace-nowrap" style={{minWidth:130}}>ブース</th>
+              <th className="text-right px-2 py-2 text-muted font-medium border-b-2 border-border" style={{minWidth:72}}>IN</th>
+              <th className="text-right px-2 py-2 text-muted font-medium border-b-2 border-border" style={{minWidth:72}}>OUT</th>
+              <th className="text-right px-2 py-2 text-muted font-medium border-b-2 border-border" style={{minWidth:52}}>補</th>
+              <th className="text-right px-2 py-2 text-muted font-medium border-b-2 border-border" style={{minWidth:52}}>残</th>
+              <th className="text-left px-2 py-2 text-muted font-medium border-b-2 border-border" style={{minWidth:130}}>景品名</th>
+              <th className="border-b-2 border-border" style={{minWidth:36}}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(r => {
+              const edit = edits[r._idx]
+              const isModified = !!edit
+              const rowBg = isModified ? 'bg-yellow-900/15' : 'hover:bg-surface2/40'
+              const cellIn = "w-full h-8 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface3 rounded [color-scheme:dark]"
+              return (
+                <tr key={r._idx} className={`border-b border-border/50 ${rowBg}`}>
+                  <td className="p-0 border-r border-border/40">
+                    <input className={cellIn} type="date"
+                      value={edit?.read_time ?? r.read_time?.slice(0,10) ?? ''}
+                      onChange={e => updateGridCell(r, 'read_time', e.target.value)} />
+                  </td>
+                  <td className="px-2 py-1 text-muted text-[11px] border-r border-border/40 whitespace-nowrap">{r.full_booth_code}</td>
+                  <td className="p-0 border-r border-border/40">
+                    <input className={cellIn + ' text-right'} type="number" inputMode="numeric"
+                      value={edit?.in_meter ?? r.in_meter ?? ''}
+                      onChange={e => updateGridCell(r, 'in_meter', e.target.value)} />
+                  </td>
+                  <td className="p-0 border-r border-border/40">
+                    <input className={cellIn + ' text-right'} type="number" inputMode="numeric"
+                      value={edit?.out_meter ?? r.out_meter ?? ''}
+                      onChange={e => updateGridCell(r, 'out_meter', e.target.value)} />
+                  </td>
+                  <td className="p-0 border-r border-border/40">
+                    <input className={cellIn + ' text-right'} type="number" inputMode="numeric"
+                      value={edit?.prize_restock_count ?? r.prize_restock_count ?? ''}
+                      onChange={e => updateGridCell(r, 'prize_restock_count', e.target.value)} />
+                  </td>
+                  <td className="p-0 border-r border-border/40">
+                    <input className={cellIn + ' text-right'} type="number" inputMode="numeric"
+                      value={edit?.prize_stock_count ?? r.prize_stock_count ?? ''}
+                      onChange={e => updateGridCell(r, 'prize_stock_count', e.target.value)} />
+                  </td>
+                  <td className="p-0 border-r border-border/40">
+                    <input className={cellIn} type="text"
+                      value={edit?.prize_name ?? r.prize_name ?? ''}
+                      onChange={e => updateGridCell(r, 'prize_name', e.target.value)} />
+                  </td>
+                  <td className="p-0 text-center">
+                    <button className="w-8 h-8 text-accent2 hover:bg-surface2 rounded text-sm"
+                      onClick={() => markDelete(r._idx)}>🗑</button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      )}
 
       </div>
       )}
