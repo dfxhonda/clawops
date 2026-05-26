@@ -45,6 +45,9 @@ export default function AdminSupplierPage() {
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState(null)
   const [loadKey, setLoadKey]       = useState(0)
+  const [gridMode, setGridMode] = useState(false)
+  const [gridEdits, setGridEdits] = useState({})
+  const [gridSaving, setGridSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -130,6 +133,46 @@ export default function AdminSupplierPage() {
 
   const f = v => setForm(prev => ({ ...prev, ...v }))
 
+  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface rounded [color-scheme:dark]"
+
+  function setGCell(id, key, val) {
+    setGridEdits(prev => {
+      const row = rows.find(r => r.supplier_id === id)
+      const base = prev[id] ?? {
+        supplier_name: row?.supplier_name ?? '',
+        supplier_type: row?.supplier_type ?? '',
+        contact_method: row?.contact_method ?? '',
+        contact_detail: row?.contact_detail ?? '',
+        order_method: row?.order_method ?? '',
+        lead_time_days: row?.lead_time_days ?? '',
+        is_active: row?.is_active ?? true,
+      }
+      return { ...prev, [id]: { ...base, [key]: val } }
+    })
+  }
+
+  async function saveGridEdits() {
+    setGridSaving(true)
+    const now = new Date().toISOString()
+    for (const [id, ge] of Object.entries(gridEdits)) {
+      const { error: ge_err } = await supabase.from('suppliers').update({
+        supplier_name: ge.supplier_name.trim(),
+        supplier_type: ge.supplier_type || null,
+        contact_method: ge.contact_method || null,
+        contact_detail: ge.contact_detail || null,
+        order_method: ge.order_method || null,
+        lead_time_days: ge.lead_time_days !== '' ? Number(ge.lead_time_days) : null,
+        is_active: ge.is_active,
+        updated_by: staffName,
+        updated_at: now,
+      }).eq('supplier_id', id)
+      if (ge_err) { setError(ge_err.message); setGridSaving(false); return }
+    }
+    setGridSaving(false)
+    setGridEdits({})
+    reload()
+  }
+
   return (
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
@@ -166,8 +209,24 @@ export default function AdminSupplierPage() {
           >
             + 新規登録
           </button>
+          <button
+            onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
+            className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
+          >
+            {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
+          </button>
         </div>
       </div>
+
+      {gridMode && Object.keys(gridEdits).length > 0 && (
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border-y border-amber-700/40">
+          <span className="text-xs text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-xs text-muted px-2 py-1 rounded border border-border">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-xs text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
+            {gridSaving ? '保存中…' : '一括保存'}
+          </button>
+        </div>
+      )}
 
       {/* list */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0">
@@ -188,30 +247,43 @@ export default function AdminSupplierPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => (
-                <tr
-                  key={r.supplier_id}
-                  data-testid="supplier-row"
-                  onClick={() => openEdit(r)}
-                  className="border-b border-border/50 hover:bg-surface cursor-pointer"
-                >
-                  <td className="py-1.5 px-2 text-text font-medium max-w-[160px] truncate">{r.supplier_name}</td>
-                  <td className="py-1.5 px-2 text-muted hidden md:table-cell">{r.supplier_type}</td>
-                  <td className="py-1.5 px-2 text-muted hidden md:table-cell">{r.contact_method}</td>
-                  <td className="py-1.5 px-2 text-muted max-w-[140px] truncate">{r.contact_detail}</td>
-                  <td className="py-1.5 px-2 text-muted hidden md:table-cell">{r.order_method}</td>
-                  <td className="py-1.5 px-2 text-right text-muted font-mono hidden md:table-cell">
-                    {r.lead_time_days != null ? `${r.lead_time_days}日` : ''}
-                  </td>
-                  <td className="py-1.5 px-2">
-                    <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
-                      r.is_active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'
-                    }`}>
-                      {r.is_active ? '有効' : '無効'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {rows.map(r => {
+                const ge = gridEdits[r.supplier_id]
+                return (
+                  <tr
+                    key={r.supplier_id}
+                    data-testid="supplier-row"
+                    onClick={gridMode ? undefined : () => openEdit(r)}
+                    className={`border-b border-border/50 ${gridMode ? (ge ? 'bg-amber-900/15' : 'hover:bg-surface/30') : 'hover:bg-surface cursor-pointer'}`}
+                  >
+                    <td className="py-0.5 px-1 text-text font-medium max-w-[160px]">
+                      {gridMode ? <input value={ge?.supplier_name ?? r.supplier_name ?? ''} onChange={ev => setGCell(r.supplier_id, 'supplier_name', ev.target.value)} className={gridCellCls} /> : <span className="truncate block">{r.supplier_name}</span>}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted hidden md:table-cell">
+                      {gridMode ? <input value={ge?.supplier_type ?? r.supplier_type ?? ''} onChange={ev => setGCell(r.supplier_id, 'supplier_type', ev.target.value)} className={gridCellCls} /> : r.supplier_type}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted hidden md:table-cell">
+                      {gridMode ? <input value={ge?.contact_method ?? r.contact_method ?? ''} onChange={ev => setGCell(r.supplier_id, 'contact_method', ev.target.value)} className={gridCellCls} /> : r.contact_method}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted max-w-[140px]">
+                      {gridMode ? <input value={ge?.contact_detail ?? r.contact_detail ?? ''} onChange={ev => setGCell(r.supplier_id, 'contact_detail', ev.target.value)} className={gridCellCls} /> : <span className="truncate block">{r.contact_detail}</span>}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted hidden md:table-cell">
+                      {gridMode ? <input value={ge?.order_method ?? r.order_method ?? ''} onChange={ev => setGCell(r.supplier_id, 'order_method', ev.target.value)} className={gridCellCls} /> : r.order_method}
+                    </td>
+                    <td className="py-0.5 px-1 text-right text-muted font-mono hidden md:table-cell">
+                      {gridMode
+                        ? <input type="number" value={ge?.lead_time_days ?? r.lead_time_days ?? ''} onChange={ev => setGCell(r.supplier_id, 'lead_time_days', ev.target.value)} className={`${gridCellCls} text-right`} />
+                        : (r.lead_time_days != null ? `${r.lead_time_days}日` : '')}
+                    </td>
+                    <td className="py-0.5 px-1">
+                      {gridMode
+                        ? <input type="checkbox" checked={ge?.is_active ?? r.is_active ?? false} onChange={ev => setGCell(r.supplier_id, 'is_active', ev.target.checked)} className="accent-blue-500" />
+                        : <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${r.is_active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}>{r.is_active ? '有効' : '無効'}</span>}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

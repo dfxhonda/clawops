@@ -67,6 +67,9 @@ export default function AdminMasterMachinePage() {
   const [deleteTarget, setDeleteTarget]       = useState(null)
   const [deleteUsageCount, setDeleteUsageCount] = useState(0)
   const [deleting, setDeleting]               = useState(false)
+  const [gridMode, setGridMode] = useState(false)
+  const [gridEdits, setGridEdits] = useState({})
+  const [gridSaving, setGridSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -216,6 +219,47 @@ export default function AdminMasterMachinePage() {
 
   const inputCls = 'w-full border border-slate-300 rounded-lg px-4 py-3 text-base bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 min-h-[44px]'
   const labelCls = 'text-sm font-medium text-slate-700'
+  const gridCellCls = 'w-full h-8 px-1.5 bg-transparent border-0 text-slate-900 text-sm outline-none focus:bg-slate-100 rounded'
+
+  function setGCell(id, key, val) {
+    setGridEdits(prev => {
+      const row = rows.find(r => r.model_id === id)
+      const base = prev[id] ?? {
+        model_name: row?.model_name ?? '',
+        type_id: row?.type_id ?? 'crane',
+        manufacturer: row?.manufacturer ?? '',
+        meter_unit_price: row?.meter_unit_price ?? 100,
+        in_meter_count: row?.in_meter_count ?? 1,
+        out_meter_count: row?.out_meter_count ?? 1,
+      }
+      return { ...prev, [id]: { ...base, [key]: val } }
+    })
+  }
+
+  async function saveGridEdits() {
+    setGridSaving(true)
+    const now = new Date().toISOString()
+    for (const [id, ge] of Object.entries(gridEdits)) {
+      const row = rows.find(r => r.model_id === id)
+      const before = { ...row }
+      const patch = {
+        model_name: ge.model_name,
+        type_id: ge.type_id,
+        manufacturer: ge.manufacturer || null,
+        meter_unit_price: Number(ge.meter_unit_price) || 100,
+        in_meter_count: Number(ge.in_meter_count) || 1,
+        out_meter_count: Number(ge.out_meter_count) || 1,
+        updated_at: now,
+        updated_by: staffName || null,
+      }
+      const { error: ge_err } = await supabase.from('machine_models').update(patch).eq('model_id', id)
+      if (ge_err) { setError(ge_err.message); setGridSaving(false); return }
+      await insertAuditLog({ staffId, action: 'machine_model_update', targetId: id, before, after: patch })
+    }
+    setGridSaving(false)
+    setGridEdits({})
+    setLoadKey(k => k + 1)
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -236,6 +280,13 @@ export default function AdminMasterMachinePage() {
           className="px-5 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-base font-bold rounded-lg min-h-[44px]"
         >
           + 新規追加
+        </button>
+        <button
+          type="button"
+          onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
+          className={`px-4 py-3 text-sm font-bold rounded-lg min-h-[44px] border ${gridMode ? 'bg-amber-500 text-white border-transparent' : 'bg-white text-slate-700 border-slate-300'}`}
+        >
+          {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
         </button>
       </div>
 
@@ -285,6 +336,16 @@ export default function AdminMasterMachinePage() {
         </div>
       </div>
 
+      {gridMode && Object.keys(gridEdits).length > 0 && (
+        <div className="px-4 py-2 bg-amber-50 border-y border-amber-200 flex items-center gap-2">
+          <span className="text-sm text-amber-700">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-sm text-slate-500 px-3 py-1 rounded border border-slate-300">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-sm text-white bg-blue-500 px-4 py-1 rounded font-bold disabled:opacity-50">
+            {gridSaving ? '保存中…' : '一括保存'}
+          </button>
+        </div>
+      )}
+
       {/* Content */}
       <div className="px-4 py-4 space-y-2">
 
@@ -324,8 +385,45 @@ export default function AdminMasterMachinePage() {
           <p className="text-center text-slate-500 text-base py-8">検索条件に一致する機種がありません</p>
         )}
 
+        {/* Grid table */}
+        {gridMode && !loading && filtered.length > 0 && (
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500 text-left bg-slate-50">
+                  <th className="py-1.5 px-2">機種名</th>
+                  <th className="py-1.5 px-2">種別</th>
+                  <th className="py-1.5 px-2">メーカー</th>
+                  <th className="py-1.5 px-2 text-right">単価</th>
+                  <th className="py-1.5 px-2 text-right">IN数</th>
+                  <th className="py-1.5 px-2 text-right">OUT数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(row => {
+                  const ge = gridEdits[row.model_id]
+                  return (
+                    <tr key={row.model_id} className={`border-b border-slate-100 ${ge ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
+                      <td className="py-0.5 px-1"><input value={ge?.model_name ?? row.model_name ?? ''} onChange={ev => setGCell(row.model_id, 'model_name', ev.target.value)} className={gridCellCls} /></td>
+                      <td className="py-0.5 px-1">
+                        <select value={ge?.type_id ?? row.type_id ?? 'crane'} onChange={ev => setGCell(row.model_id, 'type_id', ev.target.value)} className="h-8 px-1 bg-white border border-slate-200 text-slate-900 text-sm rounded w-full">
+                          {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-0.5 px-1"><input value={ge?.manufacturer ?? row.manufacturer ?? ''} onChange={ev => setGCell(row.model_id, 'manufacturer', ev.target.value)} className={gridCellCls} /></td>
+                      <td className="py-0.5 px-1"><input type="number" value={ge?.meter_unit_price ?? row.meter_unit_price ?? 100} onChange={ev => setGCell(row.model_id, 'meter_unit_price', ev.target.value)} className={`${gridCellCls} text-right`} /></td>
+                      <td className="py-0.5 px-1"><input type="number" value={ge?.in_meter_count ?? row.in_meter_count ?? 1} onChange={ev => setGCell(row.model_id, 'in_meter_count', ev.target.value)} className={`${gridCellCls} text-right`} /></td>
+                      <td className="py-0.5 px-1"><input type="number" value={ge?.out_meter_count ?? row.out_meter_count ?? 1} onChange={ev => setGCell(row.model_id, 'out_meter_count', ev.target.value)} className={`${gridCellCls} text-right`} /></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* Card list */}
-        {!loading && filtered.map(row => (
+        {!gridMode && !loading && filtered.map(row => (
           <div
             key={row.model_id}
             onClick={() => openEdit(row)}

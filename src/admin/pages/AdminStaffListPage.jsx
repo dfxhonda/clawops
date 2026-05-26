@@ -60,6 +60,9 @@ export default function AdminStaffListPage() {
   const [loadKey, setLoadKey]     = useState(0)
   const [pinConfirm, setPinConfirm] = useState(false)
   const [pinResetting, setPinResetting] = useState(false)
+  const [gridMode, setGridMode] = useState(false)
+  const [gridEdits, setGridEdits] = useState({})
+  const [gridSaving, setGridSaving] = useState(false)
 
   useEffect(() => {
     supabase.from('stores').select('store_code,store_name').order('store_code')
@@ -145,6 +148,42 @@ export default function AdminStaffListPage() {
     setLoadKey(k => k + 1)
   }
 
+  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface rounded [color-scheme:dark]"
+
+  function setGCell(id, key, val) {
+    setGridEdits(prev => {
+      const row = rows.find(r => r.staff_id === id)
+      const base = prev[id] ?? {
+        name: row?.name ?? '',
+        name_kana: row?.name_kana ?? '',
+        role: row?.role ?? '',
+        store_code: row?.store_code ?? '',
+        is_active: row?.is_active ?? true,
+      }
+      return { ...prev, [id]: { ...base, [key]: val } }
+    })
+  }
+
+  async function saveGridEdits() {
+    setGridSaving(true)
+    const now = new Date().toISOString()
+    for (const [id, ge] of Object.entries(gridEdits)) {
+      const { error: ge_err } = await supabase.from('staff').update({
+        name: ge.name,
+        name_kana: ge.name_kana || null,
+        role: ge.role || null,
+        store_code: ge.store_code || null,
+        is_active: ge.is_active,
+        updated_at: now,
+        updated_by: staffName || null,
+      }).eq('staff_id', id)
+      if (ge_err) { setError(ge_err.message); setGridSaving(false); return }
+    }
+    setGridSaving(false)
+    setGridEdits({})
+    setLoadKey(k => k + 1)
+  }
+
   return (
     <div data-testid="staff-list-page" className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
@@ -181,7 +220,23 @@ export default function AdminStaffListPage() {
           <option value="false">退職済</option>
         </select>
         <span className="text-xs text-muted ml-auto">{rows.length}件</span>
+        <button
+          onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
+          className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
+        >
+          {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
+        </button>
       </div>
+
+      {gridMode && Object.keys(gridEdits).length > 0 && (
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border-y border-amber-700/40">
+          <span className="text-xs text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-xs text-muted px-2 py-1 rounded border border-border">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-xs text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
+            {gridSaving ? '保存中…' : '一括保存'}
+          </button>
+        </div>
+      )}
 
       {/* list */}
       <div className="flex-1 overflow-auto min-h-0">
@@ -202,22 +257,47 @@ export default function AdminStaffListPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(r => (
-                <tr
-                  key={r.staff_id}
-                  data-testid={`staff-row-${r.staff_id}`}
-                  onClick={() => openModal(r)}
-                  className="border-b border-border/50 hover:bg-surface cursor-pointer"
-                >
-                  <td className="py-1 px-2 font-bold">{r.name}</td>
-                  <td className="py-1 px-2 text-muted">{r.name_kana ?? '—'}</td>
-                  <td className="py-1 px-2"><RoleBadge role={r.role} /></td>
-                  <td className="py-1 px-2 text-muted">{r.stores?.store_name ?? r.store_code ?? '—'}</td>
-                  <td className="py-1 px-2 text-center">{r.has_pin ? '●' : '○'}</td>
-                  <td className="py-1 px-2 text-muted">{r.joined_at ? r.joined_at.slice(0, 10) : '—'}</td>
-                  <td className="py-1 px-2 text-center">{r.is_active ? '●' : '○'}</td>
-                </tr>
-              ))}
+              {rows.map(r => {
+                const ge = gridEdits[r.staff_id]
+                return (
+                  <tr
+                    key={r.staff_id}
+                    data-testid={`staff-row-${r.staff_id}`}
+                    onClick={gridMode ? undefined : () => openModal(r)}
+                    className={`border-b border-border/50 ${gridMode ? (ge ? 'bg-amber-900/15' : 'hover:bg-surface/30') : 'hover:bg-surface cursor-pointer'}`}
+                  >
+                    <td className="py-0.5 px-1 font-bold">
+                      {gridMode ? <input value={ge?.name ?? r.name ?? ''} onChange={ev => setGCell(r.staff_id, 'name', ev.target.value)} className={gridCellCls} /> : r.name}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted">
+                      {gridMode ? <input value={ge?.name_kana ?? r.name_kana ?? ''} onChange={ev => setGCell(r.staff_id, 'name_kana', ev.target.value)} className={gridCellCls} /> : (r.name_kana ?? '—')}
+                    </td>
+                    <td className="py-0.5 px-1">
+                      {gridMode
+                        ? <select value={ge?.role ?? r.role ?? ''} onChange={ev => setGCell(r.staff_id, 'role', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-xs rounded w-full [color-scheme:dark]">
+                            <option value="">—</option>
+                            {ROLE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
+                          </select>
+                        : <RoleBadge role={r.role} />}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted">
+                      {gridMode
+                        ? <select value={ge?.store_code ?? r.store_code ?? ''} onChange={ev => setGCell(r.staff_id, 'store_code', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-xs rounded w-full [color-scheme:dark]">
+                            <option value="">—</option>
+                            {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
+                          </select>
+                        : (r.stores?.store_name ?? r.store_code ?? '—')}
+                    </td>
+                    <td className="py-1 px-2 text-center">{r.has_pin ? '●' : '○'}</td>
+                    <td className="py-1 px-2 text-muted">{r.joined_at ? r.joined_at.slice(0, 10) : '—'}</td>
+                    <td className="py-0.5 px-1 text-center">
+                      {gridMode
+                        ? <input type="checkbox" checked={ge?.is_active ?? r.is_active ?? false} onChange={ev => setGCell(r.staff_id, 'is_active', ev.target.checked)} className="accent-blue-500" />
+                        : (r.is_active ? '●' : '○')}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

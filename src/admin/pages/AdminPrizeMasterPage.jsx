@@ -86,6 +86,9 @@ export default function AdminPrizeMasterPage() {
   const [showMore, setShowMore] = useState(false)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState(null)
+  const [gridMode, setGridMode] = useState(false)
+  const [gridEdits, setGridEdits] = useState({})
+  const [gridSaving, setGridSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -196,6 +199,44 @@ export default function AdminPrizeMasterPage() {
   const f = (v) => setForm(prev => ({ ...prev, ...v }))
   const caseTotal = (Number(form.original_cost) || 0) * (Number(form.default_case_quantity) || 0)
 
+  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface rounded [color-scheme:dark]"
+
+  function setGCell(id, key, val) {
+    setGridEdits(prev => {
+      const row = rows.find(r => r.prize_id === id)
+      const base = prev[id] ?? {
+        prize_name: row?.prize_name ?? '',
+        aliases: row?.aliases ?? '',
+        category: row?.category ?? '',
+        status: row?.status ?? 'active',
+        original_cost: row?.original_cost ?? '',
+        supplier_name: row?.supplier_name ?? '',
+      }
+      return { ...prev, [id]: { ...base, [key]: val } }
+    })
+  }
+
+  async function saveGridEdits() {
+    setGridSaving(true)
+    const now = new Date().toISOString()
+    for (const [id, ge] of Object.entries(gridEdits)) {
+      const { error: ge_err } = await supabase.from('prize_masters').update({
+        prize_name: ge.prize_name,
+        aliases: ge.aliases || null,
+        category: ge.category || null,
+        status: ge.status,
+        original_cost: ge.original_cost === '' ? null : Number(ge.original_cost),
+        supplier_name: ge.supplier_name || null,
+        updated_by: staffName,
+        updated_at: now,
+      }).eq('prize_id', id)
+      if (ge_err) { setError(ge_err.message); setGridSaving(false); return }
+    }
+    setGridSaving(false)
+    setGridEdits({})
+    reload()
+  }
+
   return (
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
@@ -236,8 +277,24 @@ export default function AdminPrizeMasterPage() {
           >
             + 新規登録
           </button>
+          <button
+            onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
+            className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
+          >
+            {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
+          </button>
         </div>
       </div>
+
+      {gridMode && Object.keys(gridEdits).length > 0 && (
+        <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border-y border-amber-700/40">
+          <span className="text-xs text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-xs text-muted px-2 py-1 rounded border border-border">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-xs text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
+            {gridSaving ? '保存中…' : '一括保存'}
+          </button>
+        </div>
+      )}
 
       {/* list */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0 overflow-x-auto">
@@ -260,27 +317,41 @@ export default function AdminPrizeMasterPage() {
             <tbody>
               {rows.map(r => {
                 const a0 = alias0(r.aliases)
+                const ge = gridEdits[r.prize_id]
                 return (
                   <tr
                     key={r.prize_id}
                     data-testid="prize-row"
-                    onClick={() => openEdit(r)}
-                    className="border-b border-border/50 hover:bg-surface cursor-pointer"
+                    onClick={gridMode ? undefined : () => openEdit(r)}
+                    className={`border-b border-border/50 ${gridMode ? (ge ? 'bg-amber-900/15' : 'hover:bg-surface/30') : 'hover:bg-surface cursor-pointer'}`}
                   >
-                    <td className="py-1 px-2 max-w-[220px]">
-                      <div className="truncate text-text font-medium">{r.prize_name}</div>
-                      {a0 && <div className="truncate text-xs text-gray-400">{a0}</div>}
+                    <td className="py-0.5 px-1 max-w-[220px]">
+                      {gridMode
+                        ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
+                        : <><div className="truncate text-text font-medium">{r.prize_name}</div>{a0 && <div className="truncate text-xs text-gray-400">{a0}</div>}</>}
                     </td>
-                    <td className="py-1 px-2 text-muted">{r.category}</td>
-                    <td className="py-1 px-2">
-                      <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
-                        r.status === 'active'   ? 'bg-green-600 text-white' :
-                        r.status === 'inactive' ? 'bg-gray-600 text-gray-300' :
-                        'bg-amber-600 text-white'
-                      }`}>{r.status}</span>
+                    <td className="py-0.5 px-1 text-muted">
+                      {gridMode
+                        ? <input value={ge?.category ?? r.category ?? ''} onChange={ev => setGCell(r.prize_id, 'category', ev.target.value)} className={gridCellCls} />
+                        : r.category}
                     </td>
-                    <td className="py-1 px-2 text-right text-muted">{r.original_cost != null ? r.original_cost.toLocaleString() : ''}</td>
-                    <td className="py-1 px-2 text-muted max-w-[120px] truncate">{r.supplier_name}</td>
+                    <td className="py-0.5 px-1">
+                      {gridMode
+                        ? <select value={ge?.status ?? r.status ?? 'active'} onChange={ev => setGCell(r.prize_id, 'status', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-xs rounded w-full [color-scheme:dark]">
+                            {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        : <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${r.status === 'active' ? 'bg-green-600 text-white' : r.status === 'inactive' ? 'bg-gray-600 text-gray-300' : 'bg-amber-600 text-white'}`}>{r.status}</span>}
+                    </td>
+                    <td className="py-0.5 px-1 text-right text-muted">
+                      {gridMode
+                        ? <input type="number" value={ge?.original_cost ?? r.original_cost ?? ''} onChange={ev => setGCell(r.prize_id, 'original_cost', ev.target.value)} className={`${gridCellCls} text-right`} />
+                        : (r.original_cost != null ? r.original_cost.toLocaleString() : '')}
+                    </td>
+                    <td className="py-0.5 px-1 text-muted max-w-[120px]">
+                      {gridMode
+                        ? <input value={ge?.supplier_name ?? r.supplier_name ?? ''} onChange={ev => setGCell(r.prize_id, 'supplier_name', ev.target.value)} className={gridCellCls} />
+                        : <span className="truncate block">{r.supplier_name}</span>}
+                    </td>
                     <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
                   </tr>
                 )
