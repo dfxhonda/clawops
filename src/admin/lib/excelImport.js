@@ -4,7 +4,10 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 function validateRow(row, idx) {
   const errors = []
   const boothCode  = String(row['ブースコード'] ?? '').trim()
-  const patrolDate = String(row['巡回日']       ?? '').trim()
+  const rawDate = row['巡回日']
+  const patrolDate = rawDate instanceof Date
+    ? rawDate.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    : String(rawDate ?? '').trim()
   const inRaw      = row['IN']
   const outRaw     = row['OUT']
 
@@ -48,7 +51,7 @@ function validateRow(row, idx) {
 export async function parseAndValidateExcel(file) {
   const XLSX = await import('xlsx')
   const ab = await file.arrayBuffer()
-  const wb = XLSX.read(ab, { type: 'array', cellDates: false })
+  const wb = XLSX.read(ab, { type: 'array', cellDates: true })
 
   const sheetName = wb.SheetNames[0]
   if (!sheetName) throw new Error('シートが見つかりません (ERR-IMPORT-001)')

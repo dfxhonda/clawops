@@ -29,7 +29,7 @@ export async function generateExcelTemplate({ storeCode, storeName, machines }) 
         'ブースコード':   booth.booth_code,
         '機種名':         machine.machine_name ?? '',
         'ブース番号':     booth.booth_number ?? '',
-        '巡回日':         '',
+        '巡回日':         new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }),
         'IN':             p.in_meter            ?? '',
         'OUT':            p.out_meter           ?? '',
         '残':             p.prize_stock_count   ?? '',
