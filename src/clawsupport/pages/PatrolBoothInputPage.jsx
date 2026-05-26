@@ -17,26 +17,12 @@ import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { logger } from '../../lib/logger'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
+import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
 import {
   savePatrolReading,
   getLastReadingForBooth,
   classifyEntryType,
 } from '../../services/patrolCore'
-
-function mapMetersToColumns(meters) {
-  const inTypes = ['in','yen1000_in','yen500_in','yen100_in','in_a','in_b','change_in']
-  const cols = { in_meter: null, out_meter: null }
-  for (const t of inTypes) {
-    const m = meters.find(x => x.type === t && x.value != null)
-    if (m) { cols.in_meter = parseInt(m.value, 10); break }
-  }
-  const outOrder = ['out_a','out','capsule_out','prize_out','out_b','out_c','change_out']
-  const outs = meters
-    .filter(m => /out/i.test(m.type) && m.value != null)
-    .sort((a, b) => outOrder.indexOf(a.type) - outOrder.indexOf(b.type))
-  if (outs[0]) cols.out_meter = parseInt(outs[0].value, 10)
-  return cols
-}
 
 // J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺1600px q0.85 に縮小して {base64, blob} を返す
 function resizeImageFile(file) {
@@ -58,15 +44,6 @@ function resizeImageFile(file) {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')) }
     img.src = url
   })
-}
-
-// J-PATROL 理論在庫: 前回在庫 + 前回補充 − OUT差(今回OUT − 前回OUT)。払い出し=OUT差(1個=1カウント)。
-// 別日の巡回入力で「残数に前回補充を足し込み、OUTをリアルタイムで引いた」値を在庫欄デフォルトにする。
-function theoreticalStock(prevStock, prevRestock, prevOut, curOut) {
-  if (prevStock == null) return null
-  const base = Number(prevStock) + Number(prevRestock ?? 0)
-  const diff = (curOut !== '' && curOut != null && prevOut != null) ? Number(curOut) - Number(prevOut) : 0
-  return base - diff
 }
 
 const ENTRY_BADGES = {
