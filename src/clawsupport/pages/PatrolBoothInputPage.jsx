@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -11,7 +11,6 @@ import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
 import BoothInputForm, { EMPTY_TOUCHED, diffDisplay } from '../components/BoothInputForm'
 import AlertSheetModal from '../components/AlertSheetModal'
-import LiveCameraView from '../components/LiveCameraView'
 import ErrorBanner from '../../components/ErrorBanner'
 import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import { useOCR } from '../hooks/useOCR'
@@ -36,6 +35,28 @@ function mapMetersToColumns(meters) {
     .sort((a, b) => outOrder.indexOf(a.type) - outOrder.indexOf(b.type))
   if (outs[0]) cols.out_meter = parseInt(outs[0].value, 10)
   return cols
+}
+
+// J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺1600px q0.85 に縮小して {base64, blob} を返す
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      const MAX = 1600
+      const sw = img.naturalWidth, sh = img.naturalHeight
+      const scale = Math.min(1, MAX / Math.max(sw, sh))
+      const w = Math.round(sw * scale), h = Math.round(sh * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      URL.revokeObjectURL(url)
+      const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
+      canvas.toBlob(blob => resolve({ base64, blob }), 'image/jpeg', 0.85)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')) }
+    img.src = url
+  })
 }
 
 const ENTRY_BADGES = {
@@ -70,7 +91,7 @@ export default function PatrolBoothInputPage() {
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
 
   // OCR state
-  const [showOcr,       setShowOcr]   = useState(false)
+  const fileInputRef = useRef(null) // 読み取り写真の入力 (iOSは「写真を撮る/選ぶ」メニューが出る = 純正カメラ+フラッシュ可)
   const [ocrState,      setOcrState]  = useState('idle') // 'idle' | 'loading' | 'confirming'
   const [ocrCapture,    setOcrCapture] = useState(null)  // { imageUrl, cols, photoUrl, avgConf }
   const [ocrLoadingImg, setOcrLoadingImg] = useState(null) // 解析中に上ゾーンへ表示する撮影画像URL
@@ -81,7 +102,7 @@ export default function PatrolBoothInputPage() {
   const [ocrConfidence, setOcrConf]   = useState(null)
   const [ocrInputMethod,setOcrIM]     = useState('ocr')
   const [ocrError,      setOcrError]  = useState(null)
-  const { engine, toggleEngine, loading: ocrLoading, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
+  const { runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   // Form state — OUT1
   const [prev,          setPrev]   = useState(null)
@@ -239,8 +260,23 @@ export default function PatrolBoothInputPage() {
     return patch
   }
 
+  // J-PATROL-OCR-CAMERA C: 「読み取り」→ファイル入力(iOSは撮る/選ぶメニュー)→縮小→OCR
+  async function handleReadFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    logger.info('ocr_read_file_selected', { boothCode, size: file?.size ?? 0 })
+    try {
+      const { base64, blob } = await resizeImageFile(file)
+      handleOCRCapture(base64, blob)
+    } catch {
+      const reader = new FileReader()
+      reader.onload = ev => handleOCRCapture(ev.target.result.split(',')[1], file)
+      reader.readAsDataURL(file)
+    }
+  }
+
   async function handleOCRCapture(base64, blob) {
-    setShowOcr(false)
     // fix-04: 解析中も同じ3分割レイアウトで撮影画像を上ゾーンに見せる
     const previewUrl = blob ? URL.createObjectURL(blob) : null
     setOcrLoadingImg(previewUrl)
@@ -304,7 +340,7 @@ export default function PatrolBoothInputPage() {
     setOcrEditOut('')
     setOcrEdited(false)
     setOcrState('idle')
-    setShowOcr(true)
+    fileInputRef.current?.click()
   }
 
   // J-PATROL-OCR-UNIFY-01-fix-01: 確認画面から手入力に戻る (OCR破棄)。
@@ -375,20 +411,6 @@ export default function PatrolBoothInputPage() {
     : null
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
-
-  // === LiveCamera full-screen ===
-  if (showOcr) {
-    return (
-      <LiveCameraView
-        engine={engine}
-        onToggleEngine={toggleEngine}
-        onCapture={handleOCRCapture}
-        onQR={null}
-        onCancel={() => setShowOcr(false)}
-        showGuide={false}
-      />
-    )
-  }
 
   // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-05: loading と confirming で同一の上ゾーンJSX (TransformWrapper, initialScale=1, w-full h-auto)
   function renderOcrImageZone(url) {
@@ -555,6 +577,14 @@ export default function PatrolBoothInputPage() {
   // === Main patrol form ===
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
+      {/* J-PATROL-OCR-CAMERA C: 読み取り写真の入力。capture指定なしでiOSは「写真を撮る(純正カメラ+フラッシュ)/写真を選ぶ」メニュー */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleReadFile}
+      />
       <PageHeader
         module="clawsupport"
         title={boothLabel}
@@ -608,7 +638,7 @@ export default function PatrolBoothInputPage() {
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
           canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
-          onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'camera' }); setShowOcr(true) }}
+          onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'file' }); fileInputRef.current?.click() }}
         />
       </div>
 
