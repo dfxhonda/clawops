@@ -73,6 +73,7 @@ export default function PatrolBoothInputPage() {
   const [showOcr,       setShowOcr]   = useState(false)
   const [ocrState,      setOcrState]  = useState('idle') // 'idle' | 'loading' | 'confirming'
   const [ocrCapture,    setOcrCapture] = useState(null)  // { imageUrl, cols, photoUrl, avgConf }
+  const [ocrLoadingImg, setOcrLoadingImg] = useState(null) // 解析中に上ゾーンへ表示する撮影画像URL
   const [ocrEditIn,     setOcrEditIn]  = useState('')
   const [ocrEditOut,    setOcrEditOut] = useState('')
   const [ocrEdited,     setOcrEdited]  = useState(false)
@@ -240,6 +241,9 @@ export default function PatrolBoothInputPage() {
 
   async function handleOCRCapture(base64, blob) {
     setShowOcr(false)
+    // fix-04: 解析中も同じ3分割レイアウトで撮影画像を上ゾーンに見せる
+    const previewUrl = blob ? URL.createObjectURL(blob) : null
+    setOcrLoadingImg(previewUrl)
     setOcrState('loading')
     setOcrError(null)
     logger.info('ocr_photo_captured', { boothCode, blob_size: blob?.size ?? 0 })
@@ -268,8 +272,7 @@ export default function PatrolBoothInputPage() {
 
     logger.info('ocr_result_returned', { confidence: avgConf })
 
-    const imageUrl = blob ? URL.createObjectURL(blob) : null
-    setOcrCapture({ imageUrl, cols, photoUrl: photoUrl ?? null, avgConf })
+    setOcrCapture({ imageUrl: previewUrl, cols, photoUrl: photoUrl ?? null, avgConf })
     setOcrEditIn(cols.in_meter != null ? String(cols.in_meter) : '')
     setOcrEditOut(cols.out_meter != null ? String(cols.out_meter) : '')
     setOcrEdited(false)
@@ -387,27 +390,54 @@ export default function PatrolBoothInputPage() {
     )
   }
 
-  // === OCR loading overlay ===
+  // === OCR loading: confirming と同じ3分割レイアウトを流用 (fix-04) ===
   if (ocrState === 'loading') {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4">
-        {ocrError ? (
-          <>
-            <div className="text-red-400 text-4xl">✕</div>
-            <div className="text-red-400 text-base font-bold px-6 text-center">{ocrError}</div>
-            <button
-              onClick={() => { setOcrError(null); setOcrState('idle') }}
-              className="px-6 py-2 bg-gray-700 text-white rounded-lg text-base font-bold"
-            >
-              閉じる
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
-            <div className="text-sky-300 text-base font-bold">OCR解析中...</div>
-          </>
-        )}
+      <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
+        {/* zone_top: 撮影画像 + 中央スピナーオーバーレイ (暗転フルスクリーン廃止) */}
+        <div className="h-[33vh] flex-none overflow-hidden bg-black relative">
+          {ocrLoadingImg
+            ? <img src={ocrLoadingImg} alt="OCR撮影" className="w-full h-full object-contain" />
+            : <div className="w-full h-full" />}
+          {!ocrError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <div className="animate-spin w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full" />
+            </div>
+          )}
+        </div>
+        {/* zone_middle: 解析中スケルトン or エラーメッセージ */}
+        <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+          {ocrError ? (
+            <div className="flex flex-col gap-2">
+              <div className="text-red-400 text-sm font-bold">{ocrError}</div>
+              <button
+                type="button"
+                onClick={() => { setOcrError(null); setOcrState('idle') }}
+                className="py-2 bg-gray-700 text-white font-bold text-sm rounded-xl min-h-[44px]"
+              >
+                閉じる
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-surface/60 p-2">
+              <div className="text-xs font-bold text-muted mb-1">解析中…</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-xs text-muted mb-0.5">IN</div>
+                  <div className="h-8 rounded-lg bg-surface animate-pulse" />
+                </div>
+                <div>
+                  <div className="text-xs text-muted mb-0.5">OUT</div>
+                  <div className="h-8 rounded-lg bg-surface animate-pulse" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        {/* zone_bottom: テンキー グレーアウト (操作不可) */}
+        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pointer-events-none opacity-50">
+          <NumpadFooterPanel currentField={null} />
+        </div>
       </div>
     )
   }
@@ -426,9 +456,9 @@ export default function PatrolBoothInputPage() {
         {/* zone_top: 33vh 窓枠(outer overflow-hidden でクリップ)。react-zoom-pan-pinch でピンチズーム+ドラッグ、上ゾーン内に限定 */}
         <div className="h-[33vh] flex-none overflow-hidden bg-black">
           {imageUrl ? (
-            <TransformWrapper minScale={1} maxScale={6} doubleClick={{ mode: 'zoomIn' }} centerOnInit>
-              <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%', height: '100%' }}>
-                <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
+            <TransformWrapper initialScale={1} minScale={1} maxScale={6} doubleClick={{ mode: 'zoomIn' }}>
+              <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%' }}>
+                <img src={imageUrl} alt="OCR撮影" className="w-full h-auto" />
               </TransformComponent>
             </TransformWrapper>
           ) : (
