@@ -416,24 +416,21 @@ export default function PatrolBoothInputPage() {
     const { imageUrl, photoUrl, avgConf } = ocrCapture
     const confPct = avgConf != null ? Math.round(avgConf * 100) : null
     const confCls = confPct == null ? 'text-muted' : confPct >= 90 ? 'text-green-400' : confPct >= 70 ? 'text-yellow-400' : 'text-red-400'
+    // J-PATROL-OCR-CONFIRM-LAYOUT-01: 前回値との差分 (IN差/OUT差 チップ)
+    const ocrInDiff = prev?.in_meter != null && ocrEditIn !== '' ? Number(ocrEditIn) - Number(prev.in_meter) : null
+    const ocrOutDiff = prev?.out_meter != null && ocrEditOut !== '' ? Number(ocrEditOut) - Number(prev.out_meter) : null
+    // J-PATROL-OCR-CONFIRM-LAYOUT-01: 3分割固定 (上33vh画像 / 中34vh値+ボタン / 下33vhテンキー)
     return (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col">
-        {/* J-PATROL-OCR-UNIFY-01-fix-01: 確認画面から手入力に戻る ✕ (右上固定) */}
-        <button
-          type="button"
-          onClick={handleOCRCancel}
-          aria-label="戻る"
-          className="absolute top-3 right-3 z-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-black/60 text-white text-2xl leading-none border border-white/30"
-        >
-          ✕
-        </button>
-        {imageUrl && (
-          <div className="shrink-0 bg-black" style={{ height: '60vh' }}>
-            <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 pb-6">
-          <div className="rounded-2xl border border-border bg-surface/60 p-4 mb-4">
+      <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
+        {/* zone_top: 撮影画像 33vh (縦スクロール/ピンチズーム可) */}
+        <div className="h-[33vh] flex-none overflow-y-auto bg-black" style={{ touchAction: 'pan-y pinch-zoom' }}>
+          {imageUrl
+            ? <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
+            : <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>}
+        </div>
+        {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 34vh */}
+        <div className="h-[34vh] flex-none overflow-y-auto bg-bg px-4 pt-3 pb-3">
+          <div className="rounded-2xl border border-border bg-surface/60 p-3 mb-3">
             <div className="text-xs font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
             <div className="grid grid-cols-2 gap-4 mb-2">
               <div>
@@ -476,25 +473,47 @@ export default function PatrolBoothInputPage() {
               {ocrEdited && <span className="ml-3 text-amber-400">修正済み</span>}
               {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
             </div>
+            {(ocrInDiff != null || ocrOutDiff != null) && (
+              <div className="flex gap-2 mt-2">
+                {ocrInDiff != null && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${ocrInDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>IN差 {ocrInDiff >= 0 ? '+' : ''}{ocrInDiff}</span>
+                )}
+                {ocrOutDiff != null && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${ocrOutDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>OUT差 {ocrOutDiff >= 0 ? '+' : ''}{ocrOutDiff}</span>
+                )}
+              </div>
+            )}
+          </div>
+          {/* 使う / 撮り直す / ✕ (中ゾーン内、テンキーは置かない) */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleOCRUse}
+              className="flex-[2] py-3 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
+            >
+              使う
+            </button>
+            <button
+              type="button"
+              onClick={handleOCRRecapture}
+              className="flex-1 py-3 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]"
+            >
+              撮り直す
+            </button>
+            <button
+              type="button"
+              onClick={handleOCRCancel}
+              aria-label="閉じる"
+              className="flex-none w-[52px] py-3 border-2 border-border text-text font-bold text-xl rounded-2xl min-h-[44px] flex items-center justify-center"
+            >
+              ✕
+            </button>
           </div>
         </div>
-        <div className="flex gap-3 flex-shrink-0 px-4 pt-2 pb-3 bg-bg border-t border-border/30">
-          <button
-            type="button"
-            onClick={handleOCRUse}
-            className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
-          >
-            使う
-          </button>
-          <button
-            type="button"
-            onClick={handleOCRRecapture}
-            className="flex-1 py-4 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]"
-          >
-            再撮影
-          </button>
+        {/* zone_bottom: テンキー 33vh 固定 (スクロールアウト禁止、重要UIを置かない) */}
+        <div className="h-[33vh] flex-none flex flex-col overflow-hidden">
+          <NumpadFooterPanel currentField={currentField} />
         </div>
-        <NumpadFooterPanel currentField={currentField} />
       </div>
     )
   }
