@@ -59,6 +59,15 @@ function resizeImageFile(file) {
   })
 }
 
+// J-PATROL 理論在庫: 前回在庫 + 前回補充 − OUT差(今回OUT − 前回OUT)。払い出し=OUT差(1個=1カウント)。
+// 別日の巡回入力で「残数に前回補充を足し込み、OUTをリアルタイムで引いた」値を在庫欄デフォルトにする。
+function theoreticalStock(prevStock, prevRestock, prevOut, curOut) {
+  if (prevStock == null) return null
+  const base = Number(prevStock) + Number(prevRestock ?? 0)
+  const diff = (curOut !== '' && curOut != null && prevOut != null) ? Number(curOut) - Number(prevOut) : 0
+  return base - diff
+}
+
 const ENTRY_BADGES = {
   patrol:     { label: '通常巡回',      cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30' },
   replace:    { label: '入替/設定変更', cls: 'bg-amber-500/20 text-amber-400 border-amber-400/30' },
@@ -157,20 +166,30 @@ export default function PatrolBoothInputPage() {
     setOut1(prev.out_meter != null ? String(prev.out_meter) : '')
     setOut2(prev.out_meter_2 != null ? String(prev.out_meter_2) : '')
     setOut3(prev.out_meter_3 != null ? String(prev.out_meter_3) : '')
-    setStk(prev.prize_stock_count != null ? String(prev.prize_stock_count) : '')
-    setRst(prev.prize_restock_count != null ? String(prev.prize_restock_count) : '')
+    // J-PATROL: 在庫欄=理論在庫(前回在庫+前回補充−OUT差)を初期値、補充欄=0デフォ。OUT追従は別effectで再計算。
+    {
+      const t1 = theoreticalStock(prev.prize_stock_count, prev.prize_restock_count, prev.out_meter, prev.out_meter)
+      setStk(t1 != null ? String(t1) : '')
+    }
+    setRst('')
     setPrize(prev.prize_name ?? '')
     const pc = prev.prize_cost ?? prev.prize_cost_1
     setCost(pc != null && pc !== '' ? String(pc) : '')
     // OUT2
-    setStk2(prev.stock_2 != null ? String(prev.stock_2) : '')
-    setRst2(prev.restock_2 != null ? String(prev.restock_2) : '')
+    {
+      const t2 = theoreticalStock(prev.stock_2, prev.restock_2, prev.out_meter_2, prev.out_meter_2)
+      setStk2(t2 != null ? String(t2) : '')
+    }
+    setRst2('')
     setPrize2(prev.prize_name_2 ?? '')
     setCost2(prev.prize_cost_2 != null ? String(prev.prize_cost_2) : '')
     setSelectedPrizeId2(null)
     // OUT3
-    setStk3(prev.stock_3 != null ? String(prev.stock_3) : '')
-    setRst3(prev.restock_3 != null ? String(prev.restock_3) : '')
+    {
+      const t3 = theoreticalStock(prev.stock_3, prev.restock_3, prev.out_meter_3, prev.out_meter_3)
+      setStk3(t3 != null ? String(t3) : '')
+    }
+    setRst3('')
     setPrize3(prev.prize_name_3 ?? '')
     setCost3(prev.prize_cost_3 != null ? String(prev.prize_cost_3) : '')
     setSelectedPrizeId3(null)
@@ -182,6 +201,24 @@ export default function PatrolBoothInputPage() {
     setSetO(prev.set_o ?? '')
     setSelectedPrizeId(null)
   }, [prev?.reading_id, boothCode])
+
+  // J-PATROL: 未編集(グレー)の在庫欄を OUT入力にリアルタイム追従させ理論在庫を再計算。
+  // 手入力(touched)された欄は上書きしない。保存時は在庫state(理論在庫 or 手入力)がそのまま確定。
+  useEffect(() => {
+    if (!prev) return
+    if (!touched.stock) {
+      const v = theoreticalStock(prev.prize_stock_count, prev.prize_restock_count, prev.out_meter, outMeter1)
+      setStk(v != null ? String(v) : '')
+    }
+    if (!touched.stock2) {
+      const v = theoreticalStock(prev.stock_2, prev.restock_2, prev.out_meter_2, outMeter2)
+      setStk2(v != null ? String(v) : '')
+    }
+    if (!touched.stock3) {
+      const v = theoreticalStock(prev.stock_3, prev.restock_3, prev.out_meter_3, outMeter3)
+      setStk3(v != null ? String(v) : '')
+    }
+  }, [prev, outMeter1, outMeter2, outMeter3, touched.stock, touched.stock2, touched.stock3]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!resolvedStoreCode) { setIsCollectionDay(false); return }
