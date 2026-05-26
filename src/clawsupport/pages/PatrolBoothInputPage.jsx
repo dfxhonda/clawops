@@ -390,16 +390,28 @@ export default function PatrolBoothInputPage() {
     )
   }
 
-  // === OCR loading: confirming と同じ3分割レイアウトを流用 (fix-04) ===
+  // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-05: loading と confirming で同一の上ゾーンJSX (TransformWrapper, initialScale=1, w-full h-auto)
+  function renderOcrImageZone(url) {
+    return (
+      <div className="h-[33vh] flex-none overflow-hidden bg-black">
+        {url ? (
+          <TransformWrapper initialScale={1} minScale={1} maxScale={6} doubleClick={{ mode: 'zoomIn' }}>
+            <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%' }}>
+              <img src={url} alt="OCR撮影" className="w-full h-auto" />
+            </TransformComponent>
+          </TransformWrapper>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>
+        )}
+      </div>
+    )
+  }
+
+  // === OCR loading: confirming と同じ3分割レイアウトを流用 (fix-04/05) ===
   if (ocrState === 'loading') {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* zone_top: 撮影画像 (オーバーレイ無し、全表示) */}
-        <div className="h-[33vh] flex-none overflow-hidden bg-black">
-          {ocrLoadingImg
-            ? <img src={ocrLoadingImg} alt="OCR撮影" className="w-full h-full object-contain" />
-            : <div className="w-full h-full" />}
-        </div>
+        {renderOcrImageZone(ocrLoadingImg)}
         {/* zone_middle: 解析中スピナーをIN/OUTエリアに重ねる (画像には暗転無し) or エラー */}
         <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
           {ocrError ? (
@@ -433,7 +445,7 @@ export default function PatrolBoothInputPage() {
           )}
         </div>
         {/* zone_bottom: テンキー グレーアウト (操作不可) */}
-        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pointer-events-none opacity-50">
+        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden pointer-events-none opacity-50">
           <NumpadFooterPanel currentField={null} />
         </div>
       </div>
@@ -451,18 +463,8 @@ export default function PatrolBoothInputPage() {
     // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-02: 3分割 (上33vh画像窓枠 / 中25vh値+ボタン / 下42vhテンキー safe-area)
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
-        {/* zone_top: 33vh 窓枠(outer overflow-hidden でクリップ)。react-zoom-pan-pinch でピンチズーム+ドラッグ、上ゾーン内に限定 */}
-        <div className="h-[33vh] flex-none overflow-hidden bg-black">
-          {imageUrl ? (
-            <TransformWrapper initialScale={1} minScale={1} maxScale={6} doubleClick={{ mode: 'zoomIn' }}>
-              <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%' }}>
-                <img src={imageUrl} alt="OCR撮影" className="w-full h-auto" />
-              </TransformComponent>
-            </TransformWrapper>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted text-xs">画像なし</div>
-          )}
-        </div>
+        {/* zone_top: loading と共有 (fix-05) */}
+        {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[25vh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
           <div className="rounded-xl border border-border bg-surface/60 p-2 mb-2">
@@ -542,8 +544,8 @@ export default function PatrolBoothInputPage() {
             </button>
           </div>
         </div>
-        {/* zone_bottom: テンキー 45vh 固定 (0/BS含む全キー表示、iOS safe-area inset bottom考慮) */}
-        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
+        {/* zone_bottom: テンキー 45vh 固定 (0/BS含む全キー表示。safe-areaはNumpadFooterPanel内部で処理、二重padding廃止) */}
+        <div className="h-[45vh] flex-none shrink-0 flex flex-col overflow-hidden">
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>

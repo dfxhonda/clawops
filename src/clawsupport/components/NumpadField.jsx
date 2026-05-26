@@ -61,7 +61,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
       ) : (
         <>
           <div style={{
-            height: 44, padding: '0 12px', borderBottom: '1px solid #2a2a44',
+            height: 30, padding: '0 12px', borderBottom: '1px solid #2a2a44',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             flexShrink: 0,
           }}>
@@ -91,8 +91,8 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
-              gap: 1,
-              padding: 4,
+              gap: 0,
+              padding: 0,
             }}
           >
             {KEYS.map(k => (
