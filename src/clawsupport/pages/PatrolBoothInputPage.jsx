@@ -160,8 +160,12 @@ export default function PatrolBoothInputPage() {
   }, [boothCode])
 
   useEffect(() => {
+    // ブース切替(保存して次へ含む)時は入力済み判定/保存ステータスをリセット。
+    // これをしないと前ブースの「変化なし/保存しました」が次ブースに残る。
     setTouched({ ...EMPTY_TOUCHED })
-  }, [boothCode])
+    setSkipped(false)
+    saveActions.reset()
+  }, [boothCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!prev) return
