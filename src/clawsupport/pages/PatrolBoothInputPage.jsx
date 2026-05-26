@@ -458,22 +458,22 @@ export default function PatrolBoothInputPage() {
               {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
             </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleOCRUse}
-              className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
-            >
-              使う
-            </button>
-            <button
-              type="button"
-              onClick={handleOCRRecapture}
-              className="flex-1 py-4 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]"
-            >
-              再撮影
-            </button>
-          </div>
+        </div>
+        <div className="flex gap-3 flex-shrink-0 px-4 pt-2 pb-3 bg-bg border-t border-border/30">
+          <button
+            type="button"
+            onClick={handleOCRUse}
+            className="flex-1 py-4 bg-blue-600 text-white font-bold text-base rounded-2xl min-h-[44px]"
+          >
+            使う
+          </button>
+          <button
+            type="button"
+            onClick={handleOCRRecapture}
+            className="flex-1 py-4 border-2 border-border text-text font-bold text-base rounded-2xl min-h-[44px]"
+          >
+            再撮影
+          </button>
         </div>
         <NumpadFooterPanel currentField={currentField} />
       </div>
