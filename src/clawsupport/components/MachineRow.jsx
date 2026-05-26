@@ -19,8 +19,11 @@ function Chevron({ className }) {
   )
 }
 
-export default function MachineRow({ machine, todayMap, diffMap, onBoothClick }) {
-  const [isExpanded, setIsExpanded] = useState(false)
+export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand }) {
+  // expanded/onToggleExpand が渡されれば外部制御(リスト状態の保持用)、無ければ従来の内部state
+  const controlled = typeof onToggleExpand === 'function'
+  const [localExpanded, setLocalExpanded] = useState(false)
+  const isExpanded = controlled ? !!expanded : localExpanded
   const booths = machine.booths ?? []
   const isSingleBooth = booths.length === 1
 
@@ -39,8 +42,10 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick })
   const handleClick = () => {
     if (isSingleBooth) {
       onBoothClick(booths[0])
+    } else if (controlled) {
+      onToggleExpand()
     } else {
-      setIsExpanded(e => !e)
+      setLocalExpanded(e => !e)
     }
   }
 

@@ -26,7 +26,7 @@ const MOCK_RESULTS = [
 ]
 
 describe('searchPrizeMasters', () => {
-  it('キーワードが2文字以下は空配列を返す（ネットワーク不要）', async () => {
+  it('キーワードが1文字以下は空配列を返す（ネットワーク不要）', async () => {
     const spy = { called: false }
     server.use(
       http.get(`${BASE}/rest/v1/prize_masters`, () => {
@@ -36,16 +36,17 @@ describe('searchPrizeMasters', () => {
     )
     expect(await searchPrizeMasters('')).toEqual([])
     expect(await searchPrizeMasters('ラ')).toEqual([])
-    expect(await searchPrizeMasters('ラブ')).toEqual([])
     expect(spy.called).toBe(false)
   })
 
-  it('3文字以上でSupabaseを呼び結果を返す', async () => {
+  it('2文字以上でSupabaseを呼び結果を返す', async () => {
     server.use(
       http.get(`${BASE}/rest/v1/prize_masters`, () =>
         HttpResponse.json(MOCK_RESULTS),
       ),
     )
+    // 2文字からリストアップ (J-PATROL 復元仕様)
+    expect(await searchPrizeMasters('ラブ')).toHaveLength(2)
     const result = await searchPrizeMasters('ラブブ')
     expect(result).toHaveLength(2)
     expect(result[0].prize_id).toBe('PM-001')
@@ -53,7 +54,7 @@ describe('searchPrizeMasters', () => {
     expect(result[0].original_cost).toBe(2500)
   })
 
-  it('前後の空白をトリムして3文字判定する', async () => {
+  it('前後の空白をトリムして2文字判定する', async () => {
     server.use(
       http.get(`${BASE}/rest/v1/prize_masters`, () =>
         HttpResponse.json(MOCK_RESULTS),
@@ -63,7 +64,7 @@ describe('searchPrizeMasters', () => {
     expect(result).toHaveLength(2)
   })
 
-  it('3文字丁度もトリム後2文字なら空配列', async () => {
+  it('トリム後1文字なら空配列', async () => {
     const spy = { called: false }
     server.use(
       http.get(`${BASE}/rest/v1/prize_masters`, () => {
@@ -71,7 +72,7 @@ describe('searchPrizeMasters', () => {
         return HttpResponse.json([])
       }),
     )
-    expect(await searchPrizeMasters(' ラブ ')).toEqual([])
+    expect(await searchPrizeMasters(' ラ ')).toEqual([])
     expect(spy.called).toBe(false)
   })
 

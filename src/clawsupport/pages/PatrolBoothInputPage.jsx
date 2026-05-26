@@ -16,26 +16,13 @@ import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { logger } from '../../lib/logger'
+import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
+import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
 import {
   savePatrolReading,
   getLastReadingForBooth,
   classifyEntryType,
 } from '../../services/patrolCore'
-
-function mapMetersToColumns(meters) {
-  const inTypes = ['in','yen1000_in','yen500_in','yen100_in','in_a','in_b','change_in']
-  const cols = { in_meter: null, out_meter: null }
-  for (const t of inTypes) {
-    const m = meters.find(x => x.type === t && x.value != null)
-    if (m) { cols.in_meter = parseInt(m.value, 10); break }
-  }
-  const outOrder = ['out_a','out','capsule_out','prize_out','out_b','out_c','change_out']
-  const outs = meters
-    .filter(m => /out/i.test(m.type) && m.value != null)
-    .sort((a, b) => outOrder.indexOf(a.type) - outOrder.indexOf(b.type))
-  if (outs[0]) cols.out_meter = parseInt(outs[0].value, 10)
-  return cols
-}
 
 // J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺1600px q0.85 に縮小して {base64, blob} を返す
 function resizeImageFile(file) {
@@ -79,15 +66,17 @@ function EntryTypeBadge({ type }) {
 
 export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
-  const { state }    = useLocation()
+  const { state, pathname } = useLocation()
   const navigate     = useNavigate()
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const { navigateNext, currentField, registerField } = useFieldNavigation()
   const activeTabindex = currentField?.dataTabindex ?? null
 
-  const { machine, booth, storeCode } = state ?? {}
+  const { machine, booth, storeCode, boothList, boothIndex } = state ?? {}
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
+  const isBeta = pathname.startsWith('/clawsupport/beta/')
+  const setFocusBooth = usePatrolListScrollStore(s => s.setFocusBooth)
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
 
   // OCR state
@@ -148,8 +137,12 @@ export default function PatrolBoothInputPage() {
   }, [boothCode])
 
   useEffect(() => {
+    // ブース切替(保存して次へ含む)時は入力済み判定/保存ステータスをリセット。
+    // これをしないと前ブースの「変化なし/保存しました」が次ブースに残る。
     setTouched({ ...EMPTY_TOUCHED })
-  }, [boothCode])
+    setSkipped(false)
+    saveActions.reset()
+  }, [boothCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!prev) return
@@ -157,20 +150,30 @@ export default function PatrolBoothInputPage() {
     setOut1(prev.out_meter != null ? String(prev.out_meter) : '')
     setOut2(prev.out_meter_2 != null ? String(prev.out_meter_2) : '')
     setOut3(prev.out_meter_3 != null ? String(prev.out_meter_3) : '')
-    setStk(prev.prize_stock_count != null ? String(prev.prize_stock_count) : '')
-    setRst(prev.prize_restock_count != null ? String(prev.prize_restock_count) : '')
+    // J-PATROL: 在庫欄=理論在庫(前回在庫+前回補充−OUT差)を初期値、補充欄=0デフォ。OUT追従は別effectで再計算。
+    {
+      const t1 = theoreticalStock(prev.prize_stock_count, prev.prize_restock_count, prev.out_meter, prev.out_meter)
+      setStk(t1 != null ? String(t1) : '')
+    }
+    setRst('')
     setPrize(prev.prize_name ?? '')
     const pc = prev.prize_cost ?? prev.prize_cost_1
     setCost(pc != null && pc !== '' ? String(pc) : '')
     // OUT2
-    setStk2(prev.stock_2 != null ? String(prev.stock_2) : '')
-    setRst2(prev.restock_2 != null ? String(prev.restock_2) : '')
+    {
+      const t2 = theoreticalStock(prev.stock_2, prev.restock_2, prev.out_meter_2, prev.out_meter_2)
+      setStk2(t2 != null ? String(t2) : '')
+    }
+    setRst2('')
     setPrize2(prev.prize_name_2 ?? '')
     setCost2(prev.prize_cost_2 != null ? String(prev.prize_cost_2) : '')
     setSelectedPrizeId2(null)
     // OUT3
-    setStk3(prev.stock_3 != null ? String(prev.stock_3) : '')
-    setRst3(prev.restock_3 != null ? String(prev.restock_3) : '')
+    {
+      const t3 = theoreticalStock(prev.stock_3, prev.restock_3, prev.out_meter_3, prev.out_meter_3)
+      setStk3(t3 != null ? String(t3) : '')
+    }
+    setRst3('')
     setPrize3(prev.prize_name_3 ?? '')
     setCost3(prev.prize_cost_3 != null ? String(prev.prize_cost_3) : '')
     setSelectedPrizeId3(null)
@@ -182,6 +185,24 @@ export default function PatrolBoothInputPage() {
     setSetO(prev.set_o ?? '')
     setSelectedPrizeId(null)
   }, [prev?.reading_id, boothCode])
+
+  // J-PATROL: 未編集(グレー)の在庫欄を OUT入力にリアルタイム追従させ理論在庫を再計算。
+  // 手入力(touched)された欄は上書きしない。保存時は在庫state(理論在庫 or 手入力)がそのまま確定。
+  useEffect(() => {
+    if (!prev) return
+    if (!touched.stock) {
+      const v = theoreticalStock(prev.prize_stock_count, prev.prize_restock_count, prev.out_meter, outMeter1)
+      setStk(v != null ? String(v) : '')
+    }
+    if (!touched.stock2) {
+      const v = theoreticalStock(prev.stock_2, prev.restock_2, prev.out_meter_2, outMeter2)
+      setStk2(v != null ? String(v) : '')
+    }
+    if (!touched.stock3) {
+      const v = theoreticalStock(prev.stock_3, prev.restock_3, prev.out_meter_3, outMeter3)
+      setStk3(v != null ? String(v) : '')
+    }
+  }, [prev, outMeter1, outMeter2, outMeter3, touched.stock, touched.stock2, touched.stock3]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!resolvedStoreCode) { setIsCollectionDay(false); return }
@@ -353,7 +374,7 @@ export default function PatrolBoothInputPage() {
     setOcrEdited(false)
   }
 
-  async function handleSave() {
+  async function handleSave(onDone) {
     if (!patrolEnabled) {
       alert('patrol_core フラグが無効です。管理者に連絡してください。')
       return
@@ -381,17 +402,52 @@ export default function PatrolBoothInputPage() {
       } else if (res.skipped) {
         setSkipped(true)
         saveActions.reset()
-        setTimeout(() => navigate(-1), 1000)
+        setTimeout(() => (onDone ? onDone() : navigate(-1)), 1000)
       } else {
         saveActions.setSuccess()
         setHistoryKey(k => k + 1)
-        setTimeout(() => navigate(-1), 800)
+        setTimeout(() => (onDone ? onDone() : navigate(-1)), 800)
       }
     } catch (e) {
       logger.error('patrol_save_failed_unexpected', { message: e?.message, boothCode })
       saveActions.setError('ERR-UNKNOWN', e?.message ?? '予期しないエラー')
     }
   }
+
+  // 次ブース (リストのフラット順)。最後なら null。
+  const nextBoothEntry =
+    Array.isArray(boothList) && boothIndex != null && boothIndex >= 0
+      ? (boothList[boothIndex + 1] ?? null)
+      : null
+
+  function goBackToList() {
+    // 展開状態を維持したまま、次ブース(無ければ現ブース)が見える位置へ復帰
+    if (resolvedStoreCode) {
+      setFocusBooth(resolvedStoreCode, nextBoothEntry?.booth?.booth_code ?? boothCode)
+      navigate(`/clawsupport/${isBeta ? 'beta/' : ''}store/${resolvedStoreCode}`)
+    } else {
+      navigate(-1)
+    }
+  }
+
+  function goNextBooth() {
+    if (nextBoothEntry) {
+      navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${nextBoothEntry.booth.booth_code}`, {
+        state: {
+          machine: nextBoothEntry.machine,
+          booth: nextBoothEntry.booth,
+          storeCode: resolvedStoreCode,
+          boothList,
+          boothIndex: boothIndex + 1,
+        },
+      })
+    } else {
+      goBackToList()
+    }
+  }
+
+  const handleSaveNext = () => handleSave(goNextBooth)
+  const handleSaveList = () => handleSave(goBackToList)
 
   const savingProp = saveState.status === 'loading'
   const resultProp = saveState.status === 'success' ? 'saved'
@@ -638,6 +694,7 @@ export default function PatrolBoothInputPage() {
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
           canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
+          onSaveNext={handleSaveNext} onSaveList={handleSaveList}
           onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'file' }); fileInputRef.current?.click() }}
         />
       </div>

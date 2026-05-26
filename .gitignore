@@ -32,3 +32,6 @@ docs/photos/
 .env.tmp.nosync
 .vercel
 CLAUDE.md.v1.bak
+
+*storybook.log
+storybook-static

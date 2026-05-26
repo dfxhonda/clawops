@@ -38,7 +38,7 @@ export default function PrizeNameAutocomplete({
   const inputRef = useRef(null)
 
   useEffect(() => {
-    if (debouncedQuery.trim().length < 3) {
+    if (debouncedQuery.trim().length < 2) {
       setCandidates([])
       setOpen(false)
       return
@@ -56,7 +56,7 @@ export default function PrizeNameAutocomplete({
     const v = e.target.value
     onChange(v)
     setQuery(v)
-    if (v.trim().length < 3) {
+    if (v.trim().length < 2) {
       setCandidates([])
       setOpen(false)
     }
@@ -126,11 +126,16 @@ export default function PrizeNameAutocomplete({
                 role="option"
                 data-testid={`prize-candidate-${i}`}
                 onMouseDown={() => handleSelect(item)}
-                className="px-3 py-2 text-sm text-text cursor-pointer hover:bg-accent/10 active:bg-accent/20 border-b border-border last:border-0"
+                className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-text cursor-pointer hover:bg-accent/10 active:bg-accent/20 border-b border-border last:border-0"
               >
-                <span className="font-bold">{item.prize_name}</span>
-                {item.prize_name_kana && (
-                  <span className="ml-2 text-xs text-gray-500">{item.prize_name_kana}</span>
+                <span className="min-w-0 truncate">
+                  <span className="font-bold">{item.prize_name}</span>
+                  {item.prize_name_kana && (
+                    <span className="ml-2 text-xs text-gray-500">{item.prize_name_kana}</span>
+                  )}
+                </span>
+                {item.original_cost != null && (
+                  <span className="shrink-0 text-xs font-bold text-amber-400">@{item.original_cost}</span>
                 )}
               </li>
             ))
