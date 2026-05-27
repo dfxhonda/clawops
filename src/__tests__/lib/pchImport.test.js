@@ -4,12 +4,15 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-vi.mock('../../lib/supabase', () => ({ supabase: {} }))
+// loadExistingPchOrders 用に from().select().eq() を空配列で返すチェーンをモック
+vi.mock('../../lib/supabase', () => ({
+  supabase: { from: () => ({ select: () => ({ eq: () => Promise.resolve({ data: [], error: null }) }) }) },
+}))
 vi.mock('../../services/audit', () => ({ writeAuditLog: vi.fn() }))
 
 const {
   parseSheets, explodeToRecords, parseDistribution, parseExpectedDate,
-  normalizeStore, toNum, buildRawImportId, reconcile, MANUAL_MARKER,
+  normalizeStore, toNum, buildRawImportId, reconcile, previewPchImport, MANUAL_MARKER,
 } = await import('../../admin/lib/pchImport')
 
 const xlsxBuf = readFileSync(resolve('archive/取込/(株)Change.xlsx'))
@@ -152,5 +155,21 @@ describe('reconcile (照合)', () => {
     const { summary, records } = reconcile([], existing)
     expect(summary.conflict).toBe(1)
     expect(records[0].conflictReason).toBe('arrived_disappeared')
+  })
+})
+
+describe('previewPchImport (state付きrecords契約 / regression)', () => {
+  const fileLike = { arrayBuffer: async () => xlsxBuf }
+  it('返すrecordsは全件state付き (reconcile結果、生explodeで上書きしない)', async () => {
+    const preview = await previewPchImport(fileLike)
+    expect(preview.records.length).toBeGreaterThan(0)
+    // 全レコードに state がある (state無し=executePchImportが0件INSERTになるバグ)
+    expect(preview.records.every(r => typeof r.state === 'string')).toBe(true)
+  })
+  it('既存pch_excel無し → 大半insert / state==insert件数とsummary.insertが一致', async () => {
+    const preview = await previewPchImport(fileLike)
+    const insertRecs = preview.records.filter(r => r.state === 'insert')
+    expect(insertRecs.length).toBeGreaterThan(0)
+    expect(insertRecs.length).toBe(preview.summary.insert)
   })
 })

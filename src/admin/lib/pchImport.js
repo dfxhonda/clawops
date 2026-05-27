@@ -368,5 +368,8 @@ export async function previewPchImport(file) {
   const months = [...new Set(details.map(d => d.sheetMonth).filter(m => m != null))]
   const existing = await loadExistingPchOrders(months)
   const result = reconcile(records, existing)
-  return { ...result, details, records, months }
+  // result.records は state付き(reconcile済)。生の explode records(state無し)で上書きしないこと。
+  // 以前 {...result, records} としていたため preview.records が state無しになり、
+  // executePchImport の filter(state==='insert') が0件→「成功だが0件INSERT」バグ(2026-05-27修正)。
+  return { records: result.records, summary: result.summary, details, months }
 }
