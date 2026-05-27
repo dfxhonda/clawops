@@ -12,6 +12,11 @@ export const MOVEMENT_TYPES = {
   REPLENISH: 'replenish',
   COUNT: 'count',
   ADJUST: 'adjust',
+  // J-STOCK-MACHINE-fix-03b: stock_movements.check_movement_type CHECK制約に合わせDB許可値を使用。
+  // 補充/入替後セット (staff→booth) = out_to_booth、入替前回収 (booth→staff) = out_to_staff。
+  // 業務上の区別 (patrol_supplement/replace_unload/replace_load) は reason 列で保持。
+  MACHINE_LOAD: 'out_to_booth',
+  MACHINE_UNLOAD: 'out_to_staff',
 }
 
 export async function getStockMovements(forceRefresh = false) {
@@ -167,4 +172,45 @@ export async function countStock({ prizeId, prizeName, ownerType, ownerId, actua
   })
 
   return { previousQuantity: currentQty, actualQuantity, diff }
+}
+
+// ============================================
+// J-STOCK-MACHINE-fix-03b: 巡回補充/入替 → booth在庫反映 (stock_movements)
+// prize_stocks は触らず stock_movements にのみ記録 (best-effort)。
+// quantity > 0 は DB CHECK制約 (J-STOCK-QTY-GUARD-fix-01) で担保。
+// ============================================
+
+// machine_load: staff → booth (巡回補充 or 入替後の新景品セット)
+// quantity<=0 は記録対象外 (補充0は movement を作らない)
+export async function recordMachineLoad({ boothCode, prizeId, quantity, staffId, reason = 'patrol_supplement' }) {
+  const qty = parseInt(quantity, 10)
+  if (!boothCode || !Number.isFinite(qty) || qty <= 0) return null
+  return addStockMovement({
+    prize_id: prizeId || null,
+    movement_type: MOVEMENT_TYPES.MACHINE_LOAD,
+    from_owner_type: 'staff',
+    from_owner_id: staffId || '',
+    to_owner_type: 'booth',
+    to_owner_id: boothCode,
+    quantity: qty,
+    reason,
+    created_by: staffId || '',
+  })
+}
+
+// machine_unload: booth → staff (入替時に前景品を引き上げ)
+// 残数カウント未実装のため quantity=1 固定の最小実装。記録が存在することが目的。
+export async function recordMachineUnload({ boothCode, prizeId, staffId, reason = 'replace_unload' }) {
+  if (!boothCode) return null
+  return addStockMovement({
+    prize_id: prizeId || null,
+    movement_type: MOVEMENT_TYPES.MACHINE_UNLOAD,
+    from_owner_type: 'booth',
+    from_owner_id: boothCode,
+    to_owner_type: 'staff',
+    to_owner_id: staffId || '',
+    quantity: 1,
+    reason,
+    created_by: staffId || '',
+  })
 }
