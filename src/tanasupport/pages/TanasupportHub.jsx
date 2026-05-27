@@ -149,7 +149,7 @@ export default function TanasupportHub() {
             borderColor="#f43f5e"
             badge={arrivalsCount > 0 ? arrivalsCount : null}
             badgeBg="bg-rose-500"
-            onClick={() => navigate('/admin/orders')}
+            onClick={() => navigate('/stock/arrival')}
           />
           <TaskTile
             emoji="📋"
