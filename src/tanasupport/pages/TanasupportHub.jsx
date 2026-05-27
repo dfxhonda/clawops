@@ -176,6 +176,16 @@ export default function TanasupportHub() {
             badge={null}
             onClick={() => navigate('/stock/out')}
           />
+          {import.meta.env.VITE_FF_STOCK_TRANSFER === 'true' && (
+            <TaskTile
+              emoji="🚚"
+              title="持ち出し / 帰庫"
+              sub="倉庫↔担当者の在庫移動"
+              borderColor="#10b981"
+              badge={null}
+              onClick={() => navigate('/tanasupport/transfer')}
+            />
+          )}
         </div>
       )}
 

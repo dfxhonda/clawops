@@ -143,6 +143,8 @@ const StocktakeCount = lazy(() => import('./tanasupport/pages/StocktakeCount'))
 const StocktakeSummary = lazy(() => import('./tanasupport/pages/StocktakeSummary'))
 const StockDashboard = lazy(() => import('./tanasupport/pages/StockDashboard'))
 const StockMove    = lazy(() => import('./tanasupport/pages/StockMove'))
+// J-STOCK-TRANSFER-fix-02: 倉庫↔担当者 持ち出し/帰庫 (FF=VITE_FF_STOCK_TRANSFER)
+const TransferPage = lazy(() => import('./tanasupport/stock/TransferPage'))
 const StockCount   = lazy(() => import('./tanasupport/pages/StockCount'))
 const StockOutPage       = lazy(() => import('./tanasupport/pages/StockOutPage'))
 const ArrivalCheckPage   = lazy(() => import('./tanasupport/pages/ArrivalCheckPage'))
@@ -333,6 +335,10 @@ function AppInner() {
       {/* 在庫管理 — manager以上 */}
       <Route path="/stock/dashboard" element={<ManagerRoute><StockDashboard /></ManagerRoute>} />
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
+      {/* J-STOCK-TRANSFER-fix-02: 倉庫↔担当者 持ち出し/帰庫 (FF=VITE_FF_STOCK_TRANSFER, default off) */}
+      {import.meta.env.VITE_FF_STOCK_TRANSFER === 'true' && (
+        <Route path="/tanasupport/transfer" element={<ManagerRoute><TransferPage /></ManagerRoute>} />
+      )}
       <Route path="/stock/out"     element={<ManagerRoute><StockOutPage /></ManagerRoute>} />
       <Route path="/stock/arrival" element={<ManagerRoute><ArrivalCheckPage /></ManagerRoute>} />
 
