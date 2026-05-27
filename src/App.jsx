@@ -37,6 +37,7 @@ const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 // J-ADMIN-02: Admin IA layout + hub pages (旧実装は _legacy/ に移動)
 const AdminLayout           = lazy(() => import('./admin/AdminLayout'))
 const AdminMastersHubPage   = lazy(() => import('./admin/pages/AdminMastersHubPage'))
+const AdminCollectionFlagPage = lazy(() => import('./admin/pages/AdminCollectionFlagPage'))
 const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
 const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
@@ -212,6 +213,7 @@ function AppInner() {
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
         <Route path="import" element={<AdminImportHubPage />} />
+        <Route path="collection-flag" element={<AdminCollectionFlagPage />} />
         <Route path="labels" element={<AdminQRLabelPage />} />
         <Route path="*" element={<AdminPlaceholderPage />} />
       </Route>
