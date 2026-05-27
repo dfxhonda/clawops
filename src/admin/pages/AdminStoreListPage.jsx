@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import StoreCrudDrawer from '../components/StoreCrudDrawer'
 
 const LIST_SELECT = 'store_id,store_code,store_name,store_name_official,brand_name,store_type,phone,address,region,locality,locality_kana,is_active,opened_at,closed_at,is_collection_day,notes'
 
@@ -52,6 +53,7 @@ export default function AdminStoreListPage() {
   const [gridMode, setGridMode] = useState(false)
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
+  const [detailStore, setDetailStore] = useState(null) // 店舗詳細ドロワー対象
 
   useEffect(() => {
     supabase.from('stores').select('brand_name').then(({ data }) => {
@@ -280,7 +282,7 @@ export default function AdminStoreListPage() {
                 <tr
                   key={r.store_id}
                   data-testid="store-list-row"
-                  onClick={gridMode ? undefined : () => openEdit(r)}
+                  onClick={gridMode ? undefined : () => { setDetailStore(r); setError(null) }}
                   className={`border-b border-border/50 ${gridMode ? (ge ? 'bg-amber-900/15' : 'hover:bg-surface/30') : 'hover:bg-surface cursor-pointer'}`}
                 >
                   <td className="py-0.5 px-1 text-text font-medium max-w-[180px]">
@@ -398,6 +400,15 @@ export default function AdminStoreListPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {detailStore && (
+        <StoreCrudDrawer
+          storeCode={detailStore.store_code}
+          storeName={detailStore.store_name}
+          onClose={() => setDetailStore(null)}
+          onEditStore={() => { const s = detailStore; setDetailStore(null); openEdit(s) }}
+        />
       )}
     </div>
   )
