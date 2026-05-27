@@ -38,6 +38,8 @@ const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 const AdminLayout           = lazy(() => import('./admin/AdminLayout'))
 const AdminMastersHubPage   = lazy(() => import('./admin/pages/AdminMastersHubPage'))
 const AdminCollectionFlagPage = lazy(() => import('./admin/pages/AdminCollectionFlagPage'))
+const CollectionInputPage   = lazy(() => import('./collection/CollectionInputPage'))
+const CollectionHistoryPage = lazy(() => import('./collection/CollectionHistoryPage'))
 const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
 const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
@@ -184,6 +186,9 @@ function AppInner() {
       <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute><Navigate to="/launcher" replace /></ProtectedRoute>} />
       <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
+      {/* J-COLLECTION-01: 集金 */}
+      <Route path="/collection/input" element={<ProtectedRoute><CollectionInputPage /></ProtectedRoute>} />
+      <Route path="/collection/history" element={<ProtectedRoute><CollectionHistoryPage /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
       <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       {/* J-ADMIN-02: AdminLayout nested routes (新 IA ナビ骨組) */}

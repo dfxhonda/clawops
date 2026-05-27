@@ -78,6 +78,27 @@ export default function Launcher() {
           </button>
         ))}
 
+        {/* J-COLLECTION-01: 集金タイル */}
+        <button
+          type="button"
+          data-testid="launcher-tile-collection"
+          onClick={() => navigate('/collection/input')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
+        >
+          <span
+            className="shrink-0 flex items-center justify-center text-[44px] leading-none"
+            style={{ width: 44, height: 44 }}
+            aria-hidden
+          >
+            💴
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-bold leading-tight text-white">集金</p>
+            <p className="text-[13px] text-slate-400 mt-1 leading-snug">金種カウント・売上伝票PDF</p>
+          </div>
+          <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
+        </button>
+
         {/* 未対応TODOタイル */}
         <button
           type="button"
