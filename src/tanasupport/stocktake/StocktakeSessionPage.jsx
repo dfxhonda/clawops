@@ -127,7 +127,16 @@ export default function StocktakeSessionPage() {
       )}
       {tab === 'summary'  && <SummaryTab  summary={summary} />}
 
-      <div className="fixed bottom-0 inset-x-0 bg-bg border-t border-border px-5 py-3">
+      <div className="fixed bottom-0 inset-x-0 bg-bg border-t border-border px-5 py-3 space-y-2">
+        {import.meta.env.VITE_FF_STOCKTAKE === 'true' && (
+          <button
+            onClick={() => navigate('/tanasupport/stocktake/count')}
+            data-testid="goto-stocktake-count"
+            className="w-full h-12 bg-accent text-bg text-base rounded-2xl font-bold active:scale-[0.98] transition-all"
+          >
+            倉庫・担当者の個数を入力
+          </button>
+        )}
         <button
           onClick={() => navigate('/tanasupport')}
           className="w-full h-12 bg-surface border border-border text-text text-sm rounded-2xl font-medium active:scale-[0.98] transition-all"

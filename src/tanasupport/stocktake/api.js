@@ -195,6 +195,40 @@ export async function getSessionSummary(sessionId) {
 }
 
 /**
+ * 担当者(車載在庫持ち)一覧 — J-STOCKTAKE-MVP-fix-01 個数入力対象選択用
+ */
+export async function getStocktakeStaff() {
+  const { data, error } = await supabase
+    .from('staff')
+    .select('staff_id, name')
+    .eq('is_active', true)
+    .eq('has_vehicle_stock', true)
+    .order('name')
+  if (error) throw error
+  return data ?? []
+}
+
+/**
+ * 担当者の車載在庫景品一覧 (getLocationPrizes の owner_type='staff' 版)
+ * J-STOCKTAKE-MVP-fix-01
+ */
+export async function getStaffPrizes(staffId) {
+  const { data, error } = await supabase
+    .from('prize_stocks')
+    .select('prize_id, quantity, prize:prize_masters(prize_name)')
+    .eq('owner_type', 'staff')
+    .eq('owner_id', staffId)
+    .gt('quantity', 0)
+    .order('prize_id')
+  if (error) throw error
+  return (data ?? []).map(s => ({
+    prize_id: s.prize_id,
+    prize_name: s.prize?.prize_name ?? s.prize_id,
+    theoretical_count: s.quantity ?? 0,
+  }))
+}
+
+/**
  * セッション一覧 (admin 用)
  */
 export async function getAllSessions(organizationId = DFX_ORG_ID) {

@@ -94,6 +94,9 @@ const OrderList            = lazy(() => import('./tanasupport/pages/OrderList'))
 const StoreDashboard       = lazy(() => import('./tanasupport/StoreDashboard'))
 const StocktakeInput       = lazy(() => import('./tanasupport/stocktake/StocktakeInput'))
 const StocktakeSessionPage = lazy(() => import('./tanasupport/stocktake/StocktakeSessionPage'))
+// J-STOCKTAKE-MVP-fix-01: 倉庫/担当者の個数入力 (FF=VITE_FF_STOCKTAKE)
+const StocktakeCountHub     = lazy(() => import('./tanasupport/stocktake/StocktakeCountHub'))
+const StocktakeCountSession = lazy(() => import('./tanasupport/stocktake/StocktakeCountSession'))
 
 // 遅延ロード — タナサポ 棚卸し管理 (マネサポ側)
 const StocktakeSessionListAdmin = lazy(() => import('./manesupport/admin/stocktake/SessionListAdmin'))
@@ -276,6 +279,13 @@ function AppInner() {
       <Route path="/tanasupport/location/:locationId/stocktake" element={<ManagerRoute><StocktakeInput /></ManagerRoute>} />
       {/* M2 Stage 2: セッション詳細 (機械・個人・合計) */}
       <Route path="/tanasupport/stocktake" element={<ManagerRoute><StocktakeSessionPage /></ManagerRoute>} />
+      {/* J-STOCKTAKE-MVP-fix-01: 倉庫/担当者の個数入力 (FF=VITE_FF_STOCKTAKE, default off) */}
+      {import.meta.env.VITE_FF_STOCKTAKE === 'true' && (
+        <Route path="/tanasupport/stocktake/count" element={<ManagerRoute><StocktakeCountHub /></ManagerRoute>} />
+      )}
+      {import.meta.env.VITE_FF_STOCKTAKE === 'true' && (
+        <Route path="/tanasupport/stocktake/count/:ownerType/:ownerCode" element={<ManagerRoute><StocktakeCountSession /></ManagerRoute>} />
+      )}
       {/* 旧 store/stocktake ルートはハブへリダイレクト (M2 Stage 1 で session 粒度変更) */}
       <Route path="/tanasupport/store/:storeCode/stocktake" element={<Navigate to="/tanasupport" replace />} />
       <Route path="/tanasupport/store/:storeCode/stocktake/:sessionId" element={<Navigate to="/tanasupport" replace />} />
