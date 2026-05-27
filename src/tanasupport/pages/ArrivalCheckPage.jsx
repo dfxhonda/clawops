@@ -4,7 +4,8 @@ import { useArrivalOrders } from '../../hooks/useArrivalOrders'
 import ArrivalReceiveSheet from '../components/ArrivalReceiveSheet'
 import DateTime from '../../shared/ui/DateTime'
 
-const ARRIVAL_CHECK_ENABLED = import.meta.env.VITE_FF_ARRIVAL_CHECK === 'true'
+// J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
+const ARRIVAL_CHECK_ENABLED = true
 
 const LANES = [
   { key: 'upcoming', label: '予定',     emptyMsg: '入荷予定なし' },

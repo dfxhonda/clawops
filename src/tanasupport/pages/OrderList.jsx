@@ -8,7 +8,8 @@ import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
 import ArrivalConfirmDrawer from '../components/ArrivalConfirmDrawer'
 
-const ARRIVAL_CHECK_ENABLED = import.meta.env.VITE_FF_ARRIVAL_CHECK === 'true'
+// J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
+const ARRIVAL_CHECK_ENABLED = true
 
 const TABS = [
   { key: 'shipped', label: '入荷待ち', color: 'text-rose-400' },
