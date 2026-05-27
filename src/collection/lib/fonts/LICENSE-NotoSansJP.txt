@@ -1,0 +1,18 @@
+Noto Sans JP — bundled subset (J-COLLECTION-PDF-JP-01)
+=======================================================
+
+File: NotoSansJP-Regular.ttf
+Origin: Google Noto Sans JP (https://github.com/notofonts/noto-cjk,
+        https://github.com/google/fonts/tree/main/ofl/notosansjp)
+Build: variable font を wght=400 で instancing し、JIS X 0208 + ASCII + 主要記号に
+       subset した派生フォント (fontTools pyftsubset)。jsPDF への日本語埋め込み用。
+Copyright: (c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+           (Noto Sans CJK は Adobe Source Han Sans を基にしています)
+
+License: SIL Open Font License, Version 1.1 (OFL-1.1)
+Full text: https://openfontlicense.org/open-font-license-official-text/
+           https://scripts.sil.org/OFL
+
+本フォントおよびその派生(subset)は SIL OFL 1.1 の下で配布されます。
+OFL の条件により、本ライセンス通知とコピーライト表記をフォントに同梱しています。
+Reserved Font Name 'Source' / 'Noto' を含む名称での再配布・販売は OFL 条項に従います。

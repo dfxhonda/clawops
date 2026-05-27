@@ -8,6 +8,7 @@
 //   registerJpFont() フックで後差し可能にし、未登録時はhelveticaにフォールバックする。
 import { jsPDF } from 'jspdf'
 import { DENOMINATIONS, denominationSummary } from './collectionCalc'
+import jpFontUrl from './fonts/NotoSansJP-Regular.ttf?url'
 
 const ISSUER = {
   name: '株式会社ナイスランド',
@@ -20,6 +21,30 @@ const ISSUER = {
 let JP_FONT = null
 export function registerJpFont({ vfsName, base64, fontName }) {
   JP_FONT = { vfsName, base64, fontName }
+}
+
+// J-COLLECTION-PDF-JP-01: バンドルした NotoSansJP (JIS X0208 subset, OFL) を読み込み registerJpFont する。
+// 同一オリジンの静的アセット(Vite ?url)を fetch する。CDN非依存。初回のみ読込しキャッシュ。
+let jpLoading = null
+function abToBase64(buf) {
+  const bytes = new Uint8Array(buf)
+  let bin = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(bin)
+}
+export async function ensureJpFont() {
+  if (JP_FONT) return
+  if (!jpLoading) {
+    jpLoading = (async () => {
+      const res = await fetch(jpFontUrl)
+      const buf = await res.arrayBuffer()
+      registerJpFont({ vfsName: 'NotoSansJP-Regular.ttf', base64: abToBase64(buf), fontName: 'NotoSansJP' })
+    })()
+  }
+  await jpLoading
 }
 function applyFont(doc) {
   if (JP_FONT) {

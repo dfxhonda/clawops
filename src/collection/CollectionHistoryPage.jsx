@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCollectionHistory, getCollectionDetail } from '../services/collections'
-import { buildCollectionSlip, slipFileName } from './lib/collectionPdf'
+import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
 
 // J-COLLECTION-01: 集金履歴一覧 (/collection/history)。行タップでPDF再表示。
 const yen = n => Number(n || 0).toLocaleString()
@@ -25,6 +25,7 @@ export default function CollectionHistoryPage() {
     try {
       const { data, error: e } = await getCollectionDetail(id)
       if (e) throw e
+      await ensureJpFont()
       const doc = buildCollectionSlip(data)
       doc.save(slipFileName(id))
     } catch (e) {

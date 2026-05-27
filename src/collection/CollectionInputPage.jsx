@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { getCollectibleStores, getCollectibleBooths, saveCollection, getCollectionDetail } from '../services/collections'
 import { grandTotal, boothTotal } from './lib/collectionCalc'
-import { buildCollectionSlip, slipFileName } from './lib/collectionPdf'
+import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
 import DenominationDrawer from './components/DenominationDrawer'
 
 // J-COLLECTION-01: 集金入力画面 (/collection/input)
@@ -68,6 +68,7 @@ export default function CollectionInputPage() {
     try {
       const { data, error: e } = await getCollectionDetail(confirmedId)
       if (e) throw e
+      await ensureJpFont()
       const doc = buildCollectionSlip(data)
       doc.save(slipFileName(confirmedId))
     } catch (e) {
