@@ -25,6 +25,8 @@ test.describe('J-INTAKE-PCH-EXCEL-fix-01 取込ハブ', () => {
     await page.setViewportSize({ width: 390, height: 844 })
 
     await page.goto('/admin/masters')
+    // 取込は admin top nav の第一タブ + masters hub タイルの両方から到達可
+    await expect(page.getByTestId('admin-tab-import')).toBeVisible()
     await expect(page.getByTestId('hub-tile-取込')).toBeVisible()
 
     await page.goto('/admin/import')

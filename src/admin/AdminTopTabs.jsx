@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TABS = [
+  { key: 'import',   label: '取込',           path: '/admin/import'   },
   { key: 'masters',  label: 'マスタ',         path: '/admin/masters'  },
   { key: 'audit',    label: '監査・履歴',     path: '/admin/audit'    },
   { key: 'reports',  label: '集計・レポート', path: '/admin/reports'  },
