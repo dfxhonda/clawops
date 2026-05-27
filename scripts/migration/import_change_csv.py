@@ -59,6 +59,22 @@ def status_of(ship_status):
     return 'shipped' if ('発送完了' in s or '発送済' in s or '出荷完了' in s) else 'ordered'
 
 
+def normalize_dest(raw):
+    # 司令塔確定 (2026-05-27, 訂正版): 発送先全名 → 地名
+    s = raw or ''
+    if 'スポガ久留米' in s or '久留米' in s:
+        return '久留米'
+    if '飯塚' in s:
+        return '飯塚'
+    if '霧島' in s:            # 株式会社change 霧島 → 霧島
+        return '霧島'
+    if '島添勝也' in s:        # → 霧島
+        return '霧島'
+    if 'change' in s.lower() or 'ｃｈ' in s:  # 株式会社change (霧島無し) → 田隈
+        return '田隈'
+    return s or None
+
+
 def parse_rows():
     rows = []
     skipped_footer = 0
@@ -87,6 +103,7 @@ def parse_rows():
                 'case_cost': (sub_excl / qty) if (sub_excl is not None and qty) else None,
                 'total_tax_included': to_num(raw[C['total_incl']]),
                 'destination_raw': (raw[C['dest']] or '').strip(),
+                'destination': normalize_dest((raw[C['dest']] or '').strip()),
                 'status': status_of(raw[C['ship_status']]),
                 'notes': ' '.join(filter(None, [(raw[C['delivery']] or '').strip(), (raw[C['confirm']] or '').strip()])),
                 'cart_id': (raw[C['cart']] or '').strip(),
@@ -104,35 +121,35 @@ def num_or_null(v):
 
 
 def emit_sql(rows, dedup_scope):
+    # 単一の WITH csv(VALUES...) INSERT...SELECT...WHERE NOT EXISTS を生成 (原子的・1回のMCP実行)。
+    # NOT EXISTS は既存テーブル状態のみ参照 → CSV内重複は折り畳まず全件評価。
     today = date.today().isoformat()
+    if dedup_scope == 'sgp':
+        dedup = ("po.supplier_id='SGP' AND po.order_date=csv.odate::date "
+                 "AND po.prize_name_raw=csv.nm AND po.case_count=csv.qty::numeric")
+    else:
+        dedup = ("po.order_source='csv_migration' AND po.order_date=csv.odate::date "
+                 "AND po.prize_name_raw=csv.nm AND po.case_count=csv.qty::numeric")
+    vals = []
+    for r in rows:
+        vals.append('(' + ','.join(sql_escape(r[k]) for k in (
+            'prize_name_raw', 'order_date', 'case_count', 'pieces_per_case', 'unit_cost',
+            'case_cost', 'total_tax_included', 'destination', 'status', 'notes', 'cart_id', 'product_code',
+        )) + ')')
     print('-- J-INTAKE-MIGRATION-01: change過去発注CSV → prize_orders')
     print(f'-- rows={len(rows)} dedup_scope={dedup_scope} generated={today}')
-    print('BEGIN;')
-    for r in rows:
-        meta = ('{' + f'"cart_id":{sql_escape(r["cart_id"]).strip(chr(39))!r}'.replace("'", '"') + '}')
-        # import_meta は jsonb_build_object で安全に組む
-        if dedup_scope == 'sgp':
-            dedup = (f"supplier_id='SGP' AND order_date={sql_escape(r['order_date'])} "
-                     f"AND prize_name_raw={sql_escape(r['prize_name_raw'])} "
-                     f"AND case_count={num_or_null(r['case_count'])}")
-        else:
-            dedup = (f"order_source='csv_migration' AND order_date={sql_escape(r['order_date'])} "
-                     f"AND prize_name_raw={sql_escape(r['prize_name_raw'])} "
-                     f"AND case_count={num_or_null(r['case_count'])}")
-        print(
-            "INSERT INTO prize_orders "
-            "(order_id, prize_name_raw, supplier_id, order_source, source_file, order_date, "
-            "case_count, pieces_per_case, unit_cost, case_cost, total_tax_included, destination, status, notes, import_meta, unplanned_flag) "
-            "SELECT gen_random_uuid(), "
-            f"{sql_escape(r['prize_name_raw'])}, '{SUPPLIER_ID}', '{ORDER_SOURCE}', '{SOURCE_FILE}', {sql_escape(r['order_date'])}, "
-            f"{num_or_null(r['case_count'])}, {num_or_null(r['pieces_per_case'])}, {num_or_null(r['unit_cost'])}, "
-            f"{num_or_null(r['case_cost'])}, {num_or_null(r['total_tax_included'])}, {sql_escape(r['destination_raw'])}, "
-            f"{sql_escape(r['status'])}, {sql_escape(r['notes'])}, "
-            f"jsonb_build_object('cart_id', {sql_escape(r['cart_id'])}, 'product_code', {sql_escape(r['product_code'])}, 'migration_date', '{today}'), "
-            "false "
-            f"WHERE NOT EXISTS (SELECT 1 FROM prize_orders WHERE {dedup});"
-        )
-    print('COMMIT;')
+    print('WITH csv(nm, odate, qty, pieces, ucost, ccost, tincl, dest, st, nt, cart, pcode) AS (')
+    print('  VALUES')
+    print('  ' + ',\n  '.join(vals))
+    print(')')
+    print('INSERT INTO prize_orders (order_id, prize_name_raw, supplier_id, order_source, source_file, '
+          'order_date, case_count, pieces_per_case, unit_cost, case_cost, total_tax_included, '
+          'destination, status, notes, import_meta, unplanned_flag)')
+    print(f"SELECT gen_random_uuid(), csv.nm, '{SUPPLIER_ID}', '{ORDER_SOURCE}', '{SOURCE_FILE}', "
+          "csv.odate::date, csv.qty::numeric, csv.pieces::numeric, csv.ucost::numeric, csv.ccost::numeric, "
+          "csv.tincl::numeric, csv.dest, csv.st, csv.nt, "
+          f"jsonb_build_object('cart_id', csv.cart, 'product_code', csv.pcode, 'migration_date', '{today}'), false")
+    print(f"FROM csv WHERE NOT EXISTS (SELECT 1 FROM prize_orders po WHERE {dedup});")
 
 
 def dry_run(rows, skipped_footer):
