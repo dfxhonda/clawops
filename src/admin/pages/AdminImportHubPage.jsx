@@ -99,7 +99,7 @@ export default function AdminImportHubPage() {
 
   return (
     <>
-      <div className="hidden md:block min-h-screen bg-bg">
+      <div className="min-h-screen bg-bg">
         <PageHeader title="取込ハブ" leftSlot={backBtn} />
         <div className="p-4 max-w-5xl mx-auto space-y-5">
 
@@ -132,7 +132,30 @@ export default function AdminImportHubPage() {
                   )}
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border border-border max-h-[55vh]">
+                {/* モバイル(iPhone): カード積み */}
+                <div className="md:hidden space-y-2 max-h-[60vh] overflow-y-auto">
+                  {rows.map((r, i) => {
+                    const s = STATE_STYLE[r.state] ?? {}
+                    const dest = r.destination === MANUAL_MARKER ? '要確認' : (r.destination ?? '-')
+                    return (
+                      <div key={r.rawImportId ?? `m-${i}`} className={`rounded-lg border border-border p-2 ${s.row}`}>
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="text-sm text-text flex-1 break-words">{rowFlags(r)} {r.prizeNameRaw}</span>
+                          <span className={`text-xs font-bold shrink-0 ${s.cls}`}>{s.label}</span>
+                        </div>
+                        <div className="text-xs text-muted mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span>店舗: {dest}</span>
+                          <span>ケース: {r.caseCount ?? '-'}</span>
+                          <span>単価: {r.unitCost ?? '-'}</span>
+                          {r.expectedDate && <span>出荷: {r.expectedDate}</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* iPad+: 表 */}
+                <div className="hidden md:block overflow-x-auto rounded-lg border border-border max-h-[55vh]">
                   <table className="w-full text-xs border-collapse">
                     <thead className="bg-bg sticky top-0">
                       <tr>
@@ -204,15 +227,6 @@ export default function AdminImportHubPage() {
               SGP(achieve発注PF)経由の発注: <b className="text-text">{sgpCount == null ? '—' : `${sgpCount} 件`}</b> (order_source=sgp_api、Edge Function自動取込・本画面からは変更しない)
             </p>
           </section>
-        </div>
-      </div>
-
-      {/* Mobile fallback */}
-      <div className="block md:hidden min-h-screen flex items-center justify-center bg-bg p-8">
-        <div className="text-center">
-          <p className="text-base font-bold text-text">iPad以上の画面で開いてください</p>
-          <p className="text-xs text-muted mt-2">取込ハブは iPad (768px+) 以上に対応しています</p>
-          <button onClick={() => navigate(-1)} className="mt-4 text-sm text-blue-400">← 戻る</button>
         </div>
       </div>
     </>

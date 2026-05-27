@@ -29,9 +29,10 @@ test.describe('J-INTAKE-PCH-EXCEL-fix-01 取込ハブ', () => {
     await expect(page.getByTestId('admin-tab-import')).toBeVisible()
     await expect(page.getByTestId('hub-tile-取込')).toBeVisible()
 
+    // iPhone幅でも取込ハブ本体が表示される (iPad限定廃止)
     await page.goto('/admin/import')
-    await expect(page.getByText('iPad以上の画面で開いてください')).toBeVisible()
-    await expect(page.getByText('← 戻る')).toBeVisible()
+    await expect(page.getByTestId('pch-import-card')).toBeVisible()
+    await expect(page.getByText('PCH Excel取込 (Change / ピーチトイ)')).toBeVisible()
 
     expect(errors, errors.join('\n')).toEqual([])
   })
