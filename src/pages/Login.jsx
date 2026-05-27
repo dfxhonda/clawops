@@ -100,10 +100,7 @@ export default function Login() {
     await upsertLoginHistory(staff.staff_id)
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    // J-INFRA-DUAL-TRACK-LOGIN-01: テスト版URLが設定されていれば安定版/テスト版の選択画面へ。
-    // 未設定なら従来通り直接ランチャーへ (選択画面を出さない)。
-    const dest = import.meta.env.VITE_TEST_TRACK_URL ? '/select-track' : '/launcher'
-    setTimeout(() => navigate(dest, { replace: true }), 1200)
+    setTimeout(() => navigate('/launcher', { replace: true }), 1200)
   }
 
   if (!initDone) {

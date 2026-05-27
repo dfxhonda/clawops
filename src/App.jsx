@@ -1,7 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useGlossaryStore } from './stores/glossaryStore'
-import { supabase } from './lib/supabase'
 
 // ===== ドメイン別ルーティング =====
 // patrol.clawops.app → 巡回アプリ専用（/admin へのアクセスは admin.clawops.app にリダイレクト）
@@ -30,8 +29,6 @@ import { IdleWarningBanner } from './shared/ui/IdleWarningBanner'
 // 即時ロード（初回表示に必要）
 import Login from './pages/Login'
 import Launcher from './pages/Launcher'
-// J-INFRA-DUAL-TRACK-LOGIN-01: ログイン直後の安定版/テスト版選択画面
-import DualTrackSelectPage from './pages/DualTrackSelectPage'
 
 // 遅延ロード — メインタブ
 const MainInput = lazy(() => import('./clawsupport/pages/MainInput'))
@@ -185,9 +182,6 @@ function AppInner() {
       <Suspense fallback={<PageLoader />}>
       <Routes>
       <Route path="/login" element={<Login />} />
-
-      {/* J-INFRA-DUAL-TRACK-LOGIN-01: ログイン直後の安定版/テスト版選択 (VITE_TEST_TRACK_URL設定時のみ導線あり) */}
-      <Route path="/select-track" element={<ProtectedRoute><DualTrackSelectPage /></ProtectedRoute>} />
 
       {/* ホーム = ランチャー（ロール別タイル表示） */}
       <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
@@ -350,36 +344,6 @@ function AppInner() {
 }
 
 export default function App() {
-  // J-INFRA-DUAL-TRACK-LOGIN-01: テスト版へ引き継がれた token を URL params から復元する。
-  // 起動時に access_token/refresh_token があれば setSession で復元し、params を URL から除去する。
-  // これでテスト版デプロイ側での再ログインが不要になる。
-  const [bootReady, setBootReady] = useState(false)
-
-  useEffect(() => {
-    async function restoreSessionFromUrl() {
-      const params = new URLSearchParams(window.location.search)
-      const accessToken = params.get('access_token')
-      const refreshToken = params.get('refresh_token')
-      if (accessToken && refreshToken) {
-        try {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-        } catch (e) {
-          console.error('[App] URL token restore failed:', e)
-        }
-        // token を URL から除去 (履歴/共有での漏洩を最小化)。pathname と他 params は維持。
-        params.delete('access_token')
-        params.delete('refresh_token')
-        const qs = params.toString()
-        const cleanUrl = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash
-        window.history.replaceState({}, '', cleanUrl)
-      }
-      setBootReady(true)
-    }
-    restoreSessionFromUrl()
-  }, [])
-
-  if (!bootReady) return <PageLoader />
-
   return (
     <AuthProvider>
       <AppInner />
