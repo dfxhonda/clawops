@@ -49,6 +49,11 @@ test.describe('J-ADMIN-MACHINE-BOOTH-CRUD-01', () => {
         machines.push({ ...body, machine_models: { model_name: 'テストモデル' }, booths: [] })
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify([body]) })
       } else if (req.method() === 'PATCH') {
+        const body = JSON.parse(req.postData() || '{}')
+        const m = req.url().match(/machine_code=eq\.([^&]+)/)
+        const code = m ? decodeURIComponent(m[1]) : null
+        const target = machines.find(x => x.machine_code === code)
+        if (target && 'is_active' in body) target.is_active = body.is_active
         await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
       } else {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(machines) })
@@ -88,6 +93,12 @@ test.describe('J-ADMIN-MACHINE-BOOTH-CRUD-01', () => {
     await page.getByTestId('machine-save-button').click()
     // 追加後、一覧に即表示
     await expect(page.getByText('機械2')).toBeVisible()
+
+    // is_activeトグル即時反映 (機械1 を無効化 -> 無効 pill)
+    const machine1Row = page.getByTestId('machine-row').filter({ hasText: '機械1' })
+    await expect(machine1Row.getByText('有効')).toBeVisible()
+    await machine1Row.getByTestId('machine-active-toggle').click()
+    await expect(machine1Row.getByText('無効')).toBeVisible()
 
     // 機械タップ -> ブース一覧
     await page.getByText('機械1').click()
