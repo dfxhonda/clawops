@@ -16,6 +16,9 @@ import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { logger } from '../../lib/logger'
+import { ERR } from '../../lib/errorCodes'
+import { Sentry } from '../../lib/sentry'
+import { recordMachineLoad, recordMachineUnload } from '../../services/movements'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
 import {
@@ -127,6 +130,8 @@ export default function PatrolBoothInputPage() {
   const [isCollection,  setIsColl] = useState(false)
   const [saveState, saveActions] = useSaveState()
   const [skipped,       setSkipped]   = useState(false)
+  // J-STOCK-MACHINE-fix-03b: stock_movements 記録失敗時の非ブロッキングバナー (best-effort)
+  const [stockMoveErr,  setStockMoveErr] = useState(null)
   const [showAlert,     setShowAlert] = useState(false)
   const [historyKey,    setHistoryKey] = useState(0)
 
@@ -374,6 +379,29 @@ export default function PatrolBoothInputPage() {
     setOcrEdited(false)
   }
 
+  // J-STOCK-MACHINE-fix-03b: 巡回補充→machine_load / 入替→machine_unload+machine_load を
+  // stock_movements に記録 (best-effort)。INSERT失敗は ERR-STOCK-010 バナー + Sentry のみ、
+  // メーター保存本体はロールバックしない。prize_id は booths.current_prize_id 相当 (fix-03a同期)。
+  async function recordBoothStockMovements() {
+    const effectivePrizeId = selectedPrizeId ?? prev?.prize_id ?? null
+    try {
+      if (entryType === 'patrol') {
+        const qty = parseInt(restock, 10)
+        if (Number.isFinite(qty) && qty > 0) {
+          await recordMachineLoad({ boothCode, prizeId: effectivePrizeId, quantity: qty, staffId, reason: 'patrol_supplement' })
+        }
+      } else if (entryType === 'replace') {
+        // 入替前景品の引き上げ → 新景品セット の2レコード (collectionは対象外)
+        await recordMachineUnload({ boothCode, prizeId: prev?.prize_id ?? null, staffId, reason: 'replace_unload' })
+        await recordMachineLoad({ boothCode, prizeId: effectivePrizeId, quantity: 1, staffId, reason: 'replace_load' })
+      }
+    } catch (e) {
+      logger.error('stock_movement_record_failed', { boothCode, entryType, code: ERR.STOCK_010, message: e?.message })
+      Sentry.captureException(e, { tags: { errCode: ERR.STOCK_010, boothCode } })
+      setStockMoveErr(ERR.STOCK_010)
+    }
+  }
+
   async function handleSave(onDone) {
     if (!patrolEnabled) {
       alert('patrol_core フラグが無効です。管理者に連絡してください。')
@@ -404,6 +432,9 @@ export default function PatrolBoothInputPage() {
         saveActions.reset()
         setTimeout(() => (onDone ? onDone() : navigate(-1)), 1000)
       } else {
+        // J-STOCK-MACHINE-fix-03b: 保存成功後に booth在庫移動を best-effort 記録。
+        // 失敗してもメーター保存(res.ok)はロールバックせず、バナー通知のみで続行。
+        await recordBoothStockMovements()
         saveActions.setSuccess()
         setHistoryKey(k => k + 1)
         setTimeout(() => (onDone ? onDone() : navigate(-1)), 800)
@@ -660,6 +691,12 @@ export default function PatrolBoothInputPage() {
             onClose={saveActions.reset}
             onRetry={handleSave}
           />
+        )}
+        {stockMoveErr && (
+          <div className="mx-4 mb-3 rounded-xl bg-amber-950/50 border border-amber-500/40 px-4 py-2">
+            <span className="text-xs font-mono font-bold text-amber-400">{stockMoveErr}</span>
+            <span className="text-xs text-amber-200 ml-2">在庫移動の記録に失敗 (メーター保存は完了)</span>
+          </div>
         )}
         <BoothInputForm
           mode="patrol"
