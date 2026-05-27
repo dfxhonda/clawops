@@ -15,7 +15,7 @@ vi.mock('../../lib/auth/orgConstants', () => ({
   get DFX_ORG_ID() { return _orgId },
 }))
 vi.mock('../../lib/logger', () => ({
-  logger: { info: vi.fn(), error: vi.fn() },
+  logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }))
 vi.mock('../../lib/errorCodes', () => ({
   ERR: { METER_001: 'ERR-METER-001', METER_002: 'ERR-METER-002', AUTH_001: 'ERR-AUTH-001' },
@@ -198,6 +198,54 @@ describe('defaultsFromPrev merge', () => {
     const row = mockSupabase._inserted[0]
     expect(row.prize_name).toBe('旧景品A')
     expect(row.set_a).toBe('3')
+  })
+})
+
+// ─── fix-03a: replace_prize_id + booths.current_prize_id 同期 ──
+
+describe('fix-03a replace_prize_id / booths sync', () => {
+  it('replace時 replace_prize_id に前回(prev)のprize_idを記録', async () => {
+    const res = await savePatrolReading({
+      ...BASE_ARGS, entryType: 'replace',
+      optionalPatch: { prize_id: 'NEW' },
+      defaultsFromPrev: { prize_id: 'OLD', prize_name: '旧景品' },
+    })
+    expect(res.ok).toBe(true)
+    expect(mockSupabase._inserted[0].replace_prize_id).toBe('OLD')
+  })
+
+  it('replace後 booths.current_prize_id を新景品で更新', async () => {
+    await savePatrolReading({
+      ...BASE_ARGS, entryType: 'replace',
+      optionalPatch: { prize_id: 'NEW' },
+      defaultsFromPrev: { prize_id: 'OLD' },
+    })
+    const boothUpd = mockSupabase._updated.find(u => 'current_prize_id' in u)
+    expect(boothUpd?.current_prize_id).toBe('NEW')
+  })
+
+  it('patrol(UPDATE)後 booths.current_prize_id を更新', async () => {
+    mockSupabase = makeMockSupabase({
+      reading_id: 'exist-id', in_meter: 1000, out_meter: 1010,
+      prize_stock_count: 100, prize_restock_count: 0, prize_id: 'PREV',
+    })
+    await savePatrolReading({ ...BASE_ARGS, inMeter: '2000', optionalPatch: { prize_id: 'PX' } })
+    const boothUpd = mockSupabase._updated.find(u => 'current_prize_id' in u)
+    expect(boothUpd?.current_prize_id).toBe('PX')
+  })
+
+  it('collection は replace_prize_id を付けない', async () => {
+    await savePatrolReading({
+      ...BASE_ARGS, entryType: 'collection',
+      optionalPatch: { prize_id: 'C1' }, defaultsFromPrev: { prize_id: 'OLD' },
+    })
+    expect('replace_prize_id' in mockSupabase._inserted[0]).toBe(false)
+  })
+
+  it('prize_id が NULL なら booths を更新しない', async () => {
+    await savePatrolReading({ ...BASE_ARGS, entryType: 'replace', optionalPatch: {}, defaultsFromPrev: {} })
+    const boothUpd = mockSupabase._updated.find(u => 'current_prize_id' in u)
+    expect(boothUpd).toBeUndefined()
   })
 })
 

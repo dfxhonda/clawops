@@ -154,6 +154,21 @@ const TODAY_EXISTING_SELECT =
   'reading_id, in_meter, out_meter, prize_stock_count, prize_restock_count, ' +
   'prize_name, prize_id, set_a, set_c, set_l, set_r, set_o, prize_cost'
 
+// fix-03a(J-STOCK-MACHINE-fix-03a): 巡回保存後に現在設置景品をブースへ同期。
+// best-effort=失敗してもメーター保存(ど安定#1)は守る。prize_stocks/stock_movementsは触らない。
+async function syncBoothCurrentPrize(boothCode, prizeId, staffId) {
+  if (!prizeId) return
+  try {
+    const { error } = await supabase
+      .from('booths')
+      .update({ current_prize_id: prizeId, updated_at: new Date().toISOString(), updated_by: staffId ?? null })
+      .eq('booth_code', boothCode)
+    if (error) logger.warn('booth_current_prize_sync_failed', { boothCode, prizeId, raw: error.message })
+  } catch (e) {
+    logger.warn('booth_current_prize_sync_failed', { boothCode, prizeId, raw: e?.message })
+  }
+}
+
 /**
  * 巡回記録 UPSERT / INSERT
  *
@@ -226,11 +241,16 @@ export async function savePatrolReading({
 
     // 'replace' / 'collection' → 新規 INSERT
     if (entryType === 'replace' || entryType === 'collection') {
+      // fix-03a: replace時は前回(prev)の prize_id を replace_prize_id に記録
+      const replaceExtra = entryType === 'replace'
+        ? { replace_prize_id: defaultsFromPrev?.prize_id ?? null }
+        : {}
       const { data, error } = await supabase
         .from('meter_readings')
         .insert({
           ...basePayload,
           ...mergedOptionalForInsert,
+          ...replaceExtra,
           reading_id: crypto.randomUUID(),
         })
         .select('reading_id')
@@ -241,6 +261,8 @@ export async function savePatrolReading({
         return { ok: false, errCode: ERR.METER_002, message: `${entryType} 記録エラー: ${error.message}`, raw: error }
       }
       logger.info('patrol_save_succeeded', { boothCode, entryType, readingId: data.reading_id })
+      // fix-03a: replace後はブースの現在景品を更新 (collectionは対象外)
+      if (entryType === 'replace') await syncBoothCurrentPrize(boothCode, mergedOptionalForInsert.prize_id ?? null, staffId)
       return { ok: true, inserted: true, entryType, readingId: data.reading_id }
     }
 
@@ -296,6 +318,8 @@ export async function savePatrolReading({
         return { ok: false, errCode: ERR.METER_001, message: 'メーター更新エラー: ' + error.message, raw: error }
       }
       logger.info('patrol_save_succeeded', { boothCode, entryType: 'patrol', readingId: existing.reading_id })
+      // fix-03a: patrol後はブースの現在景品を更新
+      await syncBoothCurrentPrize(boothCode, ('prize_id' in patch ? patch.prize_id : existing.prize_id) ?? null, staffId)
       return { ok: true, updated: true, entryType: 'patrol', readingId: existing.reading_id }
     }
 
@@ -314,6 +338,8 @@ export async function savePatrolReading({
       return { ok: false, errCode: ERR.METER_001, message: 'メーター保存エラー: ' + error.message, raw: error }
     }
     logger.info('patrol_save_succeeded', { boothCode, entryType: 'patrol', readingId: data.reading_id })
+    // fix-03a: patrol後はブースの現在景品を更新
+    await syncBoothCurrentPrize(boothCode, mergedOptionalForInsert.prize_id ?? null, staffId)
     return { ok: true, inserted: true, entryType: 'patrol', readingId: data.reading_id }
 
   } catch (e) {
