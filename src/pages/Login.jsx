@@ -42,7 +42,12 @@ export default function Login() {
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) { navigate('/launcher', { replace: true }); return }
+      // J-INFRA-DUAL-TRACK-LOGIN-01: 既存セッションのauto-resume時も、テスト版URL設定時は選択画面へ。
+      // (永続セッションだと選択画面を飛ばして /launcher 直行してしまう問題の修正)
+      if (session) {
+        navigate(import.meta.env.VITE_TEST_TRACK_URL ? '/select-track' : '/launcher', { replace: true })
+        return
+      }
 
       // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため
       // org_id で絞ると環境によっては空配列になる

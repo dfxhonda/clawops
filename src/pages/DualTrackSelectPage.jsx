@@ -37,61 +37,55 @@ export default function DualTrackSelectPage() {
 
   if (!TEST_TRACK_URL) return null
 
-  const btnBase = {
-    width: '100%',
-    minHeight: 56,
-    borderRadius: 14,
-    fontSize: 16,
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  }
-
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0a0f', color: '#e8e8f0', fontFamily: "-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif" }}>
-      <div style={{ flexShrink: 0, padding: '24px 16px 12px', textAlign: 'center' }}>
+      <div style={{ flexShrink: 0, padding: '28px 16px 8px', textAlign: 'center' }}>
         <div style={{ fontSize: 36, lineHeight: 1 }}>🎮</div>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1, marginTop: 4 }}>Round 0</div>
         <div style={{ fontSize: 13, color: '#9090a8', marginTop: 6 }}>どちらを使いますか</div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: '0 20px', maxWidth: 480, width: '100%', margin: '0 auto' }}>
+      {/* 主要アクション: 安定版 — 大きく画面中央 primary。バイトは基本これだけ押す */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 20px', maxWidth: 480, width: '100%', margin: '0 auto' }}>
         <button
           type="button"
           onClick={goStable}
           disabled={busy}
+          data-testid="select-stable"
           style={{
-            ...btnBase,
-            background: '#f0c040',
-            color: '#1a1a1a',
-            border: 'none',
+            width: '100%', minHeight: 72, borderRadius: 18,
+            fontSize: 19, fontWeight: 800,
+            background: '#f0c040', color: '#1a1a1a', border: 'none',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             opacity: busy ? 0.6 : 1,
           }}
         >
           安定版で続ける
         </button>
+        <div style={{ fontSize: 12, color: '#9090a8', textAlign: 'center', marginTop: 10 }}>
+          通常はこちら
+        </div>
+      </div>
 
+      {/* 副次アクション: テスト版 — 画面下部に離して小さく ghost。誤操作しにくい配置 */}
+      <div style={{ flexShrink: 0, padding: '12px 20px calc(18px + env(safe-area-inset-bottom))', textAlign: 'center' }}>
         <button
           type="button"
           onClick={goTest}
           disabled={busy}
+          data-testid="select-test"
           style={{
-            ...btnBase,
-            background: 'transparent',
-            color: '#e8e8f0',
-            border: '2px solid #3a3a4a',
+            minHeight: 36, padding: '0 18px', borderRadius: 9,
+            fontSize: 13, fontWeight: 600,
+            background: 'transparent', color: '#7a7a90',
+            border: '1px solid #2a2a3a', cursor: 'pointer',
             opacity: busy ? 0.6 : 1,
           }}
         >
           {busy ? '移動中...' : 'テスト版を使う'}
         </button>
-
-        <div style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
-          テスト版はお試し用です<br />
-          メニューに戻れば安定版に切り替えできます
+        <div style={{ fontSize: 10, color: '#54546a', marginTop: 8, lineHeight: 1.6 }}>
+          テスト版はお試し用 / メニューに戻れば安定版に切替できます
         </div>
       </div>
     </div>

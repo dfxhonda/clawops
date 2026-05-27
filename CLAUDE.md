@@ -168,6 +168,14 @@ scope_constraint:
     - supabase.d.ts
     - src/services/patrolCore.js
     - "各モジュール跨ぎ import (eslint-plugin-boundaries で検出)"
+test_branch_promotion_policy:
+  added: 2026-05-27
+  added_by: ヒロさん指示
+  rule: "テスト版ブランチ(ocr-unify-01 等)を ヒロ明示承認なしに main/安定版へ merge/cherry-pick することを禁止"
+  procedure:
+    - "昇格時は対象コミット(hash + 1行要約)を明示して Discord でヒロに確認してから実行"
+    - "ヒロ承認を得てからのみ merge/cherry-pick を実行"
+  forbidden: "サイレント統合(無確認での test→main 統合)を禁止"
 discord_notification:
   on_done: "J-XXX done: commit=<hash> (サマリのみ)"
   on_failure: "J-XXX fail: <reason> (詳細は status_log)"
