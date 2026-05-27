@@ -117,7 +117,8 @@ db_schema_actual_columns:
     pk: "実装時 information_schema.columns で再確認"
   reference: "prize_masters 37列 / machines 30列 / stores 21列の詳細は specs/INFRA 末尾の implementation_hints.J-INFRA-04_zod_schemas.full_column_reference 参照"
 notion_status_log_format:
-  required: "実装中の各マイルストーンで対応 spec.status_log.entries に YAML 追記"
+  v3_writeback: "2026-05-27〜 status_log は YAMLブロック外の '## status_log' Markdownセクションへ insert_content(position=end) で追記する (notion_writeback_procedure.v3_method 参照)。下記 phases は記載内容の指針"
+  required: "実装中の各マイルストーンで対応 spec の '## status_log' セクションに追記"
   phases:
     start: "spec を notion-fetch、scope 確認開始"
     scope_confirmed: "files_to_touch リスト"
@@ -258,23 +259,26 @@ multi_tenant_isolation:
 notion_writeback_procedure:
   added: 2026-05-19
   source: NOTION-WRITEBACK-STANDARD-V1
-  purpose: "spec の completion_report_required.write_back_to_notion: true を受けて実装完了時に必ず Notion status_log へ YAML 追記する"
+  purpose: "spec の completion_report_required.write_back_to_notion: true を受けて実装完了時に必ず Notion status_log へ追記する"
   when_required: "spec に write_back_to_notion: true AND notion_page_id が記載されている場合は必須"
-  mcp_json_status:
-    token_type: "Bearer (ntn_***)"
-    server: "@notionhq/notion-mcp-server"
-    read_confirmed: true
-    update_confirmed: "2026-05-19 NOTION-WRITEBACK-STANDARD-V1 self_test で検証済"
-  how_to_write:
-    step_1: "mcp__notion__API-get-block-children で spec ページの code ブロック ID を取得"
-    step_2: "mcp__notion__API-update-a-block で code.rich_text[0].text.content を 既存内容 + 新 YAML エントリ で更新"
-    step_3: "失敗時は mcp__notion__API-patch-block-children で新規 code ブロックを末尾に追加 (フォールバック)"
-  writeback_yaml_template: |
-    - <ISO8601+09:00> / Claude Code (Sonnet 4.6)
-      phase: push_done
-      commit: <hash>
-      build_result: pass (vitest N/N, npm run build ok)
-      自己評価: <実装内容1行>
+  v3_method:
+    added: 2026-05-27
+    source: "SPEC-AUTHORING-V1 (365c15b9-a458-81e6-84b0-d2a45bdccc3c) status_log.claude_code_instruction"
+    format_rule: |
+      status_log は YAML コードブロック「外」の Markdown セクション '## status_log' で管理する。
+      YAML コードブロック内には status_log を書かない (1 コードブロックルール維持)。
+      コードブロックの直後に '## status_log' ヘッダ + 箇条書きを置く。
+    how_to_write:
+      step_1: |
+        mcp__claude_ai_Notion__notion-update-page で id=<notion_page_id>,
+        command=insert_content, position=end,
+        content="- <ISO8601+09:00> / Claude Code / commit=<hash> / <要点>"
+      note: |
+        コードブロック「外」へ paragraph を append するだけ (改行のみで動作)。
+        code ブロックの取得/書換は不要。旧方式 (mcp__notion__API-update-a-block /
+        API-patch-block-children で code ブロックを編集) は廃止。
+    writeback_template: |
+      - <ISO8601+09:00> / Claude Code / commit=<hash> / <acceptance三値 + implementation_notes 要点>
   important: "自己評価は参考値。司令塔Opusが Vercel/Supabase 実態照合して二重チェックする"
   v2_note: "J-INFRA-CLAUDE-MD-PROCEDURES-V2: 自己評価 → self_verification+implementation_notes に格上げ。二重チェックは司令塔レビューのみで完結"
 completion_self_verification_procedure:
@@ -304,8 +308,10 @@ completion_self_verification_procedure:
     on_3_rounds_failed: "Discord に '× 残: <理由>' 付きで報告して司令塔判断を待つ"
     ok_to_report: "○ のみ、または ? 混在なら通常完了報告"
   step_4_notion_writeback:
-    tool: mcp__notion__API-patch-block-children
-    required: "本 spec page に paragraph append (timestamp/author/commit/acceptance三値/implementation_notes)"
+    tool: "mcp__claude_ai_Notion__notion-update-page (command=insert_content, position=end)"
+    method: "notion_writeback_procedure.v3_method 参照。YAMLブロック外の '## status_log' セクションへ paragraph append"
+    required: "本 spec page に 1 行 append (- <ISO8601+09:00> / Claude Code / commit=<hash> / acceptance三値+implementation_notes要点)"
+    deprecated: "旧 mcp__notion__API-patch-block-children / API-update-a-block での code ブロック編集は廃止"
     on_fail: "Discord 完了報告に 'Notion書き戻し失敗' 明記、司令塔Opus 代行依頼"
 implementation_notes_requirement:
   added: 2026-05-20
