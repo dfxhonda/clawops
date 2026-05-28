@@ -15,6 +15,7 @@ import ErrorBanner from '../../components/ErrorBanner'
 import { useFieldNavigation } from '../hooks/useFieldNavigation'
 import { useOCR } from '../hooks/useOCR'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { patrolCanSave } from '../lib/patrolCanSave'
 import { logger } from '../../lib/logger'
 import { ERR } from '../../lib/errorCodes'
 import { Sentry } from '../../lib/sentry'
@@ -243,7 +244,8 @@ export default function PatrolBoothInputPage() {
     [prev, inMeter, outMeter1, prizeName, setA, setC, setL, setR, setO, recordAsCollection],
   )
 
-  const canSave = inMeter !== '' && outMeter1 !== '' && stock !== ''
+  // 保存はINメーターのみ必須。OUT/在庫は任意 (OUT機能オフのライド機もIN単独保存可、他機種共通仕様)
+  const canSave = patrolCanSave(inMeter)
 
   function buildOptionalPatch() {
     const patch = {}
