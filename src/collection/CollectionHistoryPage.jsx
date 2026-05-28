@@ -2,7 +2,15 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCollectionHistory, getCollectionDetail, saveSignedPdf } from '../services/collections'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
+import { fetchAsDataURL } from './lib/imageUtil'
 import SignatureCanvas from './components/SignatureCanvas'
+
+// J-COLLECTION-09 fix_2: cash_collections.staff_signature_url を fetch → dataURL → buildCollectionSlip に渡す。
+// 失敗時は null フォールバック (PDF生成は継続、署名なし弊社枠で出力)。
+async function fetchStaffSigDataUrl(url) {
+  if (!url) return null
+  try { return await fetchAsDataURL(url) } catch { return null }
+}
 
 // J-COLLECTION-06: 集金履歴一覧 + 先方タッチ署名+署名済PDF自動保存。
 //   fix_1 PDFダウンロード async修正、fix_3 先方署名モーダル+保存フロー
@@ -26,13 +34,15 @@ export default function CollectionHistoryPage() {
   }
 
   // J-COLLECTION-06 fix_1: buildCollectionSlip は async(J-COLLECTION-05)。await を付ける。
+  // J-COLLECTION-09 fix_2: 弊社署名(staff_signature_url) があれば dataURL に変換して embed。
   async function downloadPdf(id) {
     setError(null)
     try {
       const { data, error: e } = await getCollectionDetail(id)
       if (e) throw e
       await ensureJpFont()
-      const doc = await buildCollectionSlip(data)
+      const staffSig = await fetchStaffSigDataUrl(data?.collection?.staff_signature_url)
+      const doc = await buildCollectionSlip({ ...data, staffSignatureDataUrl: staffSig })
       doc.save(slipFileName(id))
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
@@ -40,16 +50,19 @@ export default function CollectionHistoryPage() {
   }
 
   // J-COLLECTION-06 fix_3: 先方署名モーダルを開く
+  // J-COLLECTION-09 fix_2: detail に staffSignatureDataUrl を埋め込み、CustomerSignModal の再生成時にも両枠 fill。
   async function openSigning(id) {
     setError(null)
     try {
       const { data, error: e } = await getCollectionDetail(id)
       if (e) throw e
       await ensureJpFont()
-      const doc = await buildCollectionSlip(data) // 元PDF (署名なし)
+      const staffSig = await fetchStaffSigDataUrl(data?.collection?.staff_signature_url)
+      const detail = { ...data, staffSignatureDataUrl: staffSig }
+      const doc = await buildCollectionSlip(detail) // 元PDF (先方署名なし、弊社枠は filled)
       const blob = doc.output('blob')
       const url = URL.createObjectURL(blob)
-      setSigning({ collectionId: id, pdfBlobUrl: url, detail: data })
+      setSigning({ collectionId: id, pdfBlobUrl: url, detail })
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
     }

@@ -10,8 +10,8 @@ const TINY_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
 const TINY_PNG = Buffer.from(TINY_PNG_BASE64, 'base64')
 
-test.describe('J-COLLECTION-07 input', () => {
-  test('mobile 390x844: 弊社署名+レシートupload+確定+PDF (console 0)', async ({ page }) => {
+test.describe('J-COLLECTION-09 input', () => {
+  test('mobile 390x844: 弊社署名→Storage保存+レシート×削除+確定+PDF (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -21,9 +21,24 @@ test.describe('J-COLLECTION-07 input', () => {
 
     const inserted: any = { collections: [], booths: [] }
     const storageUploads: string[] = []
+    const storageDeletes: string[] = [] // J-COLLECTION-09 fix_4
 
     await page.route('**/rest/v1/**', async r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+    // J-COLLECTION-09 fix_4: Storage DELETE は POST '/storage/v1/object/receipts' (body=prefixes[]) で来る。
+    await page.route('**/storage/v1/object/receipts', async route => {
+      if (route.request().method() === 'DELETE') {
+        storageDeletes.push(route.request().postData() || '')
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }); return
+      }
+      await route.continue()
+    })
     await page.route('**/storage/v1/object/receipts/**', async route => {
+      // PUT/POST upload (upsert) + GET (publicUrl 直 fetch は別経路) を一律 200。
+      const m = route.request().method()
+      if (m === 'DELETE') {
+        storageDeletes.push(route.request().url())
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }); return
+      }
       storageUploads.push(route.request().url())
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'receipts/x' }) })
     })
@@ -81,6 +96,20 @@ test.describe('J-COLLECTION-07 input', () => {
       name: 'r.png', mimeType: 'image/png', buffer: TINY_PNG,
     })
     await expect.poll(() => storageUploads.length).toBeGreaterThan(0)
+    const uploadsAfterFirst = storageUploads.length
+
+    // J-COLLECTION-09 fix_4: × ボタンが見える → タップで削除 → カメラアイコンに戻る
+    const deleteBtn = page.getByTestId('booth-receipt-delete-TST01-M04-B02')
+    await expect(deleteBtn).toBeVisible()
+    await deleteBtn.click()
+    await expect(deleteBtn).toHaveCount(0)
+    await expect.poll(() => storageDeletes.length).toBeGreaterThan(0)
+
+    // 再アップロード
+    await page.setInputFiles('[data-testid="booth-receipt-input-TST01-M04-B02"]', {
+      name: 'r2.png', mimeType: 'image/png', buffer: TINY_PNG,
+    })
+    await expect.poll(() => storageUploads.length).toBeGreaterThan(uploadsAfterFirst)
 
     // 弊社署名を描画
     const canvas = page.getByTestId('signature-canvas')
@@ -96,6 +125,14 @@ test.describe('J-COLLECTION-07 input', () => {
     await page.getByTestId('collection-confirm-button').click()
     await expect(page.getByTestId('collection-confirmed-badge')).toBeVisible()
     expect(inserted.collections[0].status).toBe('confirmed')
+
+    // J-COLLECTION-09 fix_1: 弊社署名がStorage保存され、staff_signature_url が cash_collections POST に乗る
+    expect(storageUploads.some(u => u.includes('staff_sig.png'))).toBe(true)
+    expect(inserted.collections[0].staff_signature_url).toBeTruthy()
+    expect(inserted.collections[0].staff_signature_path).toContain('staff_sig.png')
+
+    // 確定後は × ボタン消失 (locked → 非表示)
+    await expect(page.getByTestId('booth-receipt-delete-TST01-M04-B02')).toHaveCount(0)
 
     const dl = page.waitForEvent('download')
     await page.getByTestId('collection-pdf-button').click()

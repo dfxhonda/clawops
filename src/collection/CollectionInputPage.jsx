@@ -6,6 +6,7 @@ import {
   getActiveStores, getActiveBoothsForStore, getPrevCollectionMeters,
   saveCollection, getCollectionDetail,
   nextCollectionId, uploadReceiptPhoto,
+  uploadStaffSignature, deleteReceiptPhoto, // J-COLLECTION-09 fix_1/4
 } from '../services/collections'
 import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
@@ -174,6 +175,19 @@ export default function CollectionInputPage() {
   async function confirm() {
     if (!staffSignatureData) { setError('弊社担当者署名が必要です'); return }
     setSaving(true); setError(null)
+    // J-COLLECTION-09 fix_1: 弊社署名を Storage 'receipts' に upload (失敗時は continue=DB側のみ NULL で確定継続)
+    let sigUrl = null, sigPath = null
+    try {
+      const { data: sigData, error: sigErr } = await uploadStaffSignature({
+        collectionId, dataUrl: staffSignatureData,
+      })
+      if (sigErr) throw sigErr
+      sigUrl = sigData?.url ?? null
+      sigPath = sigData?.path ?? null
+    } catch (e) {
+      // 致命ではない (確定自体は継続)。 URLなしの確定は後続署名再生成時に dataURL 不可ペナルティ。
+      setError(`ERR-COLLECTION-009: 弊社署名の保存に失敗 (${e.message})、確定は継続します`)
+    }
     const payload = Object.fromEntries(booths.map(b => {
       const r = rowData[b.booth_code] || {}
       return [b.booth_code, {
@@ -192,9 +206,24 @@ export default function CollectionInputPage() {
       storeCode, collectedAt, prevCollectionDate: prevDate || null,
       collectedBy: staffId || null, collectedByName: staffName || null,
       booths, rowData: payload, collectionId,
+      staffSignatureUrl: sigUrl, staffSignaturePath: sigPath, // J-COLLECTION-09 fix_1
     })
     if (e) { setError(`ERR-COLLECTION-002: ${e.message}`); setSaving(false); return }
     setConfirmedId(data.collectionId); setSaving(false)
+  }
+
+  // J-COLLECTION-09 fix_4: レシート写真 × ボタン → Storage から削除して rowData リセット (確定前のみ可)
+  async function handleReceiptDelete(boothCode) {
+    if (locked) return
+    const cur = rowData[boothCode] || {}
+    if (!cur.receipt_photo_url) return
+    const path = cur.receipt_photo_path
+    // 楽観的に先に UI を消す (Storage 削除失敗時はエラー表示してロールバックしない)
+    setRow(boothCode, { receipt_photo_url: null, receipt_photo_path: null })
+    if (path) {
+      const { error: dErr } = await deleteReceiptPhoto({ path })
+      if (dErr) setError(`ERR-COLLECTION-010: レシート削除失敗 (${dErr.message})`)
+    }
   }
 
   async function outputPdf() {
@@ -323,17 +352,29 @@ export default function CollectionInputPage() {
                         ref={el => { fileInputs.current[b.booth_code] = el }}
                         onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptPick(b.booth_code, f); e.target.value = '' }}
                       />
-                      <button
-                        data-testid={`booth-receipt-btn-${b.booth_code}`}
-                        onClick={() => !locked && fileInputs.current[b.booth_code]?.click()}
-                        disabled={locked || isUploading}
-                        className="w-9 h-9 rounded border border-border bg-bg flex items-center justify-center disabled:opacity-60"
-                        title={hasPhoto ? 'タップで再撮影' : 'レシート撮影'}
-                      >
-                        {isUploading ? '…' : hasPhoto
-                          ? <img src={r.receipt_photo_url} alt="" className="w-8 h-8 object-cover rounded" />
-                          : <span className="text-base">📷</span>}
-                      </button>
+                      <div className="relative inline-block">
+                        <button
+                          data-testid={`booth-receipt-btn-${b.booth_code}`}
+                          onClick={() => !locked && fileInputs.current[b.booth_code]?.click()}
+                          disabled={locked || isUploading}
+                          className="w-9 h-9 rounded border border-border bg-bg flex items-center justify-center disabled:opacity-60"
+                          title={hasPhoto ? 'タップで再撮影' : 'レシート撮影'}
+                        >
+                          {isUploading ? '…' : hasPhoto
+                            ? <img src={r.receipt_photo_url} alt="" className="w-8 h-8 object-cover rounded" />
+                            : <span className="text-base">📷</span>}
+                        </button>
+                        {/* J-COLLECTION-09 fix_4: × 削除 (確定前のみ、写真ありのみ) */}
+                        {hasPhoto && !locked && !isUploading && (
+                          <button
+                            data-testid={`booth-receipt-delete-${b.booth_code}`}
+                            onClick={() => handleReceiptDelete(b.booth_code)}
+                            aria-label="レシート削除"
+                            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white text-[10px] leading-none flex items-center justify-center shadow"
+                            title="レシート削除"
+                          >×</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {open && (

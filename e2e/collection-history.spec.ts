@@ -7,8 +7,8 @@ import { setupAuth } from './helpers'
 const isObj = (route: import('@playwright/test').Route) =>
   (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object')
 
-test.describe('J-COLLECTION-06 history', () => {
-  test('mobile 390x844: PDFダウンロード + 先方署名 -> 保存 -> 署名済 (console 0)', async ({ page }) => {
+test.describe('J-COLLECTION-09 history', () => {
+  test('mobile 390x844: PDFダウンロード+staff_sig埋込+先方署名→保存→署名済 (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -19,12 +19,25 @@ test.describe('J-COLLECTION-06 history', () => {
     let signedSaved = false
     let patchPayload: any = null
     const storageUploads: string[] = []
+    // J-COLLECTION-09 fix_2: 弊社署名 PNG fetch カウント
+    let staffSigFetchCount = 0
+    const STAFF_SIG_URL = 'https://example.test/14e907a7-65a3-4891-9a3c-20ea0a7c14fd/TST01-20260528-01/staff_sig.png'
 
     await page.route('**/rest/v1/**', async r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
 
     await page.route('**/storage/v1/object/receipts/**', async route => {
       storageUploads.push(route.request().url())
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'receipts/x' }) })
+    })
+
+    // J-COLLECTION-09 fix_2: staff_signature_url の publicUrl fetch を 1x1 PNG で応答
+    const TINY_PNG = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+      'base64',
+    )
+    await page.route(STAFF_SIG_URL, async route => {
+      staffSigFetchCount += 1
+      await route.fulfill({ status: 200, contentType: 'image/png', body: TINY_PNG })
     })
 
     // cash_collections: list (no signed first) / PATCH signed update / single detail
@@ -39,6 +52,9 @@ test.describe('J-COLLECTION-06 history', () => {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
           collection_id: 'TST01-20260528-01', store_code: 'TST01', collected_at: '2026-05-28',
           prev_collection_date: null, status: 'confirmed', signed_pdf_url: signedSaved ? 'https://x/signed.pdf' : null,
+          // J-COLLECTION-09 fix_2: staff_signature_url を返す
+          staff_signature_url: STAFF_SIG_URL,
+          staff_signature_path: '14e907a7-65a3-4891-9a3c-20ea0a7c14fd/TST01-20260528-01/staff_sig.png',
         })}); return
       }
       // list
@@ -75,11 +91,16 @@ test.describe('J-COLLECTION-06 history', () => {
     await page.getByTestId('download-pdf-TST01-20260528-01').click()
     await (await dl).suggestedFilename()
     await expect(page.locator('text=ERR-COLLECTION-003')).toHaveCount(0)
+    // J-COLLECTION-09 fix_2: download時にも staff_signature_url が fetch される
+    expect(staffSigFetchCount).toBeGreaterThan(0)
+    const fetchAfterDownload = staffSigFetchCount
 
     // fix_3: 先方署名モーダルを開く
     await page.getByTestId('sign-btn-TST01-20260528-01').click()
     await expect(page.getByTestId('customer-sign-modal')).toBeVisible()
     await expect(page.getByTestId('customer-sign-pdf')).toBeVisible()
+    // J-COLLECTION-09 fix_2: モーダル open時にも staff_sig 取り直し
+    expect(staffSigFetchCount).toBeGreaterThan(fetchAfterDownload)
     // 署名なしで保存は disabled
     await expect(page.getByTestId('customer-sign-save')).toBeDisabled()
 

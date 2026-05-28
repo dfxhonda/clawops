@@ -156,9 +156,11 @@ export async function getPrevCollectionMeters(storeCode, prevDate) {
 
 // 確定保存 (status=confirmed)。advance_payment / prev_collection_date 対応。
 // J-COLLECTION-05: collectionId をUI側で事前生成して渡せるように対応(レシートupload pathと一致させる)。
+// J-COLLECTION-09: 弊社署名 Storage URL/path を payload に追加 (cash_collections.staff_signature_url/path に保存)。
 export async function saveCollection({
   storeCode, collectedAt, prevCollectionDate, collectedBy, collectedByName, booths, rowData, notes,
   collectionId: providedId,
+  staffSignatureUrl: providedSigUrl, staffSignaturePath: providedSigPath,
 }) {
   let collectionId = providedId
   if (!collectionId) {
@@ -182,6 +184,9 @@ export async function saveCollection({
     created_at: now,
     updated_at: now,
     updated_by: collectedByName || null,
+    // J-COLLECTION-09 fix_1: 弊社担当者署名 Storage URL/Path
+    staff_signature_url: providedSigUrl || null,
+    staff_signature_path: providedSigPath || null,
   })
   if (e1) return { data: null, error: e1 }
 
@@ -320,6 +325,38 @@ export async function saveSignedPdf({ collectionId, fileBlob }) {
     .eq('collection_id', collectionId)
   if (updErr) return { data: null, error: updErr }
   return { data: { path, url: publicUrl }, error: null }
+}
+
+// J-COLLECTION-09 fix_1: 弊社担当者署名(dataURL)を Storage 'receipts' へ PNG として upsert。
+//   path: '{org_id}/{collection_id}/staff_sig.png'
+//   返り値: { data:{path,url}, error }
+export async function uploadStaffSignature({ collectionId, dataUrl }) {
+  if (!collectionId || !dataUrl) {
+    return { data: null, error: new Error('uploadStaffSignature: missing args') }
+  }
+  // dataURL → Blob (画像圧縮は行わない、署名線が劣化するため raw PNG のまま保存)
+  let blob
+  try {
+    const res = await fetch(dataUrl)
+    blob = await res.blob()
+  } catch (e) {
+    return { data: null, error: e }
+  }
+  const path = `${DFX_ORG_ID}/${collectionId}/staff_sig.png`
+  const { error: upErr } = await supabase.storage.from('receipts')
+    .upload(path, blob, { upsert: true, contentType: 'image/png' })
+  if (upErr) return { data: null, error: upErr }
+  const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(path)
+  return { data: { path, url: publicUrl }, error: null }
+}
+
+// J-COLLECTION-09 fix_4: レシート写真を Storage から削除。
+//   path 必須 (cash_collection_booths.receipt_photo_path の値)。
+//   返り値: { error } のみ。
+export async function deleteReceiptPhoto({ path }) {
+  if (!path) return { error: new Error('deleteReceiptPhoto: missing path') }
+  const { error } = await supabase.storage.from('receipts').remove([path])
+  return { error }
 }
 
 // J-COLLECTION-05: 保存前にcollectionIdを先取り(レシートupload pathに必要)
