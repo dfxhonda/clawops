@@ -87,33 +87,41 @@ export function buildCollectionSlip({ collection, store, booths, total, advanceT
   doc.setFontSize(9)
   doc.text('下記のとおり精算申し上げます', L, y); y += 8
 
-  // 明細テーブル: No / レンタル番号 / 機械名 / ブース / IN(前→今) / OUT(前→今) / 金額 / 立替
-  doc.setFontSize(8)
+  // 明細テーブル (J-COLLECTION-03): レンタルコード/機械名/ブース/前回IN/今回IN/差/集金額/立替/備考
+  doc.setFontSize(7)
   const cols = [
-    { x: L,    label: 'No' },
-    { x: L+8,  label: 'レンタル' },
-    { x: L+30, label: '機械名 / ブース' },
-    { x: 100,  label: 'IN(前→今)' },
-    { x: 130,  label: 'OUT(前→今)' },
-    { x: 168,  label: '金額', align: 'right' },
-    { x: R,    label: '立替※', align: 'right' },
+    { x: 15,  label: 'レンタル' },
+    { x: 30,  label: '機械名' },
+    { x: 63,  label: 'ブース' },
+    { x: 95,  label: '前回IN', align: 'right' },
+    { x: 117, label: '今回IN', align: 'right' },
+    { x: 133, label: '差',     align: 'right' },
+    { x: 153, label: '集金額', align: 'right' },
+    { x: 172, label: '立替※', align: 'right' },
+    { x: 175, label: '備考' },
   ]
   doc.setDrawColor(120)
-  doc.line(L, y, R, y); y += 4
+  doc.line(L, y, R, y); y += 3.5
   cols.forEach(c => doc.text(c.label, c.x, y, c.align ? { align: c.align } : undefined))
   y += 2
   doc.line(L, y, R, y); y += 4
 
-  ;(booths ?? []).forEach((b, i) => {
-    const machine = `${b.machine_name || b.machine_code} / ${b.booth_name || b.booth_code}`
-    doc.text(String(i + 1), L, y)
-    doc.text(String(b.rental_code || b.machine_code || ''), L + 8, y)
-    doc.text(machine.length > 24 ? machine.slice(0, 23) + '…' : machine, L + 30, y)
-    doc.text(`${yen(b.in_meter_prev)}→${yen(b.in_meter_current)}`, 100, y)
-    doc.text(`${yen(b.out_meter_prev)}→${yen(b.out_meter_current)}`, 130, y)
-    doc.text(`${yen(b.total)}`, 168, y, { align: 'right' })
-    doc.text(`${yen(b.advance_payment)}`, R, y, { align: 'right' })
-    y += 5
+  ;(booths ?? []).forEach(b => {
+    const cur = b.in_meter_current != null ? Number(b.in_meter_current) : null
+    const prv = b.in_meter_prev != null ? Number(b.in_meter_prev) : null
+    const inDiff = (cur != null && prv != null) ? cur - prv : null
+    const mName = String(b.machine_name || b.machine_code || '')
+    const notes = String(b.notes || '')
+    doc.text(String(b.rental_code || ''), 15, y)
+    doc.text(mName.length > 16 ? mName.slice(0, 15) + '…' : mName, 30, y)
+    doc.text(String(b.booth_name || b.booth_code || ''), 63, y)
+    doc.text(yen(b.in_meter_prev), 95, y, { align: 'right' })
+    doc.text(yen(b.in_meter_current), 117, y, { align: 'right' })
+    doc.text(inDiff == null ? '—' : (inDiff >= 0 ? '+' : '') + inDiff, 133, y, { align: 'right' })
+    doc.text(yen(b.total), 153, y, { align: 'right' })
+    doc.text(yen(b.advance_payment), 172, y, { align: 'right' })
+    doc.text(notes.length > 10 ? notes.slice(0, 9) + '…' : notes, 175, y)
+    y += 4.5
     if (y > 250) { doc.addPage(); applyFont(doc); y = 20 }
   })
 

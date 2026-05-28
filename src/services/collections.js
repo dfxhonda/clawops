@@ -31,7 +31,7 @@ export async function getActiveBoothsForStore(storeCode) {
   const machineCodes = [...new Set(booths.map(b => b.machine_code))]
 
   const [{ data: machines }, { data: readings }] = await Promise.all([
-    supabase.from('machines').select('machine_code, machine_name').in('machine_code', machineCodes),
+    supabase.from('machines').select('machine_code, machine_name, machine_number').in('machine_code', machineCodes),
     supabase.from('meter_readings')
       .select('booth_code, in_meter, out_meter, patrol_date, created_at')
       .in('booth_code', boothCodes)
@@ -39,7 +39,7 @@ export async function getActiveBoothsForStore(storeCode) {
       .order('patrol_date', { ascending: false })
       .order('created_at', { ascending: false }),
   ])
-  const mName = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m.machine_name]))
+  const mMap = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m]))
   const latestPerBooth = {}
   for (const r of readings ?? []) {
     if (!latestPerBooth[r.booth_code]) latestPerBooth[r.booth_code] = r
@@ -47,13 +47,14 @@ export async function getActiveBoothsForStore(storeCode) {
 
   const rows = booths.map(b => {
     const r = latestPerBooth[b.booth_code]
+    const m = mMap[b.machine_code] || {}
     return {
       booth_code: b.booth_code,
       machine_code: b.machine_code,
-      // rental_code: machines.rental_code はDB未在 → machine_code フォールバック (spec既定)
-      rental_code: b.machine_code,
-      machine_name: mName[b.machine_code] || b.machine_code || '機械不明',
-      // booth_name: booths.booth_name はDB未在 → booth_label > "Bnn"(booth_number) フォールバック
+      // J-COLLECTION-03: rental_code = machine_number ?? machine_code 末尾セグメント
+      rental_code: m.machine_number || (b.machine_code?.split('-').pop() ?? b.machine_code),
+      machine_name: m.machine_name || b.machine_code || '機械不明',
+      // booth_name = booth_label ?? B{nn}
       booth_name: b.booth_label || (b.booth_number != null ? `B${String(b.booth_number).padStart(2, '0')}` : b.booth_code),
       booth_number: b.booth_number,
       in_meter_current_default: r?.in_meter ?? null,
@@ -137,6 +138,7 @@ export async function saveCollection({
       out_meter_prev: d.out_meter_prev ?? null,
       out_meter_current: d.out_meter_current === '' || d.out_meter_current == null ? null : Number(d.out_meter_current),
       advance_payment: Number(d.advance_payment) || 0,
+      notes: d.notes && String(d.notes).trim() !== '' ? String(d.notes).trim() : null,
       created_at: now,
     }
   })
@@ -183,8 +185,8 @@ export async function getCollectionDetail(collectionId) {
     .select('store_name, store_name_official').eq('store_code', col.store_code).single()
   const codes = [...new Set((booths ?? []).map(b => b.machine_code))]
   const { data: machineData } = await supabase.from('machines')
-    .select('machine_code, machine_name').in('machine_code', codes.length ? codes : ['__none__'])
-  const mName = Object.fromEntries((machineData ?? []).map(m => [m.machine_code, m.machine_name]))
+    .select('machine_code, machine_name, machine_number').in('machine_code', codes.length ? codes : ['__none__'])
+  const mMap = Object.fromEntries((machineData ?? []).map(m => [m.machine_code, m]))
 
   // ブース表示名 (booth_label / booth_number) 補完
   const boothCodes = (booths ?? []).map(b => b.booth_code)
@@ -195,12 +197,16 @@ export async function getCollectionDetail(collectionId) {
     b.booth_label || (b.booth_number != null ? `B${String(b.booth_number).padStart(2, '0')}` : b.booth_code),
   ]))
 
-  const boothRows = (booths ?? []).map(b => ({
-    ...b,
-    machine_name: mName[b.machine_code] || b.machine_code,
-    booth_name: bName[b.booth_code] || b.booth_code,
-    rental_code: b.machine_code, // rental_code カラム未在のため machine_code フォールバック
-  }))
+  const boothRows = (booths ?? []).map(b => {
+    const m = mMap[b.machine_code] || {}
+    return {
+      ...b,
+      machine_name: m.machine_name || b.machine_code,
+      booth_name: bName[b.booth_code] || b.booth_code,
+      // J-COLLECTION-03: rental_code = machine_number ?? machine_code 末尾セグメント
+      rental_code: m.machine_number || (b.machine_code?.split('-').pop() ?? b.machine_code),
+    }
+  })
   const total = boothRows.reduce((s, b) => s + Number(b.total || 0), 0)
   const advanceTotal = boothRows.reduce((s, b) => s + Number(b.advance_payment || 0), 0)
   return {
