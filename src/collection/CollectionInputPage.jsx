@@ -10,7 +10,7 @@ import {
 import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
 import { compressImage } from './lib/imageUtil'
-import SignatureCanvas from './components/SignatureCanvas'
+// J-COLLECTION-06 fix_2: 自示署名(SignatureCanvas) 廃止 — コンポーネントファイル自体は残置(後工程流用)
 
 // J-COLLECTION-05: PDF改修+署名+レシート写真+前回IN修正
 // fix_A PDFヘッダ/注意書き  fix_B 署名Canvas  fix_C レシート撮影+upload
@@ -66,7 +66,6 @@ export default function CollectionInputPage() {
   const [booths, setBooths] = useState([])
   const [rowData, setRowData] = useState({})
   const [collectionId, setCollectionId] = useState(null) // J-COLLECTION-05: 事前生成
-  const [signatureData, setSignatureData] = useState(null) // fix_B: PDFのみ埋込、DB保存なし
   const [openDenom, setOpenDenom] = useState(null)
   const [currentField, setCurrentField] = useState(null)
   const [loaded, setLoaded] = useState(false)
@@ -88,7 +87,7 @@ export default function CollectionInputPage() {
 
   async function handleLoad() {
     if (!storeCode) return
-    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setSignatureData(null)
+    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null)
     const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt, prevDate || null)
     if (e) { setError(`ERR-COLLECTION-001: ${e.message}`); setLoading(false); return }
     const rd = Object.fromEntries((data ?? []).map(b => [b.booth_code, emptyRow(b)]))
@@ -172,7 +171,6 @@ export default function CollectionInputPage() {
   )
 
   async function confirm() {
-    if (!signatureData) { setError('担当者署名が必要です'); return }
     setSaving(true); setError(null)
     const payload = Object.fromEntries(booths.map(b => {
       const r = rowData[b.booth_code] || {}
@@ -203,7 +201,7 @@ export default function CollectionInputPage() {
       const { data, error: e } = await getCollectionDetail(confirmedId)
       if (e) throw e
       await ensureJpFont()
-      const doc = await buildCollectionSlip({ ...data, collectedByName: staffName, signatureDataUrl: signatureData })
+      const doc = await buildCollectionSlip({ ...data, collectedByName: staffName })
       doc.save(slipFileName(confirmedId))
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
@@ -367,13 +365,6 @@ export default function CollectionInputPage() {
         )}
       </div>
 
-      {/* fix_B: 担当者署名Canvas (確定ボタン上部) */}
-      {loaded && booths.length > 0 && !locked && (
-        <div className="flex-shrink-0 px-3 pt-2">
-          <SignatureCanvas value={signatureData} onChange={setSignatureData} />
-        </div>
-      )}
-
       {loaded && booths.length > 0 && (
         <div className="flex-shrink-0 border-t border-border p-3 flex items-center gap-2">
           <div className="flex-1">
@@ -381,7 +372,7 @@ export default function CollectionInputPage() {
             <div data-testid="collection-total" className="text-2xl font-bold text-text tabular-nums">{yen(collectionTotal)} 円</div>
           </div>
           {!locked ? (
-            <button data-testid="collection-confirm-button" onClick={confirm} disabled={saving || !signatureData}
+            <button data-testid="collection-confirm-button" onClick={confirm} disabled={saving}
               className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50">
               {saving ? '保存中…' : '確定'}
             </button>

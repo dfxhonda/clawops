@@ -55,8 +55,9 @@ const yen = n => `${Number(n || 0).toLocaleString()}`
 
 /**
  * @returns {Promise<jsPDF>} 生成済みドキュメント (J-COLLECTION-05: async化、レシート画像fetchのため)
+ * J-COLLECTION-06: 自示署名(担当者署名embed)廃止。customerSignatureDataUrl は先方署名で、御社ご担当様欄に重ねる。
  */
-export async function buildCollectionSlip({ collection, store, booths, total, advanceTotal, collectedByName, signatureDataUrl }) {
+export async function buildCollectionSlip({ collection, store, booths, total, advanceTotal, collectedByName, customerSignatureDataUrl }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const font = applyFont(doc)
   const L = 15, R = 195
@@ -134,6 +135,7 @@ export async function buildCollectionSlip({ collection, store, booths, total, ad
   y += 10
 
   // サイン欄 (J-COLLECTION-02: 弊社担当 / 御社ご担当様)
+  // J-COLLECTION-06: 自示署名embed廃止。先方署名(customer)は 御社ご担当様 線に重ねる。
   doc.setFontSize(9)
   if (collectedByName) {
     doc.text(`弊社担当: ${collectedByName}`, L, y)
@@ -141,18 +143,13 @@ export async function buildCollectionSlip({ collection, store, booths, total, ad
     doc.text('弊社担当 ____________________', L, y)
   }
   doc.text('御社ご担当様 ____________________', 115, y)
-  y += 8
-
-  // J-COLLECTION-05 fix_B: 担当者署名 (PDF page1下部に埋込)
-  if (signatureDataUrl) {
-    doc.setFontSize(8)
-    doc.text('担当者署名:', L, y)
+  if (customerSignatureDataUrl) {
     try {
-      // 60mm x 18mm (アスペクト比は内部で維持されないので明示指定)
-      doc.addImage(signatureDataUrl, 'PNG', L + 22, y - 5, 60, 18)
+      // 御社ご担当様 line area (下線上に重ねる、45mm x 14mm 程度)
+      doc.addImage(customerSignatureDataUrl, 'PNG', 142, y - 9, 48, 14)
     } catch { /* ignore */ }
-    y += 22
   }
+  y += 10
 
   // J-COLLECTION-05 fix_D: page2以降にブース別レシートページを追加
   for (const b of booths ?? []) {

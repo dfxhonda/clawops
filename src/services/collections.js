@@ -219,7 +219,7 @@ export async function saveCollection({
 // 履歴一覧 (CollectionHistoryPage 用、変更なし)
 export async function getCollectionHistory() {
   const { data: cols, error } = await supabase.from('cash_collections')
-    .select('collection_id, store_code, collected_at, status, collected_by')
+    .select('collection_id, store_code, collected_at, status, collected_by, signed_pdf_url, customer_signed_at')
     .order('collected_at', { ascending: false })
   if (error) return { data: null, error }
   const ids = (cols ?? []).map(c => c.collection_id)
@@ -296,6 +296,29 @@ export async function uploadReceiptPhoto({ collectionId, boothCode, fileBlob }) 
     .upload(path, fileBlob, { upsert: true, contentType: 'image/jpeg' })
   if (upErr) return { data: null, error: upErr }
   const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(path)
+  return { data: { path, url: publicUrl }, error: null }
+}
+
+// J-COLLECTION-06: 先方署名済PDFを Storage に upsert + cash_collections の signed_pdf_* / customer_signed_at を UPDATE。
+//   path: '{org_id}/{collection_id}/signed.pdf'
+//   返り値: { data:{path,url}, error }
+export async function saveSignedPdf({ collectionId, fileBlob }) {
+  if (!collectionId || !fileBlob) {
+    return { data: null, error: new Error('saveSignedPdf: missing args') }
+  }
+  const path = `${DFX_ORG_ID}/${collectionId}/signed.pdf`
+  const { error: upErr } = await supabase.storage.from('receipts')
+    .upload(path, fileBlob, { upsert: true, contentType: 'application/pdf' })
+  if (upErr) return { data: null, error: upErr }
+  const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(path)
+  const { error: updErr } = await supabase.from('cash_collections')
+    .update({
+      signed_pdf_url: publicUrl,
+      signed_pdf_path: path,
+      customer_signed_at: new Date().toISOString(),
+    })
+    .eq('collection_id', collectionId)
+  if (updErr) return { data: null, error: updErr }
   return { data: { path, url: publicUrl }, error: null }
 }
 
