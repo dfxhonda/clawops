@@ -1,70 +1,99 @@
-// J-COLLECTION-01: 集金データアクセス層
+// J-COLLECTION-02: 集金データアクセス層 (J-COLLECTION-01全面置換)
 import { supabase } from '../lib/supabase'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { genCollectionId, boothTotal } from '../collection/lib/collectionCalc'
 
-// is_collected=true のブースを持つ店舗のみ返す
-export async function getCollectibleStores() {
+// アクティブ店舗 (is_active=true)
+export async function getActiveStores() {
   const { data, error } = await supabase
-    .from('meter_readings').select('store_code')
-    .eq('is_collected', true).eq('entry_type', 'patrol')
-  if (error) return { data: null, error }
-  const codes = [...new Set((data ?? []).map(r => r.store_code).filter(Boolean))]
-  if (codes.length === 0) return { data: [], error: null }
-  const { data: stores, error: e2 } = await supabase
-    .from('stores').select('store_code, store_name, store_name_official')
-    .in('store_code', codes).order('store_name')
-  return { data: stores ?? [], error: e2 }
+    .from('stores')
+    .select('store_code, store_name, store_name_official')
+    .eq('is_active', true)
+    .order('store_name')
+  return { data: data ?? [], error }
 }
 
-// 指定店舗の is_collected=true ブース一覧 (機械名/ブース番号 + メーター prev/current プリフィル)
-export async function getCollectibleBooths(storeCode) {
-  const { data: flagged, error } = await supabase
-    .from('meter_readings')
-    .select('booth_code, machine_code, in_meter, out_meter, patrol_date')
-    .eq('store_code', storeCode).eq('is_collected', true).eq('entry_type', 'patrol')
+// 店舗のアクティブブース一覧 + 表示名 + 最新メーター(プリフィル)
+// 注: spec想定の booths.booth_name / machines.rental_code は実DB未在のため、
+//     それぞれ booth_label(+booth_number代替) / machine_code フォールバックで表示する。
+export async function getActiveBoothsForStore(storeCode) {
+  const { data: booths, error } = await supabase
+    .from('booths')
+    .select('booth_code, machine_code, booth_number, booth_label, is_active')
+    .eq('store_code', storeCode)
+    .eq('is_active', true)
+    .order('machine_code')
+    .order('booth_code')
   if (error) return { data: null, error }
-  const boothCodes = [...new Set((flagged ?? []).map(r => r.booth_code).filter(Boolean))]
-  if (boothCodes.length === 0) return { data: [], error: null }
+  if (!booths || booths.length === 0) return { data: [], error: null }
 
-  // prev メーター: 各ブースの直近2件 (current=最新, prev=その前)
-  const { data: hist } = await supabase
-    .from('meter_readings')
-    .select('booth_code, in_meter, out_meter, patrol_date')
-    .in('booth_code', boothCodes).eq('entry_type', 'patrol')
-    .order('patrol_date', { ascending: false })
-  const byBooth = {}
-  for (const r of hist ?? []) { (byBooth[r.booth_code] ||= []).push(r) }
+  const boothCodes = booths.map(b => b.booth_code)
+  const machineCodes = [...new Set(booths.map(b => b.machine_code))]
 
-  const [{ data: machineData }, { data: boothData }] = await Promise.all([
-    supabase.from('machines').select('machine_code, machine_name').eq('store_code', storeCode),
-    supabase.from('booths').select('booth_code, booth_number').eq('store_code', storeCode),
+  const [{ data: machines }, { data: readings }] = await Promise.all([
+    supabase.from('machines').select('machine_code, machine_name').in('machine_code', machineCodes),
+    supabase.from('meter_readings')
+      .select('booth_code, in_meter, out_meter, patrol_date, created_at')
+      .in('booth_code', boothCodes)
+      .eq('entry_type', 'patrol')
+      .order('patrol_date', { ascending: false })
+      .order('created_at', { ascending: false }),
   ])
-  const mName = Object.fromEntries((machineData ?? []).map(m => [m.machine_code, m.machine_name]))
-  const bNum = Object.fromEntries((boothData ?? []).map(b => [b.booth_code, b.booth_number]))
+  const mName = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m.machine_name]))
+  const latestPerBooth = {}
+  for (const r of readings ?? []) {
+    if (!latestPerBooth[r.booth_code]) latestPerBooth[r.booth_code] = r
+  }
 
-  const rows = (flagged ?? []).map(r => {
-    const h = byBooth[r.booth_code] ?? []
-    const prev = h[1] ?? {}
+  const rows = booths.map(b => {
+    const r = latestPerBooth[b.booth_code]
     return {
-      booth_code: r.booth_code,
-      machine_code: r.machine_code,
-      machine_name: mName[r.machine_code] || r.machine_code || '機械不明',
-      booth_number: bNum[r.booth_code] ?? null,
-      in_meter_current: r.in_meter ?? null,
-      out_meter_current: r.out_meter ?? null,
-      in_meter_prev: prev.in_meter ?? null,
-      out_meter_prev: prev.out_meter ?? null,
+      booth_code: b.booth_code,
+      machine_code: b.machine_code,
+      // rental_code: machines.rental_code はDB未在 → machine_code フォールバック (spec既定)
+      rental_code: b.machine_code,
+      machine_name: mName[b.machine_code] || b.machine_code || '機械不明',
+      // booth_name: booths.booth_name はDB未在 → booth_label > "Bnn"(booth_number) フォールバック
+      booth_name: b.booth_label || (b.booth_number != null ? `B${String(b.booth_number).padStart(2, '0')}` : b.booth_code),
+      booth_number: b.booth_number,
+      in_meter_current_default: r?.in_meter ?? null,
+      out_meter_current_default: r?.out_meter ?? null,
     }
-  }).sort((a, b) =>
-    (a.machine_name || '').localeCompare(b.machine_name || '', 'ja') ||
-    (a.booth_number ?? 0) - (b.booth_number ?? 0)
-  )
+  })
   return { data: rows, error: null }
 }
 
-// 集金確定保存: cash_collections(confirmed) + cash_collection_booths
-export async function saveCollection({ storeCode, collectedAt, collectedBy, booths, counts, notes, staffName }) {
+// 前回集金日選択時: 当該店舗の指定日の集金から各ブースのprevメーターを取得
+export async function getPrevCollectionMeters(storeCode, prevDate) {
+  if (!storeCode || !prevDate) return { data: {}, error: null }
+  const { data: col, error: e1 } = await supabase
+    .from('cash_collections')
+    .select('collection_id')
+    .eq('store_code', storeCode)
+    .eq('collected_at', prevDate)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (e1) return { data: null, error: e1 }
+  if (!col) return { data: {}, error: null } // 該当日の集金なし
+
+  const { data: bts, error: e2 } = await supabase
+    .from('cash_collection_booths')
+    .select('booth_code, in_meter_current, out_meter_current')
+    .eq('collection_id', col.collection_id)
+  if (e2) return { data: null, error: e2 }
+
+  const map = {}
+  for (const b of bts ?? []) {
+    map[b.booth_code] = { in_meter_prev: b.in_meter_current, out_meter_prev: b.out_meter_current }
+  }
+  return { data: map, error: null }
+}
+
+// 確定保存 (status=confirmed)。advance_payment / prev_collection_date 対応。
+export async function saveCollection({
+  storeCode, collectedAt, prevCollectionDate, collectedBy, collectedByName, booths, rowData, notes,
+}) {
   // 当日連番
   const { count } = await supabase.from('cash_collections')
     .select('collection_id', { count: 'exact', head: true })
@@ -78,17 +107,19 @@ export async function saveCollection({ storeCode, collectedAt, collectedBy, boot
     store_code: storeCode,
     collected_by: collectedBy || null,
     collected_at: collectedAt,
+    prev_collection_date: prevCollectionDate || null,
     status: 'confirmed',
     notes: notes || null,
     organization_id: DFX_ORG_ID,
     created_at: now,
     updated_at: now,
-    updated_by: staffName || null,
+    updated_by: collectedByName || null,
   })
   if (e1) return { data: null, error: e1 }
 
   const boothRows = booths.map(b => {
-    const c = counts[b.booth_code] || {}
+    const d = rowData[b.booth_code] || {}
+    const c = d.counts || {}
     return {
       id: `${collectionId}-${b.booth_code}`,
       collection_id: collectionId,
@@ -101,10 +132,11 @@ export async function saveCollection({ storeCode, collectedAt, collectedBy, boot
       coin_500: Number(c.coin_500) || 0,
       coin_100: Number(c.coin_100) || 0,
       coin_50: Number(c.coin_50) || 0,
-      in_meter_prev: b.in_meter_prev,
-      in_meter_current: b.in_meter_current,
-      out_meter_prev: b.out_meter_prev,
-      out_meter_current: b.out_meter_current,
+      in_meter_prev: d.in_meter_prev ?? null,
+      in_meter_current: d.in_meter_current === '' || d.in_meter_current == null ? null : Number(d.in_meter_current),
+      out_meter_prev: d.out_meter_prev ?? null,
+      out_meter_current: d.out_meter_current === '' || d.out_meter_current == null ? null : Number(d.out_meter_current),
+      advance_payment: Number(d.advance_payment) || 0,
       created_at: now,
     }
   })
@@ -113,7 +145,7 @@ export async function saveCollection({ storeCode, collectedAt, collectedBy, boot
   return { data: { collectionId }, error: null }
 }
 
-// 履歴一覧 (合計はブース total を集計)
+// 履歴一覧 (CollectionHistoryPage 用、変更なし)
 export async function getCollectionHistory() {
   const { data: cols, error } = await supabase.from('cash_collections')
     .select('collection_id, store_code, collected_at, status, collected_by')
@@ -138,7 +170,7 @@ export async function getCollectionHistory() {
   return { data: rows, error: null }
 }
 
-// PDF再表示用 詳細
+// PDF再表示用 詳細 (advance_payment / prev_collection_date 込み)
 export async function getCollectionDetail(collectionId) {
   const { data: col, error } = await supabase.from('cash_collections')
     .select('*').eq('collection_id', collectionId).single()
@@ -153,9 +185,26 @@ export async function getCollectionDetail(collectionId) {
   const { data: machineData } = await supabase.from('machines')
     .select('machine_code, machine_name').in('machine_code', codes.length ? codes : ['__none__'])
   const mName = Object.fromEntries((machineData ?? []).map(m => [m.machine_code, m.machine_name]))
-  const boothRows = (booths ?? []).map(b => ({ ...b, machine_name: mName[b.machine_code] || b.machine_code }))
+
+  // ブース表示名 (booth_label / booth_number) 補完
+  const boothCodes = (booths ?? []).map(b => b.booth_code)
+  const { data: boothMaster } = await supabase.from('booths')
+    .select('booth_code, booth_label, booth_number').in('booth_code', boothCodes.length ? boothCodes : ['__none__'])
+  const bName = Object.fromEntries((boothMaster ?? []).map(b => [
+    b.booth_code,
+    b.booth_label || (b.booth_number != null ? `B${String(b.booth_number).padStart(2, '0')}` : b.booth_code),
+  ]))
+
+  const boothRows = (booths ?? []).map(b => ({
+    ...b,
+    machine_name: mName[b.machine_code] || b.machine_code,
+    booth_name: bName[b.booth_code] || b.booth_code,
+    rental_code: b.machine_code, // rental_code カラム未在のため machine_code フォールバック
+  }))
+  const total = boothRows.reduce((s, b) => s + Number(b.total || 0), 0)
+  const advanceTotal = boothRows.reduce((s, b) => s + Number(b.advance_payment || 0), 0)
   return {
-    data: { collection: col, store: store ?? {}, booths: boothRows, total: boothRows.reduce((s, b) => s + Number(b.total || 0), 0) },
+    data: { collection: col, store: store ?? {}, booths: boothRows, total, advanceTotal },
     error: null,
   }
 }

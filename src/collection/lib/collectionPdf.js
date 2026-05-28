@@ -1,13 +1,7 @@
-// J-COLLECTION-01: 売上伝票PDF生成 (jsPDF, A4縦)
-// 発行元は株式会社ナイスランド固定 (COLLECTION-REQUIREMENTS-V1 伝票写真IMG_3877準拠)。
-//
-// 日本語グリフ描画について:
-//   jsPDF標準フォント(helvetica)はCJKグリフを含まず、specは「CDN不可」のため実行時フォント取得も不可。
-//   テキスト値(店舗名/金種ラベル等)はdoc.textでPDFに配置済み(=内容は存在)だが、視認可能な
-//   日本語描画にはCJK TTFのバンドルが必要。フォント資産(サイズ/ライセンス)はヒロ/司令塔判断事項のため、
-//   registerJpFont() フックで後差し可能にし、未登録時はhelveticaにフォールバックする。
+// J-COLLECTION-02: 売上伝票PDF生成 (jsPDF, A4縦)
+// 発行元は株式会社ナイスランド固定。
+// 仕様刷新: 金種内訳ブロック削除 / 立替額列(参考、合計除外) / サイン欄「弊社担当 / 御社ご担当様」
 import { jsPDF } from 'jspdf'
-import { DENOMINATIONS, denominationSummary } from './collectionCalc'
 import jpFontUrl from './fonts/NotoSansJP-Regular.ttf?url'
 
 const ISSUER = {
@@ -17,14 +11,23 @@ const ISSUER = {
   tel: 'TEL/FAX 098-874-8106',
 }
 
-// CJKフォント後差し用フック (base64 TTF を渡すと以後その font を使う)
+// CJKフォント後差し用フック
 let JP_FONT = null
 export function registerJpFont({ vfsName, base64, fontName }) {
   JP_FONT = { vfsName, base64, fontName }
 }
+function applyFont(doc) {
+  if (JP_FONT) {
+    doc.addFileToVFS(JP_FONT.vfsName, JP_FONT.base64)
+    doc.addFont(JP_FONT.vfsName, JP_FONT.fontName, 'normal')
+    doc.setFont(JP_FONT.fontName, 'normal')
+    return JP_FONT.fontName
+  }
+  doc.setFont('helvetica', 'normal')
+  return 'helvetica'
+}
 
-// J-COLLECTION-PDF-JP-01: バンドルした NotoSansJP (JIS X0208 subset, OFL) を読み込み registerJpFont する。
-// 同一オリジンの静的アセット(Vite ?url)を fetch する。CDN非依存。初回のみ読込しキャッシュ。
+// バンドル NotoSansJP の初回ロード (J-COLLECTION-PDF-JP-01)
 let jpLoading = null
 function abToBase64(buf) {
   const bytes = new Uint8Array(buf)
@@ -46,23 +49,13 @@ export async function ensureJpFont() {
   }
   await jpLoading
 }
-function applyFont(doc) {
-  if (JP_FONT) {
-    doc.addFileToVFS(JP_FONT.vfsName, JP_FONT.base64)
-    doc.addFont(JP_FONT.vfsName, JP_FONT.fontName, 'normal')
-    doc.setFont(JP_FONT.fontName, 'normal')
-    return JP_FONT.fontName
-  }
-  doc.setFont('helvetica', 'normal')
-  return 'helvetica'
-}
 
 const yen = n => `${Number(n || 0).toLocaleString()}`
 
 /**
- * @returns {jsPDF} 生成済みドキュメント (呼び出し側で .save()/.output() する)
+ * @returns {jsPDF} 生成済みドキュメント
  */
-export function buildCollectionSlip({ collection, store, booths, total }) {
+export function buildCollectionSlip({ collection, store, booths, total, advanceTotal, collectedByName }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const font = applyFont(doc)
   const L = 15, R = 195
@@ -76,11 +69,14 @@ export function buildCollectionSlip({ collection, store, booths, total }) {
   y += 8
 
   doc.setFontSize(9)
-  doc.text(`日付: ${collection.collected_at || ''}`, L, y); y += 6
+  doc.text(`集金日: ${collection.collected_at || ''}`, L, y)
+  if (collection.prev_collection_date) {
+    doc.text(`前回集金日: ${collection.prev_collection_date}`, L + 60, y)
+  }
+  y += 6
 
   // 発行元
   doc.text(ISSUER.name, R, y, { align: 'right' }); y += 4
-  doc.setFontSize ? null : null
   doc.setFontSize(8)
   doc.text(`${ISSUER.zip} ${ISSUER.addr}`, R, y, { align: 'right' }); y += 4
   doc.text(ISSUER.tel, R, y, { align: 'right' }); y += 8
@@ -91,14 +87,16 @@ export function buildCollectionSlip({ collection, store, booths, total }) {
   doc.setFontSize(9)
   doc.text('下記のとおり精算申し上げます', L, y); y += 8
 
-  // 明細テーブル
+  // 明細テーブル: No / レンタル番号 / 機械名 / ブース / IN(前→今) / OUT(前→今) / 金額 / 立替
   doc.setFontSize(8)
   const cols = [
-    { x: L,   label: 'No' },
-    { x: L+10, label: '機械名 / ブース' },
-    { x: 95,  label: 'IN(前→今)' },
-    { x: 130, label: 'OUT(前→今)' },
-    { x: R,   label: '金額', align: 'right' },
+    { x: L,    label: 'No' },
+    { x: L+8,  label: 'レンタル' },
+    { x: L+30, label: '機械名 / ブース' },
+    { x: 100,  label: 'IN(前→今)' },
+    { x: 130,  label: 'OUT(前→今)' },
+    { x: 168,  label: '金額', align: 'right' },
+    { x: R,    label: '立替※', align: 'right' },
   ]
   doc.setDrawColor(120)
   doc.line(L, y, R, y); y += 4
@@ -107,47 +105,40 @@ export function buildCollectionSlip({ collection, store, booths, total }) {
   doc.line(L, y, R, y); y += 4
 
   ;(booths ?? []).forEach((b, i) => {
-    const label = `${b.machine_name || b.machine_code} / ${b.booth_code}`
+    const machine = `${b.machine_name || b.machine_code} / ${b.booth_name || b.booth_code}`
     doc.text(String(i + 1), L, y)
-    doc.text(label.length > 26 ? label.slice(0, 25) + '…' : label, L + 10, y)
-    doc.text(`${yen(b.in_meter_prev)}→${yen(b.in_meter_current)}`, 95, y)
+    doc.text(String(b.rental_code || b.machine_code || ''), L + 8, y)
+    doc.text(machine.length > 24 ? machine.slice(0, 23) + '…' : machine, L + 30, y)
+    doc.text(`${yen(b.in_meter_prev)}→${yen(b.in_meter_current)}`, 100, y)
     doc.text(`${yen(b.out_meter_prev)}→${yen(b.out_meter_current)}`, 130, y)
-    doc.text(`${yen(b.total)}`, R, y, { align: 'right' })
+    doc.text(`${yen(b.total)}`, 168, y, { align: 'right' })
+    doc.text(`${yen(b.advance_payment)}`, R, y, { align: 'right' })
     y += 5
     if (y > 250) { doc.addPage(); applyFont(doc); y = 20 }
   })
 
   doc.line(L, y, R, y); y += 6
   doc.setFontSize(11)
-  doc.text(`合計金額`, 130, y)
-  doc.text(`${yen(total)} 円`, R, y, { align: 'right' }); y += 12
-
-  // 金種票
-  doc.setFontSize(9)
-  doc.text('金種内訳', L, y); y += 5
-  doc.setFontSize(8)
-  const summ = denominationSummary(booths)
-  summ.rows.forEach(r => {
-    doc.text(`${r.short}`, L, y)
-    doc.text(`${r.count} 枚`, 60, y, { align: 'right' })
-    doc.text(`× ${yen(r.unit)}`, 75, y)
-    doc.text(`= ${yen(r.subtotal)} 円`, 130, y, { align: 'right' })
-    y += 5
-  })
+  doc.text('合計金額', 130, y)
+  doc.text(`${yen(total)} 円`, 168, y, { align: 'right' })
   y += 6
+  doc.setFontSize(8)
+  doc.text(`※ 立替額(参考) 合計 ${yen(advanceTotal)} 円 ─ 合計金額には含めません`, L, y)
+  y += 12
 
-  // サイン欄
+  // サイン欄 (J-COLLECTION-02: 弊社担当 / 御社ご担当様)
   doc.setFontSize(9)
-  doc.text('DFX担当 ____________________', L, y)
-  doc.text('経理担当 ____________________', 115, y)
+  if (collectedByName) {
+    doc.text(`弊社担当: ${collectedByName}`, L, y)
+  } else {
+    doc.text('弊社担当 ____________________', L, y)
+  }
+  doc.text('御社ご担当様 ____________________', 115, y)
 
   doc.setFont(font, 'normal')
   return doc
 }
 
-// 確定後のファイル名
 export function slipFileName(collectionId) {
   return `uriage_${collectionId || 'slip'}.pdf`
 }
-
-export { DENOMINATIONS }
