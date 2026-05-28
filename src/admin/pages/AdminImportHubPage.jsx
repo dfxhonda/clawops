@@ -106,22 +106,22 @@ export default function AdminImportHubPage() {
           {/* PCH Excel 取込 */}
           <section data-testid="pch-import-card" className="bg-surface rounded-xl border border-border p-4 space-y-3">
             <h2 className="text-base font-bold text-text">PCH Excel取込 (Change / ピーチトイ)</h2>
-            <p className="text-xs text-muted">メーカー請書Excel(複数月シート)をアップロード。照合して INSERT/UPDATE/cancel/conflict を判定します。</p>
+            <p className="text-sm text-muted">メーカー請書Excel(複数月シート)をアップロード。照合して INSERT/UPDATE/cancel/conflict を判定します。</p>
 
             {(saveState === 'idle' || saveState === 'error') && errCode && (
               <ErrorBanner errCode={errCode} message={errorMsg} onClose={() => { setErrCode(''); setErrorMsg('') }} />
             )}
 
             <div>
-              <label className="text-xs text-muted mb-1 block">取込ファイル (.xlsx)</label>
+              <label className="text-sm text-muted mb-1 block">取込ファイル (.xlsx)</label>
               <input type="file" accept=".xlsx,.xls" onChange={handleFile} style={{ display: 'block' }} className="text-sm text-text" />
-              {fileName && <p className="text-xs text-muted mt-1">{fileName}{parsing && ' — 解析中…'}</p>}
+              {fileName && <p className="text-sm text-muted mt-1">{fileName}{parsing && ' — 解析中…'}</p>}
             </div>
 
             {preview && (
               <>
                 {/* 内訳サマリ */}
-                <div className="flex flex-wrap gap-2 text-xs">
+                <div className="flex flex-wrap gap-2 text-sm">
                   {Object.entries(STATE_STYLE).map(([k, s]) => (
                     <span key={k} className={`px-2 py-1 rounded bg-bg border border-border ${s.cls}`}>
                       {s.label}: <b>{preview.summary[k] ?? 0}</b>
@@ -141,9 +141,9 @@ export default function AdminImportHubPage() {
                       <div key={r.rawImportId ?? `m-${i}`} className={`rounded-lg border border-border p-2 ${s.row}`}>
                         <div className="flex justify-between items-start gap-2">
                           <span className="text-sm text-text flex-1 break-words">{rowFlags(r)} {r.prizeNameRaw}</span>
-                          <span className={`text-xs font-bold shrink-0 ${s.cls}`}>{s.label}</span>
+                          <span className={`text-sm font-bold shrink-0 ${s.cls}`}>{s.label}</span>
                         </div>
-                        <div className="text-xs text-muted mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <div className="text-sm text-muted mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                           <span>店舗: {dest}</span>
                           <span>ケース: {r.caseCount ?? '-'}</span>
                           <span>単価: {r.unitCost ?? '-'}</span>
@@ -156,7 +156,7 @@ export default function AdminImportHubPage() {
 
                 {/* iPad+: 表 */}
                 <div className="hidden md:block overflow-x-auto rounded-lg border border-border max-h-[55vh]">
-                  <table className="w-full text-xs border-collapse">
+                  <table className="w-full text-sm border-collapse">
                     <thead className="bg-bg sticky top-0">
                       <tr>
                         {['商品名', '店舗', 'ケース数', '単価', '出荷予定', '状態'].map(h => (
@@ -186,7 +186,7 @@ export default function AdminImportHubPage() {
                 {conflicts.length > 0 && (
                   <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-3">
                     <h3 className="text-sm font-bold text-red-400 mb-1">⚠️ コンフリクト {conflicts.length}件 (arrived済・自動上書きしない、ヒロ手動判断)</h3>
-                    <ul className="text-xs text-red-200 space-y-0.5">
+                    <ul className="text-sm text-red-200 space-y-0.5">
                       {conflicts.map((c, i) => (
                         <li key={c.rawImportId ?? i}>{c.prizeNameRaw} / {c.destination} — {c.conflictReason}</li>
                       ))}
@@ -216,14 +216,14 @@ export default function AdminImportHubPage() {
           {/* change過去CSV取込 (別途 MIGRATION-01) */}
           <section className="bg-surface rounded-xl border border-border p-4">
             <h2 className="text-base font-bold text-text">change過去CSV取込</h2>
-            <p className="text-xs text-muted mt-1">景品フォーム発注履歴CSV(1230行)の一括移行。別途マイグレーションで対応 (MIGRATION-01)。</p>
-            <span className="inline-block mt-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-600 text-gray-300">別途対応</span>
+            <p className="text-sm text-muted mt-1">景品フォーム発注履歴CSV(1230行)の一括移行。別途マイグレーションで対応 (MIGRATION-01)。</p>
+            <span className="inline-block mt-2 px-1.5 py-0.5 rounded text-xs font-bold bg-gray-600 text-gray-300">別途対応</span>
           </section>
 
           {/* SGP状態確認 */}
           <section className="bg-surface rounded-xl border border-border p-4">
             <h2 className="text-base font-bold text-text">SGP状態確認</h2>
-            <p className="text-xs text-muted mt-1">
+            <p className="text-sm text-muted mt-1">
               SGP(achieve発注PF)経由の発注: <b className="text-text">{sgpCount == null ? '—' : `${sgpCount} 件`}</b> (order_source=sgp_api、Edge Function自動取込・本画面からは変更しない)
             </p>
           </section>

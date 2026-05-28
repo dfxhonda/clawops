@@ -11,7 +11,7 @@ const ROLE_VALUES = ['admin', 'manager', 'patrol', 'staff']
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-muted whitespace-nowrap">{label}</span>
+      <span className="text-xs text-muted whitespace-nowrap">{label}</span>
       {children}
     </div>
   )
@@ -25,7 +25,7 @@ function Input({ value, onChange, type = 'text', placeholder, readOnly, classNam
       value={value ?? ''}
       onChange={e => onChange?.(e.target.value)}
       placeholder={placeholder}
-      className={`bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full ${readOnly ? 'opacity-60 cursor-not-allowed' : ''} ${className}`}
+      className={`bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full ${readOnly ? 'opacity-60 cursor-not-allowed' : ''} ${className}`}
     />
   )
 }
@@ -38,7 +38,7 @@ function RoleBadge({ role }) {
     staff:   'bg-gray-600 text-white',
   }
   return (
-    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${colors[role] ?? 'bg-gray-500 text-white'}`}>
+    <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${colors[role] ?? 'bg-gray-500 text-white'}`}>
       {role ?? '—'}
     </span>
   )
@@ -148,7 +148,7 @@ export default function AdminStaffListPage() {
     setLoadKey(k => k + 1)
   }
 
-  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface rounded [color-scheme:dark]"
+  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-sm outline-none focus:bg-surface rounded [color-scheme:dark]"
 
   function setGCell(id, key, val) {
     setGridEdits(prev => {
@@ -192,12 +192,12 @@ export default function AdminStaffListPage() {
           data-testid="staff-search"
           type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="氏名 / 氏名カナ"
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-40"
+          className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-40"
         />
         <select
           data-testid="staff-filter-store"
           value={storeFilter} onChange={e => setStore(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+          className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
         >
           <option value="">全店</option>
           {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
@@ -205,7 +205,7 @@ export default function AdminStaffListPage() {
         <select
           data-testid="staff-filter-role"
           value={roleFilter} onChange={e => setRole(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+          className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
         >
           <option value="">全ロール</option>
           {ROLE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
@@ -213,16 +213,16 @@ export default function AdminStaffListPage() {
         <select
           data-testid="staff-filter-active"
           value={activeFilter} onChange={e => setActive(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+          className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
         >
           <option value="">全</option>
           <option value="true">在籍中</option>
           <option value="false">退職済</option>
         </select>
-        <span className="text-xs text-muted ml-auto">{rows.length}件</span>
+        <span className="text-sm text-muted ml-auto">{rows.length}件</span>
         <button
           onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
-          className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
+          className={`px-3 py-1 rounded text-sm font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
         >
           {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
         </button>
@@ -230,9 +230,9 @@ export default function AdminStaffListPage() {
 
       {gridMode && Object.keys(gridEdits).length > 0 && (
         <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border-y border-amber-700/40">
-          <span className="text-xs text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
-          <button onClick={() => setGridEdits({})} className="ml-auto text-xs text-muted px-2 py-1 rounded border border-border">取消</button>
-          <button onClick={saveGridEdits} disabled={gridSaving} className="text-xs text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
+          <span className="text-sm text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-sm text-muted px-2 py-1 rounded border border-border">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-sm text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
             {gridSaving ? '保存中…' : '一括保存'}
           </button>
         </div>
@@ -240,11 +240,11 @@ export default function AdminStaffListPage() {
 
       {/* list */}
       <div className="flex-1 overflow-auto min-h-0">
-        {error && <p className="text-red-400 text-xs p-3">{error}</p>}
-        {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-        {!loading && rows.length === 0 && <p className="text-center text-muted text-xs py-8">該当なし</p>}
+        {error && <p className="text-red-400 text-sm p-3">{error}</p>}
+        {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
+        {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
         {!loading && rows.length > 0 && (
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead className="sticky top-0 bg-bg z-10">
               <tr className="border-b border-border text-muted">
                 <th className="py-1 px-2 text-left whitespace-nowrap">氏名</th>
@@ -274,7 +274,7 @@ export default function AdminStaffListPage() {
                     </td>
                     <td className="py-0.5 px-1">
                       {gridMode
-                        ? <select value={ge?.role ?? r.role ?? ''} onChange={ev => setGCell(r.staff_id, 'role', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-xs rounded w-full [color-scheme:dark]">
+                        ? <select value={ge?.role ?? r.role ?? ''} onChange={ev => setGCell(r.staff_id, 'role', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]">
                             <option value="">—</option>
                             {ROLE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
                           </select>
@@ -282,7 +282,7 @@ export default function AdminStaffListPage() {
                     </td>
                     <td className="py-0.5 px-1 text-muted">
                       {gridMode
-                        ? <select value={ge?.store_code ?? r.store_code ?? ''} onChange={ev => setGCell(r.staff_id, 'store_code', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-xs rounded w-full [color-scheme:dark]">
+                        ? <select value={ge?.store_code ?? r.store_code ?? ''} onChange={ev => setGCell(r.staff_id, 'store_code', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]">
                             <option value="">—</option>
                             {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
                           </select>
@@ -318,7 +318,7 @@ export default function AdminStaffListPage() {
                 <p className="text-base font-bold text-text">{form.name || '—'}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <RoleBadge role={form.role} />
-                  <span className="text-[10px] text-muted">
+                  <span className="text-xs text-muted">
                     {form.has_pin ? 'PIN設定済' : 'PIN未設定'}
                   </span>
                 </div>
@@ -326,7 +326,7 @@ export default function AdminStaffListPage() {
             </div>
 
             <div className="p-4 flex flex-col gap-3">
-              {error && <p className="text-red-400 text-xs">{error}</p>}
+              {error && <p className="text-red-400 text-sm">{error}</p>}
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="氏名">
@@ -351,7 +351,7 @@ export default function AdminStaffListPage() {
                   <select
                     value={form.role ?? ''}
                     onChange={e => setF('role')(e.target.value)}
-                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+                    className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
                   >
                     <option value="">—</option>
                     {ROLE_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
@@ -361,7 +361,7 @@ export default function AdminStaffListPage() {
                   <select
                     value={form.store_code ?? ''}
                     onChange={e => setF('store_code')(e.target.value)}
-                    className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+                    className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
                   >
                     <option value="">—</option>
                     {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
@@ -374,12 +374,12 @@ export default function AdminStaffListPage() {
                   <Input type="date" value={form.joined_at ? form.joined_at.slice(0, 10) : ''} onChange={setF('joined_at')} />
                 </Field>
                 <div className="flex flex-col gap-1 justify-end">
-                  <label className="flex items-center gap-1.5 text-xs text-text cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-sm text-text cursor-pointer">
                     <input type="checkbox" checked={form.is_active ?? false}
                       onChange={e => setF('is_active')(e.target.checked)} className="accent-blue-500" />
                     在籍中
                   </label>
-                  <label className="flex items-center gap-1.5 text-xs text-text cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-sm text-text cursor-pointer">
                     <input type="checkbox" checked={form.has_vehicle_stock ?? false}
                       onChange={e => setF('has_vehicle_stock')(e.target.checked)} className="accent-blue-500" />
                     車両在庫有
@@ -392,11 +392,11 @@ export default function AdminStaffListPage() {
                   value={form.notes ?? ''}
                   onChange={e => setF('notes')(e.target.value)}
                   rows={2}
-                  className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full resize-none"
+                  className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full resize-none"
                 />
               </Field>
 
-              <div className="text-[10px] text-muted font-mono">
+              <div className="text-xs text-muted font-mono">
                 スタッフID: {modal.staff_id}
               </div>
             </div>
@@ -426,7 +426,7 @@ export default function AdminStaffListPage() {
                 </button>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <p className="text-xs text-rose-400 text-center">PINをリセットしますか？</p>
+                  <p className="text-sm text-rose-400 text-center">PINをリセットしますか？</p>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setPinConfirm(false)}
                       className="flex-1 py-2 rounded-lg bg-surface text-text text-sm font-bold">

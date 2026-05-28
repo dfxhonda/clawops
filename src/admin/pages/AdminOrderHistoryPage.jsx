@@ -22,11 +22,11 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 function ModalSection({ title, items }) {
   return (
     <div>
-      <div className="text-[10px] font-bold text-muted border-b border-border pb-1 mb-2">{title}</div>
+      <div className="text-xs font-bold text-muted border-b border-border pb-1 mb-2">{title}</div>
       <div className="grid grid-cols-2 gap-3">
         {items.map(([label, val]) => (
           <div key={label} className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-muted">{label}</span>
+            <span className="text-xs text-muted">{label}</span>
             <span className="text-text">{val ?? '—'}</span>
           </div>
         ))}
@@ -82,12 +82,12 @@ export default function AdminOrderHistoryPage() {
             data-testid="order-filter-status"
             value={stFilter}
             onChange={e => setSt(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           >
             <option value="">ステータス ALL</option>
             {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <label className="flex items-center gap-1 text-xs text-muted cursor-pointer">
+          <label className="flex items-center gap-1 text-sm text-muted cursor-pointer">
             <input
               type="checkbox"
               data-testid="order-filter-received"
@@ -102,18 +102,18 @@ export default function AdminOrderHistoryPage() {
             data-testid="order-filter-date-from"
             value={dateFrom}
             onChange={e => setFrom(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           />
-          <span className="text-muted text-xs">〜</span>
+          <span className="text-muted text-sm">〜</span>
           <input
             type="date"
             data-testid="order-filter-date-to"
             value={dateTo}
             onChange={e => setTo(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           />
           {totalCount !== null && (
-            <span className="ml-auto text-xs text-muted whitespace-nowrap">
+            <span className="ml-auto text-sm text-muted whitespace-nowrap">
               全{totalCount.toLocaleString()}件 / 合計 ¥{total.toLocaleString()}
             </span>
           )}
@@ -122,13 +122,13 @@ export default function AdminOrderHistoryPage() {
 
       {/* list */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0 overflow-x-auto">
-        {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
-        {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
+        {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+        {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
         {!loading && rows.length === 0 && (
-          <p className="text-center text-muted text-xs py-8">該当なし</p>
+          <p className="text-center text-muted text-sm py-8">該当なし</p>
         )}
         <div data-testid="order-list">
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-bg z-10">
               <tr className="text-muted border-b border-border">
                 <SortTh col="order_date"          label="発注日"      align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
@@ -155,19 +155,19 @@ export default function AdminOrderHistoryPage() {
                   <td className="py-1 px-2 max-w-[180px]">
                     <div className="truncate text-text">{r.prize_name_raw}</div>
                     {r.prize_name_short && (
-                      <div className="truncate text-xs text-gray-400">{r.prize_name_short}</div>
+                      <div className="truncate text-sm text-gray-400">{r.prize_name_short}</div>
                     )}
                   </td>
                   <td className="py-1 px-2">
                     <div className="text-muted">{r.prize_masters?.supplier_name ?? r.supplier_id}</div>
                     {r.supplier_id && (
-                      <div className="text-xs text-gray-400">{r.supplier_id}</div>
+                      <div className="text-sm text-gray-400">{r.supplier_id}</div>
                     )}
                   </td>
                   <td className="py-1 px-2 text-right text-muted">{r.case_count}</td>
                   <td className="py-1 px-2 text-right text-text">{fmt(r.total_tax_included)}</td>
                   <td className="py-1 px-2">
-                    <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${
+                    <span className={`px-1 py-0.5 rounded text-xs font-bold ${
                       r.status === 'arrived' ? 'bg-green-600 text-white' :
                       r.status === 'cancelled' ? 'bg-gray-600 text-gray-300' :
                       'bg-blue-600 text-white'
@@ -193,7 +193,7 @@ export default function AdminOrderHistoryPage() {
               <span className="text-sm font-bold text-text">発注詳細</span>
               <button onClick={() => setModal(null)} className="text-muted text-lg leading-none">✕</button>
             </div>
-            <div className="flex flex-col gap-4 text-xs">
+            <div className="flex flex-col gap-4 text-sm">
               <ModalSection title="発注情報" items={[
                 ['発注日',       modal.order_date],
                 ['納品予定日',   modal.expected_date],
@@ -222,7 +222,7 @@ export default function AdminOrderHistoryPage() {
                 ['備考',             modal.notes],
               ]} />
             </div>
-            <p className="mt-4 text-[10px] text-muted">※ 発注操作は別システムで管理。このページは閲覧専用です。</p>
+            <p className="mt-4 text-xs text-muted">※ 発注操作は別システムで管理。このページは閲覧専用です。</p>
           </div>
         </div>
       )}

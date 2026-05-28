@@ -18,7 +18,7 @@ const EMPTY_FORM = {
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-0.5">
-      {label && <span className="text-[10px] text-muted">{label}</span>}
+      {label && <span className="text-xs text-muted">{label}</span>}
       {children}
     </div>
   )
@@ -31,7 +31,7 @@ function TInput({ value, onChange, placeholder, type = 'text' }) {
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full"
+      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
     />
   )
 }
@@ -156,7 +156,7 @@ export default function AdminStoreListPage() {
 
   const f = v => setForm(prev => ({ ...prev, ...v }))
 
-  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface rounded [color-scheme:dark]"
+  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-sm outline-none focus:bg-surface rounded [color-scheme:dark]"
 
   function setGCell(id, key, val) {
     setGridEdits(prev => {
@@ -210,18 +210,18 @@ export default function AdminStoreListPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="店舗名 / 正式名 / 地域"
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text flex-1 min-w-[160px]"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text flex-1 min-w-[160px]"
           />
           <select
             data-testid="store-list-brand-filter"
             value={brandFilter}
             onChange={e => setBrandFilter(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           >
             <option value="">ブランド全て</option>
             {brands.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
-          <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 text-sm text-muted cursor-pointer select-none">
             <input
               type="checkbox"
               checked={activeOnly}
@@ -231,17 +231,17 @@ export default function AdminStoreListPage() {
             />
             有効のみ
           </label>
-          <span className="text-xs text-muted whitespace-nowrap">{rows.length}件</span>
+          <span className="text-sm text-muted whitespace-nowrap">{rows.length}件</span>
           <button
             data-testid="store-list-new-button"
             onClick={openNew}
-            className="ml-auto px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold whitespace-nowrap"
+            className="ml-auto px-3 py-1 rounded bg-blue-600 text-white text-sm font-bold whitespace-nowrap"
           >
             + 新規登録
           </button>
           <button
             onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
-            className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
+            className={`px-3 py-1 rounded text-sm font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
           >
             {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
           </button>
@@ -250,21 +250,21 @@ export default function AdminStoreListPage() {
 
       {gridMode && Object.keys(gridEdits).length > 0 && (
         <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border-y border-amber-700/40">
-          <span className="text-xs text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
-          <button onClick={() => setGridEdits({})} className="ml-auto text-xs text-muted px-2 py-1 rounded border border-border">取消</button>
-          <button onClick={saveGridEdits} disabled={gridSaving} className="text-xs text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
+          <span className="text-sm text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-sm text-muted px-2 py-1 rounded border border-border">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-sm text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
             {gridSaving ? '保存中…' : '一括保存'}
           </button>
         </div>
       )}
 
       {/* list */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0">
-        {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-        {!loading && rows.length === 0 && <p className="text-center text-muted text-xs py-8">該当なし</p>}
-        {error && !modal && <p className="text-red-400 text-xs px-3 py-2">{error}</p>}
+      <div className="flex-1 overflow-auto px-3 pb-3 min-h-0">
+        {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
+        {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
+        {error && !modal && <p className="text-red-400 text-sm px-3 py-2">{error}</p>}
 
-        <table data-testid="store-list-table" className="w-full text-xs border-collapse">
+        <table data-testid="store-list-table" className="w-full text-sm border-collapse">
           <thead className="sticky top-0 bg-bg z-10">
             <tr className="border-b border-border">
               <th className="py-1 px-2 text-left text-muted">店舗名</th>
@@ -303,7 +303,7 @@ export default function AdminStoreListPage() {
                   <td className="py-0.5 px-1">
                     {gridMode
                       ? <input type="checkbox" checked={ge?.is_active ?? r.is_active ?? false} onChange={ev => setGCell(r.store_id, 'is_active', ev.target.checked)} className="accent-blue-500" />
-                      : <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${r.is_active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}>{r.is_active ? '有効' : '無効'}</span>}
+                      : <span className={`px-1 py-0.5 rounded text-xs font-bold ${r.is_active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}>{r.is_active ? '有効' : '無効'}</span>}
                   </td>
                 </tr>
               )
@@ -326,7 +326,7 @@ export default function AdminStoreListPage() {
               <button onClick={() => setModal(null)} className="text-muted text-lg leading-none">✕</button>
             </div>
 
-            {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
+            {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
             <div className="flex flex-col gap-3">
               <Field label="店舗名 *">
@@ -370,15 +370,15 @@ export default function AdminStoreListPage() {
                   value={form.notes ?? ''}
                   onChange={e => f({ notes: e.target.value })}
                   rows={3}
-                  className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full resize-none"
+                  className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full resize-none"
                   placeholder="備考"
                 />
               </Field>
-              <label className="flex items-center gap-2 text-xs text-text cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
                 <input type="checkbox" checked={form.is_active} onChange={e => f({ is_active: e.target.checked })} className="accent-accent" />
                 有効 (is_active)
               </label>
-              <label className="flex items-center gap-2 text-xs text-text cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
                 <input type="checkbox" checked={form.is_collection_day} onChange={e => f({ is_collection_day: e.target.checked })} className="accent-accent" />
                 集金日対象 (is_collection_day)
               </label>
@@ -386,14 +386,14 @@ export default function AdminStoreListPage() {
 
             <div className="flex gap-2 mt-4">
               <div className="flex-1" />
-              <button onClick={() => setModal(null)} className="px-3 py-1.5 rounded border border-border text-xs text-muted">
+              <button onClick={() => setModal(null)} className="px-3 py-1.5 rounded border border-border text-sm text-muted">
                 キャンセル
               </button>
               <button
                 data-testid="store-list-save-button"
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-1.5 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-50"
+                className="px-4 py-1.5 rounded bg-blue-600 text-white text-sm font-bold disabled:opacity-50"
               >
                 {saving ? '保存中…' : '保存'}
               </button>

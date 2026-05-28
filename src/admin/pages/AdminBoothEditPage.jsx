@@ -392,10 +392,10 @@ export default function AdminBoothEditPage() {
         )}
         <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 pb-6">
           <div className="rounded-2xl border border-border bg-surface/60 p-4 mb-4">
-            <div className="text-xs font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
+            <div className="text-sm font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
             <div className="grid grid-cols-2 gap-4 mb-2">
               <div>
-                <div className="text-xs text-muted mb-1">IN</div>
+                <div className="text-sm text-muted mb-1">IN</div>
                 <NumpadField
                   id="admin-ocr-confirm-in"
                   value={ocrEditIn}
@@ -410,7 +410,7 @@ export default function AdminBoothEditPage() {
                 />
               </div>
               <div>
-                <div className="text-xs text-muted mb-1">OUT</div>
+                <div className="text-sm text-muted mb-1">OUT</div>
                 <NumpadField
                   id="admin-ocr-confirm-out"
                   value={ocrEditOut}
@@ -425,7 +425,7 @@ export default function AdminBoothEditPage() {
                 />
               </div>
             </div>
-            <div className="text-xs text-muted">
+            <div className="text-sm text-muted">
               信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span>
               {ocrEdited && <span className="ml-3 text-amber-400">修正済み</span>}
               {!photoUrl && <span className="ml-3 text-amber-400">写真アップロード失敗</span>}
@@ -547,14 +547,14 @@ export default function AdminBoothEditPage() {
                     isSelected ? 'bg-blue-50 ring-2 ring-blue-500' : 'hover:bg-surface/50'
                   }`}
                 >
-                  <span className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${badge.cls}`}>
+                  <span className={`shrink-0 text-sm font-bold px-1.5 py-0.5 rounded ${badge.cls}`}>
                     {badge.label}
                   </span>
                   <div className="flex-1 min-w-0">
                     <span className="font-bold text-base text-text">{row.patrol_date}</span>
-                    <span className="ml-2 text-xs text-gray-500">入力: {fmtCreatedAt(row.created_at)}</span>
+                    <span className="ml-2 text-sm text-gray-500">入力: {fmtCreatedAt(row.created_at)}</span>
                   </div>
-                  <div className="shrink-0 text-xs text-muted text-right space-x-2">
+                  <div className="shrink-0 text-sm text-muted text-right space-x-2">
                     <span>IN {fmtDiff(row.in_diff)}</span>
                     <span>OUT {fmtDiff(row.out_diff)}</span>
                   </div>

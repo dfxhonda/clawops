@@ -130,7 +130,7 @@ export default function AdminCollectionFlagPage() {
 
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">店舗</span>
+            <span className="text-sm text-muted">店舗</span>
             <select data-testid="colflag-store-select" value={storeCode} onChange={e => setStoreCode(e.target.value)}
               className="bg-bg border border-border rounded-lg px-3 min-h-[44px] text-base text-text">
               <option value="">店舗を選択</option>
@@ -138,7 +138,7 @@ export default function AdminCollectionFlagPage() {
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">巡回日</span>
+            <span className="text-sm text-muted">巡回日</span>
             <select data-testid="colflag-date-select" value={patrolDate} onChange={e => setPatrolDate(e.target.value)}
               disabled={!storeCode || dates.length === 0}
               className="bg-bg border border-border rounded-lg px-3 min-h-[44px] text-base text-text disabled:opacity-50">
@@ -185,7 +185,7 @@ export default function AdminCollectionFlagPage() {
                   <div className="text-base font-bold text-text truncate">
                     {r.machine_name}{r.booth_number != null && <span className="text-muted"> / ブース {r.booth_number}</span>}
                   </div>
-                  <div className="text-xs text-muted mt-0.5 flex gap-3">
+                  <div className="text-sm text-muted mt-0.5 flex gap-3">
                     <span>IN差 {diffText(r.in_diff)}</span>
                     <span>OUT差 {diffText(r.out_diff)}</span>
                     <span>売上 {diffText(r.revenue)}円</span>

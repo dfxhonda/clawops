@@ -18,7 +18,7 @@ function wrapAlias(v) { return v.trim() ? JSON.stringify([v.trim()]) : null }
 function Field({ label, children, row }) {
   return (
     <div className={`flex ${row ? 'flex-row items-center gap-2' : 'flex-col gap-0.5'}`}>
-      {label && <span className="text-[10px] text-muted whitespace-nowrap">{label}</span>}
+      {label && <span className="text-xs text-muted whitespace-nowrap">{label}</span>}
       {children}
     </div>
   )
@@ -32,7 +32,7 @@ function Input({ value, onChange, placeholder, type = 'text', required, classNam
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       required={required}
-      className={`bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full ${className}`}
+      className={`bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full ${className}`}
     />
   )
 }
@@ -42,7 +42,7 @@ function FSelect({ value, onChange, options }) {
     <select
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
-      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full"
+      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
     >
       <option value="">ALL</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -199,7 +199,7 @@ export default function AdminPrizeMasterPage() {
   const f = (v) => setForm(prev => ({ ...prev, ...v }))
   const caseTotal = (Number(form.original_cost) || 0) * (Number(form.default_case_quantity) || 0)
 
-  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-xs outline-none focus:bg-surface rounded [color-scheme:dark]"
+  const gridCellCls = "w-full h-7 px-1.5 bg-transparent border-0 text-text text-sm outline-none focus:bg-surface rounded [color-scheme:dark]"
 
   function setGCell(id, key, val) {
     setGridEdits(prev => {
@@ -247,39 +247,39 @@ export default function AdminPrizeMasterPage() {
             value={search}
             onChange={e => handleSearch(e.target.value)}
             placeholder="景品名・alias 検索"
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text flex-1 min-w-[160px]"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text flex-1 min-w-[160px]"
           />
           <input
             data-testid="prize-filter-category"
             value={catFilter}
             onChange={e => handleCat(e.target.value)}
             placeholder="カテゴリ絞込"
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-28"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-28"
           />
           <select
             data-testid="prize-filter-status"
             value={stFilter}
             onChange={e => handleSt(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           >
             <option value="">ステータス ALL</option>
             {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {totalCount !== null && (
-            <span data-testid="prize-total-count" className="text-xs text-muted whitespace-nowrap">
+            <span data-testid="prize-total-count" className="text-sm text-muted whitespace-nowrap">
               全{totalCount.toLocaleString()}件
             </span>
           )}
           <button
             data-testid="prize-new-button"
             onClick={openNew}
-            className="ml-auto px-3 py-1 rounded bg-blue-600 text-white text-xs font-bold whitespace-nowrap"
+            className="ml-auto px-3 py-1 rounded bg-blue-600 text-white text-sm font-bold whitespace-nowrap"
           >
             + 新規登録
           </button>
           <button
             onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
-            className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
+            className={`px-3 py-1 rounded text-sm font-bold whitespace-nowrap border ${gridMode ? 'bg-amber-600 text-white border-transparent' : 'border-border text-muted'}`}
           >
             {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
           </button>
@@ -288,9 +288,9 @@ export default function AdminPrizeMasterPage() {
 
       {gridMode && Object.keys(gridEdits).length > 0 && (
         <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border-y border-amber-700/40">
-          <span className="text-xs text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
-          <button onClick={() => setGridEdits({})} className="ml-auto text-xs text-muted px-2 py-1 rounded border border-border">取消</button>
-          <button onClick={saveGridEdits} disabled={gridSaving} className="text-xs text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
+          <span className="text-sm text-amber-400">{Object.keys(gridEdits).length}件 変更あり</span>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-sm text-muted px-2 py-1 rounded border border-border">取消</button>
+          <button onClick={saveGridEdits} disabled={gridSaving} className="text-sm text-white bg-blue-600 px-3 py-1 rounded font-bold disabled:opacity-50">
             {gridSaving ? '保存中…' : '一括保存'}
           </button>
         </div>
@@ -298,12 +298,12 @@ export default function AdminPrizeMasterPage() {
 
       {/* list */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0 overflow-x-auto">
-        {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
+        {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
         {!loading && rows.length === 0 && (
-          <p className="text-center text-muted text-xs py-8">該当なし</p>
+          <p className="text-center text-muted text-sm py-8">該当なし</p>
         )}
         <div data-testid="prize-list">
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 bg-bg z-10">
               <tr className="border-b border-border">
                 <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
@@ -328,7 +328,7 @@ export default function AdminPrizeMasterPage() {
                     <td className="py-0.5 px-1 max-w-[220px]">
                       {gridMode
                         ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
-                        : <><div className="truncate text-text font-medium">{r.prize_name}</div>{a0 && <div className="truncate text-xs text-gray-400">{a0}</div>}</>}
+                        : <><div className="truncate text-text font-medium">{r.prize_name}</div>{a0 && <div className="truncate text-sm text-gray-400">{a0}</div>}</>}
                     </td>
                     <td className="py-0.5 px-1 text-muted">
                       {gridMode
@@ -337,10 +337,10 @@ export default function AdminPrizeMasterPage() {
                     </td>
                     <td className="py-0.5 px-1">
                       {gridMode
-                        ? <select value={ge?.status ?? r.status ?? 'active'} onChange={ev => setGCell(r.prize_id, 'status', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-xs rounded w-full [color-scheme:dark]">
+                        ? <select value={ge?.status ?? r.status ?? 'active'} onChange={ev => setGCell(r.prize_id, 'status', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]">
                             {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
-                        : <span className={`px-1 py-0.5 rounded text-[10px] font-bold ${r.status === 'active' ? 'bg-green-600 text-white' : r.status === 'inactive' ? 'bg-gray-600 text-gray-300' : 'bg-amber-600 text-white'}`}>{r.status}</span>}
+                        : <span className={`px-1 py-0.5 rounded text-xs font-bold ${r.status === 'active' ? 'bg-green-600 text-white' : r.status === 'inactive' ? 'bg-gray-600 text-gray-300' : 'bg-amber-600 text-white'}`}>{r.status}</span>}
                     </td>
                     <td className="py-0.5 px-1 text-right text-muted">
                       {gridMode
@@ -375,7 +375,7 @@ export default function AdminPrizeMasterPage() {
               <button onClick={() => setModal(null)} className="text-muted text-lg leading-none">✕</button>
             </div>
 
-            {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
+            {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
             <div className="flex flex-col gap-3">
               {/* 1: 景品名 (短縮形) */}
@@ -401,16 +401,16 @@ export default function AdminPrizeMasterPage() {
               {/* 3: 原価 + 入数 + ケース金額 */}
               <div className="flex gap-2 items-end">
                 <div className="flex flex-col gap-0.5 w-24">
-                  <span className="text-[10px] text-muted">単価</span>
+                  <span className="text-xs text-muted">単価</span>
                   <Input value={form.original_cost} onChange={v => f({ original_cost: v })} type="number" placeholder="0" />
                 </div>
                 <div className="flex flex-col gap-0.5 w-20">
-                  <span className="text-[10px] text-muted">入数</span>
+                  <span className="text-xs text-muted">入数</span>
                   <Input value={form.default_case_quantity} onChange={v => f({ default_case_quantity: v })} type="number" placeholder="0" />
                 </div>
                 <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="text-[10px] text-muted">ケース金額</span>
-                  <div className="bg-bg border border-border/50 rounded px-2 py-1 text-xs text-muted">
+                  <span className="text-xs text-muted">ケース金額</span>
+                  <div className="bg-bg border border-border/50 rounded px-2 py-1 text-sm text-muted">
                     {caseTotal > 0 ? caseTotal.toLocaleString() : '—'}
                   </div>
                 </div>
@@ -419,11 +419,11 @@ export default function AdminPrizeMasterPage() {
               {/* 4: 取引先名 + 取引先ID */}
               <div className="flex gap-2">
                 <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="text-[10px] text-muted">取引先名</span>
+                  <span className="text-xs text-muted">取引先名</span>
                   <Input value={form.supplier_name} onChange={v => f({ supplier_name: v })} placeholder="取引先名" />
                 </div>
                 <div className="flex flex-col gap-0.5 w-28">
-                  <span className="text-[10px] text-muted">取引先ID</span>
+                  <span className="text-xs text-muted">取引先ID</span>
                   <Input value={form.supplier_id} onChange={v => f({ supplier_id: v })} placeholder="ID" />
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function AdminPrizeMasterPage() {
               <button
                 type="button"
                 onClick={() => setShowMore(m => !m)}
-                className="text-left text-xs text-muted border-t border-border pt-2 flex items-center gap-1"
+                className="text-left text-sm text-muted border-t border-border pt-2 flex items-center gap-1"
               >
                 その他 {showMore ? '▲' : '▼'}
               </button>
@@ -471,7 +471,7 @@ export default function AdminPrizeMasterPage() {
                       value={form.notes ?? ''}
                       onChange={e => f({ notes: e.target.value })}
                       rows={2}
-                      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full resize-none"
+                      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full resize-none"
                       placeholder="備考"
                     />
                   </Field>
@@ -491,20 +491,20 @@ export default function AdminPrizeMasterPage() {
                   data-testid="prize-delete-button"
                   onClick={handleSoftDelete}
                   disabled={saving}
-                  className="px-3 py-1.5 rounded bg-red-800 text-white text-xs font-bold disabled:opacity-50"
+                  className="px-3 py-1.5 rounded bg-red-800 text-white text-sm font-bold disabled:opacity-50"
                 >
                   廃止
                 </button>
               )}
               <div className="flex-1" />
-              <button onClick={() => setModal(null)} className="px-3 py-1.5 rounded border border-border text-xs text-muted">
+              <button onClick={() => setModal(null)} className="px-3 py-1.5 rounded border border-border text-sm text-muted">
                 キャンセル
               </button>
               <button
                 data-testid="prize-save-button"
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-1.5 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-50"
+                className="px-4 py-1.5 rounded bg-blue-600 text-white text-sm font-bold disabled:opacity-50"
               >
                 {saving ? '保存中…' : '保存'}
               </button>

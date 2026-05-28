@@ -134,7 +134,7 @@ export default function AdminQRLabelPage() {
             data-testid="qr-filter-store"
             value={storeFilter}
             onChange={e => { setStore(e.target.value); setMachine('') }}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           >
             <option value="">全店</option>
             {stores.map(s => <option key={s.code} value={s.code}>{s.name}</option>)}
@@ -143,12 +143,12 @@ export default function AdminQRLabelPage() {
             data-testid="qr-filter-machine"
             value={machineFilter}
             onChange={e => setMachine(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           >
             <option value="">全機械</option>
             {machines.map(m => <option key={m.code} value={m.code}>{m.name}</option>)}
           </select>
-          <label className="flex items-center gap-1 text-xs text-muted cursor-pointer">
+          <label className="flex items-center gap-1 text-sm text-muted cursor-pointer">
             <input
               type="checkbox"
               data-testid="qr-select-all"
@@ -158,12 +158,12 @@ export default function AdminQRLabelPage() {
             />
             全選択
           </label>
-          <span className="text-xs text-muted">{printTargets.length}枚選択中</span>
+          <span className="text-sm text-muted">{printTargets.length}枚選択中</span>
           <button
             data-testid="qr-print-button"
             onClick={() => window.print()}
             disabled={printTargets.length === 0}
-            className="ml-auto px-4 py-1.5 rounded bg-blue-600 text-white text-xs font-bold disabled:opacity-40 whitespace-nowrap"
+            className="ml-auto px-4 py-1.5 rounded bg-blue-600 text-white text-sm font-bold disabled:opacity-40 whitespace-nowrap"
           >
             印刷 ({printTargets.length}枚)
           </button>
@@ -171,10 +171,10 @@ export default function AdminQRLabelPage() {
 
         {/* label list */}
         <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
-          {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
-          {loading && <p className="text-center text-muted text-xs py-8">読込中…</p>}
+          {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+          {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
           {!loading && filtered.length === 0 && (
-            <p className="text-center text-muted text-xs py-8">該当なし</p>
+            <p className="text-center text-muted text-sm py-8">該当なし</p>
           )}
           <div data-testid="qr-label-list" className="flex flex-wrap gap-3">
             {filtered.map(booth => {
@@ -185,7 +185,7 @@ export default function AdminQRLabelPage() {
                   className={isSelected ? '' : 'label-unselected'}
                   style={{ opacity: isSelected ? 1 : 0.3 }}
                 >
-                  <label className="no-print flex items-center gap-1 text-xs text-muted mb-0.5 cursor-pointer">
+                  <label className="no-print flex items-center gap-1 text-sm text-muted mb-0.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={isSelected}

@@ -66,7 +66,7 @@ export default function AdminOperationLogsPage() {
           <button
             key={p}
             onClick={() => setPreset(p)}
-            className={`px-3 py-1 rounded text-xs font-medium ${
+            className={`px-3 py-1 rounded text-sm font-medium ${
               preset === p ? 'bg-blue-600 text-white' : 'bg-surface text-muted border border-border'
             }`}
           >
@@ -78,20 +78,20 @@ export default function AdminOperationLogsPage() {
             type="date"
             value={customFrom}
             onChange={e => setCustomFrom(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-xs text-text"
+            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
           />
         )}
-        <span className="text-xs text-muted ml-auto">{rows.length}件{hasMore ? '+' : ''}</span>
+        <span className="text-sm text-muted ml-auto">{rows.length}件{hasMore ? '+' : ''}</span>
       </div>
 
-      {error && <p className="text-red-400 text-xs px-3 py-1">{error}</p>}
+      {error && <p className="text-red-400 text-sm px-3 py-1">{error}</p>}
 
       {/* list */}
       <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0">
-        {loading && rows.length === 0 && <p className="text-center text-muted text-xs py-8">読込中…</p>}
-        {!loading && rows.length === 0 && <p className="text-center text-muted text-xs py-8">該当なし</p>}
+        {loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">読込中…</p>}
+        {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
 
-        <table data-testid="ops-table" className="w-full text-xs border-collapse">
+        <table data-testid="ops-table" className="w-full text-sm border-collapse">
           <thead className="sticky top-0 bg-bg z-10">
             <tr className="border-b border-border">
               <th className="py-1 px-2 text-left text-muted whitespace-nowrap">日時</th>
@@ -122,11 +122,11 @@ export default function AdminOperationLogsPage() {
         </table>
 
         {hasMore && !loading && (
-          <button onClick={loadMore} className="mt-3 w-full py-2 text-xs text-muted border border-border rounded hover:bg-surface">
+          <button onClick={loadMore} className="mt-3 w-full py-2 text-sm text-muted border border-border rounded hover:bg-surface">
             さらに読む
           </button>
         )}
-        {loading && rows.length > 0 && <p className="text-center text-muted text-xs py-4">読込中…</p>}
+        {loading && rows.length > 0 && <p className="text-center text-muted text-sm py-4">読込中…</p>}
       </div>
 
       {/* detail modal */}
@@ -140,7 +140,7 @@ export default function AdminOperationLogsPage() {
               <span className="text-sm font-bold text-text">操作ログ詳細</span>
               <button onClick={() => setDetail(null)} className="text-muted text-lg leading-none">✕</button>
             </div>
-            <dl className="text-xs space-y-2">
+            <dl className="text-sm space-y-2">
               <div><dt className="text-muted">日時</dt><dd className="text-text">{fmtDt(detail.created_at)}</dd></div>
               <div><dt className="text-muted">スタッフ</dt><dd className="text-text">{detail.staff_id}</dd></div>
               <div><dt className="text-muted">操作</dt><dd className="text-text font-medium">{detail.action}</dd></div>
@@ -151,13 +151,13 @@ export default function AdminOperationLogsPage() {
               {detail.before_data && (
                 <div>
                   <dt className="text-muted mb-1">変更前</dt>
-                  <dd><pre className="bg-surface rounded p-2 text-[10px] text-text overflow-x-auto whitespace-pre-wrap break-all">{prettyJson(detail.before_data)}</pre></dd>
+                  <dd><pre className="bg-surface rounded p-2 text-xs text-text overflow-x-auto whitespace-pre-wrap break-all">{prettyJson(detail.before_data)}</pre></dd>
                 </div>
               )}
               {detail.after_data && (
                 <div>
                   <dt className="text-muted mb-1">変更後</dt>
-                  <dd><pre className="bg-surface rounded p-2 text-[10px] text-text overflow-x-auto whitespace-pre-wrap break-all">{prettyJson(detail.after_data)}</pre></dd>
+                  <dd><pre className="bg-surface rounded p-2 text-xs text-text overflow-x-auto whitespace-pre-wrap break-all">{prettyJson(detail.after_data)}</pre></dd>
                 </div>
               )}
             </dl>

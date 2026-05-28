@@ -11,7 +11,7 @@ import { nextMachineCode, nextBoothCode, nextBoothNumber } from '../lib/machineB
 function Field({ label, hint, children }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-sm text-muted">{label}{hint && <span className="ml-2 text-xs text-blue-400">{hint}</span>}</span>
+      <span className="text-sm text-muted">{label}{hint && <span className="ml-2 text-sm text-blue-400">{hint}</span>}</span>
       {children}
     </label>
   )
@@ -21,7 +21,7 @@ const inputCls = 'bg-bg border border-border rounded-lg px-3 min-h-[44px] text-b
 
 function ActivePill({ active }) {
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-bold ${active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}>
+    <span className={`px-2 py-0.5 rounded text-sm font-bold ${active ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}>
       {active ? '有効' : '無効'}
     </span>
   )
@@ -230,8 +230,8 @@ export default function StoreCrudDrawer({ storeCode, storeName, onClose, onEditS
                         <span className="text-base font-bold text-text truncate">{m.machine_name || m.machine_code}</span>
                         <ActivePill active={m.is_active} />
                       </div>
-                      <div className="text-xs text-muted font-mono mt-0.5">{m.machine_code}</div>
-                      <div className="text-xs text-muted mt-0.5">
+                      <div className="text-sm text-muted font-mono mt-0.5">{m.machine_code}</div>
+                      <div className="text-sm text-muted mt-0.5">
                         {m.machine_models?.model_name || '機種未設定'} ・ ブース{m.booths?.length ?? 0}
                       </div>
                     </div>
@@ -259,8 +259,8 @@ export default function StoreCrudDrawer({ storeCode, storeName, onClose, onEditS
                         <span className="text-base font-bold text-text">ブース {b.booth_number}</span>
                         <ActivePill active={b.is_active} />
                       </div>
-                      <div className="text-xs text-muted font-mono mt-0.5">{b.booth_code}</div>
-                      <div className="text-xs text-muted mt-0.5">プレイ料金 {b.play_price ?? '-'}円</div>
+                      <div className="text-sm text-muted font-mono mt-0.5">{b.booth_code}</div>
+                      <div className="text-sm text-muted mt-0.5">プレイ料金 {b.play_price ?? '-'}円</div>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-2">

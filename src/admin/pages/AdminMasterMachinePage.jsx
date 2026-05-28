@@ -22,10 +22,10 @@ const EMPTY_FORM = {
 
 function SkeletonCard() {
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[88px] flex items-center gap-3 animate-pulse">
+    <div className="bg-surface border border-border rounded-xl p-4 min-h-[88px] flex items-center gap-3 animate-pulse">
       <div className="flex-1 space-y-2">
-        <div className="h-5 bg-slate-200 rounded w-2/5" />
-        <div className="h-4 bg-slate-200 rounded w-1/3" />
+        <div className="h-5 bg-surface rounded w-2/5" />
+        <div className="h-4 bg-surface rounded w-1/3" />
       </div>
     </div>
   )
@@ -217,9 +217,9 @@ export default function AdminMasterMachinePage() {
     }
   }
 
-  const inputCls = 'w-full border border-slate-300 rounded-lg px-4 py-3 text-base bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 min-h-[44px]'
-  const labelCls = 'text-sm font-medium text-slate-700'
-  const gridCellCls = 'w-full h-8 px-1.5 bg-transparent border-0 text-slate-900 text-sm outline-none focus:bg-slate-100 rounded'
+  const inputCls = 'w-full border border-border rounded-lg px-4 py-3 text-base bg-bg text-text placeholder-muted focus:outline-none focus:border-blue-500 min-h-[44px]'
+  const labelCls = 'text-sm font-medium text-text'
+  const gridCellCls = 'w-full h-8 px-1.5 bg-transparent border-0 text-text text-sm outline-none focus:bg-surface rounded'
 
   function setGCell(id, key, val) {
     setGridEdits(prev => {
@@ -262,14 +262,14 @@ export default function AdminMasterMachinePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-bg text-text">
 
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
+      <div className="px-4 py-3 border-b border-border flex items-center gap-3">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="text-slate-500 text-sm hover:text-slate-900 min-h-[44px] flex items-center pr-2"
+          className="text-muted text-sm hover:text-text min-h-[44px] flex items-center pr-2"
         >
           ← 戻る
         </button>
@@ -284,14 +284,14 @@ export default function AdminMasterMachinePage() {
         <button
           type="button"
           onClick={() => { setGridMode(m => !m); setGridEdits({}) }}
-          className={`px-4 py-3 text-sm font-bold rounded-lg min-h-[44px] border ${gridMode ? 'bg-amber-500 text-white border-transparent' : 'bg-white text-slate-700 border-slate-300'}`}
+          className={`px-4 py-3 text-sm font-bold rounded-lg min-h-[44px] border ${gridMode ? 'bg-amber-900/200 text-white border-transparent' : 'bg-bg text-text border-border'}`}
         >
           {gridMode ? '⊞ 表編集中' : '⊞ 表編集'}
         </button>
       </div>
 
       {/* Search / filter / sort */}
-      <div className="px-4 py-3 border-b border-slate-200 space-y-2">
+      <div className="px-4 py-3 border-b border-border space-y-2">
         <input
           type="text"
           value={search}
@@ -306,7 +306,7 @@ export default function AdminMasterMachinePage() {
             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors min-h-[36px] ${
               typeFilter === ''
                 ? 'bg-blue-500 text-white border-blue-500'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                : 'bg-bg text-text border-border hover:bg-surface'
             }`}
           >
             全種別
@@ -319,7 +319,7 @@ export default function AdminMasterMachinePage() {
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors min-h-[36px] ${
                 typeFilter === t
                   ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  : 'bg-bg text-text border-border hover:bg-surface'
               }`}
             >
               {TYPE_LABELS[t]}
@@ -328,18 +328,18 @@ export default function AdminMasterMachinePage() {
           <select
             value={sort}
             onChange={e => setSort(e.target.value)}
-            className="ml-auto border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-700 min-h-[36px]"
+            className="ml-auto border border-border rounded-lg px-3 py-2 text-sm bg-bg text-text min-h-[36px]"
           >
             {SORT_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
           </select>
-          <span className="text-sm text-slate-500">{filtered.length}件</span>
+          <span className="text-sm text-muted">{filtered.length}件</span>
         </div>
       </div>
 
       {gridMode && Object.keys(gridEdits).length > 0 && (
-        <div className="px-4 py-2 bg-amber-50 border-y border-amber-200 flex items-center gap-2">
+        <div className="px-4 py-2 bg-amber-900/20 border-y border-amber-200 flex items-center gap-2">
           <span className="text-sm text-amber-700">{Object.keys(gridEdits).length}件 変更あり</span>
-          <button onClick={() => setGridEdits({})} className="ml-auto text-sm text-slate-500 px-3 py-1 rounded border border-slate-300">取消</button>
+          <button onClick={() => setGridEdits({})} className="ml-auto text-sm text-muted px-3 py-1 rounded border border-border">取消</button>
           <button onClick={saveGridEdits} disabled={gridSaving} className="text-sm text-white bg-blue-500 px-4 py-1 rounded font-bold disabled:opacity-50">
             {gridSaving ? '保存中…' : '一括保存'}
           </button>
@@ -369,7 +369,7 @@ export default function AdminMasterMachinePage() {
         {/* Empty state */}
         {!loading && !error && rows.length === 0 && (
           <div className="text-center py-16 space-y-4">
-            <p className="text-slate-500 text-base">まだ機種が登録されていません</p>
+            <p className="text-muted text-base">まだ機種が登録されていません</p>
             <button
               type="button"
               onClick={openNew}
@@ -382,15 +382,15 @@ export default function AdminMasterMachinePage() {
 
         {/* No match */}
         {!loading && !error && rows.length > 0 && filtered.length === 0 && (
-          <p className="text-center text-slate-500 text-base py-8">検索条件に一致する機種がありません</p>
+          <p className="text-center text-muted text-base py-8">検索条件に一致する機種がありません</p>
         )}
 
         {/* Grid table */}
         {gridMode && !loading && filtered.length > 0 && (
-          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+          <div className="overflow-x-auto border border-border rounded-xl">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500 text-left bg-slate-50">
+                <tr className="border-b border-border text-muted text-left bg-surface">
                   <th className="py-1.5 px-2">機種名</th>
                   <th className="py-1.5 px-2">種別</th>
                   <th className="py-1.5 px-2">メーカー</th>
@@ -403,10 +403,10 @@ export default function AdminMasterMachinePage() {
                 {filtered.map(row => {
                   const ge = gridEdits[row.model_id]
                   return (
-                    <tr key={row.model_id} className={`border-b border-slate-100 ${ge ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
+                    <tr key={row.model_id} className={`border-b border-border ${ge ? 'bg-amber-900/20' : 'hover:bg-surface'}`}>
                       <td className="py-0.5 px-1"><input value={ge?.model_name ?? row.model_name ?? ''} onChange={ev => setGCell(row.model_id, 'model_name', ev.target.value)} className={gridCellCls} /></td>
                       <td className="py-0.5 px-1">
-                        <select value={ge?.type_id ?? row.type_id ?? 'crane'} onChange={ev => setGCell(row.model_id, 'type_id', ev.target.value)} className="h-8 px-1 bg-white border border-slate-200 text-slate-900 text-sm rounded w-full">
+                        <select value={ge?.type_id ?? row.type_id ?? 'crane'} onChange={ev => setGCell(row.model_id, 'type_id', ev.target.value)} className="h-8 px-1 bg-bg border border-border text-text text-sm rounded w-full">
                           {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
                         </select>
                       </td>
@@ -427,11 +427,11 @@ export default function AdminMasterMachinePage() {
           <div
             key={row.model_id}
             onClick={() => openEdit(row)}
-            className="bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[88px] flex items-center gap-3 cursor-pointer hover:bg-slate-100 hover:shadow-md transition-all"
+            className="bg-surface border border-border rounded-xl p-4 min-h-[88px] flex items-center gap-3 cursor-pointer hover:bg-surface hover:shadow-md transition-all"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-lg font-bold text-slate-900 truncate">{row.model_name}</p>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <p className="text-lg font-bold text-text truncate">{row.model_name}</p>
+              <p className="text-sm text-muted mt-0.5">
                 {TYPE_LABELS[row.type_id] ?? row.type_id}
                 {' · '}¥{row.meter_unit_price ?? '—'}
                 {' · '}IN{row.in_meter_count}/OUT{row.out_meter_count}
@@ -446,7 +446,7 @@ export default function AdminMasterMachinePage() {
               >
                 削除
               </button>
-              <span className="text-slate-400 text-xl leading-none">›</span>
+              <span className="text-muted text-xl leading-none">›</span>
             </div>
           </div>
         ))}
@@ -455,9 +455,9 @@ export default function AdminMasterMachinePage() {
       {/* Edit / New Modal */}
       {modal && (
         <div className="fixed inset-0 z-[9000] flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setModal(null)} />
+          <div className="absolute inset-0 bg-black/60" onClick={() => setModal(null)} />
           <div
-            className="relative w-full md:max-w-lg bg-white rounded-t-2xl md:rounded-2xl px-6 pb-10 pt-5 space-y-4 overflow-y-auto"
+            className="relative w-full md:max-w-lg bg-bg rounded-t-2xl md:rounded-2xl px-6 pb-10 pt-5 space-y-4 overflow-y-auto"
             style={{ maxHeight: '90dvh' }}
           >
             <div className="flex items-center justify-between">
@@ -467,7 +467,7 @@ export default function AdminMasterMachinePage() {
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="text-slate-400 text-2xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-slate-700"
+                className="text-muted text-2xl leading-none min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-text"
               >
                 ×
               </button>
@@ -548,7 +548,7 @@ export default function AdminMasterMachinePage() {
                   value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   rows={2}
-                  className="mt-1 w-full border border-slate-300 rounded-lg px-4 py-3 text-base bg-white text-slate-900 focus:outline-none focus:border-blue-500 resize-none"
+                  className="mt-1 w-full border border-border rounded-lg px-4 py-3 text-base bg-bg text-text focus:outline-none focus:border-blue-500 resize-none"
                 />
               </label>
             </div>
@@ -559,7 +559,7 @@ export default function AdminMasterMachinePage() {
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 text-base font-bold hover:bg-slate-100 min-h-[44px]"
+                className="flex-1 py-3 rounded-xl border border-border text-text text-base font-bold hover:bg-surface min-h-[44px]"
               >
                 キャンセル
               </button>
@@ -579,14 +579,14 @@ export default function AdminMasterMachinePage() {
       {/* Delete confirm */}
       {deleteTarget && (
         <div className="fixed inset-0 z-[9001] flex items-center justify-center">
-          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setDeleteTarget(null)} />
-          <div className="relative w-[320px] bg-white rounded-2xl p-6 space-y-4 shadow-xl">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setDeleteTarget(null)} />
+          <div className="relative w-[320px] bg-bg rounded-2xl p-6 space-y-4 shadow-xl">
             <p className="text-lg font-bold">削除しますか？</p>
-            <p className="text-base text-slate-700">
+            <p className="text-base text-text">
               「{deleteTarget.model_name}」を削除します。この操作は取り消せません。
             </p>
             {deleteUsageCount > 0 && (
-              <p className="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+              <p className="text-sm text-amber-700 bg-amber-900/20 rounded-lg px-3 py-2">
                 この機種は {deleteUsageCount} 件の機械で使用中です
               </p>
             )}
@@ -594,7 +594,7 @@ export default function AdminMasterMachinePage() {
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-100 min-h-[44px]"
+                className="flex-1 py-3 rounded-xl border border-border text-text font-bold hover:bg-surface min-h-[44px]"
               >
                 キャンセル
               </button>

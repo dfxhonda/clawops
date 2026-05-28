@@ -138,7 +138,7 @@ export default function AdminBulkImportPage() {
             <h2 className="text-base font-bold text-text">① 雛形ダウンロード</h2>
             <div className="flex flex-col md:flex-row gap-3 items-start md:items-end">
               <div className="flex-1">
-                <label className="text-xs text-muted mb-1 block">店舗選択</label>
+                <label className="text-sm text-muted mb-1 block">店舗選択</label>
                 <select
                   className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text"
                   value={selectedStore?.store_code ?? ''}
@@ -165,7 +165,7 @@ export default function AdminBulkImportPage() {
               </button>
             </div>
             {selectedStore && !machinesLoading && (
-              <p className="text-xs text-muted">ブース数: {totalBooths} 件</p>
+              <p className="text-sm text-muted">ブース数: {totalBooths} 件</p>
             )}
           </section>
 
@@ -180,7 +180,7 @@ export default function AdminBulkImportPage() {
               />
             )}
             <div>
-              <label className="text-xs text-muted mb-1 block">取込ファイル (.xlsx)</label>
+              <label className="text-sm text-muted mb-1 block">取込ファイル (.xlsx)</label>
               <input
                 type="file"
                 accept=".xlsx,.xls"
@@ -188,13 +188,13 @@ export default function AdminBulkImportPage() {
                 style={{ display: 'block' }}
                 className="text-sm text-text"
               />
-              {fileName && <p className="text-xs text-muted mt-1">{fileName}</p>}
+              {fileName && <p className="text-sm text-muted mt-1">{fileName}</p>}
             </div>
 
             {validatedRows && validatedRows.length > 0 && (
               <>
                 <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-xs border-collapse">
+                  <table className="w-full text-sm border-collapse">
                     <thead className="bg-bg">
                       <tr>
                         {['行', 'ブースコード', '巡回日', 'IN', 'OUT', '景品名', 'ステータス'].map(h => (
@@ -214,7 +214,7 @@ export default function AdminBulkImportPage() {
                           <td className="border border-border px-2 py-1">
                             {r.status === 'ok'
                               ? <span className="text-green-400 font-bold">○</span>
-                              : <span className="text-red-400 text-[11px]">× {r.errors.join(' / ')}</span>
+                              : <span className="text-red-400 text-xs">× {r.errors.join(' / ')}</span>
                             }
                           </td>
                         </tr>
@@ -222,7 +222,7 @@ export default function AdminBulkImportPage() {
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-muted">
+                <p className="text-sm text-muted">
                   合計 {validatedRows.length} 行 ／ エラー {validatedRows.filter(r => r.status === 'error').length} 行
                 </p>
               </>
@@ -258,7 +258,7 @@ export default function AdminBulkImportPage() {
             </button>
 
             {hasErrors && (
-              <p className="text-xs text-red-400 text-center">エラー行があります。修正して再アップロードしてください。</p>
+              <p className="text-sm text-red-400 text-center">エラー行があります。修正して再アップロードしてください。</p>
             )}
           </section>
 
@@ -269,7 +269,7 @@ export default function AdminBulkImportPage() {
       <div className="block md:hidden min-h-screen flex items-center justify-center bg-bg p-8">
         <div className="text-center">
           <p className="text-base font-bold text-text">iPad以上の画面で開いてください</p>
-          <p className="text-xs text-muted mt-2">Excel一括取込は iPad (768px+) 以上に対応しています</p>
+          <p className="text-sm text-muted mt-2">Excel一括取込は iPad (768px+) 以上に対応しています</p>
           <button onClick={() => navigate(-1)} className="mt-4 text-sm text-blue-400">← 戻る</button>
         </div>
       </div>

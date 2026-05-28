@@ -11,7 +11,7 @@ const EMPTY_FORM = {
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-0.5">
-      {label && <span className="text-[10px] text-muted">{label}</span>}
+      {label && <span className="text-xs text-muted">{label}</span>}
       {children}
     </div>
   )
@@ -24,7 +24,7 @@ function TInput({ value, onChange, placeholder, type = 'text' }) {
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="bg-bg border border-border rounded px-2 py-1 text-xs text-text w-full"
+      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
     />
   )
 }
@@ -133,12 +133,12 @@ export default function AdminAlertTypesPage() {
       <div className="px-4 py-3 border-b border-border flex items-center gap-3">
         <button type="button" onClick={() => navigate(-1)} className="text-muted text-sm">← 戻る</button>
         <h1 className="text-base font-bold flex-1">アラート種別マスタ</h1>
-        <button type="button" onClick={openNew} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg">＋ 新規</button>
+        <button type="button" onClick={openNew} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg">＋ 新規</button>
       </div>
 
       <div className="px-4 py-4">
         {loading && <p className="text-center text-muted py-8">読み込み中…</p>}
-        {!loading && error && <p className="text-red-400 text-xs mb-4">{error}</p>}
+        {!loading && error && <p className="text-red-400 text-sm mb-4">{error}</p>}
         {!loading && rows.length === 0 && <p className="text-center text-muted py-8">種別がありません</p>}
 
         {!loading && rows.map((row, idx) => (
@@ -147,15 +147,15 @@ export default function AdminAlertTypesPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold" style={{ color: row.color_hex }}>{row.label}</span>
-                {!row.is_active && <span className="text-[10px] text-muted border border-border rounded px-1">無効</span>}
+                {!row.is_active && <span className="text-xs text-muted border border-border rounded px-1">無効</span>}
               </div>
-              <p className="text-[10px] text-muted">{row.type_code} · order {row.sort_order}</p>
+              <p className="text-xs text-muted">{row.type_code} · order {row.sort_order}</p>
             </div>
             <div className="flex gap-1 shrink-0">
-              <button type="button" onClick={() => handleMove(row, -1)} disabled={idx === 0} className="px-2 py-1 text-xs text-muted border border-border rounded disabled:opacity-30">▲</button>
-              <button type="button" onClick={() => handleMove(row, 1)} disabled={idx === rows.length - 1} className="px-2 py-1 text-xs text-muted border border-border rounded disabled:opacity-30">▼</button>
-              <button type="button" onClick={() => openEdit(row)} className="px-2 py-1 text-xs text-muted border border-border rounded">編集</button>
-              <button type="button" onClick={() => handleToggleActive(row)} className={`px-2 py-1 text-xs border rounded ${row.is_active ? 'text-red-400 border-red-400/40' : 'text-emerald-400 border-emerald-400/40'}`}>
+              <button type="button" onClick={() => handleMove(row, -1)} disabled={idx === 0} className="px-2 py-1 text-sm text-muted border border-border rounded disabled:opacity-30">▲</button>
+              <button type="button" onClick={() => handleMove(row, 1)} disabled={idx === rows.length - 1} className="px-2 py-1 text-sm text-muted border border-border rounded disabled:opacity-30">▼</button>
+              <button type="button" onClick={() => openEdit(row)} className="px-2 py-1 text-sm text-muted border border-border rounded">編集</button>
+              <button type="button" onClick={() => handleToggleActive(row)} className={`px-2 py-1 text-sm border rounded ${row.is_active ? 'text-red-400 border-red-400/40' : 'text-emerald-400 border-emerald-400/40'}`}>
                 {row.is_active ? '無効化' : '有効化'}
               </button>
             </div>
@@ -198,7 +198,7 @@ export default function AdminAlertTypesPage() {
               <TInput type="number" value={String(form.sort_order)} onChange={v => setForm(f => ({ ...f, sort_order: Number(v) || 0 }))} />
             </Field>
 
-            {error && <p className="text-red-400 text-xs">{error}</p>}
+            {error && <p className="text-red-400 text-sm">{error}</p>}
 
             <div className="flex gap-2 pt-1">
               <button type="button" onClick={() => setModal(null)} className="flex-1 py-3 rounded-xl bg-bg border border-border text-muted text-sm font-bold">キャンセル</button>
