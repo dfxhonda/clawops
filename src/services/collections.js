@@ -13,10 +13,13 @@ export async function getActiveStores() {
   return { data: data ?? [], error }
 }
 
-// 店舗のアクティブブース一覧 + 表示名 + 最新メーター(プリフィル)
-// 注: spec想定の booths.booth_name / machines.rental_code は実DB未在のため、
-//     それぞれ booth_label(+booth_number代替) / machine_code フォールバックで表示する。
-export async function getActiveBoothsForStore(storeCode) {
+// 店舗のアクティブブース一覧 + 表示名 + 集金日<=meter_readings 最新プリフィル + 直前confirmed集金からprevプリフィル
+// J-COLLECTION-04 fix_1/2/3/4:
+//   - rental_code = machine_number ?? '' (NULL=空欄)
+//   - booth_name = booth_label ?? `${machine_code末尾}-B{nn}` (例 M04-B02)
+//   - in_meter_current_default = patrol_date <= collectedAt の meter_readings最新
+//   - in_meter_prev_default    = 当該店舗の直前confirmed cash_collection_booths.in_meter_current
+export async function getActiveBoothsForStore(storeCode, collectedAt) {
   const { data: booths, error } = await supabase
     .from('booths')
     .select('booth_code, machine_code, booth_number, booth_label, is_active')
@@ -30,14 +33,18 @@ export async function getActiveBoothsForStore(storeCode) {
   const boothCodes = booths.map(b => b.booth_code)
   const machineCodes = [...new Set(booths.map(b => b.machine_code))]
 
-  const [{ data: machines }, { data: readings }] = await Promise.all([
+  // meter_readings は patrol_date <= collectedAt に限定 (集金日基準)
+  let mrQuery = supabase.from('meter_readings')
+    .select('booth_code, in_meter, out_meter, patrol_date, created_at')
+    .in('booth_code', boothCodes)
+    .eq('entry_type', 'patrol')
+  if (collectedAt) mrQuery = mrQuery.lte('patrol_date', collectedAt)
+  mrQuery = mrQuery.order('patrol_date', { ascending: false }).order('created_at', { ascending: false })
+
+  const [{ data: machines }, { data: readings }, prevMap] = await Promise.all([
     supabase.from('machines').select('machine_code, machine_name, machine_number').in('machine_code', machineCodes),
-    supabase.from('meter_readings')
-      .select('booth_code, in_meter, out_meter, patrol_date, created_at')
-      .in('booth_code', boothCodes)
-      .eq('entry_type', 'patrol')
-      .order('patrol_date', { ascending: false })
-      .order('created_at', { ascending: false }),
+    mrQuery,
+    getLatestConfirmedMeters(storeCode, boothCodes),
   ])
   const mMap = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m]))
   const latestPerBooth = {}
@@ -48,20 +55,53 @@ export async function getActiveBoothsForStore(storeCode) {
   const rows = booths.map(b => {
     const r = latestPerBooth[b.booth_code]
     const m = mMap[b.machine_code] || {}
+    const mcTail = b.machine_code?.split('-').pop() ?? b.machine_code
     return {
       booth_code: b.booth_code,
       machine_code: b.machine_code,
-      // J-COLLECTION-03: rental_code = machine_number ?? machine_code 末尾セグメント
-      rental_code: m.machine_number || (b.machine_code?.split('-').pop() ?? b.machine_code),
+      // fix_1: rental_code = machine_number ?? '' (NULL=空欄、表示はboothで補完)
+      rental_code: m.machine_number ?? '',
       machine_name: m.machine_name || b.machine_code || '機械不明',
-      // booth_name = booth_label ?? B{nn}
-      booth_name: b.booth_label || (b.booth_number != null ? `B${String(b.booth_number).padStart(2, '0')}` : b.booth_code),
+      // fix_2: booth_name = booth_label(上書き優先) ?? `${machine_code末尾}-B{nn}` 例 M04-B02
+      booth_name: b.booth_label
+        || (b.booth_number != null ? `${mcTail}-B${String(b.booth_number).padStart(2, '0')}` : b.booth_code),
       booth_number: b.booth_number,
       in_meter_current_default: r?.in_meter ?? null,
       out_meter_current_default: r?.out_meter ?? null,
+      // fix_3: prev = 当該店舗の直前confirmed cash_collection の in_meter_current
+      in_meter_prev_default: prevMap?.[b.booth_code] ?? null,
     }
   })
   return { data: rows, error: null }
+}
+
+// J-COLLECTION-04 fix_3: 直前confirmed集金から booth毎の最新 in_meter_current を取得
+async function getLatestConfirmedMeters(storeCode, boothCodes) {
+  if (!storeCode || !boothCodes || boothCodes.length === 0) return {}
+  const { data: cols } = await supabase.from('cash_collections')
+    .select('collection_id, collected_at')
+    .eq('store_code', storeCode)
+    .eq('status', 'confirmed')
+    .order('collected_at', { ascending: false })
+    .limit(30)
+  const ids = (cols ?? []).map(c => c.collection_id)
+  if (ids.length === 0) return {}
+  const colDate = Object.fromEntries((cols ?? []).map(c => [c.collection_id, c.collected_at]))
+  const { data: bts } = await supabase.from('cash_collection_booths')
+    .select('collection_id, booth_code, in_meter_current')
+    .in('collection_id', ids)
+    .in('booth_code', boothCodes)
+  const map = {}
+  const seenDate = {}
+  for (const b of bts ?? []) {
+    const d = colDate[b.collection_id]
+    if (b.in_meter_current == null) continue
+    if (!seenDate[b.booth_code] || (d && d > seenDate[b.booth_code])) {
+      seenDate[b.booth_code] = d
+      map[b.booth_code] = b.in_meter_current
+    }
+  }
+  return map
 }
 
 // 前回集金日選択時: 当該店舗の指定日の集金から各ブースのprevメーターを取得

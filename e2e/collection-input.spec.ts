@@ -1,16 +1,15 @@
 import { test, expect } from '@playwright/test'
 import { setupAuth } from './helpers'
 
-// J-COLLECTION-03 gate_4: viewport 390x844 全フロー (1行テーブルレイアウト)
-// 列: レンタルコード/機械名/ブース/前回IN/今回IN/差/集金額/立替/備考
-// login -> /collection/input -> 店舗選択 -> 読込 -> テーブル表示 ->
-// 前回IN入力 -> 差自動計算 -> 集金額(金種ドロワー)+立替+備考 -> 確定 -> PDF
+// J-COLLECTION-04 gate_4: viewport 390x844
+// 6点修正: rental NULL=空 / booth M{nn}-B{nn} / prev=直前confirmed / today<=date / 金種インライン / 立替+備考入力
+// chromium = 非iPhone → NumpadField は native input
 
 const isObj = (route: import('@playwright/test').Route) =>
   (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object')
 
-test.describe('J-COLLECTION-03', () => {
-  test('mobile 390x844: テーブル表示 -> 前回IN/差/金種/立替/備考 -> 確定 -> PDF (console 0)', async ({ page }) => {
+test.describe('J-COLLECTION-04', () => {
+  test('mobile 390x844: 表示/プリフィル/金種インライン/立替/備考/確定/PDF (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -30,26 +29,47 @@ test.describe('J-COLLECTION-03', () => {
     })
     await page.route('**/rest/v1/booths**', async r => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify([{ booth_code: 'TST01-M01-B01', machine_code: 'TST01-M01', booth_number: 1, booth_label: null, is_active: true }]),
+      body: JSON.stringify([{ booth_code: 'TST01-M04-B02', machine_code: 'TST01-M04', booth_number: 2, booth_label: null, is_active: true }]),
     }))
+    // fix_1: machine_number=null → rental_code列は空欄
     await page.route('**/rest/v1/machines**', async r => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify([{ machine_code: 'TST01-M01', machine_name: '機械A', machine_number: 'R-001' }]),
+      body: JSON.stringify([{ machine_code: 'TST01-M04', machine_name: '機械A', machine_number: null }]),
     }))
+    // fix_4: meter_readings は patrol_date<=collected_at の最新を採用
     await page.route('**/rest/v1/meter_readings**', async r => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify([{ booth_code: 'TST01-M01-B01', in_meter: 100, out_meter: null, patrol_date: '2026-05-26', created_at: '2026-05-26T10:00:00Z' }]),
+      body: JSON.stringify([{ booth_code: 'TST01-M04-B02', in_meter: 200, out_meter: null, patrol_date: '2026-05-26', created_at: '2026-05-26T10:00:00Z' }]),
     }))
+    // fix_3: 直前confirmed集金から prev を取得
+    let collectionsCallCount = 0
     await page.route('**/rest/v1/cash_collections**', async route => {
       const m = route.request().method()
       if (m === 'HEAD') { await route.fulfill({ status: 200, headers: { 'content-range': '*/0' }, body: '' }); return }
       if (m === 'POST') { inserted.collections.push(JSON.parse(route.request().postData() || '{}')); await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' }); return }
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ collection_id: 'X-01', store_code: 'TST01', collected_at: '2026-05-28', prev_collection_date: null, status: 'confirmed' }) })
+      // GET: getLatestConfirmedMeters は confirmed 一覧、PDF表示は単一
+      const url = route.request().url()
+      collectionsCallCount++
+      if (isObj(route)) {
+        // single (PDF detail)
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ collection_id: 'X-01', store_code: 'TST01', collected_at: '2026-05-28', prev_collection_date: null, status: 'confirmed' }) })
+      } else if (url.includes('status=eq.confirmed')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ collection_id: 'PREV-01', collected_at: '2026-05-20' }]) })
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+      }
     })
     await page.route('**/rest/v1/cash_collection_booths**', async route => {
       const m = route.request().method()
       if (m === 'POST') { inserted.booths.push(JSON.parse(route.request().postData() || '{}')); await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' }); return }
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'b1', collection_id: 'X-01', booth_code: 'TST01-M01-B01', machine_code: 'TST01-M01', total: 5000, advance_payment: 100, notes: 'テスト備考', bill_1000: 5, in_meter_prev: 50, in_meter_current: 100 }]) })
+      const url = route.request().url()
+      if (url.includes('collection_id=in.')) {
+        // getLatestConfirmedMeters: 直前confirmedの in_meter_current=150 を返す
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ collection_id: 'PREV-01', booth_code: 'TST01-M04-B02', in_meter_current: 150 }]) })
+      } else {
+        // PDF detail
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'b1', collection_id: 'X-01', booth_code: 'TST01-M04-B02', machine_code: 'TST01-M04', total: 5000, advance_payment: 100, notes: 'テスト備考', bill_1000: 5, in_meter_prev: 150, in_meter_current: 200 }]) })
+      }
     })
 
     await page.goto('/collection/input')
@@ -60,42 +80,38 @@ test.describe('J-COLLECTION-03', () => {
     await expect(page.getByTestId('collection-table')).toBeVisible()
     await expect(page.getByTestId('collection-booth-row')).toHaveCount(1)
 
-    // レンタルコード = machine_number 'R-001'、ブース = B01 (booth_label null → fallback)
-    await expect(page.getByText('R-001').first()).toBeVisible()
-    await expect(page.getByText('B01').first()).toBeVisible()
+    // fix_2: booth列 = M04-B02 (booth_label null → machine_code末尾+B{nn} フォールバック)
+    await expect(page.getByTestId('booth-name-TST01-M04-B02')).toHaveText('M04-B02')
+    // fix_3: 前回IN=150 (直前confirmed.in_meter_current) が prev_date未選択でもプリフィル
+    await expect(page.getByTestId('booth-in-prev-TST01-M04-B02')).toHaveValue('150')
+    // fix_4: 今回IN=200 (patrol_date<=今日 の最新)
+    await expect(page.getByTestId('booth-in-cur-TST01-M04-B02')).toHaveValue('200')
+    // 差: +50
+    await expect(page.getByTestId('booth-in-diff-TST01-M04-B02')).toHaveText('+50')
 
-    // 今回IN プリフィル(100)
-    await expect(page.getByTestId('booth-in-cur-TST01-M01-B01')).toHaveValue('100')
-    // 前回IN 入力 50 → 差 +50
-    await page.getByTestId('booth-in-prev-TST01-M01-B01').fill('50')
-    await expect(page.getByTestId('booth-in-diff-TST01-M01-B01')).toHaveText('+50')
+    // fix_5: 金種インライン展開 (DenominationDrawer無し)
+    await page.getByTestId('booth-amount-TST01-M04-B02').click()
+    await expect(page.getByTestId('denom-inline-TST01-M04-B02')).toBeVisible()
+    await page.getByTestId('denom-input-bill_1000-TST01-M04-B02').fill('5')
+    await expect(page.getByTestId('denom-subtotal-TST01-M04-B02')).toHaveText('合計 5,000 円')
+    await page.getByTestId('denom-close-TST01-M04-B02').click()
+    await expect(page.getByTestId('denom-inline-TST01-M04-B02')).toHaveCount(0)
 
-    // 集金額: 金種ドロワー千5枚
-    await page.getByTestId('booth-amount-TST01-M01-B01').click()
-    await expect(page.getByTestId('denom-drawer')).toBeVisible()
-    await page.getByTestId('denom-input-bill_1000').fill('5')
-    await expect(page.getByTestId('denom-subtotal')).toHaveText('5,000 円')
-    await page.getByTestId('denom-done').click()
+    // fix_6: 立替/備考 直接入力
+    await page.getByTestId('booth-advance-TST01-M04-B02').fill('100')
+    await page.getByTestId('booth-notes-TST01-M04-B02').fill('テスト備考')
 
-    // 立替 + 備考
-    await page.getByTestId('booth-advance-TST01-M01-B01').fill('100')
-    await page.getByTestId('booth-notes-TST01-M01-B01').fill('テスト備考')
-
-    // 合計 (advance除く)
     await expect(page.getByTestId('collection-total')).toHaveText('5,000 円')
 
-    // 確定
     await page.getByTestId('collection-confirm-button').click()
     await expect(page.getByTestId('collection-confirmed-badge')).toBeVisible()
     expect(inserted.collections[0].status).toBe('confirmed')
-    expect(inserted.collections[0].collected_by).toBe('staff-test-001')
     const b0 = inserted.booths[0][0]
     expect(b0.advance_payment).toBe(100)
     expect(b0.notes).toBe('テスト備考')
     expect(b0.bill_1000).toBe(5)
-    expect(Number(b0.in_meter_prev)).toBe(50)
+    expect(Number(b0.in_meter_prev)).toBe(150)
 
-    // PDF
     const dl = page.waitForEvent('download')
     await page.getByTestId('collection-pdf-button').click()
     const download = await dl

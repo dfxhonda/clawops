@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import NumpadField, { NumpadFooterPanel } from '../clawsupport/components/NumpadField'
@@ -6,13 +6,12 @@ import {
   getActiveStores, getActiveBoothsForStore, getPrevCollectionMeters,
   saveCollection, getCollectionDetail,
 } from '../services/collections'
-import { boothTotal } from './lib/collectionCalc'
+import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
-import DenominationDrawer from './components/DenominationDrawer'
 
-// J-COLLECTION-03: ブース行を1行テーブル(横スクロール)に全面置換
-// 列: レンタルコード/機械名/ブース/前回IN/今回IN/差/集金額/立替/備考
-// 集金額タップ -> DenominationDrawer(不変)、確定後ロック、担当はログインユーザー固定。
+// J-COLLECTION-04: 集金画面 実機FB 6点修正 (J-COLLECTION-03テーブルレイアウト維持)
+// fix_1 rental_code NULL=空欄 / fix_2 booth列 M04-B02 形式 / fix_3 prev=直前confirmedから自動 /
+// fix_4 今回IN<=集金日プリフィル+日付変更で再取得 / fix_5 金種インライン展開 / fix_6 立替/備考の確実な編集
 
 const yen = n => Number(n || 0).toLocaleString()
 const todayJst = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
@@ -25,19 +24,20 @@ const diff = (cur, prev) => {
 
 function emptyRow(b) {
   return {
-    in_meter_prev: '',
+    in_meter_prev: b.in_meter_prev_default != null ? String(b.in_meter_prev_default) : '',
     in_meter_current: b.in_meter_current_default != null ? String(b.in_meter_current_default) : '',
     advance_payment: '',
     notes: '',
     counts: {},
+    // re-prefill 判定用の "default snapshot" — ユーザー編集を保護するため
+    _prefilled_current: b.in_meter_current_default != null ? String(b.in_meter_current_default) : '',
   }
 }
 
-// テーブル列幅 (spec table_layout.columns 準拠)。合計≈748px → 390px幅で横スクロール。
 const COLS = [
   { key: 'rental_code',      label: 'レンタル', w: 72 },
   { key: 'machine_name',     label: '機械名',   w: 120 },
-  { key: 'booth_name',       label: 'ブース',   w: 56 },
+  { key: 'booth_name',       label: 'ブース',   w: 80 },
   { key: 'in_meter_prev',    label: '前回IN',   w: 90 },
   { key: 'in_meter_current', label: '今回IN',   w: 90 },
   { key: 'in_diff',          label: '差',       w: 64 },
@@ -48,7 +48,7 @@ const COLS = [
 const TABLE_MIN_WIDTH = COLS.reduce((s, c) => s + c.w, 0)
 
 const cellInputStyle = { width: '100%', height: '36px', fontSize: 12, padding: '0 4px', textAlign: 'right' }
-const cellTextInputCls = 'w-full bg-bg border border-border rounded px-2 text-xs text-text outline-none focus:border-blue-500'
+const denomInputStyle = { width: '60px', height: '32px', fontSize: 12, padding: '0 4px', textAlign: 'right' }
 
 export default function CollectionInputPage() {
   const navigate = useNavigate()
@@ -60,7 +60,7 @@ export default function CollectionInputPage() {
   const [prevDate, setPrevDate] = useState('')
   const [booths, setBooths] = useState([])
   const [rowData, setRowData] = useState({})
-  const [activeBooth, setActiveBooth] = useState(null)
+  const [openDenom, setOpenDenom] = useState(null) // booth_code or null (fix_5)
   const [currentField, setCurrentField] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -78,7 +78,7 @@ export default function CollectionInputPage() {
   async function handleLoad() {
     if (!storeCode) return
     setLoading(true); setError(null); setLoaded(false); setConfirmedId(null)
-    const { data, error: e } = await getActiveBoothsForStore(storeCode)
+    const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt)
     if (e) { setError(`ERR-COLLECTION-001: ${e.message}`); setLoading(false); return }
     let rd = Object.fromEntries((data ?? []).map(b => [b.booth_code, emptyRow(b)]))
     if (prevDate) {
@@ -94,8 +94,46 @@ export default function CollectionInputPage() {
     setLoaded(true); setLoading(false)
   }
 
+  // fix_4: 集金日変更時、未編集の 今回IN を新しい <=date 最新で再プリフィル
+  useEffect(() => {
+    if (!loaded || !storeCode || !collectedAt) return
+    let cancelled = false
+    ;(async () => {
+      const { data } = await getActiveBoothsForStore(storeCode, collectedAt)
+      if (cancelled || !data) return
+      setBooths(data)
+      setRowData(prev => {
+        const next = { ...prev }
+        for (const b of data) {
+          const cur = next[b.booth_code]
+          if (!cur) { next[b.booth_code] = emptyRow(b); continue }
+          const newDefault = b.in_meter_current_default != null ? String(b.in_meter_current_default) : ''
+          // 未編集(=前回プリフィル値のまま) のときのみ更新
+          if (cur.in_meter_current === cur._prefilled_current) {
+            next[b.booth_code] = { ...cur, in_meter_current: newDefault, _prefilled_current: newDefault }
+          } else {
+            next[b.booth_code] = { ...cur, _prefilled_current: newDefault }
+          }
+          // prev は手入力されてなければ更新
+          if (!cur.in_meter_prev && b.in_meter_prev_default != null) {
+            next[b.booth_code].in_meter_prev = String(b.in_meter_prev_default)
+          }
+        }
+        return next
+      })
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collectedAt])
+
   const setRow = (boothCode, patch) =>
     setRowData(prev => ({ ...prev, [boothCode]: { ...prev[boothCode], ...patch } }))
+
+  const setCount = (boothCode, denomKey, val) =>
+    setRowData(prev => ({
+      ...prev,
+      [boothCode]: { ...prev[boothCode], counts: { ...(prev[boothCode]?.counts || {}), [denomKey]: val === '' ? 0 : Number(val) || 0 } },
+    }))
 
   const collectionTotal = useMemo(
     () => booths.reduce((s, b) => s + boothTotal(rowData[b.booth_code]?.counts), 0),
@@ -108,8 +146,6 @@ export default function CollectionInputPage() {
 
   async function confirm() {
     setSaving(true); setError(null)
-    // saveCollection の rowData は in_meter_prev / in_meter_current / advance / notes / counts
-    // (out_meter_* は J-COLLECTION-03 ではUI非対象、null保存)
     const payload = Object.fromEntries(booths.map(b => {
       const r = rowData[b.booth_code] || {}
       return [b.booth_code, {
@@ -148,7 +184,6 @@ export default function CollectionInputPage() {
 
   return (
     <div data-testid="collection-input" className="flex flex-col" style={{ height: '100dvh' }}>
-      {/* header */}
       <div className="flex-shrink-0 p-3 pb-2 border-b border-border">
         <div className="flex items-center justify-between mb-2">
           <button onClick={() => navigate('/launcher')} className="text-sm text-gray-400 hover:text-white min-h-[44px] flex items-center gap-1">← 戻る</button>
@@ -187,7 +222,6 @@ export default function CollectionInputPage() {
 
       {error && <p data-testid="collection-error" className="text-red-400 text-sm px-3 py-1 flex-shrink-0">{error}</p>}
 
-      {/* booth table (横スクロール) */}
       <div className="flex-1 overflow-auto min-h-0">
         {!loaded && !loading && <p className="text-center text-muted text-base py-8">店舗を選んで読み込んでください</p>}
         {loaded && booths.length === 0 && <p className="text-center text-muted text-base py-8">アクティブブースがありません</p>}
@@ -206,11 +240,13 @@ export default function CollectionInputPage() {
                 const inD = diff(r.in_meter_current, r.in_meter_prev)
                 const sub = boothTotal(r.counts)
                 const tabBase = idx * 4 + 1
+                const open = openDenom === b.booth_code
                 return (
-                  <tr key={b.booth_code} data-testid="collection-booth-row" className="border-b border-border/40" style={{ height: 44 }}>
+                  <Fragment key={b.booth_code}>
+                  <tr data-testid="collection-booth-row" className="border-b border-border/40" style={{ height: 44 }}>
                     <td className="px-1 py-1 font-mono text-text">{b.rental_code}</td>
                     <td className="px-1 py-1 text-text truncate" style={{ maxWidth: 120 }} title={b.machine_name}>{b.machine_name}</td>
-                    <td className="px-1 py-1 text-text">{b.booth_name}</td>
+                    <td className="px-1 py-1 text-text" data-testid={`booth-name-${b.booth_code}`}>{b.booth_name}</td>
                     <td className="px-1 py-1">
                       <NumpadField value={r.in_meter_prev} onChange={v => setRow(b.booth_code, { in_meter_prev: v })}
                         label={`前回IN ${b.booth_name}`} max={9999999}
@@ -228,8 +264,9 @@ export default function CollectionInputPage() {
                       {inD == null ? '—' : (inD >= 0 ? '+' : '') + inD}
                     </td>
                     <td className="px-1 py-1">
-                      <button data-testid={`booth-amount-${b.booth_code}`} onClick={() => !locked && setActiveBooth(b)} disabled={locked}
-                        className="w-full text-right tabular-nums bg-bg border border-border rounded px-2 h-9 text-xs text-text disabled:opacity-60">
+                      <button data-testid={`booth-amount-${b.booth_code}`}
+                        onClick={() => !locked && setOpenDenom(open ? null : b.booth_code)} disabled={locked}
+                        className={`w-full text-right tabular-nums border rounded px-2 h-9 text-xs text-text disabled:opacity-60 ${open ? 'bg-blue-900/30 border-blue-500' : 'bg-bg border-border'}`}>
                         {yen(sub)}円
                       </button>
                     </td>
@@ -243,12 +280,36 @@ export default function CollectionInputPage() {
                       <input
                         data-testid={`booth-notes-${b.booth_code}`} type="text" value={r.notes || ''}
                         onChange={e => setRow(b.booth_code, { notes: e.target.value })}
-                        disabled={locked}
-                        className={cellTextInputCls + ' h-9 disabled:opacity-60'}
+                        disabled={locked} enterKeyHint="next"
+                        className="w-full bg-bg border border-border rounded px-2 text-xs text-text outline-none focus:border-blue-500 h-9 disabled:opacity-60"
                         placeholder="—"
                       />
                     </td>
                   </tr>
+                  {open && (
+                    <tr data-testid={`denom-inline-${b.booth_code}`} className="bg-surface/40">
+                      <td colSpan={COLS.length} className="px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          {DENOMINATIONS.map(d => (
+                            <div key={d.key} className="flex items-center gap-1">
+                              <span className="text-xs text-muted w-10 text-right">{d.short}</span>
+                              <NumpadField
+                                value={r.counts?.[d.key] ? String(r.counts[d.key]) : ''}
+                                onChange={v => setCount(b.booth_code, d.key, v)}
+                                label={`${d.short} ${b.booth_name}`} max={99999}
+                                testId={`denom-input-${d.key}-${b.booth_code}`}
+                                onRegister={setCurrentField}
+                                style={denomInputStyle}
+                              />
+                            </div>
+                          ))}
+                          <span className="ml-auto text-sm font-bold text-text tabular-nums" data-testid={`denom-subtotal-${b.booth_code}`}>合計 {yen(sub)} 円</span>
+                          <button data-testid={`denom-close-${b.booth_code}`} onClick={() => setOpenDenom(null)} className="text-xs text-blue-400 px-2 min-h-[36px]">閉じる</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 )
               })}
             </tbody>
@@ -256,7 +317,6 @@ export default function CollectionInputPage() {
         )}
       </div>
 
-      {/* footer */}
       {loaded && booths.length > 0 && (
         <div className="flex-shrink-0 border-t border-border p-3 flex items-center gap-2">
           <div className="flex-1">
@@ -278,19 +338,9 @@ export default function CollectionInputPage() {
         </div>
       )}
 
-      {/* iPhone 用 カスタムテンキー footer (iPhone以外では null 自動) */}
       <div className="flex-shrink-0">
         <NumpadFooterPanel currentField={currentField} />
       </div>
-
-      {activeBooth && (
-        <DenominationDrawer
-          booth={activeBooth}
-          counts={rowData[activeBooth.booth_code]?.counts}
-          onChange={c => setRow(activeBooth.booth_code, { counts: c })}
-          onClose={() => setActiveBooth(null)}
-        />
-      )}
     </div>
   )
 }
