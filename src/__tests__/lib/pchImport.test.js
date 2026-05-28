@@ -1,7 +1,7 @@
 // J-INTAKE-PCH-EXCEL-fix-01: PCH照合取込エンジンのユニットテスト
 // 実ファイル archive/取込/(株)Change.xlsx をfixtureに使用 (4シート版)
 import { describe, it, expect, vi } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 // loadExistingPchOrders 用に from().select().eq() を空配列で返すチェーンをモック
@@ -15,7 +15,12 @@ const {
   normalizeStore, toNum, buildRawImportId, reconcile, previewPchImport, MANUAL_MARKER,
 } = await import('../../admin/lib/pchImport')
 
-const xlsxBuf = readFileSync(resolve('archive/取込/(株)Change.xlsx'))
+// archive/ は .gitignore 対象 (顧客実ファイル) のため CI には存在しない。
+// 実ファイル依存テストは fixture がある環境(ローカル)のみ実行し、CIでは skip する。
+// 純関数/合成データのテストは常時実行 (CIで vitest が緑になる = 自動ロールバック誤爆防止)。
+const fixturePath = resolve('archive/取込/(株)Change.xlsx')
+const HAS_FIXTURE = existsSync(fixturePath)
+const xlsxBuf = HAS_FIXTURE ? readFileSync(fixturePath) : null
 
 describe('toNum (厳密数値)', () => {
   it('数値はそのまま、非数値はnull', () => {
@@ -68,7 +73,7 @@ describe('normalizeStore / parseDistribution', () => {
   })
 })
 
-describe('parseSheets (実ファイル)', () => {
+describe.skipIf(!HAS_FIXTURE)('parseSheets (実ファイル)', () => {
   // 注: リポジトリ内 (株)Change.xlsx は4シート版・31明細行 (5/24要件fixtureの68行とは別版)。
   // 小数ケース/10Kg等のedge_caseは本ファイルには無く、上の合成テストで網羅。
   it('4シート(3-6月)をパースし明細行を抽出 (ヘッダ/合計行除外)', async () => {
@@ -94,7 +99,7 @@ describe('parseSheets (実ファイル)', () => {
 })
 
 describe('explodeToRecords (店舗別分割 + raw_import_id)', () => {
-  it('明細を店舗別レコードに展開、送料は分割しない', async () => {
+  it.skipIf(!HAS_FIXTURE)('明細を店舗別レコードに展開、送料は分割しない', async () => {
     const details = await parseSheets(xlsxBuf)
     const records = explodeToRecords(details)
     expect(records.length).toBeGreaterThan(details.length) // 分割で増える
@@ -103,7 +108,7 @@ describe('explodeToRecords (店舗別分割 + raw_import_id)', () => {
     const prizeRecs = records.filter(r => !r.shipping)
     expect(prizeRecs.every(r => typeof r.rawImportId === 'string' && r.rawImportId.startsWith('pch_'))).toBe(true)
   })
-  it('raw_import_idは再実行で安定(冪等)', async () => {
+  it.skipIf(!HAS_FIXTURE)('raw_import_idは再実行で安定(冪等)', async () => {
     const a = explodeToRecords(await parseSheets(xlsxBuf)).filter(r => !r.shipping).map(r => r.rawImportId)
     const b = explodeToRecords(await parseSheets(xlsxBuf)).filter(r => !r.shipping).map(r => r.rawImportId)
     expect(a).toEqual(b)
@@ -158,7 +163,7 @@ describe('reconcile (照合)', () => {
   })
 })
 
-describe('previewPchImport (state付きrecords契約 / regression)', () => {
+describe.skipIf(!HAS_FIXTURE)('previewPchImport (state付きrecords契約 / regression)', () => {
   const fileLike = { arrayBuffer: async () => xlsxBuf }
   it('返すrecordsは全件state付き (reconcile結果、生explodeで上書きしない)', async () => {
     const preview = await previewPchImport(fileLike)
