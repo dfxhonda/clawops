@@ -1,8 +1,84 @@
 import { useRef, useEffect } from 'react'
+import { isIPhone } from '../../shared/lib/device'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
+// iPhone以外 (iPad=システムKB / PC=物理KB) 用の native 数値入力。
+// カスタムテンキーを出さず、OS のキーボードに委ねる。値の検証 (max/小数/数字のみ) は維持。
+function NativeNumInput({
+  value, onChange, onNext, allowDecimal, max,
+  id, dataTabindex, inputClassName, style, testId, inputPlaceholder, isActive, fill,
+}) {
+  function sanitize(raw) {
+    let v = String(raw ?? '')
+    v = allowDecimal ? v.replace(/[^0-9.]/g, '') : v.replace(/[^0-9]/g, '')
+    if (allowDecimal) {
+      const i = v.indexOf('.')
+      if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '')
+    }
+    return v
+  }
+  function handleChange(e) {
+    const v = sanitize(e.target.value)
+    if (v !== '' && Number(v) > max) return
+    onChange(v)
+  }
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (onNext) onNext()
+      if (dataTabindex != null) {
+        const all = Array.from(document.querySelectorAll('[data-tabindex]'))
+          .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
+        const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
+        const nextEl = all[idx + 1]
+        if (nextEl) nextEl.focus()
+      }
+    }
+  }
+  const displayVal = value !== '' && value != null ? String(value) : ''
+  return (
+    <input
+      id={id}
+      data-tabindex={dataTabindex}
+      data-testid={testId}
+      type="text"
+      inputMode={allowDecimal ? 'decimal' : 'numeric'}
+      pattern={allowDecimal ? '[0-9]*[.]?[0-9]*' : '[0-9]*'}
+      value={displayVal}
+      placeholder={inputPlaceholder ?? '—'}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      className={inputClassName ?? ''}
+      style={fill ? {
+        width: '100%', height: '100%', textAlign: 'center',
+        fontSize: 28, fontWeight: 'bold', fontFamily: "'Courier New', monospace",
+        background: '#0a0a14', color: '#f1f5f9', border: 'none', outline: 'none',
+        WebkitAppearance: 'none', boxSizing: 'border-box',
+        ...style,
+      } : {
+        border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+        background: isActive ? '#eff6ff' : '#0a0a14',
+        borderRadius: 4,
+        padding: '0.4em 0.35em',
+        fontFamily: "'Courier New', Courier, monospace",
+        fontWeight: 'bold',
+        textAlign: 'right',
+        outline: 'none',
+        boxSizing: 'border-box',
+        WebkitAppearance: 'none',
+        fontSize: 16,
+        color: isActive ? '#1e3a5f' : '#e8e8f0',
+        ...style,
+      }}
+    />
+  )
+}
+
 export function NumpadFooterPanel({ currentField, idleContent }) {
+  // iPhone以外ではカスタムテンキーパネルを出さない (画面を広く使う)。
+  if (!isIPhone()) return null
+
   const isActive = !!currentField
 
   function handleKey(k) {
@@ -174,6 +250,16 @@ export default function NumpadField({
 
   // alwaysOpen branch kept for OcrCaptureScreen + StockCount usage
   if (alwaysOpen) {
+    // iPhone以外: カスタムテンキーを出さず native input (iPad=システムKB / PC=物理KB)
+    if (!isIPhone()) {
+      return (
+        <NativeNumInput
+          value={value} onChange={onChange} onNext={onNext}
+          allowDecimal={allowDecimal} max={max} testId={testId} inputPlaceholder={inputPlaceholder}
+          fill
+        />
+      )
+    }
     function handleKeyInline(k) {
       if (k === '⌫') {
         onChange(String(value || '').slice(0, -1))
@@ -208,6 +294,19 @@ export default function NumpadField({
           </button>
         ))}
       </div>
+    )
+  }
+
+  // iPhone以外: native 編集 input (OSキーボード)。カスタムテンキー footer は使わない。
+  if (!isIPhone()) {
+    return (
+      <NativeNumInput
+        value={value} onChange={onChange} onNext={onNext}
+        allowDecimal={allowDecimal} max={max}
+        id={id} dataTabindex={dataTabindex} testId={testId}
+        inputClassName={inputClassName} style={style}
+        inputPlaceholder={inputPlaceholder} isActive={isActive}
+      />
     )
   }
 

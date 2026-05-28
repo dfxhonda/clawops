@@ -63,12 +63,10 @@ test.describe('J-COLLECTION-01', () => {
     await page.getByTestId('collection-load-button').click()
     await expect(page.getByTestId('collection-booth-row')).toHaveCount(1)
 
-    // ブース金種入力: 千を5枚 -> 小計5000
+    // ブース金種入力: 千を5枚 -> 小計5000 (非iPhone=native input経路)
     await page.getByTestId('collection-booth-row').first().click()
     await expect(page.getByTestId('denom-drawer')).toBeVisible()
-    await page.getByTestId('denom-row-bill_1000').click()
-    await page.getByTestId('denom-drawer').getByText('5', { exact: true }).click()
-    await expect(page.getByTestId('denom-count-bill_1000')).toHaveText('5')
+    await page.getByTestId('denom-input-bill_1000').fill('5')
     await expect(page.getByTestId('denom-subtotal')).toHaveText('5,000 円')
     await page.getByTestId('denom-done').click()
 

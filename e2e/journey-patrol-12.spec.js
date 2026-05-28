@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test'
+// device分岐: 本specはiPhoneカスタムテンキーUXを検証するため iPhone UA を固定
+test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15' })
 import { setupAuth, injectRouteState } from './helpers'
 
 function isSingleObjectRequest(route) {
