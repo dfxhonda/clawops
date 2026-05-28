@@ -39,13 +39,27 @@ function abToBase64(buf) {
   }
   return btoa(bin)
 }
+// J-COLLECTION-08: reset-on-failure + silent swallow。
+// 旧実装は jpLoading に rejected Promise が残置し、以後セッション全体のPDF生成が固定エラー化する
+// (ERR-COLLECTION-003: TypeError: Load failed in iPad Safari)。
+// 修正: fetch失敗時に jpLoading=null でリセットして次回retry可能化。
+// さらに throw せず吸収して、呼出側 (downloadPdf/outputPdf) は helvetica フォールバックでPDF生成継続。
 export async function ensureJpFont() {
   if (JP_FONT) return
   if (!jpLoading) {
     jpLoading = (async () => {
-      const res = await fetch(jpFontUrl)
-      const buf = await res.arrayBuffer()
-      registerJpFont({ vfsName: 'NotoSansJP-Regular.ttf', base64: abToBase64(buf), fontName: 'NotoSansJP' })
+      try {
+        const res = await fetch(jpFontUrl)
+        if (!res.ok) throw new Error(`font fetch ${res.status}`)
+        const buf = await res.arrayBuffer()
+        registerJpFont({ vfsName: 'NotoSansJP-Regular.ttf', base64: abToBase64(buf), fontName: 'NotoSansJP' })
+      } catch (e) {
+        jpLoading = null // 次回呼出で retry可能にする
+        // 呼出側はhelveticaフォールバックでPDF生成可、ログのみ残し例外吸収
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('ensureJpFont: load failed, fallback to helvetica (will retry next call)', e)
+        }
+      }
     })()
   }
   await jpLoading
