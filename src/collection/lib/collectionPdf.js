@@ -54,10 +54,14 @@ export async function ensureJpFont() {
 const yen = n => `${Number(n || 0).toLocaleString()}`
 
 /**
- * @returns {Promise<jsPDF>} 生成済みドキュメント (J-COLLECTION-05: async化、レシート画像fetchのため)
- * J-COLLECTION-06: 自示署名(担当者署名embed)廃止。customerSignatureDataUrl は先方署名で、御社ご担当様欄に重ねる。
+ * @returns {Promise<jsPDF>} 生成済みドキュメント
+ * J-COLLECTION-07: page1 下部に 左=弊社担当 / 右=先方ご担当者様 の署名欄2枠を常時描画。
+ *   staffSignatureDataUrl / customerSignatureDataUrl がそれぞれ与えられた場合は対応する枠内に embed。
  */
-export async function buildCollectionSlip({ collection, store, booths, total, advanceTotal, collectedByName, customerSignatureDataUrl }) {
+export async function buildCollectionSlip({
+  collection, store, booths, total, advanceTotal, collectedByName,
+  staffSignatureDataUrl, customerSignatureDataUrl,
+}) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const font = applyFont(doc)
   const L = 15, R = 195
@@ -134,22 +138,22 @@ export async function buildCollectionSlip({ collection, store, booths, total, ad
   doc.text(`${yen(total)} 円`, 168, y, { align: 'right' })
   y += 10
 
-  // サイン欄 (J-COLLECTION-02: 弊社担当 / 御社ご担当様)
-  // J-COLLECTION-06: 自示署名embed廃止。先方署名(customer)は 御社ご担当様 線に重ねる。
-  doc.setFontSize(9)
-  if (collectedByName) {
-    doc.text(`弊社担当: ${collectedByName}`, L, y)
-  } else {
-    doc.text('弊社担当 ____________________', L, y)
+  // J-COLLECTION-07: 署名欄 (左=弊社担当 / 右=先方ご担当者様、常時2枠表示)
+  const sigBoxW = 85, sigBoxH = 26
+  const leftX = L, rightX = L + sigBoxW + 5
+  doc.setDrawColor(140)
+  doc.rect(leftX, y, sigBoxW, sigBoxH)
+  doc.rect(rightX, y, sigBoxW, sigBoxH)
+  doc.setFontSize(8)
+  doc.text(collectedByName ? `弊社担当: ${collectedByName}` : '弊社担当', leftX + 2, y + 4)
+  doc.text('先方ご担当者様', rightX + 2, y + 4)
+  if (staffSignatureDataUrl) {
+    try { doc.addImage(staffSignatureDataUrl, 'PNG', leftX + 3, y + 6, sigBoxW - 6, sigBoxH - 9) } catch { /* ignore */ }
   }
-  doc.text('御社ご担当様 ____________________', 115, y)
   if (customerSignatureDataUrl) {
-    try {
-      // 御社ご担当様 line area (下線上に重ねる、45mm x 14mm 程度)
-      doc.addImage(customerSignatureDataUrl, 'PNG', 142, y - 9, 48, 14)
-    } catch { /* ignore */ }
+    try { doc.addImage(customerSignatureDataUrl, 'PNG', rightX + 3, y + 6, sigBoxW - 6, sigBoxH - 9) } catch { /* ignore */ }
   }
-  y += 10
+  y += sigBoxH + 4
 
   // J-COLLECTION-05 fix_D: page2以降にブース別レシートページを追加
   for (const b of booths ?? []) {

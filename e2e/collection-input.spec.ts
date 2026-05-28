@@ -10,8 +10,8 @@ const TINY_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
 const TINY_PNG = Buffer.from(TINY_PNG_BASE64, 'base64')
 
-test.describe('J-COLLECTION-06 input', () => {
-  test('mobile 390x844: 署名なしで確定OK + レシートupload + PDF (console 0)', async ({ page }) => {
+test.describe('J-COLLECTION-07 input', () => {
+  test('mobile 390x844: 弊社署名+レシートupload+確定+PDF (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -72,16 +72,26 @@ test.describe('J-COLLECTION-06 input', () => {
     await page.getByTestId('collection-load-button').click()
     await expect(page.getByTestId('collection-table')).toBeVisible()
 
-    // SignatureCanvas が無い (fix_2)
-    await expect(page.getByTestId('signature-canvas')).toHaveCount(0)
-    // 署名なしでも 確定ボタン enabled
-    await expect(page.getByTestId('collection-confirm-button')).toBeEnabled()
+    // J-COLLECTION-07: SignatureCanvas 復活、署名なしは確定 disabled
+    await expect(page.getByTestId('signature-canvas')).toBeVisible()
+    await expect(page.getByTestId('collection-confirm-button')).toBeDisabled()
 
     // レシート撮影
     await page.setInputFiles('[data-testid="booth-receipt-input-TST01-M04-B02"]', {
       name: 'r.png', mimeType: 'image/png', buffer: TINY_PNG,
     })
     await expect.poll(() => storageUploads.length).toBeGreaterThan(0)
+
+    // 弊社署名を描画
+    const canvas = page.getByTestId('signature-canvas')
+    const box = await canvas.boundingBox()
+    if (!box) throw new Error('signature canvas box not found')
+    await page.mouse.move(box.x + 20, box.y + 30)
+    await page.mouse.down()
+    await page.mouse.move(box.x + 100, box.y + 70)
+    await page.mouse.move(box.x + 180, box.y + 90)
+    await page.mouse.up()
+    await expect(page.getByTestId('collection-confirm-button')).toBeEnabled()
 
     await page.getByTestId('collection-confirm-button').click()
     await expect(page.getByTestId('collection-confirmed-badge')).toBeVisible()
