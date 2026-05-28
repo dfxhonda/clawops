@@ -1,17 +1,20 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import NumpadField, { NumpadFooterPanel } from '../clawsupport/components/NumpadField'
 import {
   getActiveStores, getActiveBoothsForStore, getPrevCollectionMeters,
   saveCollection, getCollectionDetail,
+  nextCollectionId, uploadReceiptPhoto,
 } from '../services/collections'
 import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
+import { compressImage } from './lib/imageUtil'
+import SignatureCanvas from './components/SignatureCanvas'
 
-// J-COLLECTION-04: 集金画面 実機FB 6点修正 (J-COLLECTION-03テーブルレイアウト維持)
-// fix_1 rental_code NULL=空欄 / fix_2 booth列 M04-B02 形式 / fix_3 prev=直前confirmedから自動 /
-// fix_4 今回IN<=集金日プリフィル+日付変更で再取得 / fix_5 金種インライン展開 / fix_6 立替/備考の確実な編集
+// J-COLLECTION-05: PDF改修+署名+レシート写真+前回IN修正
+// fix_A PDFヘッダ/注意書き  fix_B 署名Canvas  fix_C レシート撮影+upload
+// fix_D PDF page2+ レシートページ  fix_E 前回IN=patrol_date>=prev_date ASC最古
 
 const yen = n => Number(n || 0).toLocaleString()
 const todayJst = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
@@ -29,21 +32,23 @@ function emptyRow(b) {
     advance_payment: '',
     notes: '',
     counts: {},
-    // re-prefill 判定用の "default snapshot" — ユーザー編集を保護するため
+    receipt_photo_url: null,
+    receipt_photo_path: null,
     _prefilled_current: b.in_meter_current_default != null ? String(b.in_meter_current_default) : '',
   }
 }
 
 const COLS = [
-  { key: 'rental_code',      label: 'レンタル', w: 72 },
-  { key: 'machine_name',     label: '機械名',   w: 120 },
-  { key: 'booth_name',       label: 'ブース',   w: 80 },
-  { key: 'in_meter_prev',    label: '前回IN',   w: 90 },
-  { key: 'in_meter_current', label: '今回IN',   w: 90 },
-  { key: 'in_diff',          label: '差',       w: 64 },
-  { key: 'collection_amount', label: '集金額',  w: 96 },
-  { key: 'advance_payment',  label: '立替',     w: 72 },
-  { key: 'notes',            label: '備考',     w: 120 },
+  { key: 'rental_code',       label: 'レンタル', w: 72 },
+  { key: 'machine_name',      label: '機械名',   w: 120 },
+  { key: 'booth_name',        label: 'ブース',   w: 80 },
+  { key: 'in_meter_prev',     label: '前回IN',   w: 90 },
+  { key: 'in_meter_current',  label: '今回IN',   w: 90 },
+  { key: 'in_diff',           label: '差',       w: 64 },
+  { key: 'collection_amount', label: '集金額',   w: 96 },
+  { key: 'advance_payment',   label: '立替',     w: 72 },
+  { key: 'notes',             label: '備考',     w: 120 },
+  { key: 'receipt',           label: 'レシート', w: 56 },
 ]
 const TABLE_MIN_WIDTH = COLS.reduce((s, c) => s + c.w, 0)
 
@@ -60,13 +65,19 @@ export default function CollectionInputPage() {
   const [prevDate, setPrevDate] = useState('')
   const [booths, setBooths] = useState([])
   const [rowData, setRowData] = useState({})
-  const [openDenom, setOpenDenom] = useState(null) // booth_code or null (fix_5)
+  const [collectionId, setCollectionId] = useState(null) // J-COLLECTION-05: 事前生成
+  const [signatureData, setSignatureData] = useState(null) // fix_B: PDFのみ埋込、DB保存なし
+  const [openDenom, setOpenDenom] = useState(null)
   const [currentField, setCurrentField] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingBooth, setUploadingBooth] = useState(null)
   const [confirmedId, setConfirmedId] = useState(null)
   const [error, setError] = useState(null)
+
+  // 隠しfile input (booth毎に動的ref)
+  const fileInputs = useRef({})
 
   useEffect(() => {
     getActiveStores().then(({ data, error: e }) => {
@@ -77,10 +88,10 @@ export default function CollectionInputPage() {
 
   async function handleLoad() {
     if (!storeCode) return
-    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null)
-    const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt)
+    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setSignatureData(null)
+    const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt, prevDate || null)
     if (e) { setError(`ERR-COLLECTION-001: ${e.message}`); setLoading(false); return }
-    let rd = Object.fromEntries((data ?? []).map(b => [b.booth_code, emptyRow(b)]))
+    const rd = Object.fromEntries((data ?? []).map(b => [b.booth_code, emptyRow(b)]))
     if (prevDate) {
       const { data: prevMap, error: e2 } = await getPrevCollectionMeters(storeCode, prevDate)
       if (e2) { setError(`ERR-COLLECTION-004: ${e2.message}`); setLoading(false); return }
@@ -89,17 +100,20 @@ export default function CollectionInputPage() {
         if (p && p.in_meter_prev != null) rd[b.booth_code].in_meter_prev = String(p.in_meter_prev)
       }
     }
+    // collectionId 事前生成 (レシート upload pathに使う)
+    const cid = await nextCollectionId(storeCode, collectedAt)
+    setCollectionId(cid)
     setBooths(data ?? [])
     setRowData(rd)
     setLoaded(true); setLoading(false)
   }
 
-  // fix_4: 集金日変更時、未編集の 今回IN を新しい <=date 最新で再プリフィル
+  // fix_4: 集金日変更時、未編集の今回IN を再プリフィル
   useEffect(() => {
     if (!loaded || !storeCode || !collectedAt) return
     let cancelled = false
     ;(async () => {
-      const { data } = await getActiveBoothsForStore(storeCode, collectedAt)
+      const { data } = await getActiveBoothsForStore(storeCode, collectedAt, prevDate || null)
       if (cancelled || !data) return
       setBooths(data)
       setRowData(prev => {
@@ -108,13 +122,11 @@ export default function CollectionInputPage() {
           const cur = next[b.booth_code]
           if (!cur) { next[b.booth_code] = emptyRow(b); continue }
           const newDefault = b.in_meter_current_default != null ? String(b.in_meter_current_default) : ''
-          // 未編集(=前回プリフィル値のまま) のときのみ更新
           if (cur.in_meter_current === cur._prefilled_current) {
             next[b.booth_code] = { ...cur, in_meter_current: newDefault, _prefilled_current: newDefault }
           } else {
             next[b.booth_code] = { ...cur, _prefilled_current: newDefault }
           }
-          // prev は手入力されてなければ更新
           if (!cur.in_meter_prev && b.in_meter_prev_default != null) {
             next[b.booth_code].in_meter_prev = String(b.in_meter_prev_default)
           }
@@ -135,6 +147,21 @@ export default function CollectionInputPage() {
       [boothCode]: { ...prev[boothCode], counts: { ...(prev[boothCode]?.counts || {}), [denomKey]: val === '' ? 0 : Number(val) || 0 } },
     }))
 
+  async function handleReceiptPick(boothCode, file) {
+    if (!file || !collectionId) return
+    setUploadingBooth(boothCode); setError(null)
+    try {
+      const blob = await compressImage(file, { maxWidth: 800, quality: 0.75 })
+      const { data, error: e } = await uploadReceiptPhoto({ collectionId, boothCode, fileBlob: blob })
+      if (e) throw e
+      setRow(boothCode, { receipt_photo_url: data.url, receipt_photo_path: data.path })
+    } catch (e) {
+      setError(`ERR-COLLECTION-007: ${e.message} (写真なしで続行可)`)
+    } finally {
+      setUploadingBooth(null)
+    }
+  }
+
   const collectionTotal = useMemo(
     () => booths.reduce((s, b) => s + boothTotal(rowData[b.booth_code]?.counts), 0),
     [booths, rowData]
@@ -145,6 +172,7 @@ export default function CollectionInputPage() {
   )
 
   async function confirm() {
+    if (!signatureData) { setError('担当者署名が必要です'); return }
     setSaving(true); setError(null)
     const payload = Object.fromEntries(booths.map(b => {
       const r = rowData[b.booth_code] || {}
@@ -156,12 +184,14 @@ export default function CollectionInputPage() {
         advance_payment: r.advance_payment,
         notes: r.notes,
         counts: r.counts || {},
+        receipt_photo_url: r.receipt_photo_url || null,
+        receipt_photo_path: r.receipt_photo_path || null,
       }]
     }))
     const { data, error: e } = await saveCollection({
       storeCode, collectedAt, prevCollectionDate: prevDate || null,
       collectedBy: staffId || null, collectedByName: staffName || null,
-      booths, rowData: payload,
+      booths, rowData: payload, collectionId,
     })
     if (e) { setError(`ERR-COLLECTION-002: ${e.message}`); setSaving(false); return }
     setConfirmedId(data.collectionId); setSaving(false)
@@ -173,7 +203,7 @@ export default function CollectionInputPage() {
       const { data, error: e } = await getCollectionDetail(confirmedId)
       if (e) throw e
       await ensureJpFont()
-      const doc = buildCollectionSlip({ ...data, collectedByName: staffName })
+      const doc = await buildCollectionSlip({ ...data, collectedByName: staffName, signatureDataUrl: signatureData })
       doc.save(slipFileName(confirmedId))
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
@@ -241,6 +271,8 @@ export default function CollectionInputPage() {
                 const sub = boothTotal(r.counts)
                 const tabBase = idx * 4 + 1
                 const open = openDenom === b.booth_code
+                const hasPhoto = !!r.receipt_photo_url
+                const isUploading = uploadingBooth === b.booth_code
                 return (
                   <Fragment key={b.booth_code}>
                   <tr data-testid="collection-booth-row" className="border-b border-border/40" style={{ height: 44 }}>
@@ -285,6 +317,24 @@ export default function CollectionInputPage() {
                         placeholder="—"
                       />
                     </td>
+                    <td className="px-1 py-1">
+                      <input type="file" accept="image/*" capture="environment" hidden
+                        data-testid={`booth-receipt-input-${b.booth_code}`}
+                        ref={el => { fileInputs.current[b.booth_code] = el }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleReceiptPick(b.booth_code, f); e.target.value = '' }}
+                      />
+                      <button
+                        data-testid={`booth-receipt-btn-${b.booth_code}`}
+                        onClick={() => !locked && fileInputs.current[b.booth_code]?.click()}
+                        disabled={locked || isUploading}
+                        className="w-9 h-9 rounded border border-border bg-bg flex items-center justify-center disabled:opacity-60"
+                        title={hasPhoto ? 'タップで再撮影' : 'レシート撮影'}
+                      >
+                        {isUploading ? '…' : hasPhoto
+                          ? <img src={r.receipt_photo_url} alt="" className="w-8 h-8 object-cover rounded" />
+                          : <span className="text-base">📷</span>}
+                      </button>
+                    </td>
                   </tr>
                   {open && (
                     <tr data-testid={`denom-inline-${b.booth_code}`} className="bg-surface/40">
@@ -317,6 +367,13 @@ export default function CollectionInputPage() {
         )}
       </div>
 
+      {/* fix_B: 担当者署名Canvas (確定ボタン上部) */}
+      {loaded && booths.length > 0 && !locked && (
+        <div className="flex-shrink-0 px-3 pt-2">
+          <SignatureCanvas value={signatureData} onChange={setSignatureData} />
+        </div>
+      )}
+
       {loaded && booths.length > 0 && (
         <div className="flex-shrink-0 border-t border-border p-3 flex items-center gap-2">
           <div className="flex-1">
@@ -324,7 +381,7 @@ export default function CollectionInputPage() {
             <div data-testid="collection-total" className="text-2xl font-bold text-text tabular-nums">{yen(collectionTotal)} 円</div>
           </div>
           {!locked ? (
-            <button data-testid="collection-confirm-button" onClick={confirm} disabled={saving}
+            <button data-testid="collection-confirm-button" onClick={confirm} disabled={saving || !signatureData}
               className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50">
               {saving ? '保存中…' : '確定'}
             </button>

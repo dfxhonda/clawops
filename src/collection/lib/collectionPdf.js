@@ -3,6 +3,7 @@
 // 仕様刷新: 金種内訳ブロック削除 / 立替額列(参考、合計除外) / サイン欄「弊社担当 / 御社ご担当様」
 import { jsPDF } from 'jspdf'
 import jpFontUrl from './fonts/NotoSansJP-Regular.ttf?url'
+import { fetchAsDataURL } from './imageUtil'
 
 const ISSUER = {
   name: '株式会社ナイスランド',
@@ -53,9 +54,9 @@ export async function ensureJpFont() {
 const yen = n => `${Number(n || 0).toLocaleString()}`
 
 /**
- * @returns {jsPDF} 生成済みドキュメント
+ * @returns {Promise<jsPDF>} 生成済みドキュメント (J-COLLECTION-05: async化、レシート画像fetchのため)
  */
-export function buildCollectionSlip({ collection, store, booths, total, advanceTotal, collectedByName }) {
+export async function buildCollectionSlip({ collection, store, booths, total, advanceTotal, collectedByName, signatureDataUrl }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const font = applyFont(doc)
   const L = 15, R = 195
@@ -89,15 +90,16 @@ export function buildCollectionSlip({ collection, store, booths, total, advanceT
 
   // 明細テーブル (J-COLLECTION-03): レンタルコード/機械名/ブース/前回IN/今回IN/差/集金額/立替/備考
   doc.setFontSize(7)
+  // J-COLLECTION-05 fix_A: 'レンタル' → 'コード'
   const cols = [
-    { x: 15,  label: 'レンタル' },
+    { x: 15,  label: 'コード' },
     { x: 30,  label: '機械名' },
     { x: 63,  label: 'ブース' },
     { x: 95,  label: '前回IN', align: 'right' },
     { x: 117, label: '今回IN', align: 'right' },
     { x: 133, label: '差',     align: 'right' },
     { x: 153, label: '集金額', align: 'right' },
-    { x: 172, label: '立替※', align: 'right' },
+    { x: 172, label: '立替',   align: 'right' },
     { x: 175, label: '備考' },
   ]
   doc.setDrawColor(120)
@@ -129,10 +131,7 @@ export function buildCollectionSlip({ collection, store, booths, total, advanceT
   doc.setFontSize(11)
   doc.text('合計金額', 130, y)
   doc.text(`${yen(total)} 円`, 168, y, { align: 'right' })
-  y += 6
-  doc.setFontSize(8)
-  doc.text(`※ 立替額(参考) 合計 ${yen(advanceTotal)} 円 ─ 合計金額には含めません`, L, y)
-  y += 12
+  y += 10
 
   // サイン欄 (J-COLLECTION-02: 弊社担当 / 御社ご担当様)
   doc.setFontSize(9)
@@ -142,6 +141,59 @@ export function buildCollectionSlip({ collection, store, booths, total, advanceT
     doc.text('弊社担当 ____________________', L, y)
   }
   doc.text('御社ご担当様 ____________________', 115, y)
+  y += 8
+
+  // J-COLLECTION-05 fix_B: 担当者署名 (PDF page1下部に埋込)
+  if (signatureDataUrl) {
+    doc.setFontSize(8)
+    doc.text('担当者署名:', L, y)
+    try {
+      // 60mm x 18mm (アスペクト比は内部で維持されないので明示指定)
+      doc.addImage(signatureDataUrl, 'PNG', L + 22, y - 5, 60, 18)
+    } catch { /* ignore */ }
+    y += 22
+  }
+
+  // J-COLLECTION-05 fix_D: page2以降にブース別レシートページを追加
+  for (const b of booths ?? []) {
+    doc.addPage()
+    applyFont(doc)
+    let py = 18
+    doc.setFontSize(11)
+    doc.text(`${store.store_name_official || store.store_name || ''}　${collection.collected_at || ''}`, L, py); py += 7
+    doc.setFontSize(10)
+    doc.text(`コード: ${b.rental_code || ''}　ブース: ${b.booth_name || b.booth_code || ''}`, L, py); py += 8
+
+    const imgTop = py
+    const imgMaxH = 200 // mm (A4縦の主要領域)
+    const imgMaxW = R - L
+    if (b.receipt_photo_url) {
+      try {
+        const dataUrl = await fetchAsDataURL(b.receipt_photo_url)
+        const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+        // 画像のメタからアスペクト計算
+        const props = doc.getImageProperties(dataUrl)
+        const ratio = props.width / props.height
+        let w = imgMaxW, h = w / ratio
+        if (h > imgMaxH) { h = imgMaxH; w = h * ratio }
+        doc.addImage(dataUrl, fmt, L, imgTop, w, h)
+        py = imgTop + h + 6
+      } catch {
+        doc.setFontSize(10)
+        doc.text('レシート写真の読込に失敗しました', L, imgTop + 8)
+        py = imgTop + 14
+      }
+    } else {
+      doc.setFontSize(10)
+      doc.text('レシート写真なし', 105, imgTop + 80, { align: 'center' })
+      py = imgTop + 90
+    }
+    // footer: 集金額 / 立替 / 備考
+    doc.setFontSize(9)
+    doc.text(`集金額: ${yen(b.total)} 円`, L, py); py += 5
+    doc.text(`立替: ${yen(b.advance_payment)} 円`, L, py); py += 5
+    if (b.notes) doc.text(`備考: ${b.notes}`, L, py)
+  }
 
   doc.setFont(font, 'normal')
   return doc

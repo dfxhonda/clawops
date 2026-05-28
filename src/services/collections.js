@@ -19,7 +19,7 @@ export async function getActiveStores() {
 //   - booth_name = booth_label ?? `${machine_code末尾}-B{nn}` (例 M04-B02)
 //   - in_meter_current_default = patrol_date <= collectedAt の meter_readings最新
 //   - in_meter_prev_default    = 当該店舗の直前confirmed cash_collection_booths.in_meter_current
-export async function getActiveBoothsForStore(storeCode, collectedAt) {
+export async function getActiveBoothsForStore(storeCode, collectedAt, prevDate) {
   const { data: booths, error } = await supabase
     .from('booths')
     .select('booth_code, machine_code, booth_number, booth_label, is_active')
@@ -44,7 +44,7 @@ export async function getActiveBoothsForStore(storeCode, collectedAt) {
   const [{ data: machines }, { data: readings }, prevMap] = await Promise.all([
     supabase.from('machines').select('machine_code, machine_name, machine_number').in('machine_code', machineCodes),
     mrQuery,
-    getLatestConfirmedMeters(storeCode, boothCodes),
+    getPrevMeterAfterDate(storeCode, boothCodes, prevDate),
   ])
   const mMap = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m]))
   const latestPerBooth = {}
@@ -75,30 +75,53 @@ export async function getActiveBoothsForStore(storeCode, collectedAt) {
   return { data: rows, error: null }
 }
 
-// J-COLLECTION-04 fix_3: 直前confirmed集金から booth毎の最新 in_meter_current を取得
-async function getLatestConfirmedMeters(storeCode, boothCodes) {
+// J-COLLECTION-05 fix_E: prev_date 以降の最古 meter_readings.in_meter を booth単位で返す。
+//   prev_date 未指定時は当該店舗の直前confirmed cash_collections.collected_at を自動採用。
+//   meter_readings 0件なら 直前confirmed cash_collection_booths.in_meter_current にフォールバック。
+async function getPrevMeterAfterDate(storeCode, boothCodes, prevDate) {
   if (!storeCode || !boothCodes || boothCodes.length === 0) return {}
-  const { data: cols } = await supabase.from('cash_collections')
-    .select('collection_id, collected_at')
-    .eq('store_code', storeCode)
-    .eq('status', 'confirmed')
-    .order('collected_at', { ascending: false })
-    .limit(30)
-  const ids = (cols ?? []).map(c => c.collection_id)
-  if (ids.length === 0) return {}
-  const colDate = Object.fromEntries((cols ?? []).map(c => [c.collection_id, c.collected_at]))
-  const { data: bts } = await supabase.from('cash_collection_booths')
-    .select('collection_id, booth_code, in_meter_current')
-    .in('collection_id', ids)
-    .in('booth_code', boothCodes)
+
+  // 1) effective prev_date を決める
+  let effectivePrev = prevDate || null
+  let latestCol = null
+  if (!effectivePrev) {
+    const { data } = await supabase.from('cash_collections')
+      .select('collection_id, collected_at')
+      .eq('store_code', storeCode).eq('status', 'confirmed')
+      .order('collected_at', { ascending: false }).limit(1).maybeSingle()
+    if (data) { effectivePrev = data.collected_at; latestCol = data }
+  }
+  if (!effectivePrev) return {}
+
+  // 2) patrol_date >= effectivePrev の最古 in_meter を booth毎に取得
   const map = {}
-  const seenDate = {}
-  for (const b of bts ?? []) {
-    const d = colDate[b.collection_id]
-    if (b.in_meter_current == null) continue
-    if (!seenDate[b.booth_code] || (d && d > seenDate[b.booth_code])) {
-      seenDate[b.booth_code] = d
-      map[b.booth_code] = b.in_meter_current
+  const { data: mr } = await supabase.from('meter_readings')
+    .select('booth_code, in_meter, patrol_date, created_at')
+    .in('booth_code', boothCodes)
+    .eq('entry_type', 'patrol')
+    .gte('patrol_date', effectivePrev)
+    .order('patrol_date', { ascending: true })
+    .order('created_at', { ascending: true })
+  for (const r of mr ?? []) {
+    if (!(r.booth_code in map) && r.in_meter != null) map[r.booth_code] = r.in_meter
+  }
+
+  // 3) fallback: meter_readings 0件のboothは confirmed cash_collection_booths.in_meter_current
+  const remaining = boothCodes.filter(c => !(c in map))
+  if (remaining.length > 0) {
+    let colId = latestCol?.collection_id
+    if (!colId) {
+      const { data: c } = await supabase.from('cash_collections')
+        .select('collection_id').eq('store_code', storeCode).eq('status', 'confirmed')
+        .order('collected_at', { ascending: false }).limit(1).maybeSingle()
+      colId = c?.collection_id
+    }
+    if (colId) {
+      const { data: bts } = await supabase.from('cash_collection_booths')
+        .select('booth_code, in_meter_current').eq('collection_id', colId).in('booth_code', remaining)
+      for (const b of bts ?? []) {
+        if (b.in_meter_current != null) map[b.booth_code] = b.in_meter_current
+      }
     }
   }
   return map
@@ -132,15 +155,19 @@ export async function getPrevCollectionMeters(storeCode, prevDate) {
 }
 
 // 確定保存 (status=confirmed)。advance_payment / prev_collection_date 対応。
+// J-COLLECTION-05: collectionId をUI側で事前生成して渡せるように対応(レシートupload pathと一致させる)。
 export async function saveCollection({
   storeCode, collectedAt, prevCollectionDate, collectedBy, collectedByName, booths, rowData, notes,
+  collectionId: providedId,
 }) {
-  // 当日連番
-  const { count } = await supabase.from('cash_collections')
-    .select('collection_id', { count: 'exact', head: true })
-    .eq('store_code', storeCode).eq('collected_at', collectedAt)
-  const seq = (count ?? 0) + 1
-  const collectionId = genCollectionId(storeCode, collectedAt, seq)
+  let collectionId = providedId
+  if (!collectionId) {
+    const { count } = await supabase.from('cash_collections')
+      .select('collection_id', { count: 'exact', head: true })
+      .eq('store_code', storeCode).eq('collected_at', collectedAt)
+    const seq = (count ?? 0) + 1
+    collectionId = genCollectionId(storeCode, collectedAt, seq)
+  }
   const now = new Date().toISOString()
 
   const { error: e1 } = await supabase.from('cash_collections').insert({
@@ -179,6 +206,8 @@ export async function saveCollection({
       out_meter_current: d.out_meter_current === '' || d.out_meter_current == null ? null : Number(d.out_meter_current),
       advance_payment: Number(d.advance_payment) || 0,
       notes: d.notes && String(d.notes).trim() !== '' ? String(d.notes).trim() : null,
+      receipt_photo_url: d.receipt_photo_url || null,
+      receipt_photo_path: d.receipt_photo_path || null,
       created_at: now,
     }
   })
@@ -253,6 +282,29 @@ export async function getCollectionDetail(collectionId) {
     data: { collection: col, store: store ?? {}, booths: boothRows, total, advanceTotal },
     error: null,
   }
+}
+
+// J-COLLECTION-05: 撮影画像を Storage 'receipts' バケットにupload。upsertで再撮影上書き可。
+//   path: '{org_id}/{collection_id}/{booth_code}.jpg'
+//   返り値: { data:{path,url}, error }
+export async function uploadReceiptPhoto({ collectionId, boothCode, fileBlob }) {
+  if (!collectionId || !boothCode || !fileBlob) {
+    return { data: null, error: new Error('uploadReceiptPhoto: missing args') }
+  }
+  const path = `${DFX_ORG_ID}/${collectionId}/${boothCode}.jpg`
+  const { error: upErr } = await supabase.storage.from('receipts')
+    .upload(path, fileBlob, { upsert: true, contentType: 'image/jpeg' })
+  if (upErr) return { data: null, error: upErr }
+  const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(path)
+  return { data: { path, url: publicUrl }, error: null }
+}
+
+// J-COLLECTION-05: 保存前にcollectionIdを先取り(レシートupload pathに必要)
+export async function nextCollectionId(storeCode, collectedAt) {
+  const { count } = await supabase.from('cash_collections')
+    .select('collection_id', { count: 'exact', head: true })
+    .eq('store_code', storeCode).eq('collected_at', collectedAt)
+  return genCollectionId(storeCode, collectedAt, (count ?? 0) + 1)
 }
 
 export { boothTotal }

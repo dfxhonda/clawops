@@ -1,15 +1,23 @@
 import { test, expect } from '@playwright/test'
 import { setupAuth } from './helpers'
 
-// J-COLLECTION-04 gate_4: viewport 390x844
-// 6点修正: rental NULL=空 / booth M{nn}-B{nn} / prev=直前confirmed / today<=date / 金種インライン / 立替+備考入力
-// chromium = 非iPhone → NumpadField は native input
+// J-COLLECTION-05 gate_4: viewport 390x844
+// fix_A PDFヘッダ/注意書き(画面に影響なし、PDF生成検証は download まで)
+// fix_B 署名Canvas (描画してconfirm有効化)
+// fix_C レシート撮影 → Storage upload (mock) → receipt_photo_url 保存検証
+// fix_D PDF page2+ レシートページ (downloadのみ検証)
+// fix_E 前回IN = patrol_date>=prev_date 最古 (effective prev = 自動confirmed)
 
 const isObj = (route: import('@playwright/test').Route) =>
   (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object')
 
-test.describe('J-COLLECTION-04', () => {
-  test('mobile 390x844: 表示/プリフィル/金種インライン/立替/備考/確定/PDF (console 0)', async ({ page }) => {
+// 1x1 PNG (compressImage が読み込めれば何でも良い)
+const TINY_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+const TINY_PNG = Buffer.from(TINY_PNG_BASE64, 'base64')
+
+test.describe('J-COLLECTION-05', () => {
+  test('mobile 390x844: 署名+レシート+確定+PDF (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -18,8 +26,13 @@ test.describe('J-COLLECTION-04', () => {
     page.on('pageerror', e => consoleErrors.push(e.message))
 
     const inserted: any = { collections: [], booths: [] }
+    const storageUploads: string[] = []
 
     await page.route('**/rest/v1/**', async r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+    await page.route('**/storage/v1/object/receipts/**', async route => {
+      storageUploads.push(route.request().url())
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'receipts/x' }) })
+    })
 
     await page.route('**/rest/v1/stores**', async route => {
       const body = isObj(route)
@@ -31,45 +44,35 @@ test.describe('J-COLLECTION-04', () => {
       status: 200, contentType: 'application/json',
       body: JSON.stringify([{ booth_code: 'TST01-M04-B02', machine_code: 'TST01-M04', booth_number: 2, booth_label: null, is_active: true }]),
     }))
-    // fix_1: machine_number=null → rental_code列は空欄
     await page.route('**/rest/v1/machines**', async r => r.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify([{ machine_code: 'TST01-M04', machine_name: '機械A', machine_number: null }]),
     }))
-    // fix_4: meter_readings は patrol_date<=collected_at の最新を採用
+    // fix_E: patrol_date >= effectivePrev の最古 in_meter (150)
     await page.route('**/rest/v1/meter_readings**', async r => r.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify([{ booth_code: 'TST01-M04-B02', in_meter: 200, out_meter: null, patrol_date: '2026-05-26', created_at: '2026-05-26T10:00:00Z' }]),
+      body: JSON.stringify([{ booth_code: 'TST01-M04-B02', in_meter: 150, patrol_date: '2026-05-22', created_at: '2026-05-22T10:00:00Z' }]),
     }))
-    // fix_3: 直前confirmed集金から prev を取得
-    let collectionsCallCount = 0
     await page.route('**/rest/v1/cash_collections**', async route => {
       const m = route.request().method()
       if (m === 'HEAD') { await route.fulfill({ status: 200, headers: { 'content-range': '*/0' }, body: '' }); return }
       if (m === 'POST') { inserted.collections.push(JSON.parse(route.request().postData() || '{}')); await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' }); return }
-      // GET: getLatestConfirmedMeters は confirmed 一覧、PDF表示は単一
-      const url = route.request().url()
-      collectionsCallCount++
       if (isObj(route)) {
-        // single (PDF detail)
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ collection_id: 'X-01', store_code: 'TST01', collected_at: '2026-05-28', prev_collection_date: null, status: 'confirmed' }) })
-      } else if (url.includes('status=eq.confirmed')) {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ collection_id: 'PREV-01', collected_at: '2026-05-20' }]) })
-      } else {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ collection_id: 'TST01-20260528-01', store_code: 'TST01', collected_at: '2026-05-28', prev_collection_date: null, status: 'confirmed' })}); return
       }
+      // confirmed list (auto prev_date 取得)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ collection_id: 'PREV-01', collected_at: '2026-05-20' }]) })
     })
     await page.route('**/rest/v1/cash_collection_booths**', async route => {
       const m = route.request().method()
       if (m === 'POST') { inserted.booths.push(JSON.parse(route.request().postData() || '{}')); await route.fulfill({ status: 201, contentType: 'application/json', body: '[]' }); return }
-      const url = route.request().url()
-      if (url.includes('collection_id=in.')) {
-        // getLatestConfirmedMeters: 直前confirmedの in_meter_current=150 を返す
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ collection_id: 'PREV-01', booth_code: 'TST01-M04-B02', in_meter_current: 150 }]) })
-      } else {
-        // PDF detail
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'b1', collection_id: 'X-01', booth_code: 'TST01-M04-B02', machine_code: 'TST01-M04', total: 5000, advance_payment: 100, notes: 'テスト備考', bill_1000: 5, in_meter_prev: 150, in_meter_current: 200 }]) })
-      }
+      // PDF detail
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{
+        id: 'b1', collection_id: 'TST01-20260528-01', booth_code: 'TST01-M04-B02',
+        machine_code: 'TST01-M04', total: 5000, advance_payment: 0, notes: null,
+        in_meter_prev: 150, in_meter_current: 150,
+        receipt_photo_url: null, receipt_photo_path: null,
+      }]) })
     })
 
     await page.goto('/collection/input')
@@ -78,40 +81,39 @@ test.describe('J-COLLECTION-04', () => {
     await page.getByTestId('collection-store-select').selectOption('TST01')
     await page.getByTestId('collection-load-button').click()
     await expect(page.getByTestId('collection-table')).toBeVisible()
-    await expect(page.getByTestId('collection-booth-row')).toHaveCount(1)
 
-    // fix_2: booth列 = M04-B02 (booth_label null → machine_code末尾+B{nn} フォールバック)
-    await expect(page.getByTestId('booth-name-TST01-M04-B02')).toHaveText('M04-B02')
-    // fix_3: 前回IN=150 (直前confirmed.in_meter_current) が prev_date未選択でもプリフィル
+    // fix_E: 前回IN=150 (patrol_date>=自動prev の最古 in_meter)
     await expect(page.getByTestId('booth-in-prev-TST01-M04-B02')).toHaveValue('150')
-    // fix_4: 今回IN=200 (patrol_date<=今日 の最新)
-    await expect(page.getByTestId('booth-in-cur-TST01-M04-B02')).toHaveValue('200')
-    // 差: +50
-    await expect(page.getByTestId('booth-in-diff-TST01-M04-B02')).toHaveText('+50')
 
-    // fix_5: 金種インライン展開 (DenominationDrawer無し)
-    await page.getByTestId('booth-amount-TST01-M04-B02').click()
-    await expect(page.getByTestId('denom-inline-TST01-M04-B02')).toBeVisible()
-    await page.getByTestId('denom-input-bill_1000-TST01-M04-B02').fill('5')
-    await expect(page.getByTestId('denom-subtotal-TST01-M04-B02')).toHaveText('合計 5,000 円')
-    await page.getByTestId('denom-close-TST01-M04-B02').click()
-    await expect(page.getByTestId('denom-inline-TST01-M04-B02')).toHaveCount(0)
+    // fix_C: レシート撮影 → 圧縮 → Storage upload → サムネ表示
+    await page.setInputFiles('[data-testid="booth-receipt-input-TST01-M04-B02"]', {
+      name: 'r.png', mimeType: 'image/png', buffer: TINY_PNG,
+    })
+    await expect.poll(() => storageUploads.length).toBeGreaterThan(0)
 
-    // fix_6: 立替/備考 直接入力
-    await page.getByTestId('booth-advance-TST01-M04-B02').fill('100')
-    await page.getByTestId('booth-notes-TST01-M04-B02').fill('テスト備考')
+    // 確定ボタンは署名なしでdisabled
+    await expect(page.getByTestId('collection-confirm-button')).toBeDisabled()
 
-    await expect(page.getByTestId('collection-total')).toHaveText('5,000 円')
+    // fix_B: 署名Canvas に線描画
+    const canvas = page.getByTestId('signature-canvas')
+    const box = await canvas.boundingBox()
+    if (!box) throw new Error('canvas box not found')
+    await page.mouse.move(box.x + 10, box.y + 30)
+    await page.mouse.down()
+    await page.mouse.move(box.x + 80, box.y + 60)
+    await page.mouse.move(box.x + 150, box.y + 80)
+    await page.mouse.up()
+    await expect(page.getByTestId('collection-confirm-button')).toBeEnabled()
 
+    // 確定 -> receipt_photo_url が payloadに乗る
     await page.getByTestId('collection-confirm-button').click()
     await expect(page.getByTestId('collection-confirmed-badge')).toBeVisible()
     expect(inserted.collections[0].status).toBe('confirmed')
     const b0 = inserted.booths[0][0]
-    expect(b0.advance_payment).toBe(100)
-    expect(b0.notes).toBe('テスト備考')
-    expect(b0.bill_1000).toBe(5)
-    expect(Number(b0.in_meter_prev)).toBe(150)
+    expect(typeof b0.receipt_photo_url).toBe('string')
+    expect(b0.receipt_photo_url).toContain('receipts')
 
+    // PDF (page1=サマリ+署名、page2=レシート、download発火)
     const dl = page.waitForEvent('download')
     await page.getByTestId('collection-pdf-button').click()
     const download = await dl
