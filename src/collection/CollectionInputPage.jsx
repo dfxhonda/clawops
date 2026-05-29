@@ -76,6 +76,8 @@ export default function CollectionInputPage() {
   const [uploadingBooth, setUploadingBooth] = useState(null)
   const [confirmedId, setConfirmedId] = useState(null)
   const [error, setError] = useState(null)
+  const [generatingPdf, setGeneratingPdf] = useState(false) // J-COLLECTION-11 fix_B
+  const generatingPdfRef = useRef(false) // 同期 ref ロック (state batching を待たない)
 
   // 隠しfile input (booth毎に動的ref)
   const fileInputs = useRef({})
@@ -226,8 +228,12 @@ export default function CollectionInputPage() {
     }
   }
 
+  // J-COLLECTION-11 fix_B: 二度押しガード。ref で同期ロック、UI は state で disabled+spinner。
   async function outputPdf() {
+    if (generatingPdfRef.current) return
+    generatingPdfRef.current = true
     setError(null)
+    setGeneratingPdf(true)
     try {
       const { data, error: e } = await getCollectionDetail(confirmedId)
       if (e) throw e
@@ -236,6 +242,9 @@ export default function CollectionInputPage() {
       doc.save(slipFileName(confirmedId))
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
+    } finally {
+      generatingPdfRef.current = false
+      setGeneratingPdf(false)
     }
   }
 
@@ -430,7 +439,11 @@ export default function CollectionInputPage() {
             <div className="flex flex-col items-end gap-1">
               <span data-testid="collection-confirmed-badge" className="text-xs text-green-400 font-bold">確定済 {confirmedId}</span>
               <button data-testid="collection-pdf-button" onClick={outputPdf}
-                className="px-5 min-h-[48px] rounded-xl bg-emerald-600 text-white text-base font-bold">PDF出力</button>
+                disabled={generatingPdf}
+                aria-busy={generatingPdf || undefined}
+                className={`px-5 min-h-[48px] rounded-xl bg-emerald-600 text-white text-base font-bold disabled:opacity-60 ${generatingPdf ? 'ring-2 ring-emerald-300' : ''}`}>
+                {generatingPdf ? '生成中…' : 'PDF出力'}
+              </button>
             </div>
           )}
         </div>
