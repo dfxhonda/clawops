@@ -147,8 +147,14 @@ export async function buildCollectionSlip({
         if (sealLeft > L) {
           doc.addImage(sealDataUrl, sealAsset.fmt, sealLeft, sealTop, sealSize, sealSize)
         }
-      } catch {
-        // 角印 fetch 失敗は無視、ヘッダのみ表示継続 (J-COLLECTION-09 fix_3 思想踏襲)
+      } catch (sealErr) {
+        // J-COLLECTION-13-fix-02: silent swallow 廃止。
+        // 角印 fetch / addImage いずれかが throw した場合 console.error('ERR-COLLECTION-SEAL', ...) で
+        // gate_4 (console error 0 必須) を意図的に RED にする。fix-01 の jpFont fallback と異なり、
+        // 角印失敗は提出書類が不完全になる致命傷なので silent 容認しない。
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('ERR-COLLECTION-SEAL', sealErr?.message ?? String(sealErr))
+        }
       }
     }
   }
