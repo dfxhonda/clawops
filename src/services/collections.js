@@ -306,8 +306,14 @@ export async function uploadReceiptPhoto({ collectionId, boothCode, fileBlob }) 
 
 // J-COLLECTION-06: 先方署名済PDFを Storage に upsert + cash_collections の signed_pdf_* / customer_signed_at を UPDATE。
 //   path: '{org_id}/{collection_id}/signed.pdf'
+// J-COLLECTION-11: 任意で customer_signature_url / customer_signature_path も同 UPDATE で書き込む
+//                  (先方署名の永続化、後続 PDF 再生成で署名画像を embed 可能に)。
 //   返り値: { data:{path,url}, error }
-export async function saveSignedPdf({ collectionId, fileBlob }) {
+export async function saveSignedPdf({
+  collectionId, fileBlob,
+  customerSigUrl: providedCustomerSigUrl,
+  customerSigPath: providedCustomerSigPath,
+}) {
   if (!collectionId || !fileBlob) {
     return { data: null, error: new Error('saveSignedPdf: missing args') }
   }
@@ -316,23 +322,26 @@ export async function saveSignedPdf({ collectionId, fileBlob }) {
     .upload(path, fileBlob, { upsert: true, contentType: 'application/pdf' })
   if (upErr) return { data: null, error: upErr }
   const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(path)
+  const updatePayload = {
+    signed_pdf_url: publicUrl,
+    signed_pdf_path: path,
+    customer_signed_at: new Date().toISOString(),
+  }
+  if (providedCustomerSigUrl) updatePayload.customer_signature_url = providedCustomerSigUrl
+  if (providedCustomerSigPath) updatePayload.customer_signature_path = providedCustomerSigPath
   const { error: updErr } = await supabase.from('cash_collections')
-    .update({
-      signed_pdf_url: publicUrl,
-      signed_pdf_path: path,
-      customer_signed_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('collection_id', collectionId)
   if (updErr) return { data: null, error: updErr }
   return { data: { path, url: publicUrl }, error: null }
 }
 
-// J-COLLECTION-09 fix_1: 弊社担当者署名(dataURL)を Storage 'receipts' へ PNG として upsert。
-//   path: '{org_id}/{collection_id}/staff_sig.png'
-//   返り値: { data:{path,url}, error }
-export async function uploadStaffSignature({ collectionId, dataUrl }) {
-  if (!collectionId || !dataUrl) {
-    return { data: null, error: new Error('uploadStaffSignature: missing args') }
+// J-COLLECTION-09: 担当者署名(dataURL)を Storage 'receipts' へ PNG として upsert する内部 helper。
+// J-COLLECTION-11: 先方署名も同じ経路を再利用するため _uploadSignature に抽出し、
+//                  uploadStaffSignature / uploadCustomerSignature は薄い wrapper。
+async function _uploadSignature({ collectionId, dataUrl, fileName }) {
+  if (!collectionId || !dataUrl || !fileName) {
+    return { data: null, error: new Error('_uploadSignature: missing args') }
   }
   // dataURL → Blob (画像圧縮は行わない、署名線が劣化するため raw PNG のまま保存)
   let blob
@@ -342,12 +351,23 @@ export async function uploadStaffSignature({ collectionId, dataUrl }) {
   } catch (e) {
     return { data: null, error: e }
   }
-  const path = `${DFX_ORG_ID}/${collectionId}/staff_sig.png`
+  const path = `${DFX_ORG_ID}/${collectionId}/${fileName}`
   const { error: upErr } = await supabase.storage.from('receipts')
     .upload(path, blob, { upsert: true, contentType: 'image/png' })
   if (upErr) return { data: null, error: upErr }
   const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(path)
   return { data: { path, url: publicUrl }, error: null }
+}
+
+// 弊社担当者署名 upload (path: '{org_id}/{collection_id}/staff_sig.png')
+export async function uploadStaffSignature({ collectionId, dataUrl }) {
+  return _uploadSignature({ collectionId, dataUrl, fileName: 'staff_sig.png' })
+}
+
+// J-COLLECTION-11: 先方担当者署名 upload (path: '{org_id}/{collection_id}/customer_sig.png')
+// spec forbidden: 別経路新設禁止 → 内部は staff と同一の _uploadSignature を再利用。
+export async function uploadCustomerSignature({ collectionId, dataUrl }) {
+  return _uploadSignature({ collectionId, dataUrl, fileName: 'customer_sig.png' })
 }
 
 // J-COLLECTION-09 fix_4: レシート写真を Storage から削除。

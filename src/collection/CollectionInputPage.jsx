@@ -11,7 +11,7 @@ import {
 import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
 import { compressImage } from './lib/imageUtil'
-import SignatureCanvas from './components/SignatureCanvas' // J-COLLECTION-07 fix_1: 弊社担当者署名 復活
+import SignatureCanvas, { SIGNATURE_MIN_POINTS } from './components/SignatureCanvas' // J-COLLECTION-07 fix_1 / J-COLLECTION-12 R3-R4
 
 // J-COLLECTION-05: PDF改修+署名+レシート写真+前回IN修正
 // fix_A PDFヘッダ/注意書き  fix_B 署名Canvas  fix_C レシート撮影+upload
@@ -48,7 +48,7 @@ const COLS = [
   { key: 'in_diff',           label: '差',       w: 64 },
   { key: 'collection_amount', label: '集金額',   w: 96 },
   { key: 'advance_payment',   label: '立替',     w: 72 },
-  { key: 'notes',             label: '備考',     w: 120 },
+  { key: 'notes',             label: '備考',     w: 72 },  /* J-COLLECTION-12 ad-hoc-2: 立替と同幅 (120→72) */
   { key: 'receipt',           label: 'レシート', w: 56 },
 ]
 const TABLE_MIN_WIDTH = COLS.reduce((s, c) => s + c.w, 0)
@@ -76,6 +76,15 @@ export default function CollectionInputPage() {
   const [uploadingBooth, setUploadingBooth] = useState(null)
   const [confirmedId, setConfirmedId] = useState(null)
   const [error, setError] = useState(null)
+  const [generatingPdf, setGeneratingPdf] = useState(false) // J-COLLECTION-11 fix_B
+  const generatingPdfRef = useRef(false) // 同期 ref ロック (state batching を待たない)
+  // J-COLLECTION-12 R3: 2段ボタン状態。
+  //   'idle' = SignatureCanvas 非表示、フッタボタンは「サイン」disabled→tap で 'drawing' へ
+  //   'drawing' = SignatureCanvas 表示中、point < threshold は「サイン」disabled、>= は「確定」enabled
+  const [signStage, setSignStage] = useState('idle')
+  const [signaturePoints, setSignaturePoints] = useState(0)
+  // J-COLLECTION-12 R2: レシート削除確認ダイアログ対象 (boothCode|null)
+  const [pendingDeleteBooth, setPendingDeleteBooth] = useState(null)
 
   // 隠しfile input (booth毎に動的ref)
   const fileInputs = useRef({})
@@ -90,6 +99,8 @@ export default function CollectionInputPage() {
   async function handleLoad() {
     if (!storeCode) return
     setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setStaffSignatureData(null)
+    // J-COLLECTION-12 R3: 店舗再読み込み時はサインステージも初期化
+    setSignStage('idle'); setSignaturePoints(0)
     const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt, prevDate || null)
     if (e) { setError(`ERR-COLLECTION-001: ${e.message}`); setLoading(false); return }
     const rd = Object.fromEntries((data ?? []).map(b => [b.booth_code, emptyRow(b)]))
@@ -212,22 +223,30 @@ export default function CollectionInputPage() {
     setConfirmedId(data.collectionId); setSaving(false)
   }
 
-  // J-COLLECTION-09 fix_4: レシート写真 × ボタン → Storage から削除して rowData リセット (確定前のみ可)
-  async function handleReceiptDelete(boothCode) {
+  // J-COLLECTION-09 fix_4 / J-COLLECTION-12 R2: レシート × ボタンは確認ダイアログ経由のみ削除実行。
+  //   × tap → setPendingDeleteBooth → ダイアログ表示
+  //   '削除' tap → confirmReceiptDelete(boothCode) → Storage remove + rowData null reset
+  //   'キャンセル' tap or 背景タップ → setPendingDeleteBooth(null)
+  async function confirmReceiptDelete(boothCode) {
     if (locked) return
     const cur = rowData[boothCode] || {}
-    if (!cur.receipt_photo_url) return
+    if (!cur.receipt_photo_url) { setPendingDeleteBooth(null); return }
     const path = cur.receipt_photo_path
     // 楽観的に先に UI を消す (Storage 削除失敗時はエラー表示してロールバックしない)
     setRow(boothCode, { receipt_photo_url: null, receipt_photo_path: null })
+    setPendingDeleteBooth(null)
     if (path) {
       const { error: dErr } = await deleteReceiptPhoto({ path })
       if (dErr) setError(`ERR-COLLECTION-010: レシート削除失敗 (${dErr.message})`)
     }
   }
 
+  // J-COLLECTION-11 fix_B: 二度押しガード。ref で同期ロック、UI は state で disabled+spinner。
   async function outputPdf() {
+    if (generatingPdfRef.current) return
+    generatingPdfRef.current = true
     setError(null)
+    setGeneratingPdf(true)
     try {
       const { data, error: e } = await getCollectionDetail(confirmedId)
       if (e) throw e
@@ -236,6 +255,9 @@ export default function CollectionInputPage() {
       doc.save(slipFileName(confirmedId))
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
+    } finally {
+      generatingPdfRef.current = false
+      setGeneratingPdf(false)
     }
   }
 
@@ -364,11 +386,11 @@ export default function CollectionInputPage() {
                             ? <img src={r.receipt_photo_url} alt="" className="w-8 h-8 object-cover rounded" />
                             : <span className="text-base">📷</span>}
                         </button>
-                        {/* J-COLLECTION-09 fix_4: × 削除 (確定前のみ、写真ありのみ) */}
+                        {/* J-COLLECTION-09 fix_4 / J-COLLECTION-12 R2: × は確認ダイアログを開く */}
                         {hasPhoto && !locked && !isUploading && (
                           <button
                             data-testid={`booth-receipt-delete-${b.booth_code}`}
-                            onClick={() => handleReceiptDelete(b.booth_code)}
+                            onClick={() => setPendingDeleteBooth(b.booth_code)}
                             aria-label="レシート削除"
                             className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white text-[10px] leading-none flex items-center justify-center shadow"
                             title="レシート削除"
@@ -408,10 +430,15 @@ export default function CollectionInputPage() {
         )}
       </div>
 
-      {/* J-COLLECTION-07 fix_1: 弊社担当者署名 (確定ボタン上部、locked後は非表示) */}
-      {loaded && booths.length > 0 && !locked && (
+      {/* J-COLLECTION-07 fix_1 / J-COLLECTION-12 R3: 弊社担当者署名は 'drawing' 段階のみ表示。
+          'idle' 中は canvas を畳んでフッタに「サイン」ボタンだけ出す。 */}
+      {loaded && booths.length > 0 && !locked && signStage === 'drawing' && (
         <div className="flex-shrink-0 px-3 pt-2">
-          <SignatureCanvas value={staffSignatureData} onChange={setStaffSignatureData} />
+          <SignatureCanvas
+            value={staffSignatureData}
+            onChange={setStaffSignatureData}
+            onPointCount={setSignaturePoints}
+          />
         </div>
       )}
 
@@ -422,15 +449,45 @@ export default function CollectionInputPage() {
             <div data-testid="collection-total" className="text-2xl font-bold text-text tabular-nums">{yen(collectionTotal)} 円</div>
           </div>
           {!locked ? (
-            <button data-testid="collection-confirm-button" onClick={confirm} disabled={saving || !staffSignatureData}
-              className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50">
-              {saving ? '保存中…' : '確定'}
-            </button>
+            // J-COLLECTION-12 R3: 'idle' は「サイン」(canvas を出すための disabled-look + enabled tap)、
+            // 'drawing' は points >= SIGNATURE_MIN_POINTS で「確定」 enabled、未達は「サイン」 disabled。
+            signStage === 'idle' ? (
+              <button
+                data-testid="collection-sign-toggle-button"
+                onClick={() => setSignStage('drawing')}
+                disabled={saving}
+                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
+              >
+                サイン
+              </button>
+            ) : signaturePoints < SIGNATURE_MIN_POINTS ? (
+              <button
+                data-testid="collection-confirm-button"
+                disabled
+                aria-disabled="true"
+                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
+              >
+                サイン
+              </button>
+            ) : (
+              <button
+                data-testid="collection-confirm-button"
+                onClick={confirm}
+                disabled={saving || !staffSignatureData}
+                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
+              >
+                {saving ? '保存中…' : '確定'}
+              </button>
+            )
           ) : (
             <div className="flex flex-col items-end gap-1">
               <span data-testid="collection-confirmed-badge" className="text-xs text-green-400 font-bold">確定済 {confirmedId}</span>
               <button data-testid="collection-pdf-button" onClick={outputPdf}
-                className="px-5 min-h-[48px] rounded-xl bg-emerald-600 text-white text-base font-bold">PDF出力</button>
+                disabled={generatingPdf}
+                aria-busy={generatingPdf || undefined}
+                className={`px-5 min-h-[48px] rounded-xl bg-emerald-600 text-white text-base font-bold disabled:opacity-60 ${generatingPdf ? 'ring-2 ring-emerald-300' : ''}`}>
+                {generatingPdf ? '生成中…' : 'PDF出力'}
+              </button>
             </div>
           )}
         </div>
@@ -439,6 +496,35 @@ export default function CollectionInputPage() {
       <div className="flex-shrink-0">
         <NumpadFooterPanel currentField={currentField} />
       </div>
+
+      {/* J-COLLECTION-12 R2: レシート削除確認ダイアログ。背景タップ=キャンセル、× 'キャンセル' でも閉じる、'削除' のみ実行。 */}
+      {pendingDeleteBooth && (
+        <div
+          data-testid="receipt-delete-dialog-backdrop"
+          onClick={() => setPendingDeleteBooth(null)}
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4"
+        >
+          <div
+            data-testid="receipt-delete-dialog"
+            onClick={e => e.stopPropagation()}
+            className="bg-bg border border-border rounded-xl p-4 w-full max-w-xs"
+          >
+            <p className="text-base text-text">このレシート写真を削除しますか？</p>
+            <div className="mt-4 flex gap-2 justify-end">
+              <button
+                data-testid="receipt-delete-cancel"
+                onClick={() => setPendingDeleteBooth(null)}
+                className="px-4 min-h-[44px] rounded-lg border border-border text-text text-sm"
+              >キャンセル</button>
+              <button
+                data-testid="receipt-delete-confirm"
+                onClick={() => confirmReceiptDelete(pendingDeleteBooth)}
+                className="px-4 min-h-[44px] rounded-lg bg-red-600 text-white text-sm font-bold"
+              >削除</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

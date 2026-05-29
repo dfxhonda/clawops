@@ -186,9 +186,10 @@ function AppInner() {
       <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute><Navigate to="/launcher" replace /></ProtectedRoute>} />
       <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
-      {/* J-COLLECTION-01: 集金 */}
-      <Route path="/collection/input" element={<ProtectedRoute><CollectionInputPage /></ProtectedRoute>} />
-      <Route path="/collection/history" element={<ProtectedRoute><CollectionHistoryPage /></ProtectedRoute>} />
+      {/* J-COLLECTION-01: 集金 / J-COLLECTION-12 R1: admin/manager のみ。
+          staff/patrol で直接 URL 入力時は ManagerRoute (RoleRoute) が '/' へ redirect → /launcher。 */}
+      <Route path="/collection/input" element={<ManagerRoute><CollectionInputPage /></ManagerRoute>} />
+      <Route path="/collection/history" element={<ManagerRoute><CollectionHistoryPage /></ManagerRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
       <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       {/* J-ADMIN-02: AdminLayout nested routes (新 IA ナビ骨組) */}

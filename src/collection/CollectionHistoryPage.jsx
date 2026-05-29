@@ -1,13 +1,18 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCollectionHistory, getCollectionDetail, saveSignedPdf } from '../services/collections'
+import { getCollectionHistory, getCollectionDetail, saveSignedPdf, uploadCustomerSignature } from '../services/collections'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
 import { fetchAsDataURL } from './lib/imageUtil'
 import SignatureCanvas from './components/SignatureCanvas'
 
-// J-COLLECTION-09 fix_2: cash_collections.staff_signature_url を fetch → dataURL → buildCollectionSlip に渡す。
-// 失敗時は null フォールバック (PDF生成は継続、署名なし弊社枠で出力)。
+// J-COLLECTION-09 fix_2 / J-COLLECTION-11: cash_collections.staff_signature_url および
+// customer_signature_url を fetch → dataURL → buildCollectionSlip に渡す。
+// 失敗時は null フォールバック (PDF生成は継続、署名なし枠で出力)。
 async function fetchStaffSigDataUrl(url) {
+  if (!url) return null
+  try { return await fetchAsDataURL(url) } catch { return null }
+}
+async function fetchCustomerSigDataUrl(url) {
   if (!url) return null
   try { return await fetchAsDataURL(url) } catch { return null }
 }
@@ -23,6 +28,12 @@ export default function CollectionHistoryPage() {
   const [error, setError] = useState(null)
   const [signing, setSigning] = useState(null) // { collectionId, pdfBlobUrl, detail }
   const [toast, setToast] = useState(null)
+  // J-COLLECTION-11 fix_B: PDF生成 二度押しガード。
+  //   generatingId (state) = UI 表示用 / generatingRef (ref) = React state コミット待ちの間も
+  //   同期的に再入を遮断するための真ロック。state だけでは batching でクロージャ stale により
+  //   連打が通り抜ける (実機/test ともに再現)。
+  const [generatingId, setGeneratingId] = useState(null)
+  const generatingRef = useRef(null)
 
   useEffect(() => { reload() }, [])
   async function reload() {
@@ -34,37 +45,65 @@ export default function CollectionHistoryPage() {
   }
 
   // J-COLLECTION-06 fix_1: buildCollectionSlip は async(J-COLLECTION-05)。await を付ける。
-  // J-COLLECTION-09 fix_2: 弊社署名(staff_signature_url) があれば dataURL に変換して embed。
+  // J-COLLECTION-09 fix_2 / J-COLLECTION-11: 弊社+先方署名 URL を dataURL に変換して embed。
+  // J-COLLECTION-11 fix_B: 再入ロック (generatingId)。即時 disabled+spinner で連打吸収。
   async function downloadPdf(id) {
+    if (generatingRef.current) return // 同期 ref ロック (state batching を待たない)
+    generatingRef.current = id
     setError(null)
+    setGeneratingId(id)
     try {
       const { data, error: e } = await getCollectionDetail(id)
       if (e) throw e
       await ensureJpFont()
-      const staffSig = await fetchStaffSigDataUrl(data?.collection?.staff_signature_url)
-      const doc = await buildCollectionSlip({ ...data, staffSignatureDataUrl: staffSig })
+      const [staffSig, customerSig] = await Promise.all([
+        fetchStaffSigDataUrl(data?.collection?.staff_signature_url),
+        fetchCustomerSigDataUrl(data?.collection?.customer_signature_url),
+      ])
+      const doc = await buildCollectionSlip({
+        ...data,
+        staffSignatureDataUrl: staffSig,
+        customerSignatureDataUrl: customerSig,
+      })
       doc.save(slipFileName(id))
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
+    } finally {
+      generatingRef.current = null
+      setGeneratingId(null)
     }
   }
 
   // J-COLLECTION-06 fix_3: 先方署名モーダルを開く
-  // J-COLLECTION-09 fix_2: detail に staffSignatureDataUrl を埋め込み、CustomerSignModal の再生成時にも両枠 fill。
+  // J-COLLECTION-09 fix_2 / J-COLLECTION-11: detail に弊社+先方署名 dataURL を埋め込み、両枠 fill。
+  // J-COLLECTION-11 fix_B: 同期 ref ロックで再入不能。
   async function openSigning(id) {
+    if (generatingRef.current) return
+    generatingRef.current = id
     setError(null)
+    setGeneratingId(id)
     try {
       const { data, error: e } = await getCollectionDetail(id)
       if (e) throw e
       await ensureJpFont()
-      const staffSig = await fetchStaffSigDataUrl(data?.collection?.staff_signature_url)
-      const detail = { ...data, staffSignatureDataUrl: staffSig }
-      const doc = await buildCollectionSlip(detail) // 元PDF (先方署名なし、弊社枠は filled)
+      const [staffSig, customerSig] = await Promise.all([
+        fetchStaffSigDataUrl(data?.collection?.staff_signature_url),
+        fetchCustomerSigDataUrl(data?.collection?.customer_signature_url),
+      ])
+      const detail = {
+        ...data,
+        staffSignatureDataUrl: staffSig,
+        customerSignatureDataUrl: customerSig,
+      }
+      const doc = await buildCollectionSlip(detail) // 元PDF (両枠 filled、ユーザーは新規署名を上書き可能)
       const blob = doc.output('blob')
       const url = URL.createObjectURL(blob)
       setSigning({ collectionId: id, pdfBlobUrl: url, detail })
     } catch (e) {
       setError(`ERR-COLLECTION-003: ${e.message}`)
+    } finally {
+      generatingRef.current = null
+      setGeneratingId(null)
     }
   }
   function closeSigning() {
@@ -88,6 +127,9 @@ export default function CollectionHistoryPage() {
         <div className="space-y-2">
           {rows.map(r => {
             const signed = !!r.signed_pdf_url
+            // J-COLLECTION-11 fix_B: PDF生成中は両ボタン disabled + 即時 active 色 + spinner 化。
+            const busy = generatingId === r.collection_id
+            const anyBusy = !!generatingId
             return (
               <div
                 key={r.collection_id}
@@ -112,14 +154,18 @@ export default function CollectionHistoryPage() {
                 <button
                   data-testid={`download-pdf-${r.collection_id}`}
                   onClick={() => downloadPdf(r.collection_id)}
-                  className="text-base px-2 min-h-[44px]"
+                  disabled={anyBusy}
+                  aria-busy={busy || undefined}
+                  className={`text-base px-2 min-h-[44px] rounded disabled:opacity-50 ${busy ? 'bg-blue-900/40 text-white' : ''}`}
                   title="PDFダウンロード"
-                >📄</button>
+                >{busy ? '⏳' : '📄'}</button>
                 <button
                   data-testid={`sign-btn-${r.collection_id}`}
                   onClick={() => openSigning(r.collection_id)}
-                  className={`text-xs font-bold rounded px-2 min-h-[44px] ${signed ? 'bg-gray-600 text-white' : 'bg-blue-600 text-white'}`}
-                >{signed ? '再署名' : '先方署名'}</button>
+                  disabled={anyBusy}
+                  aria-busy={busy || undefined}
+                  className={`text-xs font-bold rounded px-2 min-h-[44px] disabled:opacity-50 ${signed ? 'bg-gray-600 text-white' : 'bg-blue-600 text-white'} ${busy ? 'ring-2 ring-blue-300' : ''}`}
+                >{busy ? '生成中…' : (signed ? '再署名' : '先方署名')}</button>
               </div>
             )
           })}
@@ -149,15 +195,38 @@ function CustomerSignModal({ collectionId, detail, pdfBlobUrl, onClose, onSaved,
   const [signatureData, setSignatureData] = useState(null)
   const [saving, setSaving] = useState(false)
   const localErr = useRef(null)
+  const savingRef = useRef(false) // J-COLLECTION-11 fix_B: state batching を待たない同期ロック
 
+  // J-COLLECTION-11 fix_A + fix_B:
+  //   先方署名を Storage に upload → cash_collections.customer_signature_url/path UPDATE
+  //   → 署名付きPDF再生成→ saveSignedPdf (Storage + signed_pdf_* + customer_signed_at + customer_sig)
+  // 二度押しガード: savingRef===true で早期return (React state batching でも再入物理的に不能)。
   async function handleSave() {
     if (!signatureData) return
+    if (savingRef.current) return // 同期 ref ロック
+    savingRef.current = true
     setSaving(true)
     try {
+      // (A) 先方署名 PNG を Storage へ upload (失敗時は致命扱いせず PDF生成は続ける)
+      let customerSigUrl = null, customerSigPath = null
+      const { data: sigData, error: sigErr } = await uploadCustomerSignature({
+        collectionId, dataUrl: signatureData,
+      })
+      if (sigErr) {
+        // J-COLLECTION-09 fix_3 思想を踏襲: 致命扱いせず PDF生成は継続。
+        // ただし署名persistence はDBに残らないので、後続 download PDF では空枠になる。
+        console.warn('uploadCustomerSignature failed:', sigErr.message)
+      } else {
+        customerSigUrl = sigData?.url ?? null
+        customerSigPath = sigData?.path ?? null
+      }
       // 署名付きPDFを再生成 → Blob化
       const doc = await buildCollectionSlip({ ...detail, customerSignatureDataUrl: signatureData })
       const blob = doc.output('blob')
-      const { data, error: e } = await saveSignedPdf({ collectionId, fileBlob: blob })
+      const { data, error: e } = await saveSignedPdf({
+        collectionId, fileBlob: blob,
+        customerSigUrl, customerSigPath, // J-COLLECTION-11 fix_A: DB に永続化
+      })
       if (e) throw e
       onSaved?.(data?.url)
     } catch (e) {
@@ -165,6 +234,7 @@ function CustomerSignModal({ collectionId, detail, pdfBlobUrl, onClose, onSaved,
       localErr.current = msg
       onError?.(new Error(msg))
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
