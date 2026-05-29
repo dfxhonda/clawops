@@ -48,7 +48,7 @@ const COLS = [
   { key: 'in_diff',           label: '差',       w: 64 },
   { key: 'collection_amount', label: '集金額',   w: 96 },
   { key: 'advance_payment',   label: '立替',     w: 72 },
-  { key: 'notes',             label: '備考',     w: 120 },
+  { key: 'notes',             label: '備考',     w: 72 },  /* J-COLLECTION-12 ad-hoc-2: 立替と同幅 (120→72) */
   { key: 'receipt',           label: 'レシート', w: 56 },
 ]
 const TABLE_MIN_WIDTH = COLS.reduce((s, c) => s + c.w, 0)

@@ -11,7 +11,7 @@
   --color-accent3: #5ae0b0;
   --color-accent4: #a07af0;
   --color-text: #e8e8f0;
-  --color-muted: #888899;
+  --color-muted: #ccccdd; /* J-COLLECTION-12 ad-hoc-2 (Hiro 2026-05-29): 53% → 80% brightness で可視性UP */
 }
 
 html, body, #root {
