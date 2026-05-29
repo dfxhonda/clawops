@@ -6,6 +6,7 @@ import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { useSaveState } from '../../hooks/useSaveState'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
+import { isIPhone } from '../../shared/lib/device'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
@@ -655,8 +656,10 @@ export default function PatrolBoothInputPage() {
             </button>
           </div>
         </div>
-        {/* zone_bottom: テンキー 45vh 固定 (0/BS含む全キー表示。safe-areaはNumpadFooterPanel内部で処理、二重padding廃止) */}
-        <div className="h-[36dvh] flex-none shrink-0 flex flex-col overflow-hidden">
+        {/* zone_bottom: テンキー 固定領域。
+            J-COLLECTION-12 R5: iPhone のみキー行高さ倍化に伴い wrapper も拡張 (iPad/PC は元の 36dvh 不変)。
+            isIPhone() は NumpadFooterPanel 内部の UA 分岐と同じソースを再利用 (新規分岐なし)。 */}
+        <div className={`${isIPhone() ? 'h-[58dvh]' : 'h-[36dvh]'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>

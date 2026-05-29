@@ -10,8 +10,8 @@ const TINY_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
 const TINY_PNG = Buffer.from(TINY_PNG_BASE64, 'base64')
 
-test.describe('J-COLLECTION-09 input', () => {
-  test('mobile 390x844: 弊社署名→Storage保存+レシート×削除+確定+PDF (console 0)', async ({ page }) => {
+test.describe('J-COLLECTION-12 input', () => {
+  test('mobile 390x844: R2削除確認/R3 2段サイン/R4 20pt閾値/弊社署名Storage/確定/PDF (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -87,9 +87,10 @@ test.describe('J-COLLECTION-09 input', () => {
     await page.getByTestId('collection-load-button').click()
     await expect(page.getByTestId('collection-table')).toBeVisible()
 
-    // J-COLLECTION-07: SignatureCanvas 復活、署名なしは確定 disabled
-    await expect(page.getByTestId('signature-canvas')).toBeVisible()
-    await expect(page.getByTestId('collection-confirm-button')).toBeDisabled()
+    // J-COLLECTION-12 R3: 初期は「サイン」ボタン (signature canvas 非表示)
+    await expect(page.getByTestId('collection-sign-toggle-button')).toBeVisible()
+    await expect(page.getByTestId('signature-canvas')).toHaveCount(0)
+    await expect(page.getByTestId('collection-confirm-button')).toHaveCount(0)
 
     // レシート撮影
     await page.setInputFiles('[data-testid="booth-receipt-input-TST01-M04-B02"]', {
@@ -98,10 +99,27 @@ test.describe('J-COLLECTION-09 input', () => {
     await expect.poll(() => storageUploads.length).toBeGreaterThan(0)
     const uploadsAfterFirst = storageUploads.length
 
-    // J-COLLECTION-09 fix_4: × ボタンが見える → タップで削除 → カメラアイコンに戻る
+    // J-COLLECTION-12 R2: × → 確認ダイアログ。背景タップ=キャンセル (写真残る)
     const deleteBtn = page.getByTestId('booth-receipt-delete-TST01-M04-B02')
     await expect(deleteBtn).toBeVisible()
     await deleteBtn.click()
+    await expect(page.getByTestId('receipt-delete-dialog')).toBeVisible()
+    // 背景タップでキャンセル
+    await page.getByTestId('receipt-delete-dialog-backdrop').click({ position: { x: 5, y: 5 } })
+    await expect(page.getByTestId('receipt-delete-dialog')).toHaveCount(0)
+    expect(storageDeletes.length).toBe(0)
+    await expect(deleteBtn).toBeVisible() // 写真は残ったまま
+
+    // 再 ×→ 「キャンセル」ボタン
+    await deleteBtn.click()
+    await page.getByTestId('receipt-delete-cancel').click()
+    await expect(page.getByTestId('receipt-delete-dialog')).toHaveCount(0)
+    expect(storageDeletes.length).toBe(0)
+    await expect(deleteBtn).toBeVisible()
+
+    // 再 ×→ 「削除」ボタン → 実削除
+    await deleteBtn.click()
+    await page.getByTestId('receipt-delete-confirm').click()
     await expect(deleteBtn).toHaveCount(0)
     await expect.poll(() => storageDeletes.length).toBeGreaterThan(0)
 
@@ -111,16 +129,35 @@ test.describe('J-COLLECTION-09 input', () => {
     })
     await expect.poll(() => storageUploads.length).toBeGreaterThan(uploadsAfterFirst)
 
-    // 弊社署名を描画
+    // J-COLLECTION-12 R3: 「サイン」タップで signature canvas 出現
+    await page.getByTestId('collection-sign-toggle-button').click()
+    await expect(page.getByTestId('signature-canvas')).toBeVisible()
+    // canvas 出現直後 (points=0) は「サイン」 disabled、 'collection-confirm-button' は disabled state で表示
+    await expect(page.getByTestId('collection-confirm-button')).toBeDisabled()
+    await expect(page.getByTestId('collection-confirm-button')).toHaveText('サイン')
+
+    // J-COLLECTION-12 R4: 20pt 未満は disabled のまま (3 move dispatch のみ → points=3)
     const canvas = page.getByTestId('signature-canvas')
     const box = await canvas.boundingBox()
     if (!box) throw new Error('signature canvas box not found')
     await page.mouse.move(box.x + 20, box.y + 30)
     await page.mouse.down()
-    await page.mouse.move(box.x + 100, box.y + 70)
-    await page.mouse.move(box.x + 180, box.y + 90)
+    await page.mouse.move(box.x + 30, box.y + 35)
+    await page.mouse.move(box.x + 40, box.y + 40)
+    await page.mouse.move(box.x + 50, box.y + 45)
+    await page.mouse.up()
+    await expect(page.getByTestId('collection-confirm-button')).toBeDisabled()
+    await expect(page.getByTestId('collection-confirm-button')).toHaveText('サイン')
+
+    // 20pt 以上で「確定」 enabled に変化 (追加で 30 移動で計 33+)
+    await page.mouse.move(box.x + 60, box.y + 50)
+    await page.mouse.down()
+    for (let i = 0; i < 30; i++) {
+      await page.mouse.move(box.x + 60 + i * 3, box.y + 50 + (i % 5))
+    }
     await page.mouse.up()
     await expect(page.getByTestId('collection-confirm-button')).toBeEnabled()
+    await expect(page.getByTestId('collection-confirm-button')).toHaveText('確定')
 
     await page.getByTestId('collection-confirm-button').click()
     await expect(page.getByTestId('collection-confirmed-badge')).toBeVisible()

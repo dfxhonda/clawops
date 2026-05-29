@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 
+// J-COLLECTION-12 R4: 署名有効点数の閾値 (point count、stroke count ではない)。
+// 値は spec で 20 (tunable)、ここで named constant 化して将来調整は本ファイル 1 箇所で完結。
+export const SIGNATURE_MIN_POINTS = 20
+
 // J-COLLECTION-05 fix_B: 担当者署名キャンバス。pointer/touchで線描画、クリアで消去。
 // onChange(dataURL|null) を返す。値はDB保存せずPDFのみ埋め込み。
-export default function SignatureCanvas({ value, onChange, height = 120 }) {
+// J-COLLECTION-12 R3/R4: onPointCount(n) を任意で受け取り、親が「サイン → 確定」遷移判定に使う。
+//   point count = pointermove で線を引いた合計回数 (stroke 数ではなく描画密度)。
+export default function SignatureCanvas({ value, onChange, height = 120, onPointCount }) {
   const ref = useRef(null)
   const drawing = useRef(false)
   const lastPos = useRef(null)
+  const pointCountRef = useRef(0)
   const [dirty, setDirty] = useState(!!value)
 
   useEffect(() => {
@@ -54,6 +61,9 @@ export default function SignatureCanvas({ value, onChange, height = 120 }) {
     ctx.lineTo(x, y)
     ctx.stroke()
     lastPos.current = [x, y]
+    // J-COLLECTION-12 R4: point count = pointermove 累計 (stroke 数では不安定なため density で判定)
+    pointCountRef.current += 1
+    onPointCount?.(pointCountRef.current)
     if (!dirty) setDirty(true)
   }
   function end() {
@@ -66,6 +76,8 @@ export default function SignatureCanvas({ value, onChange, height = 120 }) {
     ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, ref.current.width, ref.current.height)
     setDirty(false)
+    pointCountRef.current = 0
+    onPointCount?.(0)
     onChange(null)
   }
 
