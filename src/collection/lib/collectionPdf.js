@@ -10,8 +10,11 @@ import { fetchAsDataURL } from './imageUtil'
 //   spec: 「map billing_entity_id -> bundled seal asset. change has no asset (optional).」
 //   company_name/address は hardcode 禁止 (spec.forbidden)、id mapping のみ許容。
 //   将来 entity 追加時はこの map に 1 行追加で対応。
+// J-COLLECTION-13-fix-01: spec status_log の asset_base64_png から復号した透明 PNG (alpha 保持) に差替。
+//   旧 JPEG (Discord 経由で alpha フラット化、白背景) は submission 不可だったため REJECTED。
+//   addImage format='PNG' で alpha が composite され、address 文字に白矩形が被らない。
 const SEAL_ASSETS = {
-  '5a3b7937-be08-46cf-948e-4c480902dd41': { url: nacelandSealUrl, fmt: 'JPEG' }, // 株式会社ナイスランド (JPEG bytes、ファイル名は .png だが addImage の format で吸収)
+  '5a3b7937-be08-46cf-948e-4c480902dd41': { url: nacelandSealUrl, fmt: 'PNG' }, // 株式会社ナイスランド (transparent PNG, 4-bit colormap, alpha)
 }
 
 // CJKフォント後差し用フック
