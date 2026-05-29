@@ -25,7 +25,10 @@ export default function ArrivalCheckPage() {
   const currentLane = LANES.find(l => l.key === lane)
 
   return (
-    <div className="min-h-dvh flex flex-col bg-bg text-text">
+    // scroll fix: min-h-dvh → h-dvh で flex container を viewport 高さに固定、
+    // 内部 flex-1 overflow-y-auto に min-h-0 を付与してスクロールコンテキスト確立。
+    // html/body は index.css で overflow:hidden 済みなので、最外側は h-dvh + 内部スクロールが正規パターン。
+    <div className="h-dvh flex flex-col bg-bg text-text">
       {/* header */}
       <div
         className="sticky top-0 z-40 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2"
@@ -70,7 +73,7 @@ export default function ArrivalCheckPage() {
       </div>
 
       {/* order list */}
-      <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6 space-y-2">
         {loading && (
           <p className="text-muted text-center py-8 text-sm">読み込み中...</p>
         )}
