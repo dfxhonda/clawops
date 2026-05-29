@@ -255,8 +255,20 @@ export async function getCollectionDetail(collectionId) {
     .select('*').eq('collection_id', collectionId)
   if (e2) return { data: null, error: e2 }
 
+  // J-COLLECTION-13: 発行元を DB から resolve するため store.billing_entity_id を併取得
   const { data: store } = await supabase.from('stores')
-    .select('store_name, store_name_official').eq('store_code', col.store_code).single()
+    .select('store_name, store_name_official, billing_entity_id').eq('store_code', col.store_code).single()
+  // 発行元 entity (company_name は NOT NULL、zip/address/tel/seal_image_path は NULL 許容)。
+  // billing_entity_id が NULL の店舗は issuer なし扱い (fallback: PDF 側で company_name 行 skip まで含めて空ヘッダ)。
+  // RLS 厳守、anon フィルタに organization_id を付けない (spec forbidden)。
+  let issuer = null
+  if (store?.billing_entity_id) {
+    const { data: ent } = await supabase.from('billing_entities')
+      .select('id, company_name, zip, address, tel, seal_image_path')
+      .eq('id', store.billing_entity_id)
+      .maybeSingle()
+    issuer = ent ?? null
+  }
   const codes = [...new Set((booths ?? []).map(b => b.machine_code))]
   const { data: machineData } = await supabase.from('machines')
     .select('machine_code, machine_name, machine_number').in('machine_code', codes.length ? codes : ['__none__'])
@@ -284,7 +296,7 @@ export async function getCollectionDetail(collectionId) {
   const total = boothRows.reduce((s, b) => s + Number(b.total || 0), 0)
   const advanceTotal = boothRows.reduce((s, b) => s + Number(b.advance_payment || 0), 0)
   return {
-    data: { collection: col, store: store ?? {}, booths: boothRows, total, advanceTotal },
+    data: { collection: col, store: store ?? {}, booths: boothRows, total, advanceTotal, issuer },
     error: null,
   }
 }

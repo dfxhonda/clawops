@@ -1,15 +1,17 @@
 // J-COLLECTION-02: 売上伝票PDF生成 (jsPDF, A4縦)
-// 発行元は株式会社ナイスランド固定。
+// J-COLLECTION-13: 発行元 (issuer) は billing_entities から店舗別に resolve、hardcode 廃止。
 // 仕様刷新: 金種内訳ブロック削除 / 立替額列(参考、合計除外) / サイン欄「弊社担当 / 御社ご担当様」
 import { jsPDF } from 'jspdf'
 import jpFontUrl from './fonts/NotoSansJP-Regular.ttf?url'
+import nacelandSealUrl from '../assets/naceland_seal.png?url' // 209x220 source, 2026-05-29 Hiro 提供
 import { fetchAsDataURL } from './imageUtil'
 
-const ISSUER = {
-  name: '株式会社ナイスランド',
-  zip: '〒901-2133',
-  addr: '沖縄県浦添市城間3-15-1 レジデンス吉元102',
-  tel: 'TEL/FAX 098-874-8106',
+// J-COLLECTION-13: billing_entity.id → bundled seal asset の対応表。
+//   spec: 「map billing_entity_id -> bundled seal asset. change has no asset (optional).」
+//   company_name/address は hardcode 禁止 (spec.forbidden)、id mapping のみ許容。
+//   将来 entity 追加時はこの map に 1 行追加で対応。
+const SEAL_ASSETS = {
+  '5a3b7937-be08-46cf-948e-4c480902dd41': { url: nacelandSealUrl, fmt: 'JPEG' }, // 株式会社ナイスランド (JPEG bytes、ファイル名は .png だが addImage の format で吸収)
 }
 
 // CJKフォント後差し用フック
@@ -71,10 +73,15 @@ const yen = n => `${Number(n || 0).toLocaleString()}`
  * @returns {Promise<jsPDF>} 生成済みドキュメント
  * J-COLLECTION-07: page1 下部に 左=弊社担当 / 右=先方ご担当者様 の署名欄2枠を常時描画。
  *   staffSignatureDataUrl / customerSignatureDataUrl がそれぞれ与えられた場合は対応する枠内に embed。
+ * J-COLLECTION-13: issuer (billing_entity row) を引数で受領、hardcode 廃止。
+ *   issuer = { id, company_name (NOT NULL), zip, address, tel, seal_image_path } | null
+ *   NULL の zip/address/tel は行を skip (no gap, no 'null' text)。
+ *   SEAL_ASSETS[issuer.id] が存在すれば address の右側に角印を描画 (no overlap)。
  */
 export async function buildCollectionSlip({
   collection, store, booths, total, advanceTotal, collectedByName,
   staffSignatureDataUrl, customerSignatureDataUrl,
+  issuer, // J-COLLECTION-13: getCollectionDetail から resolve、null 許容
 }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const font = applyFont(doc)
@@ -95,11 +102,56 @@ export async function buildCollectionSlip({
   }
   y += 6
 
-  // 発行元
-  doc.text(ISSUER.name, R, y, { align: 'right' }); y += 4
-  doc.setFontSize(8)
-  doc.text(`${ISSUER.zip} ${ISSUER.addr}`, R, y, { align: 'right' }); y += 4
-  doc.text(ISSUER.tel, R, y, { align: 'right' }); y += 8
+  // J-COLLECTION-13: 発行元ヘッダ (右寄せ 3 行構造、NULL field skip)
+  //   line 1: company_name (NOT NULL 想定、不在時はヘッダ全 skip)
+  //   line 2: zip + address (両方 NULL の場合のみ skip。片方だけ NULL は片方のみ描画)
+  //   line 3: tel
+  // 角印は SEAL_ASSETS[issuer.id] にバンドル asset があれば address 行の右側 (no overlap) に描画。
+  const issuerStartY = y
+  let addrLineY = null // 角印配置の基準
+  if (issuer?.company_name) {
+    doc.setFontSize(9)
+    doc.text(String(issuer.company_name), R, y, { align: 'right' }); y += 4
+    doc.setFontSize(8)
+    const addrParts = []
+    if (issuer.zip) addrParts.push(String(issuer.zip))
+    if (issuer.address) addrParts.push(String(issuer.address))
+    if (addrParts.length > 0) {
+      addrLineY = y
+      doc.text(addrParts.join(' '), R, y, { align: 'right' }); y += 4
+    }
+    if (issuer.tel) {
+      doc.text(String(issuer.tel), R, y, { align: 'right' }); y += 4
+    }
+    // 角印 (CASE2: address 行の左に no-overlap で配置、サイズ実寸 ~20mm 角)
+    const sealAsset = SEAL_ASSETS[issuer.id]
+    if (sealAsset?.url) {
+      try {
+        const sealDataUrl = await fetchAsDataURL(sealAsset.url)
+        const sealSize = 20 // mm 実寸
+        // address 描画の左境界を計算: 文字列幅取得 → R - textWidth
+        const addrText = addrParts.join(' ')
+        let leftEdgeOfAddr = R
+        if (addrText) {
+          const tw = doc.getTextWidth(addrText)
+          leftEdgeOfAddr = R - tw
+        }
+        // 角印の右端は address 行の左端から 2mm 余白を確保 (no overlap)
+        const sealRight = leftEdgeOfAddr - 2
+        const sealLeft = sealRight - sealSize
+        // 縦中心 = company_name 行とtel行の間 (issuerStartY 起点で +4 〜 y 範囲の中央)
+        const sealTop = (addrLineY ?? issuerStartY) - sealSize / 2 + 2
+        if (sealLeft > L) {
+          doc.addImage(sealDataUrl, sealAsset.fmt, sealLeft, sealTop, sealSize, sealSize)
+        }
+      } catch {
+        // 角印 fetch 失敗は無視、ヘッダのみ表示継続 (J-COLLECTION-09 fix_3 思想踏襲)
+      }
+    }
+  }
+  // 発行元ブロック後の余白 (issuer 不在時も最低 4mm)
+  if (y === issuerStartY) y = issuerStartY + 4
+  y += 4
 
   // 宛先
   doc.setFontSize(11)
