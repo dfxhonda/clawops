@@ -159,7 +159,8 @@ export default function AlertListPage() {
   const unresolvedCount = tab === 'unresolved' ? alerts.length : null
 
   return (
-    <div className="min-h-screen bg-bg text-text flex flex-col">
+    // scroll fix: min-h-screen → h-dvh + 内部 min-h-0 で sticky header + 縦スクロール確立
+    <div className="h-dvh bg-bg text-text flex flex-col">
       <PageHeader
         module="clawsupport"
         title="未対応TODO"
@@ -185,7 +186,7 @@ export default function AlertListPage() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {loading && <p className="text-center text-muted py-8">読み込み中…</p>}
         {error && <p className="text-center text-red-400 py-8">{error}</p>}
 

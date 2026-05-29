@@ -238,15 +238,16 @@ function CountingPhase({ sessionId, owner, staffId, onComplete, onSuspend }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg text-text">
-      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3">
+    // scroll fix: min-h-screen → h-dvh + 内部 min-h-0 で sticky header + 縦スクロール確立
+    <div className="h-dvh flex flex-col bg-bg text-text">
+      <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex-1 text-sm font-bold">{owner.label}</div>
           <span className="text-xs text-muted">{countedCount}/{lines.length}</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-24">
         {lines.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-muted text-sm gap-2">
             <span>在庫データなし</span>
