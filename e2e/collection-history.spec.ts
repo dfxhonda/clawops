@@ -46,6 +46,16 @@ test.describe('J-COLLECTION-11 history', () => {
       await route.fulfill({ status: 200, contentType: 'image/png', body: TINY_PNG })
     })
 
+    // J-COLLECTION-13-fix-02: 角印 asset fetch を valid PNG bytes で stub。
+    // 本 route が hit したら collectionPdf.js の SEAL_ASSETS path → fetchAsDataURL → addImage 経路に
+    // 到達したことを意味する。silent fail 時は console.error('ERR-COLLECTION-SEAL') が出て
+    // consoleErrors gate が RED 化する。
+    let sealFetchCount = 0
+    await page.route('**/naceland_seal*.png', async route => {
+      sealFetchCount += 1
+      await route.fulfill({ status: 200, contentType: 'image/png', body: TINY_PNG })
+    })
+
     // cash_collections: list (no signed first) / PATCH signed update / single detail
     await page.route('**/rest/v1/cash_collections**', async route => {
       const m = route.request().method()
@@ -115,6 +125,9 @@ test.describe('J-COLLECTION-11 history', () => {
     await page.getByTestId('download-pdf-TST01-20260528-01').click()
     await (await dl).suggestedFilename()
     await expect(page.locator('text=ERR-COLLECTION-003')).toHaveCount(0)
+    // J-COLLECTION-13-fix-02: naceland slip では addImage 経路に到達し seal asset を fetch している
+    // (silent throw 時は sealFetchCount が 0 のままになり、consoleErrors にも ERR-COLLECTION-SEAL が来て RED 化)
+    expect(sealFetchCount).toBeGreaterThan(0)
     // J-COLLECTION-09 fix_2: download時にも staff_signature_url が fetch される
     expect(staffSigFetchCount).toBeGreaterThan(0)
     const fetchAfterDownload = staffSigFetchCount
