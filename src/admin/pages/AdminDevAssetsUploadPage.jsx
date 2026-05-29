@@ -11,7 +11,7 @@ const FILE_TYPES = ['png', 'jpg', 'pdf', 'xlsx', 'csv', 'json', 'zip', 'other']
 
 export default function AdminDevAssetsUploadPage() {
   const navigate = useNavigate()
-  const { staffName } = useAuth()
+  const { staffId, staffName } = useAuth() // fix-01: uploaded_by に staffId を渡す (staff_id FK)、staffName は将来の表示用に保持
   const [files, setFiles] = useState([])
   const [label, setLabel] = useState('')
   const [fileType, setFileType] = useState('')
@@ -40,7 +40,7 @@ export default function AdminDevAssetsUploadPage() {
         label: label.trim(),
         fileType: fileType || null,
         purpose: purpose.trim() || null,
-        staffName: staffName || null,
+        staffId: staffId || null, // fix-01: dev_assets.uploaded_by → staff.staff_id FK
       })
       out.push({ name: f.name, ok: !error, error: error?.message ?? null, sha256: data?.sha256 ?? null })
     }

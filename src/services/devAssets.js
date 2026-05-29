@@ -42,7 +42,9 @@ function makeStoragePath(originalFilename) {
  * raw File を変換せず Storage に upsert なしで put (再エンコード禁止 spec)。
  * @returns {Promise<{ data:{id,storage_path,sha256}|null, error:Error|null }>}
  */
-export async function uploadDevAsset({ file, label, fileType, purpose, staffName }) {
+// fix-01: staffName → staffId に置換。dev_assets.uploaded_by の FK は staff(staff_id) text。
+//   display name (staffName) を渡していた DIAG-01 の root cause を解消、canonical な useAuth().staffId を使う。
+export async function uploadDevAsset({ file, label, fileType, purpose, staffId }) {
   if (!file || !label) return { data: null, error: new Error('uploadDevAsset: missing file or label') }
   const sha = await computeSha256(file)
   const path = makeStoragePath(file.name)
@@ -61,7 +63,7 @@ export async function uploadDevAsset({ file, label, fileType, purpose, staffName
     mime_type: file.type || null,
     byte_size: file.size ?? null,
     sha256: sha,
-    uploaded_by: staffName || null,
+    uploaded_by: staffId || null, // fix-01: staff.staff_id FK (NOT staff name)、未解決時は null (DB nullable)
   }).select('id, storage_path, sha256').single()
   if (insErr) {
     // orphan 掃除 (best-effort)
