@@ -40,6 +40,8 @@ const AdminMastersHubPage   = lazy(() => import('./admin/pages/AdminMastersHubPa
 const AdminCollectionFlagPage = lazy(() => import('./admin/pages/AdminCollectionFlagPage'))
 const CollectionInputPage   = lazy(() => import('./collection/CollectionInputPage'))
 const CollectionHistoryPage = lazy(() => import('./collection/CollectionHistoryPage'))
+const AdminDevAssetsListPage = lazy(() => import('./admin/pages/AdminDevAssetsListPage'))
+const AdminDevAssetsUploadPage = lazy(() => import('./admin/pages/AdminDevAssetsUploadPage'))
 const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
 const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
@@ -260,6 +262,9 @@ function AppInner() {
       <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
 
       {/* 監査ログ — manager以上 (旧ルート、/admin/audit は AdminLayout 配下に移行) */}
+      {/* J-DEV-ASSET-HANDOFF-01: ファイル受け渡し (admin/manager 両方アクセス可、AdminLayout 外、ManagerRoute で staff/patrol ブロック) */}
+      <Route path="/admin/dev-assets" element={<ManagerRoute><AdminDevAssetsListPage /></ManagerRoute>} />
+      <Route path="/admin/dev-assets/upload" element={<ManagerRoute><AdminDevAssetsUploadPage /></ManagerRoute>} />
       <Route path="/admin/audit-summary" element={<ManagerRoute><AuditSummary /></ManagerRoute>} />
 
       {/* データ検索・修正 — manager以上 */}
