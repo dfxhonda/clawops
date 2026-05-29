@@ -3,6 +3,11 @@ import { isIPhone } from '../../shared/lib/device'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
+// J-COLLECTION-12 R5: iPhone カスタムテンキー 1行の最小高さ (px)。spec 「(not squashed) double」要件に対して
+// 従来 ~44px から倍化、4 行 = 352px の minHeight を numpad-sheet に与える。iPad/PC は本 component の
+// NumpadFooterPanel 冒頭 isIPhone() ガードで早期 return しているため非適用 (UA 分岐再利用)。
+const NUMPAD_ROW_MIN_PX = 88
+
 // iPhone以外 (iPad=システムKB / PC=物理KB) 用の native 数値入力。
 // カスタムテンキーを出さず、OS のキーボードに委ねる。値の検証 (max/小数/数字のみ) は維持。
 function NativeNumInput({
@@ -159,11 +164,14 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
               {displayVal || '—'}
             </span>
           </div>
+          {/* J-COLLECTION-12 R5: iPhone のみキー行高さを倍に (iPad/PC は元々 isIPhone() で footer 非表示なので影響なし)。
+              既存の isIPhone() ガード (本 component 冒頭) 内なので、ここの minHeight 付与は iPhone path 限定。
+              閾値は 1行 = NUMPAD_ROW_MIN_PX (88px 想定、4 行で 352px) を named constant で保持。 */}
           <div
             data-testid="numpad-sheet"
             style={{
               flex: 1,
-              minHeight: 0,
+              minHeight: NUMPAD_ROW_MIN_PX * 4,
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
