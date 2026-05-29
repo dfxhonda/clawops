@@ -5,9 +5,10 @@ import { PageHeader } from '../../shared/ui/PageHeader'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
 import DateTime from '../../shared/ui/DateTime'
 
+// J-NAV-CONSOLIDATE-01: クレサポから集金エントリ削除、マネサポ集金タブに一本化。
+// 集金機能本体 (CollectionInputPage / /collection/input) は変更しない (forbidden)。
 const TILES = [
   { key: 'patrol',     emoji: '📍', label: '巡回',   desc: 'メーター計測・補充・入替', active: true },
-  { key: 'collection', emoji: '💰', label: '集金',   desc: '現金回収・記録', active: false },
   { key: 'replace',    emoji: '🔄', label: '入替',   desc: '景品交換記録', active: false },
   { key: 'sales',      emoji: '📈', label: '売上',   desc: '入金・出金記録', active: false },
 ]
