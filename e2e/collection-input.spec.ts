@@ -43,11 +43,24 @@ test.describe('J-COLLECTION-12 input', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'receipts/x' }) })
     })
     await page.route('**/rest/v1/stores**', async route => {
+      // J-COLLECTION-13: getCollectionDetail 側 single 取得時に billing_entity_id を返して issuer 解決
       const body = isObj(route)
-        ? { store_code: 'TST01', store_name: 'テスト店', store_name_official: 'テスト店(正式)' }
+        ? { store_code: 'TST01', store_name: 'テスト店', store_name_official: 'テスト店(正式)', billing_entity_id: '5a3b7937-be08-46cf-948e-4c480902dd41' }
         : [{ store_code: 'TST01', store_name: 'テスト店', store_name_official: 'テスト店(正式)', is_active: true }]
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
     })
+    // J-COLLECTION-13: billing_entities fetch → naceland 完全行を返し、issuer ヘッダ+角印 path を実走
+    await page.route('**/rest/v1/billing_entities**', async r => r.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        id: '5a3b7937-be08-46cf-948e-4c480902dd41',
+        company_name: '株式会社ナイスランド',
+        zip: '〒901-2133',
+        address: '沖縄県浦添市城間3-15-1 レジデンス吉元102',
+        tel: 'TEL/FAX 098-874-8106',
+        seal_image_path: null,
+      }),
+    }))
     await page.route('**/rest/v1/booths**', async r => r.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify([{ booth_code: 'TST01-M04-B02', machine_code: 'TST01-M04', booth_number: 2, booth_label: null, is_active: true }]),

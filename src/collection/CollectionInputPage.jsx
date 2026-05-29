@@ -251,6 +251,7 @@ export default function CollectionInputPage() {
       const { data, error: e } = await getCollectionDetail(confirmedId)
       if (e) throw e
       await ensureJpFont()
+      // J-COLLECTION-13: getCollectionDetail が data.issuer を返す (...data で透過的に伝播)
       const doc = await buildCollectionSlip({ ...data, collectedByName: staffName, staffSignatureDataUrl: staffSignatureData })
       doc.save(slipFileName(confirmedId))
     } catch (e) {
