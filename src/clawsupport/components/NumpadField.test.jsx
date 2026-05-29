@@ -13,7 +13,12 @@ const IPAD_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1
 afterEach(() => cleanup())
 
 describe('iPhone: alwaysOpen カスタムテンキー', () => {
-  beforeEach(() => setUA(IPHONE_UA))
+  beforeEach(() => {
+    setUA(IPHONE_UA)
+    // J-COLLECTION-12 派生 (ad-hoc): isCustomNumpadEnabled() を true に強制 (本 describe は legacy 経路検証用)
+    window.__USE_CUSTOM_NUMPAD__ = true
+  })
+  afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
   function renderPad(props = {}) {
     const onChange = vi.fn()
     const onNext = vi.fn()

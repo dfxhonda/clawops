@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { isIPhone } from '../../shared/lib/device'
+import { isCustomNumpadEnabled } from '../../shared/lib/device'
 
 const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
 
@@ -81,8 +81,9 @@ function NativeNumInput({
 }
 
 export function NumpadFooterPanel({ currentField, idleContent }) {
-  // iPhone以外ではカスタムテンキーパネルを出さない (画面を広く使う)。
-  if (!isIPhone()) return null
+  // J-COLLECTION-12 派生 (ad-hoc 2026-05-29): iPhone も標準キーボード試行のため
+  // isIPhone() → isCustomNumpadEnabled() に差し替え。デフォルトは false (carrying iPad/PC と同じ native input)。
+  if (!isCustomNumpadEnabled()) return null
 
   const isActive = !!currentField
 
@@ -258,8 +259,8 @@ export default function NumpadField({
 
   // alwaysOpen branch kept for OcrCaptureScreen + StockCount usage
   if (alwaysOpen) {
-    // iPhone以外: カスタムテンキーを出さず native input (iPad=システムKB / PC=物理KB)
-    if (!isIPhone()) {
+    // J-COLLECTION-12 派生 (ad-hoc): カスタムテンキー無効時は iPhone も native input (OS 標準KB)
+    if (!isCustomNumpadEnabled()) {
       return (
         <NativeNumInput
           value={value} onChange={onChange} onNext={onNext}
@@ -305,8 +306,8 @@ export default function NumpadField({
     )
   }
 
-  // iPhone以外: native 編集 input (OSキーボード)。カスタムテンキー footer は使わない。
-  if (!isIPhone()) {
+  // J-COLLECTION-12 派生 (ad-hoc): カスタムテンキー無効時は iPhone も native input (OS 標準KB)。
+  if (!isCustomNumpadEnabled()) {
     return (
       <NativeNumInput
         value={value} onChange={onChange} onNext={onNext}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import CustomNumpad from '../../clawsupport/components/CustomNumpad'
 import { DENOMINATIONS, boothTotal } from '../lib/collectionCalc'
-import { isIPhone } from '../../shared/lib/device'
+import { isCustomNumpadEnabled } from '../../shared/lib/device'
 
 // J-COLLECTION-01: ブース金種入力ドロワー (bottom sheet + カスタムテンキー)
 // 金種行をタップでフォーカス、下部テンキーで枚数編集。小計リアルタイム。メーターは巡回データ表示。
@@ -11,7 +11,8 @@ const yen = n => Number(n || 0).toLocaleString()
 export default function DenominationDrawer({ booth, counts, onChange, onClose }) {
   const [active, setActive] = useState(DENOMINATIONS[0].key)
   const c = counts || {}
-  const native = !isIPhone() // iPhone以外は各行 native input (iPad=システムKB / PC=物理KB)
+  // J-COLLECTION-12 派生 (ad-hoc): カスタムテンキー無効化試行中、native input に統一。
+  const native = !isCustomNumpadEnabled()
 
   function handleKey(k) {
     const cur = Number(c[active]) || 0

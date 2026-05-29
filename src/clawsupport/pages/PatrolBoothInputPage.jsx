@@ -6,7 +6,7 @@ import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { useSaveState } from '../../hooks/useSaveState'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
-import { isIPhone } from '../../shared/lib/device'
+import { isCustomNumpadEnabled } from '../../shared/lib/device'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import Tooltip from '../components/Tooltip'
 import BoothHistoryList from '../components/BoothHistoryList'
@@ -657,9 +657,10 @@ export default function PatrolBoothInputPage() {
           </div>
         </div>
         {/* zone_bottom: テンキー 固定領域。
-            J-COLLECTION-12 R5: iPhone のみキー行高さ倍化に伴い wrapper も拡張 (iPad/PC は元の 36dvh 不変)。
-            isIPhone() は NumpadFooterPanel 内部の UA 分岐と同じソースを再利用 (新規分岐なし)。 */}
-        <div className={`${isIPhone() ? 'h-[58dvh]' : 'h-[36dvh]'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+            J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
+            カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
+            iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
+        <div className={`${isCustomNumpadEnabled() ? 'h-[58dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
