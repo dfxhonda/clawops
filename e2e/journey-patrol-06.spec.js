@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 // device分岐: 本specはiPhoneカスタムテンキーUXを検証するため iPhone UA を固定
 test.use({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15' })
+// J-COLLECTION-12 派生 (ad-hoc 2026-05-29): カスタムテンキー無効化試行中、本 spec は旧 UX 検証のため強制 enable。
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { window.__USE_CUSTOM_NUMPAD__ = true })
+})
 import { setupAuth, injectRouteState } from './helpers'
 
 function isSingleObjectRequest(route) {
