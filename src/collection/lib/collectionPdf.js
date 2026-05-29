@@ -169,45 +169,46 @@ export async function buildCollectionSlip({
   }
   y += sigBoxH + 4
 
-  // J-COLLECTION-05 fix_D: page2以降にブース別レシートページを追加
-  for (const b of booths ?? []) {
-    doc.addPage()
-    applyFont(doc)
-    let py = 18
-    doc.setFontSize(11)
-    doc.text(`${store.store_name_official || store.store_name || ''}　${collection.collected_at || ''}`, L, py); py += 7
-    doc.setFontSize(10)
-    doc.text(`コード: ${b.rental_code || ''}　ブース: ${b.booth_name || b.booth_code || ''}`, L, py); py += 8
+  // J-COLLECTION-10: レシートページを 3列×4行=12枚/ページ グリッドに変更。
+  //   - ヘッダ/フッタ/キャプション削除、写真のみ
+  //   - 写真なしブースは空セル (改ページせずページ内で次セルへ進む)
+  //   - 写真 fetch 失敗は try/catch で吸収 (J-COLLECTION-09 fix_3、placeholder なし=空セル)
+  //   - cell内の image は contain (アスペクト維持、左上起点)
+  //   - 13枚目以降は自動改ページ
+  const PT_TO_MM = 25.4 / 72 // ≈ 0.35278
+  const RM = 20 * PT_TO_MM   // ≈ 7.06mm 四辺余白 (spec: 20pt)
+  const RG = 8 * PT_TO_MM    // ≈ 2.82mm セル間 gap (spec: 8pt)
+  const COLS_GRID = 3
+  const ROWS_GRID = 4
+  const PER_PAGE = COLS_GRID * ROWS_GRID
+  const cellW = (210 - RM * 2 - RG * (COLS_GRID - 1)) / COLS_GRID  // ≈ 63.42mm
+  const cellH = (297 - RM * 2 - RG * (ROWS_GRID - 1)) / ROWS_GRID  // ≈ 68.61mm
 
-    const imgTop = py
-    const imgMaxH = 200 // mm (A4縦の主要領域)
-    const imgMaxW = R - L
-    if (b.receipt_photo_url) {
-      try {
-        const dataUrl = await fetchAsDataURL(b.receipt_photo_url)
-        const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
-        // 画像のメタからアスペクト計算
-        const props = doc.getImageProperties(dataUrl)
-        const ratio = props.width / props.height
-        let w = imgMaxW, h = w / ratio
-        if (h > imgMaxH) { h = imgMaxH; w = h * ratio }
-        doc.addImage(dataUrl, fmt, L, imgTop, w, h)
-        py = imgTop + h + 6
-      } catch {
-        doc.setFontSize(10)
-        doc.text('レシート写真の読込に失敗しました', L, imgTop + 8)
-        py = imgTop + 14
-      }
-    } else {
-      doc.setFontSize(10)
-      doc.text('レシート写真なし', 105, imgTop + 80, { align: 'center' })
-      py = imgTop + 90
+  const boothsArr = booths ?? []
+  for (let i = 0; i < boothsArr.length; i++) {
+    const indexOnPage = i % PER_PAGE
+    if (indexOnPage === 0) {
+      doc.addPage()
+      applyFont(doc)
     }
-    // footer: 集金額 / 立替 / 備考
-    doc.setFontSize(9)
-    doc.text(`集金額: ${yen(b.total)} 円`, L, py); py += 5
-    doc.text(`立替: ${yen(b.advance_payment)} 円`, L, py); py += 5
-    if (b.notes) doc.text(`備考: ${b.notes}`, L, py)
+    const row = Math.floor(indexOnPage / COLS_GRID)
+    const col = indexOnPage % COLS_GRID
+    const x = RM + col * (cellW + RG)
+    const y = RM + row * (cellH + RG)
+    const b = boothsArr[i]
+    if (!b.receipt_photo_url) continue // 空セル (写真なし)
+    try {
+      const dataUrl = await fetchAsDataURL(b.receipt_photo_url)
+      const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+      // contain: アスペクト維持で cell に収める、左上起点
+      const props = doc.getImageProperties(dataUrl)
+      const ratio = props.width / props.height
+      let w = cellW, h = w / ratio
+      if (h > cellH) { h = cellH; w = h * ratio }
+      doc.addImage(dataUrl, fmt, x, y, w, h)
+    } catch {
+      // J-COLLECTION-09 fix_3: fetch失敗は空セルのまま PDF生成継続 (placeholder text なし)
+    }
   }
 
   doc.setFont(font, 'normal')
