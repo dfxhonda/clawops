@@ -7,8 +7,8 @@ import { setupAuth } from './helpers'
 const isObj = (route: import('@playwright/test').Route) =>
   (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object')
 
-test.describe('J-COLLECTION-09 history', () => {
-  test('mobile 390x844: PDFダウンロード+staff_sig埋込+先方署名→保存→署名済 (console 0)', async ({ page }) => {
+test.describe('J-COLLECTION-11 history', () => {
+  test('mobile 390x844: PDFダウンロード+staff/customer_sig埋込+先方署名→customer_sig.png保存+DB UPDATE+連打ガード (console 0)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await setupAuth(page, { role: 'admin', staffId: 'staff-test-001', name: 'テスト担当' })
 
@@ -19,9 +19,11 @@ test.describe('J-COLLECTION-09 history', () => {
     let signedSaved = false
     let patchPayload: any = null
     const storageUploads: string[] = []
-    // J-COLLECTION-09 fix_2: 弊社署名 PNG fetch カウント
+    // J-COLLECTION-09 fix_2 / J-COLLECTION-11: 弊社+先方署名 PNG fetch カウント
     let staffSigFetchCount = 0
+    let customerSigFetchCount = 0
     const STAFF_SIG_URL = 'https://example.test/14e907a7-65a3-4891-9a3c-20ea0a7c14fd/TST01-20260528-01/staff_sig.png'
+    const CUSTOMER_SIG_URL = 'https://example.test/14e907a7-65a3-4891-9a3c-20ea0a7c14fd/TST01-20260528-01/customer_sig.png'
 
     await page.route('**/rest/v1/**', async r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
 
@@ -37,6 +39,10 @@ test.describe('J-COLLECTION-09 history', () => {
     )
     await page.route(STAFF_SIG_URL, async route => {
       staffSigFetchCount += 1
+      await route.fulfill({ status: 200, contentType: 'image/png', body: TINY_PNG })
+    })
+    await page.route(CUSTOMER_SIG_URL, async route => {
+      customerSigFetchCount += 1
       await route.fulfill({ status: 200, contentType: 'image/png', body: TINY_PNG })
     })
 
@@ -55,6 +61,9 @@ test.describe('J-COLLECTION-09 history', () => {
           // J-COLLECTION-09 fix_2: staff_signature_url を返す
           staff_signature_url: STAFF_SIG_URL,
           staff_signature_path: '14e907a7-65a3-4891-9a3c-20ea0a7c14fd/TST01-20260528-01/staff_sig.png',
+          // J-COLLECTION-11: 保存後は customer_signature_url を返す
+          customer_signature_url: signedSaved ? CUSTOMER_SIG_URL : null,
+          customer_signature_path: signedSaved ? '14e907a7-65a3-4891-9a3c-20ea0a7c14fd/TST01-20260528-01/customer_sig.png' : null,
         })}); return
       }
       // list
@@ -119,9 +128,31 @@ test.describe('J-COLLECTION-09 history', () => {
     await page.getByTestId('customer-sign-save').click()
     await expect(page.getByTestId('signed-toast')).toBeVisible()
     expect(storageUploads.some(u => u.includes('signed.pdf'))).toBe(true)
+    // J-COLLECTION-11 fix_A: 先方署名 PNG が Storage に保存され、URL が DB に書き戻される
+    expect(storageUploads.some(u => u.includes('customer_sig.png'))).toBe(true)
     expect(patchPayload?.signed_pdf_url).toBeTruthy()
     expect(patchPayload?.customer_signed_at).toBeTruthy()
+    expect(patchPayload?.customer_signature_url).toBeTruthy()
+    expect(patchPayload?.customer_signature_path).toContain('customer_sig.png')
     await expect(page.getByTestId('signed-badge-TST01-20260528-01')).toBeVisible()
+
+    // J-COLLECTION-11 fix_B: PDF生成 連打ガード。
+    //   await click() を直列に並べると 1 click → downloadPdf 完走 → 次 click... となり
+    //   ref ロックが解除されたタイミングで通り抜けてしまう (本番iOSのタップ間隔より test の方が遅い)。
+    //   実機の連打を再現するため、page.evaluate で同期的に 5 click を発火し、
+    //   React state コミット前に複数の onClick を当てる。
+    let dlCount = 0
+    page.on('download', () => { dlCount += 1 })
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-testid="download-pdf-TST01-20260528-01"]') as HTMLButtonElement | null
+      if (!btn) throw new Error('download button not found')
+      for (let i = 0; i < 5; i++) btn.click() // 同期 5 連打
+    })
+    await page.waitForTimeout(800) // download + 後続 fetch / state 反映を待つ
+    expect(dlCount).toBeLessThanOrEqual(1) // ref ロックで再入不能 → download は 1 回まで
+    await expect(page.locator('text=ERR-COLLECTION-003')).toHaveCount(0)
+    // 連打後 download 時にも customer_sig が DB から fetch される
+    expect(customerSigFetchCount).toBeGreaterThan(0)
 
     expect(consoleErrors, consoleErrors.join('\n')).toEqual([])
   })
