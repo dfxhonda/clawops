@@ -126,27 +126,23 @@ export async function buildCollectionSlip({
     if (issuer.tel) {
       doc.text(String(issuer.tel), R, y, { align: 'right' }); y += 4
     }
-    // 角印 (CASE2: address 行の左に no-overlap で配置、サイズ実寸 ~20mm 角)
+    // J-COLLECTION-13-fix-03: 角印を発行元 3 行ブロック (社名 / 〒住所 / TEL) に被せる
+    //   convention: 透明 line-art (RGBA alpha 保持) を text 上に「stamp」として composite。
+    //   黒い発行元 text は seal の透過部分から透けて読めるため、白矩形にならない。
+    //   placement:
+    //     right edge: R (右マージン flush)
+    //     vertical center: 3 行ブロック中心 = issuerStartY + 6mm
+    //     size: 18mm 角 (社印 standard 18-21mm の最小側、可読性優先)
+    //     sealTop = (issuerStartY + 6) - 18/2 = issuerStartY - 3
+    //     sealLeft = R - 18
     const sealAsset = SEAL_ASSETS[issuer.id]
     if (sealAsset?.url) {
       try {
         const sealDataUrl = await fetchAsDataURL(sealAsset.url)
-        const sealSize = 20 // mm 実寸
-        // address 描画の左境界を計算: 文字列幅取得 → R - textWidth
-        const addrText = addrParts.join(' ')
-        let leftEdgeOfAddr = R
-        if (addrText) {
-          const tw = doc.getTextWidth(addrText)
-          leftEdgeOfAddr = R - tw
-        }
-        // 角印の右端は address 行の左端から 2mm 余白を確保 (no overlap)
-        const sealRight = leftEdgeOfAddr - 2
-        const sealLeft = sealRight - sealSize
-        // 縦中心 = company_name 行とtel行の間 (issuerStartY 起点で +4 〜 y 範囲の中央)
-        const sealTop = (addrLineY ?? issuerStartY) - sealSize / 2 + 2
-        if (sealLeft > L) {
-          doc.addImage(sealDataUrl, sealAsset.fmt, sealLeft, sealTop, sealSize, sealSize)
-        }
+        const sealSize = 18 // mm
+        const sealLeft = R - sealSize
+        const sealTop = issuerStartY - 3
+        doc.addImage(sealDataUrl, sealAsset.fmt, sealLeft, sealTop, sealSize, sealSize)
       } catch (sealErr) {
         // J-COLLECTION-13-fix-02: silent swallow 廃止。
         // 角印 fetch / addImage いずれかが throw した場合 console.error('ERR-COLLECTION-SEAL', ...) で
