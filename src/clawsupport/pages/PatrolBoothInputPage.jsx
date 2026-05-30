@@ -751,9 +751,14 @@ export default function PatrolBoothInputPage() {
           📝 気づきを記録
         </button>
       </div>
-      <NumpadFooterPanel
-        currentField={currentField}
-        idleContent={
+      {/* J-PATROL-99_adhoc_booth_history_visibility-fix-01:
+          c5fa733 で NumpadFooterPanel が isCustomNumpadEnabled()=false 時 null を返すため、
+          idleContent として渡していた BoothHistoryList も巻き添えで消えていた。
+          custom numpad OFF (=現行 default) では panel の外に sibling として描画して常時表示。
+          custom numpad ON (=test mode 等) では従来通り panel.idleContent に渡して
+          legacy UX を維持 (numpad active 時は keys / idle 時は history)。 */}
+      {!isCustomNumpadEnabled() && (
+        <div className="flex-1 min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
           <BoothHistoryList
             boothCode={boothCode}
             meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
@@ -768,6 +773,27 @@ export default function PatrolBoothInputPage() {
               outDiff,
             }}
           />
+        </div>
+      )}
+      <NumpadFooterPanel
+        currentField={currentField}
+        idleContent={
+          isCustomNumpadEnabled() ? (
+            <BoothHistoryList
+              boothCode={boothCode}
+              meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+              storeCode={storeCode}
+              machine={machine}
+              booth={booth}
+              limit={10}
+              historyKey={historyKey}
+              draftRow={{
+                active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
+                inDiff,
+                outDiff,
+              }}
+            />
+          ) : null
         }
       />
 
