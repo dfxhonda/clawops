@@ -83,11 +83,11 @@ describe('useOCR — ocr-meter経路', () => {
   })
 
   // J-PATROL-99_adhoc_ocr_5s_timeout-fix-02: 8s → 5s に短縮。
-  // ヒロ要件「可否関わらず5秒で判断」、5s 経過で手入力フォールバックに切替。
-  it('タイムアウト: 5秒超過でtimeout:trueが返却される', async () => {
+  // J-PATROL-99_adhoc_ocr_timeout_6s-fix-11: 5s → 6s 緩和 (cold start margin)。
+  it('タイムアウト: 6秒超過でtimeout:trueが返却される', async () => {
     vi.useFakeTimers()
     supabase.functions.invoke.mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve({ data: { meters: [] }, error: null }), 10000))
+      () => new Promise(resolve => setTimeout(() => resolve({ data: { meters: [] }, error: null }), 12000))
     )
 
     const { result } = renderHook(() =>
@@ -97,7 +97,7 @@ describe('useOCR — ocr-meter経路', () => {
     let ocrResult
     const promise = act(async () => {
       const p = result.current.runOCR(FAKE_BASE64, null)
-      vi.advanceTimersByTime(5001)
+      vi.advanceTimersByTime(6001)
       ocrResult = await p
     })
     await promise
@@ -108,7 +108,7 @@ describe('useOCR — ocr-meter経路', () => {
     vi.useRealTimers()
   })
 
-  // 境界テスト (4999ms 通常応答返却) は act + fakeTimers の組合せで renderHook が
-  // null を返すケースが happy-dom 環境で発生したため割愛。timeout 値は 5000 で固定、
-  // 「5秒超過で timeout:true」が green であれば実装側の OCR_TIMEOUT_MS=5000 を担保する。
+  // 境界テスト (5999ms 通常応答返却) は act + fakeTimers の組合せで renderHook が
+  // null を返すケースが happy-dom 環境で発生したため割愛。timeout 値は 6000 で固定、
+  // 「6秒超過で timeout:true」が green であれば実装側の OCR_TIMEOUT_MS=6000 を担保する。
 })

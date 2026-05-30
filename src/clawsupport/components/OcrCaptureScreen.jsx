@@ -9,7 +9,8 @@ import {
 } from '../../lib/ocrPreprocess'
 
 // J-PATROL-99_adhoc_ocr_5s_timeout-fix-02 (2026-05-30 ヒロ承認): 8s → 5s に短縮。
-const OCR_TIMEOUT_MS = 5000
+// J-PATROL-99_adhoc_ocr_timeout_6s-fix-11 (2026-05-30 ヒロ承認): 5s → 6s 緩和 (cold start margin)。
+const OCR_TIMEOUT_MS = 6000
 
 // MeterGuideFrame と shutter() のクロップ範囲は同じ値を使う（WYSIWYG）。
 // ユーザーがこの黄色い枠にメーターを合わせれば、OCR にもこの範囲だけが送られる。

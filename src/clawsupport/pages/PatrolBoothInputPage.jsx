@@ -338,7 +338,7 @@ export default function PatrolBoothInputPage() {
       setOcrEditIn('')
       setOcrEditOut('')
       setOcrEdited(false)
-      setOcrError('5秒で読み取れませんでした。下のテンキーで手入力してください')
+      setOcrError('6秒で読み取れませんでした。下のテンキーで手入力してください')
       setOcrState('confirming')
       return
     }
