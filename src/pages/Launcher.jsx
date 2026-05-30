@@ -140,7 +140,8 @@ export default function Launcher() {
           </button>
         ))}
 
-        {/* 集金は ad-hoc 2026-05-30 ヒロ依頼でマネサポ配下へ移設。Launcher からは削除済。 */}
+        {/* 集金は J-NAV-ORPHANS-fix-02 でマネサポ「集金」タブ (Hub) に正式移設、Launcher からは再度削除済。
+            動線: マネサポ → 集金タブ → 集金帳票 / 集金フラグ編集 / 集金履歴 */}
 
         {/* 未対応TODO インライン accordion (ad-hoc 2026-05-30 ヒロ Discord 依頼):
             collapsed = 分類 + 店舗名 + 経過時間

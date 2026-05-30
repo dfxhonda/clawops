@@ -38,6 +38,7 @@ const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 const AdminLayout           = lazy(() => import('./admin/AdminLayout'))
 const AdminMastersHubPage   = lazy(() => import('./admin/pages/AdminMastersHubPage'))
 const AdminCollectionFlagPage = lazy(() => import('./admin/pages/AdminCollectionFlagPage'))
+const AdminCollectionHubPage  = lazy(() => import('./admin/pages/AdminCollectionHubPage'))
 const CollectionInputPage   = lazy(() => import('./collection/CollectionInputPage'))
 const CollectionHistoryPage = lazy(() => import('./collection/CollectionHistoryPage'))
 const AdminDevAssetsListPage = lazy(() => import('./admin/pages/AdminDevAssetsListPage'))
@@ -118,6 +119,7 @@ const AdminOrderHistoryPage = lazy(() => import('./admin/pages/AdminOrderHistory
 
 // 遅延ロード — J-PATROL-ALERTS-HUB-01
 const AlertListPage       = lazy(() => import('./clawsupport/pages/AlertListPage'))
+const ChangerInputPage    = lazy(() => import('./clawsupport/pages/ChangerInputPage'))
 const AdminAlertTypesPage = lazy(() => import('./admin/pages/AdminAlertTypesPage'))
 
 // 遅延ロード — クレサポ v1.0 ハブ
@@ -221,6 +223,7 @@ function AppInner() {
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
         <Route path="import" element={<AdminImportHubPage />} />
+        <Route path="collection" element={<AdminCollectionHubPage />} />
         <Route path="collection-flag" element={<AdminCollectionFlagPage />} />
         <Route path="labels" element={<AdminQRLabelPage />} />
         <Route path="*" element={<AdminPlaceholderPage />} />
@@ -241,6 +244,9 @@ function AppInner() {
       {/* J-PATROL-ALERTS-HUB-01 */}
       <Route path="/clawsupport/alerts" element={<ProtectedRoute><AlertListPage /></ProtectedRoute>} />
       <Route path="/admin/alert-types"  element={<AdminRoute><AdminAlertTypesPage /></AdminRoute>} />
+
+      {/* J-CHANGER-01: 両替機専用入力画面 (ブース層スキップ、machine_code 直結) */}
+      <Route path="/clawsupport/changer/:machineCode" element={<ProtectedRoute><ChangerInputPage /></ProtectedRoute>} />
 
       {/* クレサポ v1.0 — 全ロール */}
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />

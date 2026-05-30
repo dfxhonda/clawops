@@ -1,0 +1,2872 @@
+{
+  "files": [
+    {
+      "file": "★ダイキョー　クレーン売上.xlsx",
+      "store_code": "daikyo",
+      "sheets": [
+        {
+          "sheet": "Sheet1",
+          "blocks": 6,
+          "rows_total": 2789,
+          "parsed_rows": 4986,
+          "aggregate_skip": 372,
+          "empty_row_skip": 11364,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "ダイキョー弥永 | BUZZ①",
+              "raw_label": "ダイキョー弥永 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ダイキョー弥永 | BUZZ②",
+              "raw_label": "ダイキョー弥永 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ダイキョー弥永 | BUZZ③",
+              "raw_label": "ダイキョー弥永 | BUZZ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ダイキョー弥永 | BUZZミニ①",
+              "raw_label": "ダイキョー弥永 | BUZZミニ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ダイキョー弥永 | BUZZミニ②",
+              "raw_label": "ダイキョー弥永 | BUZZミニ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ダイキョー弥永 | BUZZミニ③",
+              "raw_label": "ダイキョー弥永 | BUZZミニ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 83,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 4986
+    },
+    {
+      "file": "★ファミマ呉服町　クレーン売上.xlsx",
+      "store_code": "familyma_gofukumachi",
+      "sheets": [
+        {
+          "sheet": "Sheet1",
+          "blocks": 6,
+          "rows_total": 75,
+          "parsed_rows": 76,
+          "aggregate_skip": 12,
+          "empty_row_skip": 350,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "カリーノミニSP",
+              "raw_label": "カリーノミニSP",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "カリーノミニSP",
+              "raw_label": null,
+              "booth": 2,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "カリーノミニSP",
+              "raw_label": null,
+              "booth": 3,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ロイヤルビンゴ",
+              "raw_label": "ロイヤルビンゴ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "カリーノ７",
+              "raw_label": "カリーノ７",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "カリーノ７",
+              "raw_label": null,
+              "booth": 2,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 84,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 76
+    },
+    {
+      "file": "★ベイサイド　クレーン売上.xlsx",
+      "store_code": "bayside",
+      "sheets": [
+        {
+          "sheet": "Sheet1",
+          "blocks": 10,
+          "rows_total": 2713,
+          "parsed_rows": 4139,
+          "aggregate_skip": 412,
+          "empty_row_skip": 22559,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "ベイサイド | BUZZ①",
+              "raw_label": "ベイサイド | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZ②",
+              "raw_label": "ベイサイド | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZ③",
+              "raw_label": "ベイサイド | BUZZ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZ④",
+              "raw_label": "ベイサイド | BUZZ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZ⑤",
+              "raw_label": "ベイサイド | BUZZ⑤",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZミニ①",
+              "raw_label": "ベイサイド | BUZZミニ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 84,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZミニ②",
+              "raw_label": "ベイサイド | BUZZミニ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 85,
+              "col_end": 98,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZミニ③",
+              "raw_label": "ベイサイド | BUZZミニ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 99,
+              "col_end": 112,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZミニ④",
+              "raw_label": "ベイサイド | BUZZミニ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 113,
+              "col_end": 126,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "ベイサイド | BUZZミニ⑤",
+              "raw_label": "ベイサイド | BUZZミニ⑤",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 127,
+              "col_end": 155,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 4139
+    },
+    {
+      "file": "★中州　クレーン売上表2026.xlsx",
+      "store_code": "NKS01",
+      "sheets": [
+        {
+          "sheet": "中州",
+          "blocks": 5,
+          "rows_total": 2822,
+          "parsed_rows": 1028,
+          "aggregate_skip": 112,
+          "empty_row_skip": 12960,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "中州 | BUZZ①",
+              "raw_label": "中州 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "中州 | BUZZ②",
+              "raw_label": "中州 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "中州 | BuZZDX①",
+              "raw_label": "中州 | BuZZDX①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "中州 | BuZZ DX②",
+              "raw_label": "中州 | BuZZ DX②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "中州 | BUZZミニ",
+              "raw_label": "中州 | BUZZミニ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 71,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 1028
+    },
+    {
+      "file": "★佐賀　クレーン売上表2026.xlsx",
+      "store_code": "SAG01",
+      "sheets": [
+        {
+          "sheet": "佐賀",
+          "blocks": 21,
+          "rows_total": 2432,
+          "parsed_rows": 1343,
+          "aggregate_skip": 120,
+          "empty_row_skip": 49567,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "佐賀 | BUZZクレ①",
+              "raw_label": "佐賀 | BUZZクレ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZクレ②",
+              "raw_label": "佐賀 | BUZZクレ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZクレ③",
+              "raw_label": "佐賀 | BUZZクレ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZクレ④",
+              "raw_label": "佐賀 | BUZZクレ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZクレ⑤",
+              "raw_label": "佐賀 | BUZZクレ⑤",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZクレ⑥",
+              "raw_label": "佐賀 | BUZZクレ⑥",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 84,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZクレ⑦",
+              "raw_label": "佐賀 | BUZZクレ⑦",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 85,
+              "col_end": 98,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | トライデッキ",
+              "raw_label": "佐賀 | トライデッキ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 99,
+              "col_end": 112,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ④",
+              "raw_label": "佐賀 | BUZZミニ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 113,
+              "col_end": 126,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ⑤",
+              "raw_label": "佐賀 | BUZZミニ⑤",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 127,
+              "col_end": 140,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ⑥",
+              "raw_label": "佐賀 | BUZZミニ⑥",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 141,
+              "col_end": 154,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ⑦",
+              "raw_label": "佐賀 | BUZZミニ⑦",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 155,
+              "col_end": 168,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ⑧",
+              "raw_label": "佐賀 | BUZZミニ⑧",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 169,
+              "col_end": 182,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ⑨",
+              "raw_label": "佐賀 | BUZZミニ⑨",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 183,
+              "col_end": 196,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZミニ⑩",
+              "raw_label": "佐賀 | BUZZミニ⑩",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 197,
+              "col_end": 210,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZツインズ①",
+              "raw_label": "佐賀 | BUZZツインズ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 211,
+              "col_end": 224,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀 | BUZZツインズ②",
+              "raw_label": "佐賀 | BUZZツインズ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 225,
+              "col_end": 238,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀",
+              "raw_label": "佐賀",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 239,
+              "col_end": 252,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀",
+              "raw_label": "佐賀",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 253,
+              "col_end": 266,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀",
+              "raw_label": "佐賀",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 267,
+              "col_end": 280,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "佐賀",
+              "raw_label": "佐賀",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 281,
+              "col_end": 294,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 1343
+    },
+    {
+      "file": "★唐津　クレーン売上表.xlsx",
+      "store_code": "KRT01",
+      "sheets": [
+        {
+          "sheet": "唐津",
+          "blocks": 10,
+          "rows_total": 3437,
+          "parsed_rows": 3349,
+          "aggregate_skip": 240,
+          "empty_row_skip": 30761,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "唐津R3003 | BUZZ①",
+              "raw_label": "唐津R3003 | BUZZ①",
+              "booth": 1,
+              "r_number": "R3003",
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津R3004 | BUZZ②",
+              "raw_label": "唐津R3004 | BUZZ②",
+              "booth": 1,
+              "r_number": "R3004",
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津 | BUZZ③",
+              "raw_label": "唐津 | BUZZ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津 | BUZZ④",
+              "raw_label": "唐津 | BUZZ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津R3004 | トライデッキ",
+              "raw_label": "唐津R3004 | トライデッキ",
+              "booth": 1,
+              "r_number": "R3004",
+              "date_col": 57,
+              "col_end": 71,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津BUZZmini①",
+              "raw_label": "唐津BUZZmini①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 72,
+              "col_end": 85,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津BUZZmini②",
+              "raw_label": "唐津BUZZmini②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 86,
+              "col_end": 99,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津BUZZmini③",
+              "raw_label": "唐津BUZZmini③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 100,
+              "col_end": 113,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津BUZZmini④",
+              "raw_label": "唐津BUZZmini④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 114,
+              "col_end": 127,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "唐津BUZZツインズ",
+              "raw_label": "唐津BUZZツインズ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 128,
+              "col_end": 141,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 3349
+    },
+    {
+      "file": "★時津　クレーン売上表2026.xlsx",
+      "store_code": "TKT01",
+      "sheets": [
+        {
+          "sheet": "時津",
+          "blocks": 18,
+          "rows_total": 2822,
+          "parsed_rows": 1756,
+          "aggregate_skip": 144,
+          "empty_row_skip": 48860,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "時津 | BUZZ①",
+              "raw_label": "時津 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZ②",
+              "raw_label": "時津 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZ③",
+              "raw_label": "時津 | BUZZ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZ④",
+              "raw_label": "時津 | BUZZ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | トライデッキ",
+              "raw_label": "時津 | トライデッキ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | ダイヤモンドクレーン",
+              "raw_label": "時津 | ダイヤモンドクレーン",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 84,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | クリスタル①",
+              "raw_label": "時津 | クリスタル①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 85,
+              "col_end": 98,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | クリスタル②",
+              "raw_label": "時津 | クリスタル②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 99,
+              "col_end": 112,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZミニ①",
+              "raw_label": "時津 | BUZZミニ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 113,
+              "col_end": 126,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZミニ②",
+              "raw_label": "時津 | BUZZミニ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 127,
+              "col_end": 140,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZミニ③",
+              "raw_label": "時津 | BUZZミニ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 141,
+              "col_end": 154,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZツインズ①",
+              "raw_label": "時津 | BUZZツインズ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 155,
+              "col_end": 168,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZツインズ②",
+              "raw_label": "時津 | BUZZツインズ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 169,
+              "col_end": 182,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZツインズ③",
+              "raw_label": "時津 | BUZZツインズ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 183,
+              "col_end": 196,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | デカクレ",
+              "raw_label": "時津 | デカクレ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 197,
+              "col_end": 212,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | アンパンマンかくれんぼ",
+              "raw_label": "時津 | アンパンマンかくれんぼ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 213,
+              "col_end": 218,
+              "headers_resolved": [
+                "in_meter"
+              ]
+            },
+            {
+              "machine_key": "時津 | アンパンマン玉入れ",
+              "raw_label": "時津 | アンパンマン玉入れ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 219,
+              "col_end": 224,
+              "headers_resolved": [
+                "in_meter"
+              ]
+            },
+            {
+              "machine_key": "時津 | わくわく潜水艦",
+              "raw_label": "時津 | わくわく潜水艦",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 225,
+              "col_end": 229,
+              "headers_resolved": [
+                "in_meter"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 1756
+    },
+    {
+      "file": "★浜の町　クレーン売上表2026.xlsx",
+      "store_code": "HMN01",
+      "sheets": [
+        {
+          "sheet": "浜の町",
+          "blocks": 5,
+          "rows_total": 2822,
+          "parsed_rows": 1092,
+          "aggregate_skip": 112,
+          "empty_row_skip": 12896,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "浜の町 | BUZZ①",
+              "raw_label": "浜の町 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "浜の町 | BUZZ②",
+              "raw_label": "浜の町 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "浜の町 | BUZZ③",
+              "raw_label": "浜の町 | BUZZ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "浜の町 | BUZZ④",
+              "raw_label": "浜の町 | BUZZ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZミニ",
+              "raw_label": "時津 | BUZZミニ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 69,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 1092
+    },
+    {
+      "file": "★福江　クレーン売上表.xlsx",
+      "store_code": "fukue",
+      "sheets": [
+        {
+          "sheet": "福江",
+          "blocks": 22,
+          "rows_total": 2215,
+          "parsed_rows": 155,
+          "aggregate_skip": 40,
+          "empty_row_skip": 48487,
+          "no_date_skip": 4,
+          "machines": [
+            {
+              "machine_key": "福江 | BUZZ①",
+              "raw_label": "福江 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZ②",
+              "raw_label": "福江 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZ③",
+              "raw_label": "福江 | BUZZ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZ④",
+              "raw_label": "福江 | BUZZ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZ⑤",
+              "raw_label": "福江 | BUZZ⑤",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZ⑥",
+              "raw_label": "福江 | BUZZ⑥",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 84,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZ⑦",
+              "raw_label": "福江 | BUZZ⑦",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 85,
+              "col_end": 98,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "時津 | BUZZ⑧",
+              "raw_label": "時津 | BUZZ⑧",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 99,
+              "col_end": 112,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZクレW+①",
+              "raw_label": "福江 | BUZZクレW+①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 113,
+              "col_end": 126,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZクレW+②",
+              "raw_label": "福江 | BUZZクレW+②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 127,
+              "col_end": 140,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZミニ①",
+              "raw_label": "福江 | BUZZミニ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 141,
+              "col_end": 154,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZミニ②",
+              "raw_label": "福江 | BUZZミニ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 155,
+              "col_end": 168,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZミニ③",
+              "raw_label": "福江 | BUZZミニ③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 169,
+              "col_end": 182,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZミニ④",
+              "raw_label": "福江 | BUZZミニ④",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 183,
+              "col_end": 196,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | BUZZミニ⑤",
+              "raw_label": "福江 | BUZZミニ⑤",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 197,
+              "col_end": 210,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | アンパンマンたいこでどんどん",
+              "raw_label": "福江 | アンパンマンたいこでどんどん",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 211,
+              "col_end": 216,
+              "headers_resolved": [
+                "in_meter"
+              ]
+            },
+            {
+              "machine_key": "福江 | アンパンマンどーこだ",
+              "raw_label": "福江 | アンパンマンどーこだ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 217,
+              "col_end": 222,
+              "headers_resolved": [
+                "in_meter"
+              ]
+            },
+            {
+              "machine_key": "福江 | ポケモンメガゲット",
+              "raw_label": "福江 | ポケモンメガゲット",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 223,
+              "col_end": 228,
+              "headers_resolved": [
+                "in_meter"
+              ]
+            },
+            {
+              "machine_key": "福江 | ポケモンメガゲット",
+              "raw_label": null,
+              "booth": 2,
+              "r_number": null,
+              "date_col": 229,
+              "col_end": 242,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | ポケモンメガゲット",
+              "raw_label": null,
+              "booth": 3,
+              "r_number": null,
+              "date_col": 243,
+              "col_end": 256,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | ポケモンメガゲット",
+              "raw_label": null,
+              "booth": 4,
+              "r_number": null,
+              "date_col": 257,
+              "col_end": 270,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福江 | ポケモンメガゲット",
+              "raw_label": null,
+              "booth": 5,
+              "r_number": null,
+              "date_col": 271,
+              "col_end": 285,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 155
+    },
+    {
+      "file": "★福重　クレーン売上表.xlsx",
+      "store_code": "FKS01",
+      "sheets": [
+        {
+          "sheet": "福重",
+          "blocks": 27,
+          "rows_total": 1022,
+          "parsed_rows": 8634,
+          "aggregate_skip": 604,
+          "empty_row_skip": 18302,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "福重BUZZミニ⑩ | 1F",
+              "raw_label": "福重BUZZミニ⑩ | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 20,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑧ | 1F",
+              "raw_label": "福重BUZZミニ⑧ | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 21,
+              "col_end": 34,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ③ | 1F",
+              "raw_label": "福重BUZZミニ③ | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 35,
+              "col_end": 48,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ④ | 1F",
+              "raw_label": "福重BUZZミニ④ | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 49,
+              "col_end": 62,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZクレ① | 1F",
+              "raw_label": "福重BUZZクレ① | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 63,
+              "col_end": 76,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZクレ④ | 2F",
+              "raw_label": "福重BUZZクレ④ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 77,
+              "col_end": 90,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZクレ⑤ | 2F",
+              "raw_label": "福重BUZZクレ⑤ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 91,
+              "col_end": 104,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ① | 2F",
+              "raw_label": "福重BUZZミニ① | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 105,
+              "col_end": 118,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑨ | 2F",
+              "raw_label": "福重BUZZミニ⑨ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 119,
+              "col_end": 132,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑫ | 2F",
+              "raw_label": "福重BUZZミニ⑫ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 133,
+              "col_end": 146,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑬ | 2F",
+              "raw_label": "福重BUZZミニ⑬ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 147,
+              "col_end": 160,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑪ | 2F",
+              "raw_label": "福重BUZZミニ⑪ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 161,
+              "col_end": 174,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZツインズ① | 2F",
+              "raw_label": "福重BUZZツインズ① | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 175,
+              "col_end": 188,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重 BUZZツインズ② | 2F",
+              "raw_label": "福重 BUZZツインズ② | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 189,
+              "col_end": 202,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重トライデッキ | 2F",
+              "raw_label": "福重トライデッキ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 203,
+              "col_end": 217,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZ⑩ | 2F",
+              "raw_label": "福重BUZZ⑩ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 218,
+              "col_end": 231,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZ⑥ | 2F",
+              "raw_label": "福重BUZZ⑥ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 232,
+              "col_end": 245,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZ⑦ | 2F",
+              "raw_label": "福重BUZZ⑦ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 246,
+              "col_end": 259,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZ⑧ | 2F",
+              "raw_label": "福重BUZZ⑧ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 260,
+              "col_end": 273,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZ⑨ | 2F",
+              "raw_label": "福重BUZZ⑨ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 274,
+              "col_end": 287,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "BUZZ③→クレナ① | 1F",
+              "raw_label": "BUZZ③→クレナ① | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 288,
+              "col_end": 301,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "BUZZ②→クレナ② | 1F",
+              "raw_label": "BUZZ②→クレナ② | 1F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 302,
+              "col_end": 315,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重バーバーR1014 | 2F",
+              "raw_label": "福重バーバーR1014 | 2F",
+              "booth": 1,
+              "r_number": "R1014",
+              "date_col": 316,
+              "col_end": 329,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ② | 2F",
+              "raw_label": "福重BUZZミニ② | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 330,
+              "col_end": 343,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑦ | 2F",
+              "raw_label": "福重BUZZミニ⑦ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 344,
+              "col_end": 357,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑥ | 2F",
+              "raw_label": "福重BUZZミニ⑥ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 358,
+              "col_end": 371,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "福重BUZZミニ⑤ | 2F",
+              "raw_label": "福重BUZZミニ⑤ | 2F",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 372,
+              "col_end": 384,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 8634
+    },
+    {
+      "file": "★西新　クレーン売上表2026.xlsx",
+      "store_code": "nishijin",
+      "sheets": [
+        {
+          "sheet": "西新",
+          "blocks": 2,
+          "rows_total": 2934,
+          "parsed_rows": 721,
+          "aggregate_skip": 72,
+          "empty_row_skip": 5071,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "西新 | BUZZ①",
+              "raw_label": "西新 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "西新 | BUZZ②",
+              "raw_label": "西新 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 27,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 721
+    },
+    {
+      "file": "★那珂川　クレーン売上表.xlsx",
+      "store_code": "NKG01",
+      "sheets": [
+        {
+          "sheet": "那珂川",
+          "blocks": 6,
+          "rows_total": 3437,
+          "parsed_rows": 1636,
+          "aggregate_skip": 148,
+          "empty_row_skip": 18826,
+          "no_date_skip": 0,
+          "machines": [
+            {
+              "machine_key": "那珂川 | BUZZミニ",
+              "raw_label": "那珂川 | BUZZミニ",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 0,
+              "col_end": 14,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "那珂川 | BUZZ①",
+              "raw_label": "那珂川 | BUZZ①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 15,
+              "col_end": 28,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "那珂川 | BUZZ②",
+              "raw_label": "那珂川 | BUZZ②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 29,
+              "col_end": 42,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "那珂川 | BUZZDX①",
+              "raw_label": "那珂川 | BUZZDX①",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 43,
+              "col_end": 56,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "那珂川 | BUZZDX②",
+              "raw_label": "那珂川 | BUZZDX②",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 57,
+              "col_end": 70,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            },
+            {
+              "machine_key": "那珂川 | BUZZDX③",
+              "raw_label": "那珂川 | BUZZDX③",
+              "booth": 1,
+              "r_number": null,
+              "date_col": 71,
+              "col_end": 83,
+              "headers_resolved": [
+                "in_meter",
+                "out_meter",
+                "theoretical_stock",
+                "prize_restock_count",
+                "prize_name",
+                "prize_cost",
+                "note"
+              ]
+            }
+          ]
+        }
+      ],
+      "total_parsed_rows": 1636
+    }
+  ],
+  "totals": {
+    "parsed_rows": 28915,
+    "files_processed": 12
+  },
+  "sample_rows": [
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 3648.0,
+      "out_meter": 146.0,
+      "theoretical_stock": 13,
+      "prize_restock_count": 5,
+      "prize_name": "ベアブリック",
+      "prize_cost": 770.0,
+      "note": "SP5→3",
+      "source_row": 3
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 3085.0,
+      "out_meter": 98.0,
+      "theoretical_stock": 15,
+      "prize_restock_count": 0,
+      "prize_name": "モンチッチマスコット",
+      "prize_cost": 572.0,
+      "note": null,
+      "source_row": 3
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ③",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 9220.0,
+      "out_meter": 338.0,
+      "theoretical_stock": 15,
+      "prize_restock_count": 0,
+      "prize_name": "キティラメマルチケース",
+      "prize_cost": 400.0,
+      "note": null,
+      "source_row": 3
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 22129.0,
+      "out_meter": 1103.0,
+      "theoretical_stock": 65,
+      "prize_restock_count": 3,
+      "prize_name": "サンリオマスコット",
+      "prize_cost": 880.0,
+      "note": null,
+      "source_row": 3
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 15998.0,
+      "out_meter": 516.0,
+      "theoretical_stock": 52,
+      "prize_restock_count": 5,
+      "prize_name": "サンリオエコバッグ",
+      "prize_cost": 900.0,
+      "note": null,
+      "source_row": 3
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ③",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 4422.0,
+      "out_meter": 56.0,
+      "theoretical_stock": 16,
+      "prize_restock_count": 2,
+      "prize_name": "サンリオボアポーチ",
+      "prize_cost": 1000.0,
+      "note": null,
+      "source_row": 3
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 3745.0,
+      "out_meter": 89.0,
+      "theoretical_stock": 15,
+      "prize_restock_count": 0,
+      "prize_name": "たまごっちマスコット",
+      "prize_cost": 1430.0,
+      "note": null,
+      "source_row": 4
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 2734.0,
+      "out_meter": 111.0,
+      "theoretical_stock": 8,
+      "prize_restock_count": 0,
+      "prize_name": "たまごっちブロックシール",
+      "prize_cost": 600.0,
+      "note": null,
+      "source_row": 4
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ③",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 9765.0,
+      "out_meter": 292.0,
+      "theoretical_stock": 6,
+      "prize_restock_count": 0,
+      "prize_name": "カラビナファン",
+      "prize_cost": 1100.0,
+      "note": null,
+      "source_row": 4
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-05-04",
+      "in_meter": 22237.0,
+      "out_meter": 1106.0,
+      "theoretical_stock": 65,
+      "prize_restock_count": 0,
+      "prize_name": "サンリオマスコット",
+      "prize_cost": 880.0,
+      "note": null,
+      "source_row": 4
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-05-04",
+      "in_meter": 16101.0,
+      "out_meter": 522.0,
+      "theoretical_stock": 51,
+      "prize_restock_count": 4,
+      "prize_name": "サンリオエコバッグ",
+      "prize_cost": 900.0,
+      "note": null,
+      "source_row": 4
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ③",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-05-04",
+      "in_meter": 4499.0,
+      "out_meter": 59.0,
+      "theoretical_stock": 15,
+      "prize_restock_count": 3,
+      "prize_name": "サンリオボアポーチ",
+      "prize_cost": 1000.0,
+      "note": null,
+      "source_row": 4
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 4640.0,
+      "out_meter": 142.0,
+      "theoretical_stock": 12,
+      "prize_restock_count": 2,
+      "prize_name": "フルーツスクイーズ",
+      "prize_cost": 210.0,
+      "note": null,
+      "source_row": 5
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 2770.0,
+      "out_meter": 284.0,
+      "theoretical_stock": 247,
+      "prize_restock_count": 100,
+      "prize_name": "オーロラブレスレット",
+      "prize_cost": 60.0,
+      "note": null,
+      "source_row": 5
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ③",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 11747.0,
+      "out_meter": 509.0,
+      "theoretical_stock": 74,
+      "prize_restock_count": 0,
+      "prize_name": "ラブブキーホルダー",
+      "prize_cost": 400.0,
+      "note": null,
+      "source_row": 5
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-05-08",
+      "in_meter": 22330.0,
+      "out_meter": 1108.0,
+      "theoretical_stock": 63,
+      "prize_restock_count": 4,
+      "prize_name": "サンリオマスコット",
+      "prize_cost": 880.0,
+      "note": null,
+      "source_row": 5
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-05-08",
+      "in_meter": 16159.0,
+      "out_meter": 529.0,
+      "theoretical_stock": 48,
+      "prize_restock_count": 5,
+      "prize_name": "サンリオエコバッグ",
+      "prize_cost": 900.0,
+      "note": null,
+      "source_row": 5
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZミニ③",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-05-08",
+      "in_meter": 4565.0,
+      "out_meter": 62.0,
+      "theoretical_stock": 15,
+      "prize_restock_count": 3,
+      "prize_name": "サンリオボアポーチ",
+      "prize_cost": 1000.0,
+      "note": "ケース入りバターに変える",
+      "source_row": 5
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ①",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 6092.0,
+      "out_meter": 290.0,
+      "theoretical_stock": 10,
+      "prize_restock_count": 4,
+      "prize_name": "バタースクイーズ",
+      "prize_cost": 440.0,
+      "note": null,
+      "source_row": 6
+    },
+    {
+      "file_name": "★ダイキョー　クレーン売上.xlsx",
+      "sheet_name": "Sheet1",
+      "store_code": "daikyo",
+      "machine_key": "ダイキョー弥永 | BUZZ②",
+      "booth_within_machine": 1,
+      "r_number": null,
+      "patrol_date": "2026-04-30",
+      "in_meter": 5824.0,
+      "out_meter": 307.0,
+      "theoretical_stock": 107,
+      "prize_restock_count": 5,
+      "prize_name": "もちふわスクイーズ",
+      "prize_cost": 99.0,
+      "note": null,
+      "source_row": 6
+    }
+  ]
+}

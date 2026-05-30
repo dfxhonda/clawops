@@ -126,25 +126,50 @@ export default function PatrolStorePage() {
         {machines.length === 0 && (
           <p className="text-center text-muted text-base py-12">機械データがありません</p>
         )}
-        {machines.map(machine => (
-          <MachineRow
-            key={machine.machine_code}
-            machine={machine}
-            todayMap={todayMap}
-            diffMap={diffMap}
-            expanded={expandedSet.includes(machine.machine_code)}
-            onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
-            onBoothClick={booth =>
-              navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${booth.booth_code}`, {
-                state: {
-                  machine, booth, storeCode,
-                  boothList,
-                  boothIndex: boothList.findIndex(x => x.booth.booth_code === booth.booth_code),
-                },
-              })
-            }
-          />
-        ))}
+        {/* J-CHANGER-01: 両替機 (machine_models.type_id='changer') を店舗ハブ最上位に固定表示。
+            ブース層スキップ、タップで /clawsupport/changer/:machineCode へ直行。 */}
+        {machines
+          .filter(m => ((Array.isArray(m.machine_models) ? m.machine_models[0]?.type_id : m.machine_models?.type_id) === 'changer'))
+          .map(machine => (
+            <button
+              key={machine.machine_code}
+              type="button"
+              data-testid={`changer-tile-${machine.machine_code}`}
+              onClick={() => navigate(`/clawsupport/changer/${machine.machine_code}`, { state: { storeName, storeCode } })}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-900/20 border-2 border-amber-600/60 hover:border-amber-500 text-left active:scale-[0.98] transition-transform"
+            >
+              <span className="text-2xl shrink-0">🪙</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-bold text-text">{machine.machine_name}</span>
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-600/30 text-amber-300">両替機</span>
+                </div>
+                <p className="text-xs text-muted mt-0.5">{(Array.isArray(machine.machine_models) ? machine.machine_models[0]?.model_name : machine.machine_models?.model_name) ?? machine.machine_code}</p>
+              </div>
+              <span className="text-amber-400 text-lg shrink-0" aria-hidden>›</span>
+            </button>
+          ))}
+        {machines
+          .filter(m => ((Array.isArray(m.machine_models) ? m.machine_models[0]?.type_id : m.machine_models?.type_id) !== 'changer'))
+          .map(machine => (
+            <MachineRow
+              key={machine.machine_code}
+              machine={machine}
+              todayMap={todayMap}
+              diffMap={diffMap}
+              expanded={expandedSet.includes(machine.machine_code)}
+              onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
+              onBoothClick={booth =>
+                navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${booth.booth_code}`, {
+                  state: {
+                    machine, booth, storeCode,
+                    boothList,
+                    boothIndex: boothList.findIndex(x => x.booth.booth_code === booth.booth_code),
+                  },
+                })
+              }
+            />
+          ))}
       </div>
     </div>
   )

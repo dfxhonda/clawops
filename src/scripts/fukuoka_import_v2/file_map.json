@@ -1,0 +1,62 @@
+{
+  "★ダイキョー　クレーン売上.xlsx": {
+    "store_code": "daikyo",
+    "store_name": "ダイキョー弥永",
+    "ownership_org": "change"
+  },
+  "★ファミマ呉服町　クレーン売上.xlsx": {
+    "store_code": "familyma_gofukumachi",
+    "store_name": "ファミリーマート呉服町",
+    "ownership_org": "change"
+  },
+  "★ベイサイド　クレーン売上.xlsx": {
+    "store_code": "bayside",
+    "store_name": "ベイサイドプレイス博多",
+    "ownership_org": "change"
+  },
+  "★中州　クレーン売上表2026.xlsx": {
+    "store_code": "NKS01",
+    "store_name": "ドンキ中洲",
+    "ownership_org": "change"
+  },
+  "★佐賀　クレーン売上表2026.xlsx": {
+    "store_code": "SAG01",
+    "store_name": "ドンキ佐賀",
+    "ownership_org": "change"
+  },
+  "★唐津　クレーン売上表.xlsx": {
+    "store_code": "KRT01",
+    "store_name": "ドンキ唐津",
+    "ownership_org": "change"
+  },
+  "★時津　クレーン売上表2026.xlsx": {
+    "store_code": "TKT01",
+    "store_name": "ドンキ時津",
+    "ownership_org": "change"
+  },
+  "★浜の町　クレーン売上表2026.xlsx": {
+    "store_code": "HMN01",
+    "store_name": "ドンキ浜町",
+    "ownership_org": "change"
+  },
+  "★福江　クレーン売上表.xlsx": {
+    "store_code": "fukue",
+    "store_name": "福江",
+    "ownership_org": "change"
+  },
+  "★福重　クレーン売上表.xlsx": {
+    "store_code": "FKS01",
+    "store_name": "ドンキ福重",
+    "ownership_org": "change"
+  },
+  "★西新　クレーン売上表2026.xlsx": {
+    "store_code": "nishijin",
+    "store_name": "西新",
+    "ownership_org": "change"
+  },
+  "★那珂川　クレーン売上表.xlsx": {
+    "store_code": "NKG01",
+    "store_name": "ドンキ那珂川",
+    "ownership_org": "change"
+  }
+}

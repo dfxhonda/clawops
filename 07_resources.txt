@@ -1,0 +1,21 @@
+## Memory
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                     4264.
+Pages active:                                 645086.
+Pages inactive:                               642489.
+Pages speculative:                              1638.
+Pages throttled:                                   0.
+Pages wired down:                             139908.
+Pages purgeable:                               19913.
+
+## Disk
+Filesystem        Size    Used   Avail Capacity iused ifree %iused  Mounted on
+/dev/disk3s1s1   228Gi    12Gi    18Gi    40%    459k  187M    0%   /
+/dev/disk3s5     228Gi   189Gi    18Gi    92%    1.7M  187M    1%   /System/Volumes/Data
+
+## CPU
+Apple M4
+Core count: 10
+
+## Power state (Mac mini AC)
+Now drawing from 'AC Power'
