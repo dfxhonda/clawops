@@ -34,17 +34,22 @@ import {
 // → ヒロ実機で「写真白黒なってない」報告。grayscale + Otsu 二値化を適用。
 import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
-// J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺1600px q0.85 に縮小して {base64, blob} を返す
+// J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺 MAX px q QUALITY に縮小して {base64, blob} を返す
 // fix-05: grayscale + コントラスト線形伸長 + Otsu 二値化 を canvas に適用、
 // OCR 送信 base64 + プレビュー blob 双方が白黒化される。
+// J-PATROL-99_adhoc_ocr_smaller_payload-fix-13 (2026-05-30 ヒロ承認):
+// 1600px q0.85 → 800px q0.75 に縮小、ペイロード ~400KB → ~100KB に削減。
+// iPhone 4G の OCR 送信時間短縮 (typical 2-4s → 0.5-1s)、6s timeout 内収まりを担保。
+// 「保存もその解像度でいい」(ヒロ) のため、blob (= Storage 保存用) も同サイズ。
+const OCR_MAX_EDGE = 800
+const OCR_JPEG_QUALITY = 0.75
 function resizeImageFile(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const img = new Image()
     img.onload = () => {
-      const MAX = 1600
       const sw = img.naturalWidth, sh = img.naturalHeight
-      const scale = Math.min(1, MAX / Math.max(sw, sh))
+      const scale = Math.min(1, OCR_MAX_EDGE / Math.max(sw, sh))
       const w = Math.round(sw * scale), h = Math.round(sh * scale)
       const canvas = document.createElement('canvas')
       canvas.width = w; canvas.height = h
@@ -55,8 +60,8 @@ function resizeImageFile(file) {
       const imageData = ctx.getImageData(0, 0, w, h)
       preprocessForOcr(imageData.data)
       ctx.putImageData(imageData, 0, 0)
-      const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
-      canvas.toBlob(blob => resolve({ base64, blob }), 'image/jpeg', 0.85)
+      const base64 = canvas.toDataURL('image/jpeg', OCR_JPEG_QUALITY).split(',')[1]
+      canvas.toBlob(blob => resolve({ base64, blob }), 'image/jpeg', OCR_JPEG_QUALITY)
     }
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')) }
     img.src = url
