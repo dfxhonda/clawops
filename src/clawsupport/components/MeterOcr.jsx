@@ -123,8 +123,9 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
       const invokePromise = supabase.functions.invoke('ocr-meter', {
         body: { image_base64: b64, media_type: 'image/jpeg' },
       })
+      // J-PATROL-99_adhoc_ocr_5s_timeout-fix-02 (2026-05-30 ヒロ承認): 15s → 5s 短縮。
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('15秒で読み取れなかったため手動入力に切り替えてください')), 15000)
+        setTimeout(() => reject(new Error('5秒で読み取れなかったため手動入力に切り替えてください')), 5000)
       )
       const { data, error } = await Promise.race([invokePromise, timeoutPromise])
       if (!mountedRef.current) return

@@ -1,7 +1,10 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const OCR_TIMEOUT_MS = 8000
+// J-PATROL-99_adhoc_ocr_5s_timeout-fix-02 (2026-05-30 ヒロ承認):
+// 8s → 5s に短縮。ヒロ要件「可否関わらず5秒で判断」、5s 経過後は手入力フォールバック。
+// 通常 typical 3-7s なので一定割合で正常応答が timeout 化するが、UX 上は許容前提。
+const OCR_TIMEOUT_MS = 5000
 
 function jstDate() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
