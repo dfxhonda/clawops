@@ -28,8 +28,14 @@ import {
   getLastReadingForBooth,
   classifyEntryType,
 } from '../../services/patrolCore'
+// J-PATROL-99_adhoc_ocr_preprocess_patrol_path-fix-05 (2026-05-30 ヒロ実機FB):
+// fix-03 取りこぼし対応。本番巡回経路の resizeImageFile に preprocessForOcr 未適用
+// → ヒロ実機で「写真白黒なってない」報告。grayscale + Otsu 二値化を適用。
+import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
 // J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺1600px q0.85 に縮小して {base64, blob} を返す
+// fix-05: grayscale + コントラスト線形伸長 + Otsu 二値化 を canvas に適用、
+// OCR 送信 base64 + プレビュー blob 双方が白黒化される。
 function resizeImageFile(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
@@ -41,8 +47,13 @@ function resizeImageFile(file) {
       const w = Math.round(sw * scale), h = Math.round(sh * scale)
       const canvas = document.createElement('canvas')
       canvas.width = w; canvas.height = h
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
       URL.revokeObjectURL(url)
+      // fix-05: in-place で preprocess、base64 + blob (= プレビュー画像) 双方に反映。
+      const imageData = ctx.getImageData(0, 0, w, h)
+      preprocessForOcr(imageData.data)
+      ctx.putImageData(imageData, 0, 0)
       const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
       canvas.toBlob(blob => resolve({ base64, blob }), 'image/jpeg', 0.85)
     }
