@@ -4,6 +4,7 @@ import {
   getModuleTilesForRole,
 } from '../shared/auth/roles'
 import { useRole } from '../shared/auth/useRole'
+import { useAuth } from '../hooks/useAuth'
 import { logout } from '../lib/auth/session'
 import DateTime from '../shared/ui/DateTime'
 import { supabase } from '../lib/supabase'
@@ -27,6 +28,7 @@ function timeAgo(iso) {
 export default function Launcher() {
   const navigate = useNavigate()
   const { role, staffName, loading } = useRole()
+  const { staffId } = useAuth()
 
   async function handleLogout() {
     await logout()
@@ -39,6 +41,27 @@ export default function Launcher() {
   const [storeMap, setStoreMap]     = useState({})
   const [machineMap, setMachineMap] = useState({})
   const [boothMap, setBoothMap]     = useState({})
+  const [expandedId, setExpandedId] = useState(null)
+  const [resolvingId, setResolvingId] = useState(null)
+
+  async function handleResolveAlert(alertId) {
+    if (resolvingId) return
+    setResolvingId(alertId)
+    try {
+      const { error } = await supabase.from('booth_alerts').update({
+        resolved:    true,
+        resolved_at: new Date().toISOString(),
+        resolved_by: staffId ?? null,
+      }).eq('alert_id', alertId)
+      if (error) throw error
+      setAlerts(prev => prev.filter(a => a.alert_id !== alertId))
+      setExpandedId(null)
+    } catch (e) {
+      console.error('[ERR-LAUNCHER-ALERT-RESOLVE]', e)
+    } finally {
+      setResolvingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!loading && !role) {
@@ -119,9 +142,10 @@ export default function Launcher() {
 
         {/* 集金は ad-hoc 2026-05-30 ヒロ依頼でマネサポ配下へ移設。Launcher からは削除済。 */}
 
-        {/* 未対応TODO インラインリスト (ad-hoc 2026-05-30 ヒロ Discord 依頼):
-            タイル形式を廃止、ハブに直表示。多ければリスト内スクロール、行は2段コンパクト。
-            タップ詳細/解決は /clawsupport/alerts へ遷移。 */}
+        {/* 未対応TODO インライン accordion (ad-hoc 2026-05-30 ヒロ Discord 依頼):
+            collapsed = 分類 + 店舗名 + 経過時間
+            expanded  = 機械名/B番号 + note + ✓対応完了ボタン (即解決、ローカルから除去)
+            多ければリスト内スクロール。 */}
         <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
           <div className="px-4 pt-3 pb-2 flex items-center gap-2">
             <span className="text-xl" aria-hidden>📋</span>
@@ -145,58 +169,61 @@ export default function Launcher() {
           ) : (
             <div
               data-testid="launcher-alerts-scroll"
-              className="max-h-[44vh] overflow-y-auto divide-y divide-slate-700/70"
+              className="max-h-[52vh] overflow-y-auto divide-y divide-slate-700/70"
             >
-              {alerts.map(a => (
-                <button
-                  key={a.alert_id}
-                  type="button"
-                  onClick={() => navigate('/clawsupport/alerts')}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left active:bg-slate-700/40"
-                >
-                  <span className="text-xl shrink-0" aria-hidden>{a.alert_types?.icon_emoji ?? '📌'}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap leading-tight">
-                      <span className="text-base font-bold" style={{ color: a.alert_types?.color_hex ?? '#cbd5e1' }}>
+              {alerts.map(a => {
+                const isOpen = expandedId === a.alert_id
+                const isResolving = resolvingId === a.alert_id
+                return (
+                  <div key={a.alert_id}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(prev => prev === a.alert_id ? null : a.alert_id)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left active:bg-slate-700/40"
+                      aria-expanded={isOpen}
+                    >
+                      <span className="text-xl shrink-0" aria-hidden>{a.alert_types?.icon_emoji ?? '📌'}</span>
+                      <span className="text-base font-bold shrink-0" style={{ color: a.alert_types?.color_hex ?? '#cbd5e1' }}>
                         {a.alert_types?.label ?? a.type_code}
                       </span>
-                      <span className="text-sm text-slate-400">{timeAgo(a.created_at)}</span>
-                    </div>
-                    <p className="text-base text-slate-300 truncate leading-tight mt-0.5">
-                      {storeMap[a.store_code] ?? a.store_code} / {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}
-                    </p>
+                      <span className="text-base text-slate-200 truncate flex-1 leading-tight">
+                        {storeMap[a.store_code] ?? a.store_code}
+                      </span>
+                      <span className="text-sm text-slate-400 shrink-0">{timeAgo(a.created_at)}</span>
+                      <span className="text-slate-500 text-base shrink-0" aria-hidden>{isOpen ? '▲' : '▼'}</span>
+                    </button>
+                    {isOpen && (
+                      <div className="px-3 pb-3 pt-1 bg-slate-900/40 text-slate-200">
+                        <p className="text-base leading-snug">
+                          {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}
+                        </p>
+                        {a.note && (
+                          <p className="text-base text-slate-300/90 mt-1 leading-snug whitespace-pre-wrap">
+                            {a.note}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleResolveAlert(a.alert_id)}
+                          disabled={isResolving}
+                          data-testid={`launcher-alert-resolve-${a.alert_id}`}
+                          className="mt-2 w-full py-2.5 rounded-xl bg-emerald-600 text-white text-base font-bold active:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {isResolving ? '更新中…' : '✓ 対応完了にする'}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-slate-500 text-base shrink-0" aria-hidden>›</span>
-                </button>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
       </div>
 
-      <div className="px-4 pb-4">
-        <button
-          type="button"
-          data-testid="launcher-tile-ocr-test"
-          onClick={() => navigate('/ocr-test')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800/40 border border-dashed border-slate-600 text-left active:scale-[0.98] transition-transform min-h-[88px] opacity-70"
-        >
-          <span
-            className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-            style={{ width: 44, height: 44 }}
-            aria-hidden
-          >
-            📷
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xl font-bold leading-tight text-white">OCRテスト</p>
-            <p className="text-[13px] text-slate-400 mt-1 leading-snug">開発用 精度テストページ</p>
-          </div>
-          <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
-        </button>
-      </div>
+      {/* OCRテスト ボタンは 2026-05-30 ヒロ ad-hoc 依頼で削除 (/ocr-test ルート自体は残置) */}
 
-      <div className="px-4 pb-8 flex justify-center">
+      <div className="px-4 pt-2 pb-8 flex justify-center">
         <button
           type="button"
           onClick={handleLogout}
