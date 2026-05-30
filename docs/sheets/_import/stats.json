@@ -1,0 +1,105 @@
+{
+  "org_id": "00000000-0000-0000-0000-000000000fuk",
+  "total_readings": 32036,
+  "total_files": 13,
+  "stores": [
+    {
+      "store": "ダイキョー",
+      "store_code": "daikyo",
+      "booths": 6,
+      "readings": 5652,
+      "warnings": 0
+    },
+    {
+      "store": "ファミマ呉服町",
+      "store_code": "familyma_gofukumachi",
+      "booths": 6,
+      "readings": 92,
+      "warnings": 0
+    },
+    {
+      "store": "ベイサイド",
+      "store_code": "bayside",
+      "booths": 10,
+      "readings": 4809,
+      "warnings": 0
+    },
+    {
+      "store": "レンタル売上表3期",
+      "store_code": "unknown_レンタル売上表3期",
+      "booths": 0,
+      "readings": 0,
+      "warnings": 1
+    },
+    {
+      "store": "中州",
+      "store_code": "nakasu",
+      "booths": 5,
+      "readings": 1135,
+      "warnings": 0
+    },
+    {
+      "store": "佐賀",
+      "store_code": "saga",
+      "booths": 21,
+      "readings": 1423,
+      "warnings": 0
+    },
+    {
+      "store": "唐津",
+      "store_code": "karatsu",
+      "booths": 10,
+      "readings": 3599,
+      "warnings": 0
+    },
+    {
+      "store": "時津",
+      "store_code": "togitsu",
+      "booths": 18,
+      "readings": 1891,
+      "warnings": 0
+    },
+    {
+      "store": "浜の町",
+      "store_code": "hamanomachi",
+      "booths": 5,
+      "readings": 1180,
+      "warnings": 0
+    },
+    {
+      "store": "福江",
+      "store_code": "fukue",
+      "booths": 22,
+      "readings": 197,
+      "warnings": 0
+    },
+    {
+      "store": "福重",
+      "store_code": "fukushige",
+      "booths": 27,
+      "readings": 9476,
+      "warnings": 0
+    },
+    {
+      "store": "西新",
+      "store_code": "nishijin",
+      "booths": 2,
+      "readings": 792,
+      "warnings": 0
+    },
+    {
+      "store": "那珂川",
+      "store_code": "nakagawa",
+      "booths": 6,
+      "readings": 1790,
+      "warnings": 0
+    }
+  ],
+  "unique_stores": 12,
+  "unique_booths": 56,
+  "unique_prize_names": 607,
+  "date_range": {
+    "min": "2023-04-24",
+    "max": "2026-05-28"
+  }
+}

@@ -118,6 +118,7 @@ const AdminOrderHistoryPage = lazy(() => import('./admin/pages/AdminOrderHistory
 
 // 遅延ロード — J-PATROL-ALERTS-HUB-01
 const AlertListPage       = lazy(() => import('./clawsupport/pages/AlertListPage'))
+const ChangerInputPage    = lazy(() => import('./clawsupport/pages/ChangerInputPage'))
 const AdminAlertTypesPage = lazy(() => import('./admin/pages/AdminAlertTypesPage'))
 
 // 遅延ロード — クレサポ v1.0 ハブ
@@ -241,6 +242,9 @@ function AppInner() {
       {/* J-PATROL-ALERTS-HUB-01 */}
       <Route path="/clawsupport/alerts" element={<ProtectedRoute><AlertListPage /></ProtectedRoute>} />
       <Route path="/admin/alert-types"  element={<AdminRoute><AdminAlertTypesPage /></AdminRoute>} />
+
+      {/* J-CHANGER-01: 両替機専用入力画面 (ブース層スキップ、machine_code 直結) */}
+      <Route path="/clawsupport/changer/:machineCode" element={<ProtectedRoute><ChangerInputPage /></ProtectedRoute>} />
 
       {/* クレサポ v1.0 — 全ロール */}
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />

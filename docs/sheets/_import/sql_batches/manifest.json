@@ -1,0 +1,10 @@
+{
+  "total_rows_in_csv": 32036,
+  "rows_emitted": 32036,
+  "rows_skipped": 0,
+  "batches": 65,
+  "batch_size": 500,
+  "out_dir": "/Users/dfx/clawops/docs/sheets/_import/sql_batches",
+  "real_org": "01cf7a5e-6971-4ae1-918d-8e5981780a95",
+  "placeholder_replaced": "00000000-0000-0000-0000-000000000fuk"
+}

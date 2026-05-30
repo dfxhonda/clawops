@@ -21,7 +21,14 @@ export default function MachineList() {
       const [allMachines, stores, pubIds] = await Promise.all([
         getPatrolMachines(storeId), getStores(), getPublishedModelIds()
       ])
-      setMachines(allMachines)
+      // J-CHANGER-01: 両替機 (machine_models.type_id='changer') は店舗ハブの最上位固定
+      // 残りは billing_order 順 (Supabase 側で既にソート済み)
+      const sortedMachines = [...allMachines].sort((a, b) => {
+        const aChanger = a.machine_models?.[0]?.type_id === 'changer' ? 0 : 1
+        const bChanger = b.machine_models?.[0]?.type_id === 'changer' ? 0 : 1
+        return aChanger - bChanger
+      })
+      setMachines(sortedMachines)
       setPublishedModelIds(pubIds)
       const store = stores.find(x => String(x.store_code) === String(storeId))
       if (store) setStoreName(store.store_name)
@@ -100,21 +107,35 @@ export default function MachineList() {
           const allDone = done >= total
           const sales = stat?.totalSales || 0
           const diff = stat?.totalDiff || 0
+          // J-CHANGER-01: 両替機は専用画面に直行 (ブース選択スキップ)、見た目もコイン強調枠
+          const isChanger = m.machine_models?.[0]?.type_id === 'changer'
           return (
             <div key={m.machine_code} className="flex items-stretch gap-2">
               <button
-                className="flex-1 bg-surface border border-border rounded-xl p-4 text-left hover:border-accent/40 transition-colors active:scale-[0.98]"
-                onClick={() => navigate(`/booth/${m.machine_code}`, { state: { storeName, storeId } })}
+                className={`flex-1 rounded-xl p-4 text-left transition-colors active:scale-[0.98] ${
+                  isChanger
+                    ? 'bg-amber-900/20 border-2 border-amber-600/60 hover:border-amber-500'
+                    : 'bg-surface border border-border hover:border-accent/40'
+                }`}
+                onClick={() => isChanger
+                  ? navigate(`/clawsupport/changer/${m.machine_code}`, { state: { storeName, storeId } })
+                  : navigate(`/booth/${m.machine_code}`, { state: { storeName, storeId } })}
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="font-bold text-base">{m.machine_name}</div>
+                    <div className="font-bold text-base flex items-center gap-2">
+                      {isChanger && <span className="text-xl">🪙</span>}
+                      {m.machine_name}
+                      {isChanger && <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-600/30 text-amber-300">両替機</span>}
+                    </div>
                   </div>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${allDone ? 'bg-green-900/30 text-green-400' : 'bg-blue-900/30 text-blue-400'}`}>
-                    {allDone ? `✅ ${stat?.lastReadTime||''}` : `${done}/${total}入力済`}
-                  </span>
+                  {!isChanger && (
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${allDone ? 'bg-green-900/30 text-green-400' : 'bg-blue-900/30 text-blue-400'}`}>
+                      {allDone ? `✅ ${stat?.lastReadTime||''}` : `${done}/${total}入力済`}
+                    </span>
+                  )}
                 </div>
-                {diff > 0 && (
+                {!isChanger && diff > 0 && (
                   <div className="mt-2.5 pt-2.5 border-t border-border flex justify-between">
                     <span className="text-sm text-muted">前回差分: +{diff.toLocaleString()}回</span>
                     <span className="text-base font-bold text-blue-400">¥{sales.toLocaleString()}</span>
