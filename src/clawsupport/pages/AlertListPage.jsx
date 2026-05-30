@@ -42,7 +42,7 @@ function ResolveDialog({ alert, onDone, onCancel }) {
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
       <div className="relative w-full bg-surface rounded-t-2xl px-4 pb-10 pt-5">
         <p className="font-bold text-base mb-1">対応完了にする</p>
-        <p className="text-xs text-muted mb-3">{alert.booth_code} / {alert.alert_types?.label}</p>
+        <p className="text-sm text-muted mb-3">{alert.booth_code} / {alert.alert_types?.label}</p>
         <textarea
           value={note}
           onChange={e => setNote(e.target.value)}
@@ -61,7 +61,14 @@ function ResolveDialog({ alert, onDone, onCancel }) {
   )
 }
 
-function AlertCard({ a, storeMap, onResolveClick, expanded, onToggle }) {
+// booth_code 末尾 (例: MNK01-M02-B04 → B04) を取り出して booth_number 不明時のフォールバックに使う
+function boothLabel(boothNumber, boothCode) {
+  if (boothNumber != null) return `B${String(boothNumber).padStart(2, '0')}`
+  const m = typeof boothCode === 'string' ? boothCode.match(/-(B\d+)$/i) : null
+  return m ? m[1] : boothCode
+}
+
+function AlertCard({ a, storeMap, machineMap, boothMap, onResolveClick, expanded, onToggle }) {
   const at = a.alert_types ?? {}
   return (
     <div className="border border-border rounded-2xl overflow-hidden bg-surface mb-3">
@@ -69,11 +76,11 @@ function AlertCard({ a, storeMap, onResolveClick, expanded, onToggle }) {
         <span className="text-2xl shrink-0 mt-0.5">{at.icon_emoji ?? '📌'}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold" style={{ color: at.color_hex ?? '#888' }}>{at.label ?? a.type_code}</span>
-            <span className="text-xs text-muted">{timeAgo(a.created_at)}</span>
+            <span className="text-base font-bold" style={{ color: at.color_hex ?? '#888' }}>{at.label ?? a.type_code}</span>
+            <span className="text-sm text-muted">{timeAgo(a.created_at)}</span>
           </div>
-          <p className="text-xs text-muted mt-0.5">{storeMap[a.store_code] ?? a.store_code} / {a.machine_code} / {a.booth_code}</p>
-          {a.note && <p className="text-sm text-text/80 mt-1">{a.note}</p>}
+          <p className="text-sm text-muted mt-0.5">{storeMap[a.store_code] ?? a.store_code} / {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}</p>
+          {a.note && <p className="text-base text-text/80 mt-1">{a.note}</p>}
         </div>
         <button
           type="button"
@@ -113,6 +120,8 @@ export default function AlertListPage() {
   const [tab, setTab]           = useState('unresolved')
   const [alerts, setAlerts]     = useState([])
   const [storeMap, setStoreMap] = useState({})
+  const [machineMap, setMachineMap] = useState({})
+  const [boothMap, setBoothMap]     = useState({})
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(null)
   const [resolving, setResolving] = useState(null)
@@ -148,11 +157,24 @@ export default function AlertListPage() {
   useEffect(() => { fetchAlerts() }, [fetchAlerts])
 
   useEffect(() => {
+    // 表示用のラベル群: 店舗名 / 機械名 / B<番号> を組み立てるために事前ロード
     supabase.from('stores').select('store_code,store_name').then(({ data }) => {
       if (!data) return
       const m = {}
       data.forEach(s => { m[s.store_code] = s.store_name })
       setStoreMap(m)
+    })
+    supabase.from('machines').select('machine_code,machine_name').then(({ data }) => {
+      if (!data) return
+      const m = {}
+      data.forEach(x => { m[x.machine_code] = x.machine_name || x.machine_code })
+      setMachineMap(m)
+    })
+    supabase.from('booths').select('booth_code,booth_number').then(({ data }) => {
+      if (!data) return
+      const m = {}
+      data.forEach(x => { m[x.booth_code] = x.booth_number })
+      setBoothMap(m)
     })
   }, [])
 
@@ -203,11 +225,11 @@ export default function AlertListPage() {
                 <div className="flex items-start gap-3">
                   <span className="text-xl shrink-0">{a.alert_types?.icon_emoji ?? '📌'}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold line-through text-muted">{a.alert_types?.label ?? a.type_code}</p>
-                    <p className="text-xs text-muted mt-0.5">{storeMap[a.store_code] ?? a.store_code} / {a.booth_code}</p>
-                    {a.note && <p className="text-xs text-muted/70 mt-0.5 line-through">{a.note}</p>}
-                    <p className="text-xs text-muted/50 mt-1">対応: {a.resolved_at ? new Date(a.resolved_at).toLocaleDateString('ja-JP') : '—'}</p>
-                    {a.resolved_note && <p className="text-xs text-muted/60 mt-0.5">対応メモ: {a.resolved_note}</p>}
+                    <p className="text-base font-bold line-through text-muted">{a.alert_types?.label ?? a.type_code}</p>
+                    <p className="text-sm text-muted mt-0.5">{storeMap[a.store_code] ?? a.store_code} / {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}</p>
+                    {a.note && <p className="text-sm text-muted/70 mt-0.5 line-through">{a.note}</p>}
+                    <p className="text-sm text-muted/50 mt-1">対応: {a.resolved_at ? new Date(a.resolved_at).toLocaleDateString('ja-JP') : '—'}</p>
+                    {a.resolved_note && <p className="text-sm text-muted/60 mt-0.5">対応メモ: {a.resolved_note}</p>}
                   </div>
                 </div>
               </div>
@@ -215,6 +237,8 @@ export default function AlertListPage() {
               <AlertCard
                 a={a}
                 storeMap={storeMap}
+                machineMap={machineMap}
+                boothMap={boothMap}
                 onResolveClick={setResolving}
                 expanded={expanded === a.alert_id}
                 onToggle={() => setExpanded(prev => prev === a.alert_id ? null : a.alert_id)}

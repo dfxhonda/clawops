@@ -4,13 +4,31 @@ import {
   getModuleTilesForRole,
 } from '../shared/auth/roles'
 import { useRole } from '../shared/auth/useRole'
+import { useAuth } from '../hooks/useAuth'
 import { logout } from '../lib/auth/session'
 import DateTime from '../shared/ui/DateTime'
 import { supabase } from '../lib/supabase'
 
+// 未対応TODOインラインリスト用: booth_code 末尾 (例: MNK01-M02-B04 → B04) を取り出し
+function boothLabel(boothNumber, boothCode) {
+  if (boothNumber != null) return `B${String(boothNumber).padStart(2, '0')}`
+  const m = typeof boothCode === 'string' ? boothCode.match(/-(B\d+)$/i) : null
+  return m ? m[1] : boothCode
+}
+
+function timeAgo(iso) {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (diff < 60)        return 'たった今'
+  if (diff < 3600)      return `${Math.floor(diff / 60)}分前`
+  if (diff < 86400)     return `${Math.floor(diff / 3600)}時間前`
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}日前`
+  return new Date(iso).toLocaleDateString('ja-JP')
+}
+
 export default function Launcher() {
   const navigate = useNavigate()
   const { role, staffName, loading } = useRole()
+  const { staffId } = useAuth()
 
   async function handleLogout() {
     await logout()
@@ -19,7 +37,31 @@ export default function Launcher() {
   }
 
   const now = new Date()
-  const [unresolvedCount, setUnresolvedCount] = useState(0)
+  const [alerts, setAlerts]         = useState([])
+  const [storeMap, setStoreMap]     = useState({})
+  const [machineMap, setMachineMap] = useState({})
+  const [boothMap, setBoothMap]     = useState({})
+  const [expandedId, setExpandedId] = useState(null)
+  const [resolvingId, setResolvingId] = useState(null)
+
+  async function handleResolveAlert(alertId) {
+    if (resolvingId) return
+    setResolvingId(alertId)
+    try {
+      const { error } = await supabase.from('booth_alerts').update({
+        resolved:    true,
+        resolved_at: new Date().toISOString(),
+        resolved_by: staffId ?? null,
+      }).eq('alert_id', alertId)
+      if (error) throw error
+      setAlerts(prev => prev.filter(a => a.alert_id !== alertId))
+      setExpandedId(null)
+    } catch (e) {
+      console.error('[ERR-LAUNCHER-ALERT-RESOLVE]', e)
+    } finally {
+      setResolvingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!loading && !role) {
@@ -27,14 +69,34 @@ export default function Launcher() {
     }
   }, [loading, role, navigate])
 
+  // 気づきリストをハブに直表示するため、件数だけでなく上位レコード+ラベルマップを取る
   useEffect(() => {
     if (!role) return
     supabase
       .from('booth_alerts')
-      .select('*', { count: 'exact', head: true })
+      .select('*, alert_types(label, icon_emoji, color_hex)')
       .eq('resolved', false)
-      .then(({ count }) => { if (count != null) setUnresolvedCount(count) })
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => { if (data) setAlerts(data) })
+    supabase.from('stores').select('store_code,store_name').then(({ data }) => {
+      if (!data) return
+      const m = {}; data.forEach(s => { m[s.store_code] = s.store_name })
+      setStoreMap(m)
+    })
+    supabase.from('machines').select('machine_code,machine_name').then(({ data }) => {
+      if (!data) return
+      const m = {}; data.forEach(x => { m[x.machine_code] = x.machine_name || x.machine_code })
+      setMachineMap(m)
+    })
+    supabase.from('booths').select('booth_code,booth_number').then(({ data }) => {
+      if (!data) return
+      const m = {}; data.forEach(x => { m[x.booth_code] = x.booth_number })
+      setBoothMap(m)
+    })
   }, [role])
+
+  const unresolvedCount = alerts.length
 
   if (loading) {
     return (
@@ -48,10 +110,10 @@ export default function Launcher() {
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <div className="px-4 pt-10 pb-6">
-        <p className="text-slate-400 text-sm">
+        <p className="text-slate-400 text-base">
           <DateTime value={now} format="date" />　<DateTime value={now} format="time" />
         </p>
-        <h1 className="text-xl font-bold mt-1">こんにちは、{staffName || 'ゲスト'}さん</h1>
+        <h1 className="text-2xl font-bold mt-1">こんにちは、{staffName || 'ゲスト'}さん</h1>
       </div>
 
       <div className="px-4 pb-10 space-y-3">
@@ -71,93 +133,101 @@ export default function Launcher() {
               {tile.emoji}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-xl font-bold leading-tight text-white">{tile.label}</p>
-              <p className="text-[13px] text-slate-400 mt-1 leading-snug">{tile.desc}</p>
+              <p className="text-2xl font-bold leading-tight text-white">{tile.label}</p>
+              <p className="text-base text-slate-400 mt-1 leading-snug">{tile.desc}</p>
             </div>
-            <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
+            <span className="text-slate-500 text-xl shrink-0" aria-hidden>›</span>
           </button>
         ))}
 
-        {/* J-COLLECTION-01: 集金タイル / J-COLLECTION-12 R1: admin/manager のみ表示。staff/patrol は非レンダリング。
-            ロールソースは useRole() の role (= useAuth().staffRole) で route guard と同一。 */}
-        {(role === 'admin' || role === 'manager') && (
-          <button
-            type="button"
-            data-testid="launcher-tile-collection"
-            onClick={() => navigate('/collection/input')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
-          >
-            <span
-              className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-              style={{ width: 44, height: 44 }}
-              aria-hidden
+        {/* 集金は ad-hoc 2026-05-30 ヒロ依頼でマネサポ配下へ移設。Launcher からは削除済。 */}
+
+        {/* 未対応TODO インライン accordion (ad-hoc 2026-05-30 ヒロ Discord 依頼):
+            collapsed = 分類 + 店舗名 + 経過時間
+            expanded  = 機械名/B番号 + note + ✓対応完了ボタン (即解決、ローカルから除去)
+            多ければリスト内スクロール。 */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+            <span className="text-2xl" aria-hidden>📋</span>
+            <p className="text-xl font-bold text-white">未対応TODO</p>
+            {unresolvedCount > 0 && (
+              <span className="shrink-0 min-w-[24px] h-[24px] px-1.5 bg-red-500 text-white text-sm font-bold rounded-full flex items-center justify-center">
+                {unresolvedCount}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate('/clawsupport/alerts')}
+              data-testid="launcher-alerts-more"
+              className="ml-auto text-base text-blue-400 active:text-blue-300"
             >
-              💴
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-xl font-bold leading-tight text-white">集金</p>
-              <p className="text-[13px] text-slate-400 mt-1 leading-snug">金種カウント・売上伝票PDF</p>
-            </div>
-            <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
-          </button>
-        )}
-
-        {/* 未対応TODOタイル */}
-        <button
-          type="button"
-          data-testid="launcher-tile-alerts"
-          onClick={() => navigate('/clawsupport/alerts')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
-        >
-          <span
-            className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-            style={{ width: 44, height: 44 }}
-            aria-hidden
-          >
-            📋
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-xl font-bold leading-tight text-white">未対応TODO</p>
-              {unresolvedCount > 0 && (
-                <span className="shrink-0 min-w-[22px] h-[22px] px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {unresolvedCount}
-                </span>
-              )}
-            </div>
-            <p className="text-[13px] text-slate-400 mt-1 leading-snug">気づき・アラート一覧</p>
+              一覧 ›
+            </button>
           </div>
-          <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
-        </button>
+          {alerts.length === 0 ? (
+            <p className="text-center text-slate-400 text-lg py-5">未対応のアラートはありません 🎉</p>
+          ) : (
+            <div
+              data-testid="launcher-alerts-scroll"
+              className="max-h-[52vh] overflow-y-auto divide-y divide-slate-700/70"
+            >
+              {alerts.map(a => {
+                const isOpen = expandedId === a.alert_id
+                const isResolving = resolvingId === a.alert_id
+                return (
+                  <div key={a.alert_id}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(prev => prev === a.alert_id ? null : a.alert_id)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left active:bg-slate-700/40"
+                      aria-expanded={isOpen}
+                    >
+                      <span className="text-2xl shrink-0" aria-hidden>{a.alert_types?.icon_emoji ?? '📌'}</span>
+                      <span className="text-lg font-bold shrink-0" style={{ color: a.alert_types?.color_hex ?? '#cbd5e1' }}>
+                        {a.alert_types?.label ?? a.type_code}
+                      </span>
+                      <span className="text-lg text-slate-200 truncate flex-1 leading-tight">
+                        {storeMap[a.store_code] ?? a.store_code}
+                      </span>
+                      <span className="text-base text-slate-400 shrink-0">{timeAgo(a.created_at)}</span>
+                      <span className="text-slate-500 text-lg shrink-0" aria-hidden>{isOpen ? '▲' : '▼'}</span>
+                    </button>
+                    {isOpen && (
+                      <div className="px-3 pb-3 pt-1 bg-slate-900/40 text-slate-200">
+                        <p className="text-lg leading-snug">
+                          {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}
+                        </p>
+                        {a.note && (
+                          <p className="text-lg text-slate-300/90 mt-1 leading-snug whitespace-pre-wrap">
+                            {a.note}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleResolveAlert(a.alert_id)}
+                          disabled={isResolving}
+                          data-testid={`launcher-alert-resolve-${a.alert_id}`}
+                          className="mt-2 w-full py-3 rounded-xl bg-emerald-600 text-white text-lg font-bold active:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {isResolving ? '更新中…' : '✓ 対応完了にする'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="px-4 pb-4">
-        <button
-          type="button"
-          data-testid="launcher-tile-ocr-test"
-          onClick={() => navigate('/ocr-test')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800/40 border border-dashed border-slate-600 text-left active:scale-[0.98] transition-transform min-h-[88px] opacity-70"
-        >
-          <span
-            className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-            style={{ width: 44, height: 44 }}
-            aria-hidden
-          >
-            📷
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xl font-bold leading-tight text-white">OCRテスト</p>
-            <p className="text-[13px] text-slate-400 mt-1 leading-snug">開発用 精度テストページ</p>
-          </div>
-          <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
-        </button>
-      </div>
+      {/* OCRテスト ボタンは 2026-05-30 ヒロ ad-hoc 依頼で削除 (/ocr-test ルート自体は残置) */}
 
-      <div className="px-4 pb-8 flex justify-center">
+      <div className="px-4 pt-2 pb-8 flex justify-center">
         <button
           type="button"
           onClick={handleLogout}
-          className="text-xs text-slate-600 hover:text-slate-400 transition-colors px-4 py-2"
+          className="text-sm text-slate-600 hover:text-slate-400 transition-colors px-4 py-2"
         >
           ログアウト
         </button>
