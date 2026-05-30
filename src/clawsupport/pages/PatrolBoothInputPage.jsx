@@ -315,8 +315,18 @@ export default function PatrolBoothInputPage() {
 
     const result = await runOCR(base64, blob)
 
+    // J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04 (2026-05-30 ヒロ実機FB):
+    // 旧: OCR 失敗時は loading 画面に「閉じる」ボタンだけ表示 → 手入力できなかった。
+    // 新: 失敗時 (timeout / meters=[]) も confirming に遷移、IN/OUT 空欄+
+    //     エラーバナー+numpad アクティブで「その場で手入力」を可能化。
+    //     ヒロ要件「読み取り不可の場合その状態で手入力させる」を満たす。
     if (!result || result.timeout) {
-      setOcrError('OCR読取がタイムアウトしました。再試行してください。')
+      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: null, avgConf: null })
+      setOcrEditIn('')
+      setOcrEditOut('')
+      setOcrEdited(false)
+      setOcrError('5秒で読み取れませんでした。下のテンキーで手入力してください')
+      setOcrState('confirming')
       return
     }
 
@@ -325,7 +335,13 @@ export default function PatrolBoothInputPage() {
     else if (uploadError) logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
 
     if (!ocrMeters?.length) {
-      setOcrError('メーター数値を読み取れませんでした。再試行してください。')
+      // 同上: メーター検出ゼロ時も confirming で手入力可
+      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: photoUrl ?? null, avgConf: null })
+      setOcrEditIn('')
+      setOcrEditOut('')
+      setOcrEdited(false)
+      setOcrError('メーター数値を読み取れませんでした。下のテンキーで手入力してください')
+      setOcrState('confirming')
       return
     }
 
@@ -354,9 +370,14 @@ export default function PatrolBoothInputPage() {
     if (finalOut != null) { setOut1(String(finalOut)); setTouched(t => ({ ...t, outMeter1: true })) }
     setOcrPhotoUrl(photoUrl ?? null)
     setOcrConf(avgConf ?? null)
-    setOcrIM('ocr')
+    // J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04 (2026-05-30):
+    // OCR が値を返さなかった (avgConf===null = timeout / no meters) ケースで
+    // ユーザーが手入力した場合は input_method='ocr_failed' (observability.md 準拠)。
+    // OCR が値を返した場合は従来通り 'ocr'。
+    setOcrIM(avgConf == null ? 'ocr_failed' : 'ocr')
     setOcrState('idle')
     setOcrCapture(null)
+    setOcrError(null)
     setOcrEditIn('')
     setOcrEditOut('')
     setOcrEdited(false)
@@ -365,6 +386,7 @@ export default function PatrolBoothInputPage() {
   function handleOCRRecapture() {
     logger.info('ocr_confirmation_recapture_clicked')
     setOcrCapture(null)
+    setOcrError(null)
     setOcrEditIn('')
     setOcrEditOut('')
     setOcrEdited(false)
@@ -377,6 +399,7 @@ export default function PatrolBoothInputPage() {
     logger.info('ocr_confirmation_cancel_clicked')
     setOcrState('idle')
     setOcrCapture(null)
+    setOcrError(null)
     setOcrEditIn('')
     setOcrEditOut('')
     setOcrEdited(false)
@@ -579,8 +602,18 @@ export default function PatrolBoothInputPage() {
         {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[31dvh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+          {/* J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04: OCR 失敗時の inline 案内バナー。
+              ocrCapture.avgConf === null は OCR が値を出してない (timeout / no meters)、
+              ocrError 文言を表示しつつ confirming UI と numpad はそのまま使える。 */}
+          {ocrError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-950/30 p-2 mb-2 text-red-300 text-xs font-bold">
+              {ocrError}
+            </div>
+          )}
           <div className="rounded-xl border border-border bg-surface/60 p-2 mb-2">
-            <div className="text-xs font-bold text-muted mb-1">OCR認識値 — タップして修正可</div>
+            <div className="text-xs font-bold text-muted mb-1">
+              {avgConf == null ? 'OCR失敗 — テンキーで手入力してください' : 'OCR認識値 — タップして修正可'}
+            </div>
             <div className="grid grid-cols-2 gap-2 mb-1">
               <div>
                 <div className="text-xs text-muted mb-0.5">IN</div>
