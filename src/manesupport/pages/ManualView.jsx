@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import ReactMarkdown from 'react-markdown'
 import { getPublishedManual } from '../../services/manuals'
 import DateTime from '../../shared/ui/DateTime'
@@ -13,6 +14,7 @@ const SECTION_LABELS = {
 
 export default function ManualView() {
   const { modelId } = useParams()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const navigate = useNavigate()
   const [manual, setManual] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -59,7 +61,7 @@ export default function ManualView() {
       <div className="h-dvh flex flex-col items-center justify-center bg-surface gap-4">
         <p className="text-muted text-base">{error || 'マニュアルがありません'}</p>
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="text-accent text-sm underline underline-offset-2"
         >
           ← 戻る
@@ -82,7 +84,7 @@ export default function ManualView() {
       {/* Header */}
       <div className="shrink-0 flex items-center gap-3 px-4 pt-5 pb-3 border-b border-border" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="text-2xl text-muted hover:text-accent transition-colors leading-none"
           aria-label="戻る"
         >

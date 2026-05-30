@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { logger } from '../../lib/logger'
@@ -48,6 +49,7 @@ async function insertAuditLog({ staffId, action, targetId, before, after }) {
 
 export default function AdminMasterMachinePage() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffName, staffId } = useAuth()
 
   const [rows, setRows]       = useState([])
@@ -268,7 +270,7 @@ export default function AdminMasterMachinePage() {
       <div className="px-4 py-3 border-b border-border flex items-center gap-3">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="text-muted text-sm hover:text-text min-h-[44px] flex items-center pr-2"
         >
           ← 戻る

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 
 const METER_KEYS = [
@@ -29,6 +30,7 @@ const baseSel = 'bg-bg border border-border rounded px-2 py-0.5 text-text text-s
 
 export default function AdminMachineLayoutPage() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const [models, setModels] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -102,7 +104,7 @@ export default function AdminMachineLayoutPage() {
   return (
     <div className="h-screen bg-bg text-text flex flex-col overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
-        <button onClick={() => navigate(-1)} className="text-sm text-muted hover:text-text">← 戻る</button>
+        <button onClick={goBack} className="text-sm text-muted hover:text-text">← 戻る</button>
         <h1 className="font-bold">メーターレイアウト設定</h1>
         <span className="text-sm text-muted ml-auto">{filtered.length}/{models.length}機種</span>
       </div>

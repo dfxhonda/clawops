@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useGlossaryStore } from '../stores/glossaryStore'
 
 export default function HelpPage() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { terms, loading } = useGlossaryStore()
   const [search, setSearch] = useState('')
 
@@ -42,7 +44,7 @@ export default function HelpPage() {
       {/* ヘッダー */}
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="text-muted hover:text-foreground text-lg leading-none px-1"
         >
           ‹

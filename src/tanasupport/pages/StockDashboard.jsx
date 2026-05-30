@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { getPrizeStocksExtended } from '../../services/inventory'
 import DateTime from '../../shared/ui/DateTime'
@@ -14,6 +15,7 @@ const TABS = [
 
 export default function StockDashboard() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const [tab, setTab] = useState('warehouse')
   const [stocks, setStocks] = useState([])
   const [locations, setLocations] = useState([])
@@ -57,7 +59,7 @@ export default function StockDashboard() {
 
       {/* ヘッダー */}
       <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
-        <button onClick={() => navigate(-1)} className="text-muted text-xl leading-none">‹</button>
+        <button onClick={goBack} className="text-muted text-xl leading-none">‹</button>
         <div className="flex-1 font-bold text-base">在庫管理</div>
         {alertCount > 0 && (
           <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full">
