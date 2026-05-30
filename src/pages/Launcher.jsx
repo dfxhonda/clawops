@@ -140,7 +140,29 @@ export default function Launcher() {
           </button>
         ))}
 
-        {/* 集金は ad-hoc 2026-05-30 ヒロ依頼でマネサポ配下へ移設。Launcher からは削除済。 */}
+        {/* J-NAV-ORPHANS-fix-01 2026-05-30 ad-hoc: 移設先 AdminMenu.jsx が orphan で動線消失していた、
+            Launcher に集金タイル復活 (admin/manager のみ表示)。マスタハブにも同時タイル化検討。 */}
+        {(role === 'admin' || role === 'manager') && (
+          <button
+            type="button"
+            data-testid="launcher-tile-collection"
+            onClick={() => navigate('/collection/input')}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
+          >
+            <span
+              className="shrink-0 flex items-center justify-center text-[44px] leading-none"
+              style={{ width: 44, height: 44 }}
+              aria-hidden
+            >
+              💴
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-2xl font-bold leading-tight text-white">集金</p>
+              <p className="text-base text-slate-400 mt-1 leading-snug">金種カウント・売上伝票PDF</p>
+            </div>
+            <span className="text-slate-500 text-xl shrink-0" aria-hidden>›</span>
+          </button>
+        )}
 
         {/* 未対応TODO インライン accordion (ad-hoc 2026-05-30 ヒロ Discord 依頼):
             collapsed = 分類 + 店舗名 + 経過時間
