@@ -38,6 +38,7 @@ const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 const AdminLayout           = lazy(() => import('./admin/AdminLayout'))
 const AdminMastersHubPage   = lazy(() => import('./admin/pages/AdminMastersHubPage'))
 const AdminCollectionFlagPage = lazy(() => import('./admin/pages/AdminCollectionFlagPage'))
+const AdminCollectionHubPage  = lazy(() => import('./admin/pages/AdminCollectionHubPage'))
 const CollectionInputPage   = lazy(() => import('./collection/CollectionInputPage'))
 const CollectionHistoryPage = lazy(() => import('./collection/CollectionHistoryPage'))
 const AdminDevAssetsListPage = lazy(() => import('./admin/pages/AdminDevAssetsListPage'))
@@ -222,6 +223,7 @@ function AppInner() {
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
         <Route path="import" element={<AdminImportHubPage />} />
+        <Route path="collection" element={<AdminCollectionHubPage />} />
         <Route path="collection-flag" element={<AdminCollectionFlagPage />} />
         <Route path="labels" element={<AdminQRLabelPage />} />
         <Route path="*" element={<AdminPlaceholderPage />} />
