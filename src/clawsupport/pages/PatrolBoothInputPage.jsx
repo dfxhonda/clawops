@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
@@ -28,23 +29,39 @@ import {
   getLastReadingForBooth,
   classifyEntryType,
 } from '../../services/patrolCore'
+// J-PATROL-99_adhoc_ocr_preprocess_patrol_path-fix-05 (2026-05-30 ヒロ実機FB):
+// fix-03 取りこぼし対応。本番巡回経路の resizeImageFile に preprocessForOcr 未適用
+// → ヒロ実機で「写真白黒なってない」報告。grayscale + Otsu 二値化を適用。
+import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
-// J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺1600px q0.85 に縮小して {base64, blob} を返す
+// J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺 MAX px q QUALITY に縮小して {base64, blob} を返す
+// fix-05: grayscale + コントラスト線形伸長 + Otsu 二値化 を canvas に適用、
+// OCR 送信 base64 + プレビュー blob 双方が白黒化される。
+// J-PATROL-99_adhoc_ocr_smaller_payload-fix-13 (2026-05-30 ヒロ承認):
+// 1600px q0.85 → 800px q0.75 に縮小、ペイロード ~400KB → ~100KB に削減。
+// iPhone 4G の OCR 送信時間短縮 (typical 2-4s → 0.5-1s)、6s timeout 内収まりを担保。
+// 「保存もその解像度でいい」(ヒロ) のため、blob (= Storage 保存用) も同サイズ。
+const OCR_MAX_EDGE = 800
+const OCR_JPEG_QUALITY = 0.75
 function resizeImageFile(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const img = new Image()
     img.onload = () => {
-      const MAX = 1600
       const sw = img.naturalWidth, sh = img.naturalHeight
-      const scale = Math.min(1, MAX / Math.max(sw, sh))
+      const scale = Math.min(1, OCR_MAX_EDGE / Math.max(sw, sh))
       const w = Math.round(sw * scale), h = Math.round(sh * scale)
       const canvas = document.createElement('canvas')
       canvas.width = w; canvas.height = h
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
       URL.revokeObjectURL(url)
-      const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1]
-      canvas.toBlob(blob => resolve({ base64, blob }), 'image/jpeg', 0.85)
+      // fix-05: in-place で preprocess、base64 + blob (= プレビュー画像) 双方に反映。
+      const imageData = ctx.getImageData(0, 0, w, h)
+      preprocessForOcr(imageData.data)
+      ctx.putImageData(imageData, 0, 0)
+      const base64 = canvas.toDataURL('image/jpeg', OCR_JPEG_QUALITY).split(',')[1]
+      canvas.toBlob(blob => resolve({ base64, blob }), 'image/jpeg', OCR_JPEG_QUALITY)
     }
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')) }
     img.src = url
@@ -73,6 +90,7 @@ export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
   const { state, pathname } = useLocation()
   const navigate     = useNavigate()
+  const goBack       = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const { navigateNext, currentField, registerField } = useFieldNavigation()
@@ -315,17 +333,35 @@ export default function PatrolBoothInputPage() {
 
     const result = await runOCR(base64, blob)
 
+    // J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04 (2026-05-30 ヒロ実機FB):
+    // 旧: OCR 失敗時は loading 画面に「閉じる」ボタンだけ表示 → 手入力できなかった。
+    // 新: 失敗時 (timeout / meters=[]) も confirming に遷移、IN/OUT 空欄+
+    //     エラーバナー+numpad アクティブで「その場で手入力」を可能化。
+    //     ヒロ要件「読み取り不可の場合その状態で手入力させる」を満たす。
+    // J-PATROL-99_adhoc_ocr_haiku_lazy_upload-fix-12: uploadStorage は OCR 経路から
+    // 排除済、ここでは保管のみ。実発火は handleOCRUse (= 「使う」ボタン押下後)。
+    const uploadStorage = result?.uploadStorage ?? null
+
     if (!result || result.timeout) {
-      setOcrError('OCR読取がタイムアウトしました。再試行してください。')
+      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: null, avgConf: null, uploadStorage })
+      setOcrEditIn('')
+      setOcrEditOut('')
+      setOcrEdited(false)
+      setOcrError('6秒で読み取れませんでした。下のテンキーで手入力してください')
+      setOcrState('confirming')
       return
     }
 
-    const { meters: ocrMeters, photoUrl, uploadError } = result
-    if (photoUrl) logger.info('ocr_photo_uploaded', { photo_url: photoUrl })
-    else if (uploadError) logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
+    const { meters: ocrMeters } = result
 
     if (!ocrMeters?.length) {
-      setOcrError('メーター数値を読み取れませんでした。再試行してください。')
+      // 同上: メーター検出ゼロ時も confirming で手入力可
+      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: null, avgConf: null, uploadStorage })
+      setOcrEditIn('')
+      setOcrEditOut('')
+      setOcrEdited(false)
+      setOcrError('メーター数値を読み取れませんでした。下のテンキーで手入力してください')
+      setOcrState('confirming')
       return
     }
 
@@ -337,7 +373,7 @@ export default function PatrolBoothInputPage() {
 
     logger.info('ocr_result_returned', { confidence: avgConf })
 
-    setOcrCapture({ imageUrl: previewUrl, cols, photoUrl: photoUrl ?? null, avgConf })
+    setOcrCapture({ imageUrl: previewUrl, cols, photoUrl: null, avgConf, uploadStorage })
     setOcrEditIn(cols.in_meter != null ? String(cols.in_meter) : '')
     setOcrEditOut(cols.out_meter != null ? String(cols.out_meter) : '')
     setOcrEdited(false)
@@ -346,17 +382,37 @@ export default function PatrolBoothInputPage() {
 
   function handleOCRUse() {
     if (!ocrCapture) return
-    const { photoUrl, avgConf } = ocrCapture
+    const { avgConf, uploadStorage } = ocrCapture
     const finalIn = ocrEditIn !== '' ? parseInt(ocrEditIn, 10) : null
     const finalOut = ocrEditOut !== '' ? parseInt(ocrEditOut, 10) : null
     logger.info('ocr_confirmation_use_clicked', { in: finalIn, out: finalOut, confidence: avgConf, edited: ocrEdited })
     if (finalIn != null) { setIn(String(finalIn)); setTouched(t => ({ ...t, inMeter: true })) }
     if (finalOut != null) { setOut1(String(finalOut)); setTouched(t => ({ ...t, outMeter1: true })) }
-    setOcrPhotoUrl(photoUrl ?? null)
+    // J-PATROL-99_adhoc_ocr_haiku_lazy_upload-fix-12: 「使う」が押された後に Storage upload を
+    // 発火、結果が来たら setOcrPhotoUrl で audit に乗せる。fire-and-forget なので
+    // 保存ボタンタップが先行しても 巡回 reading の保存自体は止めない。
+    if (uploadStorage) {
+      uploadStorage().then(up => {
+        if (up?.url) {
+          setOcrPhotoUrl(up.url)
+          logger.info('ocr_photo_uploaded_lazy', { photo_url: up.url })
+        } else if (up?.uploadError) {
+          logger.error('ocr_photo_upload_error_lazy', { error: up.uploadError, code: 'ERR-OCR-PHOTO-001' })
+        }
+      }).catch(e => {
+        logger.error('ocr_photo_upload_throw_lazy', { error: e?.message ?? String(e), code: 'ERR-OCR-PHOTO-002' })
+      })
+    }
+    setOcrPhotoUrl(null)
     setOcrConf(avgConf ?? null)
-    setOcrIM('ocr')
+    // J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04 (2026-05-30):
+    // OCR が値を返さなかった (avgConf===null = timeout / no meters) ケースで
+    // ユーザーが手入力した場合は input_method='ocr_failed' (observability.md 準拠)。
+    // OCR が値を返した場合は従来通り 'ocr'。
+    setOcrIM(avgConf == null ? 'ocr_failed' : 'ocr')
     setOcrState('idle')
     setOcrCapture(null)
+    setOcrError(null)
     setOcrEditIn('')
     setOcrEditOut('')
     setOcrEdited(false)
@@ -365,6 +421,7 @@ export default function PatrolBoothInputPage() {
   function handleOCRRecapture() {
     logger.info('ocr_confirmation_recapture_clicked')
     setOcrCapture(null)
+    setOcrError(null)
     setOcrEditIn('')
     setOcrEditOut('')
     setOcrEdited(false)
@@ -377,6 +434,7 @@ export default function PatrolBoothInputPage() {
     logger.info('ocr_confirmation_cancel_clicked')
     setOcrState('idle')
     setOcrCapture(null)
+    setOcrError(null)
     setOcrEditIn('')
     setOcrEditOut('')
     setOcrEdited(false)
@@ -579,8 +637,18 @@ export default function PatrolBoothInputPage() {
         {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[31dvh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+          {/* J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04: OCR 失敗時の inline 案内バナー。
+              ocrCapture.avgConf === null は OCR が値を出してない (timeout / no meters)、
+              ocrError 文言を表示しつつ confirming UI と numpad はそのまま使える。 */}
+          {ocrError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-950/30 p-2 mb-2 text-red-300 text-xs font-bold">
+              {ocrError}
+            </div>
+          )}
           <div className="rounded-xl border border-border bg-surface/60 p-2 mb-2">
-            <div className="text-xs font-bold text-muted mb-1">OCR認識値 — タップして修正可</div>
+            <div className="text-xs font-bold text-muted mb-1">
+              {avgConf == null ? 'OCR失敗 — テンキーで手入力してください' : 'OCR認識値 — タップして修正可'}
+            </div>
             <div className="grid grid-cols-2 gap-2 mb-1">
               <div>
                 <div className="text-xs text-muted mb-0.5">IN</div>
@@ -682,7 +750,7 @@ export default function PatrolBoothInputPage() {
         module="clawsupport"
         title={boothLabel}
         variant="compact"
-        onBack={() => navigate(-1)}
+        onBack={goBack}
       />
 
       <div className="px-4 flex items-center gap-2">
@@ -751,9 +819,14 @@ export default function PatrolBoothInputPage() {
           📝 気づきを記録
         </button>
       </div>
-      <NumpadFooterPanel
-        currentField={currentField}
-        idleContent={
+      {/* J-PATROL-99_adhoc_booth_history_visibility-fix-01:
+          c5fa733 で NumpadFooterPanel が isCustomNumpadEnabled()=false 時 null を返すため、
+          idleContent として渡していた BoothHistoryList も巻き添えで消えていた。
+          custom numpad OFF (=現行 default) では panel の外に sibling として描画して常時表示。
+          custom numpad ON (=test mode 等) では従来通り panel.idleContent に渡して
+          legacy UX を維持 (numpad active 時は keys / idle 時は history)。 */}
+      {!isCustomNumpadEnabled() && (
+        <div className="flex-1 min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
           <BoothHistoryList
             boothCode={boothCode}
             meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
@@ -768,6 +841,27 @@ export default function PatrolBoothInputPage() {
               outDiff,
             }}
           />
+        </div>
+      )}
+      <NumpadFooterPanel
+        currentField={currentField}
+        idleContent={
+          isCustomNumpadEnabled() ? (
+            <BoothHistoryList
+              boothCode={boothCode}
+              meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+              storeCode={storeCode}
+              machine={machine}
+              booth={booth}
+              limit={10}
+              historyKey={historyKey}
+              draftRow={{
+                active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
+                inDiff,
+                outDiff,
+              }}
+            />
+          ) : null
         }
       />
 

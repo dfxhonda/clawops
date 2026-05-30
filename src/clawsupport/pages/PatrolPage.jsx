@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { detectAlerts } from '../../utils/patrolAlerts'
@@ -49,6 +50,7 @@ const ZONE = { background: '#12121e', border: '1px solid #2a2a44', borderRadius:
 export default function PatrolPage() {
   const { state } = useLocation()
   const navigate  = useNavigate()
+  const goBack    = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01: 戻るボタン一階層上化
   const { staffId } = useAuth()
   const { getLocation } = useGeolocation()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
@@ -512,7 +514,7 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
           boothLabel={boothLabel}
           badge={machineInfo?.category === 'gacha' ? 'ガチャ' : machineInfo?.category === 'other' ? 'その他' : undefined}
           playPrice={machineInfo?.playPrice}
-          onBack={() => navigate(-1)}
+          onBack={goBack}
           dateLocked={dateLocked}
         />
 

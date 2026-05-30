@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import ErrorBanner from '../../components/ErrorBanner'
@@ -29,6 +30,7 @@ function rowFlags(r) {
 
 export default function AdminImportHubPage() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffRole, staffId, loading } = useAuth()
 
   const [fileName, setFileName] = useState('')
@@ -92,7 +94,7 @@ export default function AdminImportHubPage() {
   }
 
   const backBtn = (
-    <button onClick={() => navigate(-1)} className="text-sm text-muted px-2">← 戻る</button>
+    <button onClick={goBack} className="text-sm text-muted px-2">← 戻る</button>
   )
   const rows = preview?.records ?? []
   const conflicts = rows.filter(r => r.state === 'conflict')

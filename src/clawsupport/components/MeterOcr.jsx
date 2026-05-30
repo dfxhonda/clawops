@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Term from '../../components/Term'
+// J-PATROL-99_adhoc_ocr_preprocess_all_paths-fix-03 (2026-05-30 ヒロ承認):
+// grayscale 単独 → preprocessForOcr (grayscale + コントラスト線形伸長 + Otsu 二値化) に
+// 統一。アップロードバイト数削減 + 二値化で OCR 精度向上 + retry 削減効果。
+import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
 function getBoothSide(boothCode) {
   const match = boothCode?.match(/-B(\d+)$/)
@@ -10,14 +14,9 @@ function getBoothSide(boothCode) {
   return parseInt(match[1], 10) % 2 === 0 ? 'right' : 'left'
 }
 
-// グレースケール変換 (OCR精度向上)
-function applyGrayscale(ctx, w, h) {
+function applyOcrPreprocess(ctx, w, h) {
   const imageData = ctx.getImageData(0, 0, w, h)
-  const data = imageData.data
-  for (let i = 0; i < data.length; i += 4) {
-    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-    data[i] = data[i + 1] = data[i + 2] = gray
-  }
+  preprocessForOcr(imageData.data)
   ctx.putImageData(imageData, 0, 0)
 }
 
@@ -34,7 +33,7 @@ async function resizeImage(file, maxPx = 1600) {
   if (!ctx) throw new Error('canvas初期化失敗')
   ctx.drawImage(bitmap, 0, 0, w, h)
   bitmap.close()
-  applyGrayscale(ctx, w, h)
+  applyOcrPreprocess(ctx, w, h)
   const b64 = canvas.toDataURL('image/jpeg', 0.95).split(',')[1]
   // iOS Safariでピクセルバッファを解放
   canvas.width = 0; canvas.height = 0
@@ -123,8 +122,10 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
       const invokePromise = supabase.functions.invoke('ocr-meter', {
         body: { image_base64: b64, media_type: 'image/jpeg' },
       })
+      // J-PATROL-99_adhoc_ocr_5s_timeout-fix-02 (2026-05-30 ヒロ承認): 15s → 5s 短縮。
+      // J-PATROL-99_adhoc_ocr_timeout_6s-fix-11 (2026-05-30 ヒロ承認): 5s → 6s 緩和。
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('15秒で読み取れなかったため手動入力に切り替えてください')), 15000)
+        setTimeout(() => reject(new Error('6秒で読み取れなかったため手動入力に切り替えてください')), 6000)
       )
       const { data, error } = await Promise.race([invokePromise, timeoutPromise])
       if (!mountedRef.current) return

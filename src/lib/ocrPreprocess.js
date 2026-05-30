@@ -83,15 +83,31 @@ export function buildHistogramFromGrayscalePixels(data) {
 }
 
 /**
- * RGBA バッファに対して
- *   1) grayscale（ITU-R BT.601 ルマ係数）
- *   2) コントラスト線形伸長
- *   3) Otsu 自動二値化
- * を順に適用する。バッファを in-place に書き換える。
+ * RGBA バッファに対して以下を適用する (in-place):
+ *   1) grayscale (ITU-R BT.601 ルマ係数)
+ *   2) コントラスト線形伸長 (min→0, max→255)
+ *   3) S 字コントラストブースト (contrastFactor !== 1 のとき)
+ *   4) posterize (posterizeLevels >= 2 のとき、N 段量子化)
+ *   5) (binarize=true のとき) Otsu 自動二値化
+ *
+ * J-PATROL-99 fix-06: 二値化を default 解除。
+ * J-PATROL-99 fix-08: S 字ブースト追加。
+ * J-PATROL-99 fix-09 (2026-05-30 ヒロFB「2値が良いのか4、6、8が良いのか」):
+ *   posterize (N 段量子化) を追加、default=4。banded な見た目で OCR が
+ *   段境界を識別しやすくなる。連続グレーの「ぼけ」と二値化の「潰れ」の中間案。
+ *   posterizeLevels=4 → 0/85/170/255 の 4 段。
+ *   S 字ブーストは default 1.0 (無効) に戻し、posterize がコントラスト制御を担当。
+ *
  * @param {Uint8ClampedArray|Uint8Array} data RGBA 連続バッファ
- * @returns {number} 採用された Otsu 閾値（ログ用）
+ * @param {{ binarize?: boolean, contrastFactor?: number, posterizeLevels?: number }} options
+ * @returns {number|null} binarize=true 時は採用された Otsu 閾値、それ以外は null
  */
-export function preprocessForOcr(data) {
+export function preprocessForOcr(data, options = {}) {
+  // J-PATROL-99 fix-10 (2026-05-30 ヒロFB「S字ブーストした上で4値」):
+  // contrastFactor default を 1.0 → 1.8 に戻し、posterize 4 と併用。
+  // S字で中間→0/255 側に押されてから 4 段量子化 → 0/85/170/255 のうち
+  // 端 (0/255) に集まりやすくなり「黒白ライク」な banded 画像になる。
+  const { binarize = false, contrastFactor = 1.8, posterizeLevels = 4 } = options
   for (let i = 0; i < data.length; i += 4) {
     const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
     data[i] = data[i + 1] = data[i + 2] = gray
@@ -108,6 +124,30 @@ export function preprocessForOcr(data) {
     const v = Math.round(((data[i] - min) / range) * 255)
     data[i] = data[i + 1] = data[i + 2] = v
   }
+
+  // fix-08: S 字コントラストブースト。factor=1.0 は no-op、factor>1 は強コントラスト化。
+  if (contrastFactor !== 1) {
+    for (let i = 0; i < data.length; i += 4) {
+      const boosted = (data[i] - 128) * contrastFactor + 128
+      const v = boosted < 0 ? 0 : boosted > 255 ? 255 : Math.round(boosted)
+      data[i] = data[i + 1] = data[i + 2] = v
+    }
+  }
+
+  // fix-09: posterize (N 段量子化)。posterizeLevels >= 2 で N トーンに丸める。
+  // 例: N=4 → 0/85/170/255、N=6 → 0/51/102/153/204/255。
+  // bucket: floor(v / 256 * N)。段の中心値: round(bucket * 255 / (N-1))。
+  if (posterizeLevels >= 2) {
+    const N = Math.floor(posterizeLevels)
+    const step = 256 / N
+    for (let i = 0; i < data.length; i += 4) {
+      const bucket = Math.min(N - 1, Math.floor(data[i] / step))
+      const quantized = Math.round((bucket * 255) / (N - 1))
+      data[i] = data[i + 1] = data[i + 2] = quantized
+    }
+  }
+
+  if (!binarize) return null
 
   const hist = buildHistogramFromGrayscalePixels(data)
   const t = otsuThreshold(hist)

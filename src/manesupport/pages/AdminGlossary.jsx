@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { ADMIN_VIEWABLE_ORG_IDS, DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { useAuth } from '../../hooks/useAuth'
 import LogoutButton from '../../components/LogoutButton'
 
@@ -61,10 +61,11 @@ export default function AdminGlossary() {
 
   const loadTerms = async () => {
     setLoading(true)
+    // J-PATROL-99_adhoc_admin_cross_org_view: 閲覧可能 org を横断して取得 (READ のみ)
     const { data, error } = await supabase
       .from('glossary_terms')
       .select('*')
-      .eq('organization_id', DFX_ORG_ID)
+      .in('organization_id', ADMIN_VIEWABLE_ORG_IDS)
       .order('category')
       .order('sort_order')
     if (!error) setTerms(data || [])

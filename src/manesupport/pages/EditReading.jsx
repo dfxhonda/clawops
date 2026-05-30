@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { updateReading } from '../../services/readings'
 import { parseNum } from '../../services/utils'
 import { supabase } from '../../lib/supabase'
@@ -10,6 +11,7 @@ import LogoutButton from '../../components/LogoutButton'
 export default function EditReading() {
   const { boothId } = useParams()
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01: 戻るボタン一階層上化
   const [readings, setReadings] = useState([])
   const [editing, setEditing] = useState(null)
   const [original, setOriginal] = useState(null)
@@ -80,7 +82,7 @@ export default function EditReading() {
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-10" style={{ borderLeft: '4px solid #3b82f6' }}>
       <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate(-1)} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
+        <button onClick={goBack} className="text-2xl text-muted hover:text-accent transition-colors">←</button>
         <div className="flex-1">
           <h2 className="text-lg font-bold">データ修正</h2>
           <p className="text-xs text-muted">{readings[0]?.full_booth_code}</p>

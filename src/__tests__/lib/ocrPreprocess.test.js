@@ -83,7 +83,10 @@ describe('buildHistogramFromGrayscalePixels', () => {
 })
 
 describe('preprocessForOcr', () => {
-  it('グレースケール → コントラスト伸長 → 二値化 を適用する', () => {
+  // J-PATROL-99_adhoc_preprocess_grayscale_no_binarize-fix-06 (2026-05-30 ヒロFB):
+  // default は grayscale + コントラスト伸長止まり (中間グレー保持)。
+  // 旧テスト「二値化を適用する」は { binarize: true } 明示で従来挙動を担保する。
+  it('binarize=true: グレースケール → コントラスト伸長 → 二値化 を適用する', () => {
     const data = new Uint8ClampedArray([
       // R, G, B, A
       50, 50, 50, 255,    // dark
@@ -92,7 +95,7 @@ describe('preprocessForOcr', () => {
       30, 30, 30, 255,    // dark
       230, 230, 230, 255, // bright
     ])
-    const t = preprocessForOcr(data)
+    const t = preprocessForOcr(data, { binarize: true })
     expect(t).toBeGreaterThan(0)
     expect(t).toBeLessThan(255)
 
@@ -108,7 +111,7 @@ describe('preprocessForOcr', () => {
     expect(data[16]).toBe(255)
   })
 
-  it('カラー画像でも輝度係数で正しく処理する', () => {
+  it('binarize=true: カラー画像でも輝度係数で正しく処理する', () => {
     const data = new Uint8ClampedArray([
       255, 0, 0, 255,
       0, 255, 0, 255,
@@ -116,9 +119,76 @@ describe('preprocessForOcr', () => {
       255, 255, 255, 255,
       0, 0, 0, 255,
     ])
-    preprocessForOcr(data)
+    preprocessForOcr(data, { binarize: true })
     for (let i = 0; i < data.length; i += 4) {
       expect([0, 255]).toContain(data[i])
     }
+  })
+
+  it('default (fix-10 S字1.8 + posterize=4): S字後 4 段量子化で 0/85/170/255 のいずれかに丸まる', () => {
+    const data = new Uint8ClampedArray([
+      50, 50, 50, 255,
+      200, 200, 200, 255,
+      120, 120, 120, 255,
+      30, 30, 30, 255,
+      230, 230, 230, 255,
+    ])
+    const t = preprocessForOcr(data) // default: binarize=false, contrastFactor=1.8, posterizeLevels=4
+    expect(t).toBeNull()
+    for (let i = 0; i < data.length; i += 4) {
+      expect(data[i]).toBe(data[i + 1])
+      expect(data[i + 1]).toBe(data[i + 2])
+      // 4 段量子化: 0, 85, 170, 255 のどれか
+      expect([0, 85, 170, 255]).toContain(data[i])
+    }
+  })
+
+  it('posterizeLevels=0 + contrastFactor=1 (両方無効): 線形伸長のみで連続グレーが残る', () => {
+    const data = new Uint8ClampedArray([
+      30, 30, 30, 255,
+      120, 120, 120, 255,
+      230, 230, 230, 255,
+    ])
+    preprocessForOcr(data, { posterizeLevels: 0, contrastFactor: 1.0 })
+    // 元 120 → 線形伸長 (120-30)/200 * 255 ≈ 114.75 → 115
+    expect(data[4]).toBe(115)
+  })
+
+  it('posterizeLevels=6: 6 段量子化で 0/51/102/153/204/255 のどれかに丸まる', () => {
+    const data = new Uint8ClampedArray([
+      30, 30, 30, 255,
+      80, 80, 80, 255,
+      130, 130, 130, 255,
+      180, 180, 180, 255,
+      230, 230, 230, 255,
+    ])
+    preprocessForOcr(data, { posterizeLevels: 6 })
+    const allowed = [0, 51, 102, 153, 204, 255]
+    for (let i = 0; i < data.length; i += 4) {
+      expect(allowed).toContain(data[i])
+    }
+  })
+
+  it('posterizeLevels=2: 2 段量子化で 0/255 になる (Otsu binarize なしで純2値)', () => {
+    const data = new Uint8ClampedArray([
+      30, 30, 30, 255,
+      120, 120, 120, 255,
+      230, 230, 230, 255,
+    ])
+    preprocessForOcr(data, { posterizeLevels: 2 })
+    for (let i = 0; i < data.length; i += 4) {
+      expect([0, 255]).toContain(data[i])
+    }
+  })
+
+  it('contrastFactor=1.8 + posterizeLevels=0 (旧 fix-08 挙動): S字のみ、中間が暗側に押される', () => {
+    const data = new Uint8ClampedArray([
+      30, 30, 30, 255,
+      120, 120, 120, 255,
+      230, 230, 230, 255,
+    ])
+    preprocessForOcr(data, { contrastFactor: 1.8, posterizeLevels: 0 })
+    // 元 120 → 線形伸長 115 → S字 (115-128)*1.8+128 = 104.6 → 105
+    expect(data[4]).toBe(105)
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { getLastReading, saveBoothReading } from '../../services/patrol'
@@ -10,6 +11,7 @@ import DateTime from '../../shared/ui/DateTime'
 
 export default function BoothInput() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01: 戻るボタン一階層上化
   const location = useLocation()
   const { staffId } = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
@@ -119,7 +121,7 @@ export default function BoothInput() {
       {/* ── Header ── */}
       <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#ec4899' }}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="text-xl text-muted hover:text-accent transition-colors"
         >
           ←

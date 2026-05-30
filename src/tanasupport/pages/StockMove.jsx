@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { getPrizeStocksExtended } from '../../services/inventory'
 import { transferStock } from '../../services/movements'
@@ -10,6 +11,7 @@ const STEP_CONFIRM = 'confirm'
 
 export default function StockMove() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffId } = useAuth()
 
   const [step, setStep] = useState(STEP_SELECT)
@@ -105,7 +107,7 @@ export default function StockMove() {
       {/* ヘッダー */}
       <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
         <button
-          onClick={() => step === STEP_CONFIRM ? setStep(STEP_SELECT) : navigate(-1)}
+          onClick={() => step === STEP_CONFIRM ? setStep(STEP_SELECT) : goBack()}
           className="text-muted text-xl leading-none"
         >
           ‹
