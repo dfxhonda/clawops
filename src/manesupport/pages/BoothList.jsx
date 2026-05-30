@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllStores, getMachines, getBooths, updateBooth } from '../../services/masters'
+import { getAllStores, getMachines, getBooths, updateBooth, addBooth, getNextBoothNumber } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
 import AdminNav from '../components/AdminNav'
 import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
@@ -19,6 +19,13 @@ export default function BoothList() {
   const [editForm, setEditForm] = useState({})
   const [editError, setEditError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // ad-hoc 2026-05-30 ヒロ依頼: 単独ブース追加 UI を BoothList に生やす。
+  // 既存 services/masters.addBooth + getNextBoothNumber を再利用、フォームは編集と同フィールド。
+  const [adding, setAdding] = useState(false)
+  const [addForm, setAddForm] = useState({ play_price: '', meter_in_number: 7, meter_out_number: 7 })
+  const [addError, setAddError] = useState('')
+  const [nextBoothNum, setNextBoothNum] = useState(null)
 
   useEffect(() => {
     getAllStores().then(setStores)
@@ -89,6 +96,54 @@ export default function BoothList() {
     }
   }
 
+  const startAdd = async () => {
+    if (!machineCode) return
+    setAddError('')
+    try {
+      const num = await getNextBoothNumber(machineCode)
+      // 既存ブースの最頻値を初期値に流用 (meter 桁数の手戻り低減)
+      const sampleBooth = booths[0]
+      setNextBoothNum(num)
+      setAddForm({
+        play_price: sampleBooth?.play_price != null ? String(sampleBooth.play_price) : '',
+        meter_in_number: sampleBooth?.meter_in_number ?? 7,
+        meter_out_number: sampleBooth?.meter_out_number ?? 7,
+      })
+      setEditCode(null)
+      setAdding(true)
+    } catch (err) {
+      setAddError(err.message || '次のブース番号の取得に失敗しました')
+    }
+  }
+
+  const handleAddChange = (field, value) => setAddForm(f => ({ ...f, [field]: value }))
+
+  const handleAddSave = async () => {
+    if (!machineCode || nextBoothNum == null || !storeCode) return
+    setSaving(true)
+    setAddError('')
+    try {
+      await addBooth({
+        store_code: storeCode,
+        machine_code: machineCode,
+        booth_number: nextBoothNum,
+        play_price: addForm.play_price ? Number(addForm.play_price) : null,
+        meter_in_number: Number(addForm.meter_in_number) || 7,
+        meter_out_number: Number(addForm.meter_out_number) || 7,
+      })
+      setAdding(false)
+      setNextBoothNum(null)
+      setLoading(true)
+      const data = await getBooths(machineCode)
+      setBooths(data)
+      setLoading(false)
+    } catch (err) {
+      setAddError(err.message || '追加に失敗しました')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <div className="h-full flex flex-col">
 
@@ -138,6 +193,88 @@ export default function BoothList() {
         )}
       </div>
 
+      {/* + ブース追加 ボタン (機械選択中のみ表示、add 中は隠す) */}
+      {machineCode && !loading && !adding && (
+        <div className="px-4 mt-3 md:max-w-3xl md:mx-auto">
+          <button
+            data-testid="booth-add-button"
+            onClick={startAdd}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition-colors min-h-[44px]"
+          >
+            + ブース追加
+          </button>
+        </div>
+      )}
+
+      {/* 新規ブース追加フォーム */}
+      {machineCode && adding && (
+        <div data-testid="booth-add-form" className="bg-surface border-2 border-blue-600 rounded-xl p-3.5 mx-4 md:max-w-3xl md:mx-auto mt-3">
+          <div className="space-y-3">
+            <p className="text-sm font-bold text-text">
+              新規ブース追加 <span className="text-xs font-normal text-muted">(B{String(nextBoothNum ?? 0).padStart(2, '0')} 自動採番)</span>
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="block text-xs text-muted mb-1">プレイ単価</label>
+                <input
+                  data-testid="booth-add-play-price"
+                  type="number"
+                  value={addForm.play_price}
+                  onChange={e => handleAddChange('play_price', e.target.value)}
+                  placeholder="100"
+                  className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+                />
+                <p className="text-[10px] text-muted mt-0.5">空白のままにすると機械設定を引き継ぎます</p>
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">INメーター桁数</label>
+                <input
+                  data-testid="booth-add-meter-in"
+                  type="number"
+                  value={addForm.meter_in_number}
+                  onChange={e => handleAddChange('meter_in_number', e.target.value)}
+                  min={1}
+                  max={10}
+                  className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">OUTメーター桁数</label>
+                <input
+                  data-testid="booth-add-meter-out"
+                  type="number"
+                  value={addForm.meter_out_number}
+                  onChange={e => handleAddChange('meter_out_number', e.target.value)}
+                  min={1}
+                  max={10}
+                  className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+                />
+              </div>
+            </div>
+
+            {addError && <p className="text-accent2 text-xs">{addError}</p>}
+
+            <div className="flex gap-2">
+              <button
+                data-testid="booth-add-save"
+                onClick={handleAddSave}
+                disabled={saving}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 rounded-xl text-sm transition-colors"
+              >
+                {saving ? '追加中...' : '追加'}
+              </button>
+              <button
+                onClick={() => { setAdding(false); setAddError(''); setNextBoothNum(null) }}
+                className="flex-1 bg-surface2 border border-border text-text font-bold py-2 rounded-xl text-sm"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {machineCode && loading && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full" />
@@ -145,7 +282,7 @@ export default function BoothList() {
         </div>
       )}
 
-      {machineCode && !loading && booths.length === 0 && (
+      {machineCode && !loading && booths.length === 0 && !adding && (
         <div className="text-center py-16 text-muted text-sm">
           ブースが見つかりません
         </div>
