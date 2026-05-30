@@ -148,6 +148,7 @@ const StockMove    = lazy(() => import('./tanasupport/pages/StockMove'))
 const StockCount   = lazy(() => import('./tanasupport/pages/StockCount'))
 const StockOutPage       = lazy(() => import('./tanasupport/pages/StockOutPage'))
 const ArrivalCheckPage   = lazy(() => import('./tanasupport/pages/ArrivalCheckPage'))
+const StockHubPage       = lazy(() => import('./tanasupport/pages/StockHubPage'))
 
 
 // ローディングスピナー（Suspense フォールバック）
@@ -328,18 +329,25 @@ function AppInner() {
       <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
       <Route path="/ocr-test"         element={<ProtectedRoute><OCRTestPage /></ProtectedRoute>} />
 
-      {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
-      <Route path="/stock" element={<StocktakeLogin />} />
+      {/* J-STOCK-STORE-SELECT-01 2026-05-30 司令塔Opus spec:
+          /stock に StockHubPage を載せ、staff/leader/manager/admin 全ロールアクセス可。
+          旧 StocktakeLogin (PIN認証) は /stock/login へ退避 (backward-compat、必要なら復旧)。
+          子ルートは ProtectedRoute (any role) に開放、staff_stores フィルタは hub 側で吸収。 */}
+      <Route path="/stock" element={<ProtectedRoute><StockHubPage /></ProtectedRoute>} />
+      <Route path="/stock/login" element={<StocktakeLogin />} />
       <Route path="/stock/top" element={<StocktakeTop />} />
       <Route path="/stock/count" element={<ManagerRoute><StockCount /></ManagerRoute>} />
       <Route path="/stock/count/:sessionId" element={<StocktakeCount />} />
       <Route path="/stock/summary/:sessionId" element={<StocktakeSummary />} />
 
-      {/* 在庫管理 — manager以上 */}
+      {/* 在庫管理: J-STOCK-STORE-SELECT-01 で role ガード開放 (ProtectedRoute = any role)、
+          staff の場合は staff_stores のデータのみ表示 (RLS + hub フィルタ) */}
       <Route path="/stock/dashboard" element={<ManagerRoute><StockDashboard /></ManagerRoute>} />
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
-      <Route path="/stock/out"     element={<ManagerRoute><StockOutPage /></ManagerRoute>} />
-      <Route path="/stock/arrival" element={<ManagerRoute><ArrivalCheckPage /></ManagerRoute>} />
+      <Route path="/stock/out"     element={<ProtectedRoute><StockOutPage /></ProtectedRoute>} />
+      <Route path="/stock/arrival" element={<ProtectedRoute><ArrivalCheckPage /></ProtectedRoute>} />
+      <Route path="/stock/stocktake" element={<ProtectedRoute><StocktakeSessionPage /></ProtectedRoute>} />
+      <Route path="/stock/orders" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/launcher" replace />} />
     </Routes>
