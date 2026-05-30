@@ -103,7 +103,11 @@ export function buildHistogramFromGrayscalePixels(data) {
  * @returns {number|null} binarize=true 時は採用された Otsu 閾値、それ以外は null
  */
 export function preprocessForOcr(data, options = {}) {
-  const { binarize = false, contrastFactor = 1.0, posterizeLevels = 4 } = options
+  // J-PATROL-99 fix-10 (2026-05-30 ヒロFB「S字ブーストした上で4値」):
+  // contrastFactor default を 1.0 → 1.8 に戻し、posterize 4 と併用。
+  // S字で中間→0/255 側に押されてから 4 段量子化 → 0/85/170/255 のうち
+  // 端 (0/255) に集まりやすくなり「黒白ライク」な banded 画像になる。
+  const { binarize = false, contrastFactor = 1.8, posterizeLevels = 4 } = options
   for (let i = 0; i < data.length; i += 4) {
     const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
     data[i] = data[i + 1] = data[i + 2] = gray

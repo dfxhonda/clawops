@@ -125,7 +125,7 @@ describe('preprocessForOcr', () => {
     }
   })
 
-  it('default (fix-09 posterize=4): 4 段量子化で中間グレーが 0/85/170/255 のいずれかに丸まる', () => {
+  it('default (fix-10 S字1.8 + posterize=4): S字後 4 段量子化で 0/85/170/255 のいずれかに丸まる', () => {
     const data = new Uint8ClampedArray([
       50, 50, 50, 255,
       200, 200, 200, 255,
@@ -133,7 +133,7 @@ describe('preprocessForOcr', () => {
       30, 30, 30, 255,
       230, 230, 230, 255,
     ])
-    const t = preprocessForOcr(data) // default: binarize=false, contrastFactor=1.0, posterizeLevels=4
+    const t = preprocessForOcr(data) // default: binarize=false, contrastFactor=1.8, posterizeLevels=4
     expect(t).toBeNull()
     for (let i = 0; i < data.length; i += 4) {
       expect(data[i]).toBe(data[i + 1])
@@ -143,13 +143,13 @@ describe('preprocessForOcr', () => {
     }
   })
 
-  it('posterizeLevels=0 (無効): 線形伸長のみで連続グレーが残る', () => {
+  it('posterizeLevels=0 + contrastFactor=1 (両方無効): 線形伸長のみで連続グレーが残る', () => {
     const data = new Uint8ClampedArray([
       30, 30, 30, 255,
       120, 120, 120, 255,
       230, 230, 230, 255,
     ])
-    preprocessForOcr(data, { posterizeLevels: 0 })
+    preprocessForOcr(data, { posterizeLevels: 0, contrastFactor: 1.0 })
     // 元 120 → 線形伸長 (120-30)/200 * 255 ≈ 114.75 → 115
     expect(data[4]).toBe(115)
   })
