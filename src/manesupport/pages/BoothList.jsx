@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllStores, getMachines, getBooths, updateBooth, addBooth, getNextBoothNumber } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../components/AdminNav'
 import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 
 export default function BoothList() {
@@ -155,7 +154,7 @@ export default function BoothList() {
         </div>
         <LogoutButton to="/admin/menu" />
       </div>
-      <AdminNav />
+
 
       <div className="flex-1 overflow-y-auto pb-16">
       <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
 import { supabase } from '../../lib/supabase'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../components/AdminNav'
 
 const EMPTY_FORM = {
   model_name: '',
@@ -177,7 +176,7 @@ export default function ModelList() {
         </div>
         <LogoutButton to="/admin/menu" />
       </div>
-      <AdminNav />
+
 
       <div className="flex-1 overflow-y-auto pb-16">
       {/* ━━━ 一覧ヘッダー + 新規登録ボタン ━━━ */}

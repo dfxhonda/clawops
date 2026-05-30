@@ -68,7 +68,8 @@ const RankingView = lazy(() => import('./clawsupport/pages/RankingView'))
 const MachineList = lazy(() => import('./clawsupport/pages/MachineList'))
 
 // 遅延ロード — マスタ追加
-const BoothQrPrint = lazy(() => import('./manesupport/pages/BoothQrPrint'))
+// J-NAV-ORPHAN-CLEANUP-01 2026-05-30: BoothQrPrint は /admin/qr-print の動線無し orphan、
+// /admin/labels (AdminQRLabelPage) が現役のため lazy import 削除。
 const AdminModelList = lazy(() => import('./manesupport/pages/ModelList'))
 const AdminMachineList = lazy(() => import('./manesupport/pages/MachineList'))
 const AdminBoothList = lazy(() => import('./manesupport/pages/BoothList'))
@@ -86,8 +87,7 @@ const ImportSlips = lazy(() => import('./manesupport/pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./manesupport/pages/SetupSheets'))
 const TestDataImport = lazy(() => import('./manesupport/pages/TestDataImport'))
 const AuditLog = lazy(() => import('./manesupport/pages/AuditLog'))
-const AuditSummary = lazy(() => import('./manesupport/pages/AuditSummary'))
-const DailyStatsAdmin = lazy(() => import('./manesupport/pages/DailyStatsAdmin'))
+// J-NAV-ORPHAN-CLEANUP-01 2026-05-30: AuditSummary / DailyStatsAdmin は動線無し orphan、lazy import 削除。
 
 // 遅延ロード — 用語マスタ管理
 const AdminGlossary = lazy(() => import('./manesupport/pages/AdminGlossary'))
@@ -196,7 +196,7 @@ function AppInner() {
       <Route path="/collection/input" element={<ManagerRoute><CollectionInputPage /></ManagerRoute>} />
       <Route path="/collection/history" element={<ManagerRoute><CollectionHistoryPage /></ManagerRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
-      <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /dashboard/legacy ルート削除 (動線無し) */}
       {/* J-ADMIN-02: AdminLayout nested routes (新 IA ナビ骨組) */}
       <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="masters" replace />} />
@@ -265,21 +265,21 @@ function AppInner() {
       <Route path="/patrol/overview" element={<Navigate to="/clawsupport" replace />} />
       <Route path="/patrol" element={<ProtectedRoute><PatrolScan /></ProtectedRoute>} />
       <Route path="/patrol/input" element={<ProtectedRoute><PatrolPage /></ProtectedRoute>} />
-      <Route path="/patrol/input-legacy" element={<ProtectedRoute><PatrolInput /></ProtectedRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /patrol/input-legacy ルート削除 (動線無し) */}
       <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
 
       {/* 監査ログ — manager以上 (旧ルート、/admin/audit は AdminLayout 配下に移行) */}
       {/* J-DEV-ASSET-HANDOFF-01: ファイル受け渡し (admin/manager 両方アクセス可、AdminLayout 外、ManagerRoute で staff/patrol ブロック) */}
       <Route path="/admin/dev-assets" element={<ManagerRoute><AdminDevAssetsListPage /></ManagerRoute>} />
       <Route path="/admin/dev-assets/upload" element={<ManagerRoute><AdminDevAssetsUploadPage /></ManagerRoute>} />
-      <Route path="/admin/audit-summary" element={<ManagerRoute><AuditSummary /></ManagerRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/audit-summary ルート削除 (動線無し orphan) */}
 
       {/* データ検索・修正 — manager以上 */}
       <Route path="/datasearch" element={<ManagerRoute><DataSearch /></ManagerRoute>} />
       <Route path="/edit/:boothId" element={<ManagerRoute><EditReading /></ManagerRoute>} />
 
-      {/* QR印刷 — manager以上 */}
-      <Route path="/admin/qr-print" element={<ManagerRoute><BoothQrPrint /></ManagerRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/qr-print ルート削除 (動線無し)、
+          /admin/labels (AdminQRLabelPage) が現役 QR ラベル機能 */}
 
       {/* 用語マスタ管理 — admin のみ */}
       <Route path="/admin/glossary" element={<AdminRoute><AdminGlossary /></AdminRoute>} />
@@ -319,7 +319,7 @@ function AppInner() {
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />
       <Route path="/admin/setup-sheets" element={<AdminRoute><SetupSheets /></AdminRoute>} />
       <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
-      <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/daily-stats ルート削除 (動線無し orphan) */}
 
 
       {/* Phase 4一時無効化中 - OcrConfirmのReferenceError調査中

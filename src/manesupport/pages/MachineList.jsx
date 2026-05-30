@@ -12,7 +12,6 @@ import {
   addBooth,
 } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../components/AdminNav'
 
 const EMPTY_FORM = {
   machine_name: '',
@@ -259,7 +258,7 @@ export default function AdminMachineList() {
         </div>
         <LogoutButton to="/admin/menu" />
       </div>
-      <AdminNav />
+
 
       <div className="flex-1 overflow-y-auto pb-16">
       <div className="md:max-w-3xl md:mx-auto">

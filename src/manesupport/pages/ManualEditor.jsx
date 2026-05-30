@@ -9,7 +9,6 @@ import {
   uploadManualImage,
 } from '../../services/manuals'
 import LogoutButton from '../../components/LogoutButton'
-import AdminNav from '../components/AdminNav'
 
 const SECTION_TYPES = [
   { key: 'error_codes',     label: '⚠️ エラーコード', title: 'エラーコード一覧', sort_order: 0 },
@@ -177,7 +176,7 @@ export default function ManualEditor() {
           </div>
           <LogoutButton to="/admin/menu" />
         </div>
-        <AdminNav />
+
 
         <div className="flex-1 overflow-y-auto pb-16">
         {modelsLoading && (
@@ -233,7 +232,7 @@ export default function ManualEditor() {
         </div>
         <LogoutButton to="/admin/menu" />
       </div>
-      <AdminNav />
+
 
       <div className="flex-1 overflow-y-auto pb-16">
       <div className="md:max-w-3xl md:mx-auto">
