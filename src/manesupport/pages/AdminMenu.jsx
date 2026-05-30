@@ -38,6 +38,8 @@ const SECTIONS = [
     title: '現場管理',
     minRole: 'manager',
     items: [
+      // 集金は 2026-05-30 ヒロ ad-hoc 依頼で Launcher からマネサポ配下へ移設
+      { icon: '💴', title: '集金', desc: '金種カウント・売上伝票PDF', path: '/collection/input' },
       { icon: '🔍', title: 'データ検索', desc: '過去データの検索・修正', path: '/datasearch' },
       { icon: '📋', title: '監査ログ', desc: '操作履歴の確認・追跡', path: '/admin/audit' },
       { icon: '📊', title: '監査サマリ', desc: '棚卸し・移管・入荷の件数集計', path: '/admin/audit-summary' },

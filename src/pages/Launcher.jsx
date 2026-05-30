@@ -8,6 +8,22 @@ import { logout } from '../lib/auth/session'
 import DateTime from '../shared/ui/DateTime'
 import { supabase } from '../lib/supabase'
 
+// 未対応TODOインラインリスト用: booth_code 末尾 (例: MNK01-M02-B04 → B04) を取り出し
+function boothLabel(boothNumber, boothCode) {
+  if (boothNumber != null) return `B${String(boothNumber).padStart(2, '0')}`
+  const m = typeof boothCode === 'string' ? boothCode.match(/-(B\d+)$/i) : null
+  return m ? m[1] : boothCode
+}
+
+function timeAgo(iso) {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (diff < 60)        return 'たった今'
+  if (diff < 3600)      return `${Math.floor(diff / 60)}分前`
+  if (diff < 86400)     return `${Math.floor(diff / 3600)}時間前`
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}日前`
+  return new Date(iso).toLocaleDateString('ja-JP')
+}
+
 export default function Launcher() {
   const navigate = useNavigate()
   const { role, staffName, loading } = useRole()
@@ -19,7 +35,10 @@ export default function Launcher() {
   }
 
   const now = new Date()
-  const [unresolvedCount, setUnresolvedCount] = useState(0)
+  const [alerts, setAlerts]         = useState([])
+  const [storeMap, setStoreMap]     = useState({})
+  const [machineMap, setMachineMap] = useState({})
+  const [boothMap, setBoothMap]     = useState({})
 
   useEffect(() => {
     if (!loading && !role) {
@@ -27,14 +46,34 @@ export default function Launcher() {
     }
   }, [loading, role, navigate])
 
+  // 気づきリストをハブに直表示するため、件数だけでなく上位レコード+ラベルマップを取る
   useEffect(() => {
     if (!role) return
     supabase
       .from('booth_alerts')
-      .select('*', { count: 'exact', head: true })
+      .select('*, alert_types(label, icon_emoji, color_hex)')
       .eq('resolved', false)
-      .then(({ count }) => { if (count != null) setUnresolvedCount(count) })
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => { if (data) setAlerts(data) })
+    supabase.from('stores').select('store_code,store_name').then(({ data }) => {
+      if (!data) return
+      const m = {}; data.forEach(s => { m[s.store_code] = s.store_name })
+      setStoreMap(m)
+    })
+    supabase.from('machines').select('machine_code,machine_name').then(({ data }) => {
+      if (!data) return
+      const m = {}; data.forEach(x => { m[x.machine_code] = x.machine_name || x.machine_code })
+      setMachineMap(m)
+    })
+    supabase.from('booths').select('booth_code,booth_number').then(({ data }) => {
+      if (!data) return
+      const m = {}; data.forEach(x => { m[x.booth_code] = x.booth_number })
+      setBoothMap(m)
+    })
   }, [role])
+
+  const unresolvedCount = alerts.length
 
   if (loading) {
     return (
@@ -78,57 +117,61 @@ export default function Launcher() {
           </button>
         ))}
 
-        {/* J-COLLECTION-01: 集金タイル / J-COLLECTION-12 R1: admin/manager のみ表示。staff/patrol は非レンダリング。
-            ロールソースは useRole() の role (= useAuth().staffRole) で route guard と同一。 */}
-        {(role === 'admin' || role === 'manager') && (
-          <button
-            type="button"
-            data-testid="launcher-tile-collection"
-            onClick={() => navigate('/collection/input')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
-          >
-            <span
-              className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-              style={{ width: 44, height: 44 }}
-              aria-hidden
-            >
-              💴
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-xl font-bold leading-tight text-white">集金</p>
-              <p className="text-[13px] text-slate-400 mt-1 leading-snug">金種カウント・売上伝票PDF</p>
-            </div>
-            <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
-          </button>
-        )}
+        {/* 集金は ad-hoc 2026-05-30 ヒロ依頼でマネサポ配下へ移設。Launcher からは削除済。 */}
 
-        {/* 未対応TODOタイル */}
-        <button
-          type="button"
-          data-testid="launcher-tile-alerts"
-          onClick={() => navigate('/clawsupport/alerts')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
-        >
-          <span
-            className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-            style={{ width: 44, height: 44 }}
-            aria-hidden
-          >
-            📋
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-xl font-bold leading-tight text-white">未対応TODO</p>
-              {unresolvedCount > 0 && (
-                <span className="shrink-0 min-w-[22px] h-[22px] px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {unresolvedCount}
-                </span>
-              )}
-            </div>
-            <p className="text-[13px] text-slate-400 mt-1 leading-snug">気づき・アラート一覧</p>
+        {/* 未対応TODO インラインリスト (ad-hoc 2026-05-30 ヒロ Discord 依頼):
+            タイル形式を廃止、ハブに直表示。多ければリスト内スクロール、行は2段コンパクト。
+            タップ詳細/解決は /clawsupport/alerts へ遷移。 */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+            <span className="text-xl" aria-hidden>📋</span>
+            <p className="text-lg font-bold text-white">未対応TODO</p>
+            {unresolvedCount > 0 && (
+              <span className="shrink-0 min-w-[22px] h-[22px] px-1.5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {unresolvedCount}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate('/clawsupport/alerts')}
+              data-testid="launcher-alerts-more"
+              className="ml-auto text-sm text-blue-400 active:text-blue-300"
+            >
+              一覧 ›
+            </button>
           </div>
-          <span className="text-slate-500 text-lg shrink-0" aria-hidden>›</span>
-        </button>
+          {alerts.length === 0 ? (
+            <p className="text-center text-slate-400 text-base py-4">未対応のアラートはありません 🎉</p>
+          ) : (
+            <div
+              data-testid="launcher-alerts-scroll"
+              className="max-h-[44vh] overflow-y-auto divide-y divide-slate-700/70"
+            >
+              {alerts.map(a => (
+                <button
+                  key={a.alert_id}
+                  type="button"
+                  onClick={() => navigate('/clawsupport/alerts')}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left active:bg-slate-700/40"
+                >
+                  <span className="text-xl shrink-0" aria-hidden>{a.alert_types?.icon_emoji ?? '📌'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap leading-tight">
+                      <span className="text-base font-bold" style={{ color: a.alert_types?.color_hex ?? '#cbd5e1' }}>
+                        {a.alert_types?.label ?? a.type_code}
+                      </span>
+                      <span className="text-sm text-slate-400">{timeAgo(a.created_at)}</span>
+                    </div>
+                    <p className="text-base text-slate-300 truncate leading-tight mt-0.5">
+                      {storeMap[a.store_code] ?? a.store_code} / {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}
+                    </p>
+                  </div>
+                  <span className="text-slate-500 text-base shrink-0" aria-hidden>›</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="px-4 pb-4">
