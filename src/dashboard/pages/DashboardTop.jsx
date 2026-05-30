@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useDashboardStore } from '../../stores/dashboardStore'
 import KpiCard from '../components/KpiCard'
 import AlertList from '../components/AlertList'
@@ -117,6 +118,7 @@ function Skeleton() {
 
 export default function DashboardTop() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { data, loading, error, getOrFetch, invalidate } = useDashboardStore()
 
   useEffect(() => {
@@ -222,7 +224,7 @@ export default function DashboardTop() {
     <div className="min-h-screen bg-slate-50 pb-8">
       {/* ヘッダー */}
       <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur px-3 pt-3 pb-2 flex items-center gap-2 border-b border-slate-200">
-        <button onClick={() => navigate(-1)} className="text-slate-500 text-sm">‹</button>
+        <button onClick={goBack} className="text-slate-500 text-sm">‹</button>
         <h1 className="flex-1 font-bold text-base text-slate-800">経営者ビュー</h1>
         <button
           onClick={() => { invalidate(); getOrFetch() }}

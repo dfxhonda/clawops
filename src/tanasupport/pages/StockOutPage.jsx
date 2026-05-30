@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useSaveState } from '../../hooks/useSaveState'
@@ -29,6 +30,7 @@ function outTypeTargetType(outType) {
 
 export default function StockOutPage() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffId } = useAuth()
 
   const [locations, setLocations]       = useState([])
@@ -149,7 +151,7 @@ export default function StockOutPage() {
       {/* ヘッダー */}
       <div className="sticky top-0 z-40 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2"
         style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#f59e0b' }}>
-        <button onClick={() => navigate(-1)} className="text-muted text-xl leading-none">‹</button>
+        <button onClick={goBack} className="text-muted text-xl leading-none">‹</button>
         <div className="flex-1 font-bold text-base">出庫記録</div>
       </div>
 

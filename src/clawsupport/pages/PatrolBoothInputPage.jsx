@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useFeatureFlag } from '../../hooks/useFeatureFlag'
@@ -84,6 +85,7 @@ export default function PatrolBoothInputPage() {
   const { boothCode } = useParams()
   const { state, pathname } = useLocation()
   const navigate     = useNavigate()
+  const goBack       = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
   const { navigateNext, currentField, registerField } = useFieldNavigation()
@@ -726,7 +728,7 @@ export default function PatrolBoothInputPage() {
         module="clawsupport"
         title={boothLabel}
         variant="compact"
-        onBack={() => navigate(-1)}
+        onBack={goBack}
       />
 
       <div className="px-4 flex items-center gap-2">

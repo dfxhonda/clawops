@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import ErrorBanner from '../../components/ErrorBanner'
@@ -14,6 +15,7 @@ import { ERR } from '../../lib/errorCodes'
 
 export default function AdminBulkImportPage() {
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffRole, staffId, loading } = useAuth()
 
   const [stores,         setStores]         = useState([])
@@ -121,7 +123,7 @@ export default function AdminBulkImportPage() {
   }
 
   const backBtn = (
-    <button onClick={() => navigate(-1)} className="text-sm text-muted px-2">
+    <button onClick={goBack} className="text-sm text-muted px-2">
       ← 戻る
     </button>
   )
@@ -270,7 +272,7 @@ export default function AdminBulkImportPage() {
         <div className="text-center">
           <p className="text-base font-bold text-text">iPad以上の画面で開いてください</p>
           <p className="text-sm text-muted mt-2">Excel一括取込は iPad (768px+) 以上に対応しています</p>
-          <button onClick={() => navigate(-1)} className="mt-4 text-sm text-blue-400">← 戻る</button>
+          <button onClick={goBack} className="mt-4 text-sm text-blue-400">← 戻る</button>
         </div>
       </div>
     </>

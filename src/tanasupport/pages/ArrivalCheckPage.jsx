@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
+import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useArrivalOrders } from '../../hooks/useArrivalOrders'
 import ArrivalReceiveSheet from '../components/ArrivalReceiveSheet'
 import DateTime from '../../shared/ui/DateTime'
@@ -17,6 +18,7 @@ export default function ArrivalCheckPage() {
   if (!ARRIVAL_CHECK_ENABLED) return <Navigate to="/tanasupport" replace />
 
   const navigate = useNavigate()
+  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const [lane, setLane]             = useState('upcoming')
   const [destFilter, setDestFilter] = useState('')
   const [selected, setSelected]     = useState(null)
@@ -34,7 +36,7 @@ export default function ArrivalCheckPage() {
         className="sticky top-0 z-40 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2"
         style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#f43f5e' }}
       >
-        <button onClick={() => navigate(-1)} className="text-muted text-xl leading-none shrink-0">‹</button>
+        <button onClick={goBack} className="text-muted text-xl leading-none shrink-0">‹</button>
         <div className="flex-1 font-bold text-base">入荷チェック</div>
       </div>
 
