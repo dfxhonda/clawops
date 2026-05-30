@@ -86,22 +86,24 @@ export function buildHistogramFromGrayscalePixels(data) {
  * RGBA バッファに対して以下を適用する (in-place):
  *   1) grayscale (ITU-R BT.601 ルマ係数)
  *   2) コントラスト線形伸長 (min→0, max→255)
- *   3) S 字コントラストブースト (128 中心の押し付け、factor で強度制御)
- *   4) (binarize=true のみ) Otsu 自動二値化
+ *   3) S 字コントラストブースト (contrastFactor !== 1 のとき)
+ *   4) posterize (posterizeLevels >= 2 のとき、N 段量子化)
+ *   5) (binarize=true のとき) Otsu 自動二値化
  *
- * J-PATROL-99_adhoc_preprocess_grayscale_no_binarize-fix-06: 二値化を default 解除。
- * J-PATROL-99_adhoc_preprocess_contrast_boost-fix-08 (2026-05-30 ヒロFB):
- *   「もっとコントラスト上げないとだめ」を受けて、S 字ブースト 1 段追加。
- *   v_new = clamp((v - 128) * contrastFactor + 128, 0, 255)
- *   factor=1.0 で無変化、1.5 でやや押し付け、1.8 (default) で強コントラスト、
- *   2.0+ で限りなく二値化に近づく。中間グレーは残るので「潰れ」回避。
+ * J-PATROL-99 fix-06: 二値化を default 解除。
+ * J-PATROL-99 fix-08: S 字ブースト追加。
+ * J-PATROL-99 fix-09 (2026-05-30 ヒロFB「2値が良いのか4、6、8が良いのか」):
+ *   posterize (N 段量子化) を追加、default=4。banded な見た目で OCR が
+ *   段境界を識別しやすくなる。連続グレーの「ぼけ」と二値化の「潰れ」の中間案。
+ *   posterizeLevels=4 → 0/85/170/255 の 4 段。
+ *   S 字ブーストは default 1.0 (無効) に戻し、posterize がコントラスト制御を担当。
  *
  * @param {Uint8ClampedArray|Uint8Array} data RGBA 連続バッファ
- * @param {{ binarize?: boolean, contrastFactor?: number }} options
- * @returns {number|null} binarize=true 時は採用された Otsu 閾値、false 時は null
+ * @param {{ binarize?: boolean, contrastFactor?: number, posterizeLevels?: number }} options
+ * @returns {number|null} binarize=true 時は採用された Otsu 閾値、それ以外は null
  */
 export function preprocessForOcr(data, options = {}) {
-  const { binarize = false, contrastFactor = 1.8 } = options
+  const { binarize = false, contrastFactor = 1.0, posterizeLevels = 4 } = options
   for (let i = 0; i < data.length; i += 4) {
     const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
     data[i] = data[i + 1] = data[i + 2] = gray
@@ -125,6 +127,19 @@ export function preprocessForOcr(data, options = {}) {
       const boosted = (data[i] - 128) * contrastFactor + 128
       const v = boosted < 0 ? 0 : boosted > 255 ? 255 : Math.round(boosted)
       data[i] = data[i + 1] = data[i + 2] = v
+    }
+  }
+
+  // fix-09: posterize (N 段量子化)。posterizeLevels >= 2 で N トーンに丸める。
+  // 例: N=4 → 0/85/170/255、N=6 → 0/51/102/153/204/255。
+  // bucket: floor(v / 256 * N)。段の中心値: round(bucket * 255 / (N-1))。
+  if (posterizeLevels >= 2) {
+    const N = Math.floor(posterizeLevels)
+    const step = 256 / N
+    for (let i = 0; i < data.length; i += 4) {
+      const bucket = Math.min(N - 1, Math.floor(data[i] / step))
+      const quantized = Math.round((bucket * 255) / (N - 1))
+      data[i] = data[i + 1] = data[i + 2] = quantized
     }
   }
 
