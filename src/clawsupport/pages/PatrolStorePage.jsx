@@ -129,7 +129,7 @@ export default function PatrolStorePage() {
         {/* J-CHANGER-01: 両替機 (machine_models.type_id='changer') を店舗ハブ最上位に固定表示。
             ブース層スキップ、タップで /clawsupport/changer/:machineCode へ直行。 */}
         {machines
-          .filter(m => m.machine_models?.[0]?.type_id === 'changer')
+          .filter(m => ((Array.isArray(m.machine_models) ? m.machine_models[0]?.type_id : m.machine_models?.type_id) === 'changer'))
           .map(machine => (
             <button
               key={machine.machine_code}
@@ -144,13 +144,13 @@ export default function PatrolStorePage() {
                   <span className="text-base font-bold text-text">{machine.machine_name}</span>
                   <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-600/30 text-amber-300">両替機</span>
                 </div>
-                <p className="text-xs text-muted mt-0.5">{machine.machine_models?.[0]?.model_name ?? machine.machine_code}</p>
+                <p className="text-xs text-muted mt-0.5">{(Array.isArray(machine.machine_models) ? machine.machine_models[0]?.model_name : machine.machine_models?.model_name) ?? machine.machine_code}</p>
               </div>
               <span className="text-amber-400 text-lg shrink-0" aria-hidden>›</span>
             </button>
           ))}
         {machines
-          .filter(m => m.machine_models?.[0]?.type_id !== 'changer')
+          .filter(m => ((Array.isArray(m.machine_models) ? m.machine_models[0]?.type_id : m.machine_models?.type_id) !== 'changer'))
           .map(machine => (
             <MachineRow
               key={machine.machine_code}
