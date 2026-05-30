@@ -45,6 +45,14 @@ const AdminDevAssetsListPage = lazy(() => import('./admin/pages/AdminDevAssetsLi
 const AdminDevAssetsUploadPage = lazy(() => import('./admin/pages/AdminDevAssetsUploadPage'))
 const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
 const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
+// J-REPORTS-ANALYTICS-01 2026-05-30: 7 売上分析画面 lazy import
+const BoothRankingPage    = lazy(() => import('./admin/pages/reports/BoothRankingPage'))
+const PayoutTrendPage     = lazy(() => import('./admin/pages/reports/PayoutTrendPage'))
+const SevenDmaPage        = lazy(() => import('./admin/pages/reports/SevenDmaPage'))
+const CollectionCyclePage = lazy(() => import('./admin/pages/reports/CollectionCyclePage'))
+const PrizeCostPage       = lazy(() => import('./admin/pages/reports/PrizeCostPage'))
+const StoreComparisonPage = lazy(() => import('./admin/pages/reports/StoreComparisonPage'))
+const ProfitCalendarPage  = lazy(() => import('./admin/pages/reports/ProfitCalendarPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
 const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
 const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
@@ -220,6 +228,14 @@ function AppInner() {
         <Route path="audit/bulk-import" element={<AdminBulkImportPage />} />
         <Route path="audit/*" element={<AdminPlaceholderPage />} />
         <Route path="reports" element={<AdminReportsHubPage />} />
+        {/* J-REPORTS-ANALYTICS-01 2026-05-30: 7 売上分析画面 */}
+        <Route path="reports/booth-ranking"    element={<BoothRankingPage />} />
+        <Route path="reports/payout-trend"     element={<PayoutTrendPage />} />
+        <Route path="reports/7dma"             element={<SevenDmaPage />} />
+        <Route path="reports/collection-cycle" element={<CollectionCyclePage />} />
+        <Route path="reports/prize-cost"       element={<PrizeCostPage />} />
+        <Route path="reports/store-comparison" element={<StoreComparisonPage />} />
+        <Route path="reports/profit-calendar"  element={<ProfitCalendarPage />} />
         <Route path="reports/*" element={<AdminPlaceholderPage />} />
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
