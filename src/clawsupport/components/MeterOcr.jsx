@@ -123,8 +123,9 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
         body: { image_base64: b64, media_type: 'image/jpeg' },
       })
       // J-PATROL-99_adhoc_ocr_5s_timeout-fix-02 (2026-05-30 ヒロ承認): 15s → 5s 短縮。
+      // J-PATROL-99_adhoc_ocr_timeout_6s-fix-11 (2026-05-30 ヒロ承認): 5s → 6s 緩和。
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('5秒で読み取れなかったため手動入力に切り替えてください')), 5000)
+        setTimeout(() => reject(new Error('6秒で読み取れなかったため手動入力に切り替えてください')), 6000)
       )
       const { data, error } = await Promise.race([invokePromise, timeoutPromise])
       if (!mountedRef.current) return
