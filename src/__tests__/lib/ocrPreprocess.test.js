@@ -83,7 +83,10 @@ describe('buildHistogramFromGrayscalePixels', () => {
 })
 
 describe('preprocessForOcr', () => {
-  it('グレースケール → コントラスト伸長 → 二値化 を適用する', () => {
+  // J-PATROL-99_adhoc_preprocess_grayscale_no_binarize-fix-06 (2026-05-30 ヒロFB):
+  // default は grayscale + コントラスト伸長止まり (中間グレー保持)。
+  // 旧テスト「二値化を適用する」は { binarize: true } 明示で従来挙動を担保する。
+  it('binarize=true: グレースケール → コントラスト伸長 → 二値化 を適用する', () => {
     const data = new Uint8ClampedArray([
       // R, G, B, A
       50, 50, 50, 255,    // dark
@@ -92,7 +95,7 @@ describe('preprocessForOcr', () => {
       30, 30, 30, 255,    // dark
       230, 230, 230, 255, // bright
     ])
-    const t = preprocessForOcr(data)
+    const t = preprocessForOcr(data, { binarize: true })
     expect(t).toBeGreaterThan(0)
     expect(t).toBeLessThan(255)
 
@@ -108,7 +111,7 @@ describe('preprocessForOcr', () => {
     expect(data[16]).toBe(255)
   })
 
-  it('カラー画像でも輝度係数で正しく処理する', () => {
+  it('binarize=true: カラー画像でも輝度係数で正しく処理する', () => {
     const data = new Uint8ClampedArray([
       255, 0, 0, 255,
       0, 255, 0, 255,
@@ -116,9 +119,33 @@ describe('preprocessForOcr', () => {
       255, 255, 255, 255,
       0, 0, 0, 255,
     ])
-    preprocessForOcr(data)
+    preprocessForOcr(data, { binarize: true })
     for (let i = 0; i < data.length; i += 4) {
       expect([0, 255]).toContain(data[i])
     }
+  })
+
+  it('default (二値化なし): grayscale + コントラスト伸長で中間グレーが残る (ヒロ要件 fix-06)', () => {
+    const data = new Uint8ClampedArray([
+      50, 50, 50, 255,
+      200, 200, 200, 255,
+      120, 120, 120, 255,
+      30, 30, 30, 255,
+      230, 230, 230, 255,
+    ])
+    const t = preprocessForOcr(data) // binarize 省略 = false
+    expect(t).toBeNull() // 二値化していないので閾値は null
+    // 全ピクセルが grayscale (R==G==B) 化されている
+    for (let i = 0; i < data.length; i += 4) {
+      expect(data[i]).toBe(data[i + 1])
+      expect(data[i + 1]).toBe(data[i + 2])
+    }
+    // コントラスト線形伸長: 元 min=30, max=230 → 0 と 255 にスケール
+    expect(data[12]).toBe(0)   // 元 30 → 0
+    expect(data[16]).toBe(255) // 元 230 → 255
+    // 中間値 (元 120) は 0 でも 255 でもなく中間グレーになる
+    const mid = data[8]
+    expect(mid).toBeGreaterThan(0)
+    expect(mid).toBeLessThan(255)
   })
 })

@@ -34,34 +34,50 @@ export function useOCR({ boothCode, orgId }) {
     let photoUrl = null
     let uploadError = null
     let storagePath = null
-    try {
-      if (blob) {
-        const up = await uploadPhoto(blob)
-        photoUrl = up.url
-        storagePath = up.path ?? null
-        uploadError = up.uploadError
-      }
 
+    // J-PATROL-99_adhoc_ocr_full_timeout-fix-07 (2026-05-30 ヒロ実機FB):
+    // 旧: uploadPhoto を await した後に OCR invoke に 5s timeout → upload 遅延時 (iOS
+    //     Safari 弱電波等) は upload+invoke 合計で 20s 程度固まる事例。
+    // 新: upload と invoke を並列実行、OCR invoke のみ 5s で打ち切る。upload は
+    //     OCR 成功後に最大 1s 追加待ち、未完了なら uploadPending 扱いで photoUrl=null。
+    //     timeout 時は upload もキャンセル相当 (Promise.catch で unhandled rejection 抑制)。
+    const uploadPromise = blob
+      ? uploadPhoto(blob)
+      : Promise.resolve({ url: null, path: null, uploadError: null })
+
+    try {
+      const ocrPromise = supabase.functions.invoke('ocr-meter', {
+        body: { image_base64: imageBase64, media_type: 'image/jpeg' },
+      })
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('OCR_TIMEOUT_8S')), OCR_TIMEOUT_MS)
+        setTimeout(() => reject(new Error('OCR_TIMEOUT_5S')), OCR_TIMEOUT_MS)
       )
 
       let data, invokeError
       try {
-        const result = await Promise.race([
-          supabase.functions.invoke('ocr-meter', {
-            body: { image_base64: imageBase64, media_type: 'image/jpeg' },
-          }),
-          timeoutPromise,
-        ])
+        const result = await Promise.race([ocrPromise, timeoutPromise])
         data = result.data
         invokeError = result.error
       } catch (err) {
-        if (err.message === 'OCR_TIMEOUT_8S') {
-          return { meters: [], value: null, photoUrl, storagePath, timeout: true, uploadError }
+        if (err.message === 'OCR_TIMEOUT_5S' || err.message === 'OCR_TIMEOUT_8S') {
+          // upload の unhandled rejection を抑制 (background 続行)
+          uploadPromise.catch(() => {})
+          return { meters: [], value: null, photoUrl: null, storagePath: null, timeout: true, uploadError: 'ocr_timeout_at_5s' }
         }
         throw err
       }
+
+      // OCR 成功 → upload を最大 1s だけ追加で待つ。未完了なら photoUrl=null で続行。
+      const upResult = await Promise.race([
+        uploadPromise,
+        new Promise(resolve => setTimeout(
+          () => resolve({ url: null, path: null, uploadError: 'upload_pending_at_ocr_complete' }),
+          1000,
+        )),
+      ])
+      photoUrl = upResult.url
+      storagePath = upResult.path ?? null
+      uploadError = upResult.uploadError
 
       if (invokeError) throw new Error(invokeError.message)
 
@@ -72,6 +88,7 @@ export function useOCR({ boothCode, orgId }) {
       return { meters, value, photoUrl, storagePath, uploadError }
     } catch (e) {
       setError(e.message || 'OCR失敗')
+      uploadPromise.catch(() => {})
       return { meters: [], value: null, photoUrl, storagePath, uploadError }
     } finally {
       setLoading(false)
