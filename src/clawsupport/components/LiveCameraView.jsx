@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { logger } from '../../lib/logger'
+// J-PATROL-99_adhoc_ocr_preprocess_all_paths-fix-03 (2026-05-30 ヒロ承認):
+// shutter / handleGalleryChange のリサイズ後画像に preprocessForOcr を適用、
+// grayscale + コントラスト伸長 + Otsu 二値化で OCR 精度+latency 改善。
+import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
 const OCR_MAX_EDGE = 1600
 
@@ -16,7 +20,12 @@ function drawResizedCanvas(source, sw, sh, zoom = 1) {
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
-  canvas.getContext('2d').drawImage(source, sx, sy, cropW, cropH, 0, 0, w, h)
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(source, sx, sy, cropW, cropH, 0, 0, w, h)
+  // J-PATROL-99_adhoc_ocr_preprocess_all_paths-fix-03: in-place で前処理。
+  const imageData = ctx.getImageData(0, 0, w, h)
+  preprocessForOcr(imageData.data)
+  ctx.putImageData(imageData, 0, 0)
   return canvas
 }
 
