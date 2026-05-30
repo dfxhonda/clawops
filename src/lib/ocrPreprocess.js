@@ -83,15 +83,22 @@ export function buildHistogramFromGrayscalePixels(data) {
 }
 
 /**
- * RGBA バッファに対して
- *   1) grayscale（ITU-R BT.601 ルマ係数）
+ * RGBA バッファに対して以下を適用する (in-place):
+ *   1) grayscale (ITU-R BT.601 ルマ係数)
  *   2) コントラスト線形伸長
- *   3) Otsu 自動二値化
- * を順に適用する。バッファを in-place に書き換える。
+ *   3) (binarize=true のみ) Otsu 自動二値化
+ *
+ * J-PATROL-99_adhoc_preprocess_grayscale_no_binarize-fix-06 (2026-05-30 ヒロFB):
+ * 「白黒だと綺麗か潰れるかの2択」の問題を解消するため、デフォルトを
+ * grayscale + コントラスト伸長止まりに変更 (= 中間グレーを保持)。
+ * 二値化を明示的にしたい場合は { binarize: true } を渡す。
+ *
  * @param {Uint8ClampedArray|Uint8Array} data RGBA 連続バッファ
- * @returns {number} 採用された Otsu 閾値（ログ用）
+ * @param {{ binarize?: boolean }} options
+ * @returns {number|null} binarize=true 時は採用された Otsu 閾値、false 時は null
  */
-export function preprocessForOcr(data) {
+export function preprocessForOcr(data, options = {}) {
+  const { binarize = false } = options
   for (let i = 0; i < data.length; i += 4) {
     const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
     data[i] = data[i + 1] = data[i + 2] = gray
@@ -108,6 +115,8 @@ export function preprocessForOcr(data) {
     const v = Math.round(((data[i] - min) / range) * 255)
     data[i] = data[i + 1] = data[i + 2] = v
   }
+
+  if (!binarize) return null
 
   const hist = buildHistogramFromGrayscalePixels(data)
   const t = otsuThreshold(hist)
