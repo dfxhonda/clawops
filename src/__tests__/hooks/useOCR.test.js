@@ -111,4 +111,64 @@ describe('useOCR — ocr-meter経路', () => {
   // 境界テスト (5999ms 通常応答返却) は act + fakeTimers の組合せで renderHook が
   // null を返すケースが happy-dom 環境で発生したため割愛。timeout 値は 6000 で固定、
   // 「6秒超過で timeout:true」が green であれば実装側の OCR_TIMEOUT_MS=6000 を担保する。
+
+  // J-PATROL-99_adhoc_ocr_haiku_lazy_upload-fix-12: lazy upload。
+  // runOCR は upload を発火せず、戻り値の uploadStorage() factory 経由で
+  // 呼出側が任意のタイミングで upload を発火する。
+  it('fix-12 lazy upload: runOCR 戻り値に uploadStorage 関数が含まれ、photoUrl は初期 null', async () => {
+    supabase.functions.invoke.mockResolvedValue({
+      data: {
+        meters: [{ label: 'IN', value: 1234, type: 'in', confidence: 0.9 }],
+        confidence: 0.9,
+      },
+      error: null,
+    })
+
+    const fakeBlob = new Blob(['fake'], { type: 'image/jpeg' })
+    const { result } = renderHook(() =>
+      useOCR({ boothCode: 'TEST01-M01-B01', orgId: 'org-test' })
+    )
+
+    let ocrResult
+    await act(async () => {
+      ocrResult = await result.current.runOCR(FAKE_BASE64, fakeBlob)
+    })
+
+    expect(ocrResult.meters).toHaveLength(1)
+    expect(ocrResult.photoUrl).toBeNull()
+    expect(typeof ocrResult.uploadStorage).toBe('function')
+
+    // uploadStorage を fire すると Storage upload + signed URL 取得が走る
+    let upResult
+    await act(async () => {
+      upResult = await ocrResult.uploadStorage()
+    })
+    expect(upResult.url).toBe('https://signed.url/photo.jpg')
+    expect(upResult.uploadError).toBeNull()
+  })
+
+  it('fix-12 timeout 経路でも uploadStorage が利用可能 (手入力後の保存で audit 取れる)', async () => {
+    vi.useFakeTimers()
+    supabase.functions.invoke.mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve({ data: { meters: [] }, error: null }), 12000))
+    )
+
+    const fakeBlob = new Blob(['fake'], { type: 'image/jpeg' })
+    const { result } = renderHook(() =>
+      useOCR({ boothCode: 'TEST01-M01-B01', orgId: 'org-test' })
+    )
+
+    let ocrResult
+    const promise = act(async () => {
+      const p = result.current.runOCR(FAKE_BASE64, fakeBlob)
+      vi.advanceTimersByTime(6001)
+      ocrResult = await p
+    })
+    await promise
+
+    expect(ocrResult.timeout).toBe(true)
+    expect(typeof ocrResult.uploadStorage).toBe('function')
+
+    vi.useRealTimers()
+  })
 })
