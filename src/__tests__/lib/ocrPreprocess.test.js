@@ -125,7 +125,7 @@ describe('preprocessForOcr', () => {
     }
   })
 
-  it('default (二値化なし): grayscale + コントラスト伸長で中間グレーが残る (ヒロ要件 fix-06)', () => {
+  it('default (二値化なし + S字ブースト factor=1.8): grayscale + 強コントラストで中間グレーが残る (ヒロ要件 fix-06+08)', () => {
     const data = new Uint8ClampedArray([
       50, 50, 50, 255,
       200, 200, 200, 255,
@@ -133,19 +133,42 @@ describe('preprocessForOcr', () => {
       30, 30, 30, 255,
       230, 230, 230, 255,
     ])
-    const t = preprocessForOcr(data) // binarize 省略 = false
+    const t = preprocessForOcr(data) // binarize 省略 = false, contrastFactor=1.8 default
     expect(t).toBeNull() // 二値化していないので閾値は null
     // 全ピクセルが grayscale (R==G==B) 化されている
     for (let i = 0; i < data.length; i += 4) {
       expect(data[i]).toBe(data[i + 1])
       expect(data[i + 1]).toBe(data[i + 2])
     }
-    // コントラスト線形伸長: 元 min=30, max=230 → 0 と 255 にスケール
-    expect(data[12]).toBe(0)   // 元 30 → 0
-    expect(data[16]).toBe(255) // 元 230 → 255
-    // 中間値 (元 120) は 0 でも 255 でもなく中間グレーになる
+    // 端点: 元 30 → 0、元 230 → 255 (線形伸長で確定、S 字でも変わらず)
+    expect(data[12]).toBe(0)
+    expect(data[16]).toBe(255)
+    // 中間値 (元 120) は 0 でも 255 でもなく中間グレーになる (S 字ブースト後も)
     const mid = data[8]
     expect(mid).toBeGreaterThan(0)
     expect(mid).toBeLessThan(255)
+  })
+
+  it('contrastFactor=1.0 (S字無効): 線形伸長のみで中間値の押し付けなし (fix-08 制御確認)', () => {
+    const data = new Uint8ClampedArray([
+      30, 30, 30, 255,
+      120, 120, 120, 255,
+      230, 230, 230, 255,
+    ])
+    preprocessForOcr(data, { contrastFactor: 1.0 })
+    // 元 120 → 線形伸長 (120-30)/200 * 255 ≈ 114.75 → 115
+    // S 字 factor=1.0 なら変更なし → 115 のまま
+    expect(data[4]).toBe(115)
+  })
+
+  it('contrastFactor=1.8 (default 想定): S字ブーストで中間が暗い方に押される (fix-08)', () => {
+    const data = new Uint8ClampedArray([
+      30, 30, 30, 255,
+      120, 120, 120, 255,
+      230, 230, 230, 255,
+    ])
+    preprocessForOcr(data, { contrastFactor: 1.8 })
+    // 元 120 → 線形伸長 115 → S 字 (115-128)*1.8+128 = -23.4+128 = 104.6 → 105
+    expect(data[4]).toBe(105)
   })
 })
