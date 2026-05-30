@@ -333,8 +333,12 @@ export default function PatrolBoothInputPage() {
     // 新: 失敗時 (timeout / meters=[]) も confirming に遷移、IN/OUT 空欄+
     //     エラーバナー+numpad アクティブで「その場で手入力」を可能化。
     //     ヒロ要件「読み取り不可の場合その状態で手入力させる」を満たす。
+    // J-PATROL-99_adhoc_ocr_haiku_lazy_upload-fix-12: uploadStorage は OCR 経路から
+    // 排除済、ここでは保管のみ。実発火は handleOCRUse (= 「使う」ボタン押下後)。
+    const uploadStorage = result?.uploadStorage ?? null
+
     if (!result || result.timeout) {
-      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: null, avgConf: null })
+      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: null, avgConf: null, uploadStorage })
       setOcrEditIn('')
       setOcrEditOut('')
       setOcrEdited(false)
@@ -343,13 +347,11 @@ export default function PatrolBoothInputPage() {
       return
     }
 
-    const { meters: ocrMeters, photoUrl, uploadError } = result
-    if (photoUrl) logger.info('ocr_photo_uploaded', { photo_url: photoUrl })
-    else if (uploadError) logger.error('ocr_photo_upload_error', { error: uploadError, code: 'ERR-OCR-PHOTO-001' })
+    const { meters: ocrMeters } = result
 
     if (!ocrMeters?.length) {
       // 同上: メーター検出ゼロ時も confirming で手入力可
-      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: photoUrl ?? null, avgConf: null })
+      setOcrCapture({ imageUrl: previewUrl, cols: { in_meter: null, out_meter: null }, photoUrl: null, avgConf: null, uploadStorage })
       setOcrEditIn('')
       setOcrEditOut('')
       setOcrEdited(false)
@@ -366,7 +368,7 @@ export default function PatrolBoothInputPage() {
 
     logger.info('ocr_result_returned', { confidence: avgConf })
 
-    setOcrCapture({ imageUrl: previewUrl, cols, photoUrl: photoUrl ?? null, avgConf })
+    setOcrCapture({ imageUrl: previewUrl, cols, photoUrl: null, avgConf, uploadStorage })
     setOcrEditIn(cols.in_meter != null ? String(cols.in_meter) : '')
     setOcrEditOut(cols.out_meter != null ? String(cols.out_meter) : '')
     setOcrEdited(false)
@@ -375,13 +377,28 @@ export default function PatrolBoothInputPage() {
 
   function handleOCRUse() {
     if (!ocrCapture) return
-    const { photoUrl, avgConf } = ocrCapture
+    const { avgConf, uploadStorage } = ocrCapture
     const finalIn = ocrEditIn !== '' ? parseInt(ocrEditIn, 10) : null
     const finalOut = ocrEditOut !== '' ? parseInt(ocrEditOut, 10) : null
     logger.info('ocr_confirmation_use_clicked', { in: finalIn, out: finalOut, confidence: avgConf, edited: ocrEdited })
     if (finalIn != null) { setIn(String(finalIn)); setTouched(t => ({ ...t, inMeter: true })) }
     if (finalOut != null) { setOut1(String(finalOut)); setTouched(t => ({ ...t, outMeter1: true })) }
-    setOcrPhotoUrl(photoUrl ?? null)
+    // J-PATROL-99_adhoc_ocr_haiku_lazy_upload-fix-12: 「使う」が押された後に Storage upload を
+    // 発火、結果が来たら setOcrPhotoUrl で audit に乗せる。fire-and-forget なので
+    // 保存ボタンタップが先行しても 巡回 reading の保存自体は止めない。
+    if (uploadStorage) {
+      uploadStorage().then(up => {
+        if (up?.url) {
+          setOcrPhotoUrl(up.url)
+          logger.info('ocr_photo_uploaded_lazy', { photo_url: up.url })
+        } else if (up?.uploadError) {
+          logger.error('ocr_photo_upload_error_lazy', { error: up.uploadError, code: 'ERR-OCR-PHOTO-001' })
+        }
+      }).catch(e => {
+        logger.error('ocr_photo_upload_throw_lazy', { error: e?.message ?? String(e), code: 'ERR-OCR-PHOTO-002' })
+      })
+    }
+    setOcrPhotoUrl(null)
     setOcrConf(avgConf ?? null)
     // J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04 (2026-05-30):
     // OCR が値を返さなかった (avgConf===null = timeout / no meters) ケースで
