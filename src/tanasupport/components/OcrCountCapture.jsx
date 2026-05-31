@@ -6,7 +6,10 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const OCR_TIMEOUT_MS = 6000
+// J-STOCK-OCR-COUNT-TEST-01-fix-04 (ヒロ Discord 5/31 '時間かければ行けるなら 20s にしてもいい'):
+// 巡回メーター (6s) と違って棚卸は急がない、Claude vision の景品個数カウントは数字読み取りより
+// 重い思考処理。6s → 20s に延長して timeout 多発を抑制 (実機 IMG_4241 で 6s timeout 発火)。
+const OCR_TIMEOUT_MS = 20000
 
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -69,7 +72,7 @@ export default function OcrCountCapture({ onLog }) {
       setConfirmed(res.value != null ? String(res.value) : '')
       setPhase('done')
     } catch (e) {
-      const msg = e?.message === 'OCR_TIMEOUT_6S' ? 'OCR タイムアウト (6s) — 手入力してください' : String(e?.message || e)
+      const msg = e?.message === 'OCR_TIMEOUT_6S' ? 'OCR タイムアウト (20s) — 手入力してください' : String(e?.message || e)
       setPhase('error'); setErrMsg(msg)
     }
   }
