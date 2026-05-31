@@ -188,7 +188,9 @@ export async function addMachine(m) {
 export async function addBooth(b) {
   const machineCodeSuffix = b.machine_code.split('-').slice(1).join('-')
   const boothCode = `${b.store_code}-${machineCodeSuffix}-B${String(b.booth_number).padStart(2, '0')}`
-  // J-ADMIN-99_adhoc_machine_add_org_id_fix: booths.organization_id NOT NULL (multi_tenant_isolation)
+  // J-ADMIN-99_adhoc_machine_add_org_id_fix-02: booths テーブルは organization_id 列なし
+  // (schema cache "Could not find the 'organization_id' column of 'booths'" エラー、ヒロ実機 IMG_4229)。
+  // machines だけ NOT NULL 制約あり、booths は store_code 経由で RLS 担保。
   const { data, error } = await supabase
     .from('booths')
     .insert({
@@ -200,7 +202,6 @@ export async function addBooth(b) {
       meter_in_number: b.meter_in_number || 7,
       meter_out_number: b.meter_out_number || 7,
       is_active: true,
-      organization_id: DFX_ORG_ID,
     })
     .select()
     .single()
