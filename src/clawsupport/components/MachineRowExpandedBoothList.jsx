@@ -3,9 +3,8 @@
 
 function fmtSigned(n) {
   if (n == null) return '−'
-  if (n > 0) return `+${n.toLocaleString()}`
-  if (n < 0) return n.toLocaleString()
-  return '0'
+  // fix-02 ad-hoc: + は要らない、負号 - のみ残す (toLocaleString が自動付与)
+  return n.toLocaleString()
 }
 function fmtPerDay(n) {
   if (n == null) return '−'

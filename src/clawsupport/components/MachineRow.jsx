@@ -18,12 +18,11 @@ function Chevron({ className }) {
   )
 }
 
-// J-PATROL-IN-DAILY-fix-01: 数値フォーマット (符号付き整数 / 1dp/日 / 空欄=−)
+// J-PATROL-IN-DAILY-fix-02 ad-hoc (ヒロ Discord IMG_4230): + は要らない、負号 - のみ残す、空欄 −
 function fmtSigned(n) {
   if (n == null) return '−'
-  if (n > 0) return `+${n.toLocaleString()}`
-  if (n < 0) return n.toLocaleString()
-  return '0'
+  // 負数は toLocaleString が '-' を付ける、正数は + 無し
+  return n.toLocaleString()
 }
 function fmtPerDay(n) {
   if (n == null) return '−'
@@ -53,9 +52,6 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
   const isSingleBooth = booths.length === 1
 
   const totals = machineTotals(booths, diffMap)
-  const hasAny =
-    totals.prevIn != null || totals.currIn != null ||
-    totals.prevPerDay != null || totals.currPerDay != null
 
   const doneCnt = booths.filter(b => !!todayMap[b.booth_code]).length
   const allDone = doneCnt === booths.length && booths.length > 0
@@ -89,37 +85,41 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
             <p className="text-emerald-400/70 text-base mt-0.5">入力済み</p>
           )}
         </div>
-        {/* J-PATROL-IN-DAILY-fix-01: 機械合計 = booth SUM (4 列、OUT 完全削除) */}
-        {hasAny && (
-          <div
-            data-testid={`machine-totals-${machine.machine_code}`}
-            className="ml-auto shrink-0 grid grid-cols-4 gap-x-2 text-[10px] text-right leading-tight"
-          >
-            <div>
-              <div className="text-muted">前IN</div>
-              <div className="font-mono text-sm font-bold text-text">{fmtSigned(totals.prevIn)}</div>
-            </div>
-            <div>
-              <div className="text-muted">今IN</div>
-              <div className="font-mono text-sm font-bold text-green-300">{fmtSigned(totals.currIn)}</div>
-            </div>
-            <div>
-              <div className="text-muted">前/日</div>
-              <div className="font-mono text-sm font-bold text-text">{fmtPerDay(totals.prevPerDay)}</div>
-            </div>
-            <div>
-              <div className="text-muted">今/日</div>
-              <div className="font-mono text-sm font-bold text-green-300">{fmtPerDay(totals.currPerDay)}</div>
-            </div>
+        {/* J-PATROL-IN-DAILY-fix-02 ad-hoc (ヒロ Discord IMG_4230):
+            全機械で列の x 位置を揃えるため totals は固定幅 w-44 (= 4 * w-11 = 11rem = 176px)、
+            各列 w-11 固定、履歴無し機械も同幅プレースホルダ + chevron スロットも同幅で揃える。
+            これで縦に 前IN/今IN/前/日/今/日 が並ぶ。 */}
+        <div
+          data-testid={`machine-totals-${machine.machine_code}`}
+          className="shrink-0 grid grid-cols-4 text-[10px] text-right leading-tight w-44"
+        >
+          <div className="w-11">
+            <div className="text-muted">前IN</div>
+            <div className="font-mono text-sm font-bold text-text">{fmtSigned(totals.prevIn)}</div>
           </div>
-        )}
-        {!isSingleBooth && (
+          <div className="w-11">
+            <div className="text-muted">今IN</div>
+            <div className="font-mono text-sm font-bold text-green-300">{fmtSigned(totals.currIn)}</div>
+          </div>
+          <div className="w-11">
+            <div className="text-muted">前/日</div>
+            <div className="font-mono text-sm font-bold text-text">{fmtPerDay(totals.prevPerDay)}</div>
+          </div>
+          <div className="w-11">
+            <div className="text-muted">今/日</div>
+            <div className="font-mono text-sm font-bold text-green-300">{fmtPerDay(totals.currPerDay)}</div>
+          </div>
+        </div>
+        {/* chevron スロット: 単一ブースでも invisible で同幅確保 → 列の x 位置が全機械で揃う */}
+        {!isSingleBooth ? (
           <span
             data-testid={`chevron-${machine.machine_code}`}
             className={`text-muted shrink-0 transition-transform duration-200 inline-flex ${isExpanded ? 'rotate-90' : ''}`}
           >
             <Chevron className="" />
           </span>
+        ) : (
+          <span className="shrink-0 inline-flex w-5 h-5" aria-hidden />
         )}
       </button>
 
