@@ -88,7 +88,32 @@ Deno.serve(async (req: Request) => {
 
     const anthropicData = await anthropicRes.json();
     const rawText = anthropicData?.content?.[0]?.text ?? '';
-    const cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+
+    // J-STOCK-OCR-COUNT-TEST-01-fix-06: 旧 cleaned = trim + ``` 除去 だけだと Claude が
+    //   "Here is my analysis...\n{...}\n..." 等 説明文を前後に付けた時に JSON parse 失敗 (422 多発)。
+    // 改善: 文字列内の最初の { から バランスする } までを抽出 (string/escape 考慮)、その範囲を JSON.parse。
+    function extractJsonObject(text: string): string | null {
+      const noFences = text.replace(/```(?:json)?/gi, '');
+      const firstBrace = noFences.indexOf('{');
+      if (firstBrace < 0) return null;
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      for (let i = firstBrace; i < noFences.length; i++) {
+        const ch = noFences[i];
+        if (escape) { escape = false; continue; }
+        if (ch === '\\') { escape = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) return noFences.slice(firstBrace, i + 1);
+        }
+      }
+      return null;
+    }
+    const cleaned = extractJsonObject(rawText) ?? rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
 
     type ParsedShape = {
       value?: number | null;
@@ -101,16 +126,21 @@ Deno.serve(async (req: Request) => {
     try {
       parsed = JSON.parse(cleaned);
     } catch {
+      // J-STOCK-OCR-COUNT-TEST-01-fix-06: 旧 422 だと Supabase JS client が 'non-2xx' エラーで投げ、
+      // フロントが '画像大きすぎ' 誤メッセージ表示 (本当は Claude 出力が JSON 以外混入)。
+      // 200 + value=null/confidence=0 + parse_failed フラグで返し、フロントは '?' 表示 + 手入力 を可能に。
       console.error('JSON parse failed:', rawText);
       return new Response(
         JSON.stringify({
-          error: 'OCR結果の解析に失敗しました',
-          raw_text: rawText,
           value: null,
           confidence: 0,
+          items_breakdown: [],
+          notes: 'OCR の応答が解析できませんでした。手入力してください',
+          parse_failed: true,
+          raw_text: rawText,
           meters: [],
         }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
