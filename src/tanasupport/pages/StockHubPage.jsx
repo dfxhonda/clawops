@@ -225,6 +225,21 @@ export default function StockHubPage() {
         onBack={() => navigate('/launcher')}
       />
       <div className="flex-1 overflow-y-auto pb-6">
+        {/* J-STOCK-OCR-COUNT-TEST-01 fix-01: spec '常時表示 (store_id 不要)' に従い、
+            step='select' (店舗選択前) にも同タイルを最上部に配置。
+            step='menu' (店舗選択後) 側にも追加済 (重複表示は意図、店舗選択前後どちらの動線からも到達可能)。 */}
+        <div className="px-4 pt-3 pb-1 shrink-0">
+          <TaskTile
+            emoji="🔬"
+            title="OCRカウントテスト"
+            sub="景品個数OCRの精度確認 (テスト版)"
+            borderColor="#8b5cf6"
+            badge={null}
+            onClick={() => navigate('/stock/ocr-count-test')}
+            testid="stock-hub-card-ocr-count-test-select"
+          />
+        </div>
+
         {pinnedStores.length > 0 && (
           <div className="px-4 pt-3 pb-1 shrink-0">
             <p className="text-[10px] text-muted font-bold tracking-wider mb-1.5">★ ピン留め</p>
