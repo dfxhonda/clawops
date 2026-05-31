@@ -56,8 +56,10 @@ describe('getHierarchicalParent', () => {
     it('admin hub → /launcher', () => {
       expect(getHierarchicalParent('/admin')).toBe('/launcher')
     })
-    it('booth-edit dynamic → /admin/audit/booth-edit', () => {
-      expect(getHierarchicalParent('/admin/audit/booth-edit/STX01-M01-B01')).toBe('/admin/audit/booth-edit')
+    it('booth-edit dynamic → /admin/audit/booth-edit/:storeCode/machines (機械一覧、1段戻り)', () => {
+      // J-ADMIN-BACK-NAV-fix-01 2026-05-31: ヒロ ad-hoc で 2段戻り bug 修正、
+      // booth_code 先頭 split('-')[0] = store_code で機械一覧 URL 組立。
+      expect(getHierarchicalParent('/admin/audit/booth-edit/STX01-M01-B01')).toBe('/admin/audit/booth-edit/STX01/machines')
     })
   })
 

@@ -49,7 +49,14 @@ const OVERRIDES = [
   // 配下ページは親タブに戻す: /admin/masters/X → /admin/masters
   { test: /^\/admin\/masters\/[^/]+\/?$/, target: () => '/admin/masters' },
   { test: /^\/admin\/audit\/booth-edit\/[^/]+\/machines\/?$/, target: () => '/admin/audit/booth-edit' },
-  { test: /^\/admin\/audit\/booth-edit\/[^/]+\/?$/, target: () => '/admin/audit/booth-edit' },
+  // ヒロ ad-hoc 2026-05-31: ブースデータ編集 → 機械一覧 (旧: 店舗一覧 = 2段戻り bug)。
+  // booth_code は STORE-Mxx-Bxx 形式、先頭 split('-')[0] = store_code で機械一覧 URL を組み立て。
+  { test: /^\/admin\/audit\/booth-edit\/[^/]+\/?$/, target: (path) => {
+      const m = path.match(/^\/admin\/audit\/booth-edit\/([^/]+)/)
+      const boothCode = m?.[1]
+      const storeCode = boothCode?.split('-')?.[0]
+      return storeCode ? `/admin/audit/booth-edit/${storeCode}/machines` : '/admin/audit/booth-edit'
+    } },
   { test: /^\/admin\/audit\/[^/]+\/?$/, target: () => '/admin/audit' },
   { test: /^\/admin\/reports\/[^/]+\/?$/, target: () => '/admin/reports' },
   { test: /^\/admin\/settings\/[^/]+\/?$/, target: () => '/admin/settings' },
