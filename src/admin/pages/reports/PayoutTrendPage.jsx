@@ -1,7 +1,8 @@
-// J-REPORTS-ANALYTICS-01 S2 + J-REPORTS-S2S3-FIX-01: 払い出し率トレンド
+// J-REPORTS-ANALYTICS-01 S2 + J-REPORTS-S2S3-FIX-01/02: 払い出し率トレンド
 // 2モード:
 //   single  = 3段ドリルダウン (店舗→機械→ブース) で 1 ブースの 2軸折れ線 + phase_at 縦線
 //   compare = 店舗選択後、その店舗の全ブースを payout_rate で重ね描き (多系列)
+// FIX-02: 右軸は play_count → play_7dma (フロント rolling 7day) に変更 (spec)、DB の play_7dma 列は全 NULL
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from '../../../lib/supabase'
@@ -9,6 +10,16 @@ import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa', '#22d3ee', '#fb923c', '#34d399', '#e879f9', '#facc15']
+
+// rolling 7day window for play_count → play_7dma (frontend calc, same formula as S3)
+function rolling7dmaFrom(points, valueKey) {
+  return points.map((_, i) => {
+    const start = Math.max(0, i - 6)
+    const slice = points.slice(start, i + 1)
+    const vals = slice.map(p => p[valueKey]).filter(v => v != null)
+    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+  })
+}
 
 export default function PayoutTrendPage() {
   const [mode, setMode] = useState('single') // 'single' | 'compare'
@@ -64,11 +75,14 @@ export default function PayoutTrendPage() {
       .gte('stat_date', from)
       .order('stat_date')
       .then(({ data }) => {
-        const list = (data ?? []).map(r => ({
+        const base = (data ?? []).map(r => ({
           stat_date: r.stat_date,
           payout_rate: r.payout_rate != null ? Number(r.payout_rate) * 100 : null,
           play_count: r.play_count != null ? Number(r.play_count) : null,
         }))
+        // 右軸用 play_7dma フロント計算 (DB play_7dma が全 NULL のため)
+        const dma = rolling7dmaFrom(base, 'play_count')
+        const list = base.map((p, i) => ({ ...p, play_7dma: dma[i] }))
         setSeries(list)
         const changes = []
         let prev = null
@@ -185,7 +199,7 @@ export default function PayoutTrendPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                       <XAxis dataKey="stat_date" stroke="#94a3b8" fontSize={10} />
                       <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} label={{ value: '払出率%', angle: -90, position: 'insideLeft', fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} label={{ value: 'play_count', angle: 90, position: 'insideRight', fontSize: 10, fill: '#94a3b8' }} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} label={{ value: 'play_7dma', angle: 90, position: 'insideRight', fontSize: 10, fill: '#94a3b8' }} />
                       <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', fontSize: 11 }} />
                       <ReferenceLine yAxisId="left" y={upper} stroke="#ef4444" strokeDasharray="4 4" label={{ value: `上限${upper}%`, fill: '#ef4444', fontSize: 10 }} />
                       <ReferenceLine yAxisId="left" y={lower} stroke="#3b82f6" strokeDasharray="4 4" label={{ value: `下限${lower}%`, fill: '#3b82f6', fontSize: 10 }} />
@@ -193,7 +207,7 @@ export default function PayoutTrendPage() {
                         <ReferenceLine key={d} yAxisId="left" x={d} stroke="#10b981" strokeDasharray="2 2" />
                       ))}
                       <Line yAxisId="left" type="monotone" dataKey="payout_rate" stroke="#fbbf24" strokeWidth={2} dot={false} name="払出率%" />
-                      <Line yAxisId="right" type="monotone" dataKey="play_count" stroke="#60a5fa" strokeWidth={2} dot={false} name="play_count" />
+                      <Line yAxisId="right" type="monotone" dataKey="play_7dma" stroke="#60a5fa" strokeWidth={2} dot={false} name="play_7DMA" />
                     </LineChart>
                   </ResponsiveContainer>
                   <p className="text-[10px] text-muted mt-2">緑線=景品phase変更点 ({phaseChanges.length}件)</p>

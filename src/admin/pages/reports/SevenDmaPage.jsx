@@ -80,12 +80,14 @@ export default function SevenDmaPage() {
       const ser = {}
       const days = {}
       for (const key of selected) {
+        // J-REPORTS-S1S2S3-FIX-02: daily_booth_stats に machine_code 列なし、
+        // machine 粒度は booth_code prefix (例 KOS01-M02-%) で絞る。
         let q = supabase.from('daily_booth_stats')
-          .select('stat_date, play_count, booth_code, machine_code, store_code')
+          .select('stat_date, play_count, booth_code, store_code')
           .gte('stat_date', from)
           .order('stat_date')
         if (granularity === 'booth') q = q.eq('booth_code', key)
-        else if (granularity === 'machine') q = q.eq('machine_code', key)
+        else if (granularity === 'machine') q = q.like('booth_code', `${key}-%`)
         else q = q.eq('store_code', key)
         const { data } = await q
         // 日付ごとに play_count を集約 (machine/store では複数 booth 行があるので SUM)

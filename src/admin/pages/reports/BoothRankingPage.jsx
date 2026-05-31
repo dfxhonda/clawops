@@ -64,12 +64,14 @@ export default function BoothRankingPage() {
         qFrom = `${todayParts[0]}-${todayParts[1]}-01`
         qTo = todayJst()
       }
+      // J-REPORTS-S1S2S3-FIX-02: daily_booth_stats に machine_code 列なし、FK は booths のみ。
+      // booths→machines→machine_models の正しい nested join に修正、machine_code は booths.machine_code から取る。
       let q = supabase
         .from('daily_booth_stats')
         .select(`
-          booth_code, store_code, machine_code, stat_date, revenue, play_count, payout_rate,
+          booth_code, store_code, stat_date, revenue, play_count, payout_rate,
           stores(store_name),
-          machines(machine_name, machine_models(width_mm, depth_mm))
+          booths!booth_code(machine_code, machines!machine_code(machine_name, machine_models!model_id(width_mm, depth_mm)))
         `)
         .gte('stat_date', qFrom)
         .lte('stat_date', qTo)
@@ -79,19 +81,23 @@ export default function BoothRankingPage() {
       const byMachine = {}
       const byBooth = {}
       for (const r of data ?? []) {
-        const mc = r.machine_code
+        const boothObj = Array.isArray(r.booths) ? r.booths[0] : r.booths
+        const machineObj = Array.isArray(boothObj?.machines) ? boothObj.machines[0] : boothObj?.machines
+        const mm = Array.isArray(machineObj?.machine_models) ? machineObj.machine_models[0] : machineObj?.machine_models
+        const mc = boothObj?.machine_code ?? null
         const bc = r.booth_code
-        const mm = Array.isArray(r.machines?.machine_models) ? r.machines.machine_models[0] : r.machines?.machine_models
-        if (!byMachine[mc]) byMachine[mc] = { totalRev: 0, days: new Set(), width: mm?.width_mm ?? null, depth: mm?.depth_mm ?? null }
-        byMachine[mc].totalRev += Number(r.revenue || 0)
-        byMachine[mc].days.add(r.stat_date)
+        if (mc) {
+          if (!byMachine[mc]) byMachine[mc] = { totalRev: 0, days: new Set(), width: mm?.width_mm ?? null, depth: mm?.depth_mm ?? null }
+          byMachine[mc].totalRev += Number(r.revenue || 0)
+          byMachine[mc].days.add(r.stat_date)
+        }
 
         if (!byBooth[bc]) byBooth[bc] = {
           booth_code: bc,
           store_code: r.store_code,
           machine_code: mc,
           store_name: r.stores?.store_name || r.store_code,
-          machine_name: r.machines?.machine_name || mc,
+          machine_name: machineObj?.machine_name || mc || bc,
           revenue_sum: 0,
           play_sum: 0,
           payout_sum: 0,
