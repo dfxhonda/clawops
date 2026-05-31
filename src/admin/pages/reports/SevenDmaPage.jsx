@@ -49,20 +49,28 @@ export default function SevenDmaPage() {
         setLoadingEntities(false)
         return
       }
-      // booth granularity — label: "{machine_name} {booth_num}" (J-REPORTS-S3-LABEL-FIX-01)
+      // booth granularity — label: "{machine_name} {booth_num} / {prize_name}" (J-REPORTS-S3-LABEL-FIX-01)
       // booth_num = booth_code 末尾セグメント (例: KOS01-M02-B01 → B01)
-      // prize_name = NULL の場合は '景品未設定' プレースホルダ表示
+      // prize_name = meter_readings の最新 patrol_date 行から (NULL なら '景品未設定')
       if (storeFilter === 'all') { setAllEntities([]); setLoadingEntities(false); return }
-      const [{ data: boothsData }, { data: machinesData }] = await Promise.all([
-        supabase.from('booths').select('booth_code, booth_number, machine_code, current_prize_id, prize_masters(prize_name)').eq('store_code', storeFilter).eq('is_active', true).order('booth_code'),
+      const [{ data: boothsData }, { data: machinesData }, { data: readingsData }] = await Promise.all([
+        supabase.from('booths').select('booth_code, booth_number, machine_code').eq('store_code', storeFilter).eq('is_active', true).order('booth_code'),
         supabase.from('machines').select('machine_code, machine_name').eq('store_code', storeFilter).eq('is_active', true),
+        // meter_readings から booth ごとの最新 prize_name を取得 (Supabase で DISTINCT ON 不可、
+        // patrol_date DESC で全件取得 → クライアント側で booth_code 初出を採用)
+        supabase.from('meter_readings').select('booth_code, prize_name, patrol_date').eq('store_code', storeFilter).order('patrol_date', { ascending: false }).limit(2000),
       ])
       const machineMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, m.machine_name || m.machine_code]))
+      const prizeMap = {}
+      for (const r of readingsData ?? []) {
+        if (!r.booth_code) continue
+        if (!(r.booth_code in prizeMap)) prizeMap[r.booth_code] = r.prize_name || null
+      }
       setAllEntities((boothsData ?? []).map(b => {
         const lastSeg = b.booth_code.split('-').pop()
         const machName = machineMap[b.machine_code] || b.machine_code
-        const prizeName = (Array.isArray(b.prize_masters) ? b.prize_masters[0]?.prize_name : b.prize_masters?.prize_name) || '景品未設定'
-        return { key: b.booth_code, label: `${machName} ${lastSeg}`, prize_name: prizeName }
+        const prizeName = prizeMap[b.booth_code] || '景品未設定'
+        return { key: b.booth_code, label: `${machName} ${lastSeg} / ${prizeName}`, prize_name: prizeName }
       }))
       setLoadingEntities(false)
     }
