@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import DiffChip from './DiffChip'
 import MachineRowExpandedBoothList from './MachineRowExpandedBoothList'
 
 function Chevron({ className }) {
@@ -19,6 +18,32 @@ function Chevron({ className }) {
   )
 }
 
+// J-PATROL-IN-DAILY-fix-01: 数値フォーマット (符号付き整数 / 1dp/日 / 空欄=−)
+function fmtSigned(n) {
+  if (n == null) return '−'
+  if (n > 0) return `+${n.toLocaleString()}`
+  if (n < 0) return n.toLocaleString()
+  return '0'
+}
+function fmtPerDay(n) {
+  if (n == null) return '−'
+  return n.toFixed(1)
+}
+
+// 機械合計 = ブース合計の SUM
+function machineTotals(booths, diffMap) {
+  const t = { prevIn: null, currIn: null, prevPerDay: null, currPerDay: null }
+  for (const b of booths) {
+    const d = diffMap[b.booth_code]
+    if (!d) continue
+    if (d.prevIn != null)     t.prevIn     = (t.prevIn     ?? 0) + d.prevIn
+    if (d.currIn != null)     t.currIn     = (t.currIn     ?? 0) + d.currIn
+    if (d.prevPerDay != null) t.prevPerDay = (t.prevPerDay ?? 0) + d.prevPerDay
+    if (d.currPerDay != null) t.currPerDay = (t.currPerDay ?? 0) + d.currPerDay
+  }
+  return t
+}
+
 export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand }) {
   // expanded/onToggleExpand が渡されれば外部制御(リスト状態の保持用)、無ければ従来の内部state
   const controlled = typeof onToggleExpand === 'function'
@@ -27,14 +52,10 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
   const booths = machine.booths ?? []
   const isSingleBooth = booths.length === 1
 
-  let inTotal = null
-  let outTotal = null
-  for (const b of booths) {
-    const d = diffMap[b.booth_code]
-    if (!d) continue
-    if (d.inDiff != null) inTotal = (inTotal ?? 0) + d.inDiff
-    if (d.outDiff != null) outTotal = (outTotal ?? 0) + d.outDiff
-  }
+  const totals = machineTotals(booths, diffMap)
+  const hasAny =
+    totals.prevIn != null || totals.currIn != null ||
+    totals.prevPerDay != null || totals.currPerDay != null
 
   const doneCnt = booths.filter(b => !!todayMap[b.booth_code]).length
   const allDone = doneCnt === booths.length && booths.length > 0
@@ -68,10 +89,28 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
             <p className="text-emerald-400/70 text-base mt-0.5">入力済み</p>
           )}
         </div>
-        {(inTotal != null || outTotal != null) && (
-          <div className="flex gap-1 ml-auto shrink-0">
-            <DiffChip label="IN" value={inTotal} />
-            <DiffChip label="OUT" value={outTotal} />
+        {/* J-PATROL-IN-DAILY-fix-01: 機械合計 = booth SUM (4 列、OUT 完全削除) */}
+        {hasAny && (
+          <div
+            data-testid={`machine-totals-${machine.machine_code}`}
+            className="ml-auto shrink-0 grid grid-cols-4 gap-x-2 text-[10px] text-right leading-tight"
+          >
+            <div>
+              <div className="text-muted">前IN</div>
+              <div className="font-mono text-sm font-bold text-text">{fmtSigned(totals.prevIn)}</div>
+            </div>
+            <div>
+              <div className="text-muted">今IN</div>
+              <div className="font-mono text-sm font-bold text-green-300">{fmtSigned(totals.currIn)}</div>
+            </div>
+            <div>
+              <div className="text-muted">前/日</div>
+              <div className="font-mono text-sm font-bold text-text">{fmtPerDay(totals.prevPerDay)}</div>
+            </div>
+            <div>
+              <div className="text-muted">今/日</div>
+              <div className="font-mono text-sm font-bold text-green-300">{fmtPerDay(totals.currPerDay)}</div>
+            </div>
           </div>
         )}
         {!isSingleBooth && (

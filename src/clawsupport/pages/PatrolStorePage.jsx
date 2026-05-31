@@ -29,7 +29,6 @@ export default function PatrolStorePage() {
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
   const [storeInTotal, setStoreInTotal] = useState(null)
-  const [storeOutTotal, setStoreOutTotal] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -41,14 +40,13 @@ export default function PatrolStorePage() {
     setMachines(machineList)
 
     const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
-    const [map, { diffMap: diffs, storeInTotal: inT, storeOutTotal: outT }] = await Promise.all([
+    const [map, { diffMap: diffs, storeInTotal: inT }] = await Promise.all([
       getTodayReadingsMap(boothCodes),
       fetchStoreMachineDiffs(machineList),
     ])
     setTodayMap(map)
     setDiffMap(diffs)
     setStoreInTotal(inT)
-    setStoreOutTotal(outT)
     setLoading(false)
   }, [storeCode])
 
@@ -98,12 +96,12 @@ export default function PatrolStorePage() {
         onBack={() => navigate('/clawsupport')}
       />
 
+      {/* J-PATROL-IN-DAILY-fix-01: OUT 表示を完全削除、IN のみ残す */}
       <div
         data-testid="store-inline-total"
         className="shrink-0 px-4 py-2 flex gap-2 items-center border-b border-border"
       >
         <DiffChip label="IN" value={storeInTotal} />
-        <DiffChip label="OUT" value={storeOutTotal} />
       </div>
 
       {totalCnt > 0 && (
