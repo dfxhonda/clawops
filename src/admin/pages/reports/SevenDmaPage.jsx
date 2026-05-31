@@ -49,11 +49,21 @@ export default function SevenDmaPage() {
         setLoadingEntities(false)
         return
       }
-      // booth granularity
+      // booth granularity — label: "{machine_name} {booth_num}" (J-REPORTS-S3-LABEL-FIX-01)
+      // booth_num = booth_code 末尾セグメント (例: KOS01-M02-B01 → B01)
+      // prize_name = NULL の場合は '景品未設定' プレースホルダ表示
       if (storeFilter === 'all') { setAllEntities([]); setLoadingEntities(false); return }
-      const { data } = await supabase
-        .from('booths').select('booth_code, booth_number, machine_code').eq('store_code', storeFilter).eq('is_active', true).order('booth_code')
-      setAllEntities((data ?? []).map(b => ({ key: b.booth_code, label: b.booth_code })))
+      const [{ data: boothsData }, { data: machinesData }] = await Promise.all([
+        supabase.from('booths').select('booth_code, booth_number, machine_code, current_prize_id, prize_masters(prize_name)').eq('store_code', storeFilter).eq('is_active', true).order('booth_code'),
+        supabase.from('machines').select('machine_code, machine_name').eq('store_code', storeFilter).eq('is_active', true),
+      ])
+      const machineMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, m.machine_name || m.machine_code]))
+      setAllEntities((boothsData ?? []).map(b => {
+        const lastSeg = b.booth_code.split('-').pop()
+        const machName = machineMap[b.machine_code] || b.machine_code
+        const prizeName = (Array.isArray(b.prize_masters) ? b.prize_masters[0]?.prize_name : b.prize_masters?.prize_name) || '景品未設定'
+        return { key: b.booth_code, label: `${machName} ${lastSeg}`, prize_name: prizeName }
+      }))
       setLoadingEntities(false)
     }
     loadEntities()
