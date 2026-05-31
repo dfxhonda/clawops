@@ -345,6 +345,31 @@ export async function saveSignedPdf({
     .update(updatePayload)
     .eq('collection_id', collectionId)
   if (updErr) return { data: null, error: updErr }
+
+  // J-COLLECTION-FLAG-REDESIGN-01 Phase 2: 先方署名確定で 当該店舗の patrol_date <= collected_at の
+  // 未集金 meter_readings を自動で is_collected=true + flagged_at=collected_at に更新。
+  // Supabase JS client は cross-table tx 非対応のため sequential update (PDF + cash_collections 成功後)。
+  // 失敗してもユーザー操作は続行 (warn only)、後で手動 集金フラグ編集 で復旧可能。
+  try {
+    const { data: col } = await supabase.from('cash_collections')
+      .select('store_code, collected_at')
+      .eq('collection_id', collectionId)
+      .single()
+    if (col?.store_code && col?.collected_at) {
+      const collectedDateJst = new Date(col.collected_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+      // is_collected IS NOT true (= null or false) のみ更新
+      await supabase.from('meter_readings')
+        .update({ is_collected: true, flagged_at: col.collected_at })
+        .eq('store_code', col.store_code)
+        .eq('entry_type', 'patrol')
+        .lte('patrol_date', collectedDateJst)
+        .or('is_collected.is.null,is_collected.eq.false')
+    }
+  } catch (autoFlagErr) {
+    // 自動フラグ失敗は 署名確定の主成功を打ち消さない (J-COLLECTION-FLAG-REDESIGN-01 spec の許容)
+    console.warn('J-COLLECTION-FLAG-REDESIGN-01 auto-flag warn:', autoFlagErr)
+  }
+
   return { data: { path, url: publicUrl }, error: null }
 }
 
