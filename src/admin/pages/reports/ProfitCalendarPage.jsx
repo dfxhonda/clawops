@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
+import StorePickerSheet from '../../../components/StorePickerSheet'
 
 function colorFor(margin, target) {
   if (margin == null) return 'bg-slate-700'
@@ -31,15 +32,9 @@ export default function ProfitCalendarPage() {
   const [target, setTarget] = useState(70)
   const [days, setDays] = useState(30)
   const [storeCode, setStoreCode] = useState('all')
-  const [stores, setStores] = useState([])
   const [grid, setGrid] = useState({ stores: [], dates: [], cells: {} })
   const [loading, setLoading] = useState(true)
   const [popup, setPopup] = useState(null)
-
-  useEffect(() => {
-    supabase.from('stores').select('store_code, store_name').eq('is_active', true)
-      .order('store_name').then(({ data }) => setStores(data ?? []))
-  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -110,11 +105,12 @@ export default function ProfitCalendarPage() {
           目標<input type="number" value={target} onChange={e => setTarget(Number(e.target.value))}
             className="w-14 bg-surface border border-border rounded px-2 py-0.5" />%
         </label>
-        <select value={storeCode} onChange={e => setStoreCode(e.target.value)}
-          className="bg-surface border border-border rounded px-2 py-1 text-xs">
-          <option value="all">全店</option>
-          {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-        </select>
+        {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet */}
+        <StorePickerSheet
+          value={storeCode === 'all' ? null : storeCode}
+          onChange={v => setStoreCode(v ?? 'all')}
+          showAllOption
+        />
       </div>
 
       <div className="flex gap-3 text-[10px] text-muted mb-2">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import StorePickerSheet from '../../components/StorePickerSheet'
 
 // J-COLLECTION-FLAG-REDESIGN-01 (司令塔Opus spec):
 // - 店舗 + 日付 (default 今日 JST) を選んだ時点で その店舗の 巡回 meter_readings (patrol_date <= 日付) を一括取得
@@ -30,7 +31,6 @@ export default function AdminCollectionFlagPage() {
   const navigate = useNavigate()
   const { staffName } = useAuth()
 
-  const [stores, setStores] = useState([])
   const [storeCode, setStoreCode] = useState('')
   const [asOfDate, setAsOfDate] = useState(todayJst())
   const [rows, setRows] = useState([])
@@ -40,11 +40,6 @@ export default function AdminCollectionFlagPage() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-
-  useEffect(() => {
-    supabase.from('stores').select('store_code, store_name').eq('is_active', true).order('store_name')
-      .then(({ data }) => setStores(data ?? []))
-  }, [])
 
   const loadReadings = useCallback(async () => {
     if (!storeCode || !asOfDate) return
@@ -161,11 +156,13 @@ export default function AdminCollectionFlagPage() {
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
             <span className="text-sm text-muted">店舗</span>
-            <select data-testid="colflag-store-select" value={storeCode} onChange={e => setStoreCode(e.target.value)}
-              className="bg-bg border border-border rounded-lg px-3 min-h-[44px] text-base text-text">
-              <option value="">店舗を選択</option>
-              {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-            </select>
+            {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet 統一 */}
+            <StorePickerSheet
+              value={storeCode || null}
+              onChange={v => setStoreCode(v ?? '')}
+              showAllOption={false}
+              placeholder="店舗を選択"
+            />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-sm text-muted">基準日 (この日まで)</span>

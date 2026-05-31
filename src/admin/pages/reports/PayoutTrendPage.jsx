@@ -9,6 +9,7 @@ import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
+import StorePickerSheet from '../../../components/StorePickerSheet'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa', '#22d3ee', '#fb923c', '#34d399', '#e879f9', '#facc15']
 
@@ -19,7 +20,6 @@ export default function PayoutTrendPage() {
   const [storeCode, setStoreCode] = useState(null)
   const [machineCode, setMachineCode] = useState(null)
   const [boothCode, setBoothCode] = useState(null)
-  const [stores, setStores] = useState([])
   const [machines, setMachines] = useState([])
   const [booths, setBooths] = useState([])
   const [series, setSeries] = useState([])
@@ -33,11 +33,6 @@ export default function PayoutTrendPage() {
   const [upper, setUpper] = useState(60)
   const [lower, setLower] = useState(30)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    supabase.from('stores').select('store_code, store_name').eq('is_active', true)
-      .order('store_name').then(({ data }) => setStores(data ?? []))
-  }, [])
 
   // single mode: store -> machines
   useEffect(() => {
@@ -145,12 +140,12 @@ export default function PayoutTrendPage() {
       {/* single 用ドリルダウン */}
       {mode === 'single' && (
         <div className="flex flex-wrap gap-2 mb-4">
-          <select value={storeCode ?? ''} onChange={e => setStoreCode(e.target.value || null)}
-            data-testid="select-store"
-            className="bg-surface border border-border rounded px-2 py-1 text-xs">
-            <option value="">店舗を選択</option>
-            {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-          </select>
+          {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet (single mode、全店 option なし) */}
+          <StorePickerSheet
+            value={storeCode}
+            onChange={v => setStoreCode(v)}
+            showAllOption={false}
+          />
           <select value={machineCode ?? ''} onChange={e => setMachineCode(e.target.value || null)}
             disabled={!storeCode} data-testid="select-machine"
             className="bg-surface border border-border rounded px-2 py-1 text-xs disabled:opacity-40">
@@ -169,12 +164,12 @@ export default function PayoutTrendPage() {
       {/* compare 用 店舗選択 */}
       {mode === 'compare' && (
         <div className="flex flex-wrap gap-2 mb-4">
-          <select value={compareStore ?? ''} onChange={e => setCompareStore(e.target.value || null)}
-            data-testid="select-compare-store"
-            className="bg-surface border border-border rounded px-2 py-1 text-xs">
-            <option value="">店舗を選択</option>
-            {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-          </select>
+          {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet (compare mode) */}
+          <StorePickerSheet
+            value={compareStore}
+            onChange={v => setCompareStore(v)}
+            showAllOption={false}
+          />
           <span className="text-xs text-muted self-center">選択店舗の全ブースを重ね描き ({compareBooths.length}ブース)</span>
         </div>
       )}

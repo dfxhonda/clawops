@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, rangePresetDays } from '../../lib/jstDate'
 import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
+import StorePickerSheet from '../../../components/StorePickerSheet'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa']
 const MAX_SERIES = 5
@@ -15,18 +16,12 @@ export default function SevenDmaPage() {
   const [granularity, setGranularity] = useState('booth')
   const [period, setPeriod]           = useState('30d')
   const [storeFilter, setStoreFilter] = useState('all')
-  const [stores, setStores]           = useState([])
   const [allEntities, setAllEntities] = useState([])
   const [selected, setSelected]       = useState([])
   const [series, setSeries]           = useState({}) // { entityKey: [{stat_date, value}] }
   const [dataDays, setDataDays]       = useState({})
   const [loading, setLoading]         = useState(false)
   const [loadingEntities, setLoadingEntities] = useState(false)
-
-  useEffect(() => {
-    supabase.from('stores').select('store_code, store_name').eq('is_active', true)
-      .order('store_name').then(({ data }) => setStores(data ?? []))
-  }, [])
 
   // エンティティ候補を masters (booths/machines/stores) からフェッチ — 系列選択用
   useEffect(() => {
@@ -149,12 +144,15 @@ export default function SevenDmaPage() {
       </div>
 
       {granularity !== 'store' && (
-        <select value={storeFilter} onChange={e => setStoreFilter(e.target.value)}
-          data-testid="store-filter"
-          className="bg-surface border border-border rounded px-2 py-1 text-xs mb-3">
-          <option value="all">店舗を選択してください</option>
-          {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-        </select>
+        <div className="mb-3">
+          {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet */}
+          <StorePickerSheet
+            value={storeFilter === 'all' ? null : storeFilter}
+            onChange={v => setStoreFilter(v ?? 'all')}
+            showAllOption={false}
+            placeholder="店舗を選択してください"
+          />
+        </div>
       )}
 
       <div className="mb-3">

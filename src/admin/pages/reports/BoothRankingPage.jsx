@@ -12,6 +12,7 @@ import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import { calc7dmaSeries, periodDays } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
+import StorePickerSheet from '../../../components/StorePickerSheet'
 
 const UNITS = [
   { key: 'daily_avg', label: '日平均' },
@@ -38,16 +39,10 @@ export default function BoothRankingPage() {
   const [storeCode, setStoreCode] = useState('all')
   const [mode, setMode]         = useState('best')
   const [count, setCount]       = useState(20)
-  const [stores, setStores]     = useState([])
   const [rows, setRows]         = useState([])
   const [loading, setLoading]   = useState(true)
   const [sortBy, setSortBy]     = useState('selected_unit_value')
   const [sortDir, setSortDir]   = useState('desc')
-
-  useEffect(() => {
-    supabase.from('stores').select('store_code, store_name').eq('is_active', true)
-      .order('store_name').then(({ data }) => setStores(data ?? []))
-  }, [])
 
   useEffect(() => {
     if (period === '7d') { setFrom(jstDateNDaysAgo(7)); setTo(todayJst()) }
@@ -233,12 +228,12 @@ export default function BoothRankingPage() {
               className="bg-surface border border-border rounded px-2 py-1 text-xs" />
           </>
         )}
-        <select value={storeCode} onChange={e => setStoreCode(e.target.value)}
-          data-testid="store-filter"
-          className="bg-surface border border-border rounded px-2 py-1 text-xs">
-          <option value="all">全店</option>
-          {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-        </select>
+        {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet */}
+        <StorePickerSheet
+          value={storeCode === 'all' ? null : storeCode}
+          onChange={v => setStoreCode(v ?? 'all')}
+          showAllOption
+        />
         <div className="flex gap-1">
           <button onClick={() => setMode('best')} data-testid="mode-best"
             className={`px-3 py-1.5 rounded text-xs font-bold ${mode === 'best' ? 'bg-emerald-600 text-white' : 'bg-surface border border-border text-muted'}`}>
