@@ -106,11 +106,15 @@ export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
 export async function fetchBoothDiffMap(boothCodes, meterUnitPriceMap = {}) {
   if (!boothCodes.length) return {}
 
-  // J-PATROL-IN-DAILY-fix-01: 3 件取得 (前IN 用に 2nd-prev も必要)
+  // J-PATROL-IN-DAILY-fix-03 (ヒロ Discord IMG_4232): patrol_date DESC を主キー、created_at DESC 副キー。
+  // 旧 created_at DESC 単独ソートは「古い patrol_date を後で入力 (late entry)」が最新扱いになり、
+  // 結果 前IN が in_meter 非単調変化で異常な負値になっていた (BUZZクレーン 前IN -549 等)。
+  // fetchBoothHistory (履歴一覧) も同じ複合ソートで一致させる。
   const { data, error } = await supabase
     .from('meter_readings')
     .select(HISTORY_SELECT)
     .in('booth_code', boothCodes)
+    .order('patrol_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) return {}
 

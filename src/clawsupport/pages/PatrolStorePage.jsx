@@ -8,18 +8,7 @@ import { getPatrolMachines } from '../../services/patrol'
 import { getTodayReadingsMap } from '../../services/patrolCore'
 import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
 import MachineRow from '../components/MachineRow'
-
-// J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4231):
-// 最上行 = ラベル (前IN/今IN/前/日/今/日) + その下に全店舗合計を表示。
-// MachineRow と同じ w-44 grid + w-11 each で列 x 位置完全一致。
-function fmtSigned(n) {
-  if (n == null) return '−'
-  return n.toLocaleString()
-}
-function fmtPerDay(n) {
-  if (n == null) return '−'
-  return n.toFixed(1)
-}
+import StoreTotalsHeader from '../components/StoreTotalsHeader'
 
 export default function PatrolStorePage() {
   const { storeCode } = useParams()
@@ -67,19 +56,6 @@ export default function PatrolStorePage() {
     [machines],
   )
 
-  // 全店舗合計 = 全 booth diffMap 値の SUM (4 列)
-  const storeTotals = useMemo(() => {
-    const t = { prevIn: null, currIn: null, prevPerDay: null, currPerDay: null }
-    for (const d of Object.values(diffMap)) {
-      if (!d) continue
-      if (d.prevIn != null)     t.prevIn     = (t.prevIn     ?? 0) + d.prevIn
-      if (d.currIn != null)     t.currIn     = (t.currIn     ?? 0) + d.currIn
-      if (d.prevPerDay != null) t.prevPerDay = (t.prevPerDay ?? 0) + d.prevPerDay
-      if (d.currPerDay != null) t.currPerDay = (t.currPerDay ?? 0) + d.currPerDay
-    }
-    return t
-  }, [diffMap])
-
   // 「保存してリストに戻る」復帰時: 次ブースの machine を展開し、その位置へスクロール
   useEffect(() => {
     if (loading) return
@@ -118,45 +94,24 @@ export default function PatrolStorePage() {
         onBack={() => navigate('/clawsupport')}
       />
 
-      {/* J-PATROL-IN-DAILY-fix-03 ad-hoc: 最上行 = ラベル + 全店舗合計
-          MachineRow と同じ レイアウト (px-4 + flex + gap-2 + grid-cols-4 w-44 各列 w-11)
-          で列 x 位置を完全一致させる。 */}
-      <div data-testid="store-totals-header" className="shrink-0 border-b border-border">
-        <div className="px-4 py-1.5 flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            {totalCnt > 0 && (
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full border ${
-                  doneCnt >= totalCnt
-                    ? 'text-emerald-400 border-emerald-400/40'
-                    : doneCnt > 0
-                    ? 'text-amber-400 border-amber-400/40'
-                    : 'text-muted border-border'
-                }`}
-              >
-                {doneCnt}/{totalCnt} ブース完了
-              </span>
-            )}
-          </div>
-          {/* ラベル行 */}
-          <div className="shrink-0 grid grid-cols-4 text-[10px] text-right leading-tight text-muted w-44">
-            <div className="w-11">前IN</div>
-            <div className="w-11">今IN</div>
-            <div className="w-11">前/日</div>
-            <div className="w-11">今/日</div>
-          </div>
-        </div>
-        <div className="px-4 pb-2 flex items-center gap-2">
-          <div className="flex-1 min-w-0" />
-          {/* 全店舗合計値 */}
-          <div className="shrink-0 grid grid-cols-4 text-right leading-tight w-44">
-            <div className="w-11 font-mono text-sm font-bold text-text">{fmtSigned(storeTotals.prevIn)}</div>
-            <div className="w-11 font-mono text-sm font-bold text-green-300">{fmtSigned(storeTotals.currIn)}</div>
-            <div className="w-11 font-mono text-sm font-bold text-text">{fmtPerDay(storeTotals.prevPerDay)}</div>
-            <div className="w-11 font-mono text-sm font-bold text-green-300">{fmtPerDay(storeTotals.currPerDay)}</div>
-          </div>
-        </div>
-      </div>
+      <StoreTotalsHeader
+        diffMap={diffMap}
+        leftSlot={
+          totalCnt > 0 && (
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full border ${
+                doneCnt >= totalCnt
+                  ? 'text-emerald-400 border-emerald-400/40'
+                  : doneCnt > 0
+                  ? 'text-amber-400 border-amber-400/40'
+                  : 'text-muted border-border'
+              }`}
+            >
+              {doneCnt}/{totalCnt} ブース完了
+            </span>
+          )
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">
         {machines.length === 0 && (
