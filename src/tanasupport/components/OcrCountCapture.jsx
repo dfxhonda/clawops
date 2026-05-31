@@ -21,8 +21,11 @@ function blobToBase64(blob) {
   })
 }
 
-async function callOcrMeter(imageBase64) {
-  const ocrPromise = supabase.functions.invoke('ocr-meter', {
+// J-STOCK-OCR-COUNT-TEST-01-fix-03 ヒロ Discord ① 採用: ocr-meter は メーター数字読み取り用、
+// 物体カウント用に新 Edge Function 'ocr-prize-count' に切替。戻り値構造:
+//   { value: 整数|null, confidence, items_breakdown: [{kind,count}], notes, meters[] }
+async function callOcrPrizeCount(imageBase64) {
+  const ocrPromise = supabase.functions.invoke('ocr-prize-count', {
     body: { image_base64: imageBase64, media_type: 'image/jpeg' },
   })
   const timeoutPromise = new Promise((_, reject) =>
@@ -30,9 +33,12 @@ async function callOcrMeter(imageBase64) {
   )
   const { data, error } = await Promise.race([ocrPromise, timeoutPromise])
   if (error) throw new Error(error.message || 'OCR invoke error')
-  const meters = data?.meters ?? []
-  const first = meters[0]
-  return { value: first?.value ?? null, confidence: first?.confidence ?? null, meters }
+  return {
+    value: typeof data?.value === 'number' ? data.value : null,
+    confidence: typeof data?.confidence === 'number' ? data.confidence : null,
+    items_breakdown: Array.isArray(data?.items_breakdown) ? data.items_breakdown : [],
+    notes: typeof data?.notes === 'string' ? data.notes : '',
+  }
 }
 
 export default function OcrCountCapture({ onLog }) {
@@ -41,20 +47,25 @@ export default function OcrCountCapture({ onLog }) {
   const [preview, setPreview] = useState(null)
   const [ocrValue, setOcrValue] = useState(null)
   const [ocrConfidence, setOcrConfidence] = useState(null)
+  const [ocrBreakdown, setOcrBreakdown] = useState([])
+  const [ocrNotes, setOcrNotes] = useState('')
   const [confirmed, setConfirmed] = useState('')
   const [phase, setPhase] = useState('idle')   // idle | running | done | error
   const [errMsg, setErrMsg] = useState(null)
 
   async function handleFile(file) {
     if (!file) return
-    setPhase('running'); setErrMsg(null); setOcrValue(null); setOcrConfidence(null); setConfirmed('')
+    setPhase('running'); setErrMsg(null)
+    setOcrValue(null); setOcrConfidence(null); setOcrBreakdown([]); setOcrNotes(''); setConfirmed('')
     const previewUrl = URL.createObjectURL(file)
     setPreview(previewUrl)
     try {
       const base64 = await blobToBase64(file)
-      const res = await callOcrMeter(base64)
+      const res = await callOcrPrizeCount(base64)
       setOcrValue(res.value)
       setOcrConfidence(res.confidence)
+      setOcrBreakdown(res.items_breakdown)
+      setOcrNotes(res.notes)
       setConfirmed(res.value != null ? String(res.value) : '')
       setPhase('done')
     } catch (e) {
@@ -78,13 +89,17 @@ export default function OcrCountCapture({ onLog }) {
       ocr_value: ocrValue,
       confirmed_value: conf,
       confidence: ocrConfidence,
+      items_breakdown: ocrBreakdown,
+      notes: ocrNotes,
       correct: ocrValue != null && Number(ocrValue) === conf,
     })
-    setPreview(null); setOcrValue(null); setOcrConfidence(null); setConfirmed(''); setPhase('idle')
+    setPreview(null); setOcrValue(null); setOcrConfidence(null); setOcrBreakdown([]); setOcrNotes('')
+    setConfirmed(''); setPhase('idle')
   }
 
   function retry() {
-    setPreview(null); setOcrValue(null); setOcrConfidence(null); setConfirmed(''); setPhase('idle'); setErrMsg(null)
+    setPreview(null); setOcrValue(null); setOcrConfidence(null); setOcrBreakdown([]); setOcrNotes('')
+    setConfirmed(''); setPhase('idle'); setErrMsg(null)
   }
 
   const numpadDisabled = phase === 'idle' || phase === 'running'
@@ -141,16 +156,30 @@ export default function OcrCountCapture({ onLog }) {
         <p data-testid="ocr-count-error" className="text-xs text-rose-300">{errMsg || 'OCR 失敗'}</p>
       )}
       {phase === 'done' && (
-        <div className="flex items-baseline gap-3">
-          <span className="text-xs text-muted">読み取り結果:</span>
-          <span data-testid="ocr-count-result" className="text-2xl font-mono font-bold text-text">
-            {ocrValue != null ? ocrValue : '?'}
-          </span>
-          <span className="text-xs text-muted">個</span>
-          {ocrConfidence != null && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300">
-              信頼度 {Math.round(Number(ocrConfidence) * 100)}%
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-3">
+            <span className="text-xs text-muted">読み取り結果:</span>
+            <span data-testid="ocr-count-result" className="text-2xl font-mono font-bold text-text">
+              {ocrValue != null ? ocrValue : '?'}
             </span>
+            <span className="text-xs text-muted">個</span>
+            {ocrConfidence != null && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300">
+                信頼度 {Math.round(Number(ocrConfidence) * 100)}%
+              </span>
+            )}
+          </div>
+          {ocrBreakdown.length > 0 && (
+            <div data-testid="ocr-count-breakdown" className="flex flex-wrap gap-1 text-[10px] text-muted">
+              {ocrBreakdown.map((b, i) => (
+                <span key={i} className="px-1.5 py-0.5 rounded bg-surface border border-border">
+                  {b.kind} <span className="font-mono text-text">{b.count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          {ocrNotes && (
+            <p data-testid="ocr-count-notes" className="text-[10px] text-amber-300 italic">{ocrNotes}</p>
           )}
         </div>
       )}
