@@ -1,9 +1,9 @@
-// J-PATROL-IN-DAILY-fix-01: 展開時はテーブル表示 (ブース | 前IN | 今IN | 前/日 | 今/日)
-// OUT 列は完全削除。値欠損は '−' プレースホルダ。
+// J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4231):
+// ブース行も MachineRow と全く同じ 4 列レイアウト (w-44 grid + w-11 each) で縦に揃える。
+// テーブル形式 / 列ヘッダラベル は廃止 (ラベルは PatrolStorePage 最上行のみ)。
 
 function fmtSigned(n) {
   if (n == null) return '−'
-  // fix-02 ad-hoc: + は要らない、負号 - のみ残す (toLocaleString が自動付与)
   return n.toLocaleString()
 }
 function fmtPerDay(n) {
@@ -13,41 +13,33 @@ function fmtPerDay(n) {
 
 export default function MachineRowExpandedBoothList({ booths, todayMap, diffMap, onBoothClick }) {
   return (
-    <div className="ml-6 mt-1 pb-1" data-testid="machine-expanded-table">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="text-muted border-b border-border">
-            <th className="text-left  py-1 pl-2 font-normal">ブース</th>
-            <th className="text-right py-1 px-1 font-normal">前IN</th>
-            <th className="text-right py-1 px-1 font-normal">今IN</th>
-            <th className="text-right py-1 px-1 font-normal">前/日</th>
-            <th className="text-right py-1 pr-2 font-normal">今/日</th>
-          </tr>
-        </thead>
-        <tbody>
-          {booths.map(booth => {
-            const done = !!todayMap[booth.booth_code]
-            const d = diffMap[booth.booth_code] ?? null
-            return (
-              <tr
-                key={booth.booth_code}
-                data-testid={`booth-row-${booth.booth_code}`}
-                onClick={() => onBoothClick(booth)}
-                className="border-b border-border/40 cursor-pointer active:bg-surface/60"
-              >
-                <td className="py-2 pl-2">
-                  <span className="text-text">B{String(booth.booth_number).padStart(2, '0')}</span>
-                  {done && <span className="ml-1 text-emerald-400/70">✓</span>}
-                </td>
-                <td className="py-2 px-1 text-right font-mono text-text">{fmtSigned(d?.prevIn)}</td>
-                <td className="py-2 px-1 text-right font-mono text-green-300">{fmtSigned(d?.currIn)}</td>
-                <td className="py-2 px-1 text-right font-mono text-text">{fmtPerDay(d?.prevPerDay)}</td>
-                <td className="py-2 pr-2 text-right font-mono text-green-300">{fmtPerDay(d?.currPerDay)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="mt-1 space-y-1" data-testid="machine-expanded-booth-list">
+      {booths.map(booth => {
+        const done = !!todayMap[booth.booth_code]
+        const d = diffMap[booth.booth_code] ?? null
+        return (
+          <button
+            key={booth.booth_code}
+            data-testid={`booth-row-${booth.booth_code}`}
+            onClick={() => onBoothClick(booth)}
+            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl bg-surface/40 border border-border/40 text-left active:scale-[0.98] transition-transform"
+          >
+            <div className="flex-1 min-w-0 pl-4">
+              <p className="text-text text-sm">
+                └ B{String(booth.booth_number).padStart(2, '0')}
+                {done && <span className="ml-1 text-emerald-400/70">✓</span>}
+              </p>
+            </div>
+            {/* MachineRow と同一の 4 列 (w-44 + w-11 each) — 全 row で列 x 位置一致 */}
+            <div className="shrink-0 grid grid-cols-4 text-right leading-tight w-44">
+              <div className="w-11 font-mono text-sm font-bold text-text">{fmtSigned(d?.prevIn)}</div>
+              <div className="w-11 font-mono text-sm font-bold text-green-300">{fmtSigned(d?.currIn)}</div>
+              <div className="w-11 font-mono text-sm font-bold text-text">{fmtPerDay(d?.prevPerDay)}</div>
+              <div className="w-11 font-mono text-sm font-bold text-green-300">{fmtPerDay(d?.currPerDay)}</div>
+            </div>
+          </button>
+        )
+      })}
     </div>
   )
 }
