@@ -11,17 +11,37 @@ import { supabase } from '../../lib/supabase'
 // 重い思考処理。6s → 20s に延長して timeout 多発を抑制 (実機 IMG_4241 で 6s timeout 発火)。
 const OCR_TIMEOUT_MS = 20000
 
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
+// J-STOCK-OCR-COUNT-TEST-01-fix-05: iPhone 撮影画像は ~3-5MB JPEG、base64 化で更に膨張 →
+// Anthropic vision API 5MB base64 制限超過 → Edge Function が 502 で返却していた
+// (ヒロ Discord IMG_4243/IMG_4244 'Edge Function returned a non-2xx status code')。
+// canvas で長辺 1600px / quality 0.8 にダウンスケール、base64 < 1MB を狙う。
+async function resizeImageToBase64(file, maxLong = 1600, quality = 0.8) {
+  const dataUrl = await new Promise((resolve, reject) => {
     const r = new FileReader()
-    r.onload = () => {
-      const s = String(r.result || '')
-      const i = s.indexOf(',')
-      resolve(i >= 0 ? s.slice(i + 1) : s)
-    }
+    r.onload = () => resolve(String(r.result || ''))
     r.onerror = reject
-    r.readAsDataURL(blob)
+    r.readAsDataURL(file)
   })
+  const img = await new Promise((resolve, reject) => {
+    const im = new Image()
+    im.onload = () => resolve(im)
+    im.onerror = reject
+    im.src = dataUrl
+  })
+  const longSide = Math.max(img.width, img.height)
+  const scale = longSide > maxLong ? maxLong / longSide : 1
+  const w = Math.round(img.width * scale)
+  const h = Math.round(img.height * scale)
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0, w, h)
+  const out = canvas.toDataURL('image/jpeg', quality)
+  canvas.width = 0
+  canvas.height = 0
+  const i = out.indexOf(',')
+  return i >= 0 ? out.slice(i + 1) : out
 }
 
 // J-STOCK-OCR-COUNT-TEST-01-fix-03 ヒロ Discord ① 採用: ocr-meter は メーター数字読み取り用、
@@ -63,7 +83,8 @@ export default function OcrCountCapture({ onLog }) {
     const previewUrl = URL.createObjectURL(file)
     setPreview(previewUrl)
     try {
-      const base64 = await blobToBase64(file)
+      // fix-05: 5MB 制限対策で resize、長辺 1600px / quality 0.8
+      const base64 = await resizeImageToBase64(file, 1600, 0.8)
       const res = await callOcrPrizeCount(base64)
       setOcrValue(res.value)
       setOcrConfidence(res.confidence)
@@ -72,7 +93,14 @@ export default function OcrCountCapture({ onLog }) {
       setConfirmed(res.value != null ? String(res.value) : '')
       setPhase('done')
     } catch (e) {
-      const msg = e?.message === 'OCR_TIMEOUT_6S' ? 'OCR タイムアウト (20s) — 手入力してください' : String(e?.message || e)
+      let msg
+      if (e?.message === 'OCR_TIMEOUT_6S') {
+        msg = 'OCR タイムアウト (20s) — 手入力してください'
+      } else if (typeof e?.message === 'string' && /non-2xx/i.test(e.message)) {
+        msg = 'OCR サーバーエラー — 画像が大きすぎる可能性があります。別の写真でお試しください'
+      } else {
+        msg = String(e?.message || e)
+      }
       setPhase('error'); setErrMsg(msg)
     }
   }
