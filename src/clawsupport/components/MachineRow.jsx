@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import MachineRowExpandedBoothList from './MachineRowExpandedBoothList'
+import { rankColor } from './storeTotalsRanking'
 
-// J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4231): + は要らない、空欄 −、負号 - のみ
+// J-PATROL-IN-DAILY-fix-05 ad-hoc (ヒロ Discord IMG_4234):
+// 行縦圧縮 (py-3 → py-1.5)、grid gap-x-1.5 で数値間隔開け、各列にベスト3/ワースト3 色付け。
 function fmtSigned(n) {
   if (n == null) return '−'
   return n.toLocaleString()
@@ -11,7 +13,6 @@ function fmtPerDay(n) {
   return n.toFixed(1)
 }
 
-// 機械合計 = ブース合計の SUM
 function machineTotals(booths, diffMap) {
   const t = { prevIn: null, currIn: null, prevPerDay: null, currPerDay: null }
   for (const b of booths) {
@@ -25,12 +26,7 @@ function machineTotals(booths, diffMap) {
   return t
 }
 
-export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand }) {
-  // J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4231):
-  //   - ○/✓ 状態アイコン削除
-  //   - chevron 矢印削除
-  //   - X/N完了 / 入力済み サブテキスト削除
-  //   - 4 列 (前IN/今IN/前/日/今/日) は値のみ、ラベルは PatrolStorePage 最上行のみ
+export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand, rankMap }) {
   const controlled = typeof onToggleExpand === 'function'
   const [localExpanded, setLocalExpanded] = useState(false)
   const isExpanded = controlled ? !!expanded : localExpanded
@@ -38,6 +34,15 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
   const isSingleBooth = booths.length === 1
 
   const totals = machineTotals(booths, diffMap)
+
+  // 列ごとのランク取得 (rankMap 渡されない場合はランクなしで fallback 色)
+  const mc = machine.machine_code
+  const r = {
+    prevIn:     rankMap?.prevIn?.[mc]     ?? null,
+    currIn:     rankMap?.currIn?.[mc]     ?? null,
+    prevPerDay: rankMap?.prevPerDay?.[mc] ?? null,
+    currPerDay: rankMap?.currPerDay?.[mc] ?? null,
+  }
 
   const handleClick = () => {
     if (isSingleBooth) {
@@ -54,20 +59,19 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
       <button
         data-testid={`machine-row-btn-${machine.machine_code}`}
         onClick={handleClick}
-        className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
+        className="w-full flex items-center gap-2 px-4 py-1.5 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
         <div className="flex-1 min-w-0">
           <p className="text-text text-base font-bold truncate">{machine.machine_name}</p>
         </div>
-        {/* 値のみ。ラベルは最上行のみ、列幅は w-44 で固定 (全 row 同 x) */}
         <div
           data-testid={`machine-totals-${machine.machine_code}`}
-          className="shrink-0 grid grid-cols-4 text-right leading-tight w-44"
+          className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52"
         >
-          <div className="w-11 font-mono text-sm font-bold text-text">{fmtSigned(totals.prevIn)}</div>
-          <div className="w-11 font-mono text-sm font-bold text-green-300">{fmtSigned(totals.currIn)}</div>
-          <div className="w-11 font-mono text-sm font-bold text-text">{fmtPerDay(totals.prevPerDay)}</div>
-          <div className="w-11 font-mono text-sm font-bold text-green-300">{fmtPerDay(totals.currPerDay)}</div>
+          <div className={`font-mono text-sm font-bold ${rankColor(r.prevIn, false)}`}>{fmtSigned(totals.prevIn)}</div>
+          <div className={`font-mono text-sm font-bold ${rankColor(r.currIn, true)}`}>{fmtSigned(totals.currIn)}</div>
+          <div className={`font-mono text-sm font-bold ${rankColor(r.prevPerDay, false)}`}>{fmtPerDay(totals.prevPerDay)}</div>
+          <div className={`font-mono text-sm font-bold ${rankColor(r.currPerDay, true)}`}>{fmtPerDay(totals.currPerDay)}</div>
         </div>
       </button>
 

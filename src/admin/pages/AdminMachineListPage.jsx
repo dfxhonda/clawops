@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -8,6 +8,7 @@ import { getTodayReadingsMap } from '../../services/patrolCore'
 import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
 import MachineRow from '../../clawsupport/components/MachineRow'
 import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
+import { computeMachineRankMap } from '../../clawsupport/components/storeTotalsRanking'
 import { useAuth } from '../../hooks/useAuth'
 import { isAdmin } from '../../services/permissions'
 
@@ -59,6 +60,9 @@ export default function AdminMachineListPage() {
     if (isAdmin(staffRole)) load()
   }, [load, staffRole])
 
+  // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
+  const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap), [machines, diffMap])
+
   if (loading) return null
   if (!isAdmin(staffRole)) return <UnauthorizedView />
 
@@ -105,6 +109,7 @@ export default function AdminMachineListPage() {
             machine={machine}
             todayMap={todayMap}
             diffMap={diffMap}
+            rankMap={rankMap}
             onBoothClick={booth =>
               navigate(`/admin/booth-edit/${booth.booth_code}`, {
                 state: { machine, booth, storeCode },

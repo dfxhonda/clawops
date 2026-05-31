@@ -9,6 +9,7 @@ import { getTodayReadingsMap } from '../../services/patrolCore'
 import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
+import { computeMachineRankMap } from '../components/storeTotalsRanking'
 
 export default function PatrolStorePage() {
   const { storeCode } = useParams()
@@ -55,6 +56,9 @@ export default function PatrolStorePage() {
     () => machines.flatMap(m => (m.booths ?? []).map(b => ({ booth: b, machine: m }))),
     [machines],
   )
+
+  // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
+  const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap), [machines, diffMap])
 
   // 「保存してリストに戻る」復帰時: 次ブースの machine を展開し、その位置へスクロール
   useEffect(() => {
@@ -148,6 +152,7 @@ export default function PatrolStorePage() {
               machine={machine}
               todayMap={todayMap}
               diffMap={diffMap}
+              rankMap={rankMap}
               expanded={expandedSet.includes(machine.machine_code)}
               onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
               onBoothClick={booth =>
