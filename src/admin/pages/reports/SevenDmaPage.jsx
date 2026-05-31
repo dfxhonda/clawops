@@ -5,23 +5,11 @@ import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, rangePresetDays } from '../../lib/jstDate'
+import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa']
 const MAX_SERIES = 5
-
-// rolling 7day window 平均 (data 配列は stat_date 順)
-function rolling7dma(rawPoints) {
-  const out = []
-  for (let i = 0; i < rawPoints.length; i++) {
-    const start = Math.max(0, i - 6)
-    const slice = rawPoints.slice(start, i + 1)
-    const validValues = slice.map(p => p.value).filter(v => v != null)
-    const avg = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : null
-    out.push({ stat_date: rawPoints[i].stat_date, value: avg })
-  }
-  return out
-}
 
 export default function SevenDmaPage() {
   const [granularity, setGranularity] = useState('booth')
@@ -97,10 +85,11 @@ export default function SevenDmaPage() {
           byDate[r.stat_date] += Number(r.play_count || 0)
         }
         const sortedRaw = Object.entries(byDate)
-          .map(([d, v]) => ({ stat_date: d, value: v }))
+          .map(([d, v]) => ({ stat_date: d, play_count: v }))
           .sort((a, b) => a.stat_date.localeCompare(b.stat_date))
-        ser[key] = rolling7dma(sortedRaw) // フロント側 rolling 7DMA
-        days[key] = sortedRaw.length
+        // 補間 + 7日 sliding (分母 固定 7) — J-REPORTS-7DMA-FIX-01
+        ser[key] = calc7dmaSeries(sortedRaw, 'play_count')
+        days[key] = sortedRaw.length // 巡回レコード数 (補間前)
       }
       setSeries(ser); setDataDays(days); setLoading(false)
     }

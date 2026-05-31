@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
+import { calc7dmaSeries, periodDays } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
 
 const UNITS = [
@@ -103,6 +104,7 @@ export default function BoothRankingPage() {
           payout_sum: 0,
           payout_n: 0,
           days: new Set(),
+          raw_points: [],  // 7DMA 用 raw 点
         }
         byBooth[bc].revenue_sum += Number(r.revenue || 0)
         byBooth[bc].play_sum += Number(r.play_count || 0)
@@ -111,26 +113,42 @@ export default function BoothRankingPage() {
           byBooth[bc].payout_n += 1
         }
         byBooth[bc].days.add(r.stat_date)
+        byBooth[bc].raw_points.push({ stat_date: r.stat_date, revenue: Number(r.revenue || 0) })
       }
+      // 期間 calendar 日数 (selected period 全体)
+      const calendarDays = periodDays(qFrom, qTo)
       const list = Object.values(byBooth).map(b => {
         const daysN = b.days.size
         const machineAgg = byMachine[b.machine_code]
         const widthM = machineAgg?.width ? machineAgg.width / 1000 : null
         const depthM = machineAgg?.depth ? machineAgg.depth / 1000 : null
         const areaM2 = (widthM != null && depthM != null) ? widthM * depthM : null
-        const machineDailyAvg = machineAgg && machineAgg.days.size > 0
-          ? machineAgg.totalRev / machineAgg.days.size
+        // 面積効率: 機械日平均 (calendar 日数で割る、record 数ではなく)
+        const machineDailyAvg = (machineAgg && calendarDays > 0)
+          ? machineAgg.totalRev / calendarDays
           : null
         const area_efficiency = (areaM2 != null && areaM2 > 0 && machineDailyAvg != null)
           ? machineDailyAvg / areaM2 : null
-        const play_count_avg = daysN > 0 ? b.play_sum / daysN : 0
+        // play_count 日平均は calendar 日数で割る (record 数ではなく)
+        const play_count_avg = calendarDays > 0 ? b.play_sum / calendarDays : 0
         const price_per_play = b.play_sum > 0 ? b.revenue_sum / b.play_sum : null
         const payout_avg = b.payout_n > 0 ? (b.payout_sum / b.payout_n) * 100 : null
 
+        // J-REPORTS-7DMA-FIX-01: 7DMA は interpolate + sliding (分母固定 7) で計算、
+        // 最後 (今日に近い) の 7DMA 値を採用
+        let dma7 = 0
+        if (unit === '7dma') {
+          const sortedRaw = [...b.raw_points].sort((a, b) => a.stat_date.localeCompare(b.stat_date))
+          const dmaSeries = calc7dmaSeries(sortedRaw, 'revenue')
+          dma7 = dmaSeries.length > 0 ? dmaSeries[dmaSeries.length - 1].value : 0
+        }
+
         let selected_unit_value = 0
-        if (unit === 'daily_avg') selected_unit_value = daysN > 0 ? b.revenue_sum / daysN : 0
-        else if (unit === 'total') selected_unit_value = b.revenue_sum
-        else if (unit === '7dma') selected_unit_value = b.revenue_sum / 7
+        if (unit === 'daily_avg') {
+          // FIX-01: calendar 日数で割る (record 数ではない)
+          selected_unit_value = calendarDays > 0 ? b.revenue_sum / calendarDays : 0
+        } else if (unit === 'total') selected_unit_value = b.revenue_sum
+        else if (unit === '7dma') selected_unit_value = dma7
         else if (unit === 'monthly') selected_unit_value = b.revenue_sum
 
         return {

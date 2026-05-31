@@ -7,19 +7,10 @@ import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
+import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa', '#22d3ee', '#fb923c', '#34d399', '#e879f9', '#facc15']
-
-// rolling 7day window for play_count → play_7dma (frontend calc, same formula as S3)
-function rolling7dmaFrom(points, valueKey) {
-  return points.map((_, i) => {
-    const start = Math.max(0, i - 6)
-    const slice = points.slice(start, i + 1)
-    const vals = slice.map(p => p[valueKey]).filter(v => v != null)
-    return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
-  })
-}
 
 export default function PayoutTrendPage() {
   const [mode, setMode] = useState('single') // 'single' | 'compare'
@@ -78,12 +69,28 @@ export default function PayoutTrendPage() {
         const base = (data ?? []).map(r => ({
           stat_date: r.stat_date,
           payout_rate: r.payout_rate != null ? Number(r.payout_rate) * 100 : null,
-          play_count: r.play_count != null ? Number(r.play_count) : null,
+          play_count: r.play_count != null ? Number(r.play_count) : 0,
         }))
-        // 右軸用 play_7dma フロント計算 (DB play_7dma が全 NULL のため)
-        const dma = rolling7dmaFrom(base, 'play_count')
-        const list = base.map((p, i) => ({ ...p, play_7dma: dma[i] }))
-        setSeries(list)
+        // 7DMA を補間+sliding (分母固定7) で計算、date key で base に merge
+        const dmaSeries = calc7dmaSeries(base, 'play_count')
+        const dmaMap = Object.fromEntries(dmaSeries.map(d => [d.stat_date, d.value]))
+        // base + 補間で生成された日付も chart に出す
+        const merged = dmaSeries.map(d => {
+          const orig = base.find(p => p.stat_date === d.stat_date)
+          return {
+            stat_date: d.stat_date,
+            payout_rate: orig?.payout_rate ?? null,
+            play_7dma: d.value,
+          }
+        })
+        // 補間で生成されなかった base 日付 (初回より前など) も保険で push
+        for (const b of base) {
+          if (!dmaMap[b.stat_date] && !merged.some(m => m.stat_date === b.stat_date)) {
+            merged.push({ stat_date: b.stat_date, payout_rate: b.payout_rate, play_7dma: null })
+          }
+        }
+        merged.sort((a, b) => a.stat_date.localeCompare(b.stat_date))
+        setSeries(merged)
         const changes = []
         let prev = null
         for (const r of data ?? []) {
