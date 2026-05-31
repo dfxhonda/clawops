@@ -106,6 +106,7 @@ const OrderList            = lazy(() => import('./tanasupport/pages/OrderList'))
 const StoreDashboard       = lazy(() => import('./tanasupport/StoreDashboard'))
 const StocktakeInput       = lazy(() => import('./tanasupport/stocktake/StocktakeInput'))
 const StocktakeSessionPage = lazy(() => import('./tanasupport/stocktake/StocktakeSessionPage'))
+const OcrCountTestPage     = lazy(() => import('./tanasupport/pages/OcrCountTestPage'))
 
 // 遅延ロード — タナサポ 棚卸し管理 (マネサポ側)
 const StocktakeSessionListAdmin = lazy(() => import('./manesupport/admin/stocktake/SessionListAdmin'))
@@ -364,6 +365,8 @@ function AppInner() {
       <Route path="/stock/arrival" element={<ProtectedRoute><ArrivalCheckPage /></ProtectedRoute>} />
       <Route path="/stock/stocktake" element={<ProtectedRoute><StocktakeSessionPage /></ProtectedRoute>} />
       <Route path="/stock/orders" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
+      {/* J-STOCK-OCR-COUNT-TEST-01: 棚卸 OCR カウントテスト (temp、DB なし) */}
+      <Route path="/stock/ocr-count-test" element={<ProtectedRoute><OcrCountTestPage /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/launcher" replace />} />
     </Routes>

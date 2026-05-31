@@ -199,6 +199,16 @@ export default function StockHubPage() {
             onClick={() => navigate(`/stock/out?store_id=${encodeURIComponent(selectedStore.store_code)}`)}
             testid="stock-hub-card-out"
           />
+          {/* J-STOCK-OCR-COUNT-TEST-01: 常時表示テストカード (DB 保存なし、store_id 不要) */}
+          <TaskTile
+            emoji="🔬"
+            title="OCRカウントテスト"
+            sub="景品個数OCRの精度確認 (テスト版)"
+            borderColor="#8b5cf6"
+            badge={null}
+            onClick={() => navigate('/stock/ocr-count-test')}
+            testid="stock-hub-card-ocr-count-test"
+          />
         </div>
       </div>
     )
