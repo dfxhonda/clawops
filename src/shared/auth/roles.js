@@ -32,7 +32,10 @@ export const LAUNCHER_MODULE_TILES = [
     label: 'タナサポ棚卸し',
     emoji: '📦',
     desc: '棚卸し・倉庫カウント',
-    path: '/tanasupport',
+    // J-STOCK-LAUNCHER-REDIRECT-01 (ヒロ Discord): /tanasupport → /stock に変更し
+    // StockHubPage の store-select gate を通す動線に統一。TanasupportHub (/tanasupport) は
+    // 直接 URL では引き続きアクセス可能、Launcher 入口のみ /stock に向ける。
+    path: '/stock',
     requiredModules: ['stocktake'],
   },
   {
