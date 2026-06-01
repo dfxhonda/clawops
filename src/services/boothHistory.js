@@ -66,8 +66,23 @@ export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit =
 /**
  * Pure helper: rows DESC (latest first) → diff summary。テスト用に export。
  * J-PATROL-IN-DAILY-fix-01: 直近 3 件から 今IN/前IN, 今/日/前/日 を計算。
+ * SPEC-PATROL-VIEW-MODE-SWITCH-01: prev/curr の OUT 差分 / 出率 / 在庫 / 補充 を追加。
+ *   - prevOut/currOut: out_meter (+_2 +_3) 差分
+ *   - prevPayout/currPayout: out_diff / in_diff * 100 (1dp, in_diff<=0 は null)
+ *   - prevStock/currStock: prize_stock_count snapshot
+ *   - prevRestock/currRestock: prize_restock_count snapshot
  * 後方互換: inDiff/outDiff/revenue/profit はそのまま残す (既存ストア集計が依存)。
  */
+function payoutPct(outDiff, inDiff) {
+  if (outDiff == null || inDiff == null || inDiff <= 0) return null
+  return round1((outDiff / inDiff) * 100)
+}
+
+function snapshot(row, key) {
+  if (!row || row[key] == null) return null
+  return Number(row[key])
+}
+
 export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
   if (!descRows || descRows.length < 2) return null
   const [latest, prev, prev2] = descRows
@@ -86,16 +101,31 @@ export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
   let prevIn = null
   let prevDays = null
   let prevPerDay = null
+  let prevOut = null
   if (prev2 && prev.in_meter != null && prev2.in_meter != null) {
     prevIn = Number(prev.in_meter) - Number(prev2.in_meter)
     prevDays = diffPatrolDays(prev2.patrol_date, prev.patrol_date)
     prevPerDay = prevDays ? round1(prevIn / prevDays) : null
   }
+  if (prev2) {
+    prevOut = sumOut(prev) - sumOut(prev2)
+  }
+
+  const currPayout = payoutPct(outDiff, inDiff)
+  const prevPayout = prev2 ? payoutPct(prevOut, prevIn) : null
 
   return {
     inDiff, outDiff, revenue, profit,
     currIn: inDiff, currDays, currPerDay,
     prevIn, prevDays, prevPerDay,
+    // SPEC-PATROL-VIEW-MODE-SWITCH-01 (OUT mode)
+    currOut: outDiff, prevOut,
+    currPayout, prevPayout,
+    // SPEC-PATROL-VIEW-MODE-SWITCH-01 (stock mode = snapshot per record)
+    currStock:   snapshot(latest, 'prize_stock_count'),
+    prevStock:   snapshot(prev,   'prize_stock_count'),
+    currRestock: snapshot(latest, 'prize_restock_count'),
+    prevRestock: snapshot(prev,   'prize_restock_count'),
   }
 }
 

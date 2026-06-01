@@ -1,48 +1,31 @@
 import { useState } from 'react'
 import MachineRowExpandedBoothList from './MachineRowExpandedBoothList'
 import { rankColor } from './storeTotalsRanking'
+import { VIEW_MODES, aggregateSummaries, formatCell, machineBoothSummaries } from './patrolViewModes'
 
 // J-PATROL-IN-DAILY-fix-05 ad-hoc (ヒロ Discord IMG_4234):
 // 行縦圧縮 (py-3 → py-1.5)、grid gap-x-1.5 で数値間隔開け、各列にベスト3/ワースト3 色付け。
-function fmtSigned(n) {
-  if (n == null) return '−'
-  return n.toLocaleString()
-}
-function fmtPerDay(n) {
-  if (n == null) return '−'
-  return n.toFixed(1)
-}
+// SPEC-PATROL-VIEW-MODE-SWITCH-01: mode prop (IN/OUT/STOCK) で表示列が切り替わる。
+//   IN     = 前IN/今IN/前/日/今/日
+//   OUT    = 前OUT/今OUT/前出率%/今出率%
+//   STOCK  = 前在庫/今在庫/前補充/今補充
+// 集計は aggregateSummaries: count は SUM、出率は SUM(out)/SUM(in)*100 の重み付き平均。
 
-function machineTotals(booths, diffMap) {
-  const t = { prevIn: null, currIn: null, prevPerDay: null, currPerDay: null }
-  for (const b of booths) {
-    const d = diffMap[b.booth_code]
-    if (!d) continue
-    if (d.prevIn != null)     t.prevIn     = (t.prevIn     ?? 0) + d.prevIn
-    if (d.currIn != null)     t.currIn     = (t.currIn     ?? 0) + d.currIn
-    if (d.prevPerDay != null) t.prevPerDay = (t.prevPerDay ?? 0) + d.prevPerDay
-    if (d.currPerDay != null) t.currPerDay = (t.currPerDay ?? 0) + d.currPerDay
-  }
-  return t
-}
-
-export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand, rankMap }) {
+export default function MachineRow({
+  machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand, rankMap,
+  mode = 'IN',
+}) {
   const controlled = typeof onToggleExpand === 'function'
   const [localExpanded, setLocalExpanded] = useState(false)
   const isExpanded = controlled ? !!expanded : localExpanded
   const booths = machine.booths ?? []
   const isSingleBooth = booths.length === 1
 
-  const totals = machineTotals(booths, diffMap)
+  const cols = (VIEW_MODES[mode] ?? VIEW_MODES.IN).cols
+  const summaries = machineBoothSummaries(machine, diffMap)
+  const totals = aggregateSummaries(summaries, mode)
 
-  // 列ごとのランク取得 (rankMap 渡されない場合はランクなしで fallback 色)
   const mc = machine.machine_code
-  const r = {
-    prevIn:     rankMap?.prevIn?.[mc]     ?? null,
-    currIn:     rankMap?.currIn?.[mc]     ?? null,
-    prevPerDay: rankMap?.prevPerDay?.[mc] ?? null,
-    currPerDay: rankMap?.currPerDay?.[mc] ?? null,
-  }
 
   const handleClick = () => {
     if (isSingleBooth) {
@@ -68,10 +51,18 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
           data-testid={`machine-totals-${machine.machine_code}`}
           className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52"
         >
-          <div className={`font-mono text-sm font-bold ${rankColor(r.prevIn, false)}`}>{fmtSigned(totals.prevIn)}</div>
-          <div className={`font-mono text-sm font-bold ${rankColor(r.currIn, true)}`}>{fmtSigned(totals.currIn)}</div>
-          <div className={`font-mono text-sm font-bold ${rankColor(r.prevPerDay, false)}`}>{fmtPerDay(totals.prevPerDay)}</div>
-          <div className={`font-mono text-sm font-bold ${rankColor(r.currPerDay, true)}`}>{fmtPerDay(totals.currPerDay)}</div>
+          {cols.map(c => {
+            const rank = rankMap?.[c.key]?.[mc] ?? null
+            return (
+              <div
+                key={c.key}
+                data-testid={`machine-cell-${mc}-${c.key}`}
+                className={`font-mono text-sm font-bold ${rankColor(rank, !!c.today)}`}
+              >
+                {formatCell(totals[c.key], c.type)}
+              </div>
+            )
+          })}
         </div>
       </button>
 
@@ -81,6 +72,7 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
           todayMap={todayMap}
           diffMap={diffMap}
           onBoothClick={onBoothClick}
+          mode={mode}
         />
       )}
     </div>

@@ -1,16 +1,11 @@
 // J-PATROL-IN-DAILY-fix-05 ad-hoc (ヒロ Discord IMG_4234): 縦圧縮 (py-2 → py-1) + grid gap-x-1.5 + w-52
 // ブース行はランク色付け対象外 (詳細レベル、機械行のみランク)。
+// SPEC-PATROL-VIEW-MODE-SWITCH-01: mode prop で表示列が切り替わる。booth 単体は集計不要、
+// summary[col.key] をそのまま表示 (出率は per-booth out_diff/in_diff で computeBoothDiffSummary 済)。
+import { VIEW_MODES, formatCell } from './patrolViewModes'
 
-function fmtSigned(n) {
-  if (n == null) return '−'
-  return n.toLocaleString()
-}
-function fmtPerDay(n) {
-  if (n == null) return '−'
-  return n.toFixed(1)
-}
-
-export default function MachineRowExpandedBoothList({ booths, todayMap, diffMap, onBoothClick }) {
+export default function MachineRowExpandedBoothList({ booths, todayMap, diffMap, onBoothClick, mode = 'IN' }) {
+  const cols = (VIEW_MODES[mode] ?? VIEW_MODES.IN).cols
   return (
     <div className="mt-1 space-y-1" data-testid="machine-expanded-booth-list">
       {booths.map(booth => {
@@ -30,10 +25,15 @@ export default function MachineRowExpandedBoothList({ booths, todayMap, diffMap,
               </p>
             </div>
             <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52">
-              <div className="font-mono text-sm font-bold text-text">{fmtSigned(d?.prevIn)}</div>
-              <div className="font-mono text-sm font-bold text-green-300">{fmtSigned(d?.currIn)}</div>
-              <div className="font-mono text-sm font-bold text-text">{fmtPerDay(d?.prevPerDay)}</div>
-              <div className="font-mono text-sm font-bold text-green-300">{fmtPerDay(d?.currPerDay)}</div>
+              {cols.map(c => (
+                <div
+                  key={c.key}
+                  data-testid={`booth-cell-${booth.booth_code}-${c.key}`}
+                  className={`font-mono text-sm font-bold ${c.today ? 'text-green-300' : 'text-text'}`}
+                >
+                  {formatCell(d?.[c.key], c.type)}
+                </div>
+              ))}
             </div>
           </button>
         )

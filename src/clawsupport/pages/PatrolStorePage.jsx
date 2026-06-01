@@ -30,6 +30,9 @@ export default function PatrolStorePage() {
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
   const [loading, setLoading] = useState(true)
+  // SPEC-PATROL-VIEW-MODE-SWITCH-01: 巡回機械リスト IN/OUT/STOCK 3 モード切替。
+  // toggle_scope: per-store → storeCode が URL params で変わる度に IN へ戻る (component remount 同等)。
+  const [viewMode, setViewMode] = useState('IN')
 
   const load = useCallback(async () => {
     const [{ data: store }, machineList] = await Promise.all([
@@ -58,7 +61,8 @@ export default function PatrolStorePage() {
   )
 
   // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
-  const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap), [machines, diffMap])
+  // SPEC-PATROL-VIEW-MODE-SWITCH-01: viewMode に応じて対象列が切り替わる
+  const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap, viewMode), [machines, diffMap, viewMode])
 
   // 「保存してリストに戻る」復帰時: 次ブースの machine を展開し、その位置へスクロール
   useEffect(() => {
@@ -100,6 +104,8 @@ export default function PatrolStorePage() {
 
       <StoreTotalsHeader
         diffMap={diffMap}
+        mode={viewMode}
+        onModeChange={setViewMode}
         leftSlot={
           totalCnt > 0 && (
             <span
@@ -153,6 +159,7 @@ export default function PatrolStorePage() {
               todayMap={todayMap}
               diffMap={diffMap}
               rankMap={rankMap}
+              mode={viewMode}
               expanded={expandedSet.includes(machine.machine_code)}
               onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
               onBoothClick={booth =>

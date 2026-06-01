@@ -2,30 +2,23 @@
 // 機械単位で各列 (前IN/今IN/前/日/今/日) の ベスト 3 / ワースト 3 をランク色付け。
 // ベスト = 高い順 (gold/silver/bronze)、ワースト = 低い順 (red 濃淡)。
 // 機械数 < 6 の場合は ワースト 件数を控えて best/worst の重複を避ける。
+// SPEC-PATROL-VIEW-MODE-SWITCH-01: mode (IN/OUT/STOCK) ごとに対象列が変わるため、
+// VIEW_MODES の cols から動的にランク対象 key を引く。OUT mode の出率 (percent) は
+// 機械単位で SUM(out)/SUM(in) で集計してからランク (重み付き平均、aggregateSummaries 経由)。
 
-const COLS = ['prevIn', 'currIn', 'prevPerDay', 'currPerDay']
+import { VIEW_MODES, aggregateSummaries, machineBoothSummaries } from './patrolViewModes'
 
-function sumBoothsForMachine(booths, diffMap) {
-  const t = { prevIn: null, currIn: null, prevPerDay: null, currPerDay: null }
-  for (const b of booths ?? []) {
-    const d = diffMap[b.booth_code]
-    if (!d) continue
-    if (d.prevIn != null)     t.prevIn     = (t.prevIn     ?? 0) + d.prevIn
-    if (d.currIn != null)     t.currIn     = (t.currIn     ?? 0) + d.currIn
-    if (d.prevPerDay != null) t.prevPerDay = (t.prevPerDay ?? 0) + d.prevPerDay
-    if (d.currPerDay != null) t.currPerDay = (t.currPerDay ?? 0) + d.currPerDay
-  }
-  return t
-}
-
-export function computeMachineRankMap(machines, diffMap) {
-  // ranks[col][machineCode] = 'best1'|'best2'|'best3'|'worst1'|'worst2'|'worst3'
-  const ranks = { prevIn: {}, currIn: {}, prevPerDay: {}, currPerDay: {} }
+export function computeMachineRankMap(machines, diffMap, mode = 'IN') {
+  const cols = (VIEW_MODES[mode] ?? VIEW_MODES.IN).cols
+  const keys = cols.map(c => c.key)
+  // ranks[colKey][machineCode] = 'best1'|...|'worst3'
+  const ranks = Object.fromEntries(keys.map(k => [k, {}]))
   const totalsByMachine = {}
   for (const m of machines || []) {
-    totalsByMachine[m.machine_code] = sumBoothsForMachine(m.booths, diffMap)
+    const summaries = machineBoothSummaries(m, diffMap)
+    totalsByMachine[m.machine_code] = aggregateSummaries(summaries, mode)
   }
-  for (const col of COLS) {
+  for (const col of keys) {
     const entries = Object.entries(totalsByMachine)
       .filter(([, t]) => t[col] != null)
       .sort((a, b) => b[1][col] - a[1][col])
