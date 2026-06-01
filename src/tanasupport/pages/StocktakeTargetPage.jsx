@@ -48,11 +48,13 @@ export default function StocktakeTargetPage() {
     return () => { cancel = true }
   }, [staffId, staffRole])
 
+  // J-STOCK-NAVIGATION-REDESIGN-01: 対象タップ → 場所ハブ (/stock/hub) に変更、
+  // 場所ハブで 入荷/棚卸/発注 の 3 機能を分岐する流れ。
   function openWarehouse(loc) {
-    navigate(`/stock/stocktake/session?owner_type=warehouse&owner_id=${encodeURIComponent(loc.location_id)}`)
+    navigate(`/stock/hub?owner_type=warehouse&owner_id=${encodeURIComponent(loc.location_id)}`)
   }
   function openStaff(st) {
-    navigate(`/stock/stocktake/session?owner_type=staff&owner_id=${encodeURIComponent(st.staff_id)}`)
+    navigate(`/stock/hub?owner_type=staff&owner_id=${encodeURIComponent(st.staff_id)}`)
   }
 
   const visibleStaff = useMemo(

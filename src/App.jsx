@@ -107,6 +107,7 @@ const StoreDashboard       = lazy(() => import('./tanasupport/StoreDashboard'))
 const StocktakeInput       = lazy(() => import('./tanasupport/stocktake/StocktakeInput'))
 const StocktakeSessionPage = lazy(() => import('./tanasupport/stocktake/StocktakeSessionPage'))
 const StocktakeTargetPage  = lazy(() => import('./tanasupport/pages/StocktakeTargetPage'))
+const LocationHubPage      = lazy(() => import('./tanasupport/pages/LocationHubPage'))
 const OcrCountTestPage     = lazy(() => import('./tanasupport/pages/OcrCountTestPage'))
 
 // 遅延ロード — タナサポ 棚卸し管理 (マネサポ側)
@@ -351,7 +352,10 @@ function AppInner() {
           /stock に StockHubPage を載せ、staff/leader/manager/admin 全ロールアクセス可。
           旧 StocktakeLogin (PIN認証) は /stock/login へ退避 (backward-compat、必要なら復旧)。
           子ルートは ProtectedRoute (any role) に開放、staff_stores フィルタは hub 側で吸収。 */}
-      <Route path="/stock" element={<ProtectedRoute><StockHubPage /></ProtectedRoute>} />
+      {/* J-STOCK-NAVIGATION-REDESIGN-01: /stock = StocktakeTargetPage (倉庫/担当 2 タブ) に変更、
+          StockHubPage (店舗選択ハブ) は履歴のため残置 (Launcher 入口は外れたため到達不能だが) */}
+      <Route path="/stock" element={<ProtectedRoute><StocktakeTargetPage /></ProtectedRoute>} />
+      <Route path="/stock/hub" element={<ProtectedRoute><LocationHubPage /></ProtectedRoute>} />
       <Route path="/stock/login" element={<StocktakeLogin />} />
       <Route path="/stock/top" element={<StocktakeTop />} />
       <Route path="/stock/count" element={<ManagerRoute><StockCount /></ManagerRoute>} />
@@ -364,8 +368,9 @@ function AppInner() {
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
       <Route path="/stock/out"     element={<ProtectedRoute><StockOutPage /></ProtectedRoute>} />
       <Route path="/stock/arrival" element={<ProtectedRoute><ArrivalCheckPage /></ProtectedRoute>} />
-      {/* J-STOCKTAKE-TARGET-SELECT-01: /stock/stocktake は対象選択画面に、session は子ルートへ移動 */}
-      <Route path="/stock/stocktake" element={<ProtectedRoute><StocktakeTargetPage /></ProtectedRoute>} />
+      {/* J-STOCK-NAVIGATION-REDESIGN-01: /stock/stocktake は /stock にリダイレクト (backward-compat、
+          Launcher が /stock/stocktake のままでも安全) */}
+      <Route path="/stock/stocktake" element={<Navigate to="/stock" replace />} />
       <Route path="/stock/stocktake/session" element={<ProtectedRoute><StocktakeSessionPage /></ProtectedRoute>} />
       <Route path="/stock/orders" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
       {/* J-STOCK-OCR-COUNT-TEST-01: 棚卸 OCR カウントテスト (temp、DB なし) */}

@@ -71,7 +71,7 @@ describe('StocktakeTargetPage', () => {
     expect(screen.getByText('久留米倉庫')).toBeTruthy()
 
     fireEvent.click(screen.getByTestId('stocktake-target-warehouse-WH-001'))
-    expect(mockNavigate).toHaveBeenCalledWith('/stock/stocktake/session?owner_type=warehouse&owner_id=WH-001')
+    expect(mockNavigate).toHaveBeenCalledWith('/stock/hub?owner_type=warehouse&owner_id=WH-001')
   })
 
   it('when_staff_role_should_query_self_only', async () => {
@@ -132,7 +132,7 @@ describe('StocktakeTargetPage', () => {
     expect(screen.getByTestId('stocktake-target-self-badge')).toBeTruthy()
 
     fireEvent.click(screen.getByTestId('stocktake-target-staff-S002'))
-    expect(mockNavigate).toHaveBeenCalledWith('/stock/stocktake/session?owner_type=staff&owner_id=S002')
+    expect(mockNavigate).toHaveBeenCalledWith('/stock/hub?owner_type=staff&owner_id=S002')
   })
 
   it('when_back_button_clicked_should_navigate_to_stock', async () => {
