@@ -5,8 +5,13 @@ import { getHierarchicalParent } from '../../shared/nav/hierarchicalBack'
 
 describe('getHierarchicalParent', () => {
   describe('クレサポ系', () => {
-    it('booth → /clawsupport (URL に store_code 無いためフォールバック)', () => {
-      expect(getHierarchicalParent('/clawsupport/booth/MNK01-M01-B01')).toBe('/clawsupport')
+    it('booth → /clawsupport/store/:storeCode (booth_code 先頭 split で組み立て、1段戻り)', () => {
+      // ヒロ ad-hoc 2026-06-02 (Discord 1511026322976145638): '戻るで 2 段戻る時ある' bug 修正。
+      // booth_code 形式 STORE-Mxx-Bxx の先頭 = store_code。admin precedent と同手法。
+      expect(getHierarchicalParent('/clawsupport/booth/MNK01-M01-B01')).toBe('/clawsupport/store/MNK01')
+    })
+    it('booth_code がハイフン無しのフォーマット外なら /clawsupport にフォールバック (安全側)', () => {
+      expect(getHierarchicalParent('/clawsupport/booth/unknownformat')).toBe('/clawsupport')
     })
     it('store/dash → store', () => {
       expect(getHierarchicalParent('/clawsupport/store/MNK01/dash', { storeCode: 'MNK01' })).toBe('/clawsupport/store/MNK01')
