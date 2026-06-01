@@ -75,13 +75,42 @@ export default function StocktakeSessionPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-bg text-muted text-sm">
-      読み込み中...
+    <div className="min-h-screen flex flex-col items-center justify-center bg-bg text-muted text-sm gap-4 px-5">
+      <p>読み込み中...</p>
+      {/* J-STOCKTAKE-TARGET-SELECT-01-fix-02 (ヒロ Discord '操作不能は困る、せめて戻れるように'):
+          長時間ロード時の脱出口、presentation only (internal data-fetch ロジックは未触) */}
+      <button
+        type="button"
+        onClick={() => navigate('/stock/stocktake')}
+        data-testid="stocktake-session-loading-back"
+        className="text-xs underline text-muted min-h-[44px] px-3"
+      >
+        ← 対象選択に戻る
+      </button>
     </div>
   )
   if (error) return (
-    <div className="min-h-screen flex items-center justify-center bg-bg text-rose-400 text-sm px-5 text-center">
-      {error}
+    <div data-testid="stocktake-session-error" className="min-h-screen flex flex-col items-center justify-center bg-bg text-rose-400 text-sm px-5 text-center gap-4">
+      <p className="break-all">{error}</p>
+      {/* J-STOCKTAKE-TARGET-SELECT-01-fix-02: エラー時の脱出口を明示 (presentation only) */}
+      <div className="flex flex-col gap-2 w-full max-w-xs">
+        <button
+          type="button"
+          onClick={() => navigate('/stock/stocktake')}
+          data-testid="stocktake-session-error-back-target"
+          className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-text font-bold"
+        >
+          ← 対象選択に戻る
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/launcher')}
+          data-testid="stocktake-session-error-back-launcher"
+          className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-muted text-xs"
+        >
+          メインメニューへ
+        </button>
+      </div>
     </div>
   )
 
