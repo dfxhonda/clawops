@@ -1,43 +1,31 @@
 import { useState } from 'react'
-import DiffChip from './DiffChip'
 import MachineRowExpandedBoothList from './MachineRowExpandedBoothList'
+import { rankColor } from './storeTotalsRanking'
+import { VIEW_MODES, aggregateSummaries, formatCell, machineBoothSummaries } from './patrolViewModes'
 
-function Chevron({ className }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      className={`w-5 h-5 ${className}`}
-    >
-      <path
-        fillRule="evenodd"
-        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-}
+// J-PATROL-IN-DAILY-fix-05 ad-hoc (ヒロ Discord IMG_4234):
+// 行縦圧縮 (py-3 → py-1.5)、grid gap-x-1.5 で数値間隔開け、各列にベスト3/ワースト3 色付け。
+// SPEC-PATROL-VIEW-MODE-SWITCH-01: mode prop (IN/OUT/STOCK) で表示列が切り替わる。
+//   IN     = 前IN/今IN/前/日/今/日
+//   OUT    = 前OUT/今OUT/前出率%/今出率%
+//   STOCK  = 前在庫/今在庫/前補充/今補充
+// 集計は aggregateSummaries: count は SUM、出率は SUM(out)/SUM(in)*100 の重み付き平均。
 
-export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand }) {
-  // expanded/onToggleExpand が渡されれば外部制御(リスト状態の保持用)、無ければ従来の内部state
+export default function MachineRow({
+  machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand, rankMap,
+  mode = 'IN',
+}) {
   const controlled = typeof onToggleExpand === 'function'
   const [localExpanded, setLocalExpanded] = useState(false)
   const isExpanded = controlled ? !!expanded : localExpanded
   const booths = machine.booths ?? []
   const isSingleBooth = booths.length === 1
 
-  let inTotal = null
-  let outTotal = null
-  for (const b of booths) {
-    const d = diffMap[b.booth_code]
-    if (!d) continue
-    if (d.inDiff != null) inTotal = (inTotal ?? 0) + d.inDiff
-    if (d.outDiff != null) outTotal = (outTotal ?? 0) + d.outDiff
-  }
+  const cols = (VIEW_MODES[mode] ?? VIEW_MODES.IN).cols
+  const summaries = machineBoothSummaries(machine, diffMap)
+  const totals = aggregateSummaries(summaries, mode)
 
-  const doneCnt = booths.filter(b => !!todayMap[b.booth_code]).length
-  const allDone = doneCnt === booths.length && booths.length > 0
+  const mc = machine.machine_code
 
   const handleClick = () => {
     if (isSingleBooth) {
@@ -54,34 +42,28 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
       <button
         data-testid={`machine-row-btn-${machine.machine_code}`}
         onClick={handleClick}
-        className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
+        className="w-full flex items-center gap-2 px-4 py-1.5 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
-        <span className={`text-lg shrink-0 ${allDone ? 'text-emerald-400' : 'text-muted/30'}`}>
-          {allDone ? '✓' : '○'}
-        </span>
         <div className="flex-1 min-w-0">
           <p className="text-text text-base font-bold truncate">{machine.machine_name}</p>
-          {!isSingleBooth && (
-            <p className="text-muted text-base mt-0.5">{doneCnt}/{booths.length} 完了</p>
-          )}
-          {isSingleBooth && allDone && (
-            <p className="text-emerald-400/70 text-base mt-0.5">入力済み</p>
-          )}
         </div>
-        {(inTotal != null || outTotal != null) && (
-          <div className="flex gap-1 ml-auto shrink-0">
-            <DiffChip label="IN" value={inTotal} />
-            <DiffChip label="OUT" value={outTotal} />
-          </div>
-        )}
-        {!isSingleBooth && (
-          <span
-            data-testid={`chevron-${machine.machine_code}`}
-            className={`text-muted shrink-0 transition-transform duration-200 inline-flex ${isExpanded ? 'rotate-90' : ''}`}
-          >
-            <Chevron className="" />
-          </span>
-        )}
+        <div
+          data-testid={`machine-totals-${machine.machine_code}`}
+          className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52"
+        >
+          {cols.map(c => {
+            const rank = rankMap?.[c.key]?.[mc] ?? null
+            return (
+              <div
+                key={c.key}
+                data-testid={`machine-cell-${mc}-${c.key}`}
+                className={`font-mono text-sm font-bold ${rankColor(rank, !!c.today)}`}
+              >
+                {formatCell(totals[c.key], c.type)}
+              </div>
+            )
+          })}
+        </div>
       </button>
 
       {!isSingleBooth && isExpanded && (
@@ -90,6 +72,7 @@ export default function MachineRow({ machine, todayMap, diffMap, onBoothClick, e
           todayMap={todayMap}
           diffMap={diffMap}
           onBoothClick={onBoothClick}
+          mode={mode}
         />
       )}
     </div>

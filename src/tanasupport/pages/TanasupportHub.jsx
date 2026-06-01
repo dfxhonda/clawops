@@ -176,6 +176,18 @@ export default function TanasupportHub() {
             badge={null}
             onClick={() => navigate('/stock/out')}
           />
+          {/* J-STOCK-OCR-COUNT-TEST-01-fix-02 (ヒロ Discord 棚卸しOCRテストまだ見えない):
+              spec scope.modify は StockHubPage だけだったが、Launcher → 棚卸 タイル の遷移先は
+              /tanasupport (本 TanasupportHub) で /stock (StockHubPage) は通らない。
+              spec acceptance a1 '/stock のメニュー' を満たすには本ハブにも同タイル追加が必要。 */}
+          <TaskTile
+            emoji="🔬"
+            title="OCRカウントテスト"
+            sub="景品個数OCRの精度確認 (テスト版)"
+            borderColor="#8b5cf6"
+            badge={null}
+            onClick={() => navigate('/stock/ocr-count-test')}
+          />
         </div>
       )}
 

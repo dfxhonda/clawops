@@ -2,11 +2,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 
 // J-NAV-CONSOLIDATE-01: PCH取込タブを削除、AdminMastersHubPage の '取込' カードに一本化。
 // /admin/import ルートと AdminImportHubPage 本体は変更しない (forbidden)。
+// J-ADMIN-TAB-ORDER-fix-01 2026-05-31: タブ並び替え (集計/集金/監査/マスタ/設定/QR)、ラベル変更なし
 const TABS = [
-  { key: 'masters',  label: 'マスタ',         path: '/admin/masters'  },
+  { key: 'reports',  label: '集計・レポート', path: '/admin/reports'  },
   { key: 'collection', label: '集金',         path: '/admin/collection' },
   { key: 'audit',    label: '監査・履歴',     path: '/admin/audit'    },
-  { key: 'reports',  label: '集計・レポート', path: '/admin/reports'  },
+  { key: 'masters',  label: 'マスタ',         path: '/admin/masters'  },
   { key: 'settings', label: '設定',           path: '/admin/settings' },
   { key: 'labels',   label: 'QRラベル',       path: '/admin/labels'   },
 ]

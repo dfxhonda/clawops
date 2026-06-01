@@ -1,0 +1,260 @@
+// J-STOCK-OCR-COUNT-TEST-01 (司令塔Opus spec): カメラ/ギャラリー撮影 + OCR + 数値修正 UI。
+// 注: 当初 useOCR (clawsupport/hooks/useOCR.js) を import 流用予定だったが eslint boundaries で
+//     tanasupport → clawsupport の cross-module dep が禁止のため (.dependency-cruiser/eslint-plugin-boundaries)、
+//     ocr-meter Edge Function 呼び出しを本ファイル内に inline 再実装。タイムアウト 6s を踏襲。
+//     これは spec implementation_notes 1_decisions_not_in_spec / 4_deviations_from_spec に該当。
+import { useRef, useState } from 'react'
+import { supabase } from '../../lib/supabase'
+
+// J-STOCK-OCR-COUNT-TEST-01-fix-04 (ヒロ Discord 5/31 '時間かければ行けるなら 20s にしてもいい'):
+// 巡回メーター (6s) と違って棚卸は急がない、Claude vision の景品個数カウントは数字読み取りより
+// 重い思考処理。6s → 20s に延長して timeout 多発を抑制 (実機 IMG_4241 で 6s timeout 発火)。
+const OCR_TIMEOUT_MS = 20000
+
+// J-STOCK-OCR-COUNT-TEST-01-fix-05: iPhone 撮影画像は ~3-5MB JPEG、base64 化で更に膨張 →
+// Anthropic vision API 5MB base64 制限超過 → Edge Function が 502 で返却していた
+// (ヒロ Discord IMG_4243/IMG_4244 'Edge Function returned a non-2xx status code')。
+// canvas で長辺 1600px / quality 0.8 にダウンスケール、base64 < 1MB を狙う。
+async function resizeImageToBase64(file, maxLong = 1600, quality = 0.8) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result || ''))
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+  const img = await new Promise((resolve, reject) => {
+    const im = new Image()
+    im.onload = () => resolve(im)
+    im.onerror = reject
+    im.src = dataUrl
+  })
+  const longSide = Math.max(img.width, img.height)
+  const scale = longSide > maxLong ? maxLong / longSide : 1
+  const w = Math.round(img.width * scale)
+  const h = Math.round(img.height * scale)
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0, w, h)
+  const out = canvas.toDataURL('image/jpeg', quality)
+  canvas.width = 0
+  canvas.height = 0
+  const i = out.indexOf(',')
+  return i >= 0 ? out.slice(i + 1) : out
+}
+
+// J-STOCK-OCR-COUNT-TEST-01-fix-03 ヒロ Discord ① 採用: ocr-meter は メーター数字読み取り用、
+// 物体カウント用に新 Edge Function 'ocr-prize-count' に切替。戻り値構造:
+//   { value: 整数|null, confidence, items_breakdown: [{kind,count}], notes, meters[] }
+async function callOcrPrizeCount(imageBase64) {
+  const ocrPromise = supabase.functions.invoke('ocr-prize-count', {
+    body: { image_base64: imageBase64, media_type: 'image/jpeg' },
+  })
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('OCR_TIMEOUT_6S')), OCR_TIMEOUT_MS)
+  )
+  const { data, error } = await Promise.race([ocrPromise, timeoutPromise])
+  if (error) throw new Error(error.message || 'OCR invoke error')
+  return {
+    value: typeof data?.value === 'number' ? data.value : null,
+    confidence: typeof data?.confidence === 'number' ? data.confidence : null,
+    items_breakdown: Array.isArray(data?.items_breakdown) ? data.items_breakdown : [],
+    notes: typeof data?.notes === 'string' ? data.notes : '',
+  }
+}
+
+export default function OcrCountCapture({ onLog }) {
+  const cameraRef = useRef(null)
+  const galleryRef = useRef(null)
+  const [preview, setPreview] = useState(null)
+  const [ocrValue, setOcrValue] = useState(null)
+  const [ocrConfidence, setOcrConfidence] = useState(null)
+  const [ocrBreakdown, setOcrBreakdown] = useState([])
+  const [ocrNotes, setOcrNotes] = useState('')
+  const [confirmed, setConfirmed] = useState('')
+  const [phase, setPhase] = useState('idle')   // idle | running | done | error
+  const [errMsg, setErrMsg] = useState(null)
+
+  async function handleFile(file) {
+    if (!file) return
+    setPhase('running'); setErrMsg(null)
+    setOcrValue(null); setOcrConfidence(null); setOcrBreakdown([]); setOcrNotes(''); setConfirmed('')
+    const previewUrl = URL.createObjectURL(file)
+    setPreview(previewUrl)
+    try {
+      // fix-05: 5MB 制限対策で resize、長辺 1600px / quality 0.8
+      const base64 = await resizeImageToBase64(file, 1600, 0.8)
+      const res = await callOcrPrizeCount(base64)
+      setOcrValue(res.value)
+      setOcrConfidence(res.confidence)
+      setOcrBreakdown(res.items_breakdown)
+      setOcrNotes(res.notes)
+      setConfirmed(res.value != null ? String(res.value) : '')
+      setPhase('done')
+    } catch (e) {
+      let msg
+      if (e?.message === 'OCR_TIMEOUT_6S') {
+        msg = 'OCR タイムアウト (20s) — 手入力してください'
+      } else if (typeof e?.message === 'string' && /non-2xx/i.test(e.message)) {
+        msg = 'OCR サーバーエラー — 画像が大きすぎる可能性があります。別の写真でお試しください'
+      } else {
+        msg = String(e?.message || e)
+      }
+      setPhase('error'); setErrMsg(msg)
+    }
+  }
+
+  function appendDigit(d) {
+    if (d === 'C') { setConfirmed(''); return }
+    if (d === '←') { setConfirmed(s => s.slice(0, -1)); return }
+    if (confirmed.length >= 4) return
+    setConfirmed(s => (s + d).replace(/^0+(?=\d)/, ''))
+  }
+
+  function record() {
+    const conf = Number(confirmed)
+    if (!Number.isFinite(conf)) return
+    onLog({
+      ts: Date.now(),
+      ocr_value: ocrValue,
+      confirmed_value: conf,
+      confidence: ocrConfidence,
+      items_breakdown: ocrBreakdown,
+      notes: ocrNotes,
+      correct: ocrValue != null && Number(ocrValue) === conf,
+    })
+    setPreview(null); setOcrValue(null); setOcrConfidence(null); setOcrBreakdown([]); setOcrNotes('')
+    setConfirmed(''); setPhase('idle')
+  }
+
+  function retry() {
+    setPreview(null); setOcrValue(null); setOcrConfidence(null); setOcrBreakdown([]); setOcrNotes('')
+    setConfirmed(''); setPhase('idle'); setErrMsg(null)
+  }
+
+  const numpadDisabled = phase === 'idle' || phase === 'running'
+  const canRecord = phase === 'done' && confirmed !== '' && Number.isFinite(Number(confirmed))
+
+  return (
+    <div data-testid="ocr-count-capture" className="flex flex-col gap-2">
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={e => handleFile(e.target.files?.[0])}
+        style={{ display: 'none' }}
+        data-testid="ocr-count-camera-input"
+      />
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        onChange={e => handleFile(e.target.files?.[0])}
+        style={{ display: 'none' }}
+        data-testid="ocr-count-gallery-input"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => cameraRef.current?.click()}
+          data-testid="ocr-count-camera-btn"
+          className="flex-1 min-h-[44px] rounded-lg bg-emerald-600 text-white font-bold text-sm"
+        >
+          📷 撮影する
+        </button>
+        <button
+          type="button"
+          onClick={() => galleryRef.current?.click()}
+          data-testid="ocr-count-gallery-btn"
+          className="flex-1 min-h-[44px] rounded-lg bg-surface border border-border text-text font-bold text-sm"
+        >
+          🖼 ギャラリー
+        </button>
+      </div>
+
+      {preview && (
+        <div className="rounded-lg overflow-hidden border border-border bg-black">
+          <img src={preview} alt="preview" style={{ width: '100%', maxHeight: '40vh', objectFit: 'contain' }} />
+        </div>
+      )}
+
+      {phase === 'running' && (
+        <p data-testid="ocr-count-running" className="text-xs text-amber-300">読み取り中...</p>
+      )}
+      {phase === 'error' && (
+        <p data-testid="ocr-count-error" className="text-xs text-rose-300">{errMsg || 'OCR 失敗'}</p>
+      )}
+      {phase === 'done' && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-3">
+            <span className="text-xs text-muted">読み取り結果:</span>
+            <span data-testid="ocr-count-result" className="text-2xl font-mono font-bold text-text">
+              {ocrValue != null ? ocrValue : '?'}
+            </span>
+            <span className="text-xs text-muted">個</span>
+            {ocrConfidence != null && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300">
+                信頼度 {Math.round(Number(ocrConfidence) * 100)}%
+              </span>
+            )}
+          </div>
+          {ocrBreakdown.length > 0 && (
+            <div data-testid="ocr-count-breakdown" className="flex flex-wrap gap-1 text-[10px] text-muted">
+              {ocrBreakdown.map((b, i) => (
+                <span key={i} className="px-1.5 py-0.5 rounded bg-surface border border-border">
+                  {b.kind} <span className="font-mono text-text">{b.count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          {ocrNotes && (
+            <p data-testid="ocr-count-notes" className="text-[10px] text-amber-300 italic">{ocrNotes}</p>
+          )}
+        </div>
+      )}
+
+      <div className="bg-surface border border-border rounded-lg p-2 mt-1">
+        <p className="text-xs text-muted mb-1">確定値 (タップで修正)</p>
+        <div className="bg-bg border border-border rounded px-3 py-2 text-2xl font-mono font-bold text-text text-right min-h-[44px]">
+          {confirmed || '—'}
+        </div>
+        <div className="grid grid-cols-3 gap-1 mt-2">
+          {['1','2','3','4','5','6','7','8','9','C','0','←'].map(k => (
+            <button
+              key={k}
+              type="button"
+              disabled={numpadDisabled}
+              onClick={() => appendDigit(k)}
+              data-testid={`ocr-count-key-${k}`}
+              className="min-h-[44px] rounded bg-bg border border-border text-text font-mono text-base font-bold disabled:opacity-30"
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-1">
+        <button
+          type="button"
+          onClick={record}
+          disabled={!canRecord}
+          data-testid="ocr-count-record-btn"
+          className="flex-1 min-h-[44px] rounded-lg bg-emerald-600 text-white font-bold text-sm disabled:opacity-30"
+        >
+          記録する
+        </button>
+        <button
+          type="button"
+          onClick={retry}
+          data-testid="ocr-count-retry-btn"
+          className="flex-1 min-h-[44px] rounded-lg bg-surface border border-border text-text font-bold text-sm"
+        >
+          もう一枚
+        </button>
+      </div>
+    </div>
+  )
+}

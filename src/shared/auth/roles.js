@@ -32,7 +32,10 @@ export const LAUNCHER_MODULE_TILES = [
     label: 'タナサポ棚卸し',
     emoji: '📦',
     desc: '棚卸し・倉庫カウント',
-    path: '/tanasupport',
+    // J-STOCK-LAUNCHER-REDIRECT-01 (5/31): /tanasupport → /stock に変更
+    // J-STOCK-LAUNCHER-REDIRECT-02 (6/1): /stock → /stock/stocktake に変更し、
+    // StocktakeTargetPage (倉庫/担当 2 タブ) に直行。
+    path: '/stock/stocktake',
     requiredModules: ['stocktake'],
   },
   {

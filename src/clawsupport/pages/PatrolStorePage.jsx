@@ -7,8 +7,9 @@ import DateTime from '../../shared/ui/DateTime'
 import { getPatrolMachines } from '../../services/patrol'
 import { getTodayReadingsMap } from '../../services/patrolCore'
 import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
-import DiffChip from '../components/DiffChip'
 import MachineRow from '../components/MachineRow'
+import StoreTotalsHeader from '../components/StoreTotalsHeader'
+import { computeMachineRankMap } from '../components/storeTotalsRanking'
 
 export default function PatrolStorePage() {
   const { storeCode } = useParams()
@@ -28,9 +29,10 @@ export default function PatrolStorePage() {
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
-  const [storeInTotal, setStoreInTotal] = useState(null)
-  const [storeOutTotal, setStoreOutTotal] = useState(null)
   const [loading, setLoading] = useState(true)
+  // SPEC-PATROL-VIEW-MODE-SWITCH-01: 巡回機械リスト IN/OUT/STOCK 3 モード切替。
+  // toggle_scope: per-store → storeCode が URL params で変わる度に IN へ戻る (component remount 同等)。
+  const [viewMode, setViewMode] = useState('IN')
 
   const load = useCallback(async () => {
     const [{ data: store }, machineList] = await Promise.all([
@@ -41,14 +43,12 @@ export default function PatrolStorePage() {
     setMachines(machineList)
 
     const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
-    const [map, { diffMap: diffs, storeInTotal: inT, storeOutTotal: outT }] = await Promise.all([
+    const [map, { diffMap: diffs }] = await Promise.all([
       getTodayReadingsMap(boothCodes),
       fetchStoreMachineDiffs(machineList),
     ])
     setTodayMap(map)
     setDiffMap(diffs)
-    setStoreInTotal(inT)
-    setStoreOutTotal(outT)
     setLoading(false)
   }, [storeCode])
 
@@ -59,6 +59,10 @@ export default function PatrolStorePage() {
     () => machines.flatMap(m => (m.booths ?? []).map(b => ({ booth: b, machine: m }))),
     [machines],
   )
+
+  // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
+  // SPEC-PATROL-VIEW-MODE-SWITCH-01: viewMode に応じて対象列が切り替わる
+  const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap, viewMode), [machines, diffMap, viewMode])
 
   // 「保存してリストに戻る」復帰時: 次ブースの machine を展開し、その位置へスクロール
   useEffect(() => {
@@ -98,31 +102,28 @@ export default function PatrolStorePage() {
         onBack={() => navigate('/clawsupport')}
       />
 
-      <div
-        data-testid="store-inline-total"
-        className="shrink-0 px-4 py-2 flex gap-2 items-center border-b border-border"
-      >
-        <DiffChip label="IN" value={storeInTotal} />
-        <DiffChip label="OUT" value={storeOutTotal} />
-      </div>
+      <StoreTotalsHeader
+        diffMap={diffMap}
+        mode={viewMode}
+        onModeChange={setViewMode}
+        leftSlot={
+          totalCnt > 0 && (
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full border ${
+                doneCnt >= totalCnt
+                  ? 'text-emerald-400 border-emerald-400/40'
+                  : doneCnt > 0
+                  ? 'text-amber-400 border-amber-400/40'
+                  : 'text-muted border-border'
+              }`}
+            >
+              {doneCnt}/{totalCnt} ブース完了
+            </span>
+          )
+        }
+      />
 
-      {totalCnt > 0 && (
-        <div className="px-5 py-2 shrink-0">
-          <span
-            className={`text-base px-3 py-1 rounded-full border ${
-              doneCnt >= totalCnt
-                ? 'text-emerald-400 border-emerald-400/40'
-                : doneCnt > 0
-                ? 'text-amber-400 border-amber-400/40'
-                : 'text-muted border-border'
-            }`}
-          >
-            {doneCnt}/{totalCnt} ブース完了
-          </span>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">
         {machines.length === 0 && (
           <p className="text-center text-muted text-base py-12">機械データがありません</p>
         )}
@@ -157,6 +158,8 @@ export default function PatrolStorePage() {
               machine={machine}
               todayMap={todayMap}
               diffMap={diffMap}
+              rankMap={rankMap}
+              mode={viewMode}
               expanded={expandedSet.includes(machine.machine_code)}
               onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
               onBoothClick={booth =>

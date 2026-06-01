@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { parseNum, getCache, setCache, clearCache } from './utils'
 import { writeAuditLog } from './audit'
 import { MachineRowSchema, StoreRowSchema } from './schemas/index.js'
+import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 
 // getStores 用部分スキーマ (INC-005: SELECT列不一致防止)
 const StoreSearchSchema = StoreRowSchema.pick({
@@ -154,6 +155,8 @@ export async function getNextBoothNumber(machineCode) {
 }
 
 export async function addMachine(m) {
+  // J-ADMIN-99_adhoc_machine_add_org_id_fix: machines.organization_id NOT NULL 制約満たすため DFX_ORG_ID を明示付与。
+  // ヒロ 2026-05-31 Discord IMG_4228.png 実機エラー "null value in column \"organization_id\" of relation \"machines\" violates not-null constraint"
   const { data, error } = await supabase
     .from('machines')
     .insert({
@@ -166,6 +169,7 @@ export async function addMachine(m) {
       play_price: m.play_price || 100,
       notes: m.notes || null,
       is_active: true,
+      organization_id: DFX_ORG_ID,
     })
     .select()
     .single()
@@ -184,6 +188,9 @@ export async function addMachine(m) {
 export async function addBooth(b) {
   const machineCodeSuffix = b.machine_code.split('-').slice(1).join('-')
   const boothCode = `${b.store_code}-${machineCodeSuffix}-B${String(b.booth_number).padStart(2, '0')}`
+  // J-ADMIN-99_adhoc_machine_add_org_id_fix-02: booths テーブルは organization_id 列なし
+  // (schema cache "Could not find the 'organization_id' column of 'booths'" エラー、ヒロ実機 IMG_4229)。
+  // machines だけ NOT NULL 制約あり、booths は store_code 経由で RLS 担保。
   const { data, error } = await supabase
     .from('booths')
     .insert({

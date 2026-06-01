@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -7,7 +7,8 @@ import { getPatrolMachines } from '../../services/patrol'
 import { getTodayReadingsMap } from '../../services/patrolCore'
 import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
 import MachineRow from '../../clawsupport/components/MachineRow'
-import DiffChip from '../../clawsupport/components/DiffChip'
+import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
+import { computeMachineRankMap } from '../../clawsupport/components/storeTotalsRanking'
 import { useAuth } from '../../hooks/useAuth'
 import { isAdmin } from '../../services/permissions'
 
@@ -35,8 +36,6 @@ export default function AdminMachineListPage() {
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
-  const [storeInTotal, setStoreInTotal] = useState(null)
-  const [storeOutTotal, setStoreOutTotal] = useState(null)
   const [dataLoading, setDataLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -48,20 +47,21 @@ export default function AdminMachineListPage() {
     setMachines(machineList)
 
     const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
-    const [map, { diffMap: diffs, storeInTotal: inT, storeOutTotal: outT }] = await Promise.all([
+    const [map, { diffMap: diffs }] = await Promise.all([
       getTodayReadingsMap(boothCodes),
       fetchStoreMachineDiffs(machineList),
     ])
     setTodayMap(map)
     setDiffMap(diffs)
-    setStoreInTotal(inT)
-    setStoreOutTotal(outT)
     setDataLoading(false)
   }, [storeCode])
 
   useEffect(() => {
     if (isAdmin(staffRole)) load()
   }, [load, staffRole])
+
+  // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
+  const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap), [machines, diffMap])
 
   if (loading) return null
   if (!isAdmin(staffRole)) return <UnauthorizedView />
@@ -84,17 +84,22 @@ export default function AdminMachineListPage() {
         onBack={() => navigate(`/admin/store-list`)}
       />
 
-      <div className="px-5 py-2 shrink-0 flex items-center gap-3">
-        <span className="text-base text-muted">管理者編集モード</span>
-        {(storeInTotal != null || storeOutTotal != null) && (
-          <div data-testid="store-inline-total" className="flex gap-1">
-            <DiffChip label="IN" value={storeInTotal} />
-            <DiffChip label="OUT" value={storeOutTotal} />
-          </div>
-        )}
-      </div>
+      {/* J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4233):
+          管理者編集モードでも巡回画面と同じ 4 列ヘッダ (前IN/今IN/前/日/今/日) で揃える。
+          旧 IN/OUT DiffChip ('IN +3,085 OUT +196') は廃止。 */}
+      <StoreTotalsHeader
+        diffMap={diffMap}
+        leftSlot={<span className="text-xs text-muted font-bold">管理者編集モード</span>}
+      />
+      {/* タップ済進捗をヘッダに統合できないので 1 行で残す (役立ち情報) */}
+      {/* 不要なら削除可、ヒロ判断 */}
+      {Object.keys(todayMap).length > 0 && (
+        <div className="px-4 py-1 shrink-0">
+          <span className="text-xs text-muted">入力済み {Object.keys(todayMap).length} / {machines.reduce((s, m) => s + m.booths.length, 0)} ブース</span>
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">
         {machines.length === 0 && (
           <p className="text-center text-muted text-base py-12">機械データがありません</p>
         )}
@@ -104,6 +109,7 @@ export default function AdminMachineListPage() {
             machine={machine}
             todayMap={todayMap}
             diffMap={diffMap}
+            rankMap={rankMap}
             onBoothClick={booth =>
               navigate(`/admin/booth-edit/${booth.booth_code}`, {
                 state: { machine, booth, storeCode },

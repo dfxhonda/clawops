@@ -14,6 +14,21 @@ function sumOut(row) {
   )
 }
 
+// J-PATROL-IN-DAILY-fix-01: patrol_date 'YYYY-MM-DD' 文字列差 → 日数 (JST 解釈)。
+// CLAUDE.md jst_date_handling: toISOString 禁止のため new Date(str + 'T00:00:00+09:00')。
+export function diffPatrolDays(prevStr, currStr) {
+  if (!prevStr || !currStr) return null
+  const p = new Date(prevStr + 'T00:00:00+09:00').getTime()
+  const c = new Date(currStr + 'T00:00:00+09:00').getTime()
+  const d = Math.round((c - p) / 86400000)
+  return d > 0 ? d : null
+}
+
+function round1(n) {
+  if (n == null || !isFinite(n)) return null
+  return Math.round(n * 10) / 10
+}
+
 function computeDiffs(ascRows, meterUnitPrice) {
   return ascRows.map((row, i) => {
     const prev = i > 0 ? ascRows[i - 1] : null
@@ -32,7 +47,6 @@ function computeDiffs(ascRows, meterUnitPrice) {
 
 /**
  * Fetch last `limit` readings for a booth with diffs computed client-side.
- * No entry_type filter — replace/patrol/collection all included as prev candidates.
  */
 export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit = 10) {
   const { data, error } = await supabase
@@ -50,19 +64,87 @@ export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit =
 }
 
 /**
+ * Pure helper: rows DESC (latest first) → diff summary。テスト用に export。
+ * J-PATROL-IN-DAILY-fix-01: 直近 3 件から 今IN/前IN, 今/日/前/日 を計算。
+ * SPEC-PATROL-VIEW-MODE-SWITCH-01: prev/curr の OUT 差分 / 出率 / 在庫 / 補充 を追加。
+ *   - prevOut/currOut: out_meter (+_2 +_3) 差分
+ *   - prevPayout/currPayout: out_diff / in_diff * 100 (1dp, in_diff<=0 は null)
+ *   - prevStock/currStock: prize_stock_count snapshot
+ *   - prevRestock/currRestock: prize_restock_count snapshot
+ * 後方互換: inDiff/outDiff/revenue/profit はそのまま残す (既存ストア集計が依存)。
+ */
+function payoutPct(outDiff, inDiff) {
+  if (outDiff == null || inDiff == null || inDiff <= 0) return null
+  return round1((outDiff / inDiff) * 100)
+}
+
+function snapshot(row, key) {
+  if (!row || row[key] == null) return null
+  return Number(row[key])
+}
+
+export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
+  if (!descRows || descRows.length < 2) return null
+  const [latest, prev, prev2] = descRows
+  const inDiff =
+    latest.in_meter != null && prev.in_meter != null
+      ? Number(latest.in_meter) - Number(prev.in_meter)
+      : null
+  const outDiff = sumOut(latest) - sumOut(prev)
+  const revenue = inDiff != null ? inDiff * meterUnitPrice : null
+  const prizeCost = Number(latest.prize_cost ?? 0)
+  const profit = revenue != null ? revenue - outDiff * prizeCost : null
+
+  const currDays = diffPatrolDays(prev.patrol_date, latest.patrol_date)
+  const currPerDay = inDiff != null && currDays ? round1(inDiff / currDays) : null
+
+  let prevIn = null
+  let prevDays = null
+  let prevPerDay = null
+  let prevOut = null
+  if (prev2 && prev.in_meter != null && prev2.in_meter != null) {
+    prevIn = Number(prev.in_meter) - Number(prev2.in_meter)
+    prevDays = diffPatrolDays(prev2.patrol_date, prev.patrol_date)
+    prevPerDay = prevDays ? round1(prevIn / prevDays) : null
+  }
+  if (prev2) {
+    prevOut = sumOut(prev) - sumOut(prev2)
+  }
+
+  const currPayout = payoutPct(outDiff, inDiff)
+  const prevPayout = prev2 ? payoutPct(prevOut, prevIn) : null
+
+  return {
+    inDiff, outDiff, revenue, profit,
+    currIn: inDiff, currDays, currPerDay,
+    prevIn, prevDays, prevPerDay,
+    // SPEC-PATROL-VIEW-MODE-SWITCH-01 (OUT mode)
+    currOut: outDiff, prevOut,
+    currPayout, prevPayout,
+    // SPEC-PATROL-VIEW-MODE-SWITCH-01 (stock mode = snapshot per record)
+    currStock:   snapshot(latest, 'prize_stock_count'),
+    prevStock:   snapshot(prev,   'prize_stock_count'),
+    currRestock: snapshot(latest, 'prize_restock_count'),
+    prevRestock: snapshot(prev,   'prize_restock_count'),
+  }
+}
+
+/**
  * Fetch latest diff per booth for machine list chips.
- * boothCodes: string[]
- * meterUnitPriceMap: Record<boothCode, number>
- * Returns: Record<boothCode, { inDiff, outDiff, revenue, profit } | null>
+ * Returns: Record<boothCode, summary | null>
  */
 export async function fetchBoothDiffMap(boothCodes, meterUnitPriceMap = {}) {
   if (!boothCodes.length) return {}
 
-  // Fetch last 2 readings per booth (no entry_type filter = bug fix)
+  // J-PATROL-IN-DAILY-fix-03 (ヒロ Discord IMG_4232): patrol_date DESC を主キー、created_at DESC 副キー。
+  // 旧 created_at DESC 単独ソートは「古い patrol_date を後で入力 (late entry)」が最新扱いになり、
+  // 結果 前IN が in_meter 非単調変化で異常な負値になっていた (BUZZクレーン 前IN -549 等)。
+  // fetchBoothHistory (履歴一覧) も同じ複合ソートで一致させる。
   const { data, error } = await supabase
     .from('meter_readings')
     .select(HISTORY_SELECT)
     .in('booth_code', boothCodes)
+    .order('patrol_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) return {}
 
@@ -70,23 +152,12 @@ export async function fetchBoothDiffMap(boothCodes, meterUnitPriceMap = {}) {
   for (const row of data ?? []) {
     const bc = row.booth_code
     if (!byBooth[bc]) byBooth[bc] = []
-    if (byBooth[bc].length < 2) byBooth[bc].push(row)
+    if (byBooth[bc].length < 3) byBooth[bc].push(row)
   }
 
   const result = {}
   for (const [bc, rows] of Object.entries(byBooth)) {
-    if (rows.length < 2) { result[bc] = null; continue }
-    const [latest, prev] = rows
-    const mup = meterUnitPriceMap[bc] ?? 100
-    const inDiff =
-      latest.in_meter != null && prev.in_meter != null
-        ? Number(latest.in_meter) - Number(prev.in_meter)
-        : null
-    const outDiff = sumOut(latest) - sumOut(prev)
-    const revenue = inDiff != null ? inDiff * mup : null
-    const prizeCost = Number(latest.prize_cost ?? 0)
-    const profit = revenue != null ? revenue - outDiff * prizeCost : null
-    result[bc] = { inDiff, outDiff, revenue, profit }
+    result[bc] = computeBoothDiffSummary(rows, meterUnitPriceMap[bc] ?? 100)
   }
   return result
 }

@@ -1,6 +1,16 @@
-import { useNavigate } from 'react-router-dom'
+import AdminHubTilesGrid from '../components/AdminHubTilesGrid'
 
+// J-REPORTS-ANALYTICS-01 2026-05-30: 7 集計画面を impl:true に変更、AdminHubTilesGrid 集約。
+// 旧 5 タイル (日次/時別/集金抽出/課金) は spec で削除指示なしのため残置、未実装で「準備中」維持。
 const TILES = [
+  { label: 'ブース売上ランキング', desc: 'ブース別売上 ベスト/ワースト', path: '/admin/reports/booth-ranking', impl: true  },
+  { label: '払い出し率トレンド',   desc: 'ブース別 payout_rate 時系列',  path: '/admin/reports/payout-trend',  impl: true  },
+  { label: '7日移動平均分析',     desc: '7DMA play_count 多系列折れ線',  path: '/admin/reports/7dma',          impl: true  },
+  { label: '集金サイクル分析',     desc: '店舗別集金間隔と推奨次回日',    path: '/admin/reports/collection-cycle', impl: true  },
+  { label: '景品コスト回収',       desc: '景品別の回収率ランキング',      path: '/admin/reports/prize-cost',    impl: true  },
+  { label: '店舗間比較',           desc: '店舗別 売上/ブース 単価比較',    path: '/admin/reports/store-comparison', impl: true  },
+  { label: '利益率カレンダー',     desc: '日次粗利率ヒートマップ',        path: '/admin/reports/profit-calendar', impl: true  },
+  // 旧未実装タイル (spec で touch 指示なし、残置)
   { label: '日次ブース', desc: 'ブース単位の日次集計',   path: '/admin/reports/daily-booths',   impl: false },
   { label: '時別ブース', desc: 'ブース単位の時別集計',   path: '/admin/reports/hourly-booths',  impl: false },
   { label: '日次機械',   desc: '機械単位の日次集計',     path: '/admin/reports/daily-machines', impl: false },
@@ -9,25 +19,5 @@ const TILES = [
 ]
 
 export default function AdminReportsHubPage() {
-  const navigate = useNavigate()
-  return (
-    <div data-testid="admin-reports-hub" className="p-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {TILES.map(t => (
-          <button
-            key={t.path}
-            data-testid={`hub-tile-${t.label}`}
-            onClick={() => navigate(t.path)}
-            className="relative rounded-xl p-4 min-h-[100px] w-full text-center bg-surface hover:bg-surface/80 active:ring-2 active:ring-blue-500 border border-border transition-colors cursor-pointer"
-          >
-            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-xs font-bold bg-gray-600 text-gray-300">
-              未実装
-            </span>
-            <p className="text-base font-bold text-text whitespace-nowrap mt-3">{t.label}</p>
-            <p className="text-sm text-muted mt-1 line-clamp-2">{t.desc}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+  return <AdminHubTilesGrid tiles={TILES} testid="admin-reports-hub" />
 }

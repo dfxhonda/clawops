@@ -45,6 +45,14 @@ const AdminDevAssetsListPage = lazy(() => import('./admin/pages/AdminDevAssetsLi
 const AdminDevAssetsUploadPage = lazy(() => import('./admin/pages/AdminDevAssetsUploadPage'))
 const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
 const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPage'))
+// J-REPORTS-ANALYTICS-01 2026-05-30: 7 売上分析画面 lazy import
+const BoothRankingPage    = lazy(() => import('./admin/pages/reports/BoothRankingPage'))
+const PayoutTrendPage     = lazy(() => import('./admin/pages/reports/PayoutTrendPage'))
+const SevenDmaPage        = lazy(() => import('./admin/pages/reports/SevenDmaPage'))
+const CollectionCyclePage = lazy(() => import('./admin/pages/reports/CollectionCyclePage'))
+const PrizeCostPage       = lazy(() => import('./admin/pages/reports/PrizeCostPage'))
+const StoreComparisonPage = lazy(() => import('./admin/pages/reports/StoreComparisonPage'))
+const ProfitCalendarPage  = lazy(() => import('./admin/pages/reports/ProfitCalendarPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
 const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
 const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
@@ -68,7 +76,8 @@ const RankingView = lazy(() => import('./clawsupport/pages/RankingView'))
 const MachineList = lazy(() => import('./clawsupport/pages/MachineList'))
 
 // 遅延ロード — マスタ追加
-const BoothQrPrint = lazy(() => import('./manesupport/pages/BoothQrPrint'))
+// J-NAV-ORPHAN-CLEANUP-01 2026-05-30: BoothQrPrint は /admin/qr-print の動線無し orphan、
+// /admin/labels (AdminQRLabelPage) が現役のため lazy import 削除。
 const AdminModelList = lazy(() => import('./manesupport/pages/ModelList'))
 const AdminMachineList = lazy(() => import('./manesupport/pages/MachineList'))
 const AdminBoothList = lazy(() => import('./manesupport/pages/BoothList'))
@@ -86,8 +95,7 @@ const ImportSlips = lazy(() => import('./manesupport/pages/ImportSlips'))
 const SetupSheets = lazy(() => import('./manesupport/pages/SetupSheets'))
 const TestDataImport = lazy(() => import('./manesupport/pages/TestDataImport'))
 const AuditLog = lazy(() => import('./manesupport/pages/AuditLog'))
-const AuditSummary = lazy(() => import('./manesupport/pages/AuditSummary'))
-const DailyStatsAdmin = lazy(() => import('./manesupport/pages/DailyStatsAdmin'))
+// J-NAV-ORPHAN-CLEANUP-01 2026-05-30: AuditSummary / DailyStatsAdmin は動線無し orphan、lazy import 削除。
 
 // 遅延ロード — 用語マスタ管理
 const AdminGlossary = lazy(() => import('./manesupport/pages/AdminGlossary'))
@@ -98,6 +106,9 @@ const OrderList            = lazy(() => import('./tanasupport/pages/OrderList'))
 const StoreDashboard       = lazy(() => import('./tanasupport/StoreDashboard'))
 const StocktakeInput       = lazy(() => import('./tanasupport/stocktake/StocktakeInput'))
 const StocktakeSessionPage = lazy(() => import('./tanasupport/stocktake/StocktakeSessionPage'))
+const StocktakeTargetPage  = lazy(() => import('./tanasupport/pages/StocktakeTargetPage'))
+const LocationHubPage      = lazy(() => import('./tanasupport/pages/LocationHubPage'))
+const OcrCountTestPage     = lazy(() => import('./tanasupport/pages/OcrCountTestPage'))
 
 // 遅延ロード — タナサポ 棚卸し管理 (マネサポ側)
 const StocktakeSessionListAdmin = lazy(() => import('./manesupport/admin/stocktake/SessionListAdmin'))
@@ -148,6 +159,7 @@ const StockMove    = lazy(() => import('./tanasupport/pages/StockMove'))
 const StockCount   = lazy(() => import('./tanasupport/pages/StockCount'))
 const StockOutPage       = lazy(() => import('./tanasupport/pages/StockOutPage'))
 const ArrivalCheckPage   = lazy(() => import('./tanasupport/pages/ArrivalCheckPage'))
+const StockHubPage       = lazy(() => import('./tanasupport/pages/StockHubPage'))
 
 
 // ローディングスピナー（Suspense フォールバック）
@@ -195,7 +207,7 @@ function AppInner() {
       <Route path="/collection/input" element={<ManagerRoute><CollectionInputPage /></ManagerRoute>} />
       <Route path="/collection/history" element={<ManagerRoute><CollectionHistoryPage /></ManagerRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
-      <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /dashboard/legacy ルート削除 (動線無し) */}
       {/* J-ADMIN-02: AdminLayout nested routes (新 IA ナビ骨組) */}
       <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="masters" replace />} />
@@ -219,6 +231,14 @@ function AppInner() {
         <Route path="audit/bulk-import" element={<AdminBulkImportPage />} />
         <Route path="audit/*" element={<AdminPlaceholderPage />} />
         <Route path="reports" element={<AdminReportsHubPage />} />
+        {/* J-REPORTS-ANALYTICS-01 2026-05-30: 7 売上分析画面 */}
+        <Route path="reports/booth-ranking"    element={<BoothRankingPage />} />
+        <Route path="reports/payout-trend"     element={<PayoutTrendPage />} />
+        <Route path="reports/7dma"             element={<SevenDmaPage />} />
+        <Route path="reports/collection-cycle" element={<CollectionCyclePage />} />
+        <Route path="reports/prize-cost"       element={<PrizeCostPage />} />
+        <Route path="reports/store-comparison" element={<StoreComparisonPage />} />
+        <Route path="reports/profit-calendar"  element={<ProfitCalendarPage />} />
         <Route path="reports/*" element={<AdminPlaceholderPage />} />
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
@@ -264,21 +284,21 @@ function AppInner() {
       <Route path="/patrol/overview" element={<Navigate to="/clawsupport" replace />} />
       <Route path="/patrol" element={<ProtectedRoute><PatrolScan /></ProtectedRoute>} />
       <Route path="/patrol/input" element={<ProtectedRoute><PatrolPage /></ProtectedRoute>} />
-      <Route path="/patrol/input-legacy" element={<ProtectedRoute><PatrolInput /></ProtectedRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /patrol/input-legacy ルート削除 (動線無し) */}
       <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
 
       {/* 監査ログ — manager以上 (旧ルート、/admin/audit は AdminLayout 配下に移行) */}
       {/* J-DEV-ASSET-HANDOFF-01: ファイル受け渡し (admin/manager 両方アクセス可、AdminLayout 外、ManagerRoute で staff/patrol ブロック) */}
       <Route path="/admin/dev-assets" element={<ManagerRoute><AdminDevAssetsListPage /></ManagerRoute>} />
       <Route path="/admin/dev-assets/upload" element={<ManagerRoute><AdminDevAssetsUploadPage /></ManagerRoute>} />
-      <Route path="/admin/audit-summary" element={<ManagerRoute><AuditSummary /></ManagerRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/audit-summary ルート削除 (動線無し orphan) */}
 
       {/* データ検索・修正 — manager以上 */}
       <Route path="/datasearch" element={<ManagerRoute><DataSearch /></ManagerRoute>} />
       <Route path="/edit/:boothId" element={<ManagerRoute><EditReading /></ManagerRoute>} />
 
-      {/* QR印刷 — manager以上 */}
-      <Route path="/admin/qr-print" element={<ManagerRoute><BoothQrPrint /></ManagerRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/qr-print ルート削除 (動線無し)、
+          /admin/labels (AdminQRLabelPage) が現役 QR ラベル機能 */}
 
       {/* 用語マスタ管理 — admin のみ */}
       <Route path="/admin/glossary" element={<AdminRoute><AdminGlossary /></AdminRoute>} />
@@ -318,7 +338,7 @@ function AppInner() {
       <Route path="/admin/import-slips" element={<AdminRoute><ImportSlips /></AdminRoute>} />
       <Route path="/admin/setup-sheets" element={<AdminRoute><SetupSheets /></AdminRoute>} />
       <Route path="/admin/test-data" element={<AdminRoute><TestDataImport /></AdminRoute>} />
-      <Route path="/admin/daily-stats" element={<ManagerRoute><DailyStatsAdmin /></ManagerRoute>} />
+      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/daily-stats ルート削除 (動線無し orphan) */}
 
 
       {/* Phase 4一時無効化中 - OcrConfirmのReferenceError調査中
@@ -328,18 +348,33 @@ function AppInner() {
       <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
       <Route path="/ocr-test"         element={<ProtectedRoute><OCRTestPage /></ProtectedRoute>} />
 
-      {/* 棚卸しアプリ — PIN認証（ProtectedRoute不要） */}
-      <Route path="/stock" element={<StocktakeLogin />} />
+      {/* J-STOCK-STORE-SELECT-01 2026-05-30 司令塔Opus spec:
+          /stock に StockHubPage を載せ、staff/leader/manager/admin 全ロールアクセス可。
+          旧 StocktakeLogin (PIN認証) は /stock/login へ退避 (backward-compat、必要なら復旧)。
+          子ルートは ProtectedRoute (any role) に開放、staff_stores フィルタは hub 側で吸収。 */}
+      {/* J-STOCK-NAVIGATION-REDESIGN-01: /stock = StocktakeTargetPage (倉庫/担当 2 タブ) に変更、
+          StockHubPage (店舗選択ハブ) は履歴のため残置 (Launcher 入口は外れたため到達不能だが) */}
+      <Route path="/stock" element={<ProtectedRoute><StocktakeTargetPage /></ProtectedRoute>} />
+      <Route path="/stock/hub" element={<ProtectedRoute><LocationHubPage /></ProtectedRoute>} />
+      <Route path="/stock/login" element={<StocktakeLogin />} />
       <Route path="/stock/top" element={<StocktakeTop />} />
       <Route path="/stock/count" element={<ManagerRoute><StockCount /></ManagerRoute>} />
       <Route path="/stock/count/:sessionId" element={<StocktakeCount />} />
       <Route path="/stock/summary/:sessionId" element={<StocktakeSummary />} />
 
-      {/* 在庫管理 — manager以上 */}
+      {/* 在庫管理: J-STOCK-STORE-SELECT-01 で role ガード開放 (ProtectedRoute = any role)、
+          staff の場合は staff_stores のデータのみ表示 (RLS + hub フィルタ) */}
       <Route path="/stock/dashboard" element={<ManagerRoute><StockDashboard /></ManagerRoute>} />
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
-      <Route path="/stock/out"     element={<ManagerRoute><StockOutPage /></ManagerRoute>} />
-      <Route path="/stock/arrival" element={<ManagerRoute><ArrivalCheckPage /></ManagerRoute>} />
+      <Route path="/stock/out"     element={<ProtectedRoute><StockOutPage /></ProtectedRoute>} />
+      <Route path="/stock/arrival" element={<ProtectedRoute><ArrivalCheckPage /></ProtectedRoute>} />
+      {/* J-STOCK-NAVIGATION-REDESIGN-01: /stock/stocktake は /stock にリダイレクト (backward-compat、
+          Launcher が /stock/stocktake のままでも安全) */}
+      <Route path="/stock/stocktake" element={<Navigate to="/stock" replace />} />
+      <Route path="/stock/stocktake/session" element={<ProtectedRoute><StocktakeSessionPage /></ProtectedRoute>} />
+      <Route path="/stock/orders" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
+      {/* J-STOCK-OCR-COUNT-TEST-01: 棚卸 OCR カウントテスト (temp、DB なし) */}
+      <Route path="/stock/ocr-count-test" element={<ProtectedRoute><OcrCountTestPage /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/launcher" replace />} />
     </Routes>

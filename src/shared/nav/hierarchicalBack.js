@@ -23,9 +23,18 @@ const LAUNCHER = '/launcher'
 // params 内 (useParams で取れる動的 ID) を使って親 URL に ID を埋め込めるよう
 // (pathname, params) を受ける。マッチは patterns 配列を順次評価。
 const OVERRIDES = [
-  // クレサポ: booth は store の中にいるが URL に store_code が無い → /clawsupport へフォールバック。
-  // 詳細店舗にバックしたい場合は呼出側で navigate を直接指定。
-  { test: /^\/clawsupport\/booth\/[^/]+\/?$/, target: () => '/clawsupport' },
+  // クレサポ: booth は store の中にいるが URL に store_code が無い → booth_code 先頭で組み立て。
+  // ヒロ ad-hoc 2026-06-02 (Discord 1511026322976145638): '戻るで 2 段戻る時ある' bug 修正。
+  // booth_code 形式 STORE-Mxx-Bxx の先頭 split('-')[0] = store_code、admin precedent と同手法。
+  // split できない場合 (booth_code がフォーマット外) は安全策で /clawsupport トップへフォールバック。
+  { test: /^\/clawsupport\/booth\/[^/]+\/?$/, target: (path) => {
+      const m = path.match(/^\/clawsupport\/booth\/([^/]+)/)
+      const boothCode = m?.[1]
+      const storeCode = boothCode?.split('-')?.[0]
+      return storeCode && storeCode !== boothCode
+        ? `/clawsupport/store/${storeCode}`
+        : '/clawsupport'
+    } },
   { test: /^\/clawsupport\/store\/[^/]+\/dash\/?$/, target: (_, p) => `/clawsupport/store/${p.storeCode}` },
   { test: /^\/clawsupport\/store\/[^/]+\/patrol\/?$/, target: (_, p) => `/clawsupport/store/${p.storeCode}` },
   { test: /^\/clawsupport\/store\/[^/]+\/?$/, target: () => '/clawsupport' },
@@ -49,7 +58,14 @@ const OVERRIDES = [
   // 配下ページは親タブに戻す: /admin/masters/X → /admin/masters
   { test: /^\/admin\/masters\/[^/]+\/?$/, target: () => '/admin/masters' },
   { test: /^\/admin\/audit\/booth-edit\/[^/]+\/machines\/?$/, target: () => '/admin/audit/booth-edit' },
-  { test: /^\/admin\/audit\/booth-edit\/[^/]+\/?$/, target: () => '/admin/audit/booth-edit' },
+  // ヒロ ad-hoc 2026-05-31: ブースデータ編集 → 機械一覧 (旧: 店舗一覧 = 2段戻り bug)。
+  // booth_code は STORE-Mxx-Bxx 形式、先頭 split('-')[0] = store_code で機械一覧 URL を組み立て。
+  { test: /^\/admin\/audit\/booth-edit\/[^/]+\/?$/, target: (path) => {
+      const m = path.match(/^\/admin\/audit\/booth-edit\/([^/]+)/)
+      const boothCode = m?.[1]
+      const storeCode = boothCode?.split('-')?.[0]
+      return storeCode ? `/admin/audit/booth-edit/${storeCode}/machines` : '/admin/audit/booth-edit'
+    } },
   { test: /^\/admin\/audit\/[^/]+\/?$/, target: () => '/admin/audit' },
   { test: /^\/admin\/reports\/[^/]+\/?$/, target: () => '/admin/reports' },
   { test: /^\/admin\/settings\/[^/]+\/?$/, target: () => '/admin/settings' },

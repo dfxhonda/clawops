@@ -4,7 +4,6 @@ import { getAllStores, getMachines } from '../../services/masters'
 import { getAllMachineLockers, addLocker, deleteLocker, activateLocker, updateLocker } from '../../services/patrol'
 import LogoutButton from '../../components/LogoutButton'
 import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
-import AdminNav from '../components/AdminNav'
 
 export default function LockerList() {
   const navigate = useNavigate()
@@ -142,7 +141,7 @@ export default function LockerList() {
         </div>
         <LogoutButton to="/admin/menu" />
       </div>
-      <AdminNav />
+
 
       <div className="flex-1 overflow-y-auto pb-16">
       <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">
