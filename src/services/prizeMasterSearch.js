@@ -29,7 +29,9 @@ export async function searchPrizeMasters(keyword) {
       `short_name.ilike.%${kw}%`,
     )
     .order('latest_order_date', { ascending: false, nullsFirst: false })
-    .limit(10)
+    // SPEC-PATROL-PRIZE-SUGGEST-01: 旧 .limit(10) 削除。フィルター結果を全件返し、
+    // 画面側 PrizeNameAutocomplete の max-h-[240px] + overflow-y-auto でスクロール表示。
+    // .or() の 4 列 ilike フィルタは spec forbidden_to_touch、絞り込みは入力文字数を増やす運用。
   if (error) return []
   return data ?? []
 }
