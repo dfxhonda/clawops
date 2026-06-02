@@ -22,10 +22,14 @@ export default function OrderList() {
   const [params] = useSearchParams()
   const [tab, setTab] = useState(params.get('tab') || 'shipped')
   // SPEC-STOCK-UI-FIX-01: destination 拠点フィルタ。'all' で全件、それ以外なら .eq('destination', value)。
-  // URL params で ?owner_type=warehouse&owner_id=<location_id> 経由なら、locations.location_name に
-  // ヒットする保証がないため初期値は 'all' とし、ユーザー選択に委ねる (LocationHubPage の owner_id は
-  // location_id で、prize_orders.destination は location_name free text のため直接マッチしない実情)。
+  // SPEC-STOCK-LOCATION-FILTER-01: URL params owner_type='warehouse' + owner_id=<location_id> なら
+  // locations から location_name を引いて自動的に destFilter に適用する (DB JOIN 確認済、
+  // db_facts.prize_orders.location_id=3687/3828 filled、locations 16 拠点)。失敗時は 'all' 維持。
+  const ownerType = params.get('owner_type') ?? ''
+  const ownerId   = params.get('owner_id')   ?? ''
   const [destFilter, setDestFilter] = useState('all')
+  // 自動解決した location_name (pill bar に hit しなくても候補補完で表示するため独立 state)。
+  const [autoLocationName, setAutoLocationName] = useState('')
   const [orders, setOrders] = useState([])
   const [counts, setCounts] = useState({ shipped: 0, ordered: 0, arrived: 0 })
   const [loading, setLoading] = useState(true)
@@ -34,6 +38,34 @@ export default function OrderList() {
   const { staffId } = useRole()
   const { getLocation } = useGeolocation()
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+
+  // SPEC-STOCK-LOCATION-FILTER-01: warehouse + owner_id 受領時、locations から
+  // location_name を引いて初期 destFilter に適用。失敗時はそのまま 'all' で続行 (LOG-SPEC-01)。
+  // staff owner_type は prize_orders に担当列無いためスコープ外で全件表示。
+  useEffect(() => {
+    let cancel = false
+    async function resolveOwner() {
+      if (ownerType !== 'warehouse' || !ownerId) return
+      const { data, error } = await supabase
+        .from('locations')
+        .select('location_name')
+        .eq('location_id', ownerId)
+        .maybeSingle()
+      if (cancel) return
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.warn('[ERR-STOCK-LOCATION-LOOKUP]', error.message || String(error))
+        return
+      }
+      const name = data?.location_name
+      if (name) {
+        setAutoLocationName(name)
+        setDestFilter(name)
+      }
+    }
+    resolveOwner()
+    return () => { cancel = true }
+  }, [ownerType, ownerId])
 
   useEffect(() => {
     async function loadCounts() {
@@ -69,13 +101,16 @@ export default function OrderList() {
   // SPEC-STOCK-UI-FIX-01: 現在 fetch 済の orders から distinct destination を算出。
   // destination=null は除外、現タブ + 現 dest フィルタ後の値域なので '全て' に戻すまで
   // pill 候補が更新されない点は意図的 (UX 上現状の一覧から絞り込むメンタルモデル維持)。
+  // SPEC-STOCK-LOCATION-FILTER-01: auto 解決した location_name が distinct に hit しない
+  // ケース (例: 該当拠点に発注がまだ無い) でも pill 候補に補完表示して 'all' へ戻れる動線を維持。
   const distinctDestinations = useMemo(() => {
     const set = new Set()
     for (const o of orders) {
       if (o.destination) set.add(o.destination)
     }
+    if (autoLocationName) set.add(autoLocationName)
     return Array.from(set).sort()
-  }, [orders])
+  }, [orders, autoLocationName])
 
   async function markArrived(orderId) {
     setSaving(orderId)
