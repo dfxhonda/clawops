@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { useToast } from '../hooks/useToast'
-import { fetchStarStaff, upsertLoginHistory } from '../services/loginHistory'
+import { fetchDeviceLoginRows, upsertLoginHistory } from '../services/loginHistory'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
@@ -44,16 +44,21 @@ export default function Login() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) { navigate('/launcher', { replace: true }); return }
 
-      // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため
-      // org_id で絞ると環境によっては空配列になる
-      const { data, error } = await supabase
-        .from('staff')
-        .select('staff_id, name, name_kana, has_pin')
-        .eq('is_active', true)
-        .order('name_kana')
+      // SPEC-LOGIN-LATENCY-FIX-01 C2: staff SELECT と device_login_history SELECT を
+      // Promise.all で並列発火 (waterfall +737ms cold 解消)。
+      // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため、
+      // org_id で絞ると環境によっては空配列になる。
+      const [staffRes, deviceRows] = await Promise.all([
+        supabase
+          .from('staff')
+          .select('staff_id, name, name_kana, has_pin')
+          .eq('is_active', true)
+          .order('name_kana'),
+        fetchDeviceLoginRows(),
+      ])
 
+      const { data, error } = staffRes
       if (error) {
-        console.error('[Login] staff fetch error:', error)
         setLoadErr(`スタッフ一覧の取得に失敗しました (${error.message})`)
         setInitDone(true)
         return
@@ -71,9 +76,10 @@ export default function Login() {
         if (pub?.length) staff = pub
       }
 
-      console.log('[Login] staff loaded:', staff.length)
       setAllStaff(staff)
-      const star = await fetchStarStaff(staff)
+      // device_login_history rows を staff list にマッピング (旧 fetchStarStaff の後半)
+      const staffMap = Object.fromEntries(staff.map(s => [s.staff_id, s]))
+      const star = (deviceRows || []).map(h => staffMap[h.staff_id]).filter(Boolean)
       setStarStaff(star)
       setInitDone(true)
     }
@@ -100,7 +106,10 @@ export default function Login() {
     await upsertLoginHistory(staff.staff_id)
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    setTimeout(() => navigate('/launcher', { replace: true }), 1200)
+    // SPEC-LOGIN-LATENCY-FIX-01 C1: 旧 setTimeout 1200ms (純粋意図遅延、ウェルカム toast 表示用) を削除。
+    // toast は Toast 内部 successDuration=1200ms で fade-out するが、navigate 即時遷移で Login 側 Toast は
+    // unmount される (Launcher 側に持ち越されない)。AC-04 受け入れ通り、機能影響なし。
+    navigate('/launcher', { replace: true })
   }
 
   if (!initDone) {
