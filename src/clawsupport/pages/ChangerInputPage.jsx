@@ -3,10 +3,11 @@
 // 機種マスタの changer_denominations jsonb 駆動で IN/OUT を動的描画 (標準型/高額型両対応)
 // 機械直結 (booth 層スキップ)、保存先は coin_changer_events
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useSwipeNav } from '../../hooks/useSwipeNav'
 
 const EVENT_TABS = [
   { key: 'patrol',            label: '巡回',   color: 'blue',    desc: 'IN/OUT メーター現在値' },
@@ -19,6 +20,8 @@ function todayJST() {
 }
 
 // SPEC-PATROL-CHANGER-HISTORY-DISPLAY-02 C: 単位 '枚' 全削除のため default '' に。
+// SPEC-PATROL-CHANGER-UI-UNIFY-01 A+B: grid-cols-2 → grid-cols-3 (¥1000/¥500/¥100 を横 1 列)。
+// 集金 全回収 (A) / 監査 入れた・出した (B) で統一、390px 幅でも折り返しなし。
 function DenominationInputGrid({ denominations, values, onChange, label, unit = '' }) {
   if (!denominations || denominations.length === 0) {
     return <p className="text-xs text-muted">{label}: 機種マスタに denomination 未設定</p>
@@ -26,7 +29,7 @@ function DenominationInputGrid({ denominations, values, onChange, label, unit = 
   return (
     <div>
       <label className="block text-sm font-bold text-text mb-2">{label}</label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-1.5">
         {denominations.map(denom => (
           <div key={denom} className="bg-surface2 border border-border rounded-lg px-3 py-2">
             <div className="text-xs text-muted">¥{denom.toLocaleString()}</div>
@@ -115,6 +118,13 @@ export default function ChangerInputPage() {
 
   // 履歴
   const [recentEvents, setRecentEvents] = useState([])
+
+  // SPEC-PATROL-CHANGER-UI-UNIFY-01 C: タブコンテナへ左右スワイプ (patrol→collection→audit_adjustment)。
+  // SWIPE-ANIM-01 と同形式の follow-finger + spring-back + cross-tab enter 実装。
+  // tab は state 切替のため remount せず、useEffect([tab]) で enter アニメをトリガする。
+  const [swipeDx, setSwipeDx] = useState(0)
+  const [swipeTransition, setSwipeTransition] = useState('none')
+  const pendingEnterRef = useRef(null)  // 'right' | 'left' | null
 
   useEffect(() => {
     async function load() {
@@ -223,6 +233,60 @@ export default function ChangerInputPage() {
     }
   }
 
+  // SPEC-PATROL-CHANGER-UI-UNIFY-01 C: tab 切替後の入場アニメ。
+  // commitTabSwipe で setPendingEnter('right' or 'left') + setTab 後、本 effect が次フレームに
+  // ±innerWidth → 0 transition でスライドイン。
+  useEffect(() => {
+    const enter = pendingEnterRef.current
+    if (!enter) return
+    pendingEnterRef.current = null
+    const w = typeof window !== 'undefined' ? window.innerWidth : 360
+    setSwipeTransition('none')
+    setSwipeDx(enter === 'right' ? w : -w)
+    const id = requestAnimationFrame(() => {
+      setSwipeTransition('transform 220ms ease-out')
+      setSwipeDx(0)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [tab])
+
+  function springBack() {
+    setSwipeTransition('transform 220ms ease-out')
+    setSwipeDx(0)
+  }
+
+  function commitTabSwipe(direction) {
+    // direction: 'left' = 次タブ、'right' = 前タブ
+    const idx = EVENT_TABS.findIndex(t => t.key === tab)
+    const nextIdx = direction === 'left' ? idx + 1 : idx - 1
+    if (nextIdx < 0 || nextIdx >= EVENT_TABS.length) {
+      springBack()
+      return
+    }
+    const w = typeof window !== 'undefined' ? window.innerWidth : 360
+    setSwipeTransition('transform 220ms ease-out')
+    setSwipeDx(direction === 'left' ? -w : w)
+    // 退場側予約: 左退場 → 次画面は右から、右退場 → 次画面は左から
+    pendingEnterRef.current = direction === 'left' ? 'right' : 'left'
+    setTimeout(() => {
+      // タブ切替 (isDirty gate 不要、集金/監査は履歴なし)
+      setTab(EVENT_TABS[nextIdx].key)
+      setSaveMsg('')
+      setError('')
+    }, 220)
+  }
+
+  const tabSwipeRef = useSwipeNav({
+    onSwipeLeft:  () => commitTabSwipe('left'),
+    onSwipeRight: () => commitTabSwipe('right'),
+    onSwipeProgress: (dx) => {
+      setSwipeTransition('none')
+      setSwipeDx(dx)
+    },
+    onSwipeCancel: springBack,
+    enabled: !loading && !!machine,
+  })
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted">読み込み中…</div>
   }
@@ -269,7 +333,18 @@ export default function ChangerInputPage() {
         ))}
       </div>
 
-      <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
+      {/* SPEC-PATROL-CHANGER-UI-UNIFY-01 C: タブコンテンツへ swipe ref + translateX を attach。
+          overflow-x-hidden で off-screen 内容を clip、willChange で GPU 加速。 */}
+      <div
+        ref={tabSwipeRef}
+        className="px-4 py-4 space-y-4 max-w-lg mx-auto overflow-x-hidden"
+        style={{
+          transform: `translateX(${swipeDx}px)`,
+          transition: swipeTransition,
+          willChange: 'transform',
+        }}
+        data-testid="changer-tab-swipe-container"
+      >
         <p className="text-xs text-muted">{EVENT_TABS.find(t => t.key === tab)?.desc}</p>
 
         {/* 日付 */}
