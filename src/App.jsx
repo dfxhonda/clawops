@@ -17,8 +17,9 @@ import { AuthProvider } from './lib/auth/AuthProvider'
 import { useAuth } from './hooks/useAuth'
 import ProtectedRoute, { AdminRoute, ManagerRoute } from './components/ProtectedRoute'
 import { RoleGuard } from './shared/auth/RoleGuard'
-import UpdateBanner from './components/UpdateBanner'
-import { useVersionCheck } from './hooks/useVersionCheck'
+// J-PWA-AUTO-VERSION-RELOAD-01: 旧 ./hooks/useVersionCheck (手動 dismiss banner) を退役、
+// shared/hooks/useVersionCheck (自動 reload + ループガード + ERR-PWA-VERSION-FETCH ログ) に置換。
+import { useVersionCheck } from './shared/hooks/useVersionCheck'
 import { buildLabel } from './lib/buildInfo'
 import { useIdleLogout } from './hooks/useIdleLogout'
 import { IdleWarningBanner } from './shared/ui/IdleWarningBanner'
@@ -176,7 +177,8 @@ function PageLoader() {
 
 function AppInner() {
   const { isLoggedIn } = useAuth()
-  const { updateAvailable, dismiss } = useVersionCheck()
+  // J-PWA-AUTO-VERSION-RELOAD-01: 自動 reload + 一瞬トースト (現場操作ゼロ)。
+  const { reloading } = useVersionCheck()
   const { showWarning, reset: resetIdle } = useIdleLogout(isLoggedIn)
   const initGlossary = useGlossaryStore(s => s.init)
   const cleanupGlossary = useGlossaryStore(s => s.cleanup)
@@ -188,7 +190,18 @@ function AppInner() {
   return (
     <ErrorBoundary>
       {isLoggedIn && showWarning && <IdleWarningBanner onDismiss={resetIdle} />}
-      {updateAvailable && isLoggedIn && <UpdateBanner onDismiss={dismiss} />}
+      {/* J-PWA-AUTO-VERSION-RELOAD-01: 一瞬 (700ms) トースト → location.reload()。
+          高 z-index / fixed top で他 UI に被らない、操作不要。 */}
+      {reloading && (
+        <div
+          data-testid="version-reload-toast"
+          className="fixed top-2 left-1/2 -translate-x-1/2 z-[120] px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-bold shadow-lg pointer-events-none"
+          role="status"
+          aria-live="polite"
+        >
+          最新版に更新中...
+        </div>
+      )}
       {isLoggedIn && (
         <div className="fixed bottom-1 right-1 z-[90] text-[8px] text-muted/20 pointer-events-none select-none">
           {buildLabel()}
