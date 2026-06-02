@@ -1,0 +1,125 @@
+// @vitest-environment happy-dom
+// SPEC-PWA-LOGIN-VERSION-RELOAD-01: login 成功 (verify-pin) or session 復元時に
+// /version.json と BUILD_NUMBER を比較し、不一致なら session 中 1 回だけ reload。
+// loop guard: sessionStorage 'version_reload_done' (boolean flag、build 非依存)。
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+// vite define を介さず buildInfo を直接 mock (useVersionCheck.shared.test.js と同パターン)。
+// 本テスト中はクライアント BUILD_NUMBER = '2000' に固定。
+vi.mock('../../lib/buildInfo', () => ({
+  BUILD_NUMBER: '2000',
+  BUILD_SHA: 'test-sha',
+  BUILD_VERSION: 'test',
+  BUILD_TIME: '2026-06-02T00:00:00.000Z',
+  buildLabel: () => 'build #2000',
+}))
+
+import { checkAndReloadIfStale } from '../../services/loginVersionCheck'
+
+const STORAGE_KEY = 'version_reload_done'
+
+function mockOkRes(body) {
+  return { ok: true, status: 200, json: async () => body }
+}
+
+let warnSpy
+
+beforeEach(() => {
+  warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  sessionStorage.clear()
+})
+
+afterEach(() => {
+  warnSpy?.mockRestore()
+  vi.restoreAllMocks()
+})
+
+describe('checkAndReloadIfStale (SPEC-PWA-LOGIN-VERSION-RELOAD-01)', () => {
+  // AC-01: 古いPWAでログイン成功時、自動で1回reloadされ最新ビルドになる
+  it('when_server_build_differs_should_set_guard_and_reload_once', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2001', sha: 'newer' }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(true)
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBe('1')
+  })
+
+  // AC-02: reload後の再ログイン時はreloadされない (sessionStorageフラグ)
+  it('when_guard_already_set_should_not_reload_even_if_mismatch', async () => {
+    sessionStorage.setItem(STORAGE_KEY, '1')
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2001' }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+    // early return: fetch 自体発火しない (帯域 + Vercel hit 節約)
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+
+  // AC-03: /version.json fetch失敗時はreloadされずログイン処理が続行する
+  it('when_fetch_throws_should_not_reload_and_log_warn', async () => {
+    const fetchFn = vi.fn(async () => { throw new Error('network') })
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalled()
+    expect(warnSpy.mock.calls[0][0]).toContain('ERR-PWA-LOGIN-VERSION')
+  })
+
+  it('when_fetch_returns_non_ok_should_not_reload_and_log_warn', async () => {
+    const fetchFn = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalled()
+    expect(warnSpy.mock.calls[0][0]).toContain('ERR-PWA-LOGIN-VERSION')
+  })
+
+  // AC-04: バージョン一致時はreloadされない
+  it('when_server_build_matches_should_not_reload', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2000', sha: 'same' }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull()
+  })
+
+  it('fetch_url_includes_cache_busting_timestamp_and_no_store_and_abort_signal', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2000' }))
+    const reload = vi.fn()
+    await checkAndReloadIfStale({ fetch: fetchFn, reload, now: () => 1700000000000 })
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchFn.mock.calls[0]
+    expect(url).toBe('/version.json?t=1700000000000')
+    expect(init.cache).toBe('no-store')
+    expect(init.signal).toBeDefined()
+  })
+
+  it('when_response_missing_buildNumber_should_not_reload', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ sha: 'x' }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('when_fetch_exceeds_timeout_should_abort_and_not_reload', async () => {
+    // signal abort で reject する偽 fetch を作成、timeoutMs 30ms で確実に発火
+    const fetchFn = vi.fn((_url, init) => new Promise((_, reject) => {
+      init.signal?.addEventListener('abort', () => {
+        const err = new Error('aborted')
+        err.name = 'AbortError'
+        reject(err)
+      })
+    }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload, timeoutMs: 30 })
+    expect(r.reloaded).toBe(false)
+    expect(reload).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalled()
+  })
+})
