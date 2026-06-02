@@ -6,8 +6,15 @@ import { supabase } from '../lib/supabase'
 // していないことを確認、KOS01 has_in_diff=0 で SPEC-02 history が壊れる根本原因だった)。
 // 本 SELECT に in_diff / out_diff は意図的に含めない、computeBoothDiffSummary が
 // raw meter 差分 (current.in_meter - previous.in_meter) で常に正しい値を返す。
+//
+// SPEC-LF1-HISTORY-FIX-03 (DIAG-LF1-HISTORY-RUNTIME-01 で root cause 確定):
+// store_code + machine_code を必須として追加。理由: putBaselineRows で IDB に書く時
+// IDB index byStoreCode (= store_code keyPath) が値欠落 record を index entry に
+// 含めないため、getPatrolRecordsByStore が 0 件返却して全列 '−' になる runtime bug。
+// 列 contract test (historyFix02.contract.test.js) で 'store_code / machine_code 含む'
+// を assert して再発防止する。
 const HISTORY_SELECT =
-  'reading_id, booth_code, patrol_date, read_time, created_at, entry_type, ' +
+  'reading_id, booth_code, store_code, machine_code, patrol_date, read_time, created_at, entry_type, ' +
   'in_meter, out_meter, out_meter_2, out_meter_3, ' +
   'prize_name, prize_cost, prize_stock_count, prize_restock_count, ' +
   'set_a, set_c, set_l, set_r, set_o'

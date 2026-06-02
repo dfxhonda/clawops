@@ -104,6 +104,19 @@ export async function getUnsyncedRecords() {
  */
 export async function putBaselineRows(rows) {
   if (!rows || !rows.length) return 0
+  // SPEC-LF1-HISTORY-FIX-03 C3 guard: index key 必須フィールド (store_code) が欠落した row を
+  // 検知してログ。IDB index byStoreCode で entry が作られず、getPatrolRecordsByStore が
+  // silent に 0 件返却する (= 全列 '−' バグ) のを未然に検知する。
+  // DIAG-LF1-HISTORY-RUNTIME-01 で実際に発生した症状の再発防止策。
+  const missingStoreCode = rows.filter(r => r && r.store_code == null).length
+  if (missingStoreCode > 0) {
+    logger.warn?.('ERR-LF1-IDB-INDEX-MISSING', {
+      phase: 'baseline',
+      missingStoreCode,
+      total: rows.length,
+      hint: 'HISTORY_SELECT に store_code が含まれていない可能性、IDB byStoreCode index 落ちで history 全列 - になる',
+    })
+  }
   try {
     const db = await getDb()
     const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')

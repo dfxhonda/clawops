@@ -23,6 +23,16 @@ describe('HISTORY_SELECT contract (AC-07)', () => {
     expect(_RAW_HISTORY_SELECT).toMatch(/\bpatrol_date\b/)
     expect(_RAW_HISTORY_SELECT).toMatch(/\bcreated_at\b/)
   })
+
+  // SPEC-LF1-HISTORY-FIX-03 AC-07: 'store_code+machine_code PRESENT'
+  // DIAG-LF1-HISTORY-RUNTIME-01 で確定した regression を test で固定する。
+  it('SELECT_string_DOES_contain_store_code_and_machine_code_IDB_index_alignment', () => {
+    // store_code が SELECT に無いと putBaselineRows で IDB に書く時 store_code field が
+    // undefined になり、byStoreCode index entry が作られず getPatrolRecordsByStore が
+    // 0 件返却する → 全列 '−' bug の根本原因。本 test で再発防止。
+    expect(_RAW_HISTORY_SELECT).toMatch(/\bstore_code\b/)
+    expect(_RAW_HISTORY_SELECT).toMatch(/\bmachine_code\b/)
+  })
 })
 
 describe('computeBoothDiffSummary raw-meter compute (AC-01/02/04/07)', () => {
