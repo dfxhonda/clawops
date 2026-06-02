@@ -1,38 +1,32 @@
-// SPEC-PATROL-VIEW-MODE-SWITCH-01: 巡回機械リストの 3 モード列定義 + 集計/フォーマット。
-// IN (default) / OUT / STOCK の 4 列ずつ。
-// MachineRow / MachineRowExpandedBoothList / StoreTotalsHeader / storeTotalsRanking が共用。
+// SPEC-PATROL-VIEW-MODE-SWITCH-02: 巡回機械リスト 3-mode column switch (4-visit history)。
+// IN / 日売 (daily avg) / OUT の 3 モード。各モードで 4 列固定ラベル「4前 / 3前 / 前回 / 今回」。
+// (SPEC-01 の 出率% / 在庫 / 補充 mode は廃止)
+//
+// 各 booth の summary は inDiffs[4] / outDiffs[4] / daily[4] / days[4] 配列を持ち、
+// display index 0=4前 … 3=今回 (oldest left → newest right)。
+
+export const COLUMN_HEADERS = ['4前', '3前', '前回', '今回']
+export const COLUMN_COUNT   = 4
 
 export const VIEW_MODES = {
   IN: {
-    label: 'IN',
-    cols: [
-      { key: 'prevIn',     label: '前IN',   type: 'count',  today: false },
-      { key: 'currIn',     label: '今IN',   type: 'count',  today: true  },
-      { key: 'prevPerDay', label: '前/日',  type: 'perDay', today: false },
-      { key: 'currPerDay', label: '今/日',  type: 'perDay', today: true  },
-    ],
+    label:     'IN',
+    sourceKey: 'inDiffs',
+    type:      'count',
+  },
+  DAILY: {
+    label:     '日売',
+    sourceKey: 'daily',
+    type:      'perDay',
   },
   OUT: {
-    label: 'OUT',
-    cols: [
-      { key: 'prevOut',    label: '前OUT',  type: 'count',   today: false },
-      { key: 'currOut',    label: '今OUT',  type: 'count',   today: true  },
-      { key: 'prevPayout', label: '前出率', type: 'percent', today: false },
-      { key: 'currPayout', label: '今出率', type: 'percent', today: true  },
-    ],
-  },
-  STOCK: {
-    label: '在庫',
-    cols: [
-      { key: 'prevStock',   label: '前在庫', type: 'count', today: false },
-      { key: 'currStock',   label: '今在庫', type: 'count', today: true  },
-      { key: 'prevRestock', label: '前補充', type: 'count', today: false },
-      { key: 'currRestock', label: '今補充', type: 'count', today: true  },
-    ],
+    label:     'OUT',
+    sourceKey: 'outDiffs',
+    type:      'count',
   },
 }
 
-export const VIEW_MODE_ORDER = ['IN', 'OUT', 'STOCK']
+export const VIEW_MODE_ORDER = ['IN', 'DAILY', 'OUT']
 
 function round1(n) {
   if (n == null || !isFinite(n)) return null
@@ -42,45 +36,56 @@ function round1(n) {
 export function formatCell(value, type) {
   if (value == null) return '−'
   switch (type) {
-    case 'percent': return `${value.toFixed(1)}%`
-    case 'perDay':  return value.toFixed(1)
+    case 'perDay': return value.toFixed(1)
     case 'count':
-    default:        return value.toLocaleString()
+    default:       return value.toLocaleString()
   }
 }
 
-function sumKey(summaries, key) {
-  let acc = null
-  for (const s of summaries) {
-    if (!s) continue
-    const v = s[key]
-    if (v == null) continue
-    acc = (acc ?? 0) + v
-  }
-  return acc
+// 4 要素配列を booth summary から取り出す。null safe。
+export function sourceArrayFor(summary, mode) {
+  const def = VIEW_MODES[mode] ?? VIEW_MODES.IN
+  return summary?.[def.sourceKey] ?? [null, null, null, null]
 }
 
 // 機械単位 (booths の SUM) / 店舗単位 (全 booth の SUM) 共用集計。
 // summaries は対象 booth の computeBoothDiffSummary 出力配列。
-// IN/STOCK: 各列 SUM。OUT: count 系は SUM、payout は SUM(out)/SUM(in)*100 (重み付き平均)。
+// IN/OUT: 各列 SUM。DAILY: 各列の重み付き平均 SUM(inDiffs[i])/SUM(days[i])。
+// 戻り値: 長さ 4 の数値/null 配列 (display index 0=4前 … 3=今回)。
 export function aggregateSummaries(summaries, mode) {
-  const list = summaries.filter(Boolean)
-  if (mode === 'OUT') {
-    const prevOut = sumKey(list, 'prevOut')
-    const currOut = sumKey(list, 'currOut')
-    const prevIn  = sumKey(list, 'prevIn')
-    const currIn  = sumKey(list, 'currIn')
-    return {
-      prevOut,
-      currOut,
-      prevPayout: prevIn != null && prevIn > 0 && prevOut != null ? round1((prevOut / prevIn) * 100) : null,
-      currPayout: currIn != null && currIn > 0 && currOut != null ? round1((currOut / currIn) * 100) : null,
+  const list = (summaries ?? []).filter(Boolean)
+  if (!list.length) return [null, null, null, null]
+
+  if (mode === 'DAILY') {
+    const result = [null, null, null, null]
+    for (let i = 0; i < COLUMN_COUNT; i++) {
+      let inSum = null
+      let dSum  = null
+      for (const s of list) {
+        const inV = s.inDiffs?.[i]
+        const dV  = s.days?.[i]
+        if (inV != null) inSum = (inSum ?? 0) + inV
+        if (dV  != null) dSum  = (dSum  ?? 0) + dV
+      }
+      result[i] = inSum != null && dSum != null && dSum > 0
+        ? round1(inSum / dSum)
+        : null
     }
+    return result
   }
-  const cols = VIEW_MODES[mode]?.cols ?? VIEW_MODES.IN.cols
-  const out = {}
-  for (const c of cols) out[c.key] = sumKey(list, c.key)
-  return out
+
+  // IN / OUT: 各列 SUM
+  const sourceKey = (VIEW_MODES[mode] ?? VIEW_MODES.IN).sourceKey
+  const result = [null, null, null, null]
+  for (let i = 0; i < COLUMN_COUNT; i++) {
+    let acc = null
+    for (const s of list) {
+      const v = s?.[sourceKey]?.[i]
+      if (v != null) acc = (acc ?? 0) + v
+    }
+    result[i] = acc
+  }
+  return result
 }
 
 // 機械 → booths の summaries 配列

@@ -1,36 +1,31 @@
-// J-PATROL-IN-DAILY-fix-05 ad-hoc (ヒロ Discord IMG_4234):
-// 機械単位で各列 (前IN/今IN/前/日/今/日) の ベスト 3 / ワースト 3 をランク色付け。
-// ベスト = 高い順 (gold/silver/bronze)、ワースト = 低い順 (red 濃淡)。
-// 機械数 < 6 の場合は ワースト 件数を控えて best/worst の重複を避ける。
-// SPEC-PATROL-VIEW-MODE-SWITCH-01: mode (IN/OUT/STOCK) ごとに対象列が変わるため、
-// VIEW_MODES の cols から動的にランク対象 key を引く。OUT mode の出率 (percent) は
-// 機械単位で SUM(out)/SUM(in) で集計してからランク (重み付き平均、aggregateSummaries 経由)。
+// SPEC-PATROL-VIEW-MODE-SWITCH-02: best3/worst3 coloring を mode の「今回 (newest) 列」のみで再計算。
+// 機械数 < 6 の場合は worst 件数を控えて best/worst の重複を避ける。
+// 戻り値: ranks[machineCode] = 'best1'|'best2'|'best3'|'worst1'|'worst2'|'worst3'|undefined
+// MachineRow は今回 (display index 3) 列のみ rankColor を適用、4 前 / 3 前 / 前回 は plain。
 
-import { VIEW_MODES, aggregateSummaries, machineBoothSummaries } from './patrolViewModes'
+import { aggregateSummaries, machineBoothSummaries } from './patrolViewModes'
+
+const NEWEST_INDEX = 3 // 今回
 
 export function computeMachineRankMap(machines, diffMap, mode = 'IN') {
-  const cols = (VIEW_MODES[mode] ?? VIEW_MODES.IN).cols
-  const keys = cols.map(c => c.key)
-  // ranks[colKey][machineCode] = 'best1'|...|'worst3'
-  const ranks = Object.fromEntries(keys.map(k => [k, {}]))
   const totalsByMachine = {}
   for (const m of machines || []) {
     const summaries = machineBoothSummaries(m, diffMap)
-    totalsByMachine[m.machine_code] = aggregateSummaries(summaries, mode)
+    const arr = aggregateSummaries(summaries, mode)
+    totalsByMachine[m.machine_code] = arr[NEWEST_INDEX]
   }
-  for (const col of keys) {
-    const entries = Object.entries(totalsByMachine)
-      .filter(([, t]) => t[col] != null)
-      .sort((a, b) => b[1][col] - a[1][col])
-    const N = entries.length
-    for (let i = 0; i < Math.min(3, N); i++) {
-      ranks[col][entries[i][0]] = ['best1', 'best2', 'best3'][i]
-    }
-    const worstCount = Math.max(0, Math.min(3, N - 3))
-    for (let i = 0; i < worstCount; i++) {
-      const idx = N - 1 - i
-      ranks[col][entries[idx][0]] = ['worst1', 'worst2', 'worst3'][i]
-    }
+  const entries = Object.entries(totalsByMachine)
+    .filter(([, v]) => v != null)
+    .sort((a, b) => b[1] - a[1])
+  const N = entries.length
+  const ranks = {}
+  for (let i = 0; i < Math.min(3, N); i++) {
+    ranks[entries[i][0]] = ['best1', 'best2', 'best3'][i]
+  }
+  const worstCount = Math.max(0, Math.min(3, N - 3))
+  for (let i = 0; i < worstCount; i++) {
+    const idx = N - 1 - i
+    ranks[entries[idx][0]] = ['worst1', 'worst2', 'worst3'][i]
   }
   return ranks
 }

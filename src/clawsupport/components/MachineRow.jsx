@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import MachineRowExpandedBoothList from './MachineRowExpandedBoothList'
 import { rankColor } from './storeTotalsRanking'
-import { VIEW_MODES, aggregateSummaries, formatCell, machineBoothSummaries } from './patrolViewModes'
+import {
+  VIEW_MODES,
+  COLUMN_COUNT,
+  aggregateSummaries,
+  formatCell,
+  machineBoothSummaries,
+} from './patrolViewModes'
 
-// J-PATROL-IN-DAILY-fix-05 ad-hoc (ヒロ Discord IMG_4234):
-// 行縦圧縮 (py-3 → py-1.5)、grid gap-x-1.5 で数値間隔開け、各列にベスト3/ワースト3 色付け。
-// SPEC-PATROL-VIEW-MODE-SWITCH-01: mode prop (IN/OUT/STOCK) で表示列が切り替わる。
-//   IN     = 前IN/今IN/前/日/今/日
-//   OUT    = 前OUT/今OUT/前出率%/今出率%
-//   STOCK  = 前在庫/今在庫/前補充/今補充
-// 集計は aggregateSummaries: count は SUM、出率は SUM(out)/SUM(in)*100 の重み付き平均。
+// SPEC-PATROL-VIEW-MODE-SWITCH-02:
+// mode (IN/DAILY/OUT) で 4 列 (4 前 / 3 前 / 前回 / 今回) の値が切り替わる。
+// 機械集計は aggregateSummaries: count 系は SUM、daily は重み付き平均 SUM(in)/SUM(days)。
+// best/worst 色は「今回」(display index 3) 列のみに適用、他列は plain。
+const NEWEST = 3
 
 export default function MachineRow({
   machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand, rankMap,
@@ -21,11 +25,12 @@ export default function MachineRow({
   const booths = machine.booths ?? []
   const isSingleBooth = booths.length === 1
 
-  const cols = (VIEW_MODES[mode] ?? VIEW_MODES.IN).cols
+  const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
   const summaries = machineBoothSummaries(machine, diffMap)
   const totals = aggregateSummaries(summaries, mode)
 
   const mc = machine.machine_code
+  const rank = rankMap?.[mc] ?? null
 
   const handleClick = () => {
     if (isSingleBooth) {
@@ -51,15 +56,16 @@ export default function MachineRow({
           data-testid={`machine-totals-${machine.machine_code}`}
           className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52"
         >
-          {cols.map(c => {
-            const rank = rankMap?.[c.key]?.[mc] ?? null
+          {Array.from({ length: COLUMN_COUNT }, (_, i) => {
+            const isToday = i === NEWEST
+            const colorClass = isToday ? rankColor(rank, true) : 'text-text'
             return (
               <div
-                key={c.key}
-                data-testid={`machine-cell-${mc}-${c.key}`}
-                className={`font-mono text-sm font-bold ${rankColor(rank, !!c.today)}`}
+                key={i}
+                data-testid={`machine-cell-${mc}-${i}`}
+                className={`font-mono text-sm font-bold ${colorClass}`}
               >
-                {formatCell(totals[c.key], c.type)}
+                {formatCell(totals[i], modeDef.type)}
               </div>
             )
           })}

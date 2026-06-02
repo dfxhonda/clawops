@@ -1,84 +1,98 @@
-// J-PATROL-IN-DAILY-fix-05 ad-hoc: ベスト3/ワースト3 ランクユーティリティ
+// SPEC-PATROL-VIEW-MODE-SWITCH-02: best3/worst3 を「今回」(display index 3) 列のみで計算
 import { describe, it, expect } from 'vitest'
 import { computeMachineRankMap, rankColor } from '../../clawsupport/components/storeTotalsRanking'
 
-const mkBooth = (code, summary) => ({ booth_code: code, summary })
+const mk = (code, arrIn) => ({
+  machine_code: code,
+  booths: [{ booth_code: `${code}-1` }],
+})
 
-describe('computeMachineRankMap', () => {
-  it('when_machines_count_lt_4_should_only_have_best_no_worst', () => {
-    const machines = [
-      { machine_code: 'A', booths: [{ booth_code: 'A-1' }] },
-      { machine_code: 'B', booths: [{ booth_code: 'B-1' }] },
-      { machine_code: 'C', booths: [{ booth_code: 'C-1' }] },
-    ]
-    const diffMap = {
-      'A-1': { prevIn: 10, currIn: 100, prevPerDay: 1, currPerDay: 10 },
-      'B-1': { prevIn: 20, currIn: 50,  prevPerDay: 2, currPerDay: 5 },
-      'C-1': { prevIn: 30, currIn: 25,  prevPerDay: 3, currPerDay: 2.5 },
-    }
-    const ranks = computeMachineRankMap(machines, diffMap)
-    // prevIn descending: C(30)/B(20)/A(10) → best1/best2/best3
-    expect(ranks.prevIn.C).toBe('best1')
-    expect(ranks.prevIn.B).toBe('best2')
-    expect(ranks.prevIn.A).toBe('best3')
-    // N=3 → no worst slots (would overlap best)
-    expect(Object.values(ranks.prevIn).filter(r => r?.startsWith('worst')).length).toBe(0)
+const mkDiff = (code, todayIn) => ({
+  [`${code}-1`]: {
+    inDiffs:  [0, 0, 0, todayIn],
+    outDiffs: [0, 0, 0, todayIn],
+    daily:    [0, 0, 0, todayIn],
+    days:     [1, 1, 1, 1],
+  },
+})
+
+describe('computeMachineRankMap (SPEC-02 newest-column only)', () => {
+  it('when_3_machines_should_have_best_only_no_worst', () => {
+    const machines = ['A', 'B', 'C'].map(c => mk(c))
+    const diffMap = { ...mkDiff('A', 100), ...mkDiff('B', 50), ...mkDiff('C', 25) }
+    const ranks = computeMachineRankMap(machines, diffMap, 'IN')
+    expect(ranks.A).toBe('best1')
+    expect(ranks.B).toBe('best2')
+    expect(ranks.C).toBe('best3')
   })
 
-  it('when_6_machines_should_have_3_best_and_3_worst', () => {
-    const machines = ['A','B','C','D','E','F'].map(c => ({
-      machine_code: c, booths: [{ booth_code: `${c}-1` }],
-    }))
+  it('when_6_machines_should_have_3_best_and_3_worst_on_今回', () => {
+    const machines = ['A','B','C','D','E','F'].map(c => mk(c))
     const diffMap = {
-      'A-1': { currIn: 600 },
-      'B-1': { currIn: 500 },
-      'C-1': { currIn: 400 },
-      'D-1': { currIn: 300 },
-      'E-1': { currIn: 200 },
-      'F-1': { currIn: 100 },
+      ...mkDiff('A', 600), ...mkDiff('B', 500), ...mkDiff('C', 400),
+      ...mkDiff('D', 300), ...mkDiff('E', 200), ...mkDiff('F', 100),
     }
-    const ranks = computeMachineRankMap(machines, diffMap)
-    expect(ranks.currIn.A).toBe('best1')
-    expect(ranks.currIn.B).toBe('best2')
-    expect(ranks.currIn.C).toBe('best3')
-    expect(ranks.currIn.D).toBe('worst3')
-    expect(ranks.currIn.E).toBe('worst2')
-    expect(ranks.currIn.F).toBe('worst1')
+    const ranks = computeMachineRankMap(machines, diffMap, 'IN')
+    expect(ranks.A).toBe('best1')
+    expect(ranks.B).toBe('best2')
+    expect(ranks.C).toBe('best3')
+    expect(ranks.D).toBe('worst3')
+    expect(ranks.E).toBe('worst2')
+    expect(ranks.F).toBe('worst1')
   })
 
-  it('when_machine_has_null_value_should_skip_ranking', () => {
-    const machines = [
-      { machine_code: 'A', booths: [{ booth_code: 'A-1' }] },
-      { machine_code: 'B', booths: [{ booth_code: 'B-1' }] },
-    ]
+  it('machines_with_null_今回_value_are_excluded_from_ranking', () => {
+    const machines = ['A', 'B'].map(c => mk(c))
     const diffMap = {
-      'A-1': { prevIn: 100 },
-      'B-1': { /* no prevIn */ },
+      ...mkDiff('A', 100),
+      'B-1': { inDiffs: [null, null, null, null], days: [null, null, null, null] },
     }
-    const ranks = computeMachineRankMap(machines, diffMap)
-    expect(ranks.prevIn.A).toBe('best1')
-    expect(ranks.prevIn.B).toBeUndefined()
+    const ranks = computeMachineRankMap(machines, diffMap, 'IN')
+    expect(ranks.A).toBe('best1')
+    expect(ranks.B).toBeUndefined()
+  })
+
+  it('OUT_mode_uses_outDiffs_newest_column', () => {
+    const machines = ['A', 'B', 'C'].map(c => mk(c))
+    const diffMap = {
+      'A-1': { inDiffs: [0,0,0,1], outDiffs: [0,0,0,300], daily: [], days: [] },
+      'B-1': { inDiffs: [0,0,0,1], outDiffs: [0,0,0,100], daily: [], days: [] },
+      'C-1': { inDiffs: [0,0,0,1], outDiffs: [0,0,0, 50], daily: [], days: [] },
+    }
+    const ranks = computeMachineRankMap(machines, diffMap, 'OUT')
+    expect(ranks.A).toBe('best1')
+    expect(ranks.B).toBe('best2')
+    expect(ranks.C).toBe('best3')
+  })
+
+  it('DAILY_mode_uses_weighted_avg_newest', () => {
+    const machines = ['A', 'B'].map(c => mk(c))
+    const diffMap = {
+      'A-1': { inDiffs: [0,0,0,200], days: [1,1,1, 1] }, // 200/1 = 200
+      'B-1': { inDiffs: [0,0,0,100], days: [1,1,1,10] }, // 100/10 = 10
+    }
+    const ranks = computeMachineRankMap(machines, diffMap, 'DAILY')
+    expect(ranks.A).toBe('best1')
+    expect(ranks.B).toBe('best2')
   })
 
   it('sums_multiple_booths_per_machine_before_ranking', () => {
-    const machines = [
-      { machine_code: 'A', booths: [{ booth_code: 'A-1' }, { booth_code: 'A-2' }] },
-      { machine_code: 'B', booths: [{ booth_code: 'B-1' }] },
-    ]
+    const machineA = { machine_code: 'A', booths: [{ booth_code: 'A-1' }, { booth_code: 'A-2' }] }
+    const machineB = { machine_code: 'B', booths: [{ booth_code: 'B-1' }] }
     const diffMap = {
-      'A-1': { currIn: 40 },
-      'A-2': { currIn: 30 },
-      'B-1': { currIn: 50 },
+      'A-1': { inDiffs: [0, 0, 0, 40], days: [1,1,1,1] },
+      'A-2': { inDiffs: [0, 0, 0, 30], days: [1,1,1,1] },
+      'B-1': { inDiffs: [0, 0, 0, 50], days: [1,1,1,1] },
     }
-    const ranks = computeMachineRankMap(machines, diffMap)
-    // A合計=70 > B=50 → A is best1
-    expect(ranks.currIn.A).toBe('best1')
-    expect(ranks.currIn.B).toBe('best2')
+    const ranks = computeMachineRankMap([machineA, machineB], diffMap, 'IN')
+    // SUM A = 70 > B = 50
+    expect(ranks.A).toBe('best1')
+    expect(ranks.B).toBe('best2')
   })
 })
 
 describe('rankColor', () => {
-  it('best/worst class strings stable', () => {
+  it('best_worst_class_strings_stable', () => {
     expect(rankColor('best1', false)).toBe('text-yellow-300')
     expect(rankColor('best2', false)).toBe('text-slate-200')
     expect(rankColor('best3', false)).toBe('text-orange-300')

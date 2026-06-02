@@ -1,4 +1,4 @@
-// J-PATROL-IN-DAILY-fix-01: computeBoothDiffSummary の per-day 計算をユニット検証
+// SPEC-PATROL-VIEW-MODE-SWITCH-02: 4-visit history summary 検証
 import { describe, it, expect } from 'vitest'
 import { computeBoothDiffSummary, diffPatrolDays } from '../../services/boothHistory'
 
@@ -18,127 +18,83 @@ describe('diffPatrolDays (JST)', () => {
   })
 })
 
-describe('computeBoothDiffSummary', () => {
+describe('computeBoothDiffSummary (SPEC-02 4-visit history)', () => {
   it('when_only_one_row_should_return_null', () => {
     const rows = [{ patrol_date: '2026-05-30', in_meter: 1000 }]
     expect(computeBoothDiffSummary(rows)).toBe(null)
   })
 
-  it('when_two_rows_with_5_day_gap_should_compute_currIn_and_currPerDay', () => {
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 1500 },
-      { patrol_date: '2026-05-25', in_meter: 1000 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currIn).toBe(500)
-    expect(s.currDays).toBe(5)
-    expect(s.currPerDay).toBe(100.0)
-    expect(s.prevIn).toBe(null)   // no 3rd row
-    expect(s.prevPerDay).toBe(null)
-  })
-
-  it('when_three_rows_should_compute_both_prev_and_curr_per_day_rounded_1dp', () => {
-    // 2026-05-20 → 2026-05-25 (5日 +500 = 100.0/日)
-    // 2026-05-25 → 2026-05-30 (5日 +750 = 150.0/日)
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 1750 },
-      { patrol_date: '2026-05-25', in_meter: 1000 },
-      { patrol_date: '2026-05-20', in_meter: 500 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currIn).toBe(750)
-    expect(s.currPerDay).toBe(150.0)
-    expect(s.prevIn).toBe(500)
-    expect(s.prevPerDay).toBe(100.0)
-  })
-
-  it('when_3day_gap_with_in_diff_100_should_round_to_33.3', () => {
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 100 },
-      { patrol_date: '2026-05-27', in_meter: 0 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currPerDay).toBe(33.3)
-  })
-
-  it('when_same_date_should_return_null_perDay', () => {
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 100 },
-      { patrol_date: '2026-05-30', in_meter: 50 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currIn).toBe(50)
-    expect(s.currDays).toBe(null)
-    expect(s.currPerDay).toBe(null)
-  })
-
-  it('preserves_backwards_compatible_inDiff_outDiff', () => {
+  it('when_two_rows_should_fill_only_today_column_others_null', () => {
     const rows = [
       { patrol_date: '2026-05-30', in_meter: 1500, out_meter: 200 },
       { patrol_date: '2026-05-25', in_meter: 1000, out_meter: 100 },
     ]
     const s = computeBoothDiffSummary(rows)
+    expect(s.inDiffs).toEqual([null, null, null, 500])
+    expect(s.outDiffs).toEqual([null, null, null, 100])
+    expect(s.daily).toEqual([null, null, null, 100.0]) // 500 / 5 = 100.0
+    expect(s.days).toEqual([null, null, null, 5])
+  })
+
+  it('when_three_rows_should_fill_today_and_prev_columns', () => {
+    const rows = [
+      { patrol_date: '2026-05-30', in_meter: 1750, out_meter: 250 },
+      { patrol_date: '2026-05-25', in_meter: 1000, out_meter: 200 },
+      { patrol_date: '2026-05-20', in_meter:  500, out_meter:  50 },
+    ]
+    const s = computeBoothDiffSummary(rows)
+    expect(s.inDiffs).toEqual([null, null, 500, 750])
+    expect(s.outDiffs).toEqual([null, null, 150, 50])
+    expect(s.daily).toEqual([null, null, 100.0, 150.0])
+  })
+
+  it('when_five_rows_should_fill_all_four_columns', () => {
+    const rows = [
+      { patrol_date: '2026-05-30', in_meter: 1000 },
+      { patrol_date: '2026-05-25', in_meter:  500 },
+      { patrol_date: '2026-05-20', in_meter:  250 },
+      { patrol_date: '2026-05-15', in_meter:  100 },
+      { patrol_date: '2026-05-10', in_meter:    0 },
+    ]
+    const s = computeBoothDiffSummary(rows)
+    expect(s.inDiffs).toEqual([100, 150, 250, 500])
+    expect(s.daily).toEqual([20.0, 30.0, 50.0, 100.0])
+    expect(s.days).toEqual([5, 5, 5, 5])
+  })
+
+  it('when_intervals_vary_daily_uses_each_pair_interval', () => {
+    const rows = [
+      { patrol_date: '2026-05-30', in_meter: 1000 },
+      { patrol_date: '2026-05-29', in_meter:  900 },  // 1 day gap → 100/1 = 100.0
+      { patrol_date: '2026-05-25', in_meter:  500 },  // 4 day gap → 400/4 = 100.0
+      { patrol_date: '2026-05-20', in_meter:  100 },  // 5 day gap → 400/5 = 80.0
+      { patrol_date: '2026-05-10', in_meter:    0 },  // 10 day gap → 100/10 = 10.0
+    ]
+    const s = computeBoothDiffSummary(rows)
+    expect(s.daily).toEqual([10.0, 80.0, 100.0, 100.0])
+  })
+
+  it('preserves_backwards_compatible_inDiff_outDiff_currIn_prevIn', () => {
+    const rows = [
+      { patrol_date: '2026-05-30', in_meter: 1500, out_meter: 200 },
+      { patrol_date: '2026-05-25', in_meter: 1000, out_meter: 100 },
+      { patrol_date: '2026-05-20', in_meter:  600, out_meter:  50 },
+    ]
+    const s = computeBoothDiffSummary(rows)
     expect(s.inDiff).toBe(500)
     expect(s.outDiff).toBe(100)
+    expect(s.currIn).toBe(500)
+    expect(s.prevIn).toBe(400)
   })
 
-  // SPEC-PATROL-VIEW-MODE-SWITCH-01: OUT mode (per-booth prev/curr diff + payout %)
-  it('when_three_rows_should_compute_prev_and_curr_out_diff', () => {
+  it('when_in_meter_missing_on_pair_inDiff_null_outDiff_still_computed', () => {
     const rows = [
-      { patrol_date: '2026-05-30', in_meter: 2000, out_meter: 300 },
-      { patrol_date: '2026-05-25', in_meter: 1500, out_meter: 200 },
-      { patrol_date: '2026-05-20', in_meter: 1000, out_meter:  50 },
+      { patrol_date: '2026-05-30', in_meter: 1000, out_meter: 200 },
+      { patrol_date: '2026-05-25', in_meter: null, out_meter: 150 },
     ]
     const s = computeBoothDiffSummary(rows)
-    expect(s.currOut).toBe(100)  // 300 - 200
-    expect(s.prevOut).toBe(150)  // 200 - 50
-  })
-
-  it('when_three_rows_should_compute_prev_and_curr_payout_rate_1dp', () => {
-    // curr: in=500, out=100 → 20.0%
-    // prev: in=500, out=250 → 50.0%
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 2000, out_meter: 350 },
-      { patrol_date: '2026-05-25', in_meter: 1500, out_meter: 250 },
-      { patrol_date: '2026-05-20', in_meter: 1000, out_meter:   0 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currPayout).toBe(20.0)
-    expect(s.prevPayout).toBe(50.0)
-  })
-
-  it('when_in_diff_zero_should_return_null_payout', () => {
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 1000, out_meter: 100 },
-      { patrol_date: '2026-05-25', in_meter: 1000, out_meter:  50 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currIn).toBe(0)
-    expect(s.currPayout).toBe(null)
-  })
-
-  // SPEC-PATROL-VIEW-MODE-SWITCH-01: stock mode (snapshot per record)
-  it('when_two_rows_should_expose_stock_and_restock_snapshots', () => {
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 100, prize_stock_count: 80, prize_restock_count: 20 },
-      { patrol_date: '2026-05-25', in_meter:  50, prize_stock_count: 60, prize_restock_count: 10 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currStock).toBe(80)
-    expect(s.prevStock).toBe(60)
-    expect(s.currRestock).toBe(20)
-    expect(s.prevRestock).toBe(10)
-  })
-
-  it('when_stock_columns_missing_should_return_null', () => {
-    const rows = [
-      { patrol_date: '2026-05-30', in_meter: 100 },
-      { patrol_date: '2026-05-25', in_meter:  50 },
-    ]
-    const s = computeBoothDiffSummary(rows)
-    expect(s.currStock).toBe(null)
-    expect(s.prevStock).toBe(null)
-    expect(s.currRestock).toBe(null)
-    expect(s.prevRestock).toBe(null)
+    expect(s.inDiffs[3]).toBe(null)
+    expect(s.outDiffs[3]).toBe(50)
+    expect(s.daily[3]).toBe(null)
   })
 })
