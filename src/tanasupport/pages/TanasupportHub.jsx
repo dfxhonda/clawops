@@ -176,6 +176,15 @@ export default function TanasupportHub() {
             badge={null}
             onClick={() => navigate('/stock/out')}
           />
+          {/* SPEC-STOCK-ANNOUNCEMENTS-01: 景品案内ビューア (お気に入り付き) */}
+          <TaskTile
+            emoji="📣"
+            title="景品案内"
+            sub="新着案内とお気に入り (発注検討用)"
+            borderColor="#06b6d4"
+            badge={null}
+            onClick={() => navigate('/stock/announcements')}
+          />
           {/* J-STOCK-OCR-COUNT-TEST-01-fix-02 (ヒロ Discord 棚卸しOCRテストまだ見えない):
               spec scope.modify は StockHubPage だけだったが、Launcher → 棚卸 タイル の遷移先は
               /tanasupport (本 TanasupportHub) で /stock (StockHubPage) は通らない。

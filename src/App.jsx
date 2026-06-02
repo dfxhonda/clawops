@@ -163,6 +163,8 @@ const StockCount   = lazy(() => import('./tanasupport/pages/StockCount'))
 const StockOutPage       = lazy(() => import('./tanasupport/pages/StockOutPage'))
 const ArrivalCheckPage   = lazy(() => import('./tanasupport/pages/ArrivalCheckPage'))
 const StockHubPage       = lazy(() => import('./tanasupport/pages/StockHubPage'))
+// SPEC-STOCK-ANNOUNCEMENTS-01: 景品案内ビューア (お気に入り付き)
+const AnnouncementsPage  = lazy(() => import('./pages/stock/AnnouncementsPage'))
 
 
 // ローディングスピナー（Suspense フォールバック）
@@ -405,6 +407,8 @@ function AppInner() {
       <Route path="/stock/orders" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
       {/* J-STOCK-OCR-COUNT-TEST-01: 棚卸 OCR カウントテスト (temp、DB なし) */}
       <Route path="/stock/ocr-count-test" element={<ProtectedRoute><OcrCountTestPage /></ProtectedRoute>} />
+      {/* SPEC-STOCK-ANNOUNCEMENTS-01: 景品案内ビューア。role_access: [admin, manager, patrol, staff] のため ProtectedRoute (login required only)。 */}
+      <Route path="/stock/announcements" element={<ProtectedRoute><AnnouncementsPage /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/launcher" replace />} />
     </Routes>
