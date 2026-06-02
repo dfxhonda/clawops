@@ -2,13 +2,15 @@
 // 本テストは history 表示 path が DB の in_diff / out_diff 列に依存しないことを契約として固定する。
 // FIX-01 の implementation は既に raw-meter compute path だったが、FIX-02 で formal 化。
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   computeBoothDiffSummary,
   _RAW_HISTORY_SELECT,
   STORE_BASELINE_LIMIT_PER_BOOTH,
+  fetchStoreBaselineRows,
 } from '../../services/boothHistory'
 import { computeLocalStoreView } from '../../clawsupport/state/localStoreView'
+import { supabase } from '../../lib/supabase'
 
 describe('HISTORY_SELECT contract (AC-07)', () => {
   it('SELECT_string_does_NOT_contain_in_diff_or_out_diff_columns', () => {
@@ -42,6 +44,43 @@ describe('HISTORY_SELECT contract (AC-07)', () => {
   // 9 = today + prev1..prev8 (8 隣接対 diff)、週2回ラウンド × 2ヶ月 = 8 visit 履歴表示用。
   it('SPEC_LF1_HISTORY_FIX_04_STORE_BASELINE_LIMIT_PER_BOOTH_equals_9', () => {
     expect(STORE_BASELINE_LIMIT_PER_BOOTH).toBe(9)
+  })
+
+  // SPEC-LF1-HISTORY-FIX-05 AC-03: fetchStoreBaselineRows は entry_type='patrol' のみを返す。
+  // replace/config 行 (in_meter=0 主体) が IDB に混入すると history diff を 0 で汚すため、
+  // Supabase クエリ段階で eq('entry_type', 'patrol') filter を適用する契約を test で固定する。
+  it('SPEC_LF1_HISTORY_FIX_05_entry_type_patrol_only', async () => {
+    // supabase.from chain を mock。eq('entry_type','patrol') が呼ばれたかどうかを検出する。
+    const eqCalls = []
+    const fakeChain = {
+      select: vi.fn().mockReturnThis(),
+      in:     vi.fn().mockReturnThis(),
+      eq:     vi.fn(function (col, val) { eqCalls.push([col, val]); return this }),
+      order:  vi.fn().mockReturnThis(),
+      then:   undefined,
+    }
+    // 末尾 await のため最後の order が { data, error } を返すようにする。
+    // 2 つの patrol 行 + 1 つの replace 行を返すモック (replace は filter で除外想定だが、
+    // mock は filter を実行せず全行返却。AC-03 の主検証は eq calls の存在チェック)。
+    fakeChain.order.mockReturnValueOnce(fakeChain) // 1 回目 order('patrol_date')
+    fakeChain.order.mockResolvedValueOnce({
+      data: [
+        { reading_id: 'p1', booth_code: 'A-1', entry_type: 'patrol',  patrol_date: '2026-06-02', in_meter: 1500 },
+        { reading_id: 'p2', booth_code: 'A-1', entry_type: 'patrol',  patrol_date: '2026-05-25', in_meter: 1000 },
+      ],
+      error: null,
+    })
+    const fromSpy = vi.spyOn(supabase, 'from').mockReturnValue(fakeChain)
+    try {
+      const result = await fetchStoreBaselineRows(['A-1'])
+      // eq('entry_type', 'patrol') が chain 中で呼ばれたことを確認。
+      expect(eqCalls).toContainEqual(['entry_type', 'patrol'])
+      // 戻り値は mock の data そのまま (filter は Supabase 側で実行されるため mock では全行透過)。
+      expect(result.length).toBeGreaterThan(0)
+      expect(result.every(r => r.entry_type === 'patrol')).toBe(true)
+    } finally {
+      fromSpy.mockRestore()
+    }
   })
 })
 

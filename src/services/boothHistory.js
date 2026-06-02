@@ -178,6 +178,9 @@ export async function fetchStoreBaselineRows(boothCodes) {
     .from('meter_readings')
     .select(HISTORY_SELECT)
     .in('booth_code', boothCodes)
+    // SPEC-LF1-HISTORY-FIX-05: replace/config 行 (in_meter=0 主体) は history 集計の
+    // diff を 0 で汚すため、entry_type='patrol' のみに限定。KOS01: patrol=229 / replace=17 / config=1。
+    .eq('entry_type', 'patrol')
     .order('patrol_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) return []
