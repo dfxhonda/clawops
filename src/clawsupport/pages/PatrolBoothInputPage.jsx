@@ -649,7 +649,16 @@ export default function PatrolBoothInputPage() {
   }
 
   function handleSwipeLeft() {
-    if (!nextBoothEntry) return springBack()  // 末端: spring back
+    if (!nextBoothEntry) {
+      // SPEC-PATROL-SWIPE-NAV-fix-02: 最後の機械の最後のブースで左スワイプ →
+      // 旧 no-op (spring back) ではなく goBackToList で店舗リストへ戻る。
+      // isDirty && canSave なら save してから戻る (他 swipe 経路と同一の暗黙保存挙動)。
+      // navigate(-1) の代わりに goBackToList を使う理由: 既存 hierarchical
+      // navigation の '次ブース focus + 店舗リスト' 動線と統一でき、navigate(-1) で
+      // 履歴遷移の予測不能性 (ログイン履歴等) を回避できる。
+      commitSwipeAndNavigate('left', goBackToList)
+      return
+    }
     commitSwipeAndNavigate('left', goNextBooth)
   }
   function handleSwipeRight() {
