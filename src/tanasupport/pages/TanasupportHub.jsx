@@ -176,6 +176,9 @@ export default function TanasupportHub() {
             badge={null}
             onClick={() => navigate('/stock/out')}
           />
+          {/* SPEC-STOCK-UI-FIX-01: 景品案内 TaskTile は LocationHubPage.jsx へ移設 (DIAG-STOCK-UI-02
+              で TanasupportHub 自体が Launcher 動線から到達不能と確定したため)。本ハブも全体的に
+              到達不能だが、整理目的で本タイルのみ削除。他タイルは将来動線復帰時の参考用に残置。 */}
           {/* J-STOCK-OCR-COUNT-TEST-01-fix-02 (ヒロ Discord 棚卸しOCRテストまだ見えない):
               spec scope.modify は StockHubPage だけだったが、Launcher → 棚卸 タイル の遷移先は
               /tanasupport (本 TanasupportHub) で /stock (StockHubPage) は通らない。
