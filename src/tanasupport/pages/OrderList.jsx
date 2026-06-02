@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useRole } from '../../shared/auth/useRole'
@@ -21,6 +21,11 @@ export default function OrderList() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [tab, setTab] = useState(params.get('tab') || 'shipped')
+  // SPEC-STOCK-UI-FIX-01: destination 拠点フィルタ。'all' で全件、それ以外なら .eq('destination', value)。
+  // URL params で ?owner_type=warehouse&owner_id=<location_id> 経由なら、locations.location_name に
+  // ヒットする保証がないため初期値は 'all' とし、ユーザー選択に委ねる (LocationHubPage の owner_id は
+  // location_id で、prize_orders.destination は location_name free text のため直接マッチしない実情)。
+  const [destFilter, setDestFilter] = useState('all')
   const [orders, setOrders] = useState([])
   const [counts, setCounts] = useState({ shipped: 0, ordered: 0, arrived: 0 })
   const [loading, setLoading] = useState(true)
@@ -42,12 +47,16 @@ export default function OrderList() {
     loadCounts()
   }, [])
 
-  const load = useCallback(async (status) => {
+  const load = useCallback(async (status, dest) => {
     setLoading(true)
-    const { data, error } = await supabase
+    // SPEC-STOCK-UI-FIX-01: dest フィルタは pill bar 由来。'all' なら filter なし、
+    // それ以外は .eq('destination', dest) を chain に挿入。
+    let q = supabase
       .from('prize_orders')
       .select('order_id, prize_name_short, prize_name_raw, supplier_id, order_date, expected_date, case_count, destination, status, arrived_at')
       .eq('status', status)
+    if (dest && dest !== 'all') q = q.eq('destination', dest)
+    const { data, error } = await q
       .order('expected_date', { ascending: true, nullsFirst: false })
       .limit(300)
     if (error) { setLoading(false); return }
@@ -55,7 +64,18 @@ export default function OrderList() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { setOrders([]); load(tab) }, [tab, load])
+  useEffect(() => { setOrders([]); load(tab, destFilter) }, [tab, destFilter, load])
+
+  // SPEC-STOCK-UI-FIX-01: 現在 fetch 済の orders から distinct destination を算出。
+  // destination=null は除外、現タブ + 現 dest フィルタ後の値域なので '全て' に戻すまで
+  // pill 候補が更新されない点は意図的 (UX 上現状の一覧から絞り込むメンタルモデル維持)。
+  const distinctDestinations = useMemo(() => {
+    const set = new Set()
+    for (const o of orders) {
+      if (o.destination) set.add(o.destination)
+    }
+    return Array.from(set).sort()
+  }, [orders])
 
   async function markArrived(orderId) {
     setSaving(orderId)
@@ -116,6 +136,7 @@ export default function OrderList() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
+            data-testid={`order-status-tab-${t.key}`}
             className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               tab === t.key ? 'bg-surface2 text-text' : 'bg-surface text-muted'
             }`}
@@ -125,8 +146,43 @@ export default function OrderList() {
         ))}
       </div>
 
+      {/* SPEC-STOCK-UI-FIX-01: 拠点 pill bar。distinct destinations から動的生成、
+          '全て' で reset。pill 1 つしかないとき (絞り込み済) も常に '全て' 表示で戻れる。 */}
+      <div
+        data-testid="order-destination-pills"
+        className="flex px-5 gap-2 py-2 border-b border-border overflow-x-auto shrink-0"
+      >
+        <button
+          key="all"
+          data-testid="order-dest-pill-all"
+          onClick={() => setDestFilter('all')}
+          className={`shrink-0 min-h-[36px] px-3 py-1.5 rounded-full text-sm font-bold border ${
+            destFilter === 'all'
+              ? 'bg-accent text-white border-accent'
+              : 'bg-surface text-text border-border'
+          }`}
+        >
+          全て
+        </button>
+        {distinctDestinations.map(d => (
+          <button
+            key={d}
+            data-testid={`order-dest-pill-${d}`}
+            onClick={() => setDestFilter(d)}
+            className={`shrink-0 min-h-[36px] px-3 py-1.5 rounded-full text-sm font-bold border ${
+              destFilter === d
+                ? 'bg-accent text-white border-accent'
+                : 'bg-surface text-text border-border'
+            }`}
+          >
+            {d}
+          </button>
+        ))}
+      </div>
+
       {/* スクロール可能なリスト */}
-      <div className="overflow-y-auto h-[calc(100dvh-196px)] px-5 pt-2 pb-4 space-y-2">
+      {/* SPEC-STOCK-UI-FIX-01: 拠点 pill bar 追加で +52px、calc 余白を 196→252 に。 */}
+      <div className="overflow-y-auto h-[calc(100dvh-252px)] px-5 pt-2 pb-4 space-y-2">
         {loading && orders.length === 0 && (
           <p className="text-muted text-center py-8">読み込み中...</p>
         )}

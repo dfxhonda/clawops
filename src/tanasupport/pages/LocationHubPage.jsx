@@ -151,6 +151,17 @@ export default function LocationHubPage() {
           onClick={() => navigate(`/stock/orders?${qs}`)}
           testid="location-hub-card-orders"
         />
+        {/* SPEC-STOCK-UI-FIX-01: 景品案内タイル追加。拠点に紐付かない (全社単一 prize_announcements)
+            ため owner 引数なしで遷移する。元 SPEC-STOCK-ANNOUNCEMENTS-01 で TanasupportHub に
+            置いたが Launcher 入口から到達不能 (DIAG-STOCK-UI-02 root cause 確定) で本箇所へ移設。 */}
+        <TaskTile
+          emoji="📣"
+          title="景品案内"
+          sub="新着案内とお気に入り (発注検討用)"
+          borderColor="#06b6d4"
+          onClick={() => navigate('/stock/announcements')}
+          testid="location-hub-card-announcements"
+        />
       </div>
     </div>
   )
