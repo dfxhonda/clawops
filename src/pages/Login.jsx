@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { useToast } from '../hooks/useToast'
 import { fetchDeviceLoginRows, upsertLoginHistory } from '../services/loginHistory'
+import { checkAndReloadIfStale } from '../services/loginVersionCheck'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
@@ -42,7 +43,15 @@ export default function Login() {
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) { navigate('/launcher', { replace: true }); return }
+      if (session) {
+        // SPEC-PWA-LOGIN-VERSION-RELOAD-01: session 復元 (silent re-auth) 成功時も
+        // バージョン不一致なら 1 回だけ reload。reload 中は navigate 不要 (location.reload で
+        // SPA 全破棄)、reloaded:false の通常 path のみ navigate に進む。
+        const r = await checkAndReloadIfStale()
+        if (r?.reloaded) return
+        navigate('/launcher', { replace: true })
+        return
+      }
 
       // SPEC-LOGIN-LATENCY-FIX-01 C2: staff SELECT と device_login_history SELECT を
       // Promise.all で並列発火 (waterfall +737ms cold 解消)。
@@ -106,6 +115,11 @@ export default function Login() {
     await upsertLoginHistory(staff.staff_id)
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
+    // SPEC-PWA-LOGIN-VERSION-RELOAD-01: verify-pin 通過直後にバージョンチェック。
+    // sessionStorage 'version_reload_done' でこの session 中は 1 回限り。
+    // 不一致なら reload して fresh bundle に → 一致 (or fetch fail) なら通常遷移。
+    const r = await checkAndReloadIfStale()
+    if (r?.reloaded) return
     // SPEC-LOGIN-LATENCY-FIX-01 C1: 旧 setTimeout 1200ms (純粋意図遅延、ウェルカム toast 表示用) を削除。
     // toast は Toast 内部 successDuration=1200ms で fade-out するが、navigate 即時遷移で Login 側 Toast は
     // unmount される (Launcher 側に持ち越されない)。AC-04 受け入れ通り、機能影響なし。
