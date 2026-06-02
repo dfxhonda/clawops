@@ -288,7 +288,7 @@ export default function BoothInputForm({
                         data-testid="ocr-button-inline"
                         onClick={onOCR}
                         aria-label="OCR読み取り"
-                        className="shrink-0 px-2 py-1.5 rounded-lg font-bold text-xs text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98]"
+                        className="shrink-0 px-2 py-1.5 rounded-lg font-bold text-xs text-black bg-yellow-400 border border-yellow-500 active:bg-yellow-300 active:scale-[0.98]"
                       >
                         読
                       </button>
