@@ -1,10 +1,19 @@
 import { supabase } from '../lib/supabase'
 
+// SPEC-LF1-HISTORY-FIX-02 (supersedes FIX-01): history 表示 path は raw meter のみ参照、
+// in_diff / out_diff / out_diff_1/2/3 / revenue / profit 列は読まない (deprecate 予定、
+// DIAG-INDIFF-REFERENCES-01 で patrolCore.js は 2026-05-09 以降 in_diff を一切 INSERT
+// していないことを確認、KOS01 has_in_diff=0 で SPEC-02 history が壊れる根本原因だった)。
+// 本 SELECT に in_diff / out_diff は意図的に含めない、computeBoothDiffSummary が
+// raw meter 差分 (current.in_meter - previous.in_meter) で常に正しい値を返す。
 const HISTORY_SELECT =
   'reading_id, booth_code, patrol_date, read_time, created_at, entry_type, ' +
   'in_meter, out_meter, out_meter_2, out_meter_3, ' +
   'prize_name, prize_cost, prize_stock_count, prize_restock_count, ' +
   'set_a, set_c, set_l, set_r, set_o'
+
+// テスト用 export (HISTORY-FIX-02 AC-07: 'no in_diff column dependency' 検証)
+export const _RAW_HISTORY_SELECT = HISTORY_SELECT
 
 // SPEC-PATROL-VIEW-MODE-SWITCH-02: 4-visit history。各列 (4 前 / 3 前 / 前回 / 今回) の
 // in_diff / out_diff / daily (= in_diff / 間隔日数) を 4 要素配列で返す。4 つの diff を
