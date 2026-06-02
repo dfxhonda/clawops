@@ -52,16 +52,27 @@ export function detectAxis(dx, dy, axisLockRatio = SWIPE_AXIS_LOCK_RATIO) {
 
 /**
  * @param {Object} args
- * @param {() => void} [args.onSwipeLeft]
- * @param {() => void} [args.onSwipeRight]
+ * @param {() => void} [args.onSwipeLeft]   閾値超え左スワイプ確定時 (commit)
+ * @param {() => void} [args.onSwipeRight]  閾値超え右スワイプ確定時 (commit)
+ * @param {(dx: number) => void} [args.onSwipeProgress]
+ *   SPEC-PATROL-SWIPE-ANIM-01 C1: touchmove 中 (横軸ロック後) に dx px を逐次通知。
+ *   コンポーネント側で transform: translateX(${dx}px) を当てて follow-finger 表示する。
+ * @param {() => void} [args.onSwipeCancel]
+ *   横軸ロック後に閾値未達で release されたケース (spring back 用)。
  * @param {boolean} [args.enabled=true]
  * @returns {React.RefObject} 対象要素に attach する ref
  */
-export function useSwipeNav({ onSwipeLeft, onSwipeRight, enabled = true } = {}) {
+export function useSwipeNav({
+  onSwipeLeft,
+  onSwipeRight,
+  onSwipeProgress,
+  onSwipeCancel,
+  enabled = true,
+} = {}) {
   const ref = useRef(null)
   // 最新の callback を ref で保持 (再 attach 不要にして touchmove passive 切替コストを避ける)
-  const cbRef = useRef({ onSwipeLeft, onSwipeRight })
-  cbRef.current = { onSwipeLeft, onSwipeRight }
+  const cbRef = useRef({ onSwipeLeft, onSwipeRight, onSwipeProgress, onSwipeCancel })
+  cbRef.current = { onSwipeLeft, onSwipeRight, onSwipeProgress, onSwipeCancel }
 
   useEffect(() => {
     if (!enabled) return undefined
@@ -93,9 +104,13 @@ export function useSwipeNav({ onSwipeLeft, onSwipeRight, enabled = true } = {}) 
       if (state.axis == null) {
         state.axis = detectAxis(dx, dy)
       }
-      if (state.axis === 'horizontal' && e.cancelable) {
-        // 横スワイプ確定: スクロールを抑止 (AC-05 scroll separation)
-        e.preventDefault()
+      if (state.axis === 'horizontal') {
+        if (e.cancelable) {
+          // 横スワイプ確定: スクロールを抑止 (AC-05 scroll separation)
+          e.preventDefault()
+        }
+        // SPEC-PATROL-SWIPE-ANIM-01 C1: live dx 通知 (follow-finger)
+        cbRef.current.onSwipeProgress?.(dx)
       }
     }
 
@@ -111,6 +126,7 @@ export function useSwipeNav({ onSwipeLeft, onSwipeRight, enabled = true } = {}) 
       const kind = classifySwipe({ dx, dy, dt })
       if (kind === 'left') cbRef.current.onSwipeLeft?.()
       else if (kind === 'right') cbRef.current.onSwipeRight?.()
+      else cbRef.current.onSwipeCancel?.()  // 横軸ロック後に閾値未達 → spring back
     }
 
     el.addEventListener('touchstart', onTouchStart, { passive: true })

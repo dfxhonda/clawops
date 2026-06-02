@@ -28,6 +28,10 @@ import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
 import { useSwipeNav } from '../../hooks/useSwipeNav'
 import {
+  setPendingEnterFrom,
+  consumePendingEnterFrom,
+} from '../state/swipeTransition'
+import {
   savePatrolReading,
   getLastReadingForBooth,
   classifyEntryType,
@@ -579,22 +583,72 @@ export default function PatrolBoothInputPage() {
   const handleSaveNext = () => handleSave(goNextBooth)
   const handleSaveList = () => handleSave(goBackToList)
 
-  // SPEC-PATROL-SWIPE-NAV-01 C2: 横スワイプ → 暗黙保存 → 隣接ブースへ navigate。
+  // SPEC-PATROL-SWIPE-NAV-01 C2 + SPEC-PATROL-SWIPE-ANIM-01: 横スワイプ → アニメ → 暗黙保存 → navigate。
   // 左スワイプ=次ブース、右スワイプ=前ブース。canSave 偽 (= IN 未入力等) なら保存スキップで navigate のみ。
-  // 末端 (最初の前 / 最後の次) では no-op (AC-04)。OCR overlay 中は無効化。
+  // 末端 (最初の前 / 最後の次) では no-op で spring back (AC-04)。OCR overlay 中は無効化。
+  //
+  // ANIM-01:
+  // - swipeDx: touchmove 中の指 dx (px)、live で transform: translateX に反映 (follow-finger)
+  // - swipeTransition: CSS transition 文字列。drag 中は 'none'、commit/cancel で 220ms ease-out
+  // - 入場アニメ: consumePendingEnterFrom() で前画面の遷移方向を読取、初期 dx を ±innerWidth に置いて
+  //   useLayoutEffect で次フレームに 0 へ transition (entering panel slides in)
+  const [swipeDx, setSwipeDx] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    const enter = consumePendingEnterFrom()
+    if (enter === 'right') return  window.innerWidth   // 次画面が右側から
+    if (enter === 'left')  return -window.innerWidth   // 前画面が左側から
+    return 0
+  })
+  const [swipeTransition, setSwipeTransition] = useState('none')
+
+  // 入場アニメーション: 初期 dx が非ゼロなら、次フレームで 0 へ transition (220ms ease-out)
+  useEffect(() => {
+    if (swipeDx === 0) return
+    const t = requestAnimationFrame(() => {
+      setSwipeTransition('transform 220ms ease-out')
+      setSwipeDx(0)
+    })
+    return () => cancelAnimationFrame(t)
+    // 初回 mount のみ意図、boothCode が変わって新規 mount された時もここを通る
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function springBack() {
+    setSwipeTransition('transform 220ms ease-out')
+    setSwipeDx(0)
+  }
+
+  function commitSwipeAndNavigate(direction, navFn) {
+    // direction: 'left' or 'right' (exit 方向)
+    const w = typeof window !== 'undefined' ? window.innerWidth : 360
+    setSwipeTransition('transform 220ms ease-out')
+    setSwipeDx(direction === 'left' ? -w : w)
+    // 次画面の入場方向を予約 (左退場 → 次画面は右から、右退場 → 次画面は左から)
+    setPendingEnterFrom(direction === 'left' ? 'right' : 'left')
+    // 220ms 後に navigate (+ 必要なら save)。LF1 save は IDB write のみで実時間 <10ms、
+    // ここの timeout を待っても UX 影響なし (AC-06 LF1 <1s 保持)。
+    setTimeout(() => {
+      if (canSave) handleSave(navFn)
+      else navFn()
+    }, 220)
+  }
+
   function handleSwipeLeft() {
-    if (!nextBoothEntry) return  // 最後の機械の最後のブース: no-op
-    if (canSave) handleSave(goNextBooth)
-    else goNextBooth()
+    if (!nextBoothEntry) return springBack()  // 末端: spring back
+    commitSwipeAndNavigate('left', goNextBooth)
   }
   function handleSwipeRight() {
-    if (!prevBoothEntry) return  // 最初の機械の最初のブース: no-op
-    if (canSave) handleSave(goPrevBooth)
-    else goPrevBooth()
+    if (!prevBoothEntry) return springBack()  // 末端: spring back
+    commitSwipeAndNavigate('right', goPrevBooth)
   }
   const swipeRef = useSwipeNav({
     onSwipeLeft:  handleSwipeLeft,
     onSwipeRight: handleSwipeRight,
+    onSwipeProgress: (dx) => {
+      // SPEC-PATROL-SWIPE-ANIM-01 C2: drag 中は transition なしで dx を直接反映
+      setSwipeTransition('none')
+      setSwipeDx(dx)
+    },
+    onSwipeCancel: springBack,
     enabled: ocrState === 'idle',  // OCR overlay 中はスワイプ無効
   })
 
@@ -794,7 +848,16 @@ export default function PatrolBoothInputPage() {
 
   // === Main patrol form ===
   return (
-    <div ref={swipeRef} className="h-dvh flex flex-col bg-bg text-text" data-testid="patrol-booth-swipe-container">
+    <div
+      ref={swipeRef}
+      className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden"
+      data-testid="patrol-booth-swipe-container"
+      style={{
+        transform: `translateX(${swipeDx}px)`,
+        transition: swipeTransition,
+        willChange: 'transform',
+      }}
+    >
       {/* J-PATROL-OCR-CAMERA C: 読み取り写真の入力。capture指定なしでiOSは「写真を撮る(純正カメラ+フラッシュ)/写真を選ぶ」メニュー */}
       <input
         ref={fileInputRef}
