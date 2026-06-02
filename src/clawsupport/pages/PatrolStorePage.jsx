@@ -10,6 +10,7 @@ import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../components/storeTotalsRanking'
+import { getStoreCache, setStoreCache } from '../state/patrolStoreCache'
 
 export default function PatrolStorePage() {
   const { storeCode } = useParams()
@@ -25,13 +26,16 @@ export default function PatrolStorePage() {
   const clearFocusBooth = usePatrolListScrollStore(s => s.clearFocusBooth)
   const expandedSet = expandedByStore[storeCode] ?? []
 
-  const [storeName, setStoreName] = useState(storeCode)
-  const [machines, setMachines] = useState([])
-  const [todayMap, setTodayMap] = useState({})
-  const [diffMap, setDiffMap] = useState({})
-  const [loading, setLoading] = useState(true)
-  // SPEC-PATROL-VIEW-MODE-SWITCH-01: 巡回機械リスト IN/OUT/STOCK 3 モード切替。
-  // toggle_scope: per-store → storeCode が URL params で変わる度に IN へ戻る (component remount 同等)。
+  // SPEC-PATROL-SAVE-LATENCY-FIX-01: PatrolBoothInputPage から戻った時、
+  // module-level cache (patrolStoreCache) からハイドレートして 4 RT 再 fetch を回避。
+  // 保存成功時は cache.patchBoothSummary で対象 booth だけ差し替え済みのため、
+  // この再マウントは即座に最新表示できる。初回マウントだけ cache miss → load() フル fetch。
+  const cached = getStoreCache(storeCode)
+  const [storeName, setStoreName] = useState(cached?.storeName ?? storeCode)
+  const [machines, setMachines] = useState(cached?.machines ?? [])
+  const [todayMap, setTodayMap] = useState(cached?.todayMap ?? {})
+  const [diffMap, setDiffMap] = useState(cached?.diffMap ?? {})
+  const [loading, setLoading] = useState(!cached)
   const [viewMode, setViewMode] = useState('IN')
 
   const load = useCallback(async () => {
@@ -39,7 +43,8 @@ export default function PatrolStorePage() {
       supabase.from('stores').select('store_name').eq('store_code', storeCode).single(),
       getPatrolMachines(storeCode),
     ])
-    setStoreName(store?.store_name ?? storeCode)
+    const resolvedName = store?.store_name ?? storeCode
+    setStoreName(resolvedName)
     setMachines(machineList)
 
     const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
@@ -50,9 +55,17 @@ export default function PatrolStorePage() {
     setTodayMap(map)
     setDiffMap(diffs)
     setLoading(false)
+    // SPEC-FIX-01: 取得結果を module-level cache に保存、次回 mount で即ハイドレート。
+    setStoreCache(storeCode, { storeName: resolvedName, machines: machineList, todayMap: map, diffMap: diffs })
   }, [storeCode])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    // 初回マウントで cache hit なら fetch をスキップ (PatrolBoothInputPage からの戻り)。
+    // cache miss なら load() 実行 (Launcher / store list からの初回到達)。
+    if (!cached) load()
+    // storeCode 変更時は cached も切り替わるので再評価される。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeCode])
 
   // 全ブースのフラット順 (保存して次ブース算出用)
   const boothList = useMemo(

@@ -22,6 +22,8 @@ import { logger } from '../../lib/logger'
 import { ERR } from '../../lib/errorCodes'
 import { Sentry } from '../../lib/sentry'
 import { recordMachineLoad, recordMachineUnload } from '../../services/movements'
+import { fetchSingleBoothDiff } from '../../services/boothHistory'
+import { patchBoothSummary, patchBoothTodayMap } from '../state/patrolStoreCache'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
 import {
@@ -491,14 +493,31 @@ export default function PatrolBoothInputPage() {
       } else if (res.skipped) {
         setSkipped(true)
         saveActions.reset()
-        setTimeout(() => (onDone ? onDone() : navigate(-1)), 1000)
+        // SPEC-PATROL-SAVE-LATENCY-FIX-01: 800ms→0、即 navigate (skipped は値変化なし、cache 更新も不要)
+        if (onDone) onDone(); else navigate(-1)
       } else {
         // J-STOCK-MACHINE-fix-03b: 保存成功後に booth在庫移動を best-effort 記録。
         // 失敗してもメーター保存(res.ok)はロールバックせず、バナー通知のみで続行。
         await recordBoothStockMovements()
         saveActions.setSuccess()
         setHistoryKey(k => k + 1)
-        setTimeout(() => (onDone ? onDone() : navigate(-1)), 800)
+        // SPEC-PATROL-SAVE-LATENCY-FIX-01 (fix-A): 対象 booth だけ単一 query で再 fetch して
+        // PatrolStorePage の module cache を patch。これで戻り先で全店 4 RT 再 fetch を回避。
+        // best-effort、失敗してもメーター保存は成功扱い (UI は cache miss なら次回再 fetch)。
+        try {
+          const sCode = resolvedStoreCode
+          if (sCode && boothCode) {
+            const summary = await fetchSingleBoothDiff(boothCode)
+            if (summary) patchBoothSummary(sCode, boothCode, summary)
+            // 今日入力済み bitmap: read_time は now で代替 (StoreTotalsHeader の進捗バッジ用)
+            patchBoothTodayMap(sCode, boothCode, { readingId: res.readingId ?? null, readTime: new Date().toISOString() })
+          }
+        } catch (cacheErr) {
+          logger.warn?.('patrol_store_cache_patch_failed', { boothCode, message: cacheErr?.message })
+        }
+        // SPEC-PATROL-SAVE-LATENCY-FIX-01 (fix-B): 800ms setTimeout を削除、即 navigate。
+        // (元の 800ms は success バナー演出用、cache patch で結果は即座に list 側に反映される)
+        if (onDone) onDone(); else navigate(-1)
       }
     } catch (e) {
       logger.error('patrol_save_failed_unexpected', { message: e?.message, boothCode })

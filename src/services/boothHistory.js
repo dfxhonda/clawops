@@ -141,6 +141,24 @@ export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
   }
 }
 
+// SPEC-PATROL-SAVE-LATENCY-FIX-01: 単一 booth の 5 行 history を fetch して summary を返す。
+// 保存成功後に PatrolStorePage の diffMap[boothCode] だけを差し替える用途。
+// 1 RT で済むので store 全体の 4 RT 再 fetch を回避できる。
+export async function fetchSingleBoothDiff(boothCode, meterUnitPrice = 100) {
+  if (!boothCode) return null
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select(HISTORY_SELECT)
+    .eq('booth_code', boothCode)
+    .order('patrol_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(5)
+  if (error) return null
+  const rows = data ?? []
+  if (!rows.length) return null
+  return computeBoothDiffSummary(rows, meterUnitPrice)
+}
+
 /**
  * Fetch latest diff per booth for machine list chips.
  * Returns: Record<boothCode, summary | null>
