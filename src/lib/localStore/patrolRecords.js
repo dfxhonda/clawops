@@ -95,6 +95,41 @@ export async function getUnsyncedRecords() {
   }
 }
 
+/**
+ * SPEC-LF1-HISTORY-FIX-01: server baseline (synced=true) rows を IDB に書き込む。
+ * idempotent: localId = reading_id を採用するため再 fetch しても同じ row は overwrite される。
+ * 既存 synced=false (ローカル編集) には触れない。
+ *
+ * 1 store の全 rows を 1 トランザクションで処理 (ARCH R1 transaction 原則の延長)。
+ */
+export async function putBaselineRows(rows) {
+  if (!rows || !rows.length) return 0
+  try {
+    const db = await getDb()
+    const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')
+    const nowIso = new Date().toISOString()
+    let count = 0
+    for (const row of rows) {
+      const localId = row.reading_id ?? `baseline-${row.booth_code}-${row.patrol_date}`
+      await tx.store.put({
+        ...row,
+        localId,
+        synced: true,
+        syncedKey: syncedKey(true),
+        syncedAt: nowIso,
+        baselineRefreshedAt: nowIso,
+      })
+      count++
+    }
+    await tx.done
+    return count
+  } catch (err) {
+    const tag = err?.name === 'QuotaExceededError' ? LOG_ERR_QUOTA : LOG_ERR_WRITE
+    logger.error?.(tag, { phase: 'baseline', count: rows.length, message: err?.message })
+    throw new IdbWriteError(tag, err)
+  }
+}
+
 export async function markRecordSynced(localId) {
   if (!localId) return null
   try {

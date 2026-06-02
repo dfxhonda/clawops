@@ -5,16 +5,17 @@ import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
 import { getPatrolMachines } from '../../services/patrol'
-import { fetchBoothDiffMap } from '../../services/boothHistory'
+import { fetchStoreBaselineRows } from '../../services/boothHistory'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../components/storeTotalsRanking'
-// SPEC-LF1-STORE-LOCAL-CACHE-01:
+// SPEC-LF1-STORE-LOCAL-CACHE-01 + SPEC-LF1-HISTORY-FIX-01:
 import {
   getPatrolRecordsByStore,
   putPatrolRecord,
   putStoreMeta,
   getStoreMeta,
+  putBaselineRows,
 } from '../../lib/localStore/patrolRecords'
 import { computeLocalStoreView } from '../state/localStoreView'
 import { uploadStoreRecords } from '../../services/storeSync'
@@ -45,11 +46,15 @@ export default function PatrolStorePage() {
   const [viewMode, setViewMode] = useState('IN')
   const [syncing, setSyncing] = useState(false)
 
-  // SPEC-LF1: IDB → 描画。なければ network fetch → IDB write。
+  // SPEC-LF1: IDB → 描画。
   const hydrateFromIdb = useCallback(async () => {
     const meta = await getStoreMeta(storeCode)
     const records = await getPatrolRecordsByStore(storeCode)
-    if (!meta || records.length === 0) return false
+    // SPEC-LF1-HISTORY-FIX-01: hit gate は 'meta あり AND server baseline あり' を要求。
+    //   AC-02 / DIAG h1: 今日 save 1 件しかない状態で hit してしまうと baseline 不在で全列 '-'。
+    //   baseline = synced=true の record が 1 件でもあれば 'server baseline 取得済' と判断。
+    const hasBaseline = records.some(r => r.synced === true)
+    if (!meta || records.length === 0 || !hasBaseline) return false
     setStoreName(meta.storeName ?? storeCode)
     setMachines(meta.machines ?? [])
     const { diffMap: d, todayMap: t } = computeLocalStoreView(records)
@@ -59,51 +64,59 @@ export default function PatrolStorePage() {
     return true
   }, [storeCode])
 
-  const networkFetch = useCallback(async () => {
-    const [{ data: store }, machineList] = await Promise.all([
-      supabase.from('stores').select('store_name').eq('store_code', storeCode).single(),
-      getPatrolMachines(storeCode),
-    ])
-    const resolvedName = store?.store_name ?? storeCode
-    setStoreName(resolvedName)
-    setMachines(machineList)
-
-    const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
-    const diffs = await fetchBoothDiffMap(boothCodes, {})
-
-    // SPEC-LF1: meta + booth raw rows を IDB に保存 (synced=true でベースライン)。
-    await putStoreMeta(storeCode, { storeName: resolvedName, machines: machineList })
-    // diff result は summary なので、raw rows を別途取得して IDB に書く必要がある。
-    // しかし fetchBoothDiffMap は raw rows を返さない。LF1 で簡易化として、初回は
-    // summary を todayMap/diffMap state に入れて、IDB には placeholder のみ書く。
-    // 真の baseline raw 同期は LF1 fix で対応 (今は IDB は local writes 主体で蓄積)。
-
-    // todayMap は patrol_date 当日の record を抽出する必要があるが、SPEC-02 summary
-    // からは取れないので getTodayReadingsMap 等価のため簡易代用: diffMap 最新 patrol_date
-    // が今日なら done と見なす近似。本格的には next spec で精緻化。
-    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-    const tMap = {}
-    // diffs に raw 情報がないので、別 query を投げず今日 done 判定は次回保存以降に揃う形に。
-    for (const bc of boothCodes) {
-      // 何も入れないと従来 todayMap が空で進捗バッジが ' 0/N ' になるが LF1 ではこれで進める
-      // (LF1 fix で改善予定)。
-      void bc
+  // SPEC-LF1-HISTORY-FIX-01 (approach A):
+  // - fetchStoreBaselineRows で booth ごと 5 行 raw を 1 windowed query で取得 (AC-09)
+  // - putBaselineRows で synced=true として idempotent put (localId=reading_id で重複なし)
+  // - 取得後 IDB から refreshed records を読み computeLocalStoreView (server+local 統合)
+  // - 失敗は ERR-LF1-BASELINE-FETCH log のみで silent swallow 回避、既存 IDB データで継続。
+  const refreshBaselineAndRender = useCallback(async () => {
+    let machineList = []
+    let resolvedName = storeCode
+    try {
+      const [{ data: store }, ml] = await Promise.all([
+        supabase.from('stores').select('store_name').eq('store_code', storeCode).single(),
+        getPatrolMachines(storeCode),
+      ])
+      resolvedName = store?.store_name ?? storeCode
+      machineList = ml ?? []
+      await putStoreMeta(storeCode, { storeName: resolvedName, machines: machineList })
+      const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
+      const rows = await fetchStoreBaselineRows(boothCodes)
+      await putBaselineRows(rows)
+    } catch (err) {
+      logger.warn?.('ERR-LF1-BASELINE-FETCH', { storeCode, message: err?.message })
     }
-    setTodayMap(tMap)
-    setDiffMap(diffs)
+    // IDB から再読込し、統合 view を描画。失敗してもここで止めず existing state を保持。
+    const records = await getPatrolRecordsByStore(storeCode)
+    const meta = await getStoreMeta(storeCode)
+    setStoreName(meta?.storeName ?? resolvedName)
+    setMachines(meta?.machines ?? machineList)
+    const { diffMap: d, todayMap: t } = computeLocalStoreView(records)
+    setDiffMap(d)
+    setTodayMap(t)
     setLoading(false)
-    void today
   }, [storeCode])
 
   useEffect(() => {
     let cancel = false
     async function init() {
+      // 1) instant render from IDB if baseline 既存 (subsequent open)
       const hit = await hydrateFromIdb()
-      if (!hit && !cancel) await networkFetch()
+      if (cancel) return
+      // 2) AC-06 freshness: always refresh baseline so other-day/other-device 変更が反映される。
+      //    cache hit でも background で refresh (初回は loading 状態で待つ)。
+      if (!hit) {
+        await refreshBaselineAndRender()
+      } else {
+        // hit=true (instant render 済) は background refresh、最後に setDiffMap で update。
+        refreshBaselineAndRender().catch(err =>
+          logger.warn?.('ERR-LF1-BASELINE-BG-REFRESH', { storeCode, message: err?.message })
+        )
+      }
     }
     init()
     return () => { cancel = true }
-  }, [hydrateFromIdb, networkFetch])
+  }, [hydrateFromIdb, refreshBaselineAndRender, storeCode])
 
   // SPEC-LF1: 店舗離脱 (unmount) で auto-sync。fire-and-forget。
   // ref で staffId を保持してクロージャ陳腐化を回避。

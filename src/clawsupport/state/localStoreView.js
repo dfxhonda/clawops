@@ -11,6 +11,11 @@ function todayJST() {
 // raw records (UPSERT 単位の meter_readings 等価レコード) を booth_code 単位にグループ化、
 // patrol_date DESC + (created_at / updatedLocally / createdLocally) DESC でソート、
 // 最大 5 行を computeBoothDiffSummary に渡して summary を作る。
+//
+// SPEC-LF1-HISTORY-FIX-01:
+//   dedupe by (booth_code, patrol_date) — 同 patrol_date に server baseline (synced=true) と
+//   local edit (synced=false) が並存する場合、local wins (AC-08)。
+//   booth ごと 5 行までに切り詰めて computeBoothDiffSummary に渡す。
 export function computeLocalStoreView(records, { meterUnitPriceMap = {}, today = todayJST() } = {}) {
   const byBooth = new Map()
   for (const r of (records ?? [])) {
@@ -22,7 +27,14 @@ export function computeLocalStoreView(records, { meterUnitPriceMap = {}, today =
   const diffMap = {}
   const todayMap = {}
   for (const [bc, arr] of byBooth.entries()) {
-    arr.sort((a, b) => {
+    // SPEC-LF1-HISTORY-FIX-01 dedupe: same patrol_date 内で local (synced=false) を優先。
+    const byDate = new Map()
+    for (const r of arr) {
+      const ex = byDate.get(r.patrol_date)
+      const localPref = !r.synced && (ex ? ex.synced : false)
+      if (!ex || localPref) byDate.set(r.patrol_date, r)
+    }
+    const deduped = Array.from(byDate.values()).sort((a, b) => {
       const pd = (b.patrol_date ?? '').localeCompare(a.patrol_date ?? '')
       if (pd !== 0) return pd
       const at = (b.created_at ?? b.updatedLocally ?? b.createdLocally ?? '').localeCompare(
@@ -30,11 +42,11 @@ export function computeLocalStoreView(records, { meterUnitPriceMap = {}, today =
       )
       return at
     })
-    const top5 = arr.slice(0, 5)
+    const top5 = deduped.slice(0, 5)
     const summary = computeBoothDiffSummary(top5, meterUnitPriceMap[bc] ?? 100)
     if (summary) diffMap[bc] = summary
-    // today バッジ: patrol_date === today JST の record があるか
-    const todayRow = arr.find(r => r.patrol_date === today)
+    // today バッジ: patrol_date === today JST の record があるか (dedup 後)
+    const todayRow = deduped.find(r => r.patrol_date === today)
     if (todayRow) {
       todayMap[bc] = {
         readingId: todayRow.reading_id ?? todayRow.localId ?? null,

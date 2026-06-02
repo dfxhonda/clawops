@@ -142,6 +142,35 @@ export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
 }
 
 /**
+ * SPEC-LF1-HISTORY-FIX-01 (approach A):
+ * Store の全 booth について 最新 5 行 (raw rows) を single windowed query で取得して返す。
+ * 戻り値は flat array (caller 側で booth ごと group + put to IndexedDB)。
+ * fetchBoothDiffMap と同じ複合ソート (patrol_date DESC + created_at DESC) で late-entry を抑止。
+ * 用途: PatrolStorePage で IDB baseline 同期、computeLocalStoreView が unified path で再計算可能に。
+ */
+export async function fetchStoreBaselineRows(boothCodes) {
+  if (!boothCodes || !boothCodes.length) return []
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select(HISTORY_SELECT)
+    .in('booth_code', boothCodes)
+    .order('patrol_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) return []
+  const byBooth = new Map()
+  for (const row of data ?? []) {
+    const bc = row.booth_code
+    if (!bc) continue
+    const arr = byBooth.get(bc) ?? []
+    if (arr.length < 5) {
+      arr.push(row)
+      byBooth.set(bc, arr)
+    }
+  }
+  return Array.from(byBooth.values()).flat()
+}
+
+/**
  * Fetch latest diff per booth for machine list chips.
  * Returns: Record<boothCode, summary | null>
  */

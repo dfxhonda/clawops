@@ -39,4 +39,47 @@ describe('computeLocalStoreView', () => {
     expect(diffMap['A-1']).toBeUndefined() // 1 件では summary 計算不可
     expect(todayMap['A-1']).toBeTruthy()
   })
+
+  // SPEC-LF1-HISTORY-FIX-01 dedupe tests
+  it('AC_08_dedupe_local_wins_over_server_for_same_patrol_date', () => {
+    const records = [
+      { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 1500, synced: true,  reading_id: 'r-server' }, // server
+      { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 1800, synced: false, localId: 'l-local'    }, // local
+      { booth_code: 'A-1', patrol_date: '2026-05-25', in_meter: 1000, synced: true,  reading_id: 'r-old'   },
+    ]
+    const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
+    // local 1800 が today として勝ち、5/25 は前回 → 今回 800 (1800-1000), 前回 null (前々が無い)
+    expect(diffMap['A-1'].inDiffs[3]).toBe(800)
+    // 今回 1800 が反映されたことを diff から逆算: inDiffs[3] = 1800 - 1000 = 800 ○
+  })
+
+  it('AC_04_brand_new_booth_only_today_local_shows_今回_only', () => {
+    const records = [
+      { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 100, synced: false, localId: 'l1' },
+    ]
+    const { diffMap, todayMap } = computeLocalStoreView(records, { today: '2026-06-02' })
+    expect(diffMap['A-1']).toBeUndefined() // 1 件では diff 不可
+    expect(todayMap['A-1']?.readingId).toBe('l1')
+  })
+
+  it('server_only_no_local_works_as_before', () => {
+    const records = [
+      { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 1500, synced: true, reading_id: 'r1' },
+      { booth_code: 'A-1', patrol_date: '2026-05-25', in_meter: 1000, synced: true, reading_id: 'r2' },
+    ]
+    const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
+    expect(diffMap['A-1'].inDiffs[3]).toBe(500)
+  })
+
+  it('dedupe_does_not_lose_distinct_patrol_dates', () => {
+    const records = [
+      { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 1500, synced: true, reading_id: 'r1' },
+      { booth_code: 'A-1', patrol_date: '2026-05-25', in_meter: 1000, synced: false, localId: 'l1' }, // local edit on past date
+      { booth_code: 'A-1', patrol_date: '2026-05-20', in_meter:  500, synced: true, reading_id: 'r3' },
+    ]
+    const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
+    // 3 distinct dates retained
+    expect(diffMap['A-1'].inDiffs[3]).toBe(500)
+    expect(diffMap['A-1'].inDiffs[2]).toBe(500)
+  })
 })

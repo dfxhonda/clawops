@@ -13,6 +13,7 @@ import {
   markRecordSynced,
   putStoreMeta,
   getStoreMeta,
+  putBaselineRows,
 } from '../../lib/localStore/patrolRecords'
 
 beforeEach(async () => {
@@ -94,6 +95,59 @@ describe('synced flag lifecycle', () => {
     // synced+unsynced 両方残る
     expect(allForBooth.find(r => r.localId === r1.localId)?.synced).toBe(true)
     expect(allForBooth.find(r => r.localId === r2.localId)?.synced).toBe(false)
+  })
+})
+
+describe('putBaselineRows (SPEC-LF1-HISTORY-FIX-01)', () => {
+  it('writes_synced_true_rows_with_reading_id_as_localId', async () => {
+    const rows = [
+      { reading_id: 'r1', booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-02', in_meter: 1000 },
+      { reading_id: 'r2', booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-01', in_meter:  900 },
+    ]
+    const count = await putBaselineRows(rows)
+    expect(count).toBe(2)
+    const got = await getPatrolRecordsByBooth('A-1')
+    expect(got).toHaveLength(2)
+    expect(got.every(r => r.synced === true)).toBe(true)
+    expect(got.every(r => r.syncedAt)).toBe(true)
+    expect(got.map(r => r.localId).sort()).toEqual(['r1', 'r2'])
+  })
+
+  it('idempotent_overwrite_does_not_duplicate_same_reading_id', async () => {
+    const row = { reading_id: 'r1', booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-02', in_meter: 1000 }
+    await putBaselineRows([row])
+    await putBaselineRows([{ ...row, in_meter: 1500 }]) // 同 reading_id で再 put
+    const got = await getPatrolRecordsByBooth('A-1')
+    expect(got).toHaveLength(1)
+    expect(got[0].in_meter).toBe(1500)
+  })
+
+  it('does_not_clobber_local_synced_false_records_with_different_localId', async () => {
+    // local edit (synced=false)
+    const local = await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-02', in_meter: 999 })
+    // baseline put with different reading_id
+    await putBaselineRows([
+      { reading_id: 'r-baseline', booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-01', in_meter: 500 },
+    ])
+    const all = await getPatrolRecordsByBooth('A-1')
+    expect(all).toHaveLength(2)
+    expect(all.find(r => r.localId === local.localId)?.synced).toBe(false)
+    expect(all.find(r => r.localId === 'r-baseline')?.synced).toBe(true)
+  })
+
+  it('empty_input_returns_zero_no_throw', async () => {
+    expect(await putBaselineRows([])).toBe(0)
+    expect(await putBaselineRows(null)).toBe(0)
+  })
+
+  it('row_without_reading_id_uses_fallback_localId', async () => {
+    await putBaselineRows([
+      { booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-02', in_meter: 100 },
+    ])
+    const got = await getPatrolRecordsByBooth('A-1')
+    expect(got).toHaveLength(1)
+    expect(got[0].localId).toBe('baseline-A-1-2026-06-02')
+    expect(got[0].synced).toBe(true)
   })
 })
 
