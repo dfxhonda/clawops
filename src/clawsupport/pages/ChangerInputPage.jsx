@@ -18,7 +18,8 @@ function todayJST() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 }
 
-function DenominationInputGrid({ denominations, values, onChange, label, unit = '枚' }) {
+// SPEC-PATROL-CHANGER-HISTORY-DISPLAY-02 C: 単位 '枚' 全削除のため default '' に。
+function DenominationInputGrid({ denominations, values, onChange, label, unit = '' }) {
   if (!denominations || denominations.length === 0) {
     return <p className="text-xs text-muted">{label}: 機種マスタに denomination 未設定</p>
   }
@@ -37,7 +38,43 @@ function DenominationInputGrid({ denominations, values, onChange, label, unit = 
               placeholder="0"
               className="w-full bg-transparent text-text text-base font-bold outline-none"
             />
-            <div className="text-[10px] text-muted">{unit}</div>
+            {unit && <div className="text-[10px] text-muted">{unit}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// SPEC-PATROL-CHANGER-HISTORY-DISPLAY-02 D: IN(¥1000 + ¥500) + OUT(¥100) の 3 カードを
+// 横 1 列 grid-cols-3 に並べる。各カード: ¥{denom} IN/OUT ラベル + 入力欄 1 行。
+// IN/OUT セクションヘッダーは削除、390px で 3 等分割でもはみ出さない min-w-0 + truncate 設計。
+function MeterRowCompact({ inDenoms, inValues, onInChange, outDenoms, outValues, onOutChange, title }) {
+  const cards = [
+    ...((inDenoms ?? []).map(d => ({ denom: d, kind: 'IN',  values: inValues,  onChange: onInChange }))),
+    ...((outDenoms ?? []).map(d => ({ denom: d, kind: 'OUT', values: outValues, onChange: onOutChange }))),
+  ]
+  if (cards.length === 0) {
+    return <p className="text-xs text-muted">機種マスタに denomination 未設定</p>
+  }
+  return (
+    <div>
+      {title && <label className="block text-sm font-bold text-text mb-2">{title}</label>}
+      <div className="grid grid-cols-3 gap-1.5">
+        {cards.map(({ denom, kind, values, onChange }) => (
+          <div key={`${kind}-${denom}`} className="bg-surface2 border border-border rounded-lg px-2 py-2 min-w-0">
+            <div className="text-[11px] text-muted truncate">
+              <span className={kind === 'IN' ? 'text-blue-400' : 'text-emerald-400'}>{kind}</span>{' '}
+              ¥{denom.toLocaleString()}
+            </div>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={values[denom] ?? ''}
+              onChange={e => onChange(denom, e.target.value)}
+              placeholder="0"
+              className="w-full bg-transparent text-text text-base font-bold outline-none"
+            />
           </div>
         ))}
       </div>
@@ -97,12 +134,14 @@ export default function ChangerInputPage() {
         }
         setDenominations(model?.changer_denominations ?? null)
 
+        // SPEC-PATROL-CHANGER-HISTORY-DISPLAY-02 A: LIMIT 10 → 11。
+        // 11 件目は最古表示行 (rows[9]) の '前回値' として diff 計算のみに使用、表示は slice(0,10)。
         const { data: evs } = await supabase
           .from('coin_changer_events')
           .select('event_id, event_type, event_date, in_meter_readings, out_meter_readings, withdrawn_cash, restocked, adjustment_type, exchanged_in, exchanged_out, note, created_at, created_by')
           .eq('machine_code', machineCode)
           .order('created_at', { ascending: false })
-          .limit(10)
+          .limit(11)
         setRecentEvents(evs ?? [])
       } catch (e) {
         console.error('[ERR-CHANGER-LOAD]', e)
@@ -168,13 +207,13 @@ export default function ChangerInputPage() {
       // 入力リセット
       setInReadings({}); setOutReadings({}); setWithdrawn({}); setRestocked({})
       setExchangeIn({}); setExchangeOut({}); setMeterResetTime(''); setRestockSource(''); setNote('')
-      // 履歴再ロード
+      // 履歴再ロード (SPEC-PATROL-CHANGER-HISTORY-DISPLAY-02 A: LIMIT 11、diff 計算用)
       const { data: evs } = await supabase
         .from('coin_changer_events')
         .select('event_id, event_type, event_date, in_meter_readings, out_meter_readings, withdrawn_cash, restocked, adjustment_type, exchanged_in, exchanged_out, note, created_at, created_by')
         .eq('machine_code', machineCode)
         .order('created_at', { ascending: false })
-        .limit(10)
+        .limit(11)
       setRecentEvents(evs ?? [])
     } catch (e) {
       console.error('[ERR-CHANGER-SAVE]', e)
@@ -244,43 +283,38 @@ export default function ChangerInputPage() {
           />
         </div>
 
-        {/* タブ別フィールド */}
+        {/* タブ別フィールド
+            SPEC-PATROL-CHANGER-HISTORY-DISPLAY-02 D: patrol/collection の IN+OUT を MeterRowCompact で
+            横 1 列 (grid-cols-3) に統合。'IN メーター現在値' / 'OUT メーター現在値' のセクションヘッダー削除、
+            各カードの ¥{denom} IN/OUT カラーラベルで識別。390px で 3 等分割しても min-w-0 + truncate で
+            はみ出さない設計。 */}
         {tab === 'patrol' && (
-          <>
-            <DenominationInputGrid
-              denominations={denominations?.in ?? []}
-              values={inReadings}
-              onChange={updateDenom(setInReadings)}
-              label="IN メーター現在値"
-            />
-            <DenominationInputGrid
-              denominations={denominations?.out ?? []}
-              values={outReadings}
-              onChange={updateDenom(setOutReadings)}
-              label="OUT メーター現在値"
-            />
-          </>
+          <MeterRowCompact
+            inDenoms={denominations?.in ?? []}
+            inValues={inReadings}
+            onInChange={updateDenom(setInReadings)}
+            outDenoms={denominations?.out ?? []}
+            outValues={outReadings}
+            onOutChange={updateDenom(setOutReadings)}
+          />
         )}
 
         {tab === 'collection' && (
           <>
-            <DenominationInputGrid
-              denominations={denominations?.in ?? []}
-              values={inReadings}
-              onChange={updateDenom(setInReadings)}
-              label="IN メーター現在値 (リセット前)"
-            />
-            <DenominationInputGrid
-              denominations={denominations?.out ?? []}
-              values={outReadings}
-              onChange={updateDenom(setOutReadings)}
-              label="OUT メーター現在値 (リセット前)"
+            <MeterRowCompact
+              inDenoms={denominations?.in ?? []}
+              inValues={inReadings}
+              onInChange={updateDenom(setInReadings)}
+              outDenoms={denominations?.out ?? []}
+              outValues={outReadings}
+              onOutChange={updateDenom(setOutReadings)}
+              title="リセット前のメーター値"
             />
             <DenominationInputGrid
               denominations={denominations?.withdraw ?? []}
               values={withdrawn}
               onChange={updateDenom(setWithdrawn)}
-              label="全回収金種 (機械内から回収した枚数)"
+              label="全回収金種 (機械内から回収した数)"
             />
             <div>
               <label className="block text-xs text-muted mb-1">メーターリセット時刻 (任意)</label>
@@ -295,7 +329,7 @@ export default function ChangerInputPage() {
               denominations={denominations?.restock ?? []}
               values={restocked}
               onChange={updateDenom(setRestocked)}
-              label="補充量 (例: 100円玉 4000枚)"
+              label="補充量 (例: 100円玉 4000)"
             />
             <div>
               <label className="block text-xs text-muted mb-1">補充元 (任意: クレーン由来なら machine_code 等)</label>
@@ -327,7 +361,7 @@ export default function ChangerInputPage() {
                 >両替交換</button>
               </div>
               <p className="text-[11px] text-muted mt-1">
-                {adjType === 'withdrawal' ? '機械から物理的に取り出した金種・枚数を記録' : '機械内で千円札→100円玉等の等価交換を記録'}
+                {adjType === 'withdrawal' ? '機械から物理的に取り出した金種・数を記録' : '機械内で千円札→100円玉等の等価交換を記録'}
               </p>
             </div>
             <DenominationInputGrid
@@ -370,48 +404,53 @@ export default function ChangerInputPage() {
           {saving ? '保存中…' : '保存'}
         </button>
 
-        {/* 履歴 (直近10件) */}
+        {/* 履歴 (直近10件)
+            SPEC-PATROL-CHANGER-HISTORY-DISPLAY-01 + 02:
+            - LIMIT 11 fetch、表示 slice(0,10)、最古行 (i=9) の diff も rows[10] を前値として計算 (A)
+            - text-xs → text-sm (B、行内全体)
+            - min-h-[56px] で行高拡大 + py-3 で余裕確保 (E) */}
         {recentEvents.length > 0 && (() => {
-          // SPEC-PATROL-CHANGER-HISTORY-DISPLAY-01: 右カラムを timestamp →
-          // '差: {+/-N} | 累計: N' (¥100 OUT メーター) inline 計算に置換。
-          // recentEvents は created_at DESC (新→旧)、out_meter_readings は jsonb
-          // (key 100 or '100' で ¥100 OUT)。
-          // diff = rows[i].out_100 - rows[i+1].out_100、前行不在 / 値欠落は '-'、累計は値そのまま。
           const getOut100 = (ev) => {
             const r = ev?.out_meter_readings
             if (!r) return null
             const v = r[100] ?? r['100']
             return typeof v === 'number' && Number.isFinite(v) ? v : null
           }
+          // 全 11 行で out_100 を計算 → 表示は先頭 10 行のみ (rows[10] は diff prev 用にのみ使用)
           const out100s = recentEvents.map(getOut100)
+          const displayed = recentEvents.slice(0, 10)
           return (
             <div className="mt-6">
               <h2 className="text-sm font-bold text-muted mb-2">直近10件</h2>
               <div className="space-y-1.5">
-                {recentEvents.map((ev, i) => {
+                {displayed.map((ev, i) => {
                   const total = out100s[i]
-                  const prev = out100s[i + 1]
+                  const prev = out100s[i + 1]  // i=9 の場合 out100s[10] = 11 行目の値
                   const diff = (total != null && prev != null) ? total - prev : null
-                  // AC-03: 符号常時表示。負数は String 化で '-' が自然付与、正数/0 のみ '+' を前置。
                   const diffText = diff == null
                     ? '-'
                     : (diff >= 0 ? `+${diff}` : `${diff}`)
                   const totalText = total != null ? total : '-'
                   return (
-                    <div key={ev.event_id} className="bg-surface border border-border rounded-lg px-3 py-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${ev.event_type === 'patrol' ? 'text-blue-400' : ev.event_type === 'collection' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          {ev.event_type === 'patrol' ? '巡回' : ev.event_type === 'collection' ? '集金' : `監査(${ev.adjustment_type === 'withdrawal' ? '持出' : '交換'})`}
-                        </span>
-                        <span className="text-muted">{ev.event_date}</span>
-                        <span
-                          data-testid={`changer-history-out100-${ev.event_id}`}
-                          className="text-muted/60 ml-auto font-mono"
-                        >
-                          差: {diffText} | 累計: {totalText}
-                        </span>
+                    <div
+                      key={ev.event_id}
+                      className="bg-surface border border-border rounded-lg px-3 py-3 text-sm min-h-[56px] flex items-center"
+                    >
+                      <div className="w-full">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${ev.event_type === 'patrol' ? 'text-blue-400' : ev.event_type === 'collection' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {ev.event_type === 'patrol' ? '巡回' : ev.event_type === 'collection' ? '集金' : `監査(${ev.adjustment_type === 'withdrawal' ? '持出' : '交換'})`}
+                          </span>
+                          <span className="text-muted">{ev.event_date}</span>
+                          <span
+                            data-testid={`changer-history-out100-${ev.event_id}`}
+                            className="text-muted ml-auto font-mono"
+                          >
+                            差: {diffText} | 累計: {totalText}
+                          </span>
+                        </div>
+                        {ev.note && <p className="text-text/70 mt-0.5 text-xs">{ev.note}</p>}
                       </div>
-                      {ev.note && <p className="text-text/70 mt-0.5">{ev.note}</p>}
                     </div>
                   )
                 })}
