@@ -20,6 +20,8 @@ import { RoleGuard } from './shared/auth/RoleGuard'
 // J-PWA-AUTO-VERSION-RELOAD-01: 旧 ./hooks/useVersionCheck (手動 dismiss banner) を退役、
 // shared/hooks/useVersionCheck (自動 reload + ループガード + ERR-PWA-VERSION-FETCH ログ) に置換。
 import { useVersionCheck } from './shared/hooks/useVersionCheck'
+// SPEC-LF1-STORE-LOCAL-CACHE-01: 未送信件数の app-wide banner
+import UnsentBanner from './components/UnsentBanner'
 import { buildLabel } from './lib/buildInfo'
 import { useIdleLogout } from './hooks/useIdleLogout'
 import { IdleWarningBanner } from './shared/ui/IdleWarningBanner'
@@ -202,6 +204,8 @@ function AppInner() {
           最新版に更新中...
         </div>
       )}
+      {/* SPEC-LF1-STORE-LOCAL-CACHE-01: app-wide 未送信件数バナー */}
+      {isLoggedIn && <UnsentBanner />}
       {isLoggedIn && (
         <div className="fixed bottom-1 right-1 z-[90] text-[8px] text-muted/20 pointer-events-none select-none">
           {buildLabel()}

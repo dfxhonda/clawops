@@ -1,0 +1,150 @@
+// SPEC-LF1-STORE-LOCAL-CACHE-01: 巡回 record の IndexedDB CRUD + synced フラグ管理。
+// ARCH R1: 1 booth = 1 transaction (atomic、auto-rollback on crash) を putRecord で保証。
+// ARCH R4: LF1 では削除しない、synced flag のみ更新 (lifecycle は LF2)。
+
+import { getDb, STORE_PATROL_RECORDS, STORE_STORE_META } from './db'
+import { logger } from '../logger'
+
+const LOG_ERR_WRITE   = 'ERR-LF1-IDB-WRITE'
+const LOG_ERR_READ    = 'ERR-LF1-IDB-READ'
+const LOG_ERR_QUOTA   = 'ERR-LF1-IDB-QUOTA'
+
+function syncedKey(b) { return b ? 'true' : 'false' }
+
+/**
+ * 1 booth 1 record の atomic put。
+ * record shape (LF1 で取り扱う最小 subset):
+ *  - localId       (uuid, IDB key)
+ *  - booth_code    (text)
+ *  - store_code    (text)
+ *  - patrol_date   (text YYYY-MM-DD)
+ *  - in_meter / out_meter / out_meter_2 / out_meter_3 (number|null)
+ *  - prize_stock_count / prize_restock_count (number|null)
+ *  - entry_type    ('patrol'|'replace'|'collection')
+ *  - source        ('manual'|'ocr'|...)
+ *  - input_method  ('manual'|'ocr')
+ *  - prize_name / prize_cost / set_* (任意)
+ *  - synced        (boolean)
+ *  - syncedKey     (syncedKey(synced))
+ *  - createdLocally(ISO timestamp)
+ *
+ * 失敗時は ERR-LF1-IDB-WRITE で logger + 例外 throw (上位がユーザー警告を出す)。
+ */
+export async function putPatrolRecord(record) {
+  try {
+    const db = await getDb()
+    const now = new Date().toISOString()
+    const localId = record.localId ?? (crypto.randomUUID?.() ?? `lf-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const synced = record.synced ?? false
+    const merged = {
+      ...record,
+      localId,
+      synced,
+      syncedKey: syncedKey(synced),
+      createdLocally: record.createdLocally ?? now,
+      updatedLocally: now,
+    }
+    const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')
+    await tx.store.put(merged)
+    await tx.done
+    return merged
+  } catch (err) {
+    const tag = err?.name === 'QuotaExceededError' ? LOG_ERR_QUOTA : LOG_ERR_WRITE
+    logger.error?.(tag, { boothCode: record?.booth_code, message: err?.message })
+    throw new IdbWriteError(tag, err)
+  }
+}
+
+export class IdbWriteError extends Error {
+  constructor(code, cause) {
+    super(cause?.message ?? code)
+    this.code = code
+    this.cause = cause
+  }
+}
+
+export async function getPatrolRecordsByStore(storeCode) {
+  if (!storeCode) return []
+  try {
+    const db = await getDb()
+    return await db.getAllFromIndex(STORE_PATROL_RECORDS, 'byStoreCode', storeCode)
+  } catch (err) {
+    logger.error?.(LOG_ERR_READ, { storeCode, message: err?.message })
+    return []
+  }
+}
+
+export async function getPatrolRecordsByBooth(boothCode) {
+  if (!boothCode) return []
+  try {
+    const db = await getDb()
+    return await db.getAllFromIndex(STORE_PATROL_RECORDS, 'byBoothCode', boothCode)
+  } catch (err) {
+    logger.error?.(LOG_ERR_READ, { boothCode, message: err?.message })
+    return []
+  }
+}
+
+export async function getUnsyncedRecords() {
+  try {
+    const db = await getDb()
+    return await db.getAllFromIndex(STORE_PATROL_RECORDS, 'bySynced', syncedKey(false))
+  } catch (err) {
+    logger.error?.(LOG_ERR_READ, { message: err?.message })
+    return []
+  }
+}
+
+export async function markRecordSynced(localId) {
+  if (!localId) return null
+  try {
+    const db = await getDb()
+    const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')
+    const existing = await tx.store.get(localId)
+    if (!existing) { await tx.done; return null }
+    const next = {
+      ...existing,
+      synced: true,
+      syncedKey: syncedKey(true),
+      syncedAt: new Date().toISOString(),
+    }
+    await tx.store.put(next)
+    await tx.done
+    return next
+  } catch (err) {
+    logger.error?.(LOG_ERR_WRITE, { localId, message: err?.message })
+    return null
+  }
+}
+
+// 未送信件数 + 関与 store 数 を集計してバナーに渡す。
+export async function getUnsyncedSummary() {
+  const unsynced = await getUnsyncedRecords()
+  const storeSet = new Set()
+  for (const r of unsynced) if (r.store_code) storeSet.add(r.store_code)
+  return { count: unsynced.length, storeCount: storeSet.size, records: unsynced }
+}
+
+// store メタ (storeName / machines / prefetchedAt) を保存。prefetch / load 共通。
+export async function putStoreMeta(storeCode, meta) {
+  if (!storeCode) return
+  try {
+    const db = await getDb()
+    const tx = db.transaction(STORE_STORE_META, 'readwrite')
+    await tx.store.put({ store_code: storeCode, ...meta, updatedAt: new Date().toISOString() })
+    await tx.done
+  } catch (err) {
+    logger.error?.(LOG_ERR_WRITE, { storeCode, message: err?.message })
+  }
+}
+
+export async function getStoreMeta(storeCode) {
+  if (!storeCode) return null
+  try {
+    const db = await getDb()
+    return await db.get(STORE_STORE_META, storeCode)
+  } catch (err) {
+    logger.error?.(LOG_ERR_READ, { storeCode, message: err?.message })
+    return null
+  }
+}
