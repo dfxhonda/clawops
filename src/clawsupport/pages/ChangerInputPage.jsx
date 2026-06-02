@@ -371,25 +371,54 @@ export default function ChangerInputPage() {
         </button>
 
         {/* 履歴 (直近10件) */}
-        {recentEvents.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-sm font-bold text-muted mb-2">直近10件</h2>
-            <div className="space-y-1.5">
-              {recentEvents.map(ev => (
-                <div key={ev.event_id} className="bg-surface border border-border rounded-lg px-3 py-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-bold ${ev.event_type === 'patrol' ? 'text-blue-400' : ev.event_type === 'collection' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {ev.event_type === 'patrol' ? '巡回' : ev.event_type === 'collection' ? '集金' : `監査(${ev.adjustment_type === 'withdrawal' ? '持出' : '交換'})`}
-                    </span>
-                    <span className="text-muted">{ev.event_date}</span>
-                    <span className="text-muted/60 ml-auto">{new Date(ev.created_at).toLocaleString('ja-JP')}</span>
-                  </div>
-                  {ev.note && <p className="text-text/70 mt-0.5">{ev.note}</p>}
-                </div>
-              ))}
+        {recentEvents.length > 0 && (() => {
+          // SPEC-PATROL-CHANGER-HISTORY-DISPLAY-01: 右カラムを timestamp →
+          // '差: {+/-N} | 累計: N' (¥100 OUT メーター) inline 計算に置換。
+          // recentEvents は created_at DESC (新→旧)、out_meter_readings は jsonb
+          // (key 100 or '100' で ¥100 OUT)。
+          // diff = rows[i].out_100 - rows[i+1].out_100、前行不在 / 値欠落は '-'、累計は値そのまま。
+          const getOut100 = (ev) => {
+            const r = ev?.out_meter_readings
+            if (!r) return null
+            const v = r[100] ?? r['100']
+            return typeof v === 'number' && Number.isFinite(v) ? v : null
+          }
+          const out100s = recentEvents.map(getOut100)
+          return (
+            <div className="mt-6">
+              <h2 className="text-sm font-bold text-muted mb-2">直近10件</h2>
+              <div className="space-y-1.5">
+                {recentEvents.map((ev, i) => {
+                  const total = out100s[i]
+                  const prev = out100s[i + 1]
+                  const diff = (total != null && prev != null) ? total - prev : null
+                  // AC-03: 符号常時表示。負数は String 化で '-' が自然付与、正数/0 のみ '+' を前置。
+                  const diffText = diff == null
+                    ? '-'
+                    : (diff >= 0 ? `+${diff}` : `${diff}`)
+                  const totalText = total != null ? total : '-'
+                  return (
+                    <div key={ev.event_id} className="bg-surface border border-border rounded-lg px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold ${ev.event_type === 'patrol' ? 'text-blue-400' : ev.event_type === 'collection' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {ev.event_type === 'patrol' ? '巡回' : ev.event_type === 'collection' ? '集金' : `監査(${ev.adjustment_type === 'withdrawal' ? '持出' : '交換'})`}
+                        </span>
+                        <span className="text-muted">{ev.event_date}</span>
+                        <span
+                          data-testid={`changer-history-out100-${ev.event_id}`}
+                          className="text-muted/60 ml-auto font-mono"
+                        >
+                          差: {diffText} | 累計: {totalText}
+                        </span>
+                      </div>
+                      {ev.note && <p className="text-text/70 mt-0.5">{ev.note}</p>}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )
