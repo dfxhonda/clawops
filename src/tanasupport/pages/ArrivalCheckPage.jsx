@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useArrivalOrders } from '../../hooks/useArrivalOrders'
+import { supabase } from '../../lib/supabase'
 import ArrivalReceiveSheet from '../components/ArrivalReceiveSheet'
 import DateTime from '../../shared/ui/DateTime'
 
@@ -14,17 +15,62 @@ const LANES = [
   { key: 'recent',   label: '入庫済',   emptyMsg: '直近入庫なし' },
 ]
 
+// J-STOCK-OWNER-FILTER-01 (司令塔Opus spec):
+// URL クエリ owner_type / owner_id を受け取り、warehouse なら location_id eq 絞り。
+// ヘッダーに locations.location_name を表示。テキスト絞り (destination ilike) は併用維持。
+// owner_type=staff は prize_orders に担当列が無いためスコープ外 → 全件 + 'staff 担当別未対応' 表示。
 export default function ArrivalCheckPage() {
   if (!ARRIVAL_CHECK_ENABLED) return <Navigate to="/tanasupport" replace />
 
   const navigate = useNavigate()
   const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
+  const [params] = useSearchParams()
+  const ownerType = params.get('owner_type') ?? ''
+  const ownerId   = params.get('owner_id')   ?? ''
+
+  const isWarehouse = ownerType === 'warehouse' && !!ownerId
+  const isStaff     = ownerType === 'staff'     && !!ownerId
+  const locationId  = isWarehouse ? ownerId : null
+
   const [lane, setLane]             = useState('upcoming')
-  const [destFilter, setDestFilter] = useState('')
+  const [textFilter, setTextFilter] = useState('')
   const [selected, setSelected]     = useState(null)
-  const { lanes, loading, reload }  = useArrivalOrders(destFilter)
+  const [ownerName, setOwnerName]   = useState('')
+
+  const { lanes, loading, reload }  = useArrivalOrders(locationId, textFilter)
+
+  // ヘッダ用に拠点名/担当名を fetch
+  useEffect(() => {
+    let cancel = false
+    async function load() {
+      if (isWarehouse) {
+        const { data } = await supabase
+          .from('locations')
+          .select('location_id, location_name')
+          .eq('location_id', ownerId)
+          .maybeSingle()
+        if (!cancel) setOwnerName(data?.location_name ?? ownerId)
+      } else if (isStaff) {
+        const { data } = await supabase
+          .from('staff')
+          .select('staff_id, name')
+          .eq('staff_id', ownerId)
+          .maybeSingle()
+        if (!cancel) setOwnerName(data?.name ?? ownerId)
+      } else {
+        if (!cancel) setOwnerName('')
+      }
+    }
+    load()
+    return () => { cancel = true }
+  }, [isWarehouse, isStaff, ownerId])
 
   const currentLane = LANES.find(l => l.key === lane)
+  const headerSub = isWarehouse
+    ? (ownerName || ownerId)
+    : isStaff
+      ? `${ownerName || ownerId} (担当別未対応)`
+      : null
 
   return (
     // scroll fix: min-h-dvh → h-dvh で flex container を viewport 高さに固定、
@@ -37,16 +83,30 @@ export default function ArrivalCheckPage() {
         style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#f43f5e' }}
       >
         <button onClick={goBack} className="text-muted text-xl leading-none shrink-0">‹</button>
-        <div className="flex-1 font-bold text-base">入荷チェック</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-base truncate">入荷チェック</div>
+          {headerSub && (
+            <div data-testid="arrival-owner-name" className="text-[11px] text-muted truncate mt-0.5">{headerSub}</div>
+          )}
+        </div>
       </div>
 
-      {/* destination filter */}
+      {/* staff スコープ外案内 */}
+      {isStaff && (
+        <div data-testid="arrival-staff-unsupported" className="px-4 pt-2 shrink-0">
+          <p className="text-[11px] text-amber-400/90 leading-snug">
+            担当別の入荷絞り込みは未対応です (prize_orders に担当列なし)。全件を表示しています。
+          </p>
+        </div>
+      )}
+
+      {/* destination filter (拠点絞りと併用可能、入庫先 ilike) */}
       <div className="px-4 pt-3 pb-2 shrink-0">
         <input
           type="text"
           placeholder="入庫先で絞り込み..."
-          value={destFilter}
-          onChange={e => setDestFilter(e.target.value)}
+          value={textFilter}
+          onChange={e => setTextFilter(e.target.value)}
           className="w-full px-3 py-2 rounded-xl border border-border bg-surface text-text text-sm outline-none"
         />
       </div>

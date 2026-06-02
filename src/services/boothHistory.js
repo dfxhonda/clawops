@@ -1,10 +1,39 @@
 import { supabase } from '../lib/supabase'
 
+// SPEC-LF1-HISTORY-FIX-02 (supersedes FIX-01): history 表示 path は raw meter のみ参照、
+// in_diff / out_diff / out_diff_1/2/3 / revenue / profit 列は読まない (deprecate 予定、
+// DIAG-INDIFF-REFERENCES-01 で patrolCore.js は 2026-05-09 以降 in_diff を一切 INSERT
+// していないことを確認、KOS01 has_in_diff=0 で SPEC-02 history が壊れる根本原因だった)。
+// 本 SELECT に in_diff / out_diff は意図的に含めない、computeBoothDiffSummary が
+// raw meter 差分 (current.in_meter - previous.in_meter) で常に正しい値を返す。
+//
+// SPEC-LF1-HISTORY-FIX-03 (DIAG-LF1-HISTORY-RUNTIME-01 で root cause 確定):
+// store_code + machine_code を必須として追加。理由: putBaselineRows で IDB に書く時
+// IDB index byStoreCode (= store_code keyPath) が値欠落 record を index entry に
+// 含めないため、getPatrolRecordsByStore が 0 件返却して全列 '−' になる runtime bug。
+// 列 contract test (historyFix02.contract.test.js) で 'store_code / machine_code 含む'
+// を assert して再発防止する。
 const HISTORY_SELECT =
-  'reading_id, booth_code, patrol_date, read_time, created_at, entry_type, ' +
+  'reading_id, booth_code, store_code, machine_code, patrol_date, read_time, created_at, entry_type, ' +
   'in_meter, out_meter, out_meter_2, out_meter_3, ' +
   'prize_name, prize_cost, prize_stock_count, prize_restock_count, ' +
   'set_a, set_c, set_l, set_r, set_o'
+
+// テスト用 export (HISTORY-FIX-02 AC-07: 'no in_diff column dependency' 検証)
+export const _RAW_HISTORY_SELECT = HISTORY_SELECT
+
+// SPEC-LF1-HISTORY-FIX-04: fetchStoreBaselineRows が booth ごとに保持する最大行数。
+// 5 → 9 に増やす理由: 表示の 8 diff (今回/前回/3前/4前/5前/6前/7前/8前) を計算するには
+// 9 データ点 (today + prev1..prev8) が必要 (隣接対 diff = 9-1 = 8 ペア)。週2回ラウンド × 2ヶ月
+// = 8 visit の履歴表示 が hiro 要望。KOS01 max 14 rows/booth (KOS01-M02-B04) で safety 余裕あり。
+// 注: 本 spec は LIMIT のみの 1-integer 変更。computeBoothDiffSummary の 4 要素配列出力は
+// 別 spec で 8 要素拡張予定 (本 spec.forbidden_to_touch 'boothHistory compute logic' のため未触)。
+export const STORE_BASELINE_LIMIT_PER_BOOTH = 9
+
+// SPEC-PATROL-VIEW-MODE-SWITCH-02: 4-visit history。各列 (4 前 / 3 前 / 前回 / 今回) の
+// in_diff / out_diff / daily (= in_diff / 間隔日数) を 4 要素配列で返す。4 つの diff を
+// 計算するには 5 レコード必要 (diff = newer - older 連続対) のため fetchBoothDiffMap は
+// booth ごと最大 5 行取得。レコード数 < 5 なら左端 (古い側) から null で埋めて表示。
 
 function sumOut(row) {
   return (
@@ -64,69 +93,108 @@ export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit =
 }
 
 /**
- * Pure helper: rows DESC (latest first) → diff summary。テスト用に export。
- * J-PATROL-IN-DAILY-fix-01: 直近 3 件から 今IN/前IN, 今/日/前/日 を計算。
- * SPEC-PATROL-VIEW-MODE-SWITCH-01: prev/curr の OUT 差分 / 出率 / 在庫 / 補充 を追加。
- *   - prevOut/currOut: out_meter (+_2 +_3) 差分
- *   - prevPayout/currPayout: out_diff / in_diff * 100 (1dp, in_diff<=0 は null)
- *   - prevStock/currStock: prize_stock_count snapshot
- *   - prevRestock/currRestock: prize_restock_count snapshot
- * 後方互換: inDiff/outDiff/revenue/profit はそのまま残す (既存ストア集計が依存)。
+ * Pure helper: rows DESC (latest first、最大 5 件) → 4-visit summary。テスト用に export。
+ *
+ * SPEC-PATROL-VIEW-MODE-SWITCH-02: 4 列 (4 前 / 3 前 / 前回 / 今回) の値配列を生成。
+ *   display index 0 = 4 前 (oldest of 4 displayed visits)
+ *   display index 1 = 3 前
+ *   display index 2 = 前回
+ *   display index 3 = 今回 (newest)
+ *
+ *   inDiffs[d]  = rows[3-d].in_meter - rows[4-d].in_meter
+ *   outDiffs[d] = sumOut(rows[3-d]) - sumOut(rows[4-d])
+ *   days[d]     = diffPatrolDays(rows[4-d].patrol_date, rows[3-d].patrol_date)
+ *   daily[d]    = round1(inDiffs[d] / days[d])
+ *
+ *   レコード数 < 5 なら計算できない列は null。
+ *
+ * 後方互換: inDiff/outDiff (最新差分) と currIn/prevIn/currPerDay/prevPerDay は
+ * storeMachineSummary.js / SPEC-01 期 caller で使われているため残置。
  */
-function payoutPct(outDiff, inDiff) {
-  if (outDiff == null || inDiff == null || inDiff <= 0) return null
-  return round1((outDiff / inDiff) * 100)
-}
-
-function snapshot(row, key) {
-  if (!row || row[key] == null) return null
-  return Number(row[key])
-}
-
 export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
   if (!descRows || descRows.length < 2) return null
-  const [latest, prev, prev2] = descRows
-  const inDiff =
-    latest.in_meter != null && prev.in_meter != null
-      ? Number(latest.in_meter) - Number(prev.in_meter)
+
+  // SPEC-02: 4 列 (4前/3前/前回/今回) を埋める。i は newer-older pair の index (0=最新ペア)。
+  // display index = 3 - i (0=4前/oldest left … 3=今回/newest right)
+  const inDiffs  = [null, null, null, null]
+  const outDiffs = [null, null, null, null]
+  const daily    = [null, null, null, null]
+  const days     = [null, null, null, null]
+  for (let i = 0; i < 4; i++) {
+    const newer = descRows[i]
+    const older = descRows[i + 1]
+    if (!newer || !older) break
+    const inDiff = (newer.in_meter != null && older.in_meter != null)
+      ? Number(newer.in_meter) - Number(older.in_meter)
       : null
-  const outDiff = sumOut(latest) - sumOut(prev)
+    const outDiff = sumOut(newer) - sumOut(older)
+    const intervalDays = diffPatrolDays(older.patrol_date, newer.patrol_date)
+    const dailyVal = inDiff != null && intervalDays
+      ? round1(inDiff / intervalDays)
+      : null
+    const d = 3 - i
+    inDiffs[d]  = inDiff
+    outDiffs[d] = outDiff
+    days[d]     = intervalDays
+    daily[d]    = dailyVal
+  }
+
+  // ---- 後方互換 (SPEC-01 / storeMachineSummary 用) ----
+  const latest = descRows[0]
+  const prev   = descRows[1]
+  const prev2  = descRows[2]
+  const inDiff  = inDiffs[3]
+  const outDiff = outDiffs[3]
   const revenue = inDiff != null ? inDiff * meterUnitPrice : null
   const prizeCost = Number(latest.prize_cost ?? 0)
-  const profit = revenue != null ? revenue - outDiff * prizeCost : null
-
-  const currDays = diffPatrolDays(prev.patrol_date, latest.patrol_date)
-  const currPerDay = inDiff != null && currDays ? round1(inDiff / currDays) : null
-
-  let prevIn = null
-  let prevDays = null
-  let prevPerDay = null
-  let prevOut = null
-  if (prev2 && prev.in_meter != null && prev2.in_meter != null) {
-    prevIn = Number(prev.in_meter) - Number(prev2.in_meter)
-    prevDays = diffPatrolDays(prev2.patrol_date, prev.patrol_date)
-    prevPerDay = prevDays ? round1(prevIn / prevDays) : null
-  }
-  if (prev2) {
-    prevOut = sumOut(prev) - sumOut(prev2)
-  }
-
-  const currPayout = payoutPct(outDiff, inDiff)
-  const prevPayout = prev2 ? payoutPct(prevOut, prevIn) : null
+  const profit = revenue != null ? revenue - (outDiff ?? 0) * prizeCost : null
+  const currDays   = days[3]
+  const currPerDay = daily[3]
+  const prevIn = (prev2 && prev.in_meter != null && prev2.in_meter != null)
+    ? Number(prev.in_meter) - Number(prev2.in_meter) : null
+  const prevDays = prev2 ? diffPatrolDays(prev2.patrol_date, prev.patrol_date) : null
+  const prevPerDay = prevIn != null && prevDays ? round1(prevIn / prevDays) : null
 
   return {
+    // SPEC-02 primary shape
+    inDiffs, outDiffs, daily, days,
+    // SPEC-01 後方互換
     inDiff, outDiff, revenue, profit,
     currIn: inDiff, currDays, currPerDay,
     prevIn, prevDays, prevPerDay,
-    // SPEC-PATROL-VIEW-MODE-SWITCH-01 (OUT mode)
-    currOut: outDiff, prevOut,
-    currPayout, prevPayout,
-    // SPEC-PATROL-VIEW-MODE-SWITCH-01 (stock mode = snapshot per record)
-    currStock:   snapshot(latest, 'prize_stock_count'),
-    prevStock:   snapshot(prev,   'prize_stock_count'),
-    currRestock: snapshot(latest, 'prize_restock_count'),
-    prevRestock: snapshot(prev,   'prize_restock_count'),
   }
+}
+
+/**
+ * SPEC-LF1-HISTORY-FIX-01 (approach A):
+ * Store の全 booth について 最新 5 行 (raw rows) を single windowed query で取得して返す。
+ * 戻り値は flat array (caller 側で booth ごと group + put to IndexedDB)。
+ * fetchBoothDiffMap と同じ複合ソート (patrol_date DESC + created_at DESC) で late-entry を抑止。
+ * 用途: PatrolStorePage で IDB baseline 同期、computeLocalStoreView が unified path で再計算可能に。
+ */
+export async function fetchStoreBaselineRows(boothCodes) {
+  if (!boothCodes || !boothCodes.length) return []
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .select(HISTORY_SELECT)
+    .in('booth_code', boothCodes)
+    // SPEC-LF1-HISTORY-FIX-05: replace/config 行 (in_meter=0 主体) は history 集計の
+    // diff を 0 で汚すため、entry_type='patrol' のみに限定。KOS01: patrol=229 / replace=17 / config=1。
+    .eq('entry_type', 'patrol')
+    .order('patrol_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) return []
+  const byBooth = new Map()
+  for (const row of data ?? []) {
+    const bc = row.booth_code
+    if (!bc) continue
+    const arr = byBooth.get(bc) ?? []
+    if (arr.length < STORE_BASELINE_LIMIT_PER_BOOTH) {
+      arr.push(row)
+      byBooth.set(bc, arr)
+    }
+  }
+  return Array.from(byBooth.values()).flat()
 }
 
 /**
@@ -148,11 +216,13 @@ export async function fetchBoothDiffMap(boothCodes, meterUnitPriceMap = {}) {
     .order('created_at', { ascending: false })
   if (error) return {}
 
+  // SPEC-PATROL-VIEW-MODE-SWITCH-02: 4 列分の diff を計算するため、booth あたり
+  // 最大 5 レコード保持 (5 行で 4 ペア)。SPEC-01 期は 3 だった。
   const byBooth = {}
   for (const row of data ?? []) {
     const bc = row.booth_code
     if (!byBooth[bc]) byBooth[bc] = []
-    if (byBooth[bc].length < 3) byBooth[bc].push(row)
+    if (byBooth[bc].length < 5) byBooth[bc].push(row)
   }
 
   const result = {}

@@ -22,6 +22,8 @@ import { logger } from '../../lib/logger'
 import { ERR } from '../../lib/errorCodes'
 import { Sentry } from '../../lib/sentry'
 import { recordMachineLoad, recordMachineUnload } from '../../services/movements'
+import { putPatrolRecord } from '../../lib/localStore/patrolRecords'
+import { notifyLfChange } from '../../hooks/useUnsentBanner'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
 import {
@@ -472,38 +474,51 @@ export default function PatrolBoothInputPage() {
     const didStart = saveActions.setLoading()
     if (!didStart) return
     logger.info('patrol_save_attempted', { boothCode, entryType, has_photo: !!ocrPhotoUrl })
+    // SPEC-LF1-STORE-LOCAL-CACHE-01:
+    // local-first 路線。Supabase 直書きはせず IndexedDB へ書いて即 navigate。
+    // 同期 (Supabase upload) は店舗離脱時の uploadStoreRecords / とりま保存 button が担う。
+    // 失敗時 (IDB quota など) は ERR ログ + ユーザー通知、navigation は走らせない。
     try {
-      const res = await savePatrolReading({
-        boothCode,
-        storeCode:   storeCode ?? machine?.store_code,
-        machineCode: machine?.machine_code,
-        inMeter,
-        outMeter:     outMeter1,
-        prizeStock:   stock,
-        prizeRestock: restock,
-        entryType,
-        staffId,
-        optionalPatch: buildOptionalPatch(),
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+      const optionalPatch = buildOptionalPatch()
+      const numIn  = inMeter   !== '' && inMeter   != null ? parseFloat(inMeter)       : null
+      const numOut = outMeter1 !== '' && outMeter1 != null ? parseFloat(outMeter1)     : null
+      const numStk = stock     !== '' && stock     != null ? parseInt(stock, 10)       : 0
+      const numRst = restock   !== '' && restock   != null ? parseInt(restock, 10)     : 0
+      await putPatrolRecord({
+        booth_code: boothCode,
+        store_code: storeCode ?? machine?.store_code ?? null,
+        machine_code: machine?.machine_code ?? null,
+        patrol_date: today,
+        read_time: new Date().toISOString(),
+        in_meter:  numIn,
+        out_meter: numOut,
+        prize_stock_count:   numStk,
+        prize_restock_count: numRst,
+        entry_type: entryType,
+        source: 'manual',
+        input_method: ocrInputMethod ?? 'manual',
+        ...optionalPatch,
+        // store-exit autosync 用に payload を保持
+        optionalPatch,
         defaultsFromPrev: prev,
+        created_by: staffId ?? null,
+        synced: false,
       })
-      if (!res.ok) {
-        saveActions.setError(res.errCode, res.message)
-      } else if (res.skipped) {
-        setSkipped(true)
-        saveActions.reset()
-        setTimeout(() => (onDone ? onDone() : navigate(-1)), 1000)
-      } else {
-        // J-STOCK-MACHINE-fix-03b: 保存成功後に booth在庫移動を best-effort 記録。
-        // 失敗してもメーター保存(res.ok)はロールバックせず、バナー通知のみで続行。
-        await recordBoothStockMovements()
-        saveActions.setSuccess()
-        setHistoryKey(k => k + 1)
-        setTimeout(() => (onDone ? onDone() : navigate(-1)), 800)
-      }
+      notifyLfChange()
+      // best-effort 在庫移動 (LF1 では従来通り即時 Supabase 書き)。
+      // 巡回 UX 自体は IDB write 完了で即 navigate へ進めるため、ここは fire-and-forget。
+      void recordBoothStockMovements().catch(() => {})
+      saveActions.setSuccess()
+      setHistoryKey(k => k + 1)
+      // SPEC-LF1 AC-02 / AC-01: setTimeout 削除、即 navigate。
+      if (onDone) onDone(); else navigate(-1)
     } catch (e) {
       logger.error('patrol_save_failed_unexpected', { message: e?.message, boothCode })
-      saveActions.setError('ERR-UNKNOWN', e?.message ?? '予期しないエラー')
+      saveActions.setError(e?.code ?? 'ERR-UNKNOWN', e?.message ?? '保存に失敗しました')
     }
+    void savePatrolReading // SPEC-LF1: 旧 Supabase 直書き経路は storeSync が再利用 (import 維持)
+    void setSkipped       // skipped 経路は LF2 で同期判定に統合
   }
 
   // 次ブース (リストのフラット順)。最後なら null。
