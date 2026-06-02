@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useGlossaryStore } from './stores/glossaryStore'
 
 // ===== ドメイン別ルーティング =====
@@ -177,6 +177,15 @@ function PageLoader() {
   )
 }
 
+// DIAG-SWIPE-BLACKSCREEN-01 fix A: useParams から boothCode を読み、key prop に渡すことで
+// React Router v6 の param-only update では起きないコンポーネント再マウントを強制する。
+// これにより PatrolBoothInputPage の useState 初期化 (consumePendingEnterFrom) と
+// 入場アニメ useEffect[] が boothCode 変更毎に再実行され、ANIM-01 の swipeDx が初期化される。
+function PatrolBoothInputPageKeyed() {
+  const { boothCode } = useParams()
+  return <PatrolBoothInputPage key={boothCode} />
+}
+
 function AppInner() {
   const { isLoggedIn } = useAuth()
   // J-PWA-AUTO-VERSION-RELOAD-01: 自動 reload + 一瞬トースト (現場操作ゼロ)。
@@ -289,7 +298,11 @@ function AppInner() {
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />
       {/* M1 Stage 2: 機械リスト → ブース入力 */}
       <Route path="/clawsupport/store/:storeCode" element={<ProtectedRoute><PatrolStorePage /></ProtectedRoute>} />
-      <Route path="/clawsupport/booth/:boothCode"  element={<ProtectedRoute><PatrolBoothInputPage /></ProtectedRoute>} />
+      {/* DIAG-SWIPE-BLACKSCREEN-01 fix A: key={boothCode} で boothCode 変更時にコンポーネントを
+          強制 remount し、ANIM-01 の swipeDx state (commit swipe 後 -innerWidth 残存) を初期化。
+          これにより useState 初期化 + useEffect[] が再実行され、入場アニメ + 黒画面解消。
+          useSwipeNav.js / swipeTransition.js / animation logic は不変。 */}
+      <Route path="/clawsupport/booth/:boothCode"  element={<ProtectedRoute><PatrolBoothInputPageKeyed /></ProtectedRoute>} />
       {/* ベータ: OCR統合版 */}
       <Route path="/clawsupport/beta/store/:storeCode" element={<ProtectedRoute><PatrolStorePage /></ProtectedRoute>} />
       <Route path="/clawsupport/beta/booth/:boothCode" element={<ProtectedRoute><PatrolBoothInputPageBeta /></ProtectedRoute>} />
