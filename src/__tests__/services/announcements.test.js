@@ -49,6 +49,14 @@ describe('SPEC-STOCK-ANNOUNCEMENTS-01 announcements service', () => {
     expect(_SELECT_COLS).toMatch(/\bcase_quantity\b/)
   })
 
+  // SPEC-STOCK-ANNOUNCEMENTS-02: 詳細 sheet 用カラム (image_url / release_date / notes / case_cost) を assert
+  it('SPEC_STOCK_ANNOUNCEMENTS_02_SELECT_cols_include_detail_sheet_fields', () => {
+    expect(_SELECT_COLS).toMatch(/\bimage_url\b/)
+    expect(_SELECT_COLS).toMatch(/\brelease_date\b/)
+    expect(_SELECT_COLS).toMatch(/\bnotes\b/)
+    expect(_SELECT_COLS).toMatch(/\bcase_cost\b/)
+  })
+
   it('fetchNewAnnouncements_orders_by_created_at_desc_no_supplier_filter_for_all', async () => {
     const rows = [{ id: 1, prize_name: 'A' }, { id: 2, prize_name: 'B' }]
     const chain = makeChain({ data: rows, error: null })

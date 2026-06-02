@@ -3,9 +3,11 @@
 // LOG-SPEC-01: 失敗時は ERR-CODE 付き console.warn + null/[] return、UI には ERROR-HANDLING-V1 で表示。
 import { supabase } from '../lib/supabase'
 
+// SPEC-STOCK-ANNOUNCEMENTS-02: 詳細 bottom sheet 用に image_url / release_date / notes を追加。
+// case_cost は ANNOUNCEMENTS-01 で既に含有済 (ケース合計表示用)。
 const SELECT_COLS =
   'id, prize_name, supplier_id, unit_cost, case_cost, case_quantity, ' +
-  'status, source_type, created_at, ' +
+  'status, source_type, created_at, release_date, image_url, notes, ' +
   'favorited_by, favorite_memo, favorited_at'
 
 function logErr(tag, err) {

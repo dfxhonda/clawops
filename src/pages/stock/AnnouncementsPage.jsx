@@ -2,7 +2,7 @@
 // 新着タブ + お気に入りタブ、supplier 絞り込み pill、ハート tap → bottom sheet メモ入力。
 // UI-CHARTER-V2 [B] layout: text-base / 44px touch / Progressive Disclosure。
 // ERROR-HANDLING-V1: 取得失敗時は banner + 再試行可。
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -47,7 +47,9 @@ export default function AnnouncementsPage() {
   const [staffNames, setStaffNames] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [sheetRow, setSheetRow] = useState(null) // モーダル対象 row (null = 非表示)
+  // SPEC-STOCK-ANNOUNCEMENTS-02: 一覧タップで詳細 sheet、詳細内のハートで memo sub-sheet。
+  const [detailRow, setDetailRow] = useState(null)        // 詳細 sheet 対象 row
+  const [sheetRow, setSheetRow] = useState(null)          // メモ入力 sub-sheet 対象 row
   const [sheetMemo, setSheetMemo] = useState('')
 
   // 新着タブ fetch (タブ切替 or supplier 変更で再 fetch)
@@ -85,37 +87,38 @@ export default function AnnouncementsPage() {
   const newBadge = newRows.filter(r => r.status === 'unread').length
   const favBadge = useMemo(() => favRows.length, [favRows])
 
-  function openFavSheet(row) {
+  // SPEC-STOCK-ANNOUNCEMENTS-02: 各 list / 詳細 sheet の row state を最新化する共通 updater。
+  function applyUpdatedRow(updated) {
+    setNewRows(prev => prev.map(r => r.id === updated.id ? updated : r))
+    setFavRows(prev => {
+      const exists = prev.some(r => r.id === updated.id)
+      if ((updated.favorited_by ?? []).length === 0 && exists) {
+        return prev.filter(r => r.id !== updated.id)
+      }
+      return exists
+        ? prev.map(r => r.id === updated.id ? updated : r)
+        : [updated, ...prev]
+    })
+    setDetailRow(prev => prev && prev.id === updated.id ? updated : prev)
+  }
+
+  function openMemoSheet(row) {
     setSheetRow(row)
     setSheetMemo(row.favorite_memo || '')
   }
-  function closeSheet() {
+  function closeMemoSheet() {
     setSheetRow(null)
     setSheetMemo('')
   }
   async function confirmFavorite() {
     if (!sheetRow) return
     const updated = await addFavorite({ id: sheetRow.id, staffId, memo: sheetMemo || null })
-    if (updated) {
-      // 新着 list の該当 row を update 反映
-      setNewRows(prev => prev.map(r => r.id === updated.id ? updated : r))
-      // お気に入り list にも反映 (タブ未切替でも整合)
-      setFavRows(prev => {
-        const exists = prev.some(r => r.id === updated.id)
-        return exists ? prev.map(r => r.id === updated.id ? updated : r) : [updated, ...prev]
-      })
-    }
-    closeSheet()
+    if (updated) applyUpdatedRow(updated)
+    closeMemoSheet()
   }
   async function handleUnfavorite(row) {
     const updated = await removeFavorite({ id: row.id, staffId })
-    if (updated) {
-      setNewRows(prev => prev.map(r => r.id === updated.id ? updated : r))
-      const stillFavorited = (updated.favorited_by ?? []).length > 0
-      setFavRows(prev => stillFavorited
-        ? prev.map(r => r.id === updated.id ? updated : r)
-        : prev.filter(r => r.id !== updated.id))
-    }
+    if (updated) applyUpdatedRow(updated)
   }
 
   function isFavoritedByMe(row) {
@@ -189,25 +192,36 @@ export default function AnnouncementsPage() {
           <NewList
             rows={newRows}
             isFavoritedByMe={isFavoritedByMe}
-            onTapFavorite={openFavSheet}
-            onUnfavorite={handleUnfavorite}
+            onTapRow={setDetailRow}
           />
         )}
         {!loading && !error && tab === 'favorites' && (
           <FavList
             rows={favRows}
             staffNames={staffNames}
+            onTapRow={setDetailRow}
           />
         )}
       </div>
 
-      {/* メモ入力 bottom sheet */}
+      {/* SPEC-STOCK-ANNOUNCEMENTS-02: 詳細 bottom sheet (写真 + 明細 + ❤️ ボタン) */}
+      {detailRow && (
+        <AnnouncementDetailSheet
+          row={detailRow}
+          mine={isFavoritedByMe(detailRow)}
+          onClose={() => setDetailRow(null)}
+          onTapFavorite={() => openMemoSheet(detailRow)}
+          onTapUnfavorite={() => handleUnfavorite(detailRow)}
+        />
+      )}
+
+      {/* メモ入力 sub-sheet (詳細 sheet 内の ❤️ から開く) */}
       {sheetRow && (
         <FavoriteMemoSheet
           row={sheetRow}
           memo={sheetMemo}
           onMemoChange={setSheetMemo}
-          onCancel={closeSheet}
+          onCancel={closeMemoSheet}
           onConfirm={confirmFavorite}
         />
       )}
@@ -215,7 +229,7 @@ export default function AnnouncementsPage() {
   )
 }
 
-function NewList({ rows, isFavoritedByMe, onTapFavorite, onUnfavorite }) {
+function NewList({ rows, isFavoritedByMe, onTapRow }) {
   if (rows.length === 0) {
     return <p className="text-center text-sm text-muted py-8">該当の景品案内はありません</p>
   }
@@ -224,10 +238,13 @@ function NewList({ rows, isFavoritedByMe, onTapFavorite, onUnfavorite }) {
       {rows.map(r => {
         const mine = isFavoritedByMe(r)
         return (
+          // SPEC-STOCK-ANNOUNCEMENTS-02: 行全体 tap で詳細 sheet を開く。
+          // ハートは 登録済み=❤️ / 未登録=🤍 の視覚インジケータのみ (非 button、event 不通)。
           <li
             key={r.id}
             data-testid={`announce-row-${r.id}`}
-            className="relative flex items-start gap-2 p-3 rounded-xl bg-surface border border-border"
+            onClick={() => onTapRow(r)}
+            className="relative flex items-start gap-2 p-3 rounded-xl bg-surface border border-border active:bg-bg/60 cursor-pointer"
           >
             {r.status === 'unread' && (
               <span
@@ -243,14 +260,13 @@ function NewList({ rows, isFavoritedByMe, onTapFavorite, onUnfavorite }) {
               </p>
               <p className="text-[10px] text-muted/70 mt-1">{formatJstDate(r.created_at)}</p>
             </div>
-            <button
-              data-testid={`announce-fav-toggle-${r.id}`}
-              aria-label={mine ? 'お気に入り解除' : 'お気に入り登録'}
-              onClick={() => (mine ? onUnfavorite(r) : onTapFavorite(r))}
-              className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-2xl"
+            <span
+              data-testid={`announce-fav-indicator-${r.id}`}
+              aria-label={mine ? 'お気に入り済' : '未お気に入り'}
+              className="shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-2xl pointer-events-none"
             >
               {mine ? '❤️' : '🤍'}
-            </button>
+            </span>
           </li>
         )
       })}
@@ -258,17 +274,19 @@ function NewList({ rows, isFavoritedByMe, onTapFavorite, onUnfavorite }) {
   )
 }
 
-function FavList({ rows, staffNames }) {
+function FavList({ rows, staffNames, onTapRow }) {
   if (rows.length === 0) {
     return <p className="text-center text-sm text-muted py-8">お気に入りはまだありません</p>
   }
   return (
     <ul className="flex flex-col gap-2 p-4">
       {rows.map(r => (
+        // SPEC-STOCK-ANNOUNCEMENTS-02: お気に入り行も tap で詳細 sheet を開く。
         <li
           key={r.id}
           data-testid={`announce-fav-row-${r.id}`}
-          className="flex flex-col gap-1 p-3 rounded-xl bg-surface border border-border"
+          onClick={() => onTapRow(r)}
+          className="flex flex-col gap-1 p-3 rounded-xl bg-surface border border-border active:bg-bg/60 cursor-pointer"
         >
           <p className="text-base font-bold truncate">{r.prize_name}</p>
           <p className="text-xs text-muted">
@@ -290,6 +308,128 @@ function FavList({ rows, staffNames }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+// SPEC-STOCK-ANNOUNCEMENTS-02: 詳細 bottom sheet。写真 + 明細 + ❤️ ボタン (memo sub-sheet 起動)。
+// スワイプダウン (タッチ縦移動 > 80px) で onClose 発火、scrim タップでも閉じる。
+function AnnouncementDetailSheet({ row, mine, onClose, onTapFavorite, onTapUnfavorite }) {
+  const [dragOffset, setDragOffset] = useState(0)
+  const startYRef = useRef(null)
+
+  function onTouchStart(e) {
+    startYRef.current = e.touches?.[0]?.clientY ?? null
+  }
+  function onTouchMove(e) {
+    if (startYRef.current == null) return
+    const dy = (e.touches?.[0]?.clientY ?? 0) - startYRef.current
+    // 下方向のみ追従 (上方向はスクロール優先)
+    if (dy > 0) setDragOffset(dy)
+  }
+  function onTouchEnd() {
+    if (dragOffset > 80) {
+      onClose()
+    } else {
+      setDragOffset(0)
+    }
+    startYRef.current = null
+  }
+
+  return (
+    <>
+      <style>{`@keyframes annDetailUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+      <div
+        className="fixed inset-0 z-40"
+        onClick={onClose}
+        data-testid="announce-detail-sheet"
+      >
+        <div className="absolute inset-0 bg-black/55" />
+        <div
+          className="absolute left-0 right-0 bottom-0 max-h-[85dvh] overflow-y-auto bg-surface border-t-2 border-accent rounded-t-2xl"
+          style={{
+            animation: dragOffset === 0 ? 'annDetailUp 220ms ease-out' : 'none',
+            transform: `translateY(${dragOffset}px)`,
+            transition: dragOffset === 0 ? 'transform 180ms ease-out' : 'none',
+            willChange: 'transform',
+          }}
+          onClick={e => e.stopPropagation()}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* grab handle */}
+          <div className="flex justify-center pt-2 pb-1">
+            <span className="block w-12 h-1.5 rounded-full bg-border" />
+          </div>
+
+          {/* 写真 (image_url ありなら全幅、なければプレースホルダー) */}
+          {row.image_url ? (
+            <img
+              src={row.image_url}
+              alt={row.prize_name}
+              data-testid="announce-detail-image"
+              className="w-full max-h-[40dvh] object-contain bg-bg"
+              loading="lazy"
+            />
+          ) : (
+            <div
+              data-testid="announce-detail-image-placeholder"
+              className="w-full h-32 flex items-center justify-center text-muted text-sm bg-bg border-y border-border"
+            >
+              （写真なし）
+            </div>
+          )}
+
+          <div className="p-4 pb-8">
+            <p className="text-lg font-bold leading-snug">{row.prize_name}</p>
+            <p className="text-xs text-muted mt-1">
+              {row.supplier_id || '-'}
+              {row.release_date && <>　・　発売: {formatJstDate(row.release_date)}</>}
+            </p>
+
+            {/* 価格 + 入数 + ケース合計 */}
+            <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-bg/60 p-2 border border-border">
+                <dt className="text-[10px] text-muted">単価</dt>
+                <dd data-testid="announce-detail-unit-cost" className="text-base font-bold">{formatYen(row.unit_cost)}</dd>
+              </div>
+              <div className="rounded-lg bg-bg/60 p-2 border border-border">
+                <dt className="text-[10px] text-muted">入数</dt>
+                <dd data-testid="announce-detail-case-quantity" className="text-base font-bold">
+                  {row.case_quantity != null ? `${row.case_quantity}個` : '-'}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-bg/60 p-2 border border-border">
+                <dt className="text-[10px] text-muted">ケース合計</dt>
+                <dd data-testid="announce-detail-case-cost" className="text-base font-bold">{formatYen(row.case_cost)}</dd>
+              </div>
+            </dl>
+
+            {row.notes && (
+              <p className="mt-3 text-sm text-text px-3 py-2 rounded-lg bg-bg/60 border border-border whitespace-pre-wrap">
+                {row.notes}
+              </p>
+            )}
+
+            {/* ❤️ お気に入りボタン (シート内に集約、memo 入力は sub-sheet) */}
+            <div className="mt-4">
+              <button
+                data-testid="announce-detail-fav-button"
+                aria-label={mine ? 'お気に入り解除' : 'お気に入り登録'}
+                onClick={() => (mine ? onTapUnfavorite() : onTapFavorite())}
+                className={`w-full min-h-[48px] rounded-lg text-base font-bold border ${
+                  mine
+                    ? 'bg-rose-500/15 text-rose-300 border-rose-500/40'
+                    : 'bg-accent text-white border-accent'
+                }`}
+              >
+                {mine ? '❤️ お気に入り解除' : '🤍 お気に入りに追加'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 
