@@ -3,7 +3,11 @@
 // FIX-01 の implementation は既に raw-meter compute path だったが、FIX-02 で formal 化。
 
 import { describe, it, expect } from 'vitest'
-import { computeBoothDiffSummary, _RAW_HISTORY_SELECT } from '../../services/boothHistory'
+import {
+  computeBoothDiffSummary,
+  _RAW_HISTORY_SELECT,
+  STORE_BASELINE_LIMIT_PER_BOOTH,
+} from '../../services/boothHistory'
 import { computeLocalStoreView } from '../../clawsupport/state/localStoreView'
 
 describe('HISTORY_SELECT contract (AC-07)', () => {
@@ -32,6 +36,12 @@ describe('HISTORY_SELECT contract (AC-07)', () => {
     // 0 件返却する → 全列 '−' bug の根本原因。本 test で再発防止。
     expect(_RAW_HISTORY_SELECT).toMatch(/\bstore_code\b/)
     expect(_RAW_HISTORY_SELECT).toMatch(/\bmachine_code\b/)
+  })
+
+  // SPEC-LF1-HISTORY-FIX-04 AC-05: fetchStoreBaselineRows LIMIT == 9 を契約として固定。
+  // 9 = today + prev1..prev8 (8 隣接対 diff)、週2回ラウンド × 2ヶ月 = 8 visit 履歴表示用。
+  it('SPEC_LF1_HISTORY_FIX_04_STORE_BASELINE_LIMIT_PER_BOOTH_equals_9', () => {
+    expect(STORE_BASELINE_LIMIT_PER_BOOTH).toBe(9)
   })
 })
 

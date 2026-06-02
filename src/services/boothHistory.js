@@ -22,6 +22,14 @@ const HISTORY_SELECT =
 // テスト用 export (HISTORY-FIX-02 AC-07: 'no in_diff column dependency' 検証)
 export const _RAW_HISTORY_SELECT = HISTORY_SELECT
 
+// SPEC-LF1-HISTORY-FIX-04: fetchStoreBaselineRows が booth ごとに保持する最大行数。
+// 5 → 9 に増やす理由: 表示の 8 diff (今回/前回/3前/4前/5前/6前/7前/8前) を計算するには
+// 9 データ点 (today + prev1..prev8) が必要 (隣接対 diff = 9-1 = 8 ペア)。週2回ラウンド × 2ヶ月
+// = 8 visit の履歴表示 が hiro 要望。KOS01 max 14 rows/booth (KOS01-M02-B04) で safety 余裕あり。
+// 注: 本 spec は LIMIT のみの 1-integer 変更。computeBoothDiffSummary の 4 要素配列出力は
+// 別 spec で 8 要素拡張予定 (本 spec.forbidden_to_touch 'boothHistory compute logic' のため未触)。
+export const STORE_BASELINE_LIMIT_PER_BOOTH = 9
+
 // SPEC-PATROL-VIEW-MODE-SWITCH-02: 4-visit history。各列 (4 前 / 3 前 / 前回 / 今回) の
 // in_diff / out_diff / daily (= in_diff / 間隔日数) を 4 要素配列で返す。4 つの diff を
 // 計算するには 5 レコード必要 (diff = newer - older 連続対) のため fetchBoothDiffMap は
@@ -178,7 +186,7 @@ export async function fetchStoreBaselineRows(boothCodes) {
     const bc = row.booth_code
     if (!bc) continue
     const arr = byBooth.get(bc) ?? []
-    if (arr.length < 5) {
+    if (arr.length < STORE_BASELINE_LIMIT_PER_BOOTH) {
       arr.push(row)
       byBooth.set(bc, arr)
     }
