@@ -26,6 +26,7 @@ import { putPatrolRecord } from '../../lib/localStore/patrolRecords'
 import { notifyLfChange } from '../../hooks/useUnsentBanner'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
+import { useSwipeNav } from '../../hooks/useSwipeNav'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -527,6 +528,14 @@ export default function PatrolBoothInputPage() {
       ? (boothList[boothIndex + 1] ?? null)
       : null
 
+  // SPEC-PATROL-SWIPE-NAV-01: 前ブース。boothList は PatrolStorePage で
+  // machines.flatMap(m => m.booths) で構築されるため、index-1 で前ブース、
+  // 機械を跨いでの戻りも自然にサポート。
+  const prevBoothEntry =
+    Array.isArray(boothList) && boothIndex != null && boothIndex > 0
+      ? (boothList[boothIndex - 1] ?? null)
+      : null
+
   function goBackToList() {
     // 展開状態を維持したまま、次ブース(無ければ現ブース)が見える位置へ復帰
     if (resolvedStoreCode) {
@@ -553,8 +562,41 @@ export default function PatrolBoothInputPage() {
     }
   }
 
+  // SPEC-PATROL-SWIPE-NAV-01: 前ブースへ navigate。前が無ければ no-op (AC-04)。
+  function goPrevBooth() {
+    if (!prevBoothEntry) return
+    navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${prevBoothEntry.booth.booth_code}`, {
+      state: {
+        machine: prevBoothEntry.machine,
+        booth: prevBoothEntry.booth,
+        storeCode: resolvedStoreCode,
+        boothList,
+        boothIndex: boothIndex - 1,
+      },
+    })
+  }
+
   const handleSaveNext = () => handleSave(goNextBooth)
   const handleSaveList = () => handleSave(goBackToList)
+
+  // SPEC-PATROL-SWIPE-NAV-01 C2: 横スワイプ → 暗黙保存 → 隣接ブースへ navigate。
+  // 左スワイプ=次ブース、右スワイプ=前ブース。canSave 偽 (= IN 未入力等) なら保存スキップで navigate のみ。
+  // 末端 (最初の前 / 最後の次) では no-op (AC-04)。OCR overlay 中は無効化。
+  function handleSwipeLeft() {
+    if (!nextBoothEntry) return  // 最後の機械の最後のブース: no-op
+    if (canSave) handleSave(goNextBooth)
+    else goNextBooth()
+  }
+  function handleSwipeRight() {
+    if (!prevBoothEntry) return  // 最初の機械の最初のブース: no-op
+    if (canSave) handleSave(goPrevBooth)
+    else goPrevBooth()
+  }
+  const swipeRef = useSwipeNav({
+    onSwipeLeft:  handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+    enabled: ocrState === 'idle',  // OCR overlay 中はスワイプ無効
+  })
 
   const savingProp = saveState.status === 'loading'
   const resultProp = saveState.status === 'success' ? 'saved'
@@ -752,7 +794,7 @@ export default function PatrolBoothInputPage() {
 
   // === Main patrol form ===
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text">
+    <div ref={swipeRef} className="h-dvh flex flex-col bg-bg text-text" data-testid="patrol-booth-swipe-container">
       {/* J-PATROL-OCR-CAMERA C: 読み取り写真の入力。capture指定なしでiOSは「写真を撮る(純正カメラ+フラッシュ)/写真を選ぶ」メニュー */}
       <input
         ref={fileInputRef}
@@ -767,6 +809,13 @@ export default function PatrolBoothInputPage() {
         variant="compact"
         onBack={goBack}
       />
+
+      {/* SPEC-PATROL-SWIPE-NAV-01 C3: subtle chevron hints (左右端、grey-300、xs、非操作)。
+          前/次が存在するときだけ表示、末端では非表示 (AC-04 視覚的フィードバック)。 */}
+      <div className="px-3 flex items-center justify-between text-gray-400/60 text-xs h-3 -mt-0.5 select-none pointer-events-none" aria-hidden="true">
+        <span data-testid="swipe-hint-prev">{prevBoothEntry ? '‹ 前' : ''}</span>
+        <span data-testid="swipe-hint-next">{nextBoothEntry ? '次 ›' : ''}</span>
+      </div>
 
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
