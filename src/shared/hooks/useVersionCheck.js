@@ -10,7 +10,13 @@ import { BUILD_NUMBER } from '../../lib/buildInfo'
 
 const INTERVAL_MS = 5 * 60 * 1000     // 5 分 (spec triggers)
 const RELOAD_DELAY_MS = 700           // トーストを一瞬見せてから reload
-const STORAGE_KEY = 'reloaded_for_build'
+// SPEC-PWA-VERSION-CHECK-FIX-01: 旧 'reloaded_for_build' (buildNumber-keyed) は
+// iOS Safari standalone PWA で /index.html cache 起因の bundle 更新失敗時に
+// storage に新 build 記録 + 旧 bundle 継続 → banner 永久未発火の副作用 (DIAG-PWA-UPDATE-BANNER-01)。
+// 'version_check_last_fired' (timestamp-keyed、5 分以内のみ抑制) に置換し、同 build でも
+// 5 分後に再 fire できるようにして iOS cache eviction retry path を確保する。
+const STORAGE_KEY = 'version_check_last_fired'
+const SUPPRESS_WINDOW_MS = 5 * 60 * 1000  // 5 分
 const LOG_TAG = 'ERR-PWA-VERSION-FETCH'
 
 // dev / pre-prod (BUILD_NUMBER='0' = git unavailable / 'local' = dev) ではスキップして
@@ -52,11 +58,14 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
         if (!fetchedBuild) return
         if (fetchedBuild === String(BUILD_NUMBER)) return // 一致 = 最新、何もしない
 
-        // 同 buildNumber に対して既に reload 済なら ループ防止
-        if (storage?.getItem(STORAGE_KEY) === fetchedBuild) return
+        // SPEC-PWA-VERSION-CHECK-FIX-01: timestamp ベース loop guard。
+        // 直近 fire から SUPPRESS_WINDOW_MS (5 分) 以内なら抑制、それ以降は同 build でも再 fire。
+        const tsNow = typeof now === 'function' ? now() : Date.now()
+        const lastFired = Number(storage?.getItem(STORAGE_KEY) ?? 0)
+        if (lastFired && tsNow - lastFired < SUPPRESS_WINDOW_MS) return
 
         // ガード記録 → トースト表示 → 短い猶予後 reload
-        storage?.setItem(STORAGE_KEY, fetchedBuild)
+        storage?.setItem(STORAGE_KEY, String(tsNow))
         if (cancelled) return
         setReloading(true)
         timeoutId = setTimeout(() => { if (!cancelled) doReload() }, RELOAD_DELAY_MS)

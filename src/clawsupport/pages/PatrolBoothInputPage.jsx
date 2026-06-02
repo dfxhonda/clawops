@@ -26,6 +26,11 @@ import { putPatrolRecord } from '../../lib/localStore/patrolRecords'
 import { notifyLfChange } from '../../hooks/useUnsentBanner'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
+import { useSwipeNav } from '../../hooks/useSwipeNav'
+import {
+  setPendingEnterFrom,
+  consumePendingEnterFrom,
+} from '../state/swipeTransition'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -267,6 +272,19 @@ export default function PatrolBoothInputPage() {
 
   // 保存はINメーターのみ必須。OUT/在庫は任意 (OUT機能オフのライド機もIN単独保存可、他機種共通仕様)
   const canSave = patrolCanSave(inMeter)
+
+  // SPEC-PATROL-SWIPE-NAV-fix-01 C2: dirty 判定。
+  // canSave は inMeter が prev から prefill 済の時点で常に true、SWIPE-NAV-01 の swipe 暗黙保存
+  // gate として canSave 単独では機能せず「未編集ブースを横スワイプするだけで空 IDB record を
+  // 生成 → unsynced count 増殖」のバグになる (ヒロ実機検出)。実際の編集 (touched.inMeter /
+  // outMeter1/2/3) を見て 'ユーザがメーター欄を触ったか' を厳密判定し、swipe 暗黙保存の唯一の
+  // gate とする (spec の 'meter field changed from initial loaded value' 解釈)。touched は
+  // boothCode 変更時に EMPTY_TOUCHED で reset 済 (line ~174) のため別途 mount/navigate reset 不要。
+  const isDirty =
+    !!touched.inMeter   ||
+    !!touched.outMeter1 ||
+    !!touched.outMeter2 ||
+    !!touched.outMeter3
 
   function buildOptionalPatch() {
     const patch = {}
@@ -527,6 +545,14 @@ export default function PatrolBoothInputPage() {
       ? (boothList[boothIndex + 1] ?? null)
       : null
 
+  // SPEC-PATROL-SWIPE-NAV-01: 前ブース。boothList は PatrolStorePage で
+  // machines.flatMap(m => m.booths) で構築されるため、index-1 で前ブース、
+  // 機械を跨いでの戻りも自然にサポート。
+  const prevBoothEntry =
+    Array.isArray(boothList) && boothIndex != null && boothIndex > 0
+      ? (boothList[boothIndex - 1] ?? null)
+      : null
+
   function goBackToList() {
     // 展開状態を維持したまま、次ブース(無ければ現ブース)が見える位置へ復帰
     if (resolvedStoreCode) {
@@ -553,8 +579,103 @@ export default function PatrolBoothInputPage() {
     }
   }
 
+  // SPEC-PATROL-SWIPE-NAV-01: 前ブースへ navigate。前が無ければ no-op (AC-04)。
+  function goPrevBooth() {
+    if (!prevBoothEntry) return
+    navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${prevBoothEntry.booth.booth_code}`, {
+      state: {
+        machine: prevBoothEntry.machine,
+        booth: prevBoothEntry.booth,
+        storeCode: resolvedStoreCode,
+        boothList,
+        boothIndex: boothIndex - 1,
+      },
+    })
+  }
+
   const handleSaveNext = () => handleSave(goNextBooth)
   const handleSaveList = () => handleSave(goBackToList)
+
+  // SPEC-PATROL-SWIPE-NAV-01 C2 + SPEC-PATROL-SWIPE-ANIM-01: 横スワイプ → アニメ → 暗黙保存 → navigate。
+  // 左スワイプ=次ブース、右スワイプ=前ブース。canSave 偽 (= IN 未入力等) なら保存スキップで navigate のみ。
+  // 末端 (最初の前 / 最後の次) では no-op で spring back (AC-04)。OCR overlay 中は無効化。
+  //
+  // ANIM-01:
+  // - swipeDx: touchmove 中の指 dx (px)、live で transform: translateX に反映 (follow-finger)
+  // - swipeTransition: CSS transition 文字列。drag 中は 'none'、commit/cancel で 220ms ease-out
+  // - 入場アニメ: consumePendingEnterFrom() で前画面の遷移方向を読取、初期 dx を ±innerWidth に置いて
+  //   useLayoutEffect で次フレームに 0 へ transition (entering panel slides in)
+  const [swipeDx, setSwipeDx] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    const enter = consumePendingEnterFrom()
+    if (enter === 'right') return  window.innerWidth   // 次画面が右側から
+    if (enter === 'left')  return -window.innerWidth   // 前画面が左側から
+    return 0
+  })
+  const [swipeTransition, setSwipeTransition] = useState('none')
+
+  // 入場アニメーション: 初期 dx が非ゼロなら、次フレームで 0 へ transition (220ms ease-out)
+  useEffect(() => {
+    if (swipeDx === 0) return
+    const t = requestAnimationFrame(() => {
+      setSwipeTransition('transform 220ms ease-out')
+      setSwipeDx(0)
+    })
+    return () => cancelAnimationFrame(t)
+    // 初回 mount のみ意図、boothCode が変わって新規 mount された時もここを通る
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function springBack() {
+    setSwipeTransition('transform 220ms ease-out')
+    setSwipeDx(0)
+  }
+
+  function commitSwipeAndNavigate(direction, navFn) {
+    // direction: 'left' or 'right' (exit 方向)
+    const w = typeof window !== 'undefined' ? window.innerWidth : 360
+    setSwipeTransition('transform 220ms ease-out')
+    setSwipeDx(direction === 'left' ? -w : w)
+    // 次画面の入場方向を予約 (左退場 → 次画面は右から、右退場 → 次画面は左から)
+    setPendingEnterFrom(direction === 'left' ? 'right' : 'left')
+    // 220ms 後に navigate (+ 必要なら save)。LF1 save は IDB write のみで実時間 <10ms、
+    // ここの timeout を待っても UX 影響なし (AC-06 LF1 <1s 保持)。
+    //
+    // SPEC-PATROL-SWIPE-NAV-fix-01 C1: 暗黙保存 gate を isDirty && canSave に厳密化。
+    // 未編集ブース (isDirty=false) は IDB write をスキップして navigate のみ、unsynced 増殖を防ぐ。
+    setTimeout(() => {
+      if (isDirty && canSave) handleSave(navFn)
+      else navFn()
+    }, 220)
+  }
+
+  function handleSwipeLeft() {
+    if (!nextBoothEntry) {
+      // SPEC-PATROL-SWIPE-NAV-fix-02: 最後の機械の最後のブースで左スワイプ →
+      // 旧 no-op (spring back) ではなく goBackToList で店舗リストへ戻る。
+      // isDirty && canSave なら save してから戻る (他 swipe 経路と同一の暗黙保存挙動)。
+      // navigate(-1) の代わりに goBackToList を使う理由: 既存 hierarchical
+      // navigation の '次ブース focus + 店舗リスト' 動線と統一でき、navigate(-1) で
+      // 履歴遷移の予測不能性 (ログイン履歴等) を回避できる。
+      commitSwipeAndNavigate('left', goBackToList)
+      return
+    }
+    commitSwipeAndNavigate('left', goNextBooth)
+  }
+  function handleSwipeRight() {
+    if (!prevBoothEntry) return springBack()  // 末端: spring back
+    commitSwipeAndNavigate('right', goPrevBooth)
+  }
+  const swipeRef = useSwipeNav({
+    onSwipeLeft:  handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+    onSwipeProgress: (dx) => {
+      // SPEC-PATROL-SWIPE-ANIM-01 C2: drag 中は transition なしで dx を直接反映
+      setSwipeTransition('none')
+      setSwipeDx(dx)
+    },
+    onSwipeCancel: springBack,
+    enabled: ocrState === 'idle',  // OCR overlay 中はスワイプ無効
+  })
 
   const savingProp = saveState.status === 'loading'
   const resultProp = saveState.status === 'success' ? 'saved'
@@ -752,7 +873,16 @@ export default function PatrolBoothInputPage() {
 
   // === Main patrol form ===
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text">
+    <div
+      ref={swipeRef}
+      className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden"
+      data-testid="patrol-booth-swipe-container"
+      style={{
+        transform: `translateX(${swipeDx}px)`,
+        transition: swipeTransition,
+        willChange: 'transform',
+      }}
+    >
       {/* J-PATROL-OCR-CAMERA C: 読み取り写真の入力。capture指定なしでiOSは「写真を撮る(純正カメラ+フラッシュ)/写真を選ぶ」メニュー */}
       <input
         ref={fileInputRef}
@@ -767,6 +897,13 @@ export default function PatrolBoothInputPage() {
         variant="compact"
         onBack={goBack}
       />
+
+      {/* SPEC-PATROL-SWIPE-NAV-01 C3: subtle chevron hints (左右端、grey-300、xs、非操作)。
+          前/次が存在するときだけ表示、末端では非表示 (AC-04 視覚的フィードバック)。 */}
+      <div className="px-3 flex items-center justify-between text-gray-400/60 text-xs h-3 -mt-0.5 select-none pointer-events-none" aria-hidden="true">
+        <span data-testid="swipe-hint-prev">{prevBoothEntry ? '‹ 前' : ''}</span>
+        <span data-testid="swipe-hint-next">{nextBoothEntry ? '次 ›' : ''}</span>
+      </div>
 
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />

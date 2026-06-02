@@ -278,12 +278,30 @@ export default function BoothInputForm({
                 style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
               >
                 <FRow tab={1} active={activeTabindex === 1}>
-                  <NumpadField id="field-in-meter" value={inMeter}
-                    onChange={v => { touch?.('inMeter')(); setIn(v) }}
-                    label="IN" allowDecimal dataTabindex={1}
-                    inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
-                    onNext={() => navigateNext?.(1)} onRegister={registerField} isActive={activeTabindex === 1}
-                    style={{ fontSize: 16, width: '100%' }} testId="field-in-meter" />
+                  {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C2: OCR ボタンを IN メーター入力の左に inline 配置。
+                      patrol モードのみ (edit モードは下のボタン行で従来位置維持)。
+                      visual style (sky 色 + border) は維持、padding と text-size を行に収まるよう縮小。 */}
+                  <div className="flex items-center gap-1">
+                    {onOCR && (
+                      <button
+                        type="button"
+                        data-testid="ocr-button-inline"
+                        onClick={onOCR}
+                        aria-label="OCR読み取り"
+                        className="shrink-0 px-2 py-1.5 rounded-lg font-bold text-xs text-black bg-yellow-400 border border-yellow-500 active:bg-yellow-300 active:scale-[0.98]"
+                      >
+                        読
+                      </button>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <NumpadField id="field-in-meter" value={inMeter}
+                        onChange={v => { touch?.('inMeter')(); setIn(v) }}
+                        label="IN" allowDecimal dataTabindex={1}
+                        inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
+                        onNext={() => navigateNext?.(1)} onRegister={registerField} isActive={activeTabindex === 1}
+                        style={{ fontSize: 16, width: '100%' }} testId="field-in-meter" />
+                    </div>
+                  </div>
                 </FRow>
                 <FRow tab={2} active={activeTabindex === 2}>
                   <NumpadField id="field-out-meter" value={outMeter1}
@@ -545,69 +563,32 @@ export default function BoothInputForm({
           </div>
         )}
 
-        {/* ボタン行 */}
-        <div className="px-4 py-1 flex gap-2">
-          {mode === 'edit' && onDelete && (
-            <button
-              data-testid="delete-button"
-              onClick={onDelete}
-              disabled={deleting}
-              className="px-4 py-4 rounded-2xl font-bold text-base border border-red-500 text-red-400 bg-transparent active:scale-[0.98] transition-all disabled:opacity-40"
-            >
-              {deleting ? '削除中...' : '削除'}
-            </button>
-          )}
-          {onOCR && (
-            <button
-              type="button"
-              onClick={onOCR}
-              className="w-1/4 py-4 rounded-2xl font-bold text-sm text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
-            >
-              読み取り
-            </button>
-          )}
-          {(onSaveNext || onSaveList) ? (
-            (saving || result) ? (
+        {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C1: patrol モードでは保存ボタン (保存してリストへ /
+            保存して次へ) を削除 — SWIPE-NAV-01 の暗黙保存で代替。OCR ボタンは IN メーター左に
+            移設 (C2)。edit モードは従来通り単発保存ボタン維持 (swipe save 不在のため必須)。
+            handleSave / handleSaveNext / handleSaveList のロジック自体は親 (PatrolBoothInputPage)
+            に残置、swipe 経由で発火する。 */}
+        {isEditMode && (
+          <div className="px-4 py-1 flex gap-2">
+            {onDelete && (
               <button
-                data-testid="save-button"
-                disabled
-                className="flex-1 py-4 rounded-2xl font-bold text-base bg-surface text-muted opacity-60"
+                data-testid="delete-button"
+                onClick={onDelete}
+                disabled={deleting}
+                className="px-4 py-4 rounded-2xl font-bold text-base border border-red-500 text-red-400 bg-transparent active:scale-[0.98] transition-all disabled:opacity-40"
               >
-                {saving ? '保存中...'
-                  : result === 'saved' ? '✓ 保存しました'
-                  : result === 'skipped' ? '変化なし — 戻ります'
-                  : result === 'conflict' ? '⚠ 競合 — 再読み込み'
-                  : result === 'error' ? 'エラー — 再試行'
-                  : '保存する'}
+                {deleting ? '削除中...' : '削除'}
               </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  data-testid="save-list-button"
-                  onClick={onSaveList}
-                  disabled={!canSave}
-                  className={`flex-1 py-4 rounded-2xl font-bold text-sm transition-all ${
-                    canSave ? 'border border-accent/50 text-accent bg-accent/10 active:scale-[0.98]' : 'bg-surface text-muted opacity-40'
-                  }`}
-                >
-                  保存してリストへ
-                </button>
-                <button
-                  type="button"
-                  data-testid="save-next-button"
-                  data-tabindex={14}
-                  onClick={onSaveNext}
-                  disabled={!canSave}
-                  className={`flex-1 py-4 rounded-2xl font-bold text-base transition-all ${
-                    canSave ? 'bg-accent text-bg active:scale-[0.98]' : 'bg-surface text-muted opacity-40'
-                  }`}
-                >
-                  保存して次へ
-                </button>
-              </>
-            )
-          ) : (
+            )}
+            {onOCR && (
+              <button
+                type="button"
+                onClick={onOCR}
+                className="w-1/4 py-4 rounded-2xl font-bold text-sm text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
+              >
+                読み取り
+              </button>
+            )}
             <button
               data-testid="save-button"
               data-tabindex={14}
@@ -631,8 +612,8 @@ export default function BoothInputForm({
                 ? 'エラー — 再試行'
                 : '保存する'}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
