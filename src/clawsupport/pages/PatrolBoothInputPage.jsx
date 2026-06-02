@@ -273,6 +273,19 @@ export default function PatrolBoothInputPage() {
   // 保存はINメーターのみ必須。OUT/在庫は任意 (OUT機能オフのライド機もIN単独保存可、他機種共通仕様)
   const canSave = patrolCanSave(inMeter)
 
+  // SPEC-PATROL-SWIPE-NAV-fix-01 C2: dirty 判定。
+  // canSave は inMeter が prev から prefill 済の時点で常に true、SWIPE-NAV-01 の swipe 暗黙保存
+  // gate として canSave 単独では機能せず「未編集ブースを横スワイプするだけで空 IDB record を
+  // 生成 → unsynced count 増殖」のバグになる (ヒロ実機検出)。実際の編集 (touched.inMeter /
+  // outMeter1/2/3) を見て 'ユーザがメーター欄を触ったか' を厳密判定し、swipe 暗黙保存の唯一の
+  // gate とする (spec の 'meter field changed from initial loaded value' 解釈)。touched は
+  // boothCode 変更時に EMPTY_TOUCHED で reset 済 (line ~174) のため別途 mount/navigate reset 不要。
+  const isDirty =
+    !!touched.inMeter   ||
+    !!touched.outMeter1 ||
+    !!touched.outMeter2 ||
+    !!touched.outMeter3
+
   function buildOptionalPatch() {
     const patch = {}
     if (touched.prizeName) patch.prize_name = prizeName.trim() || null
@@ -626,8 +639,11 @@ export default function PatrolBoothInputPage() {
     setPendingEnterFrom(direction === 'left' ? 'right' : 'left')
     // 220ms 後に navigate (+ 必要なら save)。LF1 save は IDB write のみで実時間 <10ms、
     // ここの timeout を待っても UX 影響なし (AC-06 LF1 <1s 保持)。
+    //
+    // SPEC-PATROL-SWIPE-NAV-fix-01 C1: 暗黙保存 gate を isDirty && canSave に厳密化。
+    // 未編集ブース (isDirty=false) は IDB write をスキップして navigate のみ、unsynced 増殖を防ぐ。
     setTimeout(() => {
-      if (canSave) handleSave(navFn)
+      if (isDirty && canSave) handleSave(navFn)
       else navFn()
     }, 220)
   }
