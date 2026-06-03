@@ -5,8 +5,27 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 // loadExistingPchOrders 用に from().select().eq() を空配列で返すチェーンをモック
+// SPEC-PCH-PRIZE-MASTER-LINK-01: previewPchImport が lookupExistingPrizeMasterIds (.in) も呼ぶため
+// .select().in() / .select().eq().maybeSingle() も空応答できるよう拡張。
 vi.mock('../../lib/supabase', () => ({
-  supabase: { from: () => ({ select: () => ({ eq: () => Promise.resolve({ data: [], error: null }) }) }) },
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: (..._args) => {
+          // .eq().maybeSingle() (ensurePrizeMaster の個別 lookup) と
+          // .eq() (loadExistingPchOrders) の両用 Thenable 風オブジェクト
+          const result = { data: [], error: null }
+          return {
+            maybeSingle: async () => ({ data: null, error: null }),
+            then: (resolve) => resolve(result),
+          }
+        },
+        in: async () => ({ data: [], error: null }),
+        ilike: () => ({ order: () => ({ limit: async () => ({ data: [], error: null }) }) }),
+      }),
+      insert: async () => ({ error: null }),
+    }),
+  },
 }))
 vi.mock('../../services/audit', () => ({ writeAuditLog: vi.fn() }))
 
