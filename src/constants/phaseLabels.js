@@ -24,18 +24,21 @@ export const PHASE_BADGE_CLASS_MAP = Object.freeze({
 
 export const PHASE_UNKNOWN_BADGE_CLASS = 'bg-gray-600 text-gray-300'
 
-// AdminPrizeMasterPage の ListFilterBar / モーダル「フェーズ」セレクトで使う選択肢。
+// AdminPrizeMasterPage のフィルタ / モーダル「フェーズ」セレクトで使う選択肢。
 // 先頭の {value:'', label:'全て'} はフィルター用 (デフォルト = 未選択)。
-// モーダル編集用に使う場合は PHASE_EDIT_OPTIONS (空 value 除外) を使う。
+// SPEC-PRIZE-MASTER-UI-CLEANUP-01: 旧 provisional と yobigun が同ラベル「入荷予定」で
+// dropdown 内に重複表示されていたため yobigun エントリを撤去。フィルタ呼出側で
+// phaseFilter==='provisional' のとき yobigun 行もヒットさせるよう client-side で吸収する。
+// PHASE_LABEL_MAP / PHASE_BADGE_CLASS_MAP は yobigun を残置 (PCH 取込で実値が入るため表示用)。
 export const PHASE_FILTER_OPTIONS = Object.freeze([
   { value: '',            label: '全て' },
   { value: 'active',      label: '稼働中' },
   { value: 'provisional', label: '入荷予定' },
-  { value: 'yobigun',     label: '入荷予定' },
   { value: 'dead',        label: '廃番' },
 ])
 
 // 編集セレクト (モーダル/グリッド) で使う、'全て' を含まない値リスト
+// yobigun は内部実装値 (PCH 取込専用) のため UI 編集で選択させない方針 (FILTER と同じく除外)。
 export const PHASE_EDIT_OPTIONS = Object.freeze(
   PHASE_FILTER_OPTIONS.filter(o => o.value !== '')
 )

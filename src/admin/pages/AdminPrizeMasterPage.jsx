@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
-// SPEC-LIST-FILTER-SORT-01-fix-01: 共通 filter dropdown bar + sortable header (canonical d0cf209)。
-import ListFilterBar from '../../components/ListFilterBar'
+// SPEC-LIST-FILTER-SORT-01-fix-01: sortable header (canonical d0cf209)。
+// SPEC-PRIZE-MASTER-UI-CLEANUP-01: ListFilterBar (2 行目) は撤廃、inline 1 行 flex に統合。
 import SortableTableHeader from '../../components/SortableTableHeader'
 // SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
 import PrizeDetailDialog from '../../components/PrizeDetailDialog'
@@ -254,36 +254,43 @@ export default function AdminPrizeMasterPage() {
       {/* SPEC-LIST-FILTER-SORT-01-fix-01: 共通 ListFilterBar (仕入先 + フェーズ)、
           既存 toolbar の検索 + カテゴリ + ステータスは保持 (異なる検索軸のため併用)。
           supplier options は現在 fetch 済 rows から distinct で算出。 */}
-      <ListFilterBar
-        filters={[
-          { key: 'supplier_name', label: '仕入先',
-            options: [
-              { value: '', label: '全て' },
-              ...Array.from(new Set(rows.map(r => r.supplier_name).filter(Boolean))).sort()
-                .map(s => ({ value: s, label: s })),
-            ] },
-          // SPEC-PHASE-LABEL-FIX-01: 実在 phase 値のみ + 日本語ラベル
-          // (provisional/yobigun は表示「入荷予定」共通だが value は別々のまま、DB 値は変更しない)。
-          { key: 'phase', label: 'フェーズ',
-            options: PHASE_FILTER_OPTIONS.map(o => ({ value: o.value, label: o.label })) },
-        ]}
-        values={{ supplier_name: supplierFilter, phase: phaseFilter }}
-        onChange={(k, v) => {
-          if (k === 'supplier_name') setSupplierFilter(v)
-          if (k === 'phase')         setPhaseFilter(v)
-        }}
-        onReset={() => { setSupplierFilter(''); setPhaseFilter('') }}
-      />
-
-      {/* toolbar */}
+      {/* SPEC-PRIZE-MASTER-UI-CLEANUP-01: 旧 ListFilterBar (2 行目) + toolbar (3 行目) を
+          1 行 flex-wrap に統合。iOS Safari の zoom 抑止のため select/input は fontSize:16px。 */}
       <div className="flex-shrink-0 p-3 pb-2">
         <div className="flex flex-wrap gap-2 items-center">
+          <label className="flex items-center gap-1 text-xs text-muted">
+            <span>仕入先</span>
+            <select
+              data-testid="prize-filter-supplier"
+              value={supplierFilter}
+              onChange={e => setSupplierFilter(e.target.value)}
+              className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
+              style={{ fontSize: 16 }}
+            >
+              <option value="">全て</option>
+              {Array.from(new Set(rows.map(r => r.supplier_name).filter(Boolean))).sort()
+                .map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-1 text-xs text-muted">
+            <span>フェーズ</span>
+            <select
+              data-testid="prize-filter-phase"
+              value={phaseFilter}
+              onChange={e => setPhaseFilter(e.target.value)}
+              className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
+              style={{ fontSize: 16 }}
+            >
+              {PHASE_FILTER_OPTIONS.map(o => <option key={o.value || 'all'} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
           <input
             data-testid="prize-search"
             value={search}
             onChange={e => handleSearch(e.target.value)}
             placeholder="景品名・alias 検索"
             className="bg-bg border border-border rounded px-2 py-1 text-sm text-text flex-1 min-w-[160px]"
+            style={{ fontSize: 16 }}
           />
           <input
             data-testid="prize-filter-category"
@@ -291,9 +298,14 @@ export default function AdminPrizeMasterPage() {
             onChange={e => handleCat(e.target.value)}
             placeholder="カテゴリ絞込"
             className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-28"
+            style={{ fontSize: 16 }}
           />
-          {/* SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: 旧「ステータス ALL」select を撤廃。
-              フェーズ絞込は上の ListFilterBar (SPEC-PHASE-LABEL-FIX-01 で日本語化済) で行う。 */}
+          {(supplierFilter || phaseFilter) && (
+            <button
+              onClick={() => { setSupplierFilter(''); setPhaseFilter('') }}
+              className="text-xs text-accent underline decoration-dotted whitespace-nowrap"
+            >リセット</button>
+          )}
           {totalCount !== null && (
             <span data-testid="prize-total-count" className="text-sm text-muted whitespace-nowrap">
               全{totalCount.toLocaleString()}件
@@ -344,7 +356,8 @@ export default function AdminPrizeMasterPage() {
                   { key: 'prize_name',        label: '景品名',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
                   { key: '__category__',      label: 'カテゴリ', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
                   // SPEC-PHASE-LABEL-FIX-01: 旧 'ST' (status 列) を 'ステータス' (phase 列) に再定義。
-                  { key: '__phase_badge__',   label: 'ステータス', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
+                  // SPEC-PRIZE-MASTER-UI-CLEANUP-01: フィルタ「フェーズ」とヘッダ表記を統一 (旧 'ステータス'→'フェーズ')。
+                  { key: '__phase_badge__',   label: 'フェーズ', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
                   { key: 'original_cost',     label: '原価',    className: 'py-1 px-2 whitespace-nowrap text-right text-muted' },
                   { key: 'supplier_name',     label: '取引先',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
                   { key: 'latest_order_date', label: '最終発注', className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
@@ -358,7 +371,11 @@ export default function AdminPrizeMasterPage() {
             <tbody>
               {rows.filter(r =>
                 (!supplierFilter || r.supplier_name === supplierFilter) &&
-                (!phaseFilter    || r.phase         === phaseFilter)
+                // SPEC-PRIZE-MASTER-UI-CLEANUP-01: 'provisional' 選択時は yobigun 行も同ラベル「入荷予定」に
+                // 該当するため一緒にヒットさせる (PHASE_FILTER_OPTIONS から yobigun エントリは撤去済)。
+                (!phaseFilter
+                  || r.phase === phaseFilter
+                  || (phaseFilter === 'provisional' && r.phase === 'yobigun'))
               ).map(r => {
                 const a0 = alias0(r.aliases)
                 const ge = gridEdits[r.prize_id]
@@ -388,14 +405,16 @@ export default function AdminPrizeMasterPage() {
                           </>
                         )}
                     </td>
-                    <td className="py-0.5 px-1 text-muted">
+                    {/* SPEC-PRIZE-MASTER-UI-CLEANUP-01: 全 td に whitespace-nowrap + truncate
+                        を統一して 1 行固定高さに揃える (旧: supplier_name 折り返しで行高さ不揃い)。 */}
+                    <td className="py-0.5 px-1 text-muted whitespace-nowrap truncate max-w-[120px]">
                       {gridMode
                         ? <input value={ge?.category ?? r.category ?? ''} onChange={ev => setGCell(r.prize_id, 'category', ev.target.value)} className={gridCellCls} />
                         : r.category}
                     </td>
                     {/* SPEC-PHASE-LABEL-FIX-01: 'ステータス' 列は phase を日本語バッジで表示、
                         grid 編集モードでは phase を編集 (status 列は DB 保持のまま、本列の対象外)。 */}
-                    <td className="py-0.5 px-1">
+                    <td className="py-0.5 px-1 whitespace-nowrap">
                       {gridMode
                         ? <select
                             data-testid={`prize-phase-select-${r.prize_id}`}
@@ -412,17 +431,17 @@ export default function AdminPrizeMasterPage() {
                             {getPhaseLabel(r.phase)}
                           </span>}
                     </td>
-                    <td className="py-0.5 px-1 text-right text-muted">
+                    <td className="py-0.5 px-1 text-right text-muted whitespace-nowrap">
                       {gridMode
                         ? <input type="number" value={ge?.original_cost ?? r.original_cost ?? ''} onChange={ev => setGCell(r.prize_id, 'original_cost', ev.target.value)} className={`${gridCellCls} text-right`} />
                         : (r.original_cost != null ? r.original_cost.toLocaleString() : '')}
                     </td>
-                    <td className="py-0.5 px-1 text-muted max-w-[120px]">
+                    <td className="py-0.5 px-1 text-muted whitespace-nowrap truncate max-w-[160px]">
                       {gridMode
                         ? <input value={ge?.supplier_name ?? r.supplier_name ?? ''} onChange={ev => setGCell(r.prize_id, 'supplier_name', ev.target.value)} className={gridCellCls} />
                         : <span className="truncate block">{r.supplier_name}</span>}
                     </td>
-                    <td className="py-1 px-2 text-muted">{r.latest_order_date ?? ''}</td>
+                    <td className="py-1 px-2 text-muted whitespace-nowrap">{r.latest_order_date ?? ''}</td>
                   </tr>
                 )
               })}
