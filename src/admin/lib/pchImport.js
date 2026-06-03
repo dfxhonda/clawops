@@ -334,11 +334,36 @@ export async function fetchMaxPrizeIdSeq() {
   return row ? (parsePrizeIdSeq(row.prize_id) ?? 0) : 0
 }
 
+// SPEC-PCH-ORIGINAL-COST-SYNC-01: 既存マスタリンク時に prize_masters.original_cost を
+// 受領した unit_cost で上書き UPDATE。unit_cost=null は skip。UPDATE エラーは throw せず
+// console.warn で続行 (インポート本体を止めない)。spec note より。
+async function tryUpdateOriginalCost(prizeId, unitCost) {
+  if (unitCost == null) return
+  try {
+    const { error } = await supabase
+      .from('prize_masters')
+      .update({ original_cost: unitCost })
+      .eq('prize_id', prizeId)
+    if (error) console.warn(`prize_masters original_cost UPDATE warn (${prizeId}): ${error.message}`)
+  } catch (e) {
+    console.warn(`prize_masters original_cost UPDATE warn (${prizeId}): ${e?.message ?? e}`)
+  }
+}
+
 // 1 名前 → prize_id 確定。cache → DB lookup → DB insert の順。
 // ctx: { cache: Map<name, prizeId>, nextSeq: { value: number } }
+// SPEC-PCH-ORIGINAL-COST-SYNC-01: isNew=false の全分岐 (cache hit / DB hit) で
+// original_cost を unit_cost で UPDATE する。spec の before/after 例は DB hit 分岐の
+// 1 サンプルだが、executePchImport は preview の existingPrizeId を cache に seed するため、
+// cache hit 分岐を UPDATE 対象から外すと再取込時の更新が事実上発火せず acceptance AC-01 を
+// 満たせない (implementation_notes 参照)。
 export async function ensurePrizeMaster(name, unitCost, ctx) {
   if (!name) return { prizeId: null, isNew: false }
-  if (ctx.cache.has(name)) return { prizeId: ctx.cache.get(name), isNew: false }
+  if (ctx.cache.has(name)) {
+    const prizeId = ctx.cache.get(name)
+    await tryUpdateOriginalCost(prizeId, unitCost)
+    return { prizeId, isNew: false }
+  }
   const { data, error } = await supabase
     .from('prize_masters')
     .select('prize_id')
@@ -347,6 +372,7 @@ export async function ensurePrizeMaster(name, unitCost, ctx) {
   if (error) throw new Error('prize_masters 個別 lookup 失敗: ' + error.message)
   if (data?.prize_id) {
     ctx.cache.set(name, data.prize_id)
+    await tryUpdateOriginalCost(data.prize_id, unitCost)
     return { prizeId: data.prize_id, isNew: false }
   }
   ctx.nextSeq.value += 1
