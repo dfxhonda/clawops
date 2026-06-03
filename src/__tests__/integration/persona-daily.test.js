@@ -43,7 +43,7 @@ beforeEach(() => {
 describe('新人スタッフの1日', () => {
   beforeEach(() => {
     mockSupabase = createMockSupabase(
-      { meter_readings: [], audit_logs: [] },
+      { meter_readings: [], operation_logs: [] },
       persona.newbie,
     )
   })
@@ -97,7 +97,7 @@ describe('新人スタッフの1日', () => {
     })
     await flush()
 
-    const logs = mockSupabase._getTable('audit_logs')
+    const logs = mockSupabase._getTable('operation_logs')
     const log = logs.find(l => l.action === 'reading_create')
     expect(log).toBeTruthy()
     expect(log.staff_id).toBe('SHIN01')
@@ -112,7 +112,7 @@ describe('新人スタッフの1日', () => {
 describe('ベテランスタッフの1日', () => {
   beforeEach(() => {
     mockSupabase = createMockSupabase(
-      { meter_readings: [], audit_logs: [] },
+      { meter_readings: [], operation_logs: [] },
       persona.veteran,
     )
   })
@@ -168,7 +168,7 @@ describe('ベテランスタッフの1日', () => {
           out_meter: 180,
         }),
       ],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.veteran)
 
     await saveReading({
@@ -202,7 +202,7 @@ describe('ベテランスタッフの1日', () => {
     }
     await flush()
 
-    const logs = mockSupabase._getTable('audit_logs')
+    const logs = mockSupabase._getTable('operation_logs')
     const readingLogs = logs.filter(l => l.action === 'reading_create')
     expect(readingLogs).toHaveLength(3)
     for (const log of readingLogs) {
@@ -227,7 +227,7 @@ describe('管理者の1日', () => {
         }),
       ],
       stock_movements: [],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.admin)
 
     await transferStock({
@@ -263,7 +263,7 @@ describe('管理者の1日', () => {
         }),
       ],
       stock_movements: [],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.admin)
 
     await transferStock({
@@ -294,7 +294,7 @@ describe('管理者の1日', () => {
         }),
       ],
       stock_movements: [],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.admin)
 
     await expect(
@@ -323,7 +323,7 @@ describe('管理者の1日', () => {
         }),
       ],
       stock_movements: [],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.admin)
 
     // 実数が 12 → 差異 -3
@@ -354,7 +354,7 @@ describe('管理者の1日', () => {
         }),
       ],
       stock_movements: [],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.admin)
 
     await countStock({
@@ -384,7 +384,7 @@ describe('管理者の1日', () => {
         }),
       ],
       stock_movements: [],
-      audit_logs: [],
+      operation_logs: [],
     }, persona.admin)
 
     await countStock({
@@ -397,7 +397,7 @@ describe('管理者の1日', () => {
     })
     await flush()
 
-    const logs = mockSupabase._getTable('audit_logs')
+    const logs = mockSupabase._getTable('operation_logs')
     const countLog = logs.find(l => l.action === 'stock_count_adjust')
     expect(countLog).toBeTruthy()
     expect(countLog.staff_id).toBe('ADM01')

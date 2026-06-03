@@ -24,7 +24,7 @@ beforeEach(() => {
     meter_readings: [
       makeMeterReading({ reading_id: 'existing-1', booth_id: 'B001', read_time: '2026-04-01T12:00:00Z', in_meter: 500, out_meter: 20 }),
     ],
-    audit_logs: [],
+    operation_logs: [],
   }, makeSession())
 })
 
@@ -128,7 +128,7 @@ describe('メーター入力→保存フロー', () => {
 
     await flush()
 
-    const logs = mockSupabase._getTable('audit_logs')
+    const logs = mockSupabase._getTable('operation_logs')
     expect(logs.length).toBeGreaterThanOrEqual(1)
     const log = logs.find(l => l.action === 'reading_create')
     expect(log).toBeTruthy()

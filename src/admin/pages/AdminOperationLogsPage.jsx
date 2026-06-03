@@ -33,7 +33,7 @@ export default function AdminOperationLogsPage() {
   const load = useCallback(async (from, off) => {
     setLoading(true)
     const { data, error: loadErr } = await supabase
-      .from('audit_logs')
+      .from('operation_logs')
       .select('id,created_at,staff_id,action,target_table,target_id,reason,reason_code,before_data,after_data')
       .gte('created_at', from + 'T00:00:00+09:00')
       .order('created_at', { ascending: false })

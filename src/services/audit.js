@@ -1,5 +1,5 @@
 // ============================================
-// 監査ログ (audit_logs)
+// 監査ログ (operation_logs ← 旧 audit_logs、SPEC-DB-RENAME-AUDIT-LOGS-01 2026-06-03)
 // 「誰が・いつ・何を・どう変えたか」を記録
 // ============================================
 import { supabase } from '../lib/supabase'
@@ -68,7 +68,7 @@ export async function writeAuditLog(entry) {
   const reasonNote = entry.reason_note || null
   const reason = entry.reason || (reasonCode ? formatReason(reasonCode, reasonNote) : null)
   try {
-    await supabase.from('audit_logs').insert({
+    await supabase.from('operation_logs').insert({
       staff_id: staffId,
       action: entry.action,
       target_table: entry.target_table || '',
@@ -106,7 +106,7 @@ export async function logWithLocation({
   detail = null, before_data = null, after_data = null,
   organization_id, location = { lat: null, lng: null, accuracy: null },
 }) {
-  const { error } = await supabase.from('audit_logs').insert({
+  const { error } = await supabase.from('operation_logs').insert({
     staff_id,
     action,
     target_table,
@@ -131,7 +131,7 @@ export async function logWithLocation({
  * @param {number} [limit=100]
  */
 export async function getAuditLogs(filters = {}, offset = 0, limit = 100) {
-  let q = supabase.from('audit_logs').select('*')
+  let q = supabase.from('operation_logs').select('*')
   if (filters.dateFrom) q = q.gte('created_at', filters.dateFrom)
   if (filters.dateTo) q = q.lte('created_at', filters.dateTo + 'T23:59:59')
   if (filters.staffId) q = q.eq('staff_id', filters.staffId)
