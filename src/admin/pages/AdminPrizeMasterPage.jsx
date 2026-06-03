@@ -2,13 +2,25 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+// SPEC-LIST-FILTER-SORT-01-fix-01: 共通 filter dropdown bar + sortable header (canonical d0cf209)。
+import ListFilterBar from '../../components/ListFilterBar'
+import SortableTableHeader from '../../components/SortableTableHeader'
+// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
+import PrizeDetailDialog from '../../components/PrizeDetailDialog'
+// SPEC-PHASE-LABEL-FIX-01: phase 表示名/バッジ/選択肢を集約モジュールから取得 (旧ハードコード PHASE_VALUES 撤去)。
+import {
+  PHASE_FILTER_OPTIONS,
+  PHASE_EDIT_OPTIONS,
+  getPhaseLabel,
+  getPhaseBadgeClass,
+} from '../../constants/phaseLabels'
 
-const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
+// SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列を SELECT から外し、phase に統一。
+const LIST_SELECT = 'prize_id,prize_name,aliases,category,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
 const EDIT_SELECT = LIST_SELECT + ',short_name,prize_name_kana,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
 
-const STATUS_VALUES = ['active', 'inactive', 'unknown']
-const PHASE_VALUES  = ['normal', 'out_of_stock', 'discontinued']
+// SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: STATUS_VALUES 撤廃、phase で表現 (PHASE_FILTER_OPTIONS 参照)。
 
 function alias0(val) {
   try { return JSON.parse(val)?.[0] ?? null } catch { return val || null }
@@ -37,18 +49,6 @@ function Input({ value, onChange, placeholder, type = 'text', required, classNam
   )
 }
 
-function FSelect({ value, onChange, options }) {
-  return (
-    <select
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value)}
-      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
-    >
-      <option value="">ALL</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
-  )
-}
 
 function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
   const active = sortCol === col
@@ -64,7 +64,9 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 
 const EMPTY_FORM = {
   prize_name: '', aliases: '', prize_name_kana: '', category: '',
-  series: '', size: '', status: 'active', phase: 'normal',
+  // SPEC-PHASE-LABEL-FIX-01: 新規登録 default phase は実在値 'active'。
+  // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
+  series: '', size: '', phase: 'active',
   original_cost: '', supplier_id: '', supplier_name: '', supplier_item_code: '',
   jan_code: '', default_case_quantity: '', image_url: '', notes: '',
   order_rules: '', tags: '', default_tag: '', weight_g: '',
@@ -80,7 +82,10 @@ export default function AdminPrizeMasterPage() {
   const [loadKey, setLoadKey]   = useState(0)
   const [search, setSearch]     = useState('')
   const [catFilter, setCat]     = useState('')
-  const [stFilter, setSt]       = useState('')
+  // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: stFilter / status select は撤廃、フェーズ ドロップダウンに統一。
+  // SPEC-LIST-FILTER-SORT-01-fix-01: 仕入先 + フェーズ ドロップダウン (client-side filter)。
+  const [supplierFilter, setSupplierFilter] = useState('')
+  const [phaseFilter, setPhaseFilter]       = useState('')
   const [modal, setModal]       = useState(null)
   const [form, setForm]         = useState(EMPTY_FORM)
   const [showMore, setShowMore] = useState(false)
@@ -89,6 +94,8 @@ export default function AdminPrizeMasterPage() {
   const [gridMode, setGridMode] = useState(false)
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
+  // SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog の対象 row。
+  const [detailRow, setDetailRow] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -100,7 +107,7 @@ export default function AdminPrizeMasterPage() {
         .order(sortCol, { ascending: sortAsc })
       if (search.trim()) q = q.or(`prize_name.ilike.%${search}%,short_name.ilike.%${search}%,aliases.ilike.%${search}%`)
       if (catFilter)     q = q.ilike('category', `%${catFilter}%`)
-      if (stFilter)      q = q.eq('status', stFilter)
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status server-side filter 撤廃、phase は ListFilterBar で client-side。
       const { data, count, error: e } = await q
       if (cancelled) return
       if (e) setError(e.message)
@@ -109,7 +116,7 @@ export default function AdminPrizeMasterPage() {
     }
     fetchData()
     return () => { cancelled = true }
-  }, [sortCol, sortAsc, search, catFilter, stFilter, loadKey]) // eslint-disable-line
+  }, [sortCol, sortAsc, search, catFilter, loadKey]) // eslint-disable-line
 
   function handleSort(col) {
     if (col === sortCol) setSortAsc(a => !a)
@@ -117,7 +124,6 @@ export default function AdminPrizeMasterPage() {
   }
   function handleSearch(v)  { setSearch(v) }
   function handleCat(v)     { setCat(v) }
-  function handleSt(v)      { setSt(v) }
   function reload()         { setLoadKey(k => k + 1) }
 
   function openNew() {
@@ -138,7 +144,9 @@ export default function AdminPrizeMasterPage() {
       prize_name: data.prize_name ?? '', aliases: data.aliases ?? '',
       prize_name_kana: data.prize_name_kana ?? '', category: data.category ?? '',
       series: data.series ?? '', size: data.size ?? '',
-      status: data.status ?? 'active', phase: data.phase ?? 'normal',
+      // SPEC-PHASE-LABEL-FIX-01: 既存行 phase が null/未マップ値でも 'active' に矯正せず DB 値を保持。
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
+      phase: data.phase ?? 'active',
       original_cost: data.original_cost ?? '', supplier_id: data.supplier_id ?? '',
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
       jan_code: data.jan_code ?? '', default_case_quantity: data.default_case_quantity ?? '',
@@ -188,7 +196,8 @@ export default function AdminPrizeMasterPage() {
     if (!modal || modal === 'new') return
     setSaving(true)
     const { error: e } = await supabase.from('prize_masters')
-      .update({ status: 'inactive', updated_by: staffName, updated_at: new Date().toISOString() })
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: 旧 status='inactive' soft-delete → phase='dead' に統一。
+      .update({ phase: 'dead', updated_by: staffName, updated_at: new Date().toISOString() })
       .eq('prize_id', modal.prize_id)
     setSaving(false)
     if (e) { setError(e.message); return }
@@ -208,7 +217,8 @@ export default function AdminPrizeMasterPage() {
         prize_name: row?.prize_name ?? '',
         aliases: row?.aliases ?? '',
         category: row?.category ?? '',
-        status: row?.status ?? 'active',
+        // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase で表現。
+        phase: row?.phase ?? 'active',
         original_cost: row?.original_cost ?? '',
         supplier_name: row?.supplier_name ?? '',
       }
@@ -220,11 +230,13 @@ export default function AdminPrizeMasterPage() {
     setGridSaving(true)
     const now = new Date().toISOString()
     for (const [id, ge] of Object.entries(gridEdits)) {
+      // SPEC-PHASE-LABEL-FIX-01: グリッド編集対象が status → phase に切替。
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列は廃止、phase 一本化。
       const { error: ge_err } = await supabase.from('prize_masters').update({
         prize_name: ge.prize_name,
         aliases: ge.aliases || null,
         category: ge.category || null,
-        status: ge.status,
+        phase: ge.phase,
         original_cost: ge.original_cost === '' ? null : Number(ge.original_cost),
         supplier_name: ge.supplier_name || null,
         updated_by: staffName,
@@ -239,6 +251,30 @@ export default function AdminPrizeMasterPage() {
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
+      {/* SPEC-LIST-FILTER-SORT-01-fix-01: 共通 ListFilterBar (仕入先 + フェーズ)、
+          既存 toolbar の検索 + カテゴリ + ステータスは保持 (異なる検索軸のため併用)。
+          supplier options は現在 fetch 済 rows から distinct で算出。 */}
+      <ListFilterBar
+        filters={[
+          { key: 'supplier_name', label: '仕入先',
+            options: [
+              { value: '', label: '全て' },
+              ...Array.from(new Set(rows.map(r => r.supplier_name).filter(Boolean))).sort()
+                .map(s => ({ value: s, label: s })),
+            ] },
+          // SPEC-PHASE-LABEL-FIX-01: 実在 phase 値のみ + 日本語ラベル
+          // (provisional/yobigun は表示「入荷予定」共通だが value は別々のまま、DB 値は変更しない)。
+          { key: 'phase', label: 'フェーズ',
+            options: PHASE_FILTER_OPTIONS.map(o => ({ value: o.value, label: o.label })) },
+        ]}
+        values={{ supplier_name: supplierFilter, phase: phaseFilter }}
+        onChange={(k, v) => {
+          if (k === 'supplier_name') setSupplierFilter(v)
+          if (k === 'phase')         setPhaseFilter(v)
+        }}
+        onReset={() => { setSupplierFilter(''); setPhaseFilter('') }}
+      />
+
       {/* toolbar */}
       <div className="flex-shrink-0 p-3 pb-2">
         <div className="flex flex-wrap gap-2 items-center">
@@ -256,15 +292,8 @@ export default function AdminPrizeMasterPage() {
             placeholder="カテゴリ絞込"
             className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-28"
           />
-          <select
-            data-testid="prize-filter-status"
-            value={stFilter}
-            onChange={e => handleSt(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
-          >
-            <option value="">ステータス ALL</option>
-            {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          {/* SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: 旧「ステータス ALL」select を撤廃。
+              フェーズ絞込は上の ListFilterBar (SPEC-PHASE-LABEL-FIX-01 で日本語化済) で行う。 */}
           {totalCount !== null && (
             <span data-testid="prize-total-count" className="text-sm text-muted whitespace-nowrap">
               全{totalCount.toLocaleString()}件
@@ -304,18 +333,33 @@ export default function AdminPrizeMasterPage() {
         )}
         <div data-testid="prize-list">
           <table className="w-full text-sm border-collapse">
+            {/* SPEC-LIST-FILTER-SORT-01-fix-01: 既存 SortTh を共通 SortableTableHeader に置換。
+                sortCol/sortAsc を sortKey/sortDir にマップし、ソートは server-side (既存 query) 維持。
+                spec sort_columns: prize_name, supplier_name, original_cost, registered_at, phase。
+                'カテゴリ' / 'ST' は非ソート列のため pointer-events-none + __NOSORT__ key で除外。 */}
             <thead className="sticky top-0 bg-bg z-10">
-              <tr className="border-b border-border">
-                <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>
-                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">ST</th>
-                <SortTh col="original_cost"     label="原価"     align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">取引先</th>
-                <SortTh col="latest_order_date" label="最終発注" align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-              </tr>
+              <SortableTableHeader
+                variant="tr"
+                columns={[
+                  { key: 'prize_name',        label: '景品名',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
+                  { key: '__category__',      label: 'カテゴリ', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
+                  // SPEC-PHASE-LABEL-FIX-01: 旧 'ST' (status 列) を 'ステータス' (phase 列) に再定義。
+                  { key: '__phase_badge__',   label: 'ステータス', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
+                  { key: 'original_cost',     label: '原価',    className: 'py-1 px-2 whitespace-nowrap text-right text-muted' },
+                  { key: 'supplier_name',     label: '取引先',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
+                  { key: 'latest_order_date', label: '最終発注', className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
+                ]}
+                sortKey={sortCol}
+                sortDir={sortAsc ? 'asc' : 'desc'}
+                onSort={(k) => { if (k && !k.startsWith('__')) handleSort(k) }}
+                className="border-b border-border"
+              />
             </thead>
             <tbody>
-              {rows.map(r => {
+              {rows.filter(r =>
+                (!supplierFilter || r.supplier_name === supplierFilter) &&
+                (!phaseFilter    || r.phase         === phaseFilter)
+              ).map(r => {
                 const a0 = alias0(r.aliases)
                 const ge = gridEdits[r.prize_id]
                 return (
@@ -328,19 +372,45 @@ export default function AdminPrizeMasterPage() {
                     <td className="py-0.5 px-1 max-w-[220px]">
                       {gridMode
                         ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
-                        : <><div className="truncate text-text font-medium">{r.prize_name}</div>{a0 && <div className="truncate text-sm text-gray-400">{a0}</div>}</>}
+                        : (
+                          // SPEC-ARRIVAL-UX-01: 景品名タップで PrizeDetailDialog 起動 (gridMode のときは
+                          // 既存の cell 編集動線を優先するため button 化しない)。
+                          <>
+                            <button
+                              type="button"
+                              onClick={(ev) => { ev.stopPropagation(); setDetailRow(r) }}
+                              data-testid={`prize-master-name-${r.prize_id}`}
+                              className="truncate text-text font-medium text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer w-full"
+                            >
+                              {r.prize_name}
+                            </button>
+                            {a0 && <div className="truncate text-sm text-gray-400">{a0}</div>}
+                          </>
+                        )}
                     </td>
                     <td className="py-0.5 px-1 text-muted">
                       {gridMode
                         ? <input value={ge?.category ?? r.category ?? ''} onChange={ev => setGCell(r.prize_id, 'category', ev.target.value)} className={gridCellCls} />
                         : r.category}
                     </td>
+                    {/* SPEC-PHASE-LABEL-FIX-01: 'ステータス' 列は phase を日本語バッジで表示、
+                        grid 編集モードでは phase を編集 (status 列は DB 保持のまま、本列の対象外)。 */}
                     <td className="py-0.5 px-1">
                       {gridMode
-                        ? <select value={ge?.status ?? r.status ?? 'active'} onChange={ev => setGCell(r.prize_id, 'status', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]">
-                            {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
+                        ? <select
+                            data-testid={`prize-phase-select-${r.prize_id}`}
+                            value={ge?.phase ?? r.phase ?? 'active'}
+                            onChange={ev => setGCell(r.prize_id, 'phase', ev.target.value)}
+                            className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]"
+                          >
+                            {PHASE_EDIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
-                        : <span className={`px-1 py-0.5 rounded text-xs font-bold ${r.status === 'active' ? 'bg-green-600 text-white' : r.status === 'inactive' ? 'bg-gray-600 text-gray-300' : 'bg-amber-600 text-white'}`}>{r.status}</span>}
+                        : <span
+                            data-testid={`prize-phase-badge-${r.prize_id}`}
+                            className={`px-1 py-0.5 rounded text-xs font-bold ${getPhaseBadgeClass(r.phase)}`}
+                          >
+                            {getPhaseLabel(r.phase)}
+                          </span>}
                     </td>
                     <td className="py-0.5 px-1 text-right text-muted">
                       {gridMode
@@ -448,11 +518,17 @@ export default function AdminPrizeMasterPage() {
               </button>
               {showMore && (
                 <div className="flex flex-col gap-3">
-                  <Field label="ステータス">
-                    <FSelect value={form.status} onChange={v => f({ status: v })} options={STATUS_VALUES} />
-                  </Field>
+                  {/* SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: ステータス フィールドは撤廃 (phase に統一)。 */}
+                  {/* SPEC-PHASE-LABEL-FIX-01: モーダル編集も実在 phase 値 + 日本語ラベル。
+                      'ALL' option は不要、編集には常に値を選ぶため PHASE_EDIT_OPTIONS を直接 render。 */}
                   <Field label="フェーズ">
-                    <FSelect value={form.phase} onChange={v => f({ phase: v })} options={PHASE_VALUES} />
+                    <select
+                      value={form.phase ?? 'active'}
+                      onChange={e => f({ phase: e.target.value })}
+                      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
+                    >
+                      {PHASE_EDIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
                   </Field>
                   <Field label="シリーズ">
                     <Input value={form.series} onChange={v => f({ series: v })} placeholder="シリーズ" />
@@ -511,6 +587,11 @@ export default function AdminPrizeMasterPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog */}
+      {detailRow && (
+        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
       )}
     </div>
   )

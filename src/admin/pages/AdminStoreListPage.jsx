@@ -6,6 +6,13 @@ import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { writeAuditLog } from '../../services/audit'
 import { logger } from '../../lib/logger'
 import StoreCrudDrawer from '../components/StoreCrudDrawer'
+// SPEC-LIST-FILTER-SORT-01-fix-02: 共通 filter dropdown bar + sortable header + ソート hook。
+// store_type 列が stores に存在 (db_facts: donki_tenant/other/external/donki) を確認し、
+// 種別フィルタは store_type で正実装。サーバーソートは廃止し、全件 fetch 後 client-side
+// useListSort で SortableTableHeader 適用 (49 行以下なので性能問題なし)。
+import ListFilterBar from '../../components/ListFilterBar'
+import SortableTableHeader from '../../components/SortableTableHeader'
+import { useListSort } from '../../hooks/useListSort'
 
 // T2d-AdminStoreListPage-bugfix-refactor:
 // - bugfix: .single() → .maybeSingle() で「Cannot coerce to single JSON」を解消
@@ -79,7 +86,10 @@ export default function AdminStoreListPage() {
   const [brandFilter, setBrandFilter] = useState('')
   const [brands, setBrands]         = useState([])
   const [kanaFilter, setKanaFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('store_name')
+  // SPEC-LIST-FILTER-SORT-01-fix-02: server-side sortKey state 廃止 (サーバーソート廃止)、
+  // useListSort で client-side sort に統一。store_type フィルタを追加 (brand_name 代用は撤去)。
+  const [storeTypeFilter, setStoreTypeFilter] = useState('')
+  const { sortKey, sortDir, onSort, sorted } = useListSort({ sortKey: 'store_name', sortDir: 'asc' })
   const [modal, setModal]           = useState(null)
   const [form, setForm]             = useState(EMPTY_FORM)
   const [saving, setSaving]         = useState(false)
@@ -103,10 +113,9 @@ export default function AdminStoreListPage() {
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
+    // SPEC-LIST-FILTER-SORT-01-fix-02: サーバーソート廃止 (.order() 呼び出しなし)、
+    // client-side useListSort で render 直前に sorted() を適用する。
     let q = supabase.from('stores').select(LIST_SELECT)
-    if (sortKey === 'store_name') q = q.order('store_name')
-    else if (sortKey === 'created_at') q = q.order('created_at', { ascending: false, nullsLast: true })
-    else if (sortKey === 'locality_kana') q = q.order('locality_kana', { ascending: true, nullsLast: true })
     if (search.trim()) {
       const s = search.trim()
       q = q.or(`store_name.ilike.%${s}%,locality.ilike.%${s}%`)
@@ -137,7 +146,7 @@ export default function AdminStoreListPage() {
       }
     }
     setLoading(false)
-  }, [search, activeOnly, brandFilter, kanaFilter, sortKey, loadKey])
+  }, [search, activeOnly, brandFilter, kanaFilter, loadKey])
 
   useEffect(() => { fetchRows() }, [fetchRows])
 
@@ -378,6 +387,33 @@ export default function AdminStoreListPage() {
         >+ 新規追加</button>
       </div>
 
+      {/* SPEC-LIST-FILTER-SORT-01-fix-02: 共通 ListFilterBar (種別=store_type 正実装、active toggle 連動)。
+          stores.store_type 列が確認済 (db_facts: donki_tenant/other/external/donki)、
+          fix-01 の brand_name 代用は撤去。 */}
+      <ListFilterBar
+        filters={[
+          { key: 'store_type', label: '種別',
+            options: [
+              { value: '',             label: '全て' },
+              { value: 'donki_tenant', label: 'donkiテナント' },
+              { value: 'donki',        label: 'donki' },
+              { value: 'external',     label: 'external' },
+              { value: 'other',        label: 'other' },
+            ] },
+          { key: 'active', label: '状態',
+            options: [
+              { value: 'all',    label: '全て' },
+              { value: 'active', label: '有効のみ' },
+            ] },
+        ]}
+        values={{ store_type: storeTypeFilter, active: activeOnly ? 'active' : 'all' }}
+        onChange={(k, v) => {
+          if (k === 'store_type') setStoreTypeFilter(v)
+          if (k === 'active')     setActiveOnly(v === 'active')
+        }}
+        onReset={() => { setStoreTypeFilter(''); setActiveOnly(false) }}
+      />
+
       {/* search / brand / active / sort / view */}
       <div className="flex-shrink-0 p-3 pb-2 flex flex-wrap gap-2 items-center border-b border-border">
         <input
@@ -396,16 +432,8 @@ export default function AdminStoreListPage() {
           <option value="">ブランド全て</option>
           {brands.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
-        <select
-          data-testid="store-sort"
-          value={sortKey}
-          onChange={e => setSortKey(e.target.value)}
-          className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
-        >
-          <option value="store_name">名前順</option>
-          <option value="created_at">作成新しい順</option>
-          <option value="locality_kana">市区町村カナ順</option>
-        </select>
+        {/* SPEC-LIST-FILTER-SORT-01-fix-02: 旧 server-side sort select は廃止、
+            SortableTableHeader でクリックソートに統一。 */}
         <label className="flex items-center gap-1.5 text-sm text-muted cursor-pointer select-none">
           <input
             type="checkbox"
@@ -446,13 +474,19 @@ export default function AdminStoreListPage() {
       )}
 
       <div className="flex-1 overflow-auto min-h-0">
+        {(() => {
+        // SPEC-LIST-FILTER-SORT-01-fix-02: store_type 絞込 + useListSort.sorted() 適用。
+        const displayRows = sorted(
+          rows.filter(r => !storeTypeFilter || r.store_type === storeTypeFilter)
+        )
+        return (<>
         {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
-        {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
+        {!loading && displayRows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
         {error && !modal && <p data-testid="store-error" className="text-red-400 text-sm px-3 py-2">{error}</p>}
 
-        {!loading && rows.length > 0 && view === 'card' && (
+        {!loading && displayRows.length > 0 && view === 'card' && (
           <ul className="px-3 py-2 space-y-2">
-            {rows.map(r => (
+            {displayRows.map(r => (
               <li
                 key={r.store_code}
                 data-testid="store-list-row"
@@ -480,21 +514,32 @@ export default function AdminStoreListPage() {
           </ul>
         )}
 
-        {!loading && rows.length > 0 && view === 'grid' && (
+        {!loading && displayRows.length > 0 && view === 'grid' && (
           <table data-testid="store-list-table" className="w-full text-sm border-collapse">
+            {/* SPEC-LIST-FILTER-SORT-01-fix-02: 静的 thead を SortableTableHeader に置換。
+                spec sort_columns: [store_name, brand_name, store_type, region, is_active]。
+                既存 grid 列構成 (店舗名/コード/外部ID/住所/電話/ブランド/ST) のうち、
+                spec 該当列のみクリックソート可、その他は __* prefix で非ソート。 */}
             <thead className="sticky top-0 bg-bg z-10">
-              <tr className="border-b border-border">
-                <th className="py-1 px-2 text-left text-muted">店舗名</th>
-                <th className="py-1 px-2 text-left text-muted">コード</th>
-                <th className="py-1 px-2 text-left text-muted">外部ID</th>
-                <th className="py-1 px-2 text-left text-muted hidden md:table-cell">住所</th>
-                <th className="py-1 px-2 text-left text-muted hidden md:table-cell">電話</th>
-                <th className="py-1 px-2 text-left text-muted hidden md:table-cell">ブランド</th>
-                <th className="py-1 px-2 text-left text-muted">ST</th>
-              </tr>
+              <SortableTableHeader
+                variant="tr"
+                columns={[
+                  { key: 'store_name',  label: '店舗名',  className: 'py-1 px-2 text-left text-muted' },
+                  { key: '__code__',    label: 'コード',  className: 'py-1 px-2 text-left text-muted pointer-events-none' },
+                  { key: '__id__',      label: '外部ID',  className: 'py-1 px-2 text-left text-muted pointer-events-none' },
+                  { key: '__address__', label: '住所',    className: 'py-1 px-2 text-left text-muted hidden md:table-cell pointer-events-none' },
+                  { key: '__phone__',   label: '電話',    className: 'py-1 px-2 text-left text-muted hidden md:table-cell pointer-events-none' },
+                  { key: 'brand_name',  label: 'ブランド', className: 'py-1 px-2 text-left text-muted hidden md:table-cell' },
+                  { key: 'is_active',   label: 'ST',     className: 'py-1 px-2 text-left text-muted' },
+                ]}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={(k) => { if (k && !k.startsWith('__')) onSort(k) }}
+                className="border-b border-border"
+              />
             </thead>
             <tbody>
-              {rows.map(r => {
+              {displayRows.map(r => {
                 const ge = gridEdits[r.store_code]
                 return (
                   <tr
@@ -529,6 +574,8 @@ export default function AdminStoreListPage() {
             </tbody>
           </table>
         )}
+        </>)
+        })()}
       </div>
 
       {/* edit/new modal */}

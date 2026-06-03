@@ -400,9 +400,10 @@ function AppInner() {
       <Route path="/stock/move" element={<ManagerRoute><StockMove /></ManagerRoute>} />
       <Route path="/stock/out"     element={<ProtectedRoute><StockOutPage /></ProtectedRoute>} />
       <Route path="/stock/arrival" element={<ProtectedRoute><ArrivalCheckPage /></ProtectedRoute>} />
-      {/* J-STOCK-NAVIGATION-REDESIGN-01: /stock/stocktake は /stock にリダイレクト (backward-compat、
-          Launcher が /stock/stocktake のままでも安全) */}
-      <Route path="/stock/stocktake" element={<Navigate to="/stock" replace />} />
+      {/* SPEC-STOCK-LAUNCHER-REDIRECT-02: 旧 Navigate to=/stock は Launcher 由来の /stock/stocktake
+          を踏むと /stock へ戻るループ + URL バー揺れの原因。StocktakeTargetPage を直接 mount して
+          /stock/stocktake と /stock で同 page を render (両 URL が同等扱い)。 */}
+      <Route path="/stock/stocktake" element={<ProtectedRoute><StocktakeTargetPage /></ProtectedRoute>} />
       <Route path="/stock/stocktake/session" element={<ProtectedRoute><StocktakeSessionPage /></ProtectedRoute>} />
       <Route path="/stock/orders" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
       {/* J-STOCK-OCR-COUNT-TEST-01: 棚卸 OCR カウントテスト (temp、DB なし) */}

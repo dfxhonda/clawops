@@ -52,7 +52,7 @@ export async function bulkInsertMeterReadings({ validatedRows, staffId }) {
   }
 
   const dates = [...new Set(payload.map(r => r.patrol_date))].sort()
-  await supabase.from('audit_logs').insert({
+  await supabase.from('operation_logs').insert({
     action:          'bulk_import',
     target_table:    'meter_readings',
     target_id:       null,

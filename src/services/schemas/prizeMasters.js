@@ -13,7 +13,8 @@ export const PrizeMasterRowSchema = z.object({
   supplier_id:            z.string().nullable(),
   supplier_name:          z.string().nullable(),
   default_case_quantity:  z.number().nullable(),
-  status:                 z.enum(['active', 'inactive']),
+  // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status を撤廃、phase に統一
+  phase:                  z.enum(['active', 'provisional', 'yobigun', 'dead']).nullable().optional(),
   notes:                  z.string().nullable(),
   image_url:              z.string().nullable(),
   organization_id:        z.string(),

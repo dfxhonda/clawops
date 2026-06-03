@@ -63,7 +63,7 @@ beforeEach(async () => {
   }
 
   mockSupabase = createMockSupabase({
-    audit_logs: testLogs.map(l => ({ ...l })),
+    operation_logs: testLogs.map(l => ({ ...l })),
     staff_public: [
       { staff_id: 'STAFF01', name: 'テスト太郎', is_active: true },
       { staff_id: 'STAFF02', name: 'テスト花子', is_active: true },

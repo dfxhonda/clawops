@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useArrivalOrders } from '../../hooks/useArrivalOrders'
 import { supabase } from '../../lib/supabase'
 import ArrivalReceiveSheet from '../components/ArrivalReceiveSheet'
 import DateTime from '../../shared/ui/DateTime'
+// SPEC-LIST-FILTER-SORT-01: 共通 filter bar + sortable header + ソート hook。
+import ListFilterBar from '../../components/ListFilterBar'
+import SortableTableHeader from '../../components/SortableTableHeader'
+import { useListSort } from '../../hooks/useListSort'
+// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
+import PrizeDetailDialog from '../../components/PrizeDetailDialog'
 
 // J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
 const ARRIVAL_CHECK_ENABLED = true
@@ -33,11 +39,37 @@ export default function ArrivalCheckPage() {
   const locationId  = isWarehouse ? ownerId : null
 
   const [lane, setLane]             = useState('upcoming')
-  const [textFilter, setTextFilter] = useState('')
+  // SPEC-ARRIVAL-UX-01 fix_1: 旧「入庫先で絞り込み...」textFilter UI 廃止。
+  // useArrivalOrders は textFilter を依然受け取るため空文字で固定 (シグネチャ維持)。
+  const textFilter = ''
+  // SPEC-ARRIVAL-UX-01 fix_2: 景品名タップで開く詳細 dialog の対象 row state。
+  const [detailRow, setDetailRow]   = useState(null)
+  // SPEC-LIST-FILTER-SORT-01: destination dropdown (現 lane の distinct から構築、'all' で全件)。
+  const [destFilter, setDestFilter] = useState('all')
   const [selected, setSelected]     = useState(null)
   const [ownerName, setOwnerName]   = useState('')
 
   const { lanes, loading, reload }  = useArrivalOrders(locationId, textFilter)
+
+  // SPEC-LIST-FILTER-SORT-01: 列ソート。lane ごとに display 直前で sorted() を適用。
+  const { sortKey, sortDir, onSort, sorted } = useListSort()
+
+  // 現 lane の distinct destination (FilterBar dropdown 用)。
+  const distinctDestinations = useMemo(() => {
+    const set = new Set()
+    for (const o of (lanes?.[lane] ?? [])) {
+      if (o.destination) set.add(o.destination)
+    }
+    return Array.from(set).sort()
+  }, [lanes, lane])
+
+  // 表示 list = lane data → destFilter で絞込 → ソート。
+  const visible = useMemo(() => {
+    const base = (lanes?.[lane] ?? []).filter(o =>
+      destFilter === 'all' || o.destination === destFilter
+    )
+    return sorted(base)
+  }, [lanes, lane, destFilter, sorted])
 
   // ヘッダ用に拠点名/担当名を fetch
   useEffect(() => {
@@ -100,16 +132,22 @@ export default function ArrivalCheckPage() {
         </div>
       )}
 
-      {/* destination filter (拠点絞りと併用可能、入庫先 ilike) */}
-      <div className="px-4 pt-3 pb-2 shrink-0">
-        <input
-          type="text"
-          placeholder="入庫先で絞り込み..."
-          value={textFilter}
-          onChange={e => setTextFilter(e.target.value)}
-          className="w-full px-3 py-2 rounded-xl border border-border bg-surface text-text text-sm outline-none"
-        />
-      </div>
+      {/* SPEC-ARRIVAL-UX-01 fix_1: 旧「入庫先で絞り込み...」テキスト box 削除 (拠点 DD で代替済)。 */}
+
+      {/* SPEC-LIST-FILTER-SORT-01: 共通 ListFilterBar (現 lane の distinct から作成)。 */}
+      <ListFilterBar
+        filters={[{
+          key: 'destination',
+          label: '拠点',
+          options: [
+            { value: 'all', label: '全て' },
+            ...distinctDestinations.map(d => ({ value: d, label: d })),
+          ],
+        }]}
+        values={{ destination: destFilter }}
+        onChange={(_k, v) => setDestFilter(v)}
+        onReset={() => setDestFilter('all')}
+      />
 
       {/* lane tabs */}
       <div className="flex px-4 gap-1 pb-2 shrink-0">
@@ -134,20 +172,37 @@ export default function ArrivalCheckPage() {
         })}
       </div>
 
+      {/* SPEC-LIST-FILTER-SORT-01: sortable header (div variant、card list 上部 strip)。 */}
+      <SortableTableHeader
+        variant="div"
+        columns={[
+          { key: 'expected_date',    label: '予定',   className: 'w-[22%]' },
+          { key: 'prize_name_raw',   label: '景品',   className: 'flex-1' },
+          { key: 'destination',      label: '拠点',   className: 'w-[22%]' },
+          { key: 'case_count',       label: 'ケース', className: 'w-[14%]' },
+        ]}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={onSort}
+        className="px-2 text-xs text-muted bg-surface border-b border-border shrink-0"
+        cellClassName="text-xs"
+      />
+
       {/* order list */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6 space-y-2">
         {loading && (
           <p className="text-muted text-center py-8 text-sm">読み込み中...</p>
         )}
-        {!loading && lanes[lane].length === 0 && (
+        {!loading && visible.length === 0 && (
           <p className="text-muted text-center py-8 text-sm">{currentLane?.emptyMsg}</p>
         )}
-        {!loading && lanes[lane].map(order => (
+        {!loading && visible.map(order => (
           <OrderCard
             key={order.order_id}
             order={order}
             showReceiveBtn={lane !== 'recent'}
             onReceive={() => setSelected(order)}
+            onTapName={() => setDetailRow(order)}
           />
         ))}
       </div>
@@ -159,11 +214,16 @@ export default function ArrivalCheckPage() {
           onCancel={() => setSelected(null)}
         />
       )}
+
+      {/* SPEC-ARRIVAL-UX-01 fix_2: 景品名タップで開く詳細 dialog */}
+      {detailRow && (
+        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
+      )}
     </div>
   )
 }
 
-function OrderCard({ order, showReceiveBtn, onReceive }) {
+function OrderCard({ order, showReceiveBtn, onReceive, onTapName }) {
   const alreadyReceived = order.received_quantity ?? 0
   const remaining       = (order.case_count ?? 0) - alreadyReceived
   const isPartial       = order.status === 'partial'
@@ -177,9 +237,15 @@ function OrderCard({ order, showReceiveBtn, onReceive }) {
     }`}>
       <div className="flex items-start gap-2 justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-text text-sm font-medium line-clamp-2">
+          {/* SPEC-ARRIVAL-UX-01 fix_2: 景品名タップで PrizeDetailDialog 起動 */}
+          <button
+            type="button"
+            onClick={onTapName}
+            data-testid={`arrival-prize-name-${order.order_id}`}
+            className="text-text text-sm font-medium line-clamp-2 text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer"
+          >
             {order.prize_name_short || order.prize_name_raw || '（景品未設定）'}
-          </p>
+          </button>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted">
             {order.supplier_id && <span>{order.supplier_id}</span>}
             {order.destination && <span>{order.destination}</span>}

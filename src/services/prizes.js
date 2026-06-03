@@ -20,7 +20,8 @@ export async function getPrizeMasters() {
   const { data, error } = await supabase
     .from('prize_masters')
     .select('prize_id, prize_name, original_cost, category')
-    .eq('status', 'active')
+    // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status='active' → phase!='dead' (廃番のみ除外)
+    .neq('phase', 'dead')
     .order('prize_name')
   if (error) { console.error('prize_masters取得エラー:', error.message); return [] }
   const _prizesParsed = PrizeMasterSearchSchema.safeParse(data ?? [])
@@ -38,7 +39,8 @@ export async function getPrizes() {
     prize_id: r.prize_id, prize_name: r.prize_name, jan_code: r.jan_code || '',
     unit_cost: String(r.original_cost || '0'),
     supplier_name: supName(r.supplier_id), supplier_id: r.supplier_id || '',
-    supplier_contact: '', is_active: r.status === 'active' ? 'TRUE' : 'FALSE',
+    // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 廃止、phase!='dead' を「稼働中」と判定
+    supplier_contact: '', is_active: r.phase !== 'dead' ? 'TRUE' : 'FALSE',
     created_at: r.created_at || '', updated_at: r.updated_at || '',
     image_url: r.image_url || null,
     short_name: r.short_name || r.prize_name || '', item_size: r.size || '', category: r.category || '',
@@ -64,7 +66,8 @@ export async function addPrize(p) {
     category: p.category || null,
     size: p.item_size || null,
     default_case_quantity: parseInt(p.pieces_per_case) || null,
-    status: p.is_active === 'FALSE' ? 'inactive' : 'active',
+    // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列廃止、phase で表現
+    phase: p.is_active === 'FALSE' ? 'dead' : 'active',
     notes: p.notes || null,
     organization_id: DFX_ORG_ID,
   }).select().single()

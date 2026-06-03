@@ -90,7 +90,7 @@ export async function deleteMeterReading({ readingId, lockTimestamp, before, sta
 }
 
 export async function insertAuditLog({ action, targetId, before, after, staffId, boothCode }) {
-  await supabase.from('audit_logs').insert({
+  await supabase.from('operation_logs').insert({
     action,
     target_table: 'meter_readings',
     target_id: targetId,

@@ -161,7 +161,7 @@ export default function AdminImportHubPage() {
                   <table className="w-full text-sm border-collapse">
                     <thead className="bg-bg sticky top-0">
                       <tr>
-                        {['商品名', '店舗', 'ケース数', '単価', '出荷予定', '状態'].map(h => (
+                        {['商品名', '店舗', 'ケース数', '単価', '出荷予定', '状態', 'マスタ登録'].map(h => (
                           <th key={h} className="border border-border px-2 py-1 text-left text-muted font-normal">{h}</th>
                         ))}
                       </tr>
@@ -178,6 +178,14 @@ export default function AdminImportHubPage() {
                             <td className="border border-border px-2 py-1 text-right">{r.unitCost ?? ''}</td>
                             <td className="border border-border px-2 py-1">{r.expectedDate ?? ''}</td>
                             <td className={`border border-border px-2 py-1 font-bold ${s.cls}`}>{s.label}</td>
+                            {/* SPEC-PCH-PRIZE-MASTER-LINK-01: マスタ登録列 (insert 行のみ意味あり) */}
+                            <td className="border border-border px-2 py-1 text-xs">
+                              {r.state === 'insert'
+                                ? (r.existingPrizeId
+                                    ? <span className="text-muted font-mono" data-testid="prize-master-linked">{r.existingPrizeId}</span>
+                                    : <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold" data-testid="prize-master-new">新規登録</span>)
+                                : <span className="text-muted/40">—</span>}
+                            </td>
                           </tr>
                         )
                       })}

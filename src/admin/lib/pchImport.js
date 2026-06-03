@@ -16,6 +16,24 @@ export const SUPPLIER_ID = 'PCH'
 export const ORDER_SOURCE = 'pch_excel'
 export const MANUAL_MARKER = '__MANUAL__'
 
+// SPEC-PCH-PRIZE-MASTER-LINK-01: 新規 prize_masters 登録用の固定値
+export const SUPPLIER_NAME = 'ピーチトイ'
+export const PRIZE_MASTER_ORG_ID = '01cf7a5e-6971-4ae1-918d-8e5981780a95'
+export const PRIZE_MASTER_NEW_PHASE = 'yobigun'
+export const PRIZE_MASTER_REG_BY = 'pch_import'
+export const PRIZE_ID_PREFIX = 'PZ-'
+export const PRIZE_ID_PAD = 5
+
+// PZ-NNNNN → 数値 / 不正は null
+export function parsePrizeIdSeq(prizeId) {
+  const m = String(prizeId ?? '').match(/^PZ-(\d+)$/)
+  return m ? parseInt(m[1], 10) : null
+}
+// 数値 → PZ-00001 形式
+export function formatPrizeId(seq) {
+  return PRIZE_ID_PREFIX + String(seq).padStart(PRIZE_ID_PAD, '0')
+}
+
 // PCH配分略号/正式名 → SGP destination同体系の地名 (J-ARRIVALの店舗別フィルタが効く)
 export const STORE_NORMALIZATION = {
   田: '田淵', 田隈: '田淵', 田淵: '田淵',
@@ -285,11 +303,76 @@ export function reconcile(currentRecords, existingRows) {
   return { records: out, summary }
 }
 
+// ---- SPEC-PCH-PRIZE-MASTER-LINK-01: prize_masters auto-link / auto-register ----
+
+// preview 用 bulk lookup: 重複排除した name 配列 → name→prize_id Map
+export async function lookupExistingPrizeMasterIds(distinctNames) {
+  const names = Array.from(new Set((distinctNames ?? []).filter(n => n != null && n !== '')))
+  if (names.length === 0) return new Map()
+  const { data, error } = await supabase
+    .from('prize_masters')
+    .select('prize_id, prize_name')
+    .in('prize_name', names)
+  if (error) throw new Error('prize_masters lookup 失敗: ' + error.message)
+  const map = new Map()
+  for (const r of data ?? []) {
+    if (!map.has(r.prize_name)) map.set(r.prize_name, r.prize_id)
+  }
+  return map
+}
+
+// 最大 PZ-NNNNN シーケンス取得 (新規登録時の起点)
+export async function fetchMaxPrizeIdSeq() {
+  const { data, error } = await supabase
+    .from('prize_masters')
+    .select('prize_id')
+    .ilike('prize_id', `${PRIZE_ID_PREFIX}%`)
+    .order('prize_id', { ascending: false })
+    .limit(1)
+  if (error) throw new Error('prize_masters max prize_id 取得失敗: ' + error.message)
+  const row = (data ?? [])[0]
+  return row ? (parsePrizeIdSeq(row.prize_id) ?? 0) : 0
+}
+
+// 1 名前 → prize_id 確定。cache → DB lookup → DB insert の順。
+// ctx: { cache: Map<name, prizeId>, nextSeq: { value: number } }
+export async function ensurePrizeMaster(name, unitCost, ctx) {
+  if (!name) return { prizeId: null, isNew: false }
+  if (ctx.cache.has(name)) return { prizeId: ctx.cache.get(name), isNew: false }
+  const { data, error } = await supabase
+    .from('prize_masters')
+    .select('prize_id')
+    .eq('prize_name', name)
+    .maybeSingle()
+  if (error) throw new Error('prize_masters 個別 lookup 失敗: ' + error.message)
+  if (data?.prize_id) {
+    ctx.cache.set(name, data.prize_id)
+    return { prizeId: data.prize_id, isNew: false }
+  }
+  ctx.nextSeq.value += 1
+  const newPrizeId = formatPrizeId(ctx.nextSeq.value)
+  const { error: insErr } = await supabase.from('prize_masters').insert({
+    prize_id: newPrizeId,
+    prize_name: name,
+    supplier_id: SUPPLIER_ID,
+    supplier_name: SUPPLIER_NAME,
+    original_cost: unitCost ?? null,
+    phase: PRIZE_MASTER_NEW_PHASE,
+    organization_id: PRIZE_MASTER_ORG_ID,
+    registered_by: PRIZE_MASTER_REG_BY,
+  })
+  if (insErr) throw new Error(`prize_masters INSERT 失敗 (${newPrizeId}): ${insErr.message}`)
+  ctx.cache.set(name, newPrizeId)
+  return { prizeId: newPrizeId, isNew: true }
+}
+
 function buildInsertRow(rec, staffId, sourceFile) {
   const rowCases = rec.rowCaseCount || rec.caseCount
   return {
     order_id: crypto.randomUUID(),
     prize_name_raw: rec.prizeNameRaw,
+    // SPEC-PCH-PRIZE-MASTER-LINK-01: 取込前に ensurePrizeMaster 済 → rec.prizeId 充填
+    prize_id: rec.prizeId ?? null,
     supplier_id: SUPPLIER_ID,
     order_source: ORDER_SOURCE,
     order_date: ymd(rec.year, rec.sheetMonth, 1),
@@ -321,10 +404,31 @@ function buildInsertRow(rec, staffId, sourceFile) {
 // ---- 実行: INSERT(新規) / UPDATE(変更) / cancel(消失)。conflict/skip/shippingはDB非書込 ----
 export async function executePchImport(reconciled, { staffId, sourceFile } = {}) {
   const recs = reconciled.records ?? []
-  const inserts = recs.filter(r => r.state === 'insert').map(r => buildInsertRow(r, staffId, sourceFile))
+  const insertRecs = recs.filter(r => r.state === 'insert')
   const updates = recs.filter(r => r.state === 'update')
   const cancels = recs.filter(r => r.state === 'cancel')
   const now = new Date().toISOString()
+
+  // SPEC-PCH-PRIZE-MASTER-LINK-01: 取込前に prize_masters を確定
+  // preview 時の lookup 結果 (existingPrizeId) をキャッシュ初期値に詰めて DB 再問い合わせを最小化
+  const cache = new Map()
+  for (const r of insertRecs) {
+    if (r.prizeNameRaw && r.existingPrizeId) cache.set(r.prizeNameRaw, r.existingPrizeId)
+  }
+  const maxSeq = await fetchMaxPrizeIdSeq()
+  const ctx = { cache, nextSeq: { value: maxSeq } }
+  let prizeMastersNew = 0
+  try {
+    for (const r of insertRecs) {
+      const { prizeId, isNew } = await ensurePrizeMaster(r.prizeNameRaw, r.unitCost, ctx)
+      r.prizeId = prizeId
+      if (isNew) prizeMastersNew += 1
+    }
+  } catch (e) {
+    return { ok: false, errCode: ERR.IMPORT_003, message: 'prize_masters 確定失敗: ' + (e?.message ?? '') }
+  }
+
+  const inserts = insertRecs.map(r => buildInsertRow(r, staffId, sourceFile))
 
   try {
     if (inserts.length) {
@@ -350,11 +454,11 @@ export async function executePchImport(reconciled, { staffId, sourceFile } = {})
     writeAuditLog({
       action: 'pch_excel_import',
       target_table: 'prize_orders',
-      detail: `PCH取込 ${sourceFile ?? ''}: insert=${inserts.length} update=${updates.length} cancel=${cancels.length}`,
+      detail: `PCH取込 ${sourceFile ?? ''}: insert=${inserts.length} update=${updates.length} cancel=${cancels.length} prizeMastersNew=${prizeMastersNew}`,
       staff_id: staffId,
-      after_data: { inserted: inserts.length, updated: updates.length, cancelled: cancels.length },
+      after_data: { inserted: inserts.length, updated: updates.length, cancelled: cancels.length, prize_masters_new: prizeMastersNew },
     })
-    return { ok: true, inserted: inserts.length, updated: updates.length, cancelled: cancels.length }
+    return { ok: true, inserted: inserts.length, updated: updates.length, cancelled: cancels.length, prizeMastersNew }
   } catch (e) {
     return { ok: false, errCode: ERR.IMPORT_003, message: e?.message ?? '取込エラー' }
   }
@@ -371,5 +475,21 @@ export async function previewPchImport(file) {
   // result.records は state付き(reconcile済)。生の explode records(state無し)で上書きしないこと。
   // 以前 {...result, records} としていたため preview.records が state無しになり、
   // executePchImport の filter(state==='insert') が0件→「成功だが0件INSERT」バグ(2026-05-27修正)。
-  return { records: result.records, summary: result.summary, details, months }
+
+  // SPEC-PCH-PRIZE-MASTER-LINK-01: insert 行の name 群を bulk lookup → existingPrizeId 注釈
+  const insertNames = result.records
+    .filter(r => r.state === 'insert' && r.prizeNameRaw)
+    .map(r => r.prizeNameRaw)
+  const existingMap = await lookupExistingPrizeMasterIds(insertNames)
+  let pmExisting = 0
+  let pmNewPlanned = 0
+  for (const r of result.records) {
+    if (r.state !== 'insert') continue
+    const hit = existingMap.get(r.prizeNameRaw)
+    if (hit) { r.existingPrizeId = hit; pmExisting += 1 }
+    else { r.existingPrizeId = null; pmNewPlanned += 1 }
+  }
+  const prizeMastersSummary = { existing: pmExisting, newPlanned: pmNewPlanned }
+
+  return { records: result.records, summary: result.summary, details, months, prizeMastersSummary }
 }
