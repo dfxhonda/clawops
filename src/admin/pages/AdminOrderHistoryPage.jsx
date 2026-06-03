@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-const LIST_SELECT = 'order_id,order_date,expected_date,arrived_at,prize_name_raw,prize_name_short,supplier_id,case_count,case_quantity,unit_cost,case_cost,total_tax_included,shipping_cost,shipping_allocation,status,is_fully_received,received_quantity,received_by,destination,ordered_by,for_operator_id,notes,order_source,import_meta'
+// J-SCHEMA-DROP-FIX-01: for_operator_id 列は DB から削除済、SELECT から除外。
+const LIST_SELECT = 'order_id,order_date,expected_date,arrived_at,prize_name_raw,prize_name_short,supplier_id,case_count,case_quantity,unit_cost,case_cost,total_tax_included,shipping_cost,shipping_allocation,status,is_fully_received,received_quantity,received_by,destination,ordered_by,notes,order_source,import_meta'
 
 const STATUS_VALUES = ['ordered', 'arrived', 'cancelled']
 
@@ -215,7 +216,6 @@ export default function AdminOrderHistoryPage() {
               <ModalSection title="関係者・備考" items={[
                 ['納品先',           modal.destination],
                 ['発注者',           modal.ordered_by],
-                ['担当オペレーター', modal.for_operator_id],
                 ['受取者',           modal.received_by],
                 ['受取数量',         modal.received_quantity],
                 ['発注元',           modal.order_source],

@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const PrizeMasterRowSchema = z.object({
   prize_id:               z.string(),
   prize_name:             z.string(),
-  prize_name_kana:        z.string().nullable(),
+  // J-SCHEMA-DROP-FIX-01: prize_name_kana 列は DB から削除済、schema から除外。
   aliases:                z.string().nullable(),
   short_name:             z.string().nullable(),
   jan_code:               z.string().nullable(),
