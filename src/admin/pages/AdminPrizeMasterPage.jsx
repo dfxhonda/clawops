@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+// SPEC-LIST-FILTER-SORT-01-fix-01: 共通 filter dropdown bar + sortable header (canonical d0cf209)。
+import ListFilterBar from '../../components/ListFilterBar'
+import SortableTableHeader from '../../components/SortableTableHeader'
 
 const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
@@ -81,6 +84,9 @@ export default function AdminPrizeMasterPage() {
   const [search, setSearch]     = useState('')
   const [catFilter, setCat]     = useState('')
   const [stFilter, setSt]       = useState('')
+  // SPEC-LIST-FILTER-SORT-01-fix-01: 仕入先 + フェーズ ドロップダウン (client-side filter)。
+  const [supplierFilter, setSupplierFilter] = useState('')
+  const [phaseFilter, setPhaseFilter]       = useState('')
   const [modal, setModal]       = useState(null)
   const [form, setForm]         = useState(EMPTY_FORM)
   const [showMore, setShowMore] = useState(false)
@@ -239,6 +245,31 @@ export default function AdminPrizeMasterPage() {
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
+      {/* SPEC-LIST-FILTER-SORT-01-fix-01: 共通 ListFilterBar (仕入先 + フェーズ)、
+          既存 toolbar の検索 + カテゴリ + ステータスは保持 (異なる検索軸のため併用)。
+          supplier options は現在 fetch 済 rows から distinct で算出。 */}
+      <ListFilterBar
+        filters={[
+          { key: 'supplier_name', label: '仕入先',
+            options: [
+              { value: '', label: '全て' },
+              ...Array.from(new Set(rows.map(r => r.supplier_name).filter(Boolean))).sort()
+                .map(s => ({ value: s, label: s })),
+            ] },
+          { key: 'phase', label: 'フェーズ',
+            options: [
+              { value: '', label: '全て' },
+              ...PHASE_VALUES.map(p => ({ value: p, label: p })),
+            ] },
+        ]}
+        values={{ supplier_name: supplierFilter, phase: phaseFilter }}
+        onChange={(k, v) => {
+          if (k === 'supplier_name') setSupplierFilter(v)
+          if (k === 'phase')         setPhaseFilter(v)
+        }}
+        onReset={() => { setSupplierFilter(''); setPhaseFilter('') }}
+      />
+
       {/* toolbar */}
       <div className="flex-shrink-0 p-3 pb-2">
         <div className="flex flex-wrap gap-2 items-center">
@@ -304,18 +335,32 @@ export default function AdminPrizeMasterPage() {
         )}
         <div data-testid="prize-list">
           <table className="w-full text-sm border-collapse">
+            {/* SPEC-LIST-FILTER-SORT-01-fix-01: 既存 SortTh を共通 SortableTableHeader に置換。
+                sortCol/sortAsc を sortKey/sortDir にマップし、ソートは server-side (既存 query) 維持。
+                spec sort_columns: prize_name, supplier_name, original_cost, registered_at, phase。
+                'カテゴリ' / 'ST' は非ソート列のため pointer-events-none + __NOSORT__ key で除外。 */}
             <thead className="sticky top-0 bg-bg z-10">
-              <tr className="border-b border-border">
-                <SortTh col="prize_name"        label="景品名"   align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">カテゴリ</th>
-                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">ST</th>
-                <SortTh col="original_cost"     label="原価"     align="right" sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-                <th className="py-1 px-2 whitespace-nowrap text-left text-muted">取引先</th>
-                <SortTh col="latest_order_date" label="最終発注" align="left"  sortCol={sortCol} sortAsc={sortAsc} onSort={handleSort} />
-              </tr>
+              <SortableTableHeader
+                variant="tr"
+                columns={[
+                  { key: 'prize_name',        label: '景品名',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
+                  { key: '__category__',      label: 'カテゴリ', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
+                  { key: '__status__',        label: 'ST',     className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
+                  { key: 'original_cost',     label: '原価',    className: 'py-1 px-2 whitespace-nowrap text-right text-muted' },
+                  { key: 'supplier_name',     label: '取引先',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
+                  { key: 'latest_order_date', label: '最終発注', className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
+                ]}
+                sortKey={sortCol}
+                sortDir={sortAsc ? 'asc' : 'desc'}
+                onSort={(k) => { if (k && !k.startsWith('__')) handleSort(k) }}
+                className="border-b border-border"
+              />
             </thead>
             <tbody>
-              {rows.map(r => {
+              {rows.filter(r =>
+                (!supplierFilter || r.supplier_name === supplierFilter) &&
+                (!phaseFilter    || r.phase         === phaseFilter)
+              ).map(r => {
                 const a0 = alias0(r.aliases)
                 const ge = gridEdits[r.prize_id]
                 return (

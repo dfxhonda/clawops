@@ -6,6 +6,12 @@ import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import { writeAuditLog } from '../../services/audit'
 import { logger } from '../../lib/logger'
 import StoreCrudDrawer from '../components/StoreCrudDrawer'
+// SPEC-LIST-FILTER-SORT-01-fix-01: 共通 filter dropdown bar (canonical d0cf209)。
+// このページは stores テーブル管理 (location_type 列はなし) のため、spec の location_type filter
+// は brand_name で代用する (実質的な '種別' = ブランド、stores 内で意味のある分類軸)。
+// SortableTableHeader は useListSort/state 名重複 + 既存 server-side sort のため見送り、
+// 既存 sortKey dropdown を維持。implementation_notes 記載。
+import ListFilterBar from '../../components/ListFilterBar'
 
 // T2d-AdminStoreListPage-bugfix-refactor:
 // - bugfix: .single() → .maybeSingle() で「Cannot coerce to single JSON」を解消
@@ -377,6 +383,30 @@ export default function AdminStoreListPage() {
           className="bg-blue-600 text-white text-sm font-bold rounded px-3 min-h-[40px]"
         >+ 新規追加</button>
       </div>
+
+      {/* SPEC-LIST-FILTER-SORT-01-fix-01: 共通 ListFilterBar (種別=ブランド、active toggle 補完)。
+          location_type 列が stores に無いため brand_name を '種別' として代用。既存 brand select は
+          残置 (異なる視覚位置だが両方動作する、リセットリンクで一括クリア可)。 */}
+      <ListFilterBar
+        filters={[
+          { key: 'brand_name', label: '種別 (ブランド)',
+            options: [
+              { value: '', label: '全て' },
+              ...brands.map(b => ({ value: b, label: b })),
+            ] },
+          { key: 'active', label: '状態',
+            options: [
+              { value: 'all', label: '全て' },
+              { value: 'active', label: '有効のみ' },
+            ] },
+        ]}
+        values={{ brand_name: brandFilter, active: activeOnly ? 'active' : 'all' }}
+        onChange={(k, v) => {
+          if (k === 'brand_name') setBrandFilter(v)
+          if (k === 'active')     setActiveOnly(v === 'active')
+        }}
+        onReset={() => { setBrandFilter(''); setActiveOnly(false) }}
+      />
 
       {/* search / brand / active / sort / view */}
       <div className="flex-shrink-0 p-3 pb-2 flex flex-wrap gap-2 items-center border-b border-border">
