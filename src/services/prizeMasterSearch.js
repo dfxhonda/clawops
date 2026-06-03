@@ -21,7 +21,8 @@ export async function searchPrizeMasters(keyword) {
   const { data, error } = await supabase
     .from('prize_masters')
     .select('prize_id, prize_name, prize_name_kana, aliases, short_name, original_cost, latest_order_date')
-    .eq('status', 'active')
+    // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status='active' → phase!='dead' (廃番のみ除外)
+    .neq('phase', 'dead')
     .or(
       `prize_name.ilike.%${kw}%,` +
       `prize_name_kana.ilike.%${kw}%,` +

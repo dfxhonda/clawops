@@ -15,11 +15,12 @@ import {
   getPhaseBadgeClass,
 } from '../../constants/phaseLabels'
 
-const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
+// SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列を SELECT から外し、phase に統一。
+const LIST_SELECT = 'prize_id,prize_name,aliases,category,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
 const EDIT_SELECT = LIST_SELECT + ',short_name,prize_name_kana,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
 
-const STATUS_VALUES = ['active', 'inactive', 'unknown']
+// SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: STATUS_VALUES 撤廃、phase で表現 (PHASE_FILTER_OPTIONS 参照)。
 
 function alias0(val) {
   try { return JSON.parse(val)?.[0] ?? null } catch { return val || null }
@@ -48,18 +49,6 @@ function Input({ value, onChange, placeholder, type = 'text', required, classNam
   )
 }
 
-function FSelect({ value, onChange, options }) {
-  return (
-    <select
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value)}
-      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
-    >
-      <option value="">ALL</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
-  )
-}
 
 function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
   const active = sortCol === col
@@ -76,7 +65,8 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 const EMPTY_FORM = {
   prize_name: '', aliases: '', prize_name_kana: '', category: '',
   // SPEC-PHASE-LABEL-FIX-01: 新規登録 default phase は実在値 'active'。
-  series: '', size: '', status: 'active', phase: 'active',
+  // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
+  series: '', size: '', phase: 'active',
   original_cost: '', supplier_id: '', supplier_name: '', supplier_item_code: '',
   jan_code: '', default_case_quantity: '', image_url: '', notes: '',
   order_rules: '', tags: '', default_tag: '', weight_g: '',
@@ -92,7 +82,7 @@ export default function AdminPrizeMasterPage() {
   const [loadKey, setLoadKey]   = useState(0)
   const [search, setSearch]     = useState('')
   const [catFilter, setCat]     = useState('')
-  const [stFilter, setSt]       = useState('')
+  // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: stFilter / status select は撤廃、フェーズ ドロップダウンに統一。
   // SPEC-LIST-FILTER-SORT-01-fix-01: 仕入先 + フェーズ ドロップダウン (client-side filter)。
   const [supplierFilter, setSupplierFilter] = useState('')
   const [phaseFilter, setPhaseFilter]       = useState('')
@@ -117,7 +107,7 @@ export default function AdminPrizeMasterPage() {
         .order(sortCol, { ascending: sortAsc })
       if (search.trim()) q = q.or(`prize_name.ilike.%${search}%,short_name.ilike.%${search}%,aliases.ilike.%${search}%`)
       if (catFilter)     q = q.ilike('category', `%${catFilter}%`)
-      if (stFilter)      q = q.eq('status', stFilter)
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status server-side filter 撤廃、phase は ListFilterBar で client-side。
       const { data, count, error: e } = await q
       if (cancelled) return
       if (e) setError(e.message)
@@ -126,7 +116,7 @@ export default function AdminPrizeMasterPage() {
     }
     fetchData()
     return () => { cancelled = true }
-  }, [sortCol, sortAsc, search, catFilter, stFilter, loadKey]) // eslint-disable-line
+  }, [sortCol, sortAsc, search, catFilter, loadKey]) // eslint-disable-line
 
   function handleSort(col) {
     if (col === sortCol) setSortAsc(a => !a)
@@ -134,7 +124,6 @@ export default function AdminPrizeMasterPage() {
   }
   function handleSearch(v)  { setSearch(v) }
   function handleCat(v)     { setCat(v) }
-  function handleSt(v)      { setSt(v) }
   function reload()         { setLoadKey(k => k + 1) }
 
   function openNew() {
@@ -156,7 +145,8 @@ export default function AdminPrizeMasterPage() {
       prize_name_kana: data.prize_name_kana ?? '', category: data.category ?? '',
       series: data.series ?? '', size: data.size ?? '',
       // SPEC-PHASE-LABEL-FIX-01: 既存行 phase が null/未マップ値でも 'active' に矯正せず DB 値を保持。
-      status: data.status ?? 'active', phase: data.phase ?? 'active',
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
+      phase: data.phase ?? 'active',
       original_cost: data.original_cost ?? '', supplier_id: data.supplier_id ?? '',
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
       jan_code: data.jan_code ?? '', default_case_quantity: data.default_case_quantity ?? '',
@@ -206,7 +196,8 @@ export default function AdminPrizeMasterPage() {
     if (!modal || modal === 'new') return
     setSaving(true)
     const { error: e } = await supabase.from('prize_masters')
-      .update({ status: 'inactive', updated_by: staffName, updated_at: new Date().toISOString() })
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: 旧 status='inactive' soft-delete → phase='dead' に統一。
+      .update({ phase: 'dead', updated_by: staffName, updated_at: new Date().toISOString() })
       .eq('prize_id', modal.prize_id)
     setSaving(false)
     if (e) { setError(e.message); return }
@@ -226,7 +217,8 @@ export default function AdminPrizeMasterPage() {
         prize_name: row?.prize_name ?? '',
         aliases: row?.aliases ?? '',
         category: row?.category ?? '',
-        status: row?.status ?? 'active',
+        // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase で表現。
+        phase: row?.phase ?? 'active',
         original_cost: row?.original_cost ?? '',
         supplier_name: row?.supplier_name ?? '',
       }
@@ -239,7 +231,7 @@ export default function AdminPrizeMasterPage() {
     const now = new Date().toISOString()
     for (const [id, ge] of Object.entries(gridEdits)) {
       // SPEC-PHASE-LABEL-FIX-01: グリッド編集対象が status → phase に切替。
-      // status 列は DB に残置 (モーダル編集の「ステータス」フィールドからは引き続き編集可)。
+      // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列は廃止、phase 一本化。
       const { error: ge_err } = await supabase.from('prize_masters').update({
         prize_name: ge.prize_name,
         aliases: ge.aliases || null,
@@ -300,15 +292,8 @@ export default function AdminPrizeMasterPage() {
             placeholder="カテゴリ絞込"
             className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-28"
           />
-          <select
-            data-testid="prize-filter-status"
-            value={stFilter}
-            onChange={e => handleSt(e.target.value)}
-            className="bg-bg border border-border rounded px-2 py-1 text-sm text-text"
-          >
-            <option value="">ステータス ALL</option>
-            {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          {/* SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: 旧「ステータス ALL」select を撤廃。
+              フェーズ絞込は上の ListFilterBar (SPEC-PHASE-LABEL-FIX-01 で日本語化済) で行う。 */}
           {totalCount !== null && (
             <span data-testid="prize-total-count" className="text-sm text-muted whitespace-nowrap">
               全{totalCount.toLocaleString()}件
@@ -533,9 +518,7 @@ export default function AdminPrizeMasterPage() {
               </button>
               {showMore && (
                 <div className="flex flex-col gap-3">
-                  <Field label="ステータス">
-                    <FSelect value={form.status} onChange={v => f({ status: v })} options={STATUS_VALUES} />
-                  </Field>
+                  {/* SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: ステータス フィールドは撤廃 (phase に統一)。 */}
                   {/* SPEC-PHASE-LABEL-FIX-01: モーダル編集も実在 phase 値 + 日本語ラベル。
                       'ALL' option は不要、編集には常に値を選ぶため PHASE_EDIT_OPTIONS を直接 render。 */}
                   <Field label="フェーズ">
