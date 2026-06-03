@@ -7,6 +7,10 @@ import { useGeolocation } from '../../shared/hooks/useGeolocation'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
 import ArrivalConfirmDrawer from '../components/ArrivalConfirmDrawer'
+// SPEC-LIST-FILTER-SORT-01: 共通 filter dropdown + sortable header + 列ソート hook。
+import ListFilterBar from '../../components/ListFilterBar'
+import SortableTableHeader from '../../components/SortableTableHeader'
+import { useListSort } from '../../hooks/useListSort'
 
 // J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
 const ARRIVAL_CHECK_ENABLED = true
@@ -38,6 +42,9 @@ export default function OrderList() {
   const { staffId } = useRole()
   const { getLocation } = useGeolocation()
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+
+  // SPEC-LIST-FILTER-SORT-01: 列ソート hook。初期は挿入順 (supabase order)、ヘッダクリックで切替。
+  const { sortKey, sortDir, onSort, sorted } = useListSort()
 
   // SPEC-STOCK-LOCATION-FILTER-01: warehouse + owner_id 受領時、locations から
   // location_name を引いて初期 destFilter に適用。失敗時はそのまま 'all' で続行 (LOG-SPEC-01)。
@@ -181,50 +188,49 @@ export default function OrderList() {
         ))}
       </div>
 
-      {/* SPEC-STOCK-UI-FIX-01: 拠点 pill bar。distinct destinations から動的生成、
-          '全て' で reset。pill 1 つしかないとき (絞り込み済) も常に '全て' 表示で戻れる。 */}
-      <div
-        data-testid="order-destination-pills"
-        className="flex px-5 gap-2 py-2 border-b border-border overflow-x-auto shrink-0"
-      >
-        <button
-          key="all"
-          data-testid="order-dest-pill-all"
-          onClick={() => setDestFilter('all')}
-          className={`shrink-0 min-h-[36px] px-3 py-1.5 rounded-full text-sm font-bold border ${
-            destFilter === 'all'
-              ? 'bg-accent text-white border-accent'
-              : 'bg-surface text-text border-border'
-          }`}
-        >
-          全て
-        </button>
-        {distinctDestinations.map(d => (
-          <button
-            key={d}
-            data-testid={`order-dest-pill-${d}`}
-            onClick={() => setDestFilter(d)}
-            className={`shrink-0 min-h-[36px] px-3 py-1.5 rounded-full text-sm font-bold border ${
-              destFilter === d
-                ? 'bg-accent text-white border-accent'
-                : 'bg-surface text-text border-border'
-            }`}
-          >
-            {d}
-          </button>
-        ))}
-      </div>
+      {/* SPEC-LIST-FILTER-SORT-01: 旧 pill bar を共通 ListFilterBar (拠点 dropdown) に置換。
+          status は既存タブで網羅済のため filter には含めず、destination のみ追加。 */}
+      <ListFilterBar
+        filters={[{
+          key: 'destination',
+          label: '拠点',
+          options: [
+            { value: 'all', label: '全て' },
+            ...distinctDestinations.map(d => ({ value: d, label: d })),
+          ],
+        }]}
+        values={{ destination: destFilter }}
+        onChange={(_k, v) => setDestFilter(v)}
+        onReset={() => setDestFilter('all')}
+      />
+
+      {/* SPEC-LIST-FILTER-SORT-01: 列ソート header (div variant、card list 上部に張り付ける strip)。 */}
+      <SortableTableHeader
+        variant="div"
+        columns={[
+          { key: 'order_date',       label: '発注日',  className: 'w-[18%]' },
+          { key: 'expected_date',    label: '予定',    className: 'w-[18%]' },
+          { key: 'prize_name_raw',   label: '景品',    className: 'flex-1' },
+          { key: 'destination',      label: '拠点',    className: 'w-[18%]' },
+          { key: 'case_count',       label: 'ケース',  className: 'w-[14%]' },
+        ]}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={onSort}
+        className="text-xs text-muted bg-surface border-b border-border"
+        cellClassName="text-xs"
+      />
 
       {/* スクロール可能なリスト */}
-      {/* SPEC-STOCK-UI-FIX-01: 拠点 pill bar 追加で +52px、calc 余白を 196→252 に。 */}
-      <div className="overflow-y-auto h-[calc(100dvh-252px)] px-5 pt-2 pb-4 space-y-2">
+      {/* SPEC-LIST-FILTER-SORT-01: FilterBar (~48px) + SortHeader (~44px) で +92px、calc 余白を 252→300 に。 */}
+      <div className="overflow-y-auto h-[calc(100dvh-300px)] px-5 pt-2 pb-4 space-y-2">
         {loading && orders.length === 0 && (
           <p className="text-muted text-center py-8">読み込み中...</p>
         )}
         {!loading && orders.length === 0 && (
           <p className="text-muted text-center py-8">件数ゼロ</p>
         )}
-        {orders.map(o => (
+        {sorted(orders).map(o => (
           <div key={o.order_id}>
             <div
               className={`bg-surface p-4 border border-border ${

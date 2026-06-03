@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useArrivalOrders } from '../../hooks/useArrivalOrders'
 import { supabase } from '../../lib/supabase'
 import ArrivalReceiveSheet from '../components/ArrivalReceiveSheet'
 import DateTime from '../../shared/ui/DateTime'
+// SPEC-LIST-FILTER-SORT-01: 共通 filter bar + sortable header + ソート hook。
+import ListFilterBar from '../../components/ListFilterBar'
+import SortableTableHeader from '../../components/SortableTableHeader'
+import { useListSort } from '../../hooks/useListSort'
 
 // J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
 const ARRIVAL_CHECK_ENABLED = true
@@ -34,10 +38,32 @@ export default function ArrivalCheckPage() {
 
   const [lane, setLane]             = useState('upcoming')
   const [textFilter, setTextFilter] = useState('')
+  // SPEC-LIST-FILTER-SORT-01: destination dropdown (現 lane の distinct から構築、'all' で全件)。
+  const [destFilter, setDestFilter] = useState('all')
   const [selected, setSelected]     = useState(null)
   const [ownerName, setOwnerName]   = useState('')
 
   const { lanes, loading, reload }  = useArrivalOrders(locationId, textFilter)
+
+  // SPEC-LIST-FILTER-SORT-01: 列ソート。lane ごとに display 直前で sorted() を適用。
+  const { sortKey, sortDir, onSort, sorted } = useListSort()
+
+  // 現 lane の distinct destination (FilterBar dropdown 用)。
+  const distinctDestinations = useMemo(() => {
+    const set = new Set()
+    for (const o of (lanes?.[lane] ?? [])) {
+      if (o.destination) set.add(o.destination)
+    }
+    return Array.from(set).sort()
+  }, [lanes, lane])
+
+  // 表示 list = lane data → destFilter で絞込 → ソート。
+  const visible = useMemo(() => {
+    const base = (lanes?.[lane] ?? []).filter(o =>
+      destFilter === 'all' || o.destination === destFilter
+    )
+    return sorted(base)
+  }, [lanes, lane, destFilter, sorted])
 
   // ヘッダ用に拠点名/担当名を fetch
   useEffect(() => {
@@ -111,6 +137,21 @@ export default function ArrivalCheckPage() {
         />
       </div>
 
+      {/* SPEC-LIST-FILTER-SORT-01: 共通 ListFilterBar (現 lane の distinct から作成)。 */}
+      <ListFilterBar
+        filters={[{
+          key: 'destination',
+          label: '拠点',
+          options: [
+            { value: 'all', label: '全て' },
+            ...distinctDestinations.map(d => ({ value: d, label: d })),
+          ],
+        }]}
+        values={{ destination: destFilter }}
+        onChange={(_k, v) => setDestFilter(v)}
+        onReset={() => setDestFilter('all')}
+      />
+
       {/* lane tabs */}
       <div className="flex px-4 gap-1 pb-2 shrink-0">
         {LANES.map(l => {
@@ -134,15 +175,31 @@ export default function ArrivalCheckPage() {
         })}
       </div>
 
+      {/* SPEC-LIST-FILTER-SORT-01: sortable header (div variant、card list 上部 strip)。 */}
+      <SortableTableHeader
+        variant="div"
+        columns={[
+          { key: 'expected_date',    label: '予定',   className: 'w-[22%]' },
+          { key: 'prize_name_raw',   label: '景品',   className: 'flex-1' },
+          { key: 'destination',      label: '拠点',   className: 'w-[22%]' },
+          { key: 'case_count',       label: 'ケース', className: 'w-[14%]' },
+        ]}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={onSort}
+        className="px-2 text-xs text-muted bg-surface border-b border-border shrink-0"
+        cellClassName="text-xs"
+      />
+
       {/* order list */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6 space-y-2">
         {loading && (
           <p className="text-muted text-center py-8 text-sm">読み込み中...</p>
         )}
-        {!loading && lanes[lane].length === 0 && (
+        {!loading && visible.length === 0 && (
           <p className="text-muted text-center py-8 text-sm">{currentLane?.emptyMsg}</p>
         )}
-        {!loading && lanes[lane].map(order => (
+        {!loading && visible.map(order => (
           <OrderCard
             key={order.order_id}
             order={order}
