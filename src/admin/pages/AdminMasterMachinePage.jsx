@@ -34,7 +34,7 @@ function SkeletonCard() {
 
 async function insertAuditLog({ staffId, action, targetId, before, after }) {
   try {
-    await supabase.from('audit_logs').insert({
+    await supabase.from('operation_logs').insert({
       staff_id: staffId,
       action,
       target_id: targetId,
