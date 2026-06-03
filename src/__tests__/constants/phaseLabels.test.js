@@ -65,17 +65,24 @@ describe('PHASE_FILTER_OPTIONS / PHASE_EDIT_OPTIONS', () => {
   it('filter_options_start_with_empty_全て', () => {
     expect(PHASE_FILTER_OPTIONS[0]).toEqual({ value: '', label: '全て' })
   })
-  it('filter_options_have_5_entries_including_全て', () => {
-    expect(PHASE_FILTER_OPTIONS).toHaveLength(5)
-    expect(PHASE_FILTER_OPTIONS.map(o => o.value)).toEqual(['', 'active', 'provisional', 'yobigun', 'dead'])
+  // SPEC-PRIZE-MASTER-UI-CLEANUP-01: 旧 5 entry (yobigun を含む) → 4 entry に。
+  // 「入荷予定」ラベルが dropdown に 1 つだけ表示される。
+  it('filter_options_have_4_entries_including_全て_yobigun_removed', () => {
+    expect(PHASE_FILTER_OPTIONS).toHaveLength(4)
+    expect(PHASE_FILTER_OPTIONS.map(o => o.value)).toEqual(['', 'active', 'provisional', 'dead'])
   })
-  it('filter_options_show_japanese_labels', () => {
+  it('filter_options_no_duplicate_label_入荷予定', () => {
     const labels = PHASE_FILTER_OPTIONS.map(o => o.label)
-    expect(labels).toEqual(['全て', '稼働中', '入荷予定', '入荷予定', '廃番'])
+    expect(labels).toEqual(['全て', '稼働中', '入荷予定', '廃番'])
+    expect(labels.filter(l => l === '入荷予定')).toHaveLength(1)
   })
-  it('edit_options_exclude_empty_全て', () => {
-    expect(PHASE_EDIT_OPTIONS).toHaveLength(4)
+  it('edit_options_exclude_empty_全て_and_yobigun', () => {
+    expect(PHASE_EDIT_OPTIONS).toHaveLength(3)
     expect(PHASE_EDIT_OPTIONS.every(o => o.value !== '')).toBe(true)
-    expect(PHASE_EDIT_OPTIONS.map(o => o.value)).toEqual(['active', 'provisional', 'yobigun', 'dead'])
+    expect(PHASE_EDIT_OPTIONS.map(o => o.value)).toEqual(['active', 'provisional', 'dead'])
+  })
+  it('PHASE_LABEL_MAP_keeps_yobigun_for_display', () => {
+    // yobigun は dropdown から消すが、display map (PCH 取込で実値が入る) には残置。
+    expect(PHASE_LABEL_MAP.yobigun).toBe('入荷予定')
   })
 })
