@@ -4,6 +4,8 @@
 // prize_id があれば追加で prize_masters を fetch して原価/仕入先/画像等を合成する。
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+// SPEC-PHASE-LABEL-FIX-01: phase の生値ではなく日本語ラベルで表示。
+import { getPhaseLabel } from '../constants/phaseLabels'
 
 const IMG_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/announcements/`
 
@@ -151,7 +153,7 @@ export default function PrizeDetailDialog({ row, onClose }) {
                   {category        && <Field label="カテゴリ" value={category}       testid="prize-detail-category" />}
                   {size            && <Field label="サイズ"  value={size}            testid="prize-detail-size" />}
                   {jan             && <Field label="JAN"    value={jan}             testid="prize-detail-jan" />}
-                  {phase           && <Field label="フェーズ" value={phase}          testid="prize-detail-phase" />}
+                  {phase           && <Field label="フェーズ" value={getPhaseLabel(phase)} testid="prize-detail-phase" />}
                 </dl>
                 {notes && (
                   <p className="mt-3 text-sm text-text whitespace-pre-wrap px-3 py-2 rounded bg-bg/60 border border-border"

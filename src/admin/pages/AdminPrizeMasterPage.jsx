@@ -7,13 +7,19 @@ import ListFilterBar from '../../components/ListFilterBar'
 import SortableTableHeader from '../../components/SortableTableHeader'
 // SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
 import PrizeDetailDialog from '../../components/PrizeDetailDialog'
+// SPEC-PHASE-LABEL-FIX-01: phase 表示名/バッジ/選択肢を集約モジュールから取得 (旧ハードコード PHASE_VALUES 撤去)。
+import {
+  PHASE_FILTER_OPTIONS,
+  PHASE_EDIT_OPTIONS,
+  getPhaseLabel,
+  getPhaseBadgeClass,
+} from '../../constants/phaseLabels'
 
 const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
 const EDIT_SELECT = LIST_SELECT + ',short_name,prize_name_kana,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
 
 const STATUS_VALUES = ['active', 'inactive', 'unknown']
-const PHASE_VALUES  = ['normal', 'out_of_stock', 'discontinued']
 
 function alias0(val) {
   try { return JSON.parse(val)?.[0] ?? null } catch { return val || null }
@@ -69,7 +75,8 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 
 const EMPTY_FORM = {
   prize_name: '', aliases: '', prize_name_kana: '', category: '',
-  series: '', size: '', status: 'active', phase: 'normal',
+  // SPEC-PHASE-LABEL-FIX-01: 新規登録 default phase は実在値 'active'。
+  series: '', size: '', status: 'active', phase: 'active',
   original_cost: '', supplier_id: '', supplier_name: '', supplier_item_code: '',
   jan_code: '', default_case_quantity: '', image_url: '', notes: '',
   order_rules: '', tags: '', default_tag: '', weight_g: '',
@@ -148,7 +155,8 @@ export default function AdminPrizeMasterPage() {
       prize_name: data.prize_name ?? '', aliases: data.aliases ?? '',
       prize_name_kana: data.prize_name_kana ?? '', category: data.category ?? '',
       series: data.series ?? '', size: data.size ?? '',
-      status: data.status ?? 'active', phase: data.phase ?? 'normal',
+      // SPEC-PHASE-LABEL-FIX-01: 既存行 phase が null/未マップ値でも 'active' に矯正せず DB 値を保持。
+      status: data.status ?? 'active', phase: data.phase ?? 'active',
       original_cost: data.original_cost ?? '', supplier_id: data.supplier_id ?? '',
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
       jan_code: data.jan_code ?? '', default_case_quantity: data.default_case_quantity ?? '',
@@ -230,11 +238,13 @@ export default function AdminPrizeMasterPage() {
     setGridSaving(true)
     const now = new Date().toISOString()
     for (const [id, ge] of Object.entries(gridEdits)) {
+      // SPEC-PHASE-LABEL-FIX-01: グリッド編集対象が status → phase に切替。
+      // status 列は DB に残置 (モーダル編集の「ステータス」フィールドからは引き続き編集可)。
       const { error: ge_err } = await supabase.from('prize_masters').update({
         prize_name: ge.prize_name,
         aliases: ge.aliases || null,
         category: ge.category || null,
-        status: ge.status,
+        phase: ge.phase,
         original_cost: ge.original_cost === '' ? null : Number(ge.original_cost),
         supplier_name: ge.supplier_name || null,
         updated_by: staffName,
@@ -260,11 +270,10 @@ export default function AdminPrizeMasterPage() {
               ...Array.from(new Set(rows.map(r => r.supplier_name).filter(Boolean))).sort()
                 .map(s => ({ value: s, label: s })),
             ] },
+          // SPEC-PHASE-LABEL-FIX-01: 実在 phase 値のみ + 日本語ラベル
+          // (provisional/yobigun は表示「入荷予定」共通だが value は別々のまま、DB 値は変更しない)。
           { key: 'phase', label: 'フェーズ',
-            options: [
-              { value: '', label: '全て' },
-              ...PHASE_VALUES.map(p => ({ value: p, label: p })),
-            ] },
+            options: PHASE_FILTER_OPTIONS.map(o => ({ value: o.value, label: o.label })) },
         ]}
         values={{ supplier_name: supplierFilter, phase: phaseFilter }}
         onChange={(k, v) => {
@@ -349,7 +358,8 @@ export default function AdminPrizeMasterPage() {
                 columns={[
                   { key: 'prize_name',        label: '景品名',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
                   { key: '__category__',      label: 'カテゴリ', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
-                  { key: '__status__',        label: 'ST',     className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
+                  // SPEC-PHASE-LABEL-FIX-01: 旧 'ST' (status 列) を 'ステータス' (phase 列) に再定義。
+                  { key: '__phase_badge__',   label: 'ステータス', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
                   { key: 'original_cost',     label: '原価',    className: 'py-1 px-2 whitespace-nowrap text-right text-muted' },
                   { key: 'supplier_name',     label: '取引先',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
                   { key: 'latest_order_date', label: '最終発注', className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
@@ -398,12 +408,24 @@ export default function AdminPrizeMasterPage() {
                         ? <input value={ge?.category ?? r.category ?? ''} onChange={ev => setGCell(r.prize_id, 'category', ev.target.value)} className={gridCellCls} />
                         : r.category}
                     </td>
+                    {/* SPEC-PHASE-LABEL-FIX-01: 'ステータス' 列は phase を日本語バッジで表示、
+                        grid 編集モードでは phase を編集 (status 列は DB 保持のまま、本列の対象外)。 */}
                     <td className="py-0.5 px-1">
                       {gridMode
-                        ? <select value={ge?.status ?? r.status ?? 'active'} onChange={ev => setGCell(r.prize_id, 'status', ev.target.value)} className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]">
-                            {STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
+                        ? <select
+                            data-testid={`prize-phase-select-${r.prize_id}`}
+                            value={ge?.phase ?? r.phase ?? 'active'}
+                            onChange={ev => setGCell(r.prize_id, 'phase', ev.target.value)}
+                            className="h-7 px-1 bg-bg border border-border/50 text-text text-sm rounded w-full [color-scheme:dark]"
+                          >
+                            {PHASE_EDIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
-                        : <span className={`px-1 py-0.5 rounded text-xs font-bold ${r.status === 'active' ? 'bg-green-600 text-white' : r.status === 'inactive' ? 'bg-gray-600 text-gray-300' : 'bg-amber-600 text-white'}`}>{r.status}</span>}
+                        : <span
+                            data-testid={`prize-phase-badge-${r.prize_id}`}
+                            className={`px-1 py-0.5 rounded text-xs font-bold ${getPhaseBadgeClass(r.phase)}`}
+                          >
+                            {getPhaseLabel(r.phase)}
+                          </span>}
                     </td>
                     <td className="py-0.5 px-1 text-right text-muted">
                       {gridMode
@@ -514,8 +536,16 @@ export default function AdminPrizeMasterPage() {
                   <Field label="ステータス">
                     <FSelect value={form.status} onChange={v => f({ status: v })} options={STATUS_VALUES} />
                   </Field>
+                  {/* SPEC-PHASE-LABEL-FIX-01: モーダル編集も実在 phase 値 + 日本語ラベル。
+                      'ALL' option は不要、編集には常に値を選ぶため PHASE_EDIT_OPTIONS を直接 render。 */}
                   <Field label="フェーズ">
-                    <FSelect value={form.phase} onChange={v => f({ phase: v })} options={PHASE_VALUES} />
+                    <select
+                      value={form.phase ?? 'active'}
+                      onChange={e => f({ phase: e.target.value })}
+                      className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
+                    >
+                      {PHASE_EDIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
                   </Field>
                   <Field label="シリーズ">
                     <Input value={form.series} onChange={v => f({ series: v })} placeholder="シリーズ" />
