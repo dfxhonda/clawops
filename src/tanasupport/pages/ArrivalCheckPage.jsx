@@ -9,6 +9,8 @@ import DateTime from '../../shared/ui/DateTime'
 import ListFilterBar from '../../components/ListFilterBar'
 import SortableTableHeader from '../../components/SortableTableHeader'
 import { useListSort } from '../../hooks/useListSort'
+// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
+import PrizeDetailDialog from '../../components/PrizeDetailDialog'
 
 // J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
 const ARRIVAL_CHECK_ENABLED = true
@@ -37,7 +39,11 @@ export default function ArrivalCheckPage() {
   const locationId  = isWarehouse ? ownerId : null
 
   const [lane, setLane]             = useState('upcoming')
-  const [textFilter, setTextFilter] = useState('')
+  // SPEC-ARRIVAL-UX-01 fix_1: 旧「入庫先で絞り込み...」textFilter UI 廃止。
+  // useArrivalOrders は textFilter を依然受け取るため空文字で固定 (シグネチャ維持)。
+  const textFilter = ''
+  // SPEC-ARRIVAL-UX-01 fix_2: 景品名タップで開く詳細 dialog の対象 row state。
+  const [detailRow, setDetailRow]   = useState(null)
   // SPEC-LIST-FILTER-SORT-01: destination dropdown (現 lane の distinct から構築、'all' で全件)。
   const [destFilter, setDestFilter] = useState('all')
   const [selected, setSelected]     = useState(null)
@@ -126,16 +132,7 @@ export default function ArrivalCheckPage() {
         </div>
       )}
 
-      {/* destination filter (拠点絞りと併用可能、入庫先 ilike) */}
-      <div className="px-4 pt-3 pb-2 shrink-0">
-        <input
-          type="text"
-          placeholder="入庫先で絞り込み..."
-          value={textFilter}
-          onChange={e => setTextFilter(e.target.value)}
-          className="w-full px-3 py-2 rounded-xl border border-border bg-surface text-text text-sm outline-none"
-        />
-      </div>
+      {/* SPEC-ARRIVAL-UX-01 fix_1: 旧「入庫先で絞り込み...」テキスト box 削除 (拠点 DD で代替済)。 */}
 
       {/* SPEC-LIST-FILTER-SORT-01: 共通 ListFilterBar (現 lane の distinct から作成)。 */}
       <ListFilterBar
@@ -205,6 +202,7 @@ export default function ArrivalCheckPage() {
             order={order}
             showReceiveBtn={lane !== 'recent'}
             onReceive={() => setSelected(order)}
+            onTapName={() => setDetailRow(order)}
           />
         ))}
       </div>
@@ -216,11 +214,16 @@ export default function ArrivalCheckPage() {
           onCancel={() => setSelected(null)}
         />
       )}
+
+      {/* SPEC-ARRIVAL-UX-01 fix_2: 景品名タップで開く詳細 dialog */}
+      {detailRow && (
+        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
+      )}
     </div>
   )
 }
 
-function OrderCard({ order, showReceiveBtn, onReceive }) {
+function OrderCard({ order, showReceiveBtn, onReceive, onTapName }) {
   const alreadyReceived = order.received_quantity ?? 0
   const remaining       = (order.case_count ?? 0) - alreadyReceived
   const isPartial       = order.status === 'partial'
@@ -234,9 +237,15 @@ function OrderCard({ order, showReceiveBtn, onReceive }) {
     }`}>
       <div className="flex items-start gap-2 justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-text text-sm font-medium line-clamp-2">
+          {/* SPEC-ARRIVAL-UX-01 fix_2: 景品名タップで PrizeDetailDialog 起動 */}
+          <button
+            type="button"
+            onClick={onTapName}
+            data-testid={`arrival-prize-name-${order.order_id}`}
+            className="text-text text-sm font-medium line-clamp-2 text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer"
+          >
             {order.prize_name_short || order.prize_name_raw || '（景品未設定）'}
-          </p>
+          </button>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted">
             {order.supplier_id && <span>{order.supplier_id}</span>}
             {order.destination && <span>{order.destination}</span>}

@@ -5,6 +5,8 @@ import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 // SPEC-LIST-FILTER-SORT-01-fix-01: 共通 filter dropdown bar + sortable header (canonical d0cf209)。
 import ListFilterBar from '../../components/ListFilterBar'
 import SortableTableHeader from '../../components/SortableTableHeader'
+// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
+import PrizeDetailDialog from '../../components/PrizeDetailDialog'
 
 const LIST_SELECT = 'prize_id,prize_name,aliases,category,status,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
@@ -95,6 +97,8 @@ export default function AdminPrizeMasterPage() {
   const [gridMode, setGridMode] = useState(false)
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
+  // SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog の対象 row。
+  const [detailRow, setDetailRow] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -373,7 +377,21 @@ export default function AdminPrizeMasterPage() {
                     <td className="py-0.5 px-1 max-w-[220px]">
                       {gridMode
                         ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
-                        : <><div className="truncate text-text font-medium">{r.prize_name}</div>{a0 && <div className="truncate text-sm text-gray-400">{a0}</div>}</>}
+                        : (
+                          // SPEC-ARRIVAL-UX-01: 景品名タップで PrizeDetailDialog 起動 (gridMode のときは
+                          // 既存の cell 編集動線を優先するため button 化しない)。
+                          <>
+                            <button
+                              type="button"
+                              onClick={(ev) => { ev.stopPropagation(); setDetailRow(r) }}
+                              data-testid={`prize-master-name-${r.prize_id}`}
+                              className="truncate text-text font-medium text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer w-full"
+                            >
+                              {r.prize_name}
+                            </button>
+                            {a0 && <div className="truncate text-sm text-gray-400">{a0}</div>}
+                          </>
+                        )}
                     </td>
                     <td className="py-0.5 px-1 text-muted">
                       {gridMode
@@ -556,6 +574,11 @@ export default function AdminPrizeMasterPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog */}
+      {detailRow && (
+        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
       )}
     </div>
   )

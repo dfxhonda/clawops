@@ -11,6 +11,8 @@ import ArrivalConfirmDrawer from '../components/ArrivalConfirmDrawer'
 import ListFilterBar from '../../components/ListFilterBar'
 import SortableTableHeader from '../../components/SortableTableHeader'
 import { useListSort } from '../../hooks/useListSort'
+// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
+import PrizeDetailDialog from '../../components/PrizeDetailDialog'
 
 // J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
 const ARRIVAL_CHECK_ENABLED = true
@@ -45,6 +47,8 @@ export default function OrderList() {
 
   // SPEC-LIST-FILTER-SORT-01: 列ソート hook。初期は挿入順 (supabase order)、ヘッダクリックで切替。
   const { sortKey, sortDir, onSort, sorted } = useListSort()
+  // SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog の対象 row。
+  const [detailRow, setDetailRow] = useState(null)
 
   // SPEC-STOCK-LOCATION-FILTER-01: warehouse + owner_id 受領時、locations から
   // location_name を引いて初期 destFilter に適用。失敗時はそのまま 'all' で続行 (LOG-SPEC-01)。
@@ -243,9 +247,15 @@ export default function OrderList() {
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-text text-sm font-medium leading-snug line-clamp-2">
+                  {/* SPEC-ARRIVAL-UX-01: 景品名タップで PrizeDetailDialog 起動 */}
+                  <button
+                    type="button"
+                    onClick={() => setDetailRow(o)}
+                    data-testid={`order-prize-name-${o.order_id}`}
+                    className="text-text text-sm font-medium leading-snug line-clamp-2 text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer"
+                  >
                     {o.prize_name_short || o.prize_name_raw}
-                  </p>
+                  </button>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted">
                     <span>{o.case_count}ケース</span>
                     <span>{o.supplier_id}</span>
@@ -297,6 +307,11 @@ export default function OrderList() {
           </div>
         ))}
       </div>
+
+      {/* SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog */}
+      {detailRow && (
+        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
+      )}
     </div>
   )
 }
