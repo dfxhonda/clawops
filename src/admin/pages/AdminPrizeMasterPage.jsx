@@ -5,8 +5,9 @@ import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 // SPEC-LIST-FILTER-SORT-01-fix-01: sortable header (canonical d0cf209)。
 // SPEC-PRIZE-MASTER-UI-CLEANUP-01: ListFilterBar (2 行目) は撤廃、inline 1 行 flex に統合。
 import SortableTableHeader from '../../components/SortableTableHeader'
-// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
-import PrizeDetailDialog from '../../components/PrizeDetailDialog'
+// SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 旧 PrizeDetailDialog (読取専用) を撤廃、景品名タップ
+// 直接 openEdit() で編集モーダル起動に統一。component 自体は ArrivalCheckPage / OrderList で
+// 引き続き使用するため削除しない (grep 確認済)。
 // SPEC-PHASE-LABEL-FIX-01: phase 表示名/バッジ/選択肢を集約モジュールから取得 (旧ハードコード PHASE_VALUES 撤去)。
 import {
   PHASE_FILTER_OPTIONS,
@@ -94,8 +95,7 @@ export default function AdminPrizeMasterPage() {
   const [gridMode, setGridMode] = useState(false)
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
-  // SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog の対象 row。
-  const [detailRow, setDetailRow] = useState(null)
+  // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: detailRow state 撤廃、景品名タップは openEdit に統合。
 
   useEffect(() => {
     let cancelled = false
@@ -390,12 +390,13 @@ export default function AdminPrizeMasterPage() {
                       {gridMode
                         ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
                         : (
-                          // SPEC-ARRIVAL-UX-01: 景品名タップで PrizeDetailDialog 起動 (gridMode のときは
-                          // 既存の cell 編集動線を優先するため button 化しない)。
+                          // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 景品名タップで openEdit 直接起動。
+                          // tr onClick も openEdit を呼ぶため stopPropagation で二重発火防止。
+                          // gridMode のときは既存の cell 編集動線を優先するため button 化しない。
                           <>
                             <button
                               type="button"
-                              onClick={(ev) => { ev.stopPropagation(); setDetailRow(r) }}
+                              onClick={(ev) => { ev.stopPropagation(); openEdit(r) }}
                               data-testid={`prize-master-name-${r.prize_id}`}
                               className="truncate text-text font-medium text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer w-full"
                             >
@@ -608,10 +609,7 @@ export default function AdminPrizeMasterPage() {
         </div>
       )}
 
-      {/* SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog */}
-      {detailRow && (
-        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
-      )}
+      {/* SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 旧 PrizeDetailDialog JSX 撤廃 (景品名タップは openEdit 直接起動)。 */}
     </div>
   )
 }
