@@ -79,7 +79,7 @@ export default function Login() {
       // staff テーブルが空の場合は staff_public ビューにフォールバック
       if (staff.length === 0) {
         const { data: pub } = await supabase
-          .from('staff_public')
+          .from('staff')
           .select('staff_id, name, name_kana, has_pin, pin_hash')
           .eq('is_active', true)
           .order('name')
