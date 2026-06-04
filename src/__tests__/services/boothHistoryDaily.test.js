@@ -97,4 +97,22 @@ describe('computeBoothDiffSummary (SPEC-02 4-visit history)', () => {
     expect(s.outDiffs[3]).toBe(50)
     expect(s.daily[3]).toBe(null)
   })
+
+  // SPEC-LF1-HISTORY-FIX-07 AC-03: 4-ago index regression
+  // confirmed: 4-ago was rows[3]-rows[5]=145 instead of rows[3]-rows[4]=124
+  // KOS01-M02-B02: patrol_dates 2026-06-02..2026-05-12, in_meters as below
+  it('when_kos01_5rows_4ago_equals_124_not_rows3_minus_rows5', () => {
+    const rows = [
+      { patrol_date: '2026-06-02', in_meter: 12187, out_meter: 0, out_meter_2: 0, out_meter_3: 0 },
+      { patrol_date: '2026-05-30', in_meter: 12173, out_meter: 0, out_meter_2: 0, out_meter_3: 0 },
+      { patrol_date: '2026-05-26', in_meter: 12138, out_meter: 0, out_meter_2: 0, out_meter_3: 0 },
+      { patrol_date: '2026-05-23', in_meter: 12098, out_meter: 0, out_meter_2: 0, out_meter_3: 0 },
+      { patrol_date: '2026-05-12', in_meter: 11974, out_meter: 0, out_meter_2: 0, out_meter_3: 0 },
+    ]
+    const s = computeBoothDiffSummary(rows)
+    // 4-ago = rows[3]-rows[4] = 12098-11974 = 124, NOT rows[3]-rows[5] = 145
+    expect(s.inDiffs[0]).toBe(124)
+    // all 4 slots: today=14 prev=35 3ago=40 4ago=124
+    expect(s.inDiffs).toEqual([124, 40, 35, 14])
+  })
 })
