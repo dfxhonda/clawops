@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => ({
     __GIT_SHA__: JSON.stringify(gitSha),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['bcryptjs'],
   },
   esbuild: {
     pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
@@ -23,6 +27,18 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     tailwindcss(),
     react(),
+    // SPEC-LOGIN-CLIENT-BCRYPT-01-fix-02 D案:
+    // bcryptjs v3 ESM has top-level `import nodeCrypto from "crypto"`.
+    // Stub it for browser bundles so compare() works (randomBytes path never reached in compare).
+    {
+      name: 'crypto-browser-compat',
+      resolveId(source) {
+        if (source === 'crypto') return '\0crypto-browser'
+      },
+      load(id) {
+        if (id === '\0crypto-browser') return 'export default {}'
+      },
+    },
     {
       name: 'version-json',
       writeBundle() {
