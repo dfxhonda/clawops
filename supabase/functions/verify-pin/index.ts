@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { staff_id, pin } = await req.json();
+    const { staff_id, pin, skip_bcrypt } = await req.json();
 
     if (!staff_id) {
       return new Response(
@@ -46,28 +46,51 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { data: verifyResult, error: rpcError } = await supabaseAdmin
-      .rpc('verify_staff_pin', { p_staff_id: staff_id, p_pin: pin || '' });
+    // SPEC-LOGIN-CLIENT-BCRYPT-01 C4: skip_bcrypt=true → client already verified; fetch staff and issue session
+    let verifyResult: { success: boolean; staff_id: string; name: string; role: string; operator_id: string; store_code: string; error?: string } | null = null;
 
-    if (rpcError) {
-      console.error('RPC error:', rpcError);
-      return new Response(
-        JSON.stringify({ error: 'サーバーエラーが発生しました' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (skip_bcrypt) {
+      const { data: staffRow, error: staffError } = await supabaseAdmin
+        .from('staff')
+        .select('staff_id, name, role, operator_id, store_code')
+        .eq('staff_id', staff_id)
+        .eq('is_active', true)
+        .single();
 
-    if (!verifyResult?.success) {
-      await supabaseAdmin.from('auth_logs').insert({
-        staff_id: staff_id,
-        action: 'login_failed',
-        ip_address: req.headers.get('x-forwarded-for') || 'unknown',
-        user_agent: req.headers.get('user-agent') || 'unknown',
-      });
-      return new Response(
-        JSON.stringify({ error: verifyResult?.error || '認証に失敗しました' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (staffError || !staffRow) {
+        return new Response(
+          JSON.stringify({ error: '認証に失敗しました' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      verifyResult = { success: true, ...staffRow };
+      // skip_bcrypt=true: client already verified PIN via bcrypt.compare.
+      // Fall through to signInWithPassword below to issue the session.
+    } else {
+      const { data, error: rpcError } = await supabaseAdmin
+        .rpc('verify_staff_pin', { p_staff_id: staff_id, p_pin: pin || '' });
+
+      if (rpcError) {
+        console.error('RPC error:', rpcError);
+        return new Response(
+          JSON.stringify({ error: 'サーバーエラーが発生しました' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!data?.success) {
+        await supabaseAdmin.from('auth_logs').insert({
+          staff_id: staff_id,
+          action: 'login_failed',
+          ip_address: req.headers.get('x-forwarded-for') || 'unknown',
+          user_agent: req.headers.get('user-agent') || 'unknown',
+        });
+        return new Response(
+          JSON.stringify({ error: data?.error || '認証に失敗しました' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      verifyResult = data;
     }
 
     const email = `${staff_id.toLowerCase()}@clawops.local`;

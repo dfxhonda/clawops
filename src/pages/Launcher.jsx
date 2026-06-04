@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { logout } from '../lib/auth/session'
 import DateTime from '../shared/ui/DateTime'
 import { supabase } from '../lib/supabase'
+import { getCache, clearCache } from '../lib/prefetchCache'
 
 // 未対応TODOインラインリスト用: booth_code 末尾 (例: MNK01-M02-B04 → B04) を取り出し
 function boothLabel(boothNumber, boothCode) {
@@ -70,8 +71,23 @@ export default function Launcher() {
   }, [loading, role, navigate])
 
   // 気づきリストをハブに直表示するため、件数だけでなく上位レコード+ラベルマップを取る
+  // SPEC-LOGIN-PREFETCH-ON-STAFF-SELECT-01: staff tap 時に prefetch 済みならキャッシュヒット → 即表示。
   useEffect(() => {
     if (!role) return
+
+    const cached = getCache(staffId)
+    if (cached?.ready) {
+      const sm = {}; cached.stores.forEach(s => { sm[s.store_code] = s.store_name })
+      const mm = {}; cached.machines.forEach(x => { mm[x.machine_code] = x.machine_name || x.machine_code })
+      const bm = {}; cached.booths.forEach(x => { bm[x.booth_code] = x.booth_number })
+      setStoreMap(sm)
+      setMachineMap(mm)
+      setBoothMap(bm)
+      setAlerts(cached.booth_alerts)
+      clearCache()
+      return
+    }
+
     supabase
       .from('booth_alerts')
       .select('*, alert_types(label, icon_emoji, color_hex)')
@@ -94,7 +110,7 @@ export default function Launcher() {
       const m = {}; data.forEach(x => { m[x.booth_code] = x.booth_number })
       setBoothMap(m)
     })
-  }, [role])
+  }, [role, staffId])
 
   const unresolvedCount = alerts.length
 

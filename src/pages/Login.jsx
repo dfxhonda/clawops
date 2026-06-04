@@ -9,6 +9,7 @@ import { checkAndReloadIfStale } from '../services/loginVersionCheck'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
+import { startPrefetch } from '../lib/prefetchCache'
 
 const KANA_GROUPS = {
   'あ': /^[アイウエオ]/,
@@ -52,7 +53,6 @@ export default function Login() {
         navigate('/launcher', { replace: true })
         return
       }
-
       // SPEC-LOGIN-LATENCY-FIX-01 C2: staff SELECT と device_login_history SELECT を
       // Promise.all で並列発火 (waterfall +737ms cold 解消)。
       // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため、
@@ -60,7 +60,7 @@ export default function Login() {
       const [staffRes, deviceRows] = await Promise.all([
         supabase
           .from('staff')
-          .select('staff_id, name, name_kana, has_pin')
+          .select('staff_id, name, name_kana, has_pin, pin_hash')
           .eq('is_active', true)
           .order('name_kana'),
         fetchDeviceLoginRows(),
@@ -78,8 +78,8 @@ export default function Login() {
       // staff テーブルが空の場合は staff_public ビューにフォールバック
       if (staff.length === 0) {
         const { data: pub } = await supabase
-          .from('staff_public')
-          .select('staff_id, name, name_kana, has_pin')
+          .from('staff')
+          .select('staff_id, name, name_kana, has_pin, pin_hash')
           .eq('is_active', true)
           .order('name')
         if (pub?.length) staff = pub
@@ -163,7 +163,12 @@ export default function Login() {
             staff={filteredStaff}
             starStaffIds={starStaffIds}
             isStarTab={activeTab === '★'}
-            onSelect={setSelectedStaff}
+            onSelect={staff => {
+              setSelectedStaff(staff)
+              // SPEC-LOGIN-PREFETCH-ON-STAFF-SELECT-01: PIN入力中(2-5s)の待機時間を先読みに利用。
+              // non-blocking: do not await.
+              startPrefetch(staff.staff_id)
+            }}
           />
         )}
       </div>

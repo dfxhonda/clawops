@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+import { verifyPin } from './pinVerifier'
 
 const AVATAR_BG = ['#0e7490','#7c3aed','#059669','#d97706','#db2777','#4338ca','#e11d48']
 function avatarBg(staffId) {
@@ -65,17 +64,11 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
   const submitPin = async (pin) => {
     setSubmitting(true)
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staff_id: staff.staff_id, pin }),
-      })
-      const data = await res.json()
-      if (res.ok && data.session) {
-        onSuccess(staff, data.session)
+      const result = await verifyPin(staff, pin)
+      if (result.ok) {
+        onSuccess(staff, result.session)
         return
       }
-      // 失敗
       setShaking(true)
       setTimeout(() => setShaking(false), 500)
       setDigits([])
@@ -118,6 +111,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
           background: #1e293b; color: #e2e8f0;
           font-size: 22px; font-weight: 600;
           border: 1px solid #334155; cursor: pointer;
+          touch-action: manipulation;
           user-select: none; -webkit-tap-highlight-color: transparent;
           -webkit-user-select: none;
         }
@@ -190,14 +184,14 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
           {/* Numpad 3x4 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {[1,2,3,4,5,6,7,8,9].map(n => (
-              <button key={n} className="kp-btn" onClick={() => handleDigit(n)} disabled={isLocked || submitting}>
+              <button key={n} className="kp-btn" onPointerDown={() => handleDigit(n)} disabled={isLocked || submitting}>
                 {n}
               </button>
             ))}
             {/* 空セル */}
             <div />
-            <button className="kp-btn" onClick={() => handleDigit(0)} disabled={isLocked || submitting}>0</button>
-            <button className="kp-btn" onClick={handleBackspace} disabled={isLocked || submitting}
+            <button className="kp-btn" onPointerDown={() => handleDigit(0)} disabled={isLocked || submitting}>0</button>
+            <button className="kp-btn" onPointerDown={handleBackspace} disabled={isLocked || submitting}
               style={{ color: '#94a3b8', fontSize: 18 }}>⌫</button>
           </div>
         </div>

@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => ({
     __GIT_SHA__: JSON.stringify(gitSha),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['bcryptjs'],
   },
   esbuild: {
     pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
