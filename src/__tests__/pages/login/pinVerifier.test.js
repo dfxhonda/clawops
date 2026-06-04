@@ -6,8 +6,14 @@ vi.mock('bcryptjs', () => ({
   default: { compare: vi.fn() },
 }))
 
+vi.mock('../../../lib/sessionStore', () => ({
+  loadSession: vi.fn(),
+  saveSession: vi.fn().mockResolvedValue(undefined),
+}))
+
 const { verifyPin } = await import('../../../pages/login/pinVerifier')
 import bcrypt from 'bcryptjs'
+import { loadSession, saveSession } from '../../../lib/sessionStore'
 
 const VERIFY_PIN_URL = 'http://localhost:54321/functions/v1/verify-pin'
 
@@ -32,6 +38,8 @@ function setupVerifyPinFail() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // default: no cached session → fall through to server
+  loadSession.mockResolvedValue(null)
 })
 
 describe('verifyPin', () => {
@@ -132,5 +140,33 @@ describe('verifyPin', () => {
     expect(bcrypt.compare).not.toHaveBeenCalled()
     expect(capturedBody?.skip_bcrypt).toBeUndefined()
     expect(result.ok).toBe(true)
+  })
+
+  it('when_bcrypt_matches_and_cached_session_valid_skips_server', async () => {
+    bcrypt.compare.mockResolvedValueOnce(true)
+    const cachedSession = { access_token: 'cached-tok', refresh_token: 'cached-ref', expires_at: Math.floor(Date.now() / 1000) + 3600 }
+    loadSession.mockResolvedValueOnce(cachedSession)
+    let serverCalled = false
+    server.use(
+      http.post(VERIFY_PIN_URL, () => {
+        serverCalled = true
+        return HttpResponse.json({ session: fakeSession })
+      })
+    )
+
+    const result = await verifyPin(staffWithPin, '1234')
+
+    expect(serverCalled).toBe(false)
+    expect(result.ok).toBe(true)
+    expect(result.session.access_token).toBe('cached-tok')
+  })
+
+  it('when_bcrypt_matches_and_server_succeeds_saves_session', async () => {
+    bcrypt.compare.mockResolvedValueOnce(true)
+    setupVerifyPinOk()
+
+    await verifyPin(staffWithPin, '1234')
+
+    expect(saveSession).toHaveBeenCalledWith('S1', fakeSession)
   })
 })
