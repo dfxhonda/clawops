@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+import { verifyPin } from './pinVerifier'
 
 const AVATAR_BG = ['#0e7490','#7c3aed','#059669','#d97706','#db2777','#4338ca','#e11d48']
 function avatarBg(staffId) {
@@ -65,17 +64,11 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
   const submitPin = async (pin) => {
     setSubmitting(true)
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staff_id: staff.staff_id, pin }),
-      })
-      const data = await res.json()
-      if (res.ok && data.session) {
-        onSuccess(staff, data.session)
+      const result = await verifyPin(staff, pin)
+      if (result.ok) {
+        onSuccess(staff, result.session)
         return
       }
-      // 失敗
       setShaking(true)
       setTimeout(() => setShaking(false), 500)
       setDigits([])

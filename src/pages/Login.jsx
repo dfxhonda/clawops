@@ -61,7 +61,7 @@ export default function Login() {
       const [staffRes, deviceRows] = await Promise.all([
         supabase
           .from('staff')
-          .select('staff_id, name, name_kana, has_pin')
+          .select('staff_id, name, name_kana, has_pin, pin_hash')
           .eq('is_active', true)
           .order('name_kana'),
         fetchDeviceLoginRows(),
@@ -80,7 +80,7 @@ export default function Login() {
       if (staff.length === 0) {
         const { data: pub } = await supabase
           .from('staff_public')
-          .select('staff_id, name, name_kana, has_pin')
+          .select('staff_id, name, name_kana, has_pin, pin_hash')
           .eq('is_active', true)
           .order('name')
         if (pub?.length) staff = pub
