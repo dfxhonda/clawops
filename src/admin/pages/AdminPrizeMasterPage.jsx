@@ -15,19 +15,15 @@ import {
   getPhaseLabel,
   getPhaseBadgeClass,
 } from '../../constants/phaseLabels'
+import { generateShortName } from '../../lib/shortenPrizeName'
 
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列を SELECT から外し、phase に統一。
-const LIST_SELECT = 'prize_id,prize_name,aliases,category,original_cost,supplier_name,latest_order_date,phase,registered_at'
-// EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
+// SPEC-PRIZE-NAME-BINDING-FIX-01: aliases 除外、short_name を LIST_SELECT に移動。
 // J-SCHEMA-DROP-FIX-01: prize_name_kana/series/order_rules/tags/default_tag/weight_g 列は DB から削除済、SELECT から除外。
-const EDIT_SELECT = LIST_SELECT + ',short_name,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,organization_id,updated_at,updated_by,registered_by'
+const LIST_SELECT = 'prize_id,prize_name,short_name,category,original_cost,supplier_name,latest_order_date,phase,registered_at'
+const EDIT_SELECT = LIST_SELECT + ',size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,organization_id,updated_at,updated_by,registered_by'
 
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: STATUS_VALUES 撤廃、phase で表現 (PHASE_FILTER_OPTIONS 参照)。
-
-function alias0(val) {
-  try { return JSON.parse(val)?.[0] ?? null } catch { return val || null }
-}
-function wrapAlias(v) { return v.trim() ? JSON.stringify([v.trim()]) : null }
 
 function Field({ label, children, row }) {
   return (
@@ -66,7 +62,8 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 
 const EMPTY_FORM = {
   // J-SCHEMA-DROP-FIX-01: 削除済列 (prize_name_kana/series/order_rules/tags/default_tag/weight_g) を初期値から除外。
-  prize_name: '', aliases: '', category: '',
+  // SPEC-PRIZE-NAME-BINDING-FIX-01: aliases 除外、short_name 追加。
+  prize_name: '', short_name: '', category: '',
   // SPEC-PHASE-LABEL-FIX-01: 新規登録 default phase は実在値 'active'。
   // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
   size: '', phase: 'active',
@@ -106,7 +103,7 @@ export default function AdminPrizeMasterPage() {
         .from('prize_masters')
         .select(LIST_SELECT, { count: 'exact' })
         .order(sortCol, { ascending: sortAsc })
-      if (search.trim()) q = q.or(`prize_name.ilike.%${search}%,short_name.ilike.%${search}%,aliases.ilike.%${search}%`)
+      if (search.trim()) q = q.or(`prize_name.ilike.%${search}%,short_name.ilike.%${search}%`)
       if (catFilter)     q = q.ilike('category', `%${catFilter}%`)
       // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status server-side filter 撤廃、phase は ListFilterBar で client-side。
       const { data, count, error: e } = await q
@@ -143,7 +140,8 @@ export default function AdminPrizeMasterPage() {
     if (e) { setError(e.message); return }
     setForm({
       // J-SCHEMA-DROP-FIX-01: 削除済列 (prize_name_kana/series/order_rules/tags/default_tag/weight_g) は読込対象外。
-      prize_name: data.prize_name ?? '', aliases: data.aliases ?? '',
+      // SPEC-PRIZE-NAME-BINDING-FIX-01: aliases → short_name に変更。
+      prize_name: data.prize_name ?? '', short_name: data.short_name ?? '',
       category: data.category ?? '',
       size: data.size ?? '',
       // SPEC-PHASE-LABEL-FIX-01: 既存行 phase が null/未マップ値でも 'active' に矯正せず DB 値を保持。
@@ -160,13 +158,16 @@ export default function AdminPrizeMasterPage() {
   }
 
   async function handleSave() {
-    if (!form.prize_name.trim()) { setError('景品名は必須です'); return }
+    if (!form.prize_name.trim()) { setError('正式名称は必須です'); return }
     setSaving(true)
     setError(null)
     const now = new Date().toISOString()
+    const shortName = form.short_name.trim()
+      ? form.short_name.trim()
+      : await generateShortName(form.prize_name)
     const payload = {
       ...form,
-      aliases: form.aliases || null,
+      short_name: shortName || null,
       original_cost: form.original_cost === '' ? null : Number(form.original_cost),
       default_case_quantity: form.default_case_quantity === '' ? null : Number(form.default_case_quantity),
       updated_by: staffName,
@@ -214,7 +215,7 @@ export default function AdminPrizeMasterPage() {
       const row = rows.find(r => r.prize_id === id)
       const base = prev[id] ?? {
         prize_name: row?.prize_name ?? '',
-        aliases: row?.aliases ?? '',
+        short_name: row?.short_name ?? '',
         category: row?.category ?? '',
         // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase で表現。
         phase: row?.phase ?? 'active',
@@ -233,7 +234,7 @@ export default function AdminPrizeMasterPage() {
       // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列は廃止、phase 一本化。
       const { error: ge_err } = await supabase.from('prize_masters').update({
         prize_name: ge.prize_name,
-        aliases: ge.aliases || null,
+        short_name: ge.short_name || null,
         category: ge.category || null,
         phase: ge.phase,
         original_cost: ge.original_cost === '' ? null : Number(ge.original_cost),
@@ -287,7 +288,7 @@ export default function AdminPrizeMasterPage() {
             data-testid="prize-search"
             value={search}
             onChange={e => handleSearch(e.target.value)}
-            placeholder="景品名・alias 検索"
+            placeholder="景品名・短縮名 検索"
             className="bg-bg border border-border rounded px-2 py-1 text-sm text-text flex-1 min-w-[160px]"
             style={{ fontSize: 16 }}
           />
@@ -376,7 +377,6 @@ export default function AdminPrizeMasterPage() {
                   || r.phase === phaseFilter
                   || (phaseFilter === 'provisional' && r.phase === 'yobigun'))
               ).map(r => {
-                const a0 = alias0(r.aliases)
                 const ge = gridEdits[r.prize_id]
                 return (
                   <tr
@@ -387,21 +387,20 @@ export default function AdminPrizeMasterPage() {
                   >
                     <td className="py-0.5 px-1 max-w-[220px]">
                       {gridMode
-                        ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
+                        ? <input value={ge?.short_name ?? r.short_name ?? ''} onChange={ev => setGCell(r.prize_id, 'short_name', ev.target.value)} className={gridCellCls} />
                         : (
                           // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 景品名タップで openEdit 直接起動。
-                          // tr onClick も openEdit を呼ぶため stopPropagation で二重発火防止。
-                          // gridMode のときは既存の cell 編集動線を優先するため button 化しない。
+                          // SPEC-PRIZE-NAME-BINDING-FIX-01: 太字=short_name、サブテキスト=prize_name。
                           <>
                             <button
                               type="button"
                               onClick={(ev) => { ev.stopPropagation(); openEdit(r) }}
                               data-testid={`prize-master-name-${r.prize_id}`}
-                              className="truncate text-text font-medium text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer w-full"
+                              className="truncate text-text font-bold text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer w-full"
                             >
-                              {r.prize_name}
+                              {r.short_name || r.prize_name}
                             </button>
-                            {a0 && <div className="truncate text-sm text-gray-400">{a0}</div>}
+                            {r.short_name && <div className="truncate text-xs text-muted">{r.prize_name}</div>}
                           </>
                         )}
                     </td>
@@ -467,22 +466,22 @@ export default function AdminPrizeMasterPage() {
             {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
 
             <div className="flex flex-col gap-3">
-              {/* 1: 景品名 (短縮形) */}
-              <Field label="景品名 (短縮形) *">
+              {/* 1: 景品名 (短縮形) — 空欄で保存すると自動生成 */}
+              <Field label="景品名 (短縮形)">
                 <input
                   type="text"
-                  value={form.prize_name}
-                  onChange={e => f({ prize_name: e.target.value })}
-                  placeholder="景品名"
+                  value={form.short_name}
+                  onChange={e => f({ short_name: e.target.value })}
+                  placeholder="空欄で自動生成"
                   className="bg-bg border border-border rounded px-2 py-2 text-sm text-text w-full"
                 />
               </Field>
 
-              {/* 2: 正式名称 */}
-              <Field label="正式名称">
+              {/* 2: 正式名称 (prize_name) */}
+              <Field label="正式名称 *">
                 <Input
-                  value={alias0(form.aliases) ?? ''}
-                  onChange={v => f({ aliases: wrapAlias(v) })}
+                  value={form.prize_name}
+                  onChange={v => f({ prize_name: v })}
                   placeholder="正式名称"
                 />
               </Field>

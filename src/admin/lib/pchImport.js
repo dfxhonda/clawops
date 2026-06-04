@@ -11,6 +11,7 @@
 import { supabase } from '../../lib/supabase'
 import { writeAuditLog } from '../../services/audit'
 import { ERR } from '../../lib/errorCodes'
+import { generateShortName } from '../../lib/shortenPrizeName'
 
 export const SUPPLIER_ID = 'PCH'
 export const ORDER_SOURCE = 'pch_excel'
@@ -380,6 +381,7 @@ export async function ensurePrizeMaster(name, unitCost, ctx) {
   const { error: insErr } = await supabase.from('prize_masters').insert({
     prize_id: newPrizeId,
     prize_name: name,
+    short_name: await generateShortName(name),
     supplier_id: SUPPLIER_ID,
     supplier_name: SUPPLIER_NAME,
     original_cost: unitCost ?? null,
