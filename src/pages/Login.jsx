@@ -9,6 +9,7 @@ import { checkAndReloadIfStale } from '../services/loginVersionCheck'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
+import { startPrefetch } from '../lib/prefetchCache'
 
 const KANA_GROUPS = {
   'あ': /^[アイウエオ]/,
@@ -163,7 +164,12 @@ export default function Login() {
             staff={filteredStaff}
             starStaffIds={starStaffIds}
             isStarTab={activeTab === '★'}
-            onSelect={setSelectedStaff}
+            onSelect={staff => {
+              setSelectedStaff(staff)
+              // SPEC-LOGIN-PREFETCH-ON-STAFF-SELECT-01: PIN入力中(2-5s)の待機時間を先読みに利用。
+              // non-blocking: do not await.
+              startPrefetch(staff.staff_id)
+            }}
           />
         )}
       </div>
