@@ -6,14 +6,17 @@ vi.mock('bcryptjs', () => ({
   default: { compare: vi.fn() },
 }))
 
-vi.mock('../../../lib/sessionStore', () => ({
-  loadSession: vi.fn(),
-  saveSession: vi.fn().mockResolvedValue(undefined),
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn(),
+    },
+  },
 }))
 
 const { verifyPin } = await import('../../../pages/login/pinVerifier')
 import bcrypt from 'bcryptjs'
-import { loadSession, saveSession } from '../../../lib/sessionStore'
+import { supabase } from '../../../lib/supabase'
 
 const VERIFY_PIN_URL = 'http://localhost:54321/functions/v1/verify-pin'
 
@@ -38,8 +41,8 @@ function setupVerifyPinFail() {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // default: no cached session → fall through to server
-  loadSession.mockResolvedValue(null)
+  // default: no active session → fall through to server
+  supabase.auth.getSession.mockResolvedValue({ data: { session: null } })
 })
 
 describe('verifyPin', () => {
@@ -107,8 +110,7 @@ describe('verifyPin', () => {
     expect(result.bcryptFail).toBeUndefined()
   })
 
-  it('when_skip_bcrypt_true_admin_session_issued_server_bcrypt_bypassed', async () => {
-    // SPEC-LOGIN-ADMIN-SESSION-01: skip_bcrypt=true path uses admin.createSession server-side
+  it('when_skip_bcrypt_true_server_skips_bcrypt', async () => {
     bcrypt.compare.mockResolvedValueOnce(true)
     let capturedBody = null
     server.use(
@@ -142,10 +144,14 @@ describe('verifyPin', () => {
     expect(result.ok).toBe(true)
   })
 
-  it('when_bcrypt_matches_and_cached_session_valid_skips_server', async () => {
+  it('when_bcrypt_matches_and_getSession_returns_matching_staff_skips_server', async () => {
     bcrypt.compare.mockResolvedValueOnce(true)
-    const cachedSession = { access_token: 'cached-tok', refresh_token: 'cached-ref', expires_at: Math.floor(Date.now() / 1000) + 3600 }
-    loadSession.mockResolvedValueOnce(cachedSession)
+    const cachedSession = {
+      access_token: 'cached-tok',
+      refresh_token: 'cached-ref',
+      user: { user_metadata: { staff_id: 'S1' } },
+    }
+    supabase.auth.getSession.mockResolvedValueOnce({ data: { session: cachedSession } })
     let serverCalled = false
     server.use(
       http.post(VERIFY_PIN_URL, () => {
@@ -158,15 +164,23 @@ describe('verifyPin', () => {
 
     expect(serverCalled).toBe(false)
     expect(result.ok).toBe(true)
+    expect(result.reused).toBe(true)
     expect(result.session.access_token).toBe('cached-tok')
   })
 
-  it('when_bcrypt_matches_and_server_succeeds_saves_session', async () => {
+  it('when_bcrypt_matches_and_getSession_returns_different_staff_calls_server', async () => {
     bcrypt.compare.mockResolvedValueOnce(true)
+    const otherSession = {
+      access_token: 'other-tok',
+      user: { user_metadata: { staff_id: 'S99' } },
+    }
+    supabase.auth.getSession.mockResolvedValueOnce({ data: { session: otherSession } })
     setupVerifyPinOk()
 
-    await verifyPin(staffWithPin, '1234')
+    const result = await verifyPin(staffWithPin, '1234')
 
-    expect(saveSession).toHaveBeenCalledWith('S1', fakeSession)
+    expect(result.ok).toBe(true)
+    expect(result.reused).toBeUndefined()
+    expect(result.session).toEqual(fakeSession)
   })
 })

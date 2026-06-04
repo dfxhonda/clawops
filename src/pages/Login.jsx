@@ -10,7 +10,6 @@ import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
 import { startPrefetch } from '../lib/prefetchCache'
-import { clearAllSessions } from '../lib/sessionStore'
 
 const KANA_GROUPS = {
   'あ': /^[アイウエオ]/,
@@ -54,10 +53,6 @@ export default function Login() {
         navigate('/launcher', { replace: true })
         return
       }
-      // SPEC-LOGIN-SESSION-REUSE-01 C3: no active Supabase session = explicit logout or expiry.
-      // Clear IndexedDB cached sessions so next PIN entry re-authenticates via server.
-      await clearAllSessions()
-
       // SPEC-LOGIN-LATENCY-FIX-01 C2: staff SELECT と device_login_history SELECT を
       // Promise.all で並列発火 (waterfall +737ms cold 解消)。
       // organization_id フィルタは外す: anon RLS が is_active=true のみ対象のため、

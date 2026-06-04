@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { saveSession, loadSession } from '../../lib/sessionStore'
+import { supabase } from '../../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -8,9 +8,12 @@ export async function verifyPin(staff, pin) {
     const match = await bcrypt.compare(pin, staff.pin_hash)
     if (!match) return { ok: false, bcryptFail: true }
 
-    // SPEC-LOGIN-SESSION-REUSE-01: try cached session before server roundtrip
-    const cached = await loadSession(staff.staff_id)
-    if (cached) return { ok: true, session: cached }
+    // SPEC-LOGIN-SESSION-REUSE-01-fix-01: getSession() is pure local read (0ms, no server call).
+    // Supabase persists session in localStorage after first signInWithPassword.
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session && session.user?.user_metadata?.staff_id === staff.staff_id) {
+      return { ok: true, session, reused: true }
+    }
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
       method: 'POST',
@@ -18,10 +21,7 @@ export async function verifyPin(staff, pin) {
       body: JSON.stringify({ staff_id: staff.staff_id, skip_bcrypt: true }),
     })
     const data = await res.json()
-    if (res.ok && data.session) {
-      await saveSession(staff.staff_id, data.session)
-      return { ok: true, session: data.session }
-    }
+    if (res.ok && data.session) return { ok: true, session: data.session }
     return { ok: false }
   }
   const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
