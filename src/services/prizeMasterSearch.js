@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
  * RLS で organization_id 自動絞り — anon 側でフィルタ禁止
  *
  * @param {string} keyword - 検索キーワード (2文字未満は空配列を返す)
- * @returns {Promise<Array<{prize_id, prize_name, prize_name_kana, aliases, short_name, original_cost, latest_order_date}>>}
+ * @returns {Promise<Array<{prize_id, prize_name, aliases, short_name, original_cost, latest_order_date}>>}
  *
  * 並び順: 納期(=最終発注日 latest_order_date)の新しい順。
  *   ※ prize_masters の expected_date(納品予定日)は現状全件null運用のため、
@@ -20,12 +20,12 @@ export async function searchPrizeMasters(keyword) {
   const kw = keyword.trim()
   const { data, error } = await supabase
     .from('prize_masters')
-    .select('prize_id, prize_name, prize_name_kana, aliases, short_name, original_cost, latest_order_date')
+    .select('prize_id, prize_name, aliases, short_name, original_cost, latest_order_date') // J-SCHEMA-DROP-FIX-01: prize_name_kana 列削除済
     // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status='active' → phase!='dead' (廃番のみ除外)
     .neq('phase', 'dead')
     .or(
+      // J-SCHEMA-DROP-FIX-01: prize_name_kana 列削除済のため ilike 対象から除外。
       `prize_name.ilike.%${kw}%,` +
-      `prize_name_kana.ilike.%${kw}%,` +
       `aliases.ilike.%${kw}%,` +
       `short_name.ilike.%${kw}%`,
     )

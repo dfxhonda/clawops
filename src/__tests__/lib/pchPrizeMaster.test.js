@@ -58,26 +58,47 @@ describe('parsePrizeIdSeq / formatPrizeId', () => {
 })
 
 describe('ensurePrizeMaster (キャッシュ + DB lookup + INSERT)', () => {
-  it('cache_hit_returns_immediately_without_db_call', async () => {
-    const fromSpy = vi.fn()
-    globalThis.__pchPmSupabaseFrom = fromSpy
+  it('cache_hit_returns_prize_id_and_triggers_original_cost_update', async () => {
+    // SPEC-PCH-ORIGINAL-COST-SYNC-01: cache hit でも unitCost!=null なら UPDATE 発火。
+    const updates = []
+    globalThis.__pchPmSupabaseFrom = (table) => ({
+      update: (payload) => ({
+        eq: async (col, val) => { updates.push({ table, payload, col, val }); return { error: null } },
+      }),
+    })
     const ctx = { cache: new Map([['ピカチュウぬいぐるみ', 'PZ-00100']]), nextSeq: { value: 999 } }
     const r = await ensurePrizeMaster('ピカチュウぬいぐるみ', 500, ctx)
     expect(r).toEqual({ prizeId: 'PZ-00100', isNew: false })
-    expect(fromSpy).not.toHaveBeenCalled()
     expect(ctx.nextSeq.value).toBe(999)
+    expect(updates).toEqual([
+      { table: 'prize_masters', payload: { original_cost: 500 }, col: 'prize_id', val: 'PZ-00100' },
+    ])
   })
 
-  it('cache_miss_db_hit_returns_existing_and_caches', async () => {
+  it('cache_hit_with_null_unit_cost_skips_update', async () => {
+    // SPEC-PCH-ORIGINAL-COST-SYNC-01 AC-02: unit_cost=null は UPDATE しない。
+    const fromSpy = vi.fn()
+    globalThis.__pchPmSupabaseFrom = fromSpy
+    const ctx = { cache: new Map([['名前', 'PZ-00500']]), nextSeq: { value: 0 } }
+    const r = await ensurePrizeMaster('名前', null, ctx)
+    expect(r).toEqual({ prizeId: 'PZ-00500', isNew: false })
+    expect(fromSpy).not.toHaveBeenCalled()
+  })
+
+  it('cache_miss_db_hit_returns_existing_caches_and_updates_original_cost', async () => {
+    // SPEC-PCH-ORIGINAL-COST-SYNC-01 AC-01: DB hit 分岐でも UPDATE 発火。
     const calls = []
+    const updates = []
     globalThis.__pchPmSupabaseFrom = (table) => {
       calls.push(table)
-      // select().eq().maybeSingle() → 既存 prize_id を返す
       return {
         select: () => ({
           eq: () => ({
             maybeSingle: async () => ({ data: { prize_id: 'PZ-01234' }, error: null }),
           }),
+        }),
+        update: (payload) => ({
+          eq: async (col, val) => { updates.push({ payload, col, val }); return { error: null } },
         }),
       }
     }
@@ -86,7 +107,50 @@ describe('ensurePrizeMaster (キャッシュ + DB lookup + INSERT)', () => {
     expect(r).toEqual({ prizeId: 'PZ-01234', isNew: false })
     expect(ctx.cache.get('ドラえもんフィギュア')).toBe('PZ-01234')
     expect(ctx.nextSeq.value).toBe(2355)  // 未インクリメント
-    expect(calls).toEqual(['prize_masters'])
+    expect(calls).toEqual(['prize_masters', 'prize_masters'])  // select + update
+    expect(updates).toEqual([
+      { payload: { original_cost: 800 }, col: 'prize_id', val: 'PZ-01234' },
+    ])
+  })
+
+  it('cache_miss_db_hit_with_null_unit_cost_skips_update', async () => {
+    // SPEC-PCH-ORIGINAL-COST-SYNC-01 AC-02: DB hit + unit_cost=null も UPDATE skip。
+    const calls = []
+    globalThis.__pchPmSupabaseFrom = (table) => {
+      calls.push(table)
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: { prize_id: 'PZ-09999' }, error: null }),
+          }),
+        }),
+      }
+    }
+    const ctx = { cache: new Map(), nextSeq: { value: 0 } }
+    const r = await ensurePrizeMaster('既存', null, ctx)
+    expect(r).toEqual({ prizeId: 'PZ-09999', isNew: false })
+    expect(calls).toEqual(['prize_masters'])  // select のみ
+  })
+
+  it('cache_miss_db_hit_update_error_is_warned_not_thrown', async () => {
+    // SPEC-PCH-ORIGINAL-COST-SYNC-01 spec note: UPDATE エラーは throw せず console.warn で続行。
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    globalThis.__pchPmSupabaseFrom = () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: { prize_id: 'PZ-04567' }, error: null }),
+        }),
+      }),
+      update: () => ({
+        eq: async () => ({ error: { message: 'simulated RLS violation' } }),
+      }),
+    })
+    const ctx = { cache: new Map(), nextSeq: { value: 0 } }
+    const r = await ensurePrizeMaster('エラー景品', 1500, ctx)
+    expect(r).toEqual({ prizeId: 'PZ-04567', isNew: false })
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(warnSpy.mock.calls[0][0]).toContain('PZ-04567')
+    expect(warnSpy.mock.calls[0][0]).toContain('simulated RLS violation')
   })
 
   it('cache_miss_db_miss_inserts_new_with_correct_payload_and_increments_seq', async () => {
@@ -118,6 +182,8 @@ describe('ensurePrizeMaster (キャッシュ + DB lookup + INSERT)', () => {
   })
 
   it('same_name_called_twice_in_session_uses_cache_for_second_call', async () => {
+    // SPEC-PCH-ORIGINAL-COST-SYNC-01: 2 回目は cache hit、DB lookup は増えないが
+    // UPDATE は発火する (unitCost!=null のため)。
     let dbCalls = 0
     globalThis.__pchPmSupabaseFrom = () => ({
       select: () => ({
@@ -126,6 +192,7 @@ describe('ensurePrizeMaster (キャッシュ + DB lookup + INSERT)', () => {
         }),
       }),
       insert: async () => ({ error: null }),
+      update: () => ({ eq: async () => ({ error: null }) }),
     })
     const ctx = { cache: new Map(), nextSeq: { value: 2355 } }
     await ensurePrizeMaster('重複アイテム', 100, ctx)

@@ -16,17 +16,18 @@ import { useListSort } from '../../hooks/useListSort'
 
 // T2d-AdminStoreListPage-bugfix-refactor:
 // - bugfix: .single() → .maybeSingle() で「Cannot coerce to single JSON」を解消
-// - bugfix: WHERE 句を store_code (NOT NULL) ベースに統一 (store_id は NULL 許容で WHERE に使えない)
-// - feature: store_id を edit_modal 内で editable text field 化 (admin/manager のみ自由入力)
+// - bugfix: WHERE 句を store_code (NOT NULL) ベースに統一
+// - SPEC-STORE-MASTER-STORE-ID-FIX-01: stores.store_id 列が DROP (SCHEMA-AUDIT-V1) 済のため
+//   本ファイルから store_id 参照を全削除。SELECT 不在で「column does not exist」エラー解消。
 // - feature: card view (min-h 88px) を default、grid 表編集を toggle
 // - feature: ← ホーム / + 新規追加 / 検索 + 50音タブ + ソート / 削除確認 (ブース数 + meter_readings 件数)
 // - audit: 全 CUD を writeAuditLog (services/audit) + logger.info/error (lib/logger)
 // - forbidden: stores schema 不変 / store_name_official の UI 表示なし (内部保持) / 他画面 .single() 不触
 
-const LIST_SELECT = 'store_id,store_code,store_name,store_name_official,brand_name,store_type,phone,address,region,locality,locality_kana,is_active,opened_at,closed_at,is_collection_day,notes'
+// SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 store_id 列を SELECT から除外 (DB DROP 済)。
+const LIST_SELECT = 'store_code,store_name,store_name_official,brand_name,store_type,phone,address,region,locality,locality_kana,is_active,opened_at,closed_at,is_collection_day,notes'
 
 const EMPTY_FORM = {
-  store_id: '',
   store_code: '', store_name: '', store_name_official: '',
   brand_name: '', store_type: '', phone: '', address: '',
   region: '', locality: '', locality_kana: '',
@@ -159,14 +160,14 @@ export default function AdminStoreListPage() {
   }
 
   async function openEdit(row) {
-    // bugfix: .single() → .maybeSingle() / WHERE store_id → store_code (store_id は NULL 許容)
+    // bugfix: .single() → .maybeSingle() / WHERE store_code 統一
     const { data, error: loadErr } = await supabase
       .from('stores').select(LIST_SELECT)
       .eq('store_code', row.store_code).maybeSingle()
     if (loadErr) { setError(loadErr.message); return }
     if (!data) { setError(`店舗が見つかりません: ${row.store_code}`); return }
     setForm({
-      store_id:             data.store_id ?? '',
+      // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id は DROP 済、参照しない。
       store_code:           data.store_code ?? '',
       store_name:           data.store_name ?? '',
       store_name_official:  data.store_name_official ?? '', // UI 非表示、編集も外す (forbidden)
@@ -193,7 +194,7 @@ export default function AdminStoreListPage() {
     setError(null)
     const now = new Date().toISOString()
     const payload = {
-      store_id:            form.store_id?.trim() || null, // editable: NULL 保持可
+      // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id 列 DROP 済、payload から除外。
       store_name:          form.store_name.trim(),
       store_name_official: form.store_name_official || null, // 内部保持、UI 表示なし
       store_code:          form.store_code || null,
@@ -231,7 +232,8 @@ export default function AdminStoreListPage() {
         logger.info('store_create_success', { store_code: insertPayload.store_code })
       } else {
         const before = {
-          store_id: modal.store_id, store_name: modal.store_name, store_code: modal.store_code,
+          // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id 撤廃。
+          store_name: modal.store_name, store_code: modal.store_code,
           brand_name: modal.brand_name, store_type: modal.store_type, phone: modal.phone,
           address: modal.address, region: modal.region, locality: modal.locality,
           locality_kana: modal.locality_kana, is_active: modal.is_active,
@@ -322,7 +324,7 @@ export default function AdminStoreListPage() {
       const base = prev[code] ?? {
         store_name: row?.store_name ?? '',
         store_code: row?.store_code ?? '',
-        store_id: row?.store_id ?? '',
+        // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id 列 DROP 済、grid edit base から除外。
         address: row?.address ?? '',
         phone: row?.phone ?? '',
         brand_name: row?.brand_name ?? '',
@@ -340,7 +342,7 @@ export default function AdminStoreListPage() {
         const before = rows.find(r => r.store_code === code)
         // bugfix: WHERE store_code に統一
         const { error: ge_err } = await supabase.from('stores').update({
-          store_id: ge.store_id || null,
+          // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id 列 DROP 済、UPDATE payload から除外。
           store_name: ge.store_name.trim(),
           store_code: ge.store_code || null,
           address: ge.address || null,
@@ -357,7 +359,8 @@ export default function AdminStoreListPage() {
           target_table: 'stores',
           target_id: code,
           detail: `表編集一括保存: ${ge.store_name}`,
-          before_data: before ? { store_name: before.store_name, store_code: before.store_code, store_id: before.store_id, address: before.address, phone: before.phone, brand_name: before.brand_name, is_active: before.is_active } : null,
+          // SPEC-STORE-MASTER-STORE-ID-FIX-01: before snapshot からも store_id 除外。
+          before_data: before ? { store_name: before.store_name, store_code: before.store_code, address: before.address, phone: before.phone, brand_name: before.brand_name, is_active: before.is_active } : null,
           after_data: ge,
         })
       }
@@ -506,8 +509,7 @@ export default function AdminStoreListPage() {
                 <div className="mt-2 flex items-center gap-2 flex-wrap text-xs text-muted">
                   {r.brand_name && <span className="bg-bg border border-border rounded px-1.5">{r.brand_name}</span>}
                   <span>ブース {boothCounts[r.store_code] ?? 0}</span>
-                  {r.store_id && <span className="font-mono">ID:{r.store_id}</span>}
-                  {!r.store_id && <span className="text-amber-400">外部ID未割当</span>}
+                  {/* SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 外部ID (store_id) chip 撤廃。 */}
                 </div>
               </li>
             ))}
@@ -526,7 +528,7 @@ export default function AdminStoreListPage() {
                 columns={[
                   { key: 'store_name',  label: '店舗名',  className: 'py-1 px-2 text-left text-muted' },
                   { key: '__code__',    label: 'コード',  className: 'py-1 px-2 text-left text-muted pointer-events-none' },
-                  { key: '__id__',      label: '外部ID',  className: 'py-1 px-2 text-left text-muted pointer-events-none' },
+                  // SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 '外部ID' 列を撤廃。
                   { key: '__address__', label: '住所',    className: 'py-1 px-2 text-left text-muted hidden md:table-cell pointer-events-none' },
                   { key: '__phone__',   label: '電話',    className: 'py-1 px-2 text-left text-muted hidden md:table-cell pointer-events-none' },
                   { key: 'brand_name',  label: 'ブランド', className: 'py-1 px-2 text-left text-muted hidden md:table-cell' },
@@ -553,9 +555,7 @@ export default function AdminStoreListPage() {
                     <td className="py-0.5 px-1 text-muted font-mono">
                       <input value={ge?.store_code ?? r.store_code ?? ''} onChange={ev => setGCell(r.store_code, 'store_code', ev.target.value)} className={gridCellCls} />
                     </td>
-                    <td className="py-0.5 px-1 text-muted font-mono">
-                      <input value={ge?.store_id ?? r.store_id ?? ''} onChange={ev => setGCell(r.store_code, 'store_id', ev.target.value)} placeholder="例 678" className={gridCellCls} />
-                    </td>
+                    {/* SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 store_id 編集 <td> を撤廃。 */}
                     <td className="py-0.5 px-1 text-muted max-w-[200px] hidden md:table-cell">
                       <input value={ge?.address ?? r.address ?? ''} onChange={ev => setGCell(r.store_code, 'address', ev.target.value)} className={gridCellCls} />
                     </td>
@@ -601,14 +601,7 @@ export default function AdminStoreListPage() {
               <Field label="店舗コード">
                 <TInput value={form.store_code} onChange={v => f({ store_code: v })} placeholder="KKY01" testId="store-edit-code" />
               </Field>
-              <Field label="外部ID (PPIH番号 / スポガ番号 / 英数字自由入力)">
-                <TInput
-                  value={form.store_id}
-                  onChange={v => f({ store_id: v })}
-                  placeholder="例) 678 (ドンキ系=PPIH番号) / S001 (スポガ系) / その他英数字自由入力"
-                  testId="store-edit-store-id"
-                />
-              </Field>
+              {/* SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 外部ID (store_id) 入力 Field を撤廃。 */}
               <Field label="ブランド名">
                 <TInput value={form.brand_name} onChange={v => f({ brand_name: v })} placeholder="ブランド名" />
               </Field>

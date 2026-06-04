@@ -5,8 +5,9 @@ import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 // SPEC-LIST-FILTER-SORT-01-fix-01: sortable header (canonical d0cf209)。
 // SPEC-PRIZE-MASTER-UI-CLEANUP-01: ListFilterBar (2 行目) は撤廃、inline 1 行 flex に統合。
 import SortableTableHeader from '../../components/SortableTableHeader'
-// SPEC-ARRIVAL-UX-01: 景品詳細 bottom sheet (全画面共通)。
-import PrizeDetailDialog from '../../components/PrizeDetailDialog'
+// SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 旧 PrizeDetailDialog (読取専用) を撤廃、景品名タップ
+// 直接 openEdit() で編集モーダル起動に統一。component 自体は ArrivalCheckPage / OrderList で
+// 引き続き使用するため削除しない (grep 確認済)。
 // SPEC-PHASE-LABEL-FIX-01: phase 表示名/バッジ/選択肢を集約モジュールから取得 (旧ハードコード PHASE_VALUES 撤去)。
 import {
   PHASE_FILTER_OPTIONS,
@@ -18,7 +19,8 @@ import {
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列を SELECT から外し、phase に統一。
 const LIST_SELECT = 'prize_id,prize_name,aliases,category,original_cost,supplier_name,latest_order_date,phase,registered_at'
 // EDIT_SELECT maintains short_name for DB read/write even though it's removed from list
-const EDIT_SELECT = LIST_SELECT + ',short_name,prize_name_kana,series,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,order_rules,tags,default_tag,weight_g,organization_id,updated_at,updated_by,registered_by'
+// J-SCHEMA-DROP-FIX-01: prize_name_kana/series/order_rules/tags/default_tag/weight_g 列は DB から削除済、SELECT から除外。
+const EDIT_SELECT = LIST_SELECT + ',short_name,size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,organization_id,updated_at,updated_by,registered_by'
 
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: STATUS_VALUES 撤廃、phase で表現 (PHASE_FILTER_OPTIONS 参照)。
 
@@ -63,13 +65,13 @@ function SortTh({ col, label, align = 'left', sortCol, sortAsc, onSort }) {
 }
 
 const EMPTY_FORM = {
-  prize_name: '', aliases: '', prize_name_kana: '', category: '',
+  // J-SCHEMA-DROP-FIX-01: 削除済列 (prize_name_kana/series/order_rules/tags/default_tag/weight_g) を初期値から除外。
+  prize_name: '', aliases: '', category: '',
   // SPEC-PHASE-LABEL-FIX-01: 新規登録 default phase は実在値 'active'。
   // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
-  series: '', size: '', phase: 'active',
+  size: '', phase: 'active',
   original_cost: '', supplier_id: '', supplier_name: '', supplier_item_code: '',
   jan_code: '', default_case_quantity: '', image_url: '', notes: '',
-  order_rules: '', tags: '', default_tag: '', weight_g: '',
 }
 
 export default function AdminPrizeMasterPage() {
@@ -94,8 +96,7 @@ export default function AdminPrizeMasterPage() {
   const [gridMode, setGridMode] = useState(false)
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
-  // SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog の対象 row。
-  const [detailRow, setDetailRow] = useState(null)
+  // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: detailRow state 撤廃、景品名タップは openEdit に統合。
 
   useEffect(() => {
     let cancelled = false
@@ -141,9 +142,10 @@ export default function AdminPrizeMasterPage() {
       .single()
     if (e) { setError(e.message); return }
     setForm({
+      // J-SCHEMA-DROP-FIX-01: 削除済列 (prize_name_kana/series/order_rules/tags/default_tag/weight_g) は読込対象外。
       prize_name: data.prize_name ?? '', aliases: data.aliases ?? '',
-      prize_name_kana: data.prize_name_kana ?? '', category: data.category ?? '',
-      series: data.series ?? '', size: data.size ?? '',
+      category: data.category ?? '',
+      size: data.size ?? '',
       // SPEC-PHASE-LABEL-FIX-01: 既存行 phase が null/未マップ値でも 'active' に矯正せず DB 値を保持。
       // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 撤廃、phase のみ。
       phase: data.phase ?? 'active',
@@ -151,8 +153,6 @@ export default function AdminPrizeMasterPage() {
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
       jan_code: data.jan_code ?? '', default_case_quantity: data.default_case_quantity ?? '',
       image_url: data.image_url ?? '', notes: data.notes ?? '',
-      order_rules: data.order_rules ?? '', tags: data.tags ?? '',
-      default_tag: data.default_tag ?? '', weight_g: data.weight_g ?? '',
     })
     setModal(data)
     setShowMore(false)
@@ -169,7 +169,6 @@ export default function AdminPrizeMasterPage() {
       aliases: form.aliases || null,
       original_cost: form.original_cost === '' ? null : Number(form.original_cost),
       default_case_quantity: form.default_case_quantity === '' ? null : Number(form.default_case_quantity),
-      weight_g: form.weight_g === '' ? null : Number(form.weight_g),
       updated_by: staffName,
       updated_at: now,
     }
@@ -390,12 +389,13 @@ export default function AdminPrizeMasterPage() {
                       {gridMode
                         ? <input value={ge?.prize_name ?? r.prize_name ?? ''} onChange={ev => setGCell(r.prize_id, 'prize_name', ev.target.value)} className={gridCellCls} />
                         : (
-                          // SPEC-ARRIVAL-UX-01: 景品名タップで PrizeDetailDialog 起動 (gridMode のときは
-                          // 既存の cell 編集動線を優先するため button 化しない)。
+                          // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 景品名タップで openEdit 直接起動。
+                          // tr onClick も openEdit を呼ぶため stopPropagation で二重発火防止。
+                          // gridMode のときは既存の cell 編集動線を優先するため button 化しない。
                           <>
                             <button
                               type="button"
-                              onClick={(ev) => { ev.stopPropagation(); setDetailRow(r) }}
+                              onClick={(ev) => { ev.stopPropagation(); openEdit(r) }}
                               data-testid={`prize-master-name-${r.prize_id}`}
                               className="truncate text-text font-medium text-left underline decoration-dotted decoration-muted/40 hover:decoration-accent cursor-pointer w-full"
                             >
@@ -549,17 +549,11 @@ export default function AdminPrizeMasterPage() {
                       {PHASE_EDIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </Field>
-                  <Field label="シリーズ">
-                    <Input value={form.series} onChange={v => f({ series: v })} placeholder="シリーズ" />
-                  </Field>
                   <Field label="サイズ">
                     <Input value={form.size} onChange={v => f({ size: v })} placeholder="サイズ" />
                   </Field>
                   <Field label="JANコード">
                     <Input value={form.jan_code} onChange={v => f({ jan_code: v })} placeholder="JAN" />
-                  </Field>
-                  <Field label="重量(g)">
-                    <Input value={form.weight_g} onChange={v => f({ weight_g: v })} type="number" placeholder="0" />
                   </Field>
                   <Field label="備考">
                     <textarea
@@ -569,12 +563,6 @@ export default function AdminPrizeMasterPage() {
                       className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full resize-none"
                       placeholder="備考"
                     />
-                  </Field>
-                  <Field label="発注ルール">
-                    <Input value={form.order_rules} onChange={v => f({ order_rules: v })} placeholder="発注ルール" />
-                  </Field>
-                  <Field label="タグ">
-                    <Input value={form.tags} onChange={v => f({ tags: v })} placeholder="タグ" />
                   </Field>
                 </div>
               )}
@@ -608,10 +596,7 @@ export default function AdminPrizeMasterPage() {
         </div>
       )}
 
-      {/* SPEC-ARRIVAL-UX-01: 景品名タップで開く詳細 dialog */}
-      {detailRow && (
-        <PrizeDetailDialog row={detailRow} onClose={() => setDetailRow(null)} />
-      )}
+      {/* SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 旧 PrizeDetailDialog JSX 撤廃 (景品名タップは openEdit 直接起動)。 */}
     </div>
   )
 }

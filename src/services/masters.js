@@ -37,7 +37,7 @@ export async function getMachineTypes() {
   if (getCache('machine_types')) return getCache('machine_types')
   const { data, error } = await supabase
     .from('machine_types')
-    .select('type_id, type_name, category, locker_slots, manufacturer, booth_count, meter_count, meter_unit_price, notes')
+    .select('type_id, type_name, category, locker_slots, notes') // J-SCHEMA-DROP-FIX-01: manufacturer/booth_count/meter_count/meter_unit_price 列削除済
     .order('type_id')
   if (error) { console.error('machine_types取得エラー:', error.message); return [] }
   setCache('machine_types', data)
@@ -387,12 +387,9 @@ export async function addMachineType(t) {
   const { data, error } = await supabase
     .from('machine_types')
     .insert({
+      // J-SCHEMA-DROP-FIX-01: manufacturer/booth_count/meter_count/meter_unit_price 列削除済、payload から除外。
       type_name: t.type_name,
       category: t.category || null,
-      manufacturer: t.manufacturer || null,
-      booth_count: t.booth_count ? Number(t.booth_count) : null,
-      meter_count: t.meter_count ? Number(t.meter_count) : null,
-      meter_unit_price: t.meter_unit_price ? Number(t.meter_unit_price) : null,
       locker_slots: t.locker_slots ? Number(t.locker_slots) : null,
       notes: t.notes || null,
     })
@@ -414,12 +411,9 @@ export async function updateMachineType(typeId, updates) {
   const { data, error } = await supabase
     .from('machine_types')
     .update({
+      // J-SCHEMA-DROP-FIX-01: manufacturer/booth_count/meter_count/meter_unit_price 列削除済、payload から除外。
       type_name: updates.type_name,
       category: updates.category || null,
-      manufacturer: updates.manufacturer || null,
-      booth_count: updates.booth_count ? Number(updates.booth_count) : null,
-      meter_count: updates.meter_count ? Number(updates.meter_count) : null,
-      meter_unit_price: updates.meter_unit_price ? Number(updates.meter_unit_price) : null,
       locker_slots: updates.locker_slots ? Number(updates.locker_slots) : null,
       notes: updates.notes || null,
     })

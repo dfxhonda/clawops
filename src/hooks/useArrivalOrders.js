@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 // J-STOCK-OWNER-FILTER-01 (司令塔Opus spec):
-// COLS に location_id / zone_id / size_id を追加 (Phase1 名寄せ済 列を取得)。
+// COLS に location_id を追加 (Phase1 名寄せ済 列を取得)。J-SCHEMA-DROP-FIX-01: zone_id / size_id は削除済のため除外。
 // 第1引数 locationId: 拠点 eq 絞り (場所ハブから来た owner_id)、null/undefined = 全件
 // 第2引数 textFilter: 入庫先 free-text ilike 絞り (locationId と併用可能)
 // レーン判定ロジック (upcoming/overdue/recent の status + 日付条件) は spec forbidden、変更なし。
@@ -10,7 +10,8 @@ const COLS = [
   'order_id', 'prize_name_short', 'prize_name_raw', 'supplier_id',
   'expected_date', 'case_count', 'received_quantity', 'is_fully_received',
   'destination', 'status', 'arrived_at', 'unplanned_flag',
-  'location_id', 'zone_id', 'size_id',
+  // J-SCHEMA-DROP-FIX-01: zone_id / size_id 列は DB から削除済、COLS から除外。
+  'location_id',
 ].join(', ')
 
 export function useArrivalOrders(locationId, textFilter) {
