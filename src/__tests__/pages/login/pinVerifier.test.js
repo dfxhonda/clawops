@@ -99,6 +99,24 @@ describe('verifyPin', () => {
     expect(result.bcryptFail).toBeUndefined()
   })
 
+  it('when_skip_bcrypt_true_admin_session_issued_server_bcrypt_bypassed', async () => {
+    // SPEC-LOGIN-ADMIN-SESSION-01: skip_bcrypt=true path uses admin.createSession server-side
+    bcrypt.compare.mockResolvedValueOnce(true)
+    let capturedBody = null
+    server.use(
+      http.post(VERIFY_PIN_URL, async ({ request }) => {
+        capturedBody = await request.json()
+        if (!capturedBody.skip_bcrypt) return HttpResponse.json({ error: 'skip_bcrypt expected' }, { status: 500 })
+        return HttpResponse.json({ session: fakeSession })
+      })
+    )
+    const result = await verifyPin(staffWithPin, '1234')
+    expect(capturedBody?.skip_bcrypt).toBe(true)
+    expect(capturedBody?.pin).toBeUndefined()
+    expect(result.ok).toBe(true)
+    expect(result.session).toEqual(fakeSession)
+  })
+
   it('when_has_pin_true_but_no_pin_hash_falls_back_to_normal_flow', async () => {
     const staffNoPinHash = { staff_id: 'S3', has_pin: true, pin_hash: null }
     let capturedBody = null

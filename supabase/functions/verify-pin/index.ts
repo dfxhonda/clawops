@@ -64,6 +64,72 @@ Deno.serve(async (req: Request) => {
         );
       }
       verifyResult = { success: true, ...staffRow };
+
+      // SPEC-LOGIN-ADMIN-SESSION-01: admin.createSession replaces signInWithPassword (no server bcrypt)
+      const emailForSession = `${staff_id.toLowerCase()}@clawops.local`;
+      const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const authUser = (usersData?.users ?? []).find((u: { email?: string }) => u.email === emailForSession);
+
+      if (authUser) {
+        const newMeta = {
+          staff_id: staffRow.staff_id,
+          name: staffRow.name,
+          role: staffRow.role,
+          operator_id: staffRow.operator_id,
+          store_code: staffRow.store_code,
+        };
+        const existingMeta = (authUser as { user_metadata?: Record<string, unknown> }).user_metadata || {};
+        const metaChanged =
+          existingMeta.role !== newMeta.role ||
+          existingMeta.name !== newMeta.name ||
+          existingMeta.store_code !== newMeta.store_code ||
+          existingMeta.operator_id !== newMeta.operator_id;
+
+        if (metaChanged) {
+          await supabaseAdmin.auth.admin.updateUserById((authUser as { id: string }).id, {
+            user_metadata: newMeta,
+            app_metadata: { staff_id: staffRow.staff_id, role: staffRow.role },
+          });
+        }
+
+        const { data: sd, error: se } = await supabaseAdmin.auth.admin.createSession({
+          user_id: (authUser as { id: string }).id,
+        });
+
+        if (se || !sd?.session) {
+          console.error('createSession error:', se);
+          return new Response(
+            JSON.stringify({ error: 'セッション発行に失敗しました' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        await supabaseAdmin.from('auth_logs').insert({
+          staff_id: staffRow.staff_id,
+          action: 'login_success',
+          ip_address: req.headers.get('x-forwarded-for') || 'unknown',
+          user_agent: req.headers.get('user-agent') || 'unknown',
+        });
+
+        return new Response(
+          JSON.stringify({
+            session: {
+              access_token: sd.session.access_token,
+              refresh_token: sd.session.refresh_token,
+              expires_at: sd.session.expires_at,
+            },
+            staff: {
+              staff_id: staffRow.staff_id,
+              name: staffRow.name,
+              role: staffRow.role,
+              operator_id: staffRow.operator_id,
+              store_code: staffRow.store_code,
+            },
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Auth user not found: fall through to signInWithPassword (handles first-login edge case)
     } else {
       const { data, error: rpcError } = await supabaseAdmin
         .rpc('verify_staff_pin', { p_staff_id: staff_id, p_pin: pin || '' });
