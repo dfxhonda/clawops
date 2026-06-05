@@ -143,7 +143,6 @@ const PatrolScreenV1        = lazy(() => import('./clawsupport/pages/PatrolScree
 // M1 Stage 2: 機械リスト + ブース入力
 const PatrolMachineListPage = lazy(() => import('./clawsupport/pages/PatrolMachineListPage'))
 const PatrolBoothInputPage  = lazy(() => import('./clawsupport/pages/PatrolBoothInputPage'))
-const PatrolBoothInputPageBeta = lazy(() => import('./clawsupport/pages/PatrolBoothInputPageBeta'))
 // M1 Stage 3: 店舗ハブ (sticky summary bar + diff chips)
 const PatrolStorePage       = lazy(() => import('./clawsupport/pages/PatrolStorePage'))
 
@@ -305,9 +304,6 @@ function AppInner() {
           これにより useState 初期化 + useEffect[] が再実行され、入場アニメ + 黒画面解消。
           useSwipeNav.js / swipeTransition.js / animation logic は不変。 */}
       <Route path="/clawsupport/booth/:boothCode"  element={<ProtectedRoute><PatrolBoothInputPageKeyed /></ProtectedRoute>} />
-      {/* ベータ: OCR統合版 */}
-      <Route path="/clawsupport/beta/store/:storeCode" element={<ProtectedRoute><PatrolStorePage /></ProtectedRoute>} />
-      <Route path="/clawsupport/beta/booth/:boothCode" element={<ProtectedRoute><PatrolBoothInputPageBeta /></ProtectedRoute>} />
       {/* 旧ルート（緊急避難 + 後方互換） */}
       <Route path="/clawsupport/store/:storeCode/dash" element={<ProtectedRoute><ClawsupportStoreDash /></ProtectedRoute>} />
       <Route path="/clawsupport/store/:storeCode/patrol" element={<ProtectedRoute><PatrolScreenV1 /></ProtectedRoute>} />
