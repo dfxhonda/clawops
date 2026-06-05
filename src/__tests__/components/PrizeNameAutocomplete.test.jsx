@@ -90,6 +90,19 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
     expect(screen.getByTestId('prize-candidate-19')).toBeTruthy()
   })
 
+  // AC-02b: z-[9999] でオーバーレイ要素に隠れない (Fix: z-50 では「気づきを記録」ボタンに隠れる)
+  it('listbox_should_have_z_9999_to_appear_above_overlapping_buttons', async () => {
+    searchPrizeMasters.mockResolvedValue(makeCandidates(5))
+    renderAutocomplete()
+    const input = screen.getByTestId('prize-name-input')
+
+    await typeQuery(input, 'テスト')
+
+    await waitFor(() => expect(screen.getByTestId('prize-autocomplete-list')).toBeTruthy())
+    const ul = screen.getByTestId('prize-autocomplete-list')
+    expect(ul.className).toContain('z-[9999]')
+  })
+
   // AC-02: 候補が多い場合、リスト内でスクロールできる (max-h-[400px] overflow-y-auto)
   it('listbox_should_have_max_h_400px_and_overflow_y_auto', async () => {
     searchPrizeMasters.mockResolvedValue(makeCandidates(10))

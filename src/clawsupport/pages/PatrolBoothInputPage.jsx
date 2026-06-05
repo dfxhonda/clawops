@@ -281,10 +281,25 @@ export default function PatrolBoothInputPage() {
   // gate とする (spec の 'meter field changed from initial loaded value' 解釈)。touched は
   // boothCode 変更時に EMPTY_TOUCHED で reset 済 (line ~174) のため別途 mount/navigate reset 不要。
   const isDirty =
-    !!touched.inMeter   ||
-    !!touched.outMeter1 ||
-    !!touched.outMeter2 ||
-    !!touched.outMeter3
+    !!touched.inMeter    ||
+    !!touched.outMeter1  ||
+    !!touched.outMeter2  ||
+    !!touched.outMeter3  ||
+    !!touched.prizeName  ||
+    !!touched.prizeCost  ||
+    !!touched.setA       ||
+    !!touched.setC       ||
+    !!touched.setL       ||
+    !!touched.setR       ||
+    !!touched.setO       ||
+    !!touched.stock2     ||
+    !!touched.restock2   ||
+    !!touched.prizeName2 ||
+    !!touched.prizeCost2 ||
+    !!touched.stock3     ||
+    !!touched.restock3   ||
+    !!touched.prizeName3 ||
+    !!touched.prizeCost3
 
   function buildOptionalPatch() {
     const patch = {}
