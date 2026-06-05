@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -25,9 +25,7 @@ import { logger } from '../../lib/logger'
 
 export default function PatrolStorePage() {
   const { storeCode } = useParams()
-  const { pathname } = useLocation()
   const navigate = useNavigate()
-  const isBeta = pathname.startsWith('/clawsupport/beta/')
   const { staffId } = useAuth()
 
   // 巡回ブースリストの展開状態 + 復帰時スクロール先 (保存ボタン「リストに戻る」用)
@@ -278,7 +276,7 @@ export default function PatrolStorePage() {
               expanded={expandedSet.includes(machine.machine_code)}
               onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
               onBoothClick={booth =>
-                navigate(`/clawsupport/${isBeta ? 'beta/' : ''}booth/${booth.booth_code}`, {
+                navigate(`/clawsupport/booth/${booth.booth_code}`, {
                   state: {
                     machine, booth, storeCode,
                     boothList,
