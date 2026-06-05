@@ -103,7 +103,6 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
     expect(ul.className).toContain('z-[9999]')
   })
 
-
   // AC-02: 候補が多い場合、リスト内でスクロールできる (max-h-[400px] overflow-y-auto)
   it('listbox_should_have_max_h_400px_and_overflow_y_auto', async () => {
     searchPrizeMasters.mockResolvedValue(makeCandidates(10))
