@@ -22,7 +22,7 @@ import { logger } from '../../lib/logger'
 import { ERR } from '../../lib/errorCodes'
 import { Sentry } from '../../lib/sentry'
 import { recordMachineLoad, recordMachineUnload } from '../../services/movements'
-import { putPatrolRecord } from '../../lib/localStore/patrolRecords'
+import { putPatrolRecord, getPatrolRecordsByBooth } from '../../lib/localStore/patrolRecords'
 import { notifyLfChange } from '../../hooks/useUnsentBanner'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
@@ -165,7 +165,30 @@ export default function PatrolBoothInputPage() {
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }))
 
   useEffect(() => {
-    getLastReadingForBooth(boothCode).then(setPrev)
+    // SPEC-PATROL-REPLACE-SWIPE-SAVE-FIX-01: IDB未syncレコード優先、Supabaseフォールバック。
+    // replace後ブース再訪時、景品名等の変更が prev に反映されない問題の修正。
+    async function fetchPrev() {
+      const idbRecords = await getPatrolRecordsByBooth(boothCode)
+      const latestUnsynced = idbRecords
+        .filter(r => !r.synced)
+        .sort((a, b) => (b.read_time ?? '').localeCompare(a.read_time ?? ''))[0] ?? null
+      if (latestUnsynced) {
+        const defaults = latestUnsynced.defaultsFromPrev ?? {}
+        const patch = latestUnsynced.optionalPatch ?? {}
+        setPrev({
+          ...defaults,
+          ...patch,
+          in_meter:            latestUnsynced.in_meter,
+          out_meter:           latestUnsynced.out_meter,
+          prize_stock_count:   latestUnsynced.prize_stock_count,
+          prize_restock_count: latestUnsynced.prize_restock_count,
+        })
+        return
+      }
+      const supabasePrev = await getLastReadingForBooth(boothCode)
+      setPrev(supabasePrev)
+    }
+    fetchPrev()
   }, [boothCode])
 
   useEffect(() => {
