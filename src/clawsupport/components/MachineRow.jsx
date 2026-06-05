@@ -31,6 +31,7 @@ export default function MachineRow({
 
   const mc = machine.machine_code
   const rank = rankMap?.[mc] ?? null
+  const allDone = booths.length > 0 && booths.every(b => !!todayMap[b.booth_code])
 
   const handleClick = () => {
     if (isSingleBooth) {
@@ -49,8 +50,9 @@ export default function MachineRow({
         onClick={handleClick}
         className="w-full flex items-center gap-2 px-4 py-1.5 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
-        <div className="flex-1 min-w-0">
-          <p className="text-text text-base font-bold truncate">{machine.machine_name}</p>
+        <div className="flex-1 min-w-0 flex items-center">
+          <span className="text-text text-base font-bold truncate">{machine.machine_name}</span>
+          {allDone && <span data-testid={`machine-row-allDone-${mc}`} className="shrink-0 ml-1 text-emerald-400/70">✓</span>}
         </div>
         <div
           data-testid={`machine-totals-${machine.machine_code}`}
