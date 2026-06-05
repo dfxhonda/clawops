@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // SPEC-PATROL-PRIZE-SUGGEST-01: 景品名候補リスト 上限排除 + 全件スクロール表示
-// AC-01 4 件以上の候補も全件 render / AC-02 max-h-[240px] + overflow-y-auto / AC-03 文字追加で再 fetch
+// AC-01 4 件以上の候補も全件 render / AC-02 max-h-[400px] + overflow-y-auto / AC-03 文字追加で再 fetch
 // AC-04 候補選択・キャンセル挙動は変更なし
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
@@ -90,8 +90,8 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
     expect(screen.getByTestId('prize-candidate-19')).toBeTruthy()
   })
 
-  // AC-02: 候補が多い場合、リスト内でスクロールできる (max-h-[240px] overflow-y-auto)
-  it('listbox_should_have_max_h_240px_and_overflow_y_auto', async () => {
+  // AC-02: 候補が多い場合、リスト内でスクロールできる (max-h-[400px] overflow-y-auto)
+  it('listbox_should_have_max_h_400px_and_overflow_y_auto', async () => {
     searchPrizeMasters.mockResolvedValue(makeCandidates(10))
     renderAutocomplete()
     const input = screen.getByTestId('prize-name-input')
@@ -102,7 +102,7 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
       expect(screen.getByTestId('prize-autocomplete-list')).toBeTruthy()
     })
     const ul = screen.getByTestId('prize-autocomplete-list')
-    expect(ul.className).toContain('max-h-[240px]')
+    expect(ul.className).toContain('max-h-[400px]')
     expect(ul.className).toContain('overflow-y-auto')
   })
 

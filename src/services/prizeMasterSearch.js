@@ -20,13 +20,11 @@ export async function searchPrizeMasters(keyword) {
   const kw = keyword.trim()
   const { data, error } = await supabase
     .from('prize_masters')
-    .select('prize_id, prize_name, aliases, short_name, original_cost, latest_order_date') // J-SCHEMA-DROP-FIX-01: prize_name_kana 列削除済
+    .select('prize_id, prize_name, short_name, original_cost, latest_order_date')
     // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status='active' → phase!='dead' (廃番のみ除外)
     .neq('phase', 'dead')
     .or(
-      // J-SCHEMA-DROP-FIX-01: prize_name_kana 列削除済のため ilike 対象から除外。
       `prize_name.ilike.%${kw}%,` +
-      `aliases.ilike.%${kw}%,` +
       `short_name.ilike.%${kw}%`,
     )
     .order('latest_order_date', { ascending: false, nullsFirst: false })

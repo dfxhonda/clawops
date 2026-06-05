@@ -895,7 +895,8 @@ export default function PatrolBoothInputPage() {
         module="clawsupport"
         title={boothLabel}
         variant="compact"
-        onBack={goBack}
+        onBack={() => handleSave(goBack)}
+
       />
 
       {/* SPEC-PATROL-SWIPE-NAV-01 C3: subtle chevron hints (左右端、grey-300、xs、非操作)。
