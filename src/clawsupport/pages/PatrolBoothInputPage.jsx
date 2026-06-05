@@ -22,7 +22,7 @@ import { logger } from '../../lib/logger'
 import { ERR } from '../../lib/errorCodes'
 import { Sentry } from '../../lib/sentry'
 import { recordMachineLoad, recordMachineUnload } from '../../services/movements'
-import { putPatrolRecord } from '../../lib/localStore/patrolRecords'
+import { putPatrolRecord, getPatrolRecordsByBooth } from '../../lib/localStore/patrolRecords'
 import { notifyLfChange } from '../../hooks/useUnsentBanner'
 import { usePatrolListScrollStore } from '../../stores/patrolListScrollStore'
 import { mapMetersToColumns, theoreticalStock } from '../utils/patrolStockCalc'
@@ -165,7 +165,30 @@ export default function PatrolBoothInputPage() {
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }))
 
   useEffect(() => {
-    getLastReadingForBooth(boothCode).then(setPrev)
+    // SPEC-PATROL-REPLACE-SWIPE-SAVE-FIX-01: IDB未syncレコード優先、Supabaseフォールバック。
+    // replace後ブース再訪時、景品名等の変更が prev に反映されない問題の修正。
+    async function fetchPrev() {
+      const idbRecords = await getPatrolRecordsByBooth(boothCode)
+      const latestUnsynced = idbRecords
+        .filter(r => !r.synced)
+        .sort((a, b) => (b.read_time ?? '').localeCompare(a.read_time ?? ''))[0] ?? null
+      if (latestUnsynced) {
+        const defaults = latestUnsynced.defaultsFromPrev ?? {}
+        const patch = latestUnsynced.optionalPatch ?? {}
+        setPrev({
+          ...defaults,
+          ...patch,
+          in_meter:            latestUnsynced.in_meter,
+          out_meter:           latestUnsynced.out_meter,
+          prize_stock_count:   latestUnsynced.prize_stock_count,
+          prize_restock_count: latestUnsynced.prize_restock_count,
+        })
+        return
+      }
+      const supabasePrev = await getLastReadingForBooth(boothCode)
+      setPrev(supabasePrev)
+    }
+    fetchPrev()
   }, [boothCode])
 
   useEffect(() => {
@@ -270,8 +293,9 @@ export default function PatrolBoothInputPage() {
     [prev, inMeter, outMeter1, prizeName, setA, setC, setL, setR, setO, recordAsCollection],
   )
 
-  // 保存はINメーターのみ必須。OUT/在庫は任意 (OUT機能オフのライド機もIN単独保存可、他機種共通仕様)
-  const canSave = patrolCanSave(inMeter)
+  // 保存はINメーターのみ必須。OUT/在庫は任意。
+  // 入替モード (entryType==='replace') は景品/設定変更のみでも保存可 → inMeter 空でも canSave=true。
+  const canSave = patrolCanSave(inMeter) || entryType === 'replace'
 
   // SPEC-PATROL-SWIPE-NAV-fix-01 C2: dirty 判定。
   // canSave は inMeter が prev から prefill 済の時点で常に true、SWIPE-NAV-01 の swipe 暗黙保存
@@ -925,6 +949,16 @@ export default function PatrolBoothInputPage() {
         <EntryTypeBadge type={entryType} />
       </div>
 
+      <div className="px-4 py-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => setShowAlert(true)}
+          className="w-full py-2 text-sm font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-xl flex items-center justify-center gap-1.5"
+        >
+          📝 気づきを記録
+        </button>
+      </div>
+
       <div className="flex-shrink-0">
         {saveState.status === 'error' && (
           <ErrorBanner
@@ -978,15 +1012,6 @@ export default function PatrolBoothInputPage() {
         />
       </div>
 
-      <div className="px-4 py-2 border-t border-border/30 shrink-0">
-        <button
-          type="button"
-          onClick={() => setShowAlert(true)}
-          className="w-full py-2 text-sm font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-xl flex items-center justify-center gap-1.5"
-        >
-          📝 気づきを記録
-        </button>
-      </div>
       {/* J-PATROL-99_adhoc_booth_history_visibility-fix-01:
           c5fa733 で NumpadFooterPanel が isCustomNumpadEnabled()=false 時 null を返すため、
           idleContent として渡していた BoothHistoryList も巻き添えで消えていた。
