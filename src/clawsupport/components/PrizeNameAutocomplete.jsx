@@ -112,7 +112,7 @@ export default function PrizeNameAutocomplete({
           data-testid="prize-autocomplete-list"
           // SPEC-PATROL-PRIZE-SUGGEST-01: 表示件数の物理 cap を排除して max-h-[400px] + overflow-y-auto に。
           // 角丸との両立のため overflow-y-auto 単独 (overflow-hidden 廃止)、ul 自体に rounded-xl + border 維持。
-          className="absolute right-0 top-full z-50 w-72 bg-surface border border-border rounded-xl shadow-2xl mt-1 max-h-[400px] overflow-y-auto"
+          className="absolute right-0 top-full z-[9999] w-72 bg-surface border border-border rounded-xl shadow-2xl mt-1 max-h-[400px] overflow-y-auto"
         >
           {candidates.length === 0 ? (
             <li
