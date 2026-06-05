@@ -117,6 +117,12 @@ export default function PatrolStorePage() {
     init()
     return () => { cancel = true }
   }, [hydrateFromIdb, refreshBaselineAndRender, storeCode])
+  // SPEC-LF1-STOREPAGE-STALE-FIX-01
+  useEffect(() => {
+    function handler() { hydrateFromIdb() }
+    window.addEventListener('clawops-lf1-changed', handler)
+    return () => window.removeEventListener('clawops-lf1-changed', handler)
+  }, [hydrateFromIdb])
 
   // SPEC-LF1: 店舗離脱 (unmount) で auto-sync。fire-and-forget。
   // ref で staffId を保持してクロージャ陳腐化を回避。
