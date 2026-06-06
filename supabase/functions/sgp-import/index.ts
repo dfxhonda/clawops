@@ -177,7 +177,7 @@ function resolveDestination(orderShop: number, shopConv: Record<string, string>)
 Deno.serve(async (req: Request) => {
   const start = Date.now();
   const url = new URL(req.url);
-  const withImages = url.searchParams.get("images") === "1";
+  const imgLimit = parseInt(url.searchParams.get("img_limit") || "100");
   const page = parseInt(url.searchParams.get("page") || "0");
   const pageSize = 500;
   const pos = page * pageSize;
@@ -189,7 +189,7 @@ Deno.serve(async (req: Request) => {
     serviceKey
   );
 
-  const log = { records_fetched: 0, records_inserted: 0, records_updated: 0, records_skipped: 0, masters_created: 0, images_uploaded: 0, backfilled: 0, errors: [] as string[], duration_ms: 0, page };
+  const log = { records_fetched: 0, records_inserted: 0, records_updated: 0, records_skipped: 0, masters_created: 0, images_uploaded: 0, images_linked: 0, backfilled: 0, errors: [] as string[], duration_ms: 0, page };
 
   try {
     const body = new URLSearchParams({
@@ -230,7 +230,7 @@ Deno.serve(async (req: Request) => {
     const masterCache = new Map<string, string>();
     const toInsert: Record<string, unknown>[] = [];
     const toUpdate: { id: string; data: Record<string, unknown> }[] = [];
-    const imgs: { file: string; code: string }[] = [];
+    const imgNameMap = new Map<string, string>(); // item_code → img_file
 
     for (const r of records) {
       const rawId = `sgp_${r.order_id}`;
@@ -307,10 +307,8 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      if (withImages) {
-        const f = getImgFile(r.img_name);
-        if (f) imgs.push({ file: f, code: r.item_code });
-      }
+      const f = getImgFile(r.img_name);
+      if (f && r.item_code) imgNameMap.set(String(r.item_code), f);
     }
 
     let actualInserted = 0;
@@ -331,45 +329,76 @@ Deno.serve(async (req: Request) => {
       if (error) log.errors.push(`Upd ${u.id}: ${error.message}`);
     }
 
-    if (withImages && imgs.length > 0) {
-      const done = new Set<string>();
-      for (const img of imgs) {
-        if (done.size >= 20) break;
-        if (done.has(img.code)) continue;
-        done.add(img.code);
+    // Image backfill: query orphan prize_masters from DB, process up to imgLimit
+    {
+      // Step 1: Build prize_id → item_code map from recent orders
+      const { data: recentOrders } = await supabase
+        .from("prize_orders")
+        .select("prize_id, import_meta")
+        .eq("order_source", "sgp_api")
+        .not("prize_id", "is", null)
+        .not("import_meta", "is", null)
+        .order("order_date", { ascending: false })
+        .limit(500);
+
+      const prizeToCode = new Map<string, string>();
+      for (const po of (recentOrders || [])) {
+        const code = String(po.import_meta?.item_code || "");
+        if (code && !prizeToCode.has(po.prize_id)) {
+          prizeToCode.set(po.prize_id, code);
+        }
+      }
+
+      // Step 2: Query orphan prize_masters (null or empty image_url, SGP supplier)
+      const { data: orphans } = await supabase
+        .from("prize_masters")
+        .select("prize_id")
+        .eq("supplier_id", "SGP")
+        .or("image_url.is.null,image_url.eq.")
+        .limit(imgLimit);
+
+      const processedCodes = new Set<string>();
+      for (const pm of (orphans || [])) {
+        const itemCode = prizeToCode.get(pm.prize_id);
+        if (!itemCode || processedCodes.has(itemCode)) continue;
+        processedCodes.add(itemCode);
+
+        const path = `sgp/${itemCode}.jpg`;
         try {
-          const path = `sgp/${img.code}.jpg`;
-          const { data: ls } = await supabase.storage.from("announcements").list("sgp", { search: `${img.code}.jpg` });
+          const { data: ls } = await supabase.storage.from("announcements").list("sgp", { search: `${itemCode}.jpg` });
           if (ls && ls.length > 0) {
-            await supabase
-              .from("prize_masters")
+            // File already in storage — just set image_url
+            await supabase.from("prize_masters")
               .update({ image_url: path })
-              .is("image_url", null)
-              .eq("supplier_id", "SGP")
-              .filter("prize_id", "in",
-                `(SELECT DISTINCT prize_id FROM prize_orders WHERE import_meta->>'item_code' = '${img.code}' AND prize_id IS NOT NULL)`
-              );
+              .eq("prize_id", pm.prize_id)
+              .or("image_url.is.null,image_url.eq.");
+            log.images_linked++;
             continue;
           }
-          const res = await fetch(`${SGP_IMG_BASE}${img.file}`);
+
+          // Need img_name from current page's API response
+          const imgFile = imgNameMap.get(itemCode);
+          if (!imgFile) continue; // not in current page, skip — will drain on future cron
+
+          const res = await fetch(`${SGP_IMG_BASE}${imgFile}`);
           if (!res.ok) continue;
           const blob = await res.blob();
           const { error } = await supabase.storage.from("announcements").upload(path, blob, { contentType: "image/jpeg", upsert: false });
           if (!error) {
             log.images_uploaded++;
+            // Link to all SGP prize_masters sharing this item_code
             const { data: linked } = await supabase
               .from("prize_orders")
               .select("prize_id")
-              .eq("import_meta->>item_code", img.code)
+              .eq("import_meta->>item_code", itemCode)
               .not("prize_id", "is", null);
-            if (linked && linked.length > 0) {
-              const prizeIds = [...new Set(linked.map((r: { prize_id: string }) => r.prize_id))];
-              for (const pid of prizeIds) {
-                await supabase
-                  .from("prize_masters")
+            if (linked?.length) {
+              const ids = [...new Set(linked.map((r: { prize_id: string }) => r.prize_id))];
+              for (const pid of ids) {
+                await supabase.from("prize_masters")
                   .update({ image_url: path })
                   .eq("prize_id", pid)
-                  .is("image_url", null);
+                  .or("image_url.is.null,image_url.eq.");
               }
             }
           }
