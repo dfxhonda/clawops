@@ -477,12 +477,14 @@ export default function AdminPrizeMasterPage() {
                 />
               </Field>
 
-              {/* 2: 正式名称 (prize_name) */}
+              {/* 2: 正式名称 (prize_name) — rows=2 で全文視認化 */}
               <Field label="正式名称 *">
-                <Input
-                  value={form.prize_name}
-                  onChange={v => f({ prize_name: v })}
+                <textarea
+                  rows={2}
+                  value={form.prize_name ?? ''}
+                  onChange={e => f({ prize_name: e.target.value })}
                   placeholder="正式名称"
+                  className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full resize-none"
                 />
               </Field>
 
