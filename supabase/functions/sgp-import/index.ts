@@ -178,9 +178,8 @@ Deno.serve(async (req: Request) => {
   const start = Date.now();
   const url = new URL(req.url);
   const imgLimit = parseInt(url.searchParams.get("img_limit") || "100");
-  const page = parseInt(url.searchParams.get("page") || "0");
+  const explicitPage = url.searchParams.has("page") ? parseInt(url.searchParams.get("page")!) : null;
   const pageSize = 500;
-  const pos = page * pageSize;
 
   const serviceKey = Deno.env.get('CLAWOPS_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -189,7 +188,19 @@ Deno.serve(async (req: Request) => {
     serviceKey
   );
 
-  const log = { records_fetched: 0, records_inserted: 0, records_updated: 0, records_skipped: 0, masters_created: 0, images_uploaded: 0, images_linked: 0, backfilled: 0, errors: [] as string[], duration_ms: 0, page };
+  // Resolve traversal page: read from sgp_image_backfill_state unless ?page=N is explicit
+  let page = explicitPage ?? 0;
+  if (explicitPage === null) {
+    const { data: stateRow } = await supabase
+      .from("sgp_image_backfill_state")
+      .select("last_page")
+      .eq("id", 1)
+      .maybeSingle();
+    page = stateRow?.last_page ?? 0;
+  }
+  const pos = page * pageSize;
+
+  const log = { records_fetched: 0, records_inserted: 0, records_updated: 0, records_skipped: 0, masters_created: 0, images_uploaded: 0, images_linked: 0, backfilled: 0, next_page: null as number | null, errors: [] as string[], duration_ms: 0, page };
 
   try {
     const body = new URLSearchParams({
@@ -404,6 +415,16 @@ Deno.serve(async (req: Request) => {
           }
         } catch { /* skip */ }
       }
+    }
+
+    // Advance traversal page (auto mode only — skip when ?page=N was explicit)
+    if (explicitPage === null) {
+      const nextPage = records.length < pageSize ? 0 : page + 1;
+      await supabase
+        .from("sgp_image_backfill_state")
+        .update({ last_page: nextPage, updated_at: new Date().toISOString() })
+        .eq("id", 1);
+      log.next_page = nextPage;
     }
 
     log.duration_ms = Date.now() - start;
