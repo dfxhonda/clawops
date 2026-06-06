@@ -33,10 +33,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const prompt = `景品名を15文字以内の短縮名に変換してください。
+    const prompt = `景品名を25文字以内の短縮名に変換してください。
 略称テーブル: ${ABBREV_TABLE}
 ルール: 商品カテゴリ・ブランド名は残す。サイズ情報(約Xcm等)は省略。
-短縮名のみ返す(他のテキスト不要、必ず15文字以内)。
+短縮名のみ返す(他のテキスト不要、必ず25文字以内)。
 
 景品名: ${prize_name}`;
 
@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
 
     const data = await res.json();
     const rawText = (data?.content?.[0]?.text ?? '').trim();
-    const shortName = rawText.slice(0, 15);
+    const shortName = rawText.slice(0, 25);
 
     return new Response(JSON.stringify({ short_name: shortName }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

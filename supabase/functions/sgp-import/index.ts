@@ -65,7 +65,7 @@ function shortenPrizeName(raw: string): string {
   s = s.replace(/^\/+/, "");
   for (const [from, to] of ABBREVS) s = s.replaceAll(from, to);
   s = s.replace(/\s+/g, " ").trim();
-  if (s.length > 20) s = s.substring(0, 20);
+  if (s.length > 25) s = s.substring(0, 25);
   return s;
 }
 
