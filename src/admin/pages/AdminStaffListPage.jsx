@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { writeAuditLog } from '../../services/audit'
 import { logger } from '../../lib/logger'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 
 // T2c-AdminStaffListPage-refactor:
 // - UI-CHARTER-V2 準拠 (カード型 min-h 88px / role chips / + 新規追加 / 削除確認)
@@ -216,6 +217,7 @@ export default function AdminStaffListPage() {
         const nextId = `STAFF-${String(num + 1).padStart(2, '0')}`
         const payload = {
           staff_id: nextId,
+          organization_id: CHANGE_ORG_ID,
           name: form.name.trim(),
           name_kana: str(form.name_kana),
           email: str(form.email),
