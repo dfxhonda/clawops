@@ -119,6 +119,7 @@ export default function PatrolBatchOcrPage() {
         const records = []
         if (is2B && booths.length >= 2) {
           records.push({
+            booth_id:        booths[0].booth_code,
             full_booth_code: booths[0].booth_code,
             store_code:      storeCode,
             machine_code:    mc,
@@ -132,6 +133,7 @@ export default function PatrolBatchOcrPage() {
             organization_id: DFX_ORG_ID,
           })
           records.push({
+            booth_id:        booths[1].booth_code,
             full_booth_code: booths[1].booth_code,
             store_code:      storeCode,
             machine_code:    mc,
@@ -146,6 +148,7 @@ export default function PatrolBatchOcrPage() {
           })
         } else {
           records.push({
+            booth_id:        booths[0].booth_code,
             full_booth_code: booths[0].booth_code,
             store_code:      storeCode,
             machine_code:    mc,

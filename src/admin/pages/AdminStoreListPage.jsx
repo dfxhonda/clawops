@@ -190,6 +190,7 @@ export default function AdminStoreListPage() {
 
   async function handleSave() {
     if (!form.store_name.trim()) { setError('店舗名は必須です'); return }
+    if (modal === 'new' && !form.store_code?.trim()) { setError('店舗コードは必須です'); return }
     setSaving(true)
     setError(null)
     const now = new Date().toISOString()

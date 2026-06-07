@@ -1,0 +1,3194 @@
+[
+  {
+    "booth_code": "daikyo::BUZZ①::B1",
+    "machine_code": "daikyo::BUZZ①",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ①::B2",
+    "machine_code": "daikyo::BUZZ①",
+    "store_code": "daikyo",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ①::B3",
+    "machine_code": "daikyo::BUZZ①",
+    "store_code": "daikyo",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ①::B4",
+    "machine_code": "daikyo::BUZZ①",
+    "store_code": "daikyo",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ③::B1",
+    "machine_code": "daikyo::BUZZ③",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ③::B2",
+    "machine_code": "daikyo::BUZZ③",
+    "store_code": "daikyo",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ③::B3",
+    "machine_code": "daikyo::BUZZ③",
+    "store_code": "daikyo",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ③::B4",
+    "machine_code": "daikyo::BUZZ③",
+    "store_code": "daikyo",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ①::B1",
+    "machine_code": "daikyo::BUZZミニ①",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "familyma_gofukumachi::カリーノミニSP::B1",
+    "machine_code": "familyma_gofukumachi::カリーノミニSP",
+    "store_code": "familyma_gofukumachi",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "familyma_gofukumachi::カリーノミニSP::B2",
+    "machine_code": "familyma_gofukumachi::カリーノミニSP",
+    "store_code": "familyma_gofukumachi",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "familyma_gofukumachi::カリーノミニSP::B3",
+    "machine_code": "familyma_gofukumachi::カリーノミニSP",
+    "store_code": "familyma_gofukumachi",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "familyma_gofukumachi::カリーノミニSP::B4",
+    "machine_code": "familyma_gofukumachi::カリーノミニSP",
+    "store_code": "familyma_gofukumachi",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "familyma_gofukumachi::ロイヤルビンゴ::B1",
+    "machine_code": "familyma_gofukumachi::ロイヤルビンゴ",
+    "store_code": "familyma_gofukumachi",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "familyma_gofukumachi::カリーノ７::B1",
+    "machine_code": "familyma_gofukumachi::カリーノ７",
+    "store_code": "familyma_gofukumachi",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ①::B1",
+    "machine_code": "bayside::BUZZ①",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ①::B2",
+    "machine_code": "bayside::BUZZ①",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ①::B3",
+    "machine_code": "bayside::BUZZ①",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ①::B4",
+    "machine_code": "bayside::BUZZ①",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ②::B1",
+    "machine_code": "bayside::BUZZ②",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ②::B2",
+    "machine_code": "bayside::BUZZ②",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ②::B3",
+    "machine_code": "bayside::BUZZ②",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ②::B4",
+    "machine_code": "bayside::BUZZ②",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ③::B1",
+    "machine_code": "bayside::BUZZミニ③",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ④::B1",
+    "machine_code": "bayside::BUZZミニ④",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ⑤::B1",
+    "machine_code": "bayside::BUZZミニ⑤",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ②::B1",
+    "machine_code": "NKS01::BUZZ②",
+    "store_code": "NKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ②::B2",
+    "machine_code": "NKS01::BUZZ②",
+    "store_code": "NKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ②::B3",
+    "machine_code": "NKS01::BUZZ②",
+    "store_code": "NKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ②::B4",
+    "machine_code": "NKS01::BUZZ②",
+    "store_code": "NKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZDX①::B1",
+    "machine_code": "NKS01::BuZZDX①",
+    "store_code": "NKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZDX①::B2",
+    "machine_code": "NKS01::BuZZDX①",
+    "store_code": "NKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZDX①::B3",
+    "machine_code": "NKS01::BuZZDX①",
+    "store_code": "NKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZDX①::B4",
+    "machine_code": "NKS01::BuZZDX①",
+    "store_code": "NKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZミニ::B1",
+    "machine_code": "NKS01::BUZZミニ",
+    "store_code": "NKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ①::B1",
+    "machine_code": "SAG01::BUZZクレ①",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ①::B2",
+    "machine_code": "SAG01::BUZZクレ①",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ①::B3",
+    "machine_code": "SAG01::BUZZクレ①",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ①::B4",
+    "machine_code": "SAG01::BUZZクレ①",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ②::B1",
+    "machine_code": "SAG01::BUZZクレ②",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ②::B2",
+    "machine_code": "SAG01::BUZZクレ②",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ②::B3",
+    "machine_code": "SAG01::BUZZクレ②",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ②::B4",
+    "machine_code": "SAG01::BUZZクレ②",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ③::B1",
+    "machine_code": "SAG01::BUZZクレ③",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ③::B2",
+    "machine_code": "SAG01::BUZZクレ③",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ③::B3",
+    "machine_code": "SAG01::BUZZクレ③",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ③::B4",
+    "machine_code": "SAG01::BUZZクレ③",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ④::B1",
+    "machine_code": "SAG01::BUZZクレ④",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ④::B2",
+    "machine_code": "SAG01::BUZZクレ④",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ④::B3",
+    "machine_code": "SAG01::BUZZクレ④",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ④::B4",
+    "machine_code": "SAG01::BUZZクレ④",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑤::B1",
+    "machine_code": "SAG01::BUZZクレ⑤",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑤::B2",
+    "machine_code": "SAG01::BUZZクレ⑤",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑤::B3",
+    "machine_code": "SAG01::BUZZクレ⑤",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑤::B4",
+    "machine_code": "SAG01::BUZZクレ⑤",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::トライデッキ::B1",
+    "machine_code": "SAG01::トライデッキ",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::トライデッキ::B2",
+    "machine_code": "SAG01::トライデッキ",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::トライデッキ::B3",
+    "machine_code": "SAG01::トライデッキ",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::トライデッキ::B4",
+    "machine_code": "SAG01::トライデッキ",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ④::B1",
+    "machine_code": "SAG01::BUZZミニ④",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ⑤::B1",
+    "machine_code": "SAG01::BUZZミニ⑤",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ⑥::B1",
+    "machine_code": "SAG01::BUZZミニ⑥",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ⑦::B1",
+    "machine_code": "SAG01::BUZZミニ⑦",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ⑧::B1",
+    "machine_code": "SAG01::BUZZミニ⑧",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ⑨::B1",
+    "machine_code": "SAG01::BUZZミニ⑨",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZミニ⑩::B1",
+    "machine_code": "SAG01::BUZZミニ⑩",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZツインズ①::B1",
+    "machine_code": "SAG01::BUZZツインズ①",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZツインズ②::B1",
+    "machine_code": "SAG01::BUZZツインズ②",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZツインズ::B1",
+    "machine_code": "KRT01::唐津BUZZツインズ",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZツインズ::B2",
+    "machine_code": "KRT01::唐津BUZZツインズ",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::ダイヤモンドクレーン::B1",
+    "machine_code": "TKT01::ダイヤモンドクレーン",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::ダイヤモンドクレーン::B2",
+    "machine_code": "TKT01::ダイヤモンドクレーン",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::ダイヤモンドクレーン::B3",
+    "machine_code": "TKT01::ダイヤモンドクレーン",
+    "store_code": "TKT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::ダイヤモンドクレーン::B4",
+    "machine_code": "TKT01::ダイヤモンドクレーン",
+    "store_code": "TKT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::クリスタル①::B1",
+    "machine_code": "TKT01::クリスタル①",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::クリスタル①::B2",
+    "machine_code": "TKT01::クリスタル①",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::クリスタル②::B1",
+    "machine_code": "TKT01::クリスタル②",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::クリスタル②::B2",
+    "machine_code": "TKT01::クリスタル②",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZミニ①::B1",
+    "machine_code": "TKT01::BUZZミニ①",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZミニ①::B2",
+    "machine_code": "TKT01::BUZZミニ①",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZミニ②::B1",
+    "machine_code": "TKT01::BUZZミニ②",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZミニ②::B2",
+    "machine_code": "TKT01::BUZZミニ②",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZミニ③::B1",
+    "machine_code": "TKT01::BUZZミニ③",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZミニ③::B2",
+    "machine_code": "TKT01::BUZZミニ③",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZツインズ①::B1",
+    "machine_code": "TKT01::BUZZツインズ①",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZツインズ①::B2",
+    "machine_code": "TKT01::BUZZツインズ①",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZツインズ②::B1",
+    "machine_code": "TKT01::BUZZツインズ②",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZツインズ②::B2",
+    "machine_code": "TKT01::BUZZツインズ②",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZツインズ③::B1",
+    "machine_code": "TKT01::BUZZツインズ③",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZツインズ③::B2",
+    "machine_code": "TKT01::BUZZツインズ③",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::デカクレ::B1",
+    "machine_code": "TKT01::デカクレ",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::デカクレ::B2",
+    "machine_code": "TKT01::デカクレ",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::アンパンマンかくれんぼ::B1",
+    "machine_code": "TKT01::アンパンマンかくれんぼ",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::アンパンマンかくれんぼ::B2",
+    "machine_code": "TKT01::アンパンマンかくれんぼ",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::アンパンマン玉入れ::B1",
+    "machine_code": "TKT01::アンパンマン玉入れ",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::アンパンマン玉入れ::B2",
+    "machine_code": "TKT01::アンパンマン玉入れ",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::わくわく潜水艦::B1",
+    "machine_code": "TKT01::わくわく潜水艦",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::わくわく潜水艦::B2",
+    "machine_code": "TKT01::わくわく潜水艦",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZミニ::B1",
+    "machine_code": "HMN01::BUZZミニ",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZミニ::B2",
+    "machine_code": "HMN01::BUZZミニ",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ①::B1",
+    "machine_code": "fukue::BUZZ①",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ①::B2",
+    "machine_code": "fukue::BUZZ①",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ①::B3",
+    "machine_code": "fukue::BUZZ①",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ①::B4",
+    "machine_code": "fukue::BUZZ①",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ②::B1",
+    "machine_code": "fukue::BUZZ②",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ②::B2",
+    "machine_code": "fukue::BUZZ②",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ②::B3",
+    "machine_code": "fukue::BUZZ②",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ②::B4",
+    "machine_code": "fukue::BUZZ②",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ③::B1",
+    "machine_code": "fukue::BUZZ③",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ③::B2",
+    "machine_code": "fukue::BUZZ③",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ③::B3",
+    "machine_code": "fukue::BUZZ③",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ③::B4",
+    "machine_code": "fukue::BUZZ③",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ④::B1",
+    "machine_code": "fukue::BUZZ④",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ④::B2",
+    "machine_code": "fukue::BUZZ④",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ④::B3",
+    "machine_code": "fukue::BUZZ④",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ④::B4",
+    "machine_code": "fukue::BUZZ④",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑤::B1",
+    "machine_code": "fukue::BUZZ⑤",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑤::B2",
+    "machine_code": "fukue::BUZZ⑤",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑤::B3",
+    "machine_code": "fukue::BUZZ⑤",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑤::B4",
+    "machine_code": "fukue::BUZZ⑤",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑥::B1",
+    "machine_code": "fukue::BUZZ⑥",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑥::B2",
+    "machine_code": "fukue::BUZZ⑥",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑥::B3",
+    "machine_code": "fukue::BUZZ⑥",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑥::B4",
+    "machine_code": "fukue::BUZZ⑥",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑦::B1",
+    "machine_code": "fukue::BUZZ⑦",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑦::B2",
+    "machine_code": "fukue::BUZZ⑦",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑦::B3",
+    "machine_code": "fukue::BUZZ⑦",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑦::B4",
+    "machine_code": "fukue::BUZZ⑦",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑧::B1",
+    "machine_code": "fukue::BUZZ⑧",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑧::B2",
+    "machine_code": "fukue::BUZZ⑧",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑧::B3",
+    "machine_code": "fukue::BUZZ⑧",
+    "store_code": "fukue",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZ⑧::B4",
+    "machine_code": "fukue::BUZZ⑧",
+    "store_code": "fukue",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZクレW+①::B1",
+    "machine_code": "fukue::BUZZクレW+①",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZクレW+①::B2",
+    "machine_code": "fukue::BUZZクレW+①",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZクレW+②::B1",
+    "machine_code": "fukue::BUZZクレW+②",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZクレW+②::B2",
+    "machine_code": "fukue::BUZZクレW+②",
+    "store_code": "fukue",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZミニ①::B1",
+    "machine_code": "fukue::BUZZミニ①",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZミニ②::B1",
+    "machine_code": "fukue::BUZZミニ②",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZミニ③::B1",
+    "machine_code": "fukue::BUZZミニ③",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZミニ④::B1",
+    "machine_code": "fukue::BUZZミニ④",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::BUZZミニ⑤::B1",
+    "machine_code": "fukue::BUZZミニ⑤",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::アンパンマンたいこでどんどん::B1",
+    "machine_code": "fukue::アンパンマンたいこでどんどん",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::アンパンマンどーこだ::B1",
+    "machine_code": "fukue::アンパンマンどーこだ",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "fukue::ポケモンメガゲット::B1",
+    "machine_code": "fukue::ポケモンメガゲット",
+    "store_code": "fukue",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑧::1F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑧::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ③::1F::B1",
+    "machine_code": "FKS01::福重BUZZミニ③::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ④::1F::B1",
+    "machine_code": "FKS01::福重BUZZミニ④::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ①::1F::B1",
+    "machine_code": "FKS01::福重BUZZクレ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ①::1F::B2",
+    "machine_code": "FKS01::福重BUZZクレ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ①::1F::B3",
+    "machine_code": "FKS01::福重BUZZクレ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ①::1F::B4",
+    "machine_code": "FKS01::福重BUZZクレ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ④::2F::B1",
+    "machine_code": "FKS01::福重BUZZクレ④::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ④::2F::B2",
+    "machine_code": "FKS01::福重BUZZクレ④::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ④::2F::B3",
+    "machine_code": "FKS01::福重BUZZクレ④::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ④::2F::B4",
+    "machine_code": "FKS01::福重BUZZクレ④::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ①::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ①::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑨::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑨::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑫::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑫::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑬::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑬::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑪::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑪::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZツインズ①::2F::B1",
+    "machine_code": "FKS01::福重BUZZツインズ①::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重_BUZZツインズ②::2F::B1",
+    "machine_code": "FKS01::福重_BUZZツインズ②::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重トライデッキ::2F::B1",
+    "machine_code": "FKS01::福重トライデッキ::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重トライデッキ::2F::B2",
+    "machine_code": "FKS01::福重トライデッキ::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重トライデッキ::2F::B3",
+    "machine_code": "FKS01::福重トライデッキ::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重トライデッキ::2F::B4",
+    "machine_code": "FKS01::福重トライデッキ::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑩::2F::B1",
+    "machine_code": "FKS01::福重BUZZ⑩::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑩::2F::B2",
+    "machine_code": "FKS01::福重BUZZ⑩::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑩::2F::B3",
+    "machine_code": "FKS01::福重BUZZ⑩::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑩::2F::B4",
+    "machine_code": "FKS01::福重BUZZ⑩::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ③→クレナ①::1F::B1",
+    "machine_code": "FKS01::BUZZ③→クレナ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ③→クレナ①::1F::B2",
+    "machine_code": "FKS01::BUZZ③→クレナ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ③→クレナ①::1F::B3",
+    "machine_code": "FKS01::BUZZ③→クレナ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ③→クレナ①::1F::B4",
+    "machine_code": "FKS01::BUZZ③→クレナ①::1F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ②→クレナ②::1F::B1",
+    "machine_code": "FKS01::BUZZ②→クレナ②::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ②→クレナ②::1F::B2",
+    "machine_code": "FKS01::BUZZ②→クレナ②::1F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ②→クレナ②::1F::B3",
+    "machine_code": "FKS01::BUZZ②→クレナ②::1F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::BUZZ②→クレナ②::1F::B4",
+    "machine_code": "FKS01::BUZZ②→クレナ②::1F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ②::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ②::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑦::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑦::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑥::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑥::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑤::2F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑤::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ②::B1",
+    "machine_code": "nishijin::BUZZ②",
+    "store_code": "nishijin",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ②::B2",
+    "machine_code": "nishijin::BUZZ②",
+    "store_code": "nishijin",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ②::B3",
+    "machine_code": "nishijin::BUZZ②",
+    "store_code": "nishijin",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ②::B4",
+    "machine_code": "nishijin::BUZZ②",
+    "store_code": "nishijin",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZミニ::B1",
+    "machine_code": "NKG01::BUZZミニ",
+    "store_code": "NKG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZミニ::B2",
+    "machine_code": "NKG01::BUZZミニ",
+    "store_code": "NKG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ①::B1",
+    "machine_code": "NKG01::BUZZ①",
+    "store_code": "NKG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ①::B2",
+    "machine_code": "NKG01::BUZZ①",
+    "store_code": "NKG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ①::B3",
+    "machine_code": "NKG01::BUZZ①",
+    "store_code": "NKG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ①::B4",
+    "machine_code": "NKG01::BUZZ①",
+    "store_code": "NKG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ②::B1",
+    "machine_code": "NKG01::BUZZ②",
+    "store_code": "NKG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ②::B2",
+    "machine_code": "NKG01::BUZZ②",
+    "store_code": "NKG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ②::B3",
+    "machine_code": "NKG01::BUZZ②",
+    "store_code": "NKG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZ②::B4",
+    "machine_code": "NKG01::BUZZ②",
+    "store_code": "NKG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX①::B1",
+    "machine_code": "NKG01::BUZZDX①",
+    "store_code": "NKG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX①::B2",
+    "machine_code": "NKG01::BUZZDX①",
+    "store_code": "NKG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX①::B3",
+    "machine_code": "NKG01::BUZZDX①",
+    "store_code": "NKG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX①::B4",
+    "machine_code": "NKG01::BUZZDX①",
+    "store_code": "NKG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX②::B1",
+    "machine_code": "NKG01::BUZZDX②",
+    "store_code": "NKG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX②::B2",
+    "machine_code": "NKG01::BUZZDX②",
+    "store_code": "NKG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX②::B3",
+    "machine_code": "NKG01::BUZZDX②",
+    "store_code": "NKG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX②::B4",
+    "machine_code": "NKG01::BUZZDX②",
+    "store_code": "NKG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX③::B1",
+    "machine_code": "NKG01::BUZZDX③",
+    "store_code": "NKG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX③::B2",
+    "machine_code": "NKG01::BUZZDX③",
+    "store_code": "NKG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX③::B3",
+    "machine_code": "NKG01::BUZZDX③",
+    "store_code": "NKG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKG01::BUZZDX③::B4",
+    "machine_code": "NKG01::BUZZDX③",
+    "store_code": "NKG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ②::B1",
+    "machine_code": "daikyo::BUZZ②",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ②::B2",
+    "machine_code": "daikyo::BUZZ②",
+    "store_code": "daikyo",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ②::B3",
+    "machine_code": "daikyo::BUZZ②",
+    "store_code": "daikyo",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZ②::B4",
+    "machine_code": "daikyo::BUZZ②",
+    "store_code": "daikyo",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ②::B1",
+    "machine_code": "daikyo::BUZZミニ②",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ②::B2",
+    "machine_code": "daikyo::BUZZミニ②",
+    "store_code": "daikyo",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ②::B3",
+    "machine_code": "daikyo::BUZZミニ②",
+    "store_code": "daikyo",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ②::B4",
+    "machine_code": "daikyo::BUZZミニ②",
+    "store_code": "daikyo",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ②_-U2::U101::B1",
+    "machine_code": "daikyo::BUZZミニ②_-U2::U101",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ②_-U2::U101::B2",
+    "machine_code": "daikyo::BUZZミニ②_-U2::U101",
+    "store_code": "daikyo",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ③::B1",
+    "machine_code": "daikyo::BUZZミニ③",
+    "store_code": "daikyo",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ③::B2",
+    "machine_code": "daikyo::BUZZミニ③",
+    "store_code": "daikyo",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ③::B3",
+    "machine_code": "daikyo::BUZZミニ③",
+    "store_code": "daikyo",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "daikyo::BUZZミニ③::B4",
+    "machine_code": "daikyo::BUZZミニ③",
+    "store_code": "daikyo",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ③::B1",
+    "machine_code": "bayside::BUZZ③",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ③::B2",
+    "machine_code": "bayside::BUZZ③",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ③::B3",
+    "machine_code": "bayside::BUZZ③",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ③::B4",
+    "machine_code": "bayside::BUZZ③",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ④::B1",
+    "machine_code": "bayside::BUZZ④",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ④::B2",
+    "machine_code": "bayside::BUZZ④",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ④::B3",
+    "machine_code": "bayside::BUZZ④",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ④::B4",
+    "machine_code": "bayside::BUZZ④",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ⑤::B1",
+    "machine_code": "bayside::BUZZ⑤",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ⑤::B2",
+    "machine_code": "bayside::BUZZ⑤",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ⑤::B3",
+    "machine_code": "bayside::BUZZ⑤",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZ⑤::B4",
+    "machine_code": "bayside::BUZZ⑤",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ①::B1",
+    "machine_code": "bayside::BUZZミニ①",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ①::B2",
+    "machine_code": "bayside::BUZZミニ①",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ①::B3",
+    "machine_code": "bayside::BUZZミニ①",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ①::B4",
+    "machine_code": "bayside::BUZZミニ①",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ①_-U2::U101::B1",
+    "machine_code": "bayside::BUZZミニ①_-U2::U101",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ①_-U2::U101::B2",
+    "machine_code": "bayside::BUZZミニ①_-U2::U101",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②::B1",
+    "machine_code": "bayside::BUZZミニ②",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②::B2",
+    "machine_code": "bayside::BUZZミニ②",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②::B3",
+    "machine_code": "bayside::BUZZミニ②",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②::B4",
+    "machine_code": "bayside::BUZZミニ②",
+    "store_code": "bayside",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②_-U2::U101::B1",
+    "machine_code": "bayside::BUZZミニ②_-U2::U101",
+    "store_code": "bayside",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②_-U2::U101::B2",
+    "machine_code": "bayside::BUZZミニ②_-U2::U101",
+    "store_code": "bayside",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "bayside::BUZZミニ②_-U2::U101::B3",
+    "machine_code": "bayside::BUZZミニ②_-U2::U101",
+    "store_code": "bayside",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ①::B1",
+    "machine_code": "NKS01::BUZZ①",
+    "store_code": "NKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ①::B2",
+    "machine_code": "NKS01::BUZZ①",
+    "store_code": "NKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ①::B3",
+    "machine_code": "NKS01::BUZZ①",
+    "store_code": "NKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BUZZ①::B4",
+    "machine_code": "NKS01::BUZZ①",
+    "store_code": "NKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZ_DX②::B1",
+    "machine_code": "NKS01::BuZZ_DX②",
+    "store_code": "NKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZ_DX②::B2",
+    "machine_code": "NKS01::BuZZ_DX②",
+    "store_code": "NKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZ_DX②::B3",
+    "machine_code": "NKS01::BuZZ_DX②",
+    "store_code": "NKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "NKS01::BuZZ_DX②::B4",
+    "machine_code": "NKS01::BuZZ_DX②",
+    "store_code": "NKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑥::B1",
+    "machine_code": "SAG01::BUZZクレ⑥",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑥::B2",
+    "machine_code": "SAG01::BUZZクレ⑥",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑥::B3",
+    "machine_code": "SAG01::BUZZクレ⑥",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑥::B4",
+    "machine_code": "SAG01::BUZZクレ⑥",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑦::B1",
+    "machine_code": "SAG01::BUZZクレ⑦",
+    "store_code": "SAG01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑦::B2",
+    "machine_code": "SAG01::BUZZクレ⑦",
+    "store_code": "SAG01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑦::B3",
+    "machine_code": "SAG01::BUZZクレ⑦",
+    "store_code": "SAG01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "SAG01::BUZZクレ⑦::B4",
+    "machine_code": "SAG01::BUZZクレ⑦",
+    "store_code": "SAG01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3003_BUZZ①::B1",
+    "machine_code": "KRT01::唐津R3003_BUZZ①",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3003_BUZZ①::B2",
+    "machine_code": "KRT01::唐津R3003_BUZZ①",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3003_BUZZ①::B3",
+    "machine_code": "KRT01::唐津R3003_BUZZ①",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3003_BUZZ①::B4",
+    "machine_code": "KRT01::唐津R3003_BUZZ①",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_BUZZ②::B1",
+    "machine_code": "KRT01::唐津R3004_BUZZ②",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_BUZZ②::B2",
+    "machine_code": "KRT01::唐津R3004_BUZZ②",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_BUZZ②::B3",
+    "machine_code": "KRT01::唐津R3004_BUZZ②",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_BUZZ②::B4",
+    "machine_code": "KRT01::唐津R3004_BUZZ②",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ③::B1",
+    "machine_code": "KRT01::BUZZ③",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ③::B2",
+    "machine_code": "KRT01::BUZZ③",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ③::B3",
+    "machine_code": "KRT01::BUZZ③",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ③::B4",
+    "machine_code": "KRT01::BUZZ③",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ④::B1",
+    "machine_code": "KRT01::BUZZ④",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ④::B2",
+    "machine_code": "KRT01::BUZZ④",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ④::B3",
+    "machine_code": "KRT01::BUZZ④",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::BUZZ④::B4",
+    "machine_code": "KRT01::BUZZ④",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_トライデッキ::B1",
+    "machine_code": "KRT01::唐津R3004_トライデッキ",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_トライデッキ::B2",
+    "machine_code": "KRT01::唐津R3004_トライデッキ",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_トライデッキ::B3",
+    "machine_code": "KRT01::唐津R3004_トライデッキ",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津R3004_トライデッキ::B4",
+    "machine_code": "KRT01::唐津R3004_トライデッキ",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①::B1",
+    "machine_code": "KRT01::唐津BUZZmini①",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①::B2",
+    "machine_code": "KRT01::唐津BUZZmini①",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①::B3",
+    "machine_code": "KRT01::唐津BUZZmini①",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①::B4",
+    "machine_code": "KRT01::唐津BUZZmini①",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①_-U2::U101::B1",
+    "machine_code": "KRT01::唐津BUZZmini①_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①_-U2::U101::B2",
+    "machine_code": "KRT01::唐津BUZZmini①_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①_-U2::U101::B3",
+    "machine_code": "KRT01::唐津BUZZmini①_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini①_-U2::U101::B4",
+    "machine_code": "KRT01::唐津BUZZmini①_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②::B1",
+    "machine_code": "KRT01::唐津BUZZmini②",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②::B2",
+    "machine_code": "KRT01::唐津BUZZmini②",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②::B3",
+    "machine_code": "KRT01::唐津BUZZmini②",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②::B4",
+    "machine_code": "KRT01::唐津BUZZmini②",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②_-U2::U101::B1",
+    "machine_code": "KRT01::唐津BUZZmini②_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②_-U2::U101::B2",
+    "machine_code": "KRT01::唐津BUZZmini②_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②_-U2::U101::B3",
+    "machine_code": "KRT01::唐津BUZZmini②_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini②_-U2::U101::B4",
+    "machine_code": "KRT01::唐津BUZZmini②_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③::B1",
+    "machine_code": "KRT01::唐津BUZZmini③",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③::B2",
+    "machine_code": "KRT01::唐津BUZZmini③",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③::B3",
+    "machine_code": "KRT01::唐津BUZZmini③",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③::B4",
+    "machine_code": "KRT01::唐津BUZZmini③",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③_-U2::U101::B1",
+    "machine_code": "KRT01::唐津BUZZmini③_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③_-U2::U101::B2",
+    "machine_code": "KRT01::唐津BUZZmini③_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③_-U2::U101::B3",
+    "machine_code": "KRT01::唐津BUZZmini③_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini③_-U2::U101::B4",
+    "machine_code": "KRT01::唐津BUZZmini③_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④::B1",
+    "machine_code": "KRT01::唐津BUZZmini④",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④::B2",
+    "machine_code": "KRT01::唐津BUZZmini④",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④::B3",
+    "machine_code": "KRT01::唐津BUZZmini④",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④::B4",
+    "machine_code": "KRT01::唐津BUZZmini④",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④_-U2::U101::B1",
+    "machine_code": "KRT01::唐津BUZZmini④_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④_-U2::U101::B2",
+    "machine_code": "KRT01::唐津BUZZmini④_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④_-U2::U101::B3",
+    "machine_code": "KRT01::唐津BUZZmini④_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "KRT01::唐津BUZZmini④_-U2::U101::B4",
+    "machine_code": "KRT01::唐津BUZZmini④_-U2::U101",
+    "store_code": "KRT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ①::B1",
+    "machine_code": "TKT01::BUZZ①",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ①::B2",
+    "machine_code": "TKT01::BUZZ①",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ①::B3",
+    "machine_code": "TKT01::BUZZ①",
+    "store_code": "TKT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ①::B4",
+    "machine_code": "TKT01::BUZZ①",
+    "store_code": "TKT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ②::B1",
+    "machine_code": "TKT01::BUZZ②",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ②::B2",
+    "machine_code": "TKT01::BUZZ②",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ②::B3",
+    "machine_code": "TKT01::BUZZ②",
+    "store_code": "TKT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ②::B4",
+    "machine_code": "TKT01::BUZZ②",
+    "store_code": "TKT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ③::B1",
+    "machine_code": "TKT01::BUZZ③",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ③::B2",
+    "machine_code": "TKT01::BUZZ③",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ③::B3",
+    "machine_code": "TKT01::BUZZ③",
+    "store_code": "TKT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ③::B4",
+    "machine_code": "TKT01::BUZZ③",
+    "store_code": "TKT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ④::B1",
+    "machine_code": "TKT01::BUZZ④",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ④::B2",
+    "machine_code": "TKT01::BUZZ④",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ④::B3",
+    "machine_code": "TKT01::BUZZ④",
+    "store_code": "TKT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::BUZZ④::B4",
+    "machine_code": "TKT01::BUZZ④",
+    "store_code": "TKT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::トライデッキ::B1",
+    "machine_code": "TKT01::トライデッキ",
+    "store_code": "TKT01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::トライデッキ::B2",
+    "machine_code": "TKT01::トライデッキ",
+    "store_code": "TKT01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::トライデッキ::B3",
+    "machine_code": "TKT01::トライデッキ",
+    "store_code": "TKT01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "TKT01::トライデッキ::B4",
+    "machine_code": "TKT01::トライデッキ",
+    "store_code": "TKT01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ①::B1",
+    "machine_code": "HMN01::BUZZ①",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ①::B2",
+    "machine_code": "HMN01::BUZZ①",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ①::B3",
+    "machine_code": "HMN01::BUZZ①",
+    "store_code": "HMN01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ①::B4",
+    "machine_code": "HMN01::BUZZ①",
+    "store_code": "HMN01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②::B1",
+    "machine_code": "HMN01::BUZZ②",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②::B2",
+    "machine_code": "HMN01::BUZZ②",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②::B3",
+    "machine_code": "HMN01::BUZZ②",
+    "store_code": "HMN01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②::B4",
+    "machine_code": "HMN01::BUZZ②",
+    "store_code": "HMN01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②_-U2::U101::B1",
+    "machine_code": "HMN01::BUZZ②_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②_-U2::U101::B2",
+    "machine_code": "HMN01::BUZZ②_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②_-U2::U101::B3",
+    "machine_code": "HMN01::BUZZ②_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ②_-U2::U101::B4",
+    "machine_code": "HMN01::BUZZ②_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③::B1",
+    "machine_code": "HMN01::BUZZ③",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③::B2",
+    "machine_code": "HMN01::BUZZ③",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③::B3",
+    "machine_code": "HMN01::BUZZ③",
+    "store_code": "HMN01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③::B4",
+    "machine_code": "HMN01::BUZZ③",
+    "store_code": "HMN01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③_-U2::U101::B1",
+    "machine_code": "HMN01::BUZZ③_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③_-U2::U101::B2",
+    "machine_code": "HMN01::BUZZ③_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③_-U2::U101::B3",
+    "machine_code": "HMN01::BUZZ③_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ③_-U2::U101::B4",
+    "machine_code": "HMN01::BUZZ③_-U2::U101",
+    "store_code": "HMN01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ④::B1",
+    "machine_code": "HMN01::BUZZ④",
+    "store_code": "HMN01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ④::B2",
+    "machine_code": "HMN01::BUZZ④",
+    "store_code": "HMN01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ④::B3",
+    "machine_code": "HMN01::BUZZ④",
+    "store_code": "HMN01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "HMN01::BUZZ④::B4",
+    "machine_code": "HMN01::BUZZ④",
+    "store_code": "HMN01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑩::1F::B1",
+    "machine_code": "FKS01::福重BUZZミニ⑩::1F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑩::1F::B2",
+    "machine_code": "FKS01::福重BUZZミニ⑩::1F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑩::1F::B3",
+    "machine_code": "FKS01::福重BUZZミニ⑩::1F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZミニ⑩::1F::B4",
+    "machine_code": "FKS01::福重BUZZミニ⑩::1F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ⑤::2F::B1",
+    "machine_code": "FKS01::福重BUZZクレ⑤::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ⑤::2F::B2",
+    "machine_code": "FKS01::福重BUZZクレ⑤::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ⑤::2F::B3",
+    "machine_code": "FKS01::福重BUZZクレ⑤::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZクレ⑤::2F::B4",
+    "machine_code": "FKS01::福重BUZZクレ⑤::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥::2F::B1",
+    "machine_code": "FKS01::福重BUZZ⑥::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥::2F::B2",
+    "machine_code": "FKS01::福重BUZZ⑥::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥::2F::B3",
+    "machine_code": "FKS01::福重BUZZ⑥::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥::2F::B4",
+    "machine_code": "FKS01::福重BUZZ⑥::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥_-U2::2F::U101::B1",
+    "machine_code": "FKS01::福重BUZZ⑥_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥_-U2::2F::U101::B2",
+    "machine_code": "FKS01::福重BUZZ⑥_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥_-U2::2F::U101::B3",
+    "machine_code": "FKS01::福重BUZZ⑥_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑥_-U2::2F::U101::B4",
+    "machine_code": "FKS01::福重BUZZ⑥_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦::2F::B1",
+    "machine_code": "FKS01::福重BUZZ⑦::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦::2F::B2",
+    "machine_code": "FKS01::福重BUZZ⑦::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦::2F::B3",
+    "machine_code": "FKS01::福重BUZZ⑦::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦::2F::B4",
+    "machine_code": "FKS01::福重BUZZ⑦::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦_-U2::2F::U101::B1",
+    "machine_code": "FKS01::福重BUZZ⑦_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦_-U2::2F::U101::B2",
+    "machine_code": "FKS01::福重BUZZ⑦_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦_-U2::2F::U101::B3",
+    "machine_code": "FKS01::福重BUZZ⑦_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑦_-U2::2F::U101::B4",
+    "machine_code": "FKS01::福重BUZZ⑦_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑧::2F::B1",
+    "machine_code": "FKS01::福重BUZZ⑧::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑧::2F::B2",
+    "machine_code": "FKS01::福重BUZZ⑧::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑧::2F::B3",
+    "machine_code": "FKS01::福重BUZZ⑧::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑧::2F::B4",
+    "machine_code": "FKS01::福重BUZZ⑧::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨::2F::B1",
+    "machine_code": "FKS01::福重BUZZ⑨::2F",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨::2F::B2",
+    "machine_code": "FKS01::福重BUZZ⑨::2F",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨::2F::B3",
+    "machine_code": "FKS01::福重BUZZ⑨::2F",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨::2F::B4",
+    "machine_code": "FKS01::福重BUZZ⑨::2F",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨_-U2::2F::U101::B1",
+    "machine_code": "FKS01::福重BUZZ⑨_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨_-U2::2F::U101::B2",
+    "machine_code": "FKS01::福重BUZZ⑨_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨_-U2::2F::U101::B3",
+    "machine_code": "FKS01::福重BUZZ⑨_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "FKS01::福重BUZZ⑨_-U2::2F::U101::B4",
+    "machine_code": "FKS01::福重BUZZ⑨_-U2::2F::U101",
+    "store_code": "FKS01",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ①::B1",
+    "machine_code": "nishijin::BUZZ①",
+    "store_code": "nishijin",
+    "booth_number": 1,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ①::B2",
+    "machine_code": "nishijin::BUZZ①",
+    "store_code": "nishijin",
+    "booth_number": 2,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ①::B3",
+    "machine_code": "nishijin::BUZZ①",
+    "store_code": "nishijin",
+    "booth_number": 3,
+    "is_active": true,
+    "play_price": 100
+  },
+  {
+    "booth_code": "nishijin::BUZZ①::B4",
+    "machine_code": "nishijin::BUZZ①",
+    "store_code": "nishijin",
+    "booth_number": 4,
+    "is_active": true,
+    "play_price": 100
+  }
+]

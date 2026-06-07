@@ -1,0 +1,9 @@
+﻿patrol_date,booth_number,machine_name,machine_area,unit_index,in_meter,out_meter,theoretical_stock,prize_restock_count,prize_name,prize_cost,note,r_number,is_anomaly,anomaly_tag,anomaly_reason,source_row,sheet_name,file_name
+2025-09-19,5,BuZZ DX②,,1,7858.0,459.0,5,3,デジタルミニカメラ,722.0,,,True,possible_2nd_round,"booth=5 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",381,中州,★中州　クレーン売上表2026.xlsx
+2025-09-19,6,BuZZ DX②,,1,9652.0,510.0,10,0,クーリッシュイヤホン,1100.0,,,True,possible_2nd_round,"booth=6 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",382,中州,★中州　クレーン売上表2026.xlsx
+2025-09-19,7,BuZZ DX②,,1,12116.0,728.0,9,0,モンチッチマスコット,528.0,,,True,possible_2nd_round,"booth=7 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",383,中州,★中州　クレーン売上表2026.xlsx
+2025-09-19,8,BuZZ DX②,,1,10069.0,784.0,6,0,ジョージファン,900.0,,,True,possible_2nd_round,"booth=8 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",384,中州,★中州　クレーン売上表2026.xlsx
+2026-05-26,5,BuZZ DX②,,1,2454.0,102.0,20,4,サンリオチャーム付きリュック,0.0,,,True,possible_2nd_round,"booth=5 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",77,中州,★中州　クレーン売上表2026.xlsx
+2026-05-26,6,BuZZ DX②,,1,2069.0,209.0,61,8,電ブル,275.0,,,True,possible_2nd_round,"booth=6 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",78,中州,★中州　クレーン売上表2026.xlsx
+2026-05-26,7,BuZZ DX②,,1,1871.0,200.0,131,10,キティボールペン,283.0,,,True,possible_2nd_round,"booth=7 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",79,中州,★中州　クレーン売上表2026.xlsx
+2026-05-26,8,BuZZ DX②,,1,1686.0,147.0,84,0,ふわもちスクイーズ,99.0,,,True,possible_2nd_round,"booth=8 > 4 (machine=BuZZ DX②, area=None, tag=possible_2nd_round)",80,中州,★中州　クレーン売上表2026.xlsx

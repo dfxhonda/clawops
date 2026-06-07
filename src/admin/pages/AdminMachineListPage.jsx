@@ -11,6 +11,7 @@ import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../../clawsupport/components/storeTotalsRanking'
 import { useAuth } from '../../hooks/useAuth'
 import { isAdmin } from '../../services/permissions'
+import StorePickerSheet from '../../components/StorePickerSheet'
 
 function UnauthorizedView() {
   const navigate = useNavigate()
@@ -32,13 +33,22 @@ export default function AdminMachineListPage() {
   const navigate = useNavigate()
   const { staffRole, loading } = useAuth()
 
-  const [storeName, setStoreName] = useState(storeCode)
+  const [storeName, setStoreName] = useState('')
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
-  const [dataLoading, setDataLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(!!storeCode)
+
+  useEffect(() => {
+    setMachines([])
+    setTodayMap({})
+    setDiffMap({})
+    setDataLoading(!!storeCode)
+    if (!storeCode) setStoreName('')
+  }, [storeCode])
 
   const load = useCallback(async () => {
+    if (!storeCode) return
     const [{ data: store }, machineList] = await Promise.all([
       supabase.from('stores').select('store_name').eq('store_code', storeCode).single(),
       getPatrolMachines(storeCode),
@@ -63,61 +73,81 @@ export default function AdminMachineListPage() {
   // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
   const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap), [machines, diffMap])
 
+  function handleStorePick(code) {
+    if (!code) return
+    navigate(`/admin/audit/booth-edit/${code}/machines`, { replace: true })
+  }
+
   if (loading) return null
   if (!isAdmin(staffRole)) return <UnauthorizedView />
-
-  if (dataLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg text-muted text-base">
-        読み込み中...
-      </div>
-    )
-  }
 
   return (
     <div className="h-dvh flex flex-col bg-bg text-text">
       <PageHeader
         module="admin"
-        title={storeName}
+        title={storeCode ? (storeName || storeCode) : '過去メーター編集'}
         variant="compact"
-        rightSlot={<DateTime value={new Date()} format="date" />}
-        onBack={() => navigate(`/admin/store-list`)}
+        rightSlot={storeCode ? <DateTime value={new Date()} format="date" /> : null}
+        onBack={() => navigate('/admin/audit')}
       />
 
-      {/* J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4233):
-          管理者編集モードでも巡回画面と同じ 4 列ヘッダ (前IN/今IN/前/日/今/日) で揃える。
-          旧 IN/OUT DiffChip ('IN +3,085 OUT +196') は廃止。 */}
-      <StoreTotalsHeader
-        diffMap={diffMap}
-        leftSlot={<span className="text-xs text-muted font-bold">管理者編集モード</span>}
-      />
-      {/* タップ済進捗をヘッダに統合できないので 1 行で残す (役立ち情報) */}
-      {/* 不要なら削除可、ヒロ判断 */}
-      {Object.keys(todayMap).length > 0 && (
-        <div className="px-4 py-1 shrink-0">
-          <span className="text-xs text-muted">入力済み {Object.keys(todayMap).length} / {machines.reduce((s, m) => s + m.booths.length, 0)} ブース</span>
+      {/* J-UI-STORE-PICKER-SHEET-METER-02: persistent store trigger at top of machine list */}
+      <div className="px-4 py-2 border-b border-border shrink-0">
+        <StorePickerSheet
+          value={storeCode ?? null}
+          onChange={handleStorePick}
+          showAllOption={false}
+          placeholder="店舗を選択"
+        />
+      </div>
+
+      {!storeCode && (
+        <div className="flex-1 flex items-center justify-center text-muted text-sm">
+          上の店舗ボタンをタップして選択してください
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">
-        {machines.length === 0 && (
-          <p className="text-center text-muted text-base py-12">機械データがありません</p>
-        )}
-        {machines.map(machine => (
-          <MachineRow
-            key={machine.machine_code}
-            machine={machine}
-            todayMap={todayMap}
+      {storeCode && dataLoading && (
+        <div className="flex-1 flex items-center justify-center text-muted text-base">
+          読み込み中...
+        </div>
+      )}
+
+      {storeCode && !dataLoading && (
+        <>
+          {/* J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4233):
+              管理者編集モードでも巡回画面と同じ 4 列ヘッダ (前IN/今IN/前/日/今/日) で揃える。 */}
+          <StoreTotalsHeader
             diffMap={diffMap}
-            rankMap={rankMap}
-            onBoothClick={booth =>
-              navigate(`/admin/booth-edit/${booth.booth_code}`, {
-                state: { machine, booth, storeCode },
-              })
-            }
+            leftSlot={<span className="text-xs text-muted font-bold">管理者編集モード</span>}
           />
-        ))}
-      </div>
+          {Object.keys(todayMap).length > 0 && (
+            <div className="px-4 py-1 shrink-0">
+              <span className="text-xs text-muted">入力済み {Object.keys(todayMap).length} / {machines.reduce((s, m) => s + m.booths.length, 0)} ブース</span>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">
+            {machines.length === 0 && (
+              <p className="text-center text-muted text-base py-12">機械データがありません</p>
+            )}
+            {machines.map(machine => (
+              <MachineRow
+                key={machine.machine_code}
+                machine={machine}
+                todayMap={todayMap}
+                diffMap={diffMap}
+                rankMap={rankMap}
+                onBoothClick={booth =>
+                  navigate(`/admin/audit/booth-edit/${booth.booth_code}`, {
+                    state: { machine, booth, storeCode },
+                  })
+                }
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
