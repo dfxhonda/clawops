@@ -248,7 +248,7 @@ function AppInner() {
         <Route path="masters/*" element={<AdminPlaceholderPage />} />
         <Route path="audit" element={<AdminAuditHubPage />} />
         <Route path="audit/orders" element={<AdminOrderHistoryPage />} />
-        <Route path="audit/booth-edit" element={<AdminStorePage />} />
+        <Route path="audit/booth-edit" element={<AdminMachineListPage />} />
         <Route path="audit/booth-edit/:storeCode/machines" element={<AdminMachineListPage />} />
         <Route path="audit/booth-edit/:boothCode" element={<AdminBoothEditPage />} />
         <Route path="audit/operations"  element={<AdminOperationLogsPage />} />
@@ -277,8 +277,6 @@ function AppInner() {
       </Route>
 
       {/* J-ADMIN-01 backward-compat flat routes (regression keep) */}
-      <Route path="/admin/store-list" element={<ProtectedRoute><AdminStorePage /></ProtectedRoute>} />
-      <Route path="/admin/store/:storeCode/machines" element={<ProtectedRoute><AdminMachineListPage /></ProtectedRoute>} />
       <Route path="/admin/booth-edit/:boothCode" element={<ProtectedRoute><AdminBoothEditPage /></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}

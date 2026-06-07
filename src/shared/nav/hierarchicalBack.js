@@ -57,7 +57,7 @@ const OVERRIDES = [
   // マネサポ (admin) は AdminLayout 内に TopTabs があるのでハブには '← ホーム' (launcher) を残す。
   // 配下ページは親タブに戻す: /admin/masters/X → /admin/masters
   { test: /^\/admin\/masters\/[^/]+\/?$/, target: () => '/admin/masters' },
-  { test: /^\/admin\/audit\/booth-edit\/[^/]+\/machines\/?$/, target: () => '/admin/audit/booth-edit' },
+  { test: /^\/admin\/audit\/booth-edit\/[^/]+\/machines\/?$/, target: () => '/admin/audit' },
   // ヒロ ad-hoc 2026-05-31: ブースデータ編集 → 機械一覧 (旧: 店舗一覧 = 2段戻り bug)。
   // booth_code は STORE-Mxx-Bxx 形式、先頭 split('-')[0] = store_code で機械一覧 URL を組み立て。
   { test: /^\/admin\/audit\/booth-edit\/[^/]+\/?$/, target: (path) => {
@@ -69,11 +69,14 @@ const OVERRIDES = [
   { test: /^\/admin\/audit\/[^/]+\/?$/, target: () => '/admin/audit' },
   { test: /^\/admin\/reports\/[^/]+\/?$/, target: () => '/admin/reports' },
   { test: /^\/admin\/settings\/[^/]+\/?$/, target: () => '/admin/settings' },
-  { test: /^\/admin\/store\/[^/]+\/machines\/?$/, target: () => '/admin/store-list' },
-  { test: /^\/admin\/booth-edit\/[^/]+\/?$/, target: () => '/admin/store-list' },
-  { test: /^\/admin\/store-list\/?$/, target: () => '/admin/masters' },
+  { test: /^\/admin\/booth-edit\/[^/]+\/?$/, target: (path) => {
+      const m = path.match(/^\/admin\/booth-edit\/([^/]+)/)
+      const boothCode = m?.[1]
+      const storeCode = boothCode?.split('-')?.[0]
+      return storeCode ? `/admin/audit/booth-edit/${storeCode}/machines` : '/admin/audit'
+    } },
   { test: /^\/admin\/dev-assets\/upload\/?$/, target: () => '/admin/dev-assets' },
-  { test: /^\/admin\/(masters|audit|reports|settings|import|collection-flag|labels|alert-types|dev-assets|stocktake|qr-print|glossary|store-list|audit-summary|operation-logs)\/?$/, target: () => '/admin' },
+  { test: /^\/admin\/(masters|audit|reports|settings|import|collection-flag|labels|alert-types|dev-assets|stocktake|qr-print|glossary|audit-summary|operation-logs)\/?$/, target: () => '/admin' },
   { test: /^\/admin\/?$/, target: () => LAUNCHER },
 
   // 旧巡回・編集系
