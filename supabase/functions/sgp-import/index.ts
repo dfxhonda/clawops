@@ -5,6 +5,7 @@ const SGP_API = "https://kings-man.info/stock/php/ajax.php";
 const SGP_IMG_BASE = "https://kings-man.info/stock/item_image/";
 const SGP_ID = "442";
 const SGP_NAME = "【フォロー】achieve（アミューズ）";
+const SGP_NAME_ITEM = "【フォロー加盟店】achieve（アミューズ）";
 const SGP_PASS = "yJKSciScG34sYW";
 
 const SHOP_DEST: Record<number, string> = {
@@ -162,12 +163,6 @@ function mapStatus(s: string): string {
   return "ordered";
 }
 
-function getImgFile(n: string): string | null {
-  if (!n?.trim()) return null;
-  const p = n.split(",").filter(Boolean);
-  return p[0] || p[1] || null;
-}
-
 function resolveDestination(orderShop: number, shopConv: Record<string, string>): string | null {
   if (SHOP_DEST[orderShop]) return SHOP_DEST[orderShop];
   const name = shopConv[String(orderShop)];
@@ -177,9 +172,7 @@ function resolveDestination(orderShop: number, shopConv: Record<string, string>)
 Deno.serve(async (req: Request) => {
   const start = Date.now();
   const url = new URL(req.url);
-  const imgLimit = parseInt(url.searchParams.get("img_limit") || "100");
-  const explicitPage = url.searchParams.has("page") ? parseInt(url.searchParams.get("page")!) : null;
-  const pageSize = 500;
+  const imgLimit = parseInt(url.searchParams.get("img_limit") || "200");
 
   const serviceKey = Deno.env.get('CLAWOPS_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -188,25 +181,18 @@ Deno.serve(async (req: Request) => {
     serviceKey
   );
 
-  // Resolve traversal page: read from sgp_image_backfill_state unless ?page=N is explicit
-  let page = explicitPage ?? 0;
-  if (explicitPage === null) {
-    const { data: stateRow } = await supabase
-      .from("sgp_image_backfill_state")
-      .select("last_page")
-      .eq("id", 1)
-      .maybeSingle();
-    page = stateRow?.last_page ?? 0;
-  }
-  const pos = page * pageSize;
-
-  const log = { records_fetched: 0, records_inserted: 0, records_updated: 0, records_skipped: 0, masters_created: 0, images_uploaded: 0, images_linked: 0, backfilled: 0, next_page: null as number | null, errors: [] as string[], duration_ms: 0, page };
+  const log = {
+    records_fetched: 0, records_inserted: 0, records_updated: 0, records_skipped: 0,
+    masters_created: 0, images_uploaded: 0, images_linked: 0, backfilled: 0,
+    img_searched: 0, img_hit: 0, img_miss: 0,
+    errors: [] as string[], duration_ms: 0,
+  };
 
   try {
     const body = new URLSearchParams({
       id: SGP_ID, name: SGP_NAME, password: SGP_PASS, role_id: "3",
-      pos: String(pos), order: "1",
-      ROWS_PER_PAGE: String(pageSize), ROWS_PER_PAGE_RECORD: String(pageSize),
+      pos: "0", order: "1",
+      ROWS_PER_PAGE: "500", ROWS_PER_PAGE_RECORD: "500",
       command: "My_Order_Group.Serch",
       group_type: "all", delivery_month: "",
       ship_comp_my_record_view: "1",
@@ -241,7 +227,6 @@ Deno.serve(async (req: Request) => {
     const masterCache = new Map<string, string>();
     const toInsert: Record<string, unknown>[] = [];
     const toUpdate: { id: string; data: Record<string, unknown> }[] = [];
-    const imgNameMap = new Map<string, string>(); // item_code → img_file
 
     for (const r of records) {
       const rawId = `sgp_${r.order_id}`;
@@ -317,9 +302,6 @@ Deno.serve(async (req: Request) => {
           log.records_skipped++;
         }
       }
-
-      const f = getImgFile(r.img_name);
-      if (f && r.item_code) imgNameMap.set(String(r.item_code), f);
     }
 
     let actualInserted = 0;
@@ -340,29 +322,9 @@ Deno.serve(async (req: Request) => {
       if (error) log.errors.push(`Upd ${u.id}: ${error.message}`);
     }
 
-    // Image backfill: query orphan prize_masters from DB, process up to imgLimit
+    // Image backfill: item-search direct lookup for orphan SGP prize_masters
     {
-      // Step 1: Build prize_id → item_code map from CURRENT PAGE's item_codes
-      // so each traversed page can drain its own orphans regardless of order date
-      const prizeToCode = new Map<string, string>();
-      const pageItemCodes = [...imgNameMap.keys()];
-      if (pageItemCodes.length > 0) {
-        const orFilter = pageItemCodes.map(c => `import_meta->>item_code.eq.${c}`).join(",");
-        const { data: pageOrders } = await supabase
-          .from("prize_orders")
-          .select("prize_id, import_meta")
-          .eq("order_source", "sgp_api")
-          .not("prize_id", "is", null)
-          .or(orFilter);
-        for (const po of (pageOrders || [])) {
-          const code = String(po.import_meta?.item_code || "");
-          if (code && !prizeToCode.has(po.prize_id)) {
-            prizeToCode.set(po.prize_id, code);
-          }
-        }
-      }
-
-      // Step 2: Query orphan prize_masters (null or empty image_url, SGP supplier)
+      // Step 1: Fetch orphan prize_masters and resolve item_codes via prize_orders
       const { data: orphans } = await supabase
         .from("prize_masters")
         .select("prize_id")
@@ -370,63 +332,130 @@ Deno.serve(async (req: Request) => {
         .or("image_url.is.null,image_url.eq.")
         .limit(imgLimit);
 
+      const orphanIds = (orphans || []).map((r: { prize_id: string }) => r.prize_id);
+      const prizeToCode = new Map<string, string>();
+      if (orphanIds.length > 0) {
+        const { data: pOrders } = await supabase
+          .from("prize_orders")
+          .select("prize_id, import_meta")
+          .eq("order_source", "sgp_api")
+          .not("prize_id", "is", null)
+          .in("prize_id", orphanIds);
+        for (const po of (pOrders || [])) {
+          const code = String(po.import_meta?.item_code || "");
+          if (code && !prizeToCode.has(po.prize_id)) {
+            prizeToCode.set(po.prize_id, code);
+          }
+        }
+      }
+
       const processedCodes = new Set<string>();
+
       for (const pm of (orphans || [])) {
         const itemCode = prizeToCode.get(pm.prize_id);
         if (!itemCode || processedCodes.has(itemCode)) continue;
         processedCodes.add(itemCode);
+        log.img_searched++;
 
         const path = `sgp/${itemCode}.jpg`;
         try {
-          const { data: ls } = await supabase.storage.from("announcements").list("sgp", { search: `${itemCode}.jpg` });
-          if (ls && ls.length > 0) {
-            // File already in storage — just set image_url
-            await supabase.from("prize_masters")
-              .update({ image_url: path })
-              .eq("prize_id", pm.prize_id)
-              .or("image_url.is.null,image_url.eq.");
-            log.images_linked++;
-            continue;
-          }
-
-          // Need img_name from current page's API response
-          const imgFile = imgNameMap.get(itemCode);
-          if (!imgFile) continue; // not in current page, skip — will drain on future cron
-
-          const res = await fetch(`${SGP_IMG_BASE}${imgFile}`);
-          if (!res.ok) continue;
-          const blob = await res.blob();
-          const { error } = await supabase.storage.from("announcements").upload(path, blob, { contentType: "image/jpeg", upsert: false });
-          if (!error) {
-            log.images_uploaded++;
-            // Link to all SGP prize_masters sharing this item_code
-            const { data: linked } = await supabase
+          // Check if already in storage — link without re-downloading
+          const { data: ls } = await supabase.storage
+            .from("announcements")
+            .list("sgp", { search: `${itemCode}.jpg` });
+          if (ls && ls.some((f: { name: string }) => f.name === `${itemCode}.jpg`)) {
+            const { data: codeOrders } = await supabase
               .from("prize_orders")
               .select("prize_id")
-              .eq("import_meta->>item_code", itemCode)
-              .not("prize_id", "is", null);
-            if (linked?.length) {
-              const ids = [...new Set(linked.map((r: { prize_id: string }) => r.prize_id))];
+              .eq("order_source", "sgp_api")
+              .not("prize_id", "is", null)
+              .eq("import_meta->>item_code", itemCode);
+            if (codeOrders?.length) {
+              const ids = [...new Set(codeOrders.map((r: { prize_id: string }) => r.prize_id))];
               for (const pid of ids) {
                 await supabase.from("prize_masters")
                   .update({ image_url: path })
                   .eq("prize_id", pid)
                   .or("image_url.is.null,image_url.eq.");
               }
+              log.images_linked += ids.length;
             }
+            log.img_hit++;
+            continue;
+          }
+
+          // Not in storage — query item-search API with exact item_code
+          const searchBody = new URLSearchParams({
+            command: "Item_TASK_Group.Serch",
+            id: SGP_ID,
+            name: SGP_NAME_ITEM,
+            password: SGP_PASS,
+            role_id: "3",
+            pos: "0",
+            order: "1",
+            ROWS_PER_PAGE: "50",
+            ROWS_PER_PAGE_RECORD: "50",
+            group_type: "all",
+            sort_order_type: "create_order",
+            zero_view_flag: "1",
+            delivery_month: "0",
+            lower_limit_unit_cost: "",
+            upper_limit_unit_cost: "",
+            favorite_list_narrow_down_flag: "0",
+            search_word: itemCode,
+          });
+          const searchRes = await fetch(SGP_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: searchBody.toString(),
+          });
+          if (!searchRes.ok) { log.img_miss++; continue; }
+
+          const searchData = await searchRes.json();
+          // search_word is substring match — confirm exact item_code to avoid false positives
+          const found = (searchData.item_list || []).find(
+            (item: { item_code: string }) => item.item_code === itemCode
+          );
+
+          if (!found?.img_name) {
+            log.img_miss++;
+            continue;
+          }
+
+          // Download image from supplier and upload to storage
+          const imgRes = await fetch(`${SGP_IMG_BASE}${found.img_name}`);
+          if (!imgRes.ok) { log.img_miss++; continue; }
+
+          const blob = await imgRes.blob();
+          const { error: upErr } = await supabase.storage
+            .from("announcements")
+            .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+          if (upErr && !upErr.message?.includes("already exists")) {
+            log.img_miss++;
+            continue;
+          }
+          if (!upErr) log.images_uploaded++;
+          log.img_hit++;
+
+          // Link image_url to all SGP prize_masters sharing this item_code
+          const { data: codeOrders } = await supabase
+            .from("prize_orders")
+            .select("prize_id")
+            .eq("order_source", "sgp_api")
+            .not("prize_id", "is", null)
+            .eq("import_meta->>item_code", itemCode);
+          if (codeOrders?.length) {
+            const ids = [...new Set(codeOrders.map((r: { prize_id: string }) => r.prize_id))];
+            for (const pid of ids) {
+              await supabase.from("prize_masters")
+                .update({ image_url: path })
+                .eq("prize_id", pid)
+                .or("image_url.is.null,image_url.eq.");
+            }
+            log.images_linked += ids.length;
           }
         } catch { /* skip */ }
       }
-    }
-
-    // Advance traversal page (auto mode only — skip when ?page=N was explicit)
-    if (explicitPage === null) {
-      const nextPage = records.length < pageSize ? 0 : page + 1;
-      await supabase
-        .from("sgp_image_backfill_state")
-        .update({ last_page: nextPage, updated_at: new Date().toISOString() })
-        .eq("id", 1);
-      log.next_page = nextPage;
     }
 
     log.duration_ms = Date.now() - start;
