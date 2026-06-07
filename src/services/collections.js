@@ -1,6 +1,6 @@
 // J-COLLECTION-02: 集金データアクセス層 (J-COLLECTION-01全面置換)
 import { supabase } from '../lib/supabase'
-import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { DFX_ORG_ID, CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 import { genCollectionId, boothTotal } from '../collection/lib/collectionCalc'
 
 // アクティブ店舗 (is_active=true)
@@ -180,7 +180,7 @@ export async function saveCollection({
     prev_collection_date: prevCollectionDate || null,
     status: 'confirmed',
     notes: notes || null,
-    organization_id: DFX_ORG_ID,
+    organization_id: CHANGE_ORG_ID,
     created_at: now,
     updated_at: now,
     updated_by: collectedByName || null,
