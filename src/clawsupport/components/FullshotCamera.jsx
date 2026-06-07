@@ -110,7 +110,7 @@ export default function FullshotCamera({ onComplete, currentStoreCode }) {
       const today = new Date().toISOString().slice(0, 10)
       for (const booth of result.booths) {
         const inVal = result.meters.in_left ?? result.meters.in_center ?? null
-        const row = { booth_code: booth.booth_code, patrol_date: today, in_meter: inVal, photo_url: result.photoUrl }
+        const row = { booth_id: booth.booth_code, booth_code: booth.booth_code, patrol_date: today, in_meter: inVal, photo_url: result.photoUrl }
         await supabase.from('meter_readings').insert(row)
       }
       setPhase('done')

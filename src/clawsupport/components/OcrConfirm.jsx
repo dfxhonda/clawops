@@ -82,6 +82,7 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
         const b01 = booths[0]
         const b02 = booths[1]
         records.push({
+          booth_id:        b01.booth_code,
           full_booth_code: b01.booth_code,
           store_code:      storeCode,
           machine_code:    machineCode,
@@ -95,6 +96,7 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
           organization_id: DFX_ORG_ID,
         })
         records.push({
+          booth_id:        b02.booth_code,
           full_booth_code: b02.booth_code,
           store_code:      storeCode,
           machine_code:    machineCode,
@@ -110,6 +112,7 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
       } else {
         const b = booths[0]
         records.push({
+          booth_id:        b.booth_code,
           full_booth_code: b.booth_code,
           store_code:      storeCode,
           machine_code:    machineCode,

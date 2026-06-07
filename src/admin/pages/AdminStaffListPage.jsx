@@ -204,6 +204,7 @@ export default function AdminStaffListPage() {
   async function handleSave(e) {
     e.preventDefault()
     if (!form.name?.trim()) { setError('氏名は必須です'); return }
+    if (modal.__new && !form.name_kana?.trim()) { setError('フリガナ(name_kana)は必須です'); return }
     setSaving(true)
     setError(null)
     const str = v => v || null
