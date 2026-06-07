@@ -22,7 +22,9 @@ import { generateShortName } from '../../lib/shortenPrizeName'
 // J-SCHEMA-DROP-FIX-01: prize_name_kana/series/order_rules/tags/default_tag/weight_g 列は DB から削除済、SELECT から除外。
 const LIST_SELECT = 'prize_id,prize_name,short_name,category,original_cost,supplier_name,latest_order_date,phase,registered_at,image_url'
 const EDIT_SELECT = LIST_SELECT + ',size,supplier_id,supplier_item_code,jan_code,default_case_quantity,notes,organization_id,updated_at,updated_by,registered_by'
-const IMG_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/announcements/`
+function getImgUrl(path) {
+  return path ? supabase.storage.from('announcements').getPublicUrl(path).data.publicUrl : null
+}
 
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: STATUS_VALUES 撤廃、phase で表現 (PHASE_FILTER_OPTIONS 参照)。
 
@@ -391,10 +393,10 @@ export default function AdminPrizeMasterPage() {
                     <td className="py-0.5 px-1 w-8">
                       {r.image_url
                         ? <img
-                            src={IMG_BASE + r.image_url}
+                            src={getImgUrl(r.image_url)}
                             alt=""
                             className="w-7 h-7 object-cover rounded cursor-pointer"
-                            onClick={ev => { ev.stopPropagation(); setImgLargeUrl(IMG_BASE + r.image_url) }}
+                            onClick={ev => { ev.stopPropagation(); setImgLargeUrl(getImgUrl(r.image_url)) }}
                           />
                         : <div className="w-7 h-7 rounded bg-surface border border-border/40" />
                       }
@@ -539,10 +541,10 @@ export default function AdminPrizeMasterPage() {
               <Field label="画像URL">
                 {form.image_url
                   ? <img
-                      src={IMG_BASE + form.image_url}
+                      src={getImgUrl(form.image_url)}
                       alt=""
                       className="w-20 h-20 object-cover rounded border border-border cursor-pointer mb-1"
-                      onClick={() => setImgLargeUrl(IMG_BASE + form.image_url)}
+                      onClick={() => setImgLargeUrl(getImgUrl(form.image_url))}
                     />
                   : <div className="w-20 h-20 rounded border border-border/40 bg-surface mb-1" />
                 }

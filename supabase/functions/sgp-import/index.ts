@@ -342,21 +342,23 @@ Deno.serve(async (req: Request) => {
 
     // Image backfill: query orphan prize_masters from DB, process up to imgLimit
     {
-      // Step 1: Build prize_id → item_code map from recent orders
-      const { data: recentOrders } = await supabase
-        .from("prize_orders")
-        .select("prize_id, import_meta")
-        .eq("order_source", "sgp_api")
-        .not("prize_id", "is", null)
-        .not("import_meta", "is", null)
-        .order("order_date", { ascending: false })
-        .limit(500);
-
+      // Step 1: Build prize_id → item_code map from CURRENT PAGE's item_codes
+      // so each traversed page can drain its own orphans regardless of order date
       const prizeToCode = new Map<string, string>();
-      for (const po of (recentOrders || [])) {
-        const code = String(po.import_meta?.item_code || "");
-        if (code && !prizeToCode.has(po.prize_id)) {
-          prizeToCode.set(po.prize_id, code);
+      const pageItemCodes = [...imgNameMap.keys()];
+      if (pageItemCodes.length > 0) {
+        const orFilter = pageItemCodes.map(c => `import_meta->>item_code.eq.${c}`).join(",");
+        const { data: pageOrders } = await supabase
+          .from("prize_orders")
+          .select("prize_id, import_meta")
+          .eq("order_source", "sgp_api")
+          .not("prize_id", "is", null)
+          .or(orFilter);
+        for (const po of (pageOrders || [])) {
+          const code = String(po.import_meta?.item_code || "");
+          if (code && !prizeToCode.has(po.prize_id)) {
+            prizeToCode.set(po.prize_id, code);
+          }
         }
       }
 
