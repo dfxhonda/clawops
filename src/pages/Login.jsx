@@ -88,7 +88,10 @@ export default function Login() {
       setAllStaff(staff)
       // device_login_history rows を staff list にマッピング (旧 fetchStarStaff の後半)
       const staffMap = Object.fromEntries(staff.map(s => [s.staff_id, s]))
-      const star = (deviceRows || []).map(h => staffMap[h.staff_id]).filter(Boolean)
+      const seenStarIds = new Set()
+      const star = (deviceRows || [])
+        .map(h => staffMap[h.staff_id])
+        .filter(s => s && !seenStarIds.has(s.staff_id) && seenStarIds.add(s.staff_id))
       setStarStaff(star)
       setInitDone(true)
     }
