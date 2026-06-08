@@ -81,6 +81,7 @@ export default function ClawsupportHub() {
         rightSlot={<DateTime value={new Date()} format="date" />}
       />
 
+      {/* J-PATROL-OCR-BETA-TOGGLE-HIDE-FIX-03: OCRベータ切替トグル非表示 (コード温存、通常モード固定)
       <div className="shrink-0 px-4 py-2 flex items-center justify-between border-b border-border">
         <span className="text-xs text-muted">巡回モード</span>
         <button
@@ -94,6 +95,7 @@ export default function ClawsupportHub() {
           {betaMode ? '巡回ベータ(OCR有) ✓' : '巡回ベータ(OCR有)'}
         </button>
       </div>
+      */}
 
       <KanaIndex
         items={stores}
