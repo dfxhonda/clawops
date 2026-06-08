@@ -266,16 +266,16 @@ export default function BoothInputForm({
             <div data-testid="meter-row" className="border-b border-border">
               <div
                 className="grid px-2 pt-2 pb-0.5 gap-x-1 text-xs font-bold text-muted"
-                style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
+                style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
               >
-                <span>IN</span>
-                <span>{outMeterCount > 1 ? 'OUT1' : 'OUT'}</span>
-                <span>残</span>
-                <span>補</span>
+                <span className="text-center">INメーター</span>
+                <span className="text-center">{outMeterCount > 1 ? 'OUT1メーター' : 'OUTメーター'}</span>
+                <span className="text-center">景品残</span>
+                <span className="text-center">補充数</span>
               </div>
               <div
                 className="grid px-1 pb-1 gap-x-1"
-                style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
+                style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
               >
                 <FRow tab={1} active={activeTabindex === 1}>
                   {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C2: OCR ボタンを IN メーター入力の左に inline 配置。
@@ -347,9 +347,9 @@ export default function BoothInputForm({
                     className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <span>OUT2</span>
-                    <span>残</span>
-                    <span>補</span>
+                    <span className="text-center">OUT2</span>
+                    <span className="text-center">景品残</span>
+                    <span className="text-center">補充数</span>
                   </div>
                   <div
                     className="grid px-1 pb-1 gap-x-1"
@@ -399,9 +399,9 @@ export default function BoothInputForm({
                     className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <span>OUT3</span>
-                    <span>残</span>
-                    <span>補</span>
+                    <span className="text-center">OUT3</span>
+                    <span className="text-center">景品残</span>
+                    <span className="text-center">補充数</span>
                   </div>
                   <div
                     className="grid px-1 pb-1 gap-x-1"

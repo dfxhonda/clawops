@@ -967,19 +967,19 @@ export default function PatrolBoothInputPage() {
         module="clawsupport"
         title={boothLabel}
         variant="compact"
-        onBack={() => handleSave(goBack)}
+        onBack={() => { if (canSave) handleSave(goBack); else goBack() }}
 
       />
 
-      {/* SPEC-PATROL-SWIPE-NAV-01 C3: subtle chevron hints (左右端、grey-300、xs、非操作)。
-          前/次が存在するときだけ表示、末端では非表示 (AC-04 視覚的フィードバック)。 */}
-      <div className="px-3 flex items-center justify-between text-gray-400/60 text-xs h-3 -mt-0.5 select-none pointer-events-none" aria-hidden="true">
-        <span data-testid="swipe-hint-prev">{prevBoothEntry ? '‹ 前' : ''}</span>
-        <span data-testid="swipe-hint-next">{nextBoothEntry ? '次 ›' : ''}</span>
-      </div>
-
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
+        <button
+          type="button"
+          onClick={() => setShowAlert(true)}
+          className="text-xs font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2 py-0.5 active:opacity-60"
+        >
+          📝 気づき
+        </button>
         {/* FIX5: リセットボタン [A] input-density: text-xs, 即クリア, 確認なし */}
         <button
           type="button"
@@ -988,16 +988,6 @@ export default function PatrolBoothInputPage() {
           className="ml-auto text-xs text-muted border border-border rounded px-2 py-0.5 active:opacity-60"
         >
           リセット
-        </button>
-      </div>
-
-      <div className="px-4 py-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => setShowAlert(true)}
-          className="w-full py-2 text-sm font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-xl flex items-center justify-center gap-1.5"
-        >
-          📝 気づきを記録
         </button>
       </div>
 

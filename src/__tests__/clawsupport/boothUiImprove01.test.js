@@ -13,7 +13,7 @@ const src = readFileSync(
 
 describe('PatrolBoothInputPage layout (SPEC-PATROL-BOOTH-UI-IMPROVE-01 task_1)', () => {
   it('when_button_moved_to_top_should_have_kizuki_before_BoothInputForm', () => {
-    const kiIdx = src.indexOf('気づきを記録')
+    const kiIdx = src.indexOf('気づき')
     const bfIdx = src.indexOf('<BoothInputForm')
     expect(kiIdx).toBeGreaterThan(-1)
     expect(bfIdx).toBeGreaterThan(-1)
