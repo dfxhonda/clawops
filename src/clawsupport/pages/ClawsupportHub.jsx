@@ -35,17 +35,27 @@ export default function ClawsupportHub() {
   }, [staffId])
 
   const handlePin = useCallback(async (storeCode) => {
+    if (!staffId) {
+      console.error('[handlePin] staffId null, skip save', { storeCode })
+      return
+    }
     const isPinned = pinnedCodes.includes(storeCode)
-    if (isPinned) {
-      setPinnedCodes(prev => prev.filter(c => c !== storeCode))
-      await supabase.from('staff_pinned_stores')
-        .delete()
-        .eq('staff_id', staffId)
-        .eq('store_code', storeCode)
-    } else {
-      setPinnedCodes(prev => [...prev, storeCode])
-      await supabase.from('staff_pinned_stores')
-        .upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
+    try {
+      if (isPinned) {
+        setPinnedCodes(prev => prev.filter(c => c !== storeCode))
+        const { error } = await supabase.from('staff_pinned_stores')
+          .delete()
+          .eq('staff_id', staffId)
+          .eq('store_code', storeCode)
+        if (error) throw error
+      } else {
+        setPinnedCodes(prev => [...prev, storeCode])
+        const { error } = await supabase.from('staff_pinned_stores')
+          .upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
+        if (error) throw error
+      }
+    } catch (err) {
+      console.error('[handlePin] save failed', { storeCode, staffId, err })
     }
   }, [pinnedCodes, staffId])
 
@@ -111,11 +121,16 @@ export default function ClawsupportHub() {
 function StoreCard({ store, isPinned, onSelect, onPin }) {
   const timerRef = useRef(null)
   const movedRef = useRef(false)
+  const longPressFiredRef = useRef(false)
 
   function handlePointerDown() {
     movedRef.current = false
+    longPressFiredRef.current = false
     timerRef.current = setTimeout(() => {
-      if (!movedRef.current) onPin()
+      if (!movedRef.current) {
+        longPressFiredRef.current = true
+        onPin()
+      }
     }, 500)
   }
 
@@ -130,7 +145,10 @@ function StoreCard({ store, isPinned, onSelect, onPin }) {
 
   return (
     <button
-      onClick={onSelect}
+      onClick={() => {
+        if (longPressFiredRef.current) { longPressFiredRef.current = false; return }
+        onSelect()
+      }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerMove={handlePointerMove}
