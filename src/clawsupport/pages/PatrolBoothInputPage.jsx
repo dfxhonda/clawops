@@ -510,6 +510,7 @@ export default function PatrolBoothInputPage() {
     }
     const didStart = saveActions.setLoading()
     if (!didStart) return
+    Sentry.addBreadcrumb({ category: 'user', message: `${entryType}_save`, data: { boothCode, entryType }, level: 'info' })
     logger.info('patrol_save_attempted', { boothCode, entryType, has_photo: !!ocrPhotoUrl })
     // SPEC-LF1-STORE-LOCAL-CACHE-01:
     // local-first 路線。Supabase 直書きはせず IndexedDB へ書いて即 navigate。

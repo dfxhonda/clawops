@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { Sentry } from '../../lib/sentry'
+import { logger } from '../../lib/logger'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
@@ -41,6 +42,7 @@ export default function ClawsupportHub() {
       return
     }
     const isPinned = pinnedCodes.includes(storeCode)
+    Sentry.addBreadcrumb({ category: 'user', message: `pin_toggle:${storeCode}`, data: { isPinned }, level: 'info' })
     // 楽観的更新 (即★反映、知覚遅延ゼロ)
     setPinnedCodes(prev => isPinned ? prev.filter(c => c !== storeCode) : [...prev, storeCode])
     try {
@@ -73,8 +75,8 @@ export default function ClawsupportHub() {
         if (!res.ok) throw new Error(`upsert ${res.status}`)
       }
     } catch (err) {
-      console.error('[handlePin] save failed', { storeCode, staffId, err })
-      Sentry.captureException(err, { extra: { storeCode, staffId } })
+      // LOG-SPEC-01 logger 経由で Sentry に到達させる (FIX2)
+      logger.error('handlePin_save_failed', err)
       // 保存失敗時は楽観的更新をロールバック
       setPinnedCodes(prev => isPinned ? [...prev, storeCode] : prev.filter(c => c !== storeCode))
     }
@@ -86,9 +88,10 @@ export default function ClawsupportHub() {
         key={store.store_code}
         store={store}
         isPinned={isPinned}
-        onSelect={() => navigate(betaMode
-        ? `/clawsupport/beta/store/${store.store_code}`
-        : `/clawsupport/store/${store.store_code}`)}
+        onSelect={() => {
+          Sentry.addBreadcrumb({ category: 'navigation', message: `store_select:${store.store_code}`, level: 'info' })
+          navigate(betaMode ? `/clawsupport/beta/store/${store.store_code}` : `/clawsupport/store/${store.store_code}`)
+        }}
         onPin={() => handlePin(store.store_code)}
       />
     )
