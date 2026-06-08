@@ -7,6 +7,8 @@ import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
 import DateTime from '../../shared/ui/DateTime'
+import { uploadAllUnsynced } from '../../services/storeSync'
+import { notifyLfChange } from '../../hooks/useUnsentBanner'
 
 export default function ClawsupportHub() {
   const navigate = useNavigate()
@@ -34,6 +36,17 @@ export default function ClawsupportHub() {
       setLoading(false)
     }
     load()
+  }, [staffId])
+
+  // FIX_B: Hub 表示のたびに uploadAllUnsynced を fire-and-forget 実行。
+  // iOS タブkillで markRecordSynced 未実行のままになった record を Hub 起動時に再送信する。
+  useEffect(() => {
+    if (!staffId) return
+    uploadAllUnsynced({ staff: { staffId } })
+      .then(res => {
+        if (res.uploaded > 0 || res.failed > 0) notifyLfChange()
+      })
+      .catch(err => logger.warn?.('ERR-LF1-HUB-SYNC', { message: err?.message }))
   }, [staffId])
 
   const handlePin = useCallback(async (storeCode) => {

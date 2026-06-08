@@ -14,6 +14,7 @@ import {
   putStoreMeta,
   getStoreMeta,
   putBaselineRows,
+  reconcileSyncedByBaseline,
 } from '../../lib/localStore/patrolRecords'
 
 beforeEach(async () => {
@@ -197,6 +198,127 @@ describe('putBaselineRows (SPEC-LF1-HISTORY-FIX-01)', () => {
     const got = await getPatrolRecordsByStore('S1')
     expect(got).toHaveLength(1)
     expect(got[0].localId).toBe('r-ok')
+  })
+})
+
+describe('reconcileSyncedByBaseline (SPEC-LF1-UNSENT-RECONCILE-FIX-01 AC5)', () => {
+  it('when_core_values_match_should_mark_synced', async () => {
+    await putPatrolRecord({
+      booth_code: 'TST01-M01-B01',
+      store_code: 'TST01',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 1000,
+      out_meter: 500,
+      prize_stock_count: 10,
+      prize_restock_count: 0,
+    })
+    const count = await reconcileSyncedByBaseline([{
+      reading_id: 'srv-1',
+      booth_code: 'TST01-M01-B01',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 1000,
+      out_meter: 500,
+      prize_stock_count: 10,
+      prize_restock_count: 0,
+    }])
+    expect(count).toBe(1)
+    expect(await getUnsyncedRecords()).toHaveLength(0)
+  })
+
+  it('when_core_values_mismatch_should_stay_unsynced', async () => {
+    // local has in_meter=1000; baseline has 999 = local edit not yet reflected on server
+    const local = await putPatrolRecord({
+      booth_code: 'TST01-M01-B01',
+      store_code: 'TST01',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 1000,
+      out_meter: 500,
+      prize_stock_count: 10,
+      prize_restock_count: 0,
+    })
+    const count = await reconcileSyncedByBaseline([{
+      reading_id: 'srv-1',
+      booth_code: 'TST01-M01-B01',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 999,  // mismatch — local edit must NOT be swallowed
+      out_meter: 500,
+      prize_stock_count: 10,
+      prize_restock_count: 0,
+    }])
+    expect(count).toBe(0)
+    const unsynced = await getUnsyncedRecords()
+    expect(unsynced).toHaveLength(1)
+    expect(unsynced[0].localId).toBe(local.localId)
+  })
+
+  it('when_no_baseline_row_for_booth_should_stay_unsynced', async () => {
+    await putPatrolRecord({
+      booth_code: 'TST01-M01-B01',
+      store_code: 'TST01',
+      patrol_date: '2026-06-09',
+      in_meter: 100,
+    })
+    const count = await reconcileSyncedByBaseline([{
+      booth_code: 'TST01-M01-B99',  // different booth
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 100,
+    }])
+    expect(count).toBe(0)
+    expect(await getUnsyncedRecords()).toHaveLength(1)
+  })
+
+  it('when_empty_baseline_should_return_0', async () => {
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-06-09', in_meter: 100 })
+    expect(await reconcileSyncedByBaseline([])).toBe(0)
+    expect(await reconcileSyncedByBaseline(null)).toBe(0)
+    expect(await getUnsyncedRecords()).toHaveLength(1)
+  })
+
+  it('when_null_meters_both_null_should_mark_synced', async () => {
+    // out_meter=null on both sides: Number(null)===Number(null) → 0===0 → match
+    await putPatrolRecord({
+      booth_code: 'A-1',
+      store_code: 'S1',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 500,
+      out_meter: null,
+      prize_stock_count: 0,
+      prize_restock_count: 0,
+    })
+    const count = await reconcileSyncedByBaseline([{
+      booth_code: 'A-1',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 500,
+      out_meter: null,
+      prize_stock_count: 0,
+      prize_restock_count: 0,
+    }])
+    expect(count).toBe(1)
+  })
+
+  it('when_already_synced_record_has_no_effect', async () => {
+    // synced=true record does not appear in getUnsyncedRecords, so count stays 0
+    await putPatrolRecord({
+      booth_code: 'A-1',
+      store_code: 'S1',
+      patrol_date: '2026-06-09',
+      in_meter: 100,
+      synced: true,
+    })
+    const count = await reconcileSyncedByBaseline([{
+      booth_code: 'A-1',
+      patrol_date: '2026-06-09',
+      entry_type: 'patrol',
+      in_meter: 100,
+    }])
+    expect(count).toBe(0)
   })
 })
 
