@@ -210,45 +210,8 @@ export default function PatrolBoothInputPage() {
 
   useEffect(() => {
     if (!prev) return
-    setIn(prev.in_meter != null ? String(prev.in_meter) : '')
-    setOut1(prev.out_meter != null ? String(prev.out_meter) : '')
-    setOut2(prev.out_meter_2 != null ? String(prev.out_meter_2) : '')
-    setOut3(prev.out_meter_3 != null ? String(prev.out_meter_3) : '')
-    // J-PATROL: 在庫欄=理論在庫(前回在庫+前回補充−OUT差)を初期値、補充欄=0デフォ。OUT追従は別effectで再計算。
-    {
-      const t1 = theoreticalStock(prev.prize_stock_count, prev.prize_restock_count, prev.out_meter, prev.out_meter)
-      setStk(t1 != null ? String(t1) : '')
-    }
-    setRst('')
-    setPrize(prev.prize_name ?? '')
-    const pc = prev.prize_cost ?? prev.prize_cost_1
-    setCost(pc != null && pc !== '' ? String(pc) : '')
-    // OUT2
-    {
-      const t2 = theoreticalStock(prev.stock_2, prev.restock_2, prev.out_meter_2, prev.out_meter_2)
-      setStk2(t2 != null ? String(t2) : '')
-    }
-    setRst2('')
-    setPrize2(prev.prize_name_2 ?? '')
-    setCost2(prev.prize_cost_2 != null ? String(prev.prize_cost_2) : '')
-    setSelectedPrizeId2(null)
-    // OUT3
-    {
-      const t3 = theoreticalStock(prev.stock_3, prev.restock_3, prev.out_meter_3, prev.out_meter_3)
-      setStk3(t3 != null ? String(t3) : '')
-    }
-    setRst3('')
-    setPrize3(prev.prize_name_3 ?? '')
-    setCost3(prev.prize_cost_3 != null ? String(prev.prize_cost_3) : '')
-    setSelectedPrizeId3(null)
-    // Settings
-    setSetA(prev.set_a ?? '')
-    setSetC(prev.set_c ?? '')
-    setSetL(prev.set_l ?? '')
-    setSetR(prev.set_r ?? '')
-    setSetO(prev.set_o ?? '')
-    setSelectedPrizeId(null)
-  }, [prev?.reading_id, boothCode])
+    applyPrevFields(prev)
+  }, [prev?.reading_id, boothCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // J-PATROL: 未編集(グレー)の在庫欄を OUT入力にリアルタイム追従させ理論在庫を再計算。
   // 手入力(touched)された欄は上書きしない。保存時は在庫state(理論在庫 or 手入力)がそのまま確定。
@@ -652,16 +615,55 @@ export default function PatrolBoothInputPage() {
   const handleSaveNext = () => handleSave(goNextBooth)
   const handleSaveList = () => handleSave(goBackToList)
 
-  // FIX5: 入力フィールドを全クリア + touched リセット (確認ダイアログなし即クリア)。
-  // pre-populate 由来の値も含め全てクリアし isDirty=false に戻す。
+  // FIX5b: ブース初期化 useEffect と handleReset の共通ヘルパー。
+  // p=null (新規ブース) は全フィールド空クリア、p 有りは pre-populate 値を復元。
+  function applyPrevFields(p) {
+    if (!p) {
+      setIn(''); setOut1(''); setOut2(''); setOut3('')
+      setStk(''); setRst('')
+      setPrize(''); setCost('')
+      setStk2(''); setRst2(''); setPrize2(''); setCost2('')
+      setSelectedPrizeId2(null)
+      setStk3(''); setRst3(''); setPrize3(''); setCost3('')
+      setSelectedPrizeId3(null)
+      setSetA(''); setSetC(''); setSetL(''); setSetR(''); setSetO('')
+      setSelectedPrizeId(null)
+      return
+    }
+    setIn(p.in_meter != null ? String(p.in_meter) : '')
+    setOut1(p.out_meter != null ? String(p.out_meter) : '')
+    setOut2(p.out_meter_2 != null ? String(p.out_meter_2) : '')
+    setOut3(p.out_meter_3 != null ? String(p.out_meter_3) : '')
+    const t1 = theoreticalStock(p.prize_stock_count, p.prize_restock_count, p.out_meter, p.out_meter)
+    setStk(t1 != null ? String(t1) : '')
+    setRst('')
+    setPrize(p.prize_name ?? '')
+    const pc = p.prize_cost ?? p.prize_cost_1
+    setCost(pc != null && pc !== '' ? String(pc) : '')
+    const t2 = theoreticalStock(p.stock_2, p.restock_2, p.out_meter_2, p.out_meter_2)
+    setStk2(t2 != null ? String(t2) : '')
+    setRst2('')
+    setPrize2(p.prize_name_2 ?? '')
+    setCost2(p.prize_cost_2 != null ? String(p.prize_cost_2) : '')
+    setSelectedPrizeId2(null)
+    const t3 = theoreticalStock(p.stock_3, p.restock_3, p.out_meter_3, p.out_meter_3)
+    setStk3(t3 != null ? String(t3) : '')
+    setRst3('')
+    setPrize3(p.prize_name_3 ?? '')
+    setCost3(p.prize_cost_3 != null ? String(p.prize_cost_3) : '')
+    setSelectedPrizeId3(null)
+    setSetA(p.set_a ?? '')
+    setSetC(p.set_c ?? '')
+    setSetL(p.set_l ?? '')
+    setSetR(p.set_r ?? '')
+    setSetO(p.set_o ?? '')
+    setSelectedPrizeId(null)
+  }
+
+  // FIX5b: 空クリアではなく画面オープン時の pre-populate 値に復元する。
+  // touched=EMPTY_TOUCHED → isDirty=false → スワイプ/戻るで「変更なし」扱いになり空保存を防ぐ。
   function handleReset() {
-    setIn(''); setOut1(''); setOut2(''); setOut3('')
-    setStk(''); setRst('')
-    setPrize(''); setCost('')
-    setStk2(''); setRst2(''); setPrize2(''); setCost2('')
-    setStk3(''); setRst3(''); setPrize3(''); setCost3('')
-    setSetA(''); setSetC(''); setSetL(''); setSetR(''); setSetO('')
-    setSelectedPrizeId(null); setSelectedPrizeId2(null); setSelectedPrizeId3(null)
+    applyPrevFields(prev)
     setTouched({ ...EMPTY_TOUCHED })
   }
 

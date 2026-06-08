@@ -1,4 +1,4 @@
-// J-PATROL-GHOST-SWIPE-RESET-FIX-01: FIX1-FIX5 ユニット検証
+// J-PATROL-GHOST-SWIPE-RESET-FIX-01 + J-PATROL-RESET-RESTORE-FIX-02: FIX1-FIX5b ユニット検証
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import 'fake-indexeddb/auto'
@@ -8,6 +8,7 @@ import {
   getUnsyncedRecords,
   deleteOrphanedNullStoreRecords,
 } from '../../lib/localStore/patrolRecords'
+import { theoreticalStock } from '../../clawsupport/utils/patrolStockCalc'
 
 // ── FIX1: canSave のみでスワイプ保存 ──────────────────────────────────────
 describe('FIX1: swipe gate canSave only (drop isDirty)', () => {
@@ -104,5 +105,58 @@ describe('FIX4: deleteOrphanedNullStoreRecords', () => {
     expect(remaining.length).toBe(2)
     const patched = remaining.find(r => r.booth_code === 'MNK01-M01-B01')
     expect(patched?.store_code).toBe('MNK01')
+  })
+})
+
+// ── FIX5b: handleReset 初期値復元ロジック検証 ────────────────────────────
+// applyPrevFields は component 内部関数なのでロジックをミラーしてピュアテスト。
+// theoreticalStock は export 済みなので直接 import して検証。
+function computeInitialFields(p) {
+  if (!p) return { in: '', out1: '', stk: '', rst: '', prize: '', cost: '', setA: '' }
+  const t1 = theoreticalStock(p.prize_stock_count, p.prize_restock_count, p.out_meter, p.out_meter)
+  const pc = p.prize_cost ?? p.prize_cost_1
+  return {
+    in:    p.in_meter != null ? String(p.in_meter) : '',
+    out1:  p.out_meter != null ? String(p.out_meter) : '',
+    stk:   t1 != null ? String(t1) : '',
+    rst:   '',
+    prize: p.prize_name ?? '',
+    cost:  pc != null && pc !== '' ? String(pc) : '',
+    setA:  p.set_a ?? '',
+  }
+}
+
+describe('FIX5b: handleReset restores pre-populate initial values', () => {
+  it('when_prev_has_values_initial_fields_should_be_non_empty', () => {
+    const prev = {
+      in_meter: 12345, out_meter: 10000,
+      prize_stock_count: 50, prize_restock_count: 30,
+      prize_name: 'ぬいぐるみA', prize_cost: 500,
+    }
+    const f = computeInitialFields(prev)
+    expect(f.in).toBe('12345')
+    expect(f.out1).toBe('10000')
+    expect(f.prize).toBe('ぬいぐるみA')
+    expect(f.cost).toBe('500')
+    expect(f.rst).toBe('')
+    // theoreticalStock(50, 30, 10000, 10000): base=80, diff=0 → 80
+    expect(f.stk).toBe('80')
+  })
+
+  it('when_prev_is_null_initial_fields_should_all_be_empty', () => {
+    const f = computeInitialFields(null)
+    expect(f.in).toBe('')
+    expect(f.out1).toBe('')
+    expect(f.prize).toBe('')
+    expect(f.stk).toBe('')
+    expect(f.cost).toBe('')
+  })
+
+  it('when_prev_stock_is_null_stock_field_should_be_empty', () => {
+    // theoreticalStock returns null when prevStock==null → setStk('')
+    const prev = { in_meter: 5000, out_meter: 4000, prize_stock_count: null, prize_restock_count: 0 }
+    const f = computeInitialFields(prev)
+    expect(f.in).toBe('5000')
+    expect(f.stk).toBe('')
   })
 })
