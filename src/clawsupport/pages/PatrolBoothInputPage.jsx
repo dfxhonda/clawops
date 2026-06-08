@@ -162,8 +162,6 @@ export default function PatrolBoothInputPage() {
   const [setO,          setSetO]   = useState('')
   const [touched,       setTouched] = useState(() => ({ ...EMPTY_TOUCHED }))
   const [selectedPrizeId, setSelectedPrizeId] = useState(null)
-  const [isCollectionDay, setIsCollectionDay] = useState(false)
-  const [isCollection,  setIsColl] = useState(false)
   const [saveState, saveActions] = useSaveState()
   const [skipped,       setSkipped]   = useState(false)
   // J-STOCK-MACHINE-fix-03b: stock_movements 記録失敗時の非ブロッキングバナー (best-effort)
@@ -232,37 +230,19 @@ export default function PatrolBoothInputPage() {
   }, [prev, outMeter1, outMeter2, outMeter3, touched.stock, touched.stock2, touched.stock3]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!resolvedStoreCode) { setIsCollectionDay(false); return }
-    let cancel = false
-    supabase
-      .from('stores')
-      .select('is_collection_day')
-      .eq('store_code', resolvedStoreCode)
-      .maybeSingle()
-      .then(({ data }) => { if (!cancel) setIsCollectionDay(!!data?.is_collection_day) })
-    return () => { cancel = true }
-  }, [resolvedStoreCode])
-
-  useEffect(() => {
-    if (!isCollectionDay) setIsColl(false)
-  }, [isCollectionDay])
-
-  useEffect(() => {
     if (touched.stock || !prev || outMeter1 === '') return
     const out_diff = Number(outMeter1) - Number(prev.out_meter ?? 0)
     const theoretical = (prev.prize_stock_count ?? 0) + (prev.prize_restock_count ?? 0) - out_diff
     if (theoretical >= 0) setStk(String(theoretical))
   }, [outMeter1, prev, touched.stock])
 
-  const recordAsCollection = isCollectionDay && isCollection
-
   const entryType = useMemo(
     () => classifyEntryType({
       prev,
       next: { inMeter, outMeter: outMeter1, prizeName, setA, setC, setL, setR, setO },
-      isCollection: recordAsCollection,
+      isCollection: false,
     }),
-    [prev, inMeter, outMeter1, prizeName, setA, setC, setL, setR, setO, recordAsCollection],
+    [prev, inMeter, outMeter1, prizeName, setA, setC, setL, setR, setO],
   )
 
   // 保存はINメーターのみ必須。OUT/在庫は任意。
@@ -1034,7 +1014,6 @@ export default function PatrolBoothInputPage() {
           selectedPrizeId2={selectedPrizeId2} setSelectedPrizeId2={setSelectedPrizeId2}
           selectedPrizeId3={selectedPrizeId3} setSelectedPrizeId3={setSelectedPrizeId3}
           touched={touched} touch={touch}
-          isCollectionDay={isCollectionDay} isCollection={isCollection} setIsColl={setIsColl}
           entryType={entryType}
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}

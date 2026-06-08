@@ -157,7 +157,6 @@ export default function BoothInputForm({
   selectedPrizeId2, setSelectedPrizeId2,
   selectedPrizeId3, setSelectedPrizeId3,
   touched, touch,
-  isCollectionDay, isCollection, setIsColl,
   entryType,
   inDiffDisp, outDiffDisp,
   navigateNext, registerField, activeTabindex,
@@ -544,24 +543,6 @@ export default function BoothInputForm({
             />
           </div>
         </div>
-
-        {/* 集金 row (patrol mode only) */}
-        {mode === 'patrol' && isCollectionDay && (
-          <div
-            data-testid="collection-checkbox-label"
-            className="flex items-center gap-3 p-2 border-b border-border"
-          >
-            <Tooltip id="tt-collection" content={TT.collection} label="集" />
-            <input
-              data-testid="collection-checkbox"
-              type="checkbox"
-              checked={isCollection}
-              onChange={e => setIsColl(e.target.checked)}
-              className="w-5 h-5 accent-blue-500"
-            />
-            {isCollection && <span className="text-base text-blue-400">集金記録として保存</span>}
-          </div>
-        )}
 
         {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C1: patrol モードでは保存ボタン (保存してリストへ /
             保存して次へ) を削除 — SWIPE-NAV-01 の暗黙保存で代替。OCR ボタンは IN メーター左に
