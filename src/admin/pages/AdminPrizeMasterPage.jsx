@@ -518,14 +518,14 @@ export default function AdminPrizeMasterPage() {
                 </div>
               </div>
 
-              {/* 4: 取引先名 + 取引先ID */}
+              {/* 4: 仕入先名 + 仕入先ID */}
               <div className="flex gap-2">
                 <div className="flex flex-col gap-0.5 flex-1">
-                  <span className="text-xs text-muted">取引先名</span>
-                  <Input value={form.supplier_name} onChange={v => f({ supplier_name: v })} placeholder="取引先名" />
+                  <span className="text-xs text-muted">仕入先名</span>
+                  <Input value={form.supplier_name} onChange={v => f({ supplier_name: v })} placeholder="仕入先名" />
                 </div>
                 <div className="flex flex-col gap-0.5 w-28">
-                  <span className="text-xs text-muted">取引先ID</span>
+                  <span className="text-xs text-muted">仕入先ID</span>
                   <Input value={form.supplier_id} onChange={v => f({ supplier_id: v })} placeholder="ID" />
                 </div>
               </div>
