@@ -1,4 +1,4 @@
-// J-PATROL-PIN-SAVE-FIX-02: FIX1(useBlocker guard) + FIX2(optimistic update + rollback) ロジック検証
+// J-PATROL-PIN-SAVE-FIX-02-REV02: keepalive fetch + optimistic update + rollback ロジック検証
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
 
@@ -10,6 +10,30 @@ function applyOptimistic(prev, storeCode, isPinned) {
 // catch ブロックの rollback ロジックをミラー
 function rollback(prev, storeCode, isPinned) {
   return isPinned ? [...prev, storeCode] : prev.filter(c => c !== storeCode)
+}
+
+// handlePin keepalive fetch options ミラー
+function buildPinFetchOptions(isPinned, staffId, storeCode, jwt, base, key) {
+  const headers = {
+    apikey: key,
+    Authorization: `Bearer ${jwt}`,
+    'Content-Type': 'application/json',
+  }
+  if (isPinned) {
+    return {
+      url: `${base}/rest/v1/staff_pinned_stores?staff_id=eq.${encodeURIComponent(staffId)}&store_code=eq.${encodeURIComponent(storeCode)}`,
+      opts: { method: 'DELETE', headers, keepalive: true },
+    }
+  }
+  return {
+    url: `${base}/rest/v1/staff_pinned_stores`,
+    opts: {
+      method: 'POST',
+      headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ staff_id: staffId, store_code: storeCode }),
+      keepalive: true,
+    },
+  }
 }
 
 // ── FIX2: 楽観的更新 ─────────────────────────────────────────────────────
@@ -63,57 +87,40 @@ describe('FIX2: rollback on save failure', () => {
   })
 })
 
-// ── FIX1: pendingPinRef ガード (staffId=null 時はセットしない) ─────────────
-describe('FIX1: pendingPinRef guard', () => {
-  it('when_staffId_null_should_not_set_pendingPinRef', () => {
-    const pendingPinRef = { current: false }
+// ── keepalive fetch オプション ────────────────────────────────────────────
+describe('keepalive fetch options', () => {
+  it('when_unpinning_should_use_DELETE_with_keepalive', () => {
+    const { opts } = buildPinFetchOptions(true, 'STAFF-01', 'KOS01', 'jwt', 'http://x', 'key')
+    expect(opts.method).toBe('DELETE')
+    expect(opts.keepalive).toBe(true)
+  })
+
+  it('when_pinning_should_use_POST_with_keepalive_and_prefer_upsert', () => {
+    const { opts } = buildPinFetchOptions(false, 'STAFF-01', 'KOS01', 'jwt', 'http://x', 'key')
+    expect(opts.method).toBe('POST')
+    expect(opts.keepalive).toBe(true)
+    expect(opts.headers.Prefer).toBe('resolution=merge-duplicates')
+  })
+
+  it('when_pinning_should_include_staff_id_and_store_code_in_body', () => {
+    const { opts } = buildPinFetchOptions(false, 'STAFF-01', 'KOS01', 'jwt', 'http://x', 'key')
+    expect(JSON.parse(opts.body)).toEqual({ staff_id: 'STAFF-01', store_code: 'KOS01' })
+  })
+
+  it('when_unpinning_should_filter_by_staff_id_and_store_code_in_url', () => {
+    const { url } = buildPinFetchOptions(true, 'STAFF-01', 'KOS01', 'jwt', 'http://x', 'key')
+    expect(url).toContain('staff_id=eq.STAFF-01')
+    expect(url).toContain('store_code=eq.KOS01')
+  })
+
+  it('when_staffId_null_guard_skips_fetch_setup', () => {
+    // staffId null ガード: handlePin は早期 return → fetch は呼ばれない
+    let fetchCalled = false
     function simulateHandlePin(staffId) {
       if (!staffId) return
-      pendingPinRef.current = true
+      fetchCalled = true
     }
     simulateHandlePin(null)
-    expect(pendingPinRef.current).toBe(false)
-  })
-
-  it('when_staffId_valid_should_set_pendingPinRef_before_await', () => {
-    const pendingPinRef = { current: false }
-    function simulateHandlePin(staffId) {
-      if (!staffId) return
-      pendingPinRef.current = true
-    }
-    simulateHandlePin('STAFF-03')
-    expect(pendingPinRef.current).toBe(true)
-  })
-
-  it('when_save_succeeds_finally_should_reset_pendingPinRef_to_false', async () => {
-    const pendingPinRef = { current: false }
-    async function simulateHandlePin(staffId) {
-      if (!staffId) return
-      pendingPinRef.current = true
-      try {
-        await Promise.resolve()
-      } finally {
-        pendingPinRef.current = false
-      }
-    }
-    await simulateHandlePin('STAFF-03')
-    expect(pendingPinRef.current).toBe(false)
-  })
-
-  it('when_save_throws_finally_should_still_reset_pendingPinRef', async () => {
-    const pendingPinRef = { current: false }
-    async function simulateHandlePin(staffId) {
-      if (!staffId) return
-      pendingPinRef.current = true
-      try {
-        throw new Error('network error')
-      } catch {
-        // swallow in catch
-      } finally {
-        pendingPinRef.current = false
-      }
-    }
-    await simulateHandlePin('STAFF-03')
-    expect(pendingPinRef.current).toBe(false)
+    expect(fetchCalled).toBe(false)
   })
 })

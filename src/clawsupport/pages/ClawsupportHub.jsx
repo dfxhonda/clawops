@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useBlocker } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { Sentry } from '../../lib/sentry'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
@@ -14,12 +15,6 @@ export default function ClawsupportHub() {
   const [pinnedCodes, setPinnedCodes] = useState([])
   const [loading, setLoading] = useState(true)
   const [betaMode, setBetaMode] = useState(false)
-
-  // FIX1: iOS back swipe (popstate) が upsert in-flight 中に発火しても navigation をブロック
-  const pendingPinRef = useRef(false)
-  const blocker = useBlocker(() => pendingPinRef.current)
-  const blockerRef = useRef(blocker)
-  blockerRef.current = blocker
 
   useEffect(() => {
     async function load() {
@@ -46,29 +41,42 @@ export default function ClawsupportHub() {
       return
     }
     const isPinned = pinnedCodes.includes(storeCode)
-    // FIX2: 楽観的更新 (即★反映、知覚遅延ゼロ)
+    // 楽観的更新 (即★反映、知覚遅延ゼロ)
     setPinnedCodes(prev => isPinned ? prev.filter(c => c !== storeCode) : [...prev, storeCode])
-    pendingPinRef.current = true
     try {
+      // keepalive:true で iOS back swipe 後もリクエスト完走させる
+      const { data: { session } } = await supabase.auth.getSession()
+      const jwt = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY
+      const base = import.meta.env.VITE_SUPABASE_URL
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const headers = {
+        apikey: key,
+        Authorization: `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+      }
       if (isPinned) {
-        const { error } = await supabase.from('staff_pinned_stores')
-          .delete()
-          .eq('staff_id', staffId)
-          .eq('store_code', storeCode)
-        if (error) throw error
+        const res = await fetch(
+          `${base}/rest/v1/staff_pinned_stores?staff_id=eq.${encodeURIComponent(staffId)}&store_code=eq.${encodeURIComponent(storeCode)}`,
+          { method: 'DELETE', headers, keepalive: true }
+        )
+        if (!res.ok) throw new Error(`delete ${res.status}`)
       } else {
-        const { error } = await supabase.from('staff_pinned_stores')
-          .upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
-        if (error) throw error
+        const res = await fetch(
+          `${base}/rest/v1/staff_pinned_stores`,
+          {
+            method: 'POST',
+            headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
+            body: JSON.stringify({ staff_id: staffId, store_code: storeCode }),
+            keepalive: true,
+          }
+        )
+        if (!res.ok) throw new Error(`upsert ${res.status}`)
       }
     } catch (err) {
       console.error('[handlePin] save failed', { storeCode, staffId, err })
-      // FIX2: 保存失敗時は楽観的更新をロールバック
+      Sentry.captureException(err, { extra: { storeCode, staffId } })
+      // 保存失敗時は楽観的更新をロールバック
       setPinnedCodes(prev => isPinned ? [...prev, storeCode] : prev.filter(c => c !== storeCode))
-    } finally {
-      pendingPinRef.current = false
-      // FIX1: upsert 完了後に blocker が保留中なら navigation を再開
-      if (blockerRef.current?.state === 'blocked') blockerRef.current.proceed()
     }
   }, [pinnedCodes, staffId])
 
