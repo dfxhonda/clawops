@@ -216,6 +216,52 @@ export async function deleteOrphanedNullStoreRecords() {
   }
 }
 
+/**
+ * SPEC-LF1-UNSENT-RECONCILE-FIX-01 FIX_A:
+ * iOS Safari タブkillで markRecordSynced が未実行になったレコードを reconcile。
+ * refreshBaselineAndRender 後に呼ぶことで、次回ページロード時に自動回復する。
+ *
+ * CRITICAL GUARD: booth_code+patrol_date+entry_type の一致だけで mark しない。
+ * in_meter/out_meter/prize_stock_count/prize_restock_count が全て一致した場合のみ mark。
+ * 不一致 = ローカル未反映の編集が残っている → mark せず unsynced のまま re-upload 対象にする。
+ */
+export async function reconcileSyncedByBaseline(baselineRows) {
+  if (!baselineRows || !baselineRows.length) return 0
+  const unsynced = await getUnsyncedRecords()
+  if (!unsynced.length) return 0
+
+  // (booth_code, patrol_date, entry_type) → baseline rows[]
+  const baselineMap = new Map()
+  for (const row of baselineRows) {
+    const k = `${row.booth_code}__${row.patrol_date}__${row.entry_type ?? 'patrol'}`
+    if (!baselineMap.has(k)) baselineMap.set(k, [])
+    baselineMap.get(k).push(row)
+  }
+
+  let reconciled = 0
+  for (const local of unsynced) {
+    const k = `${local.booth_code}__${local.patrol_date}__${local.entry_type ?? 'patrol'}`
+    const candidates = baselineMap.get(k)
+    if (!candidates) continue
+    // CRITICAL: core values must match to avoid swallowing unsynced local edits
+    const matched = candidates.some(b =>
+      Number(b.in_meter)            === Number(local.in_meter)            &&
+      Number(b.out_meter)           === Number(local.out_meter)           &&
+      Number(b.prize_stock_count)   === Number(local.prize_stock_count)   &&
+      Number(b.prize_restock_count) === Number(local.prize_restock_count)
+    )
+    if (!matched) continue
+    const result = await markRecordSynced(local.localId)
+    if (result) {
+      reconciled++
+      logger.info?.('LF1_RECONCILE_SYNCED', { boothCode: local.booth_code, localId: local.localId })
+    }
+  }
+  if (reconciled > 0) logger.info?.('LF1_RECONCILE_DONE', { reconciled })
+  return reconciled
+}
+
+
 // store メタ (storeName / machines / prefetchedAt) を保存。prefetch / load 共通。
 export async function putStoreMeta(storeCode, meta) {
   if (!storeCode) return

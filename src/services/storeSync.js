@@ -52,7 +52,10 @@ export async function uploadStoreRecords(storeCode, { staff, skipProbe = false }
 
   if (!skipProbe) {
     const ok = await probeOnline()
-    if (!ok) return { uploaded: 0, failed: 0, skipped: unsynced.length }
+    if (!ok) {
+      logger.warn?.(LOG_ERR_PROBE, { storeCode, skipped: unsynced.length })
+      return { uploaded: 0, failed: 0, skipped: unsynced.length }
+    }
   }
 
   let uploaded = 0
@@ -84,6 +87,7 @@ export async function uploadStoreRecords(storeCode, { staff, skipProbe = false }
       logger.error?.(LOG_ERR_UPLOAD, { localId: r.localId, message: err?.message })
     }
   }
+  logger.info?.('LF1_UPLOAD_DONE', { storeCode, uploaded, failed, skipped: 0 })
   return { uploaded, failed, skipped: 0 }
 }
 

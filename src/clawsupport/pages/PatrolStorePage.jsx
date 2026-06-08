@@ -16,6 +16,7 @@ import {
   putStoreMeta,
   getStoreMeta,
   putBaselineRows,
+  reconcileSyncedByBaseline,
 } from '../../lib/localStore/patrolRecords'
 import { computeLocalStoreView } from '../state/localStoreView'
 import { uploadStoreRecords } from '../../services/storeSync'
@@ -81,6 +82,9 @@ export default function PatrolStorePage() {
       const boothCodes = machineList.flatMap(m => m.booths.map(b => b.booth_code))
       const rows = await fetchStoreBaselineRows(boothCodes)
       await putBaselineRows(rows)
+      // FIX_A: iOS kill でmarkRecordSynced未実行になったレコードをbaseline照合で自動回復。
+      const reconciled = await reconcileSyncedByBaseline(rows)
+      if (reconciled > 0) notifyLfChange()
     } catch (err) {
       logger.warn?.('ERR-LF1-BASELINE-FETCH', { storeCode, message: err?.message })
     }
