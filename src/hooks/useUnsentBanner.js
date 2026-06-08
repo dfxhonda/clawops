@@ -1,8 +1,8 @@
 // SPEC-LF1-STORE-LOCAL-CACHE-01: 未送信 record の件数 + 関与 store 数を購読する hook。
 // patchEvent ベース (custom event) で IndexedDB 書き込み後に再集計する。
 
-import { useCallback, useEffect, useState } from 'react'
-import { getUnsyncedSummary } from '../lib/localStore/patrolRecords'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { getUnsyncedSummary, deleteOrphanedNullStoreRecords } from '../lib/localStore/patrolRecords'
 
 const EVENT_NAME = 'clawops-lf1-changed'
 
@@ -20,8 +20,16 @@ export function useUnsentBanner() {
     setSummary({ count: s.count, storeCount: s.storeCount })
   }, [])
 
+  const sweptRef = useRef(false)
+
   useEffect(() => {
-    recompute()
+    // FIX4: 初回マウント時に store_code:null 幽霊レコードを掃除してから集計
+    if (!sweptRef.current) {
+      sweptRef.current = true
+      deleteOrphanedNullStoreRecords().then(() => recompute())
+    } else {
+      recompute()
+    }
     function handler() { recompute() }
     if (typeof window !== 'undefined') {
       window.addEventListener(EVENT_NAME, handler)

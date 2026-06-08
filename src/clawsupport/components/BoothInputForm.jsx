@@ -64,7 +64,6 @@ const TT = {
   set_l:        '左側設定。数値で記録。',
   set_r:        '右側設定。数値で記録。',
   set_o:        '自由メモ。何でも書いてOK、書かなくてもOK。',
-  collection:   '集金日のみ表示。チェックすると集金記録として保存される。',
   diff:         '前回保存値からの差分。上段=IN差分(集金額相当)、下段=OUT差分(出回数)。打ち間違い検知用。',
 }
 
@@ -157,7 +156,6 @@ export default function BoothInputForm({
   selectedPrizeId2, setSelectedPrizeId2,
   selectedPrizeId3, setSelectedPrizeId3,
   touched, touch,
-  isCollectionDay, isCollection, setIsColl,
   entryType,
   inDiffDisp, outDiffDisp,
   navigateNext, registerField, activeTabindex,
@@ -266,16 +264,16 @@ export default function BoothInputForm({
             <div data-testid="meter-row" className="border-b border-border">
               <div
                 className="grid px-2 pt-2 pb-0.5 gap-x-1 text-xs font-bold text-muted"
-                style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
+                style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
               >
-                <span>IN</span>
-                <span>{outMeterCount > 1 ? 'OUT1' : 'OUT'}</span>
-                <span>残</span>
-                <span>補</span>
+                <span className="text-right">INメーター</span>
+                <span className="text-right">{outMeterCount > 1 ? 'OUT1メーター' : 'OUTメーター'}</span>
+                <span className="text-right">景品残</span>
+                <span className="text-right">補充数</span>
               </div>
               <div
                 className="grid px-1 pb-1 gap-x-1"
-                style={{ gridTemplateColumns: '2fr 2fr 1fr 1fr' }}
+                style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
               >
                 <FRow tab={1} active={activeTabindex === 1}>
                   {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C2: OCR ボタンを IN メーター入力の左に inline 配置。
@@ -347,9 +345,9 @@ export default function BoothInputForm({
                     className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <span>OUT2</span>
-                    <span>残</span>
-                    <span>補</span>
+                    <span className="text-right">OUT2</span>
+                    <span className="text-right">景品残</span>
+                    <span className="text-right">補充数</span>
                   </div>
                   <div
                     className="grid px-1 pb-1 gap-x-1"
@@ -399,9 +397,9 @@ export default function BoothInputForm({
                     className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <span>OUT3</span>
-                    <span>残</span>
-                    <span>補</span>
+                    <span className="text-right">OUT3</span>
+                    <span className="text-right">景品残</span>
+                    <span className="text-right">補充数</span>
                   </div>
                   <div
                     className="grid px-1 pb-1 gap-x-1"
@@ -486,35 +484,47 @@ export default function BoothInputForm({
           </div>
         )}
 
-        {/* Row: 設定ACLR + O */}
-        <div className="flex gap-1 p-1 border-b border-border">
-          {[
-            { tab: 9,  id: 'field-set-a', testId: 'field-set-a', label: 'A', val: setA, set: setSetA, touchKey: 'setA'  },
-            { tab: 10, id: 'field-set-c', testId: 'field-set-c', label: 'C', val: setC, set: setSetC, touchKey: 'setC'  },
-            { tab: 11, id: 'field-set-l', testId: 'field-set-l', label: 'L', val: setL, set: setSetL, touchKey: 'setL'  },
-            { tab: 12, id: 'field-set-r', testId: 'field-set-r', label: 'R', val: setR, set: setSetR, touchKey: 'setR'  },
-          ].map(f => (
-            <div
-              key={f.id}
-              className={`flex-1 min-w-0 rounded transition-all duration-200${activeTabindex === f.tab ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}
-            >
-              <NumpadField
-                id={f.id}
-                value={f.val}
-                onChange={v => { touch?.(f.touchKey)(); f.set(v) }}
-                label={f.label}
-                dataTabindex={f.tab}
-                testId={f.testId}
-                inputPlaceholder={f.label}
-                inputClassName={!touched?.[f.touchKey] ? 'text-gray-400' : ''}
-                onNext={() => navigateNext?.(f.tab)}
-                onRegister={registerField}
-                isActive={activeTabindex === f.tab}
-                style={{ fontSize: 16, width: '100%', padding: '0.1em 0.35em' }}
-              />
-            </div>
-          ))}
-          <div className={`flex-[6] min-w-0 rounded transition-all duration-200${activeTabindex === 13 ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+        {/* Row: 設定ACLR + O — 2段構成: ラベル行 + 入力欄行 + メモ全幅 */}
+        <div className="border-b border-border">
+          <div
+            className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
+            style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}
+          >
+            <span className="text-right">アシスト</span>
+            <span className="text-right">キャッチ</span>
+            <span className="text-right">ロー</span>
+            <span className="text-right">リターン</span>
+          </div>
+          <div
+            className="grid px-1 pb-1 gap-x-1"
+            style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}
+          >
+            {[
+              { tab: 9,  id: 'field-set-a', testId: 'field-set-a', val: setA, set: setSetA, touchKey: 'setA'  },
+              { tab: 10, id: 'field-set-c', testId: 'field-set-c', val: setC, set: setSetC, touchKey: 'setC'  },
+              { tab: 11, id: 'field-set-l', testId: 'field-set-l', val: setL, set: setSetL, touchKey: 'setL'  },
+              { tab: 12, id: 'field-set-r', testId: 'field-set-r', val: setR, set: setSetR, touchKey: 'setR'  },
+            ].map(f => (
+              <div
+                key={f.id}
+                className={`min-w-0 rounded transition-all duration-200${activeTabindex === f.tab ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}
+              >
+                <NumpadField
+                  id={f.id}
+                  value={f.val}
+                  onChange={v => { touch?.(f.touchKey)(); f.set(v) }}
+                  dataTabindex={f.tab}
+                  testId={f.testId}
+                  inputClassName={!touched?.[f.touchKey] ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext?.(f.tab)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === f.tab}
+                  style={{ fontSize: 16, width: '100%', padding: '0.1em 0.35em' }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className={`px-1 pb-1 rounded transition-all duration-200${activeTabindex === 13 ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}>
             <input
               id="field-set-o"
               type="text"
@@ -544,24 +554,6 @@ export default function BoothInputForm({
             />
           </div>
         </div>
-
-        {/* 集金 row (patrol mode only) */}
-        {mode === 'patrol' && isCollectionDay && (
-          <div
-            data-testid="collection-checkbox-label"
-            className="flex items-center gap-3 p-2 border-b border-border"
-          >
-            <Tooltip id="tt-collection" content={TT.collection} label="集" />
-            <input
-              data-testid="collection-checkbox"
-              type="checkbox"
-              checked={isCollection}
-              onChange={e => setIsColl(e.target.checked)}
-              className="w-5 h-5 accent-blue-500"
-            />
-            {isCollection && <span className="text-base text-blue-400">集金記録として保存</span>}
-          </div>
-        )}
 
         {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C1: patrol モードでは保存ボタン (保存してリストへ /
             保存して次へ) を削除 — SWIPE-NAV-01 の暗黙保存で代替。OCR ボタンは IN メーター左に

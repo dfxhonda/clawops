@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { Sentry } from '../../lib/sentry'
+import { logger } from '../../lib/logger'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import KanaIndex from '../../shared/ui/KanaIndex'
@@ -35,17 +37,48 @@ export default function ClawsupportHub() {
   }, [staffId])
 
   const handlePin = useCallback(async (storeCode) => {
+    if (!staffId) {
+      console.error('[handlePin] staffId null, skip save', { storeCode })
+      return
+    }
     const isPinned = pinnedCodes.includes(storeCode)
-    if (isPinned) {
-      setPinnedCodes(prev => prev.filter(c => c !== storeCode))
-      await supabase.from('staff_pinned_stores')
-        .delete()
-        .eq('staff_id', staffId)
-        .eq('store_code', storeCode)
-    } else {
-      setPinnedCodes(prev => [...prev, storeCode])
-      await supabase.from('staff_pinned_stores')
-        .upsert({ staff_id: staffId, store_code: storeCode }, { onConflict: 'staff_id,store_code' })
+    Sentry.addBreadcrumb({ category: 'user', message: `pin_toggle:${storeCode}`, data: { isPinned }, level: 'info' })
+    // 楽観的更新 (即★反映、知覚遅延ゼロ)
+    setPinnedCodes(prev => isPinned ? prev.filter(c => c !== storeCode) : [...prev, storeCode])
+    try {
+      // keepalive:true で iOS back swipe 後もリクエスト完走させる
+      const { data: { session } } = await supabase.auth.getSession()
+      const jwt = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY
+      const base = import.meta.env.VITE_SUPABASE_URL
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const headers = {
+        apikey: key,
+        Authorization: `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+      }
+      if (isPinned) {
+        const res = await fetch(
+          `${base}/rest/v1/staff_pinned_stores?staff_id=eq.${encodeURIComponent(staffId)}&store_code=eq.${encodeURIComponent(storeCode)}`,
+          { method: 'DELETE', headers, keepalive: true }
+        )
+        if (!res.ok) throw new Error(`delete ${res.status}`)
+      } else {
+        const res = await fetch(
+          `${base}/rest/v1/staff_pinned_stores`,
+          {
+            method: 'POST',
+            headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
+            body: JSON.stringify({ staff_id: staffId, store_code: storeCode }),
+            keepalive: true,
+          }
+        )
+        if (!res.ok) throw new Error(`upsert ${res.status}`)
+      }
+    } catch (err) {
+      // LOG-SPEC-01 logger 経由で Sentry に到達させる (FIX2)
+      logger.error('handlePin_save_failed', err)
+      // 保存失敗時は楽観的更新をロールバック
+      setPinnedCodes(prev => isPinned ? [...prev, storeCode] : prev.filter(c => c !== storeCode))
     }
   }, [pinnedCodes, staffId])
 
@@ -55,9 +88,10 @@ export default function ClawsupportHub() {
         key={store.store_code}
         store={store}
         isPinned={isPinned}
-        onSelect={() => navigate(betaMode
-        ? `/clawsupport/beta/store/${store.store_code}`
-        : `/clawsupport/store/${store.store_code}`)}
+        onSelect={() => {
+          Sentry.addBreadcrumb({ category: 'navigation', message: `store_select:${store.store_code}`, level: 'info' })
+          navigate(betaMode ? `/clawsupport/beta/store/${store.store_code}` : `/clawsupport/store/${store.store_code}`)
+        }}
         onPin={() => handlePin(store.store_code)}
       />
     )
@@ -81,6 +115,7 @@ export default function ClawsupportHub() {
         rightSlot={<DateTime value={new Date()} format="date" />}
       />
 
+      {/* J-PATROL-OCR-BETA-TOGGLE-HIDE-FIX-03: OCRベータ切替トグル非表示 (コード温存、通常モード固定)
       <div className="shrink-0 px-4 py-2 flex items-center justify-between border-b border-border">
         <span className="text-xs text-muted">巡回モード</span>
         <button
@@ -94,6 +129,7 @@ export default function ClawsupportHub() {
           {betaMode ? '巡回ベータ(OCR有) ✓' : '巡回ベータ(OCR有)'}
         </button>
       </div>
+      */}
 
       <KanaIndex
         items={stores}
@@ -109,11 +145,16 @@ export default function ClawsupportHub() {
 function StoreCard({ store, isPinned, onSelect, onPin }) {
   const timerRef = useRef(null)
   const movedRef = useRef(false)
+  const longPressFiredRef = useRef(false)
 
   function handlePointerDown() {
     movedRef.current = false
+    longPressFiredRef.current = false
     timerRef.current = setTimeout(() => {
-      if (!movedRef.current) onPin()
+      if (!movedRef.current) {
+        longPressFiredRef.current = true
+        onPin()
+      }
     }, 500)
   }
 
@@ -128,7 +169,10 @@ function StoreCard({ store, isPinned, onSelect, onPin }) {
 
   return (
     <button
-      onClick={onSelect}
+      onClick={() => {
+        if (longPressFiredRef.current) { longPressFiredRef.current = false; return }
+        onSelect()
+      }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerMove={handlePointerMove}

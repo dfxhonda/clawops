@@ -173,6 +173,49 @@ export async function getUnsyncedSummary() {
   return { count: unsynced.length, storeCount: storeSet.size, records: unsynced }
 }
 
+/**
+ * FIX4: store_code:null の未送信レコードを掃除。
+ * - booth_code から逆引き可能なら store_code を補完して残す。
+ * - 逆引き不能 (= 真の孤児) なら IDB から削除。
+ * useUnsentBanner 初期化時に1回実行することで既存幽霊レコードを自動消滅させる。
+ */
+function _deriveStoreCode(boothCd) {
+  if (!boothCd) return null
+  if (/^[A-Z]{3}\d{2}::/.test(boothCd)) return boothCd.split('::')[0]
+  const p = boothCd.split('-')
+  return p.length >= 2 ? p[0] : null
+}
+
+export async function deleteOrphanedNullStoreRecords() {
+  try {
+    const db = await getDb()
+    const all = await db.getAllFromIndex(STORE_PATROL_RECORDS, 'bySynced', syncedKey(false))
+    const nullStoreRecords = all.filter(r => r.store_code == null)
+    if (!nullStoreRecords.length) return 0
+    const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')
+    let deleted = 0
+    let patched = 0
+    for (const r of nullStoreRecords) {
+      const derived = _deriveStoreCode(r.booth_code)
+      if (derived) {
+        await tx.store.put({ ...r, store_code: derived })
+        patched++
+      } else {
+        await tx.store.delete(r.localId)
+        deleted++
+      }
+    }
+    await tx.done
+    if (deleted > 0 || patched > 0) {
+      logger.warn?.('ERR-LF1-ORPHAN-SWEEP', { deleted, patched })
+    }
+    return deleted
+  } catch (err) {
+    logger.error?.(LOG_ERR_WRITE, { phase: 'orphan_sweep', message: err?.message })
+    return 0
+  }
+}
+
 // store メタ (storeName / machines / prefetchedAt) を保存。prefetch / load 共通。
 export async function putStoreMeta(storeCode, meta) {
   if (!storeCode) return

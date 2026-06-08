@@ -17,11 +17,15 @@ import {
 } from '../../constants/phaseLabels'
 import { generateShortName } from '../../lib/shortenPrizeName'
 
+function getImgUrl(path) {
+  return path ? supabase.storage.from('announcements').getPublicUrl(path).data.publicUrl : null
+}
+
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列を SELECT から外し、phase に統一。
 // SPEC-PRIZE-NAME-BINDING-FIX-01: aliases 除外、short_name を LIST_SELECT に移動。
 // J-SCHEMA-DROP-FIX-01: prize_name_kana/series/order_rules/tags/default_tag/weight_g 列は DB から削除済、SELECT から除外。
-const LIST_SELECT = 'prize_id,prize_name,short_name,category,original_cost,supplier_name,latest_order_date,phase,registered_at'
-const EDIT_SELECT = LIST_SELECT + ',size,supplier_id,supplier_item_code,jan_code,default_case_quantity,image_url,notes,organization_id,updated_at,updated_by,registered_by'
+const LIST_SELECT = 'prize_id,prize_name,short_name,category,original_cost,supplier_name,latest_order_date,phase,registered_at,image_url'
+const EDIT_SELECT = LIST_SELECT + ',size,supplier_id,supplier_item_code,jan_code,default_case_quantity,notes,organization_id,updated_at,updated_by,registered_by'
 
 // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: STATUS_VALUES 撤廃、phase で表現 (PHASE_FILTER_OPTIONS 参照)。
 
@@ -93,6 +97,7 @@ export default function AdminPrizeMasterPage() {
   const [gridMode, setGridMode] = useState(false)
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
+  const [imgLargeUrl, setImgLargeUrl] = useState(null)
   // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: detailRow state 撤廃、景品名タップは openEdit に統合。
 
   useEffect(() => {
@@ -353,6 +358,7 @@ export default function AdminPrizeMasterPage() {
               <SortableTableHeader
                 variant="tr"
                 columns={[
+                  { key: '__img__',           label: '',       className: 'py-1 px-1 w-8 pointer-events-none' },
                   { key: 'prize_name',        label: '景品名',  className: 'py-1 px-2 whitespace-nowrap text-left text-muted' },
                   { key: '__category__',      label: 'カテゴリ', className: 'py-1 px-2 whitespace-nowrap text-left text-muted pointer-events-none' },
                   // SPEC-PHASE-LABEL-FIX-01: 旧 'ST' (status 列) を 'ステータス' (phase 列) に再定義。
@@ -385,6 +391,12 @@ export default function AdminPrizeMasterPage() {
                     onClick={gridMode ? undefined : () => openEdit(r)}
                     className={`border-b border-border/50 ${gridMode ? (ge ? 'bg-amber-900/15' : 'hover:bg-surface/30') : 'hover:bg-surface cursor-pointer'}`}
                   >
+                    <td className="py-0.5 px-1 w-8">
+                      {r.image_url
+                        ? <img src={getImgUrl(r.image_url)} alt="" className="w-7 h-7 object-cover rounded cursor-pointer"
+                               onClick={ev => { ev.stopPropagation(); setImgLargeUrl(getImgUrl(r.image_url)) }} />
+                        : <div className="w-7 h-7 rounded bg-surface border border-border/40" />}
+                    </td>
                     <td className="py-0.5 px-1 max-w-[220px]">
                       {gridMode
                         ? <input value={ge?.short_name ?? r.short_name ?? ''} onChange={ev => setGCell(r.prize_id, 'short_name', ev.target.value)} className={gridCellCls} />
@@ -479,10 +491,12 @@ export default function AdminPrizeMasterPage() {
 
               {/* 2: 正式名称 (prize_name) */}
               <Field label="正式名称 *">
-                <Input
-                  value={form.prize_name}
-                  onChange={v => f({ prize_name: v })}
+                <textarea
+                  rows={2}
+                  value={form.prize_name ?? ''}
+                  onChange={e => f({ prize_name: e.target.value })}
                   placeholder="正式名称"
+                  className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full resize-none"
                 />
               </Field>
 
@@ -523,7 +537,11 @@ export default function AdminPrizeMasterPage() {
 
               {/* 6: 画像URL */}
               <Field label="画像URL">
-                <Input value={form.image_url} onChange={v => f({ image_url: v })} placeholder="https://..." />
+                <Input value={form.image_url} onChange={v => f({ image_url: v })} placeholder="sgp/XXXXX.jpg" />
+                {form.image_url
+                  ? <img src={getImgUrl(form.image_url)} alt="" className="w-20 h-20 object-cover rounded cursor-pointer mt-1"
+                         onClick={() => setImgLargeUrl(getImgUrl(form.image_url))} />
+                  : <div className="w-20 h-20 rounded bg-surface border border-border/40 mt-1" />}
               </Field>
 
               {/* その他 (折りたたみ) */}
@@ -596,6 +614,13 @@ export default function AdminPrizeMasterPage() {
       )}
 
       {/* SPEC-PRIZE-MASTER-EDIT-DIALOG-01: 旧 PrizeDetailDialog JSX 撤廃 (景品名タップは openEdit 直接起動)。 */}
+
+      {imgLargeUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setImgLargeUrl(null)}>
+          <img src={imgLargeUrl} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded shadow-xl" onClick={ev => ev.stopPropagation()} />
+          <button type="button" onClick={() => setImgLargeUrl(null)} className="absolute top-4 right-4 text-white text-2xl font-bold leading-none bg-black/40 rounded-full w-9 h-9 flex items-center justify-center">✕</button>
+        </div>
+      )}
     </div>
   )
 }

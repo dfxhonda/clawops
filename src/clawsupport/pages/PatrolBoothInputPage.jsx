@@ -41,6 +41,15 @@ import {
 // → ヒロ実機で「写真白黒なってない」報告。grayscale + Otsu 二値化を適用。
 import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
+// FIX2: booth_code から store_code を逆引き (prefix パターン)
+// ABC01::suffix → ABC01 / ABC01-M01 → ABC01
+function deriveStoreCode(boothCd) {
+  if (!boothCd) return null
+  if (/^[A-Z]{3}\d{2}::/.test(boothCd)) return boothCd.split('::')[0]
+  const p = boothCd.split('-')
+  return p.length >= 2 ? p[0] : null
+}
+
 // J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺 MAX px q QUALITY に縮小して {base64, blob} を返す
 // fix-05: grayscale + コントラスト線形伸長 + Otsu 二値化 を canvas に適用、
 // OCR 送信 base64 + プレビュー blob 双方が白黒化される。
@@ -153,8 +162,6 @@ export default function PatrolBoothInputPage() {
   const [setO,          setSetO]   = useState('')
   const [touched,       setTouched] = useState(() => ({ ...EMPTY_TOUCHED }))
   const [selectedPrizeId, setSelectedPrizeId] = useState(null)
-  const [isCollectionDay, setIsCollectionDay] = useState(false)
-  const [isCollection,  setIsColl] = useState(false)
   const [saveState, saveActions] = useSaveState()
   const [skipped,       setSkipped]   = useState(false)
   // J-STOCK-MACHINE-fix-03b: stock_movements 記録失敗時の非ブロッキングバナー (best-effort)
@@ -201,45 +208,8 @@ export default function PatrolBoothInputPage() {
 
   useEffect(() => {
     if (!prev) return
-    setIn(prev.in_meter != null ? String(prev.in_meter) : '')
-    setOut1(prev.out_meter != null ? String(prev.out_meter) : '')
-    setOut2(prev.out_meter_2 != null ? String(prev.out_meter_2) : '')
-    setOut3(prev.out_meter_3 != null ? String(prev.out_meter_3) : '')
-    // J-PATROL: 在庫欄=理論在庫(前回在庫+前回補充−OUT差)を初期値、補充欄=0デフォ。OUT追従は別effectで再計算。
-    {
-      const t1 = theoreticalStock(prev.prize_stock_count, prev.prize_restock_count, prev.out_meter, prev.out_meter)
-      setStk(t1 != null ? String(t1) : '')
-    }
-    setRst('')
-    setPrize(prev.prize_name ?? '')
-    const pc = prev.prize_cost ?? prev.prize_cost_1
-    setCost(pc != null && pc !== '' ? String(pc) : '')
-    // OUT2
-    {
-      const t2 = theoreticalStock(prev.stock_2, prev.restock_2, prev.out_meter_2, prev.out_meter_2)
-      setStk2(t2 != null ? String(t2) : '')
-    }
-    setRst2('')
-    setPrize2(prev.prize_name_2 ?? '')
-    setCost2(prev.prize_cost_2 != null ? String(prev.prize_cost_2) : '')
-    setSelectedPrizeId2(null)
-    // OUT3
-    {
-      const t3 = theoreticalStock(prev.stock_3, prev.restock_3, prev.out_meter_3, prev.out_meter_3)
-      setStk3(t3 != null ? String(t3) : '')
-    }
-    setRst3('')
-    setPrize3(prev.prize_name_3 ?? '')
-    setCost3(prev.prize_cost_3 != null ? String(prev.prize_cost_3) : '')
-    setSelectedPrizeId3(null)
-    // Settings
-    setSetA(prev.set_a ?? '')
-    setSetC(prev.set_c ?? '')
-    setSetL(prev.set_l ?? '')
-    setSetR(prev.set_r ?? '')
-    setSetO(prev.set_o ?? '')
-    setSelectedPrizeId(null)
-  }, [prev?.reading_id, boothCode])
+    applyPrevFields(prev)
+  }, [prev?.reading_id, boothCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // J-PATROL: 未編集(グレー)の在庫欄を OUT入力にリアルタイム追従させ理論在庫を再計算。
   // 手入力(touched)された欄は上書きしない。保存時は在庫state(理論在庫 or 手入力)がそのまま確定。
@@ -260,37 +230,19 @@ export default function PatrolBoothInputPage() {
   }, [prev, outMeter1, outMeter2, outMeter3, touched.stock, touched.stock2, touched.stock3]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!resolvedStoreCode) { setIsCollectionDay(false); return }
-    let cancel = false
-    supabase
-      .from('stores')
-      .select('is_collection_day')
-      .eq('store_code', resolvedStoreCode)
-      .maybeSingle()
-      .then(({ data }) => { if (!cancel) setIsCollectionDay(!!data?.is_collection_day) })
-    return () => { cancel = true }
-  }, [resolvedStoreCode])
-
-  useEffect(() => {
-    if (!isCollectionDay) setIsColl(false)
-  }, [isCollectionDay])
-
-  useEffect(() => {
     if (touched.stock || !prev || outMeter1 === '') return
     const out_diff = Number(outMeter1) - Number(prev.out_meter ?? 0)
     const theoretical = (prev.prize_stock_count ?? 0) + (prev.prize_restock_count ?? 0) - out_diff
     if (theoretical >= 0) setStk(String(theoretical))
   }, [outMeter1, prev, touched.stock])
 
-  const recordAsCollection = isCollectionDay && isCollection
-
   const entryType = useMemo(
     () => classifyEntryType({
       prev,
       next: { inMeter, outMeter: outMeter1, prizeName, setA, setC, setL, setR, setO },
-      isCollection: recordAsCollection,
+      isCollection: false,
     }),
-    [prev, inMeter, outMeter1, prizeName, setA, setC, setL, setR, setO, recordAsCollection],
+    [prev, inMeter, outMeter1, prizeName, setA, setC, setL, setR, setO],
   )
 
   // 保存はINメーターのみ必須。OUT/在庫は任意。
@@ -528,8 +480,17 @@ export default function PatrolBoothInputPage() {
       return
     }
     if (!canSave) return
+    // FIX2: store_code を resolvedStoreCode から確定。null の場合は booth_code prefix で逆引き。
+    // 逆引き不能 (=真のデータ異常) は ERR-METER-003 でブロック。
+    const effectiveStoreCode = resolvedStoreCode ?? deriveStoreCode(boothCode)
+    if (!effectiveStoreCode) {
+      logger.error?.('ERR-METER-003', { boothCode, hint: 'store_code 特定失敗' })
+      saveActions.setError('ERR-METER-003', 'ブースコードから店舗コードを特定できません')
+      return
+    }
     const didStart = saveActions.setLoading()
     if (!didStart) return
+    Sentry.addBreadcrumb({ category: 'user', message: `${entryType}_save`, data: { boothCode, entryType }, level: 'info' })
     logger.info('patrol_save_attempted', { boothCode, entryType, has_photo: !!ocrPhotoUrl })
     // SPEC-LF1-STORE-LOCAL-CACHE-01:
     // local-first 路線。Supabase 直書きはせず IndexedDB へ書いて即 navigate。
@@ -544,7 +505,7 @@ export default function PatrolBoothInputPage() {
       const numRst = restock   !== '' && restock   != null ? parseInt(restock, 10)     : 0
       await putPatrolRecord({
         booth_code: boothCode,
-        store_code: storeCode ?? machine?.store_code ?? null,
+        store_code: effectiveStoreCode,
         machine_code: machine?.machine_code ?? null,
         patrol_date: today,
         read_time: new Date().toISOString(),
@@ -635,6 +596,58 @@ export default function PatrolBoothInputPage() {
   const handleSaveNext = () => handleSave(goNextBooth)
   const handleSaveList = () => handleSave(goBackToList)
 
+  // FIX5b: ブース初期化 useEffect と handleReset の共通ヘルパー。
+  // p=null (新規ブース) は全フィールド空クリア、p 有りは pre-populate 値を復元。
+  function applyPrevFields(p) {
+    if (!p) {
+      setIn(''); setOut1(''); setOut2(''); setOut3('')
+      setStk(''); setRst('')
+      setPrize(''); setCost('')
+      setStk2(''); setRst2(''); setPrize2(''); setCost2('')
+      setSelectedPrizeId2(null)
+      setStk3(''); setRst3(''); setPrize3(''); setCost3('')
+      setSelectedPrizeId3(null)
+      setSetA(''); setSetC(''); setSetL(''); setSetR(''); setSetO('')
+      setSelectedPrizeId(null)
+      return
+    }
+    setIn(p.in_meter != null ? String(p.in_meter) : '')
+    setOut1(p.out_meter != null ? String(p.out_meter) : '')
+    setOut2(p.out_meter_2 != null ? String(p.out_meter_2) : '')
+    setOut3(p.out_meter_3 != null ? String(p.out_meter_3) : '')
+    const t1 = theoreticalStock(p.prize_stock_count, p.prize_restock_count, p.out_meter, p.out_meter)
+    setStk(t1 != null ? String(t1) : '')
+    setRst('')
+    setPrize(p.prize_name ?? '')
+    const pc = p.prize_cost ?? p.prize_cost_1
+    setCost(pc != null && pc !== '' ? String(pc) : '')
+    const t2 = theoreticalStock(p.stock_2, p.restock_2, p.out_meter_2, p.out_meter_2)
+    setStk2(t2 != null ? String(t2) : '')
+    setRst2('')
+    setPrize2(p.prize_name_2 ?? '')
+    setCost2(p.prize_cost_2 != null ? String(p.prize_cost_2) : '')
+    setSelectedPrizeId2(null)
+    const t3 = theoreticalStock(p.stock_3, p.restock_3, p.out_meter_3, p.out_meter_3)
+    setStk3(t3 != null ? String(t3) : '')
+    setRst3('')
+    setPrize3(p.prize_name_3 ?? '')
+    setCost3(p.prize_cost_3 != null ? String(p.prize_cost_3) : '')
+    setSelectedPrizeId3(null)
+    setSetA(p.set_a ?? '')
+    setSetC(p.set_c ?? '')
+    setSetL(p.set_l ?? '')
+    setSetR(p.set_r ?? '')
+    setSetO(p.set_o ?? '')
+    setSelectedPrizeId(null)
+  }
+
+  // FIX5b: 空クリアではなく画面オープン時の pre-populate 値に復元する。
+  // touched=EMPTY_TOUCHED → isDirty=false → スワイプ/戻るで「変更なし」扱いになり空保存を防ぐ。
+  function handleReset() {
+    applyPrevFields(prev)
+    setTouched({ ...EMPTY_TOUCHED })
+  }
+
   // SPEC-PATROL-SWIPE-NAV-01 C2 + SPEC-PATROL-SWIPE-ANIM-01: 横スワイプ → アニメ → 暗黙保存 → navigate。
   // 左スワイプ=次ブース、右スワイプ=前ブース。canSave 偽 (= IN 未入力等) なら保存スキップで navigate のみ。
   // 末端 (最初の前 / 最後の次) では no-op で spring back (AC-04)。OCR overlay 中は無効化。
@@ -679,10 +692,10 @@ export default function PatrolBoothInputPage() {
     // 220ms 後に navigate (+ 必要なら save)。LF1 save は IDB write のみで実時間 <10ms、
     // ここの timeout を待っても UX 影響なし (AC-06 LF1 <1s 保持)。
     //
-    // SPEC-PATROL-SWIPE-NAV-fix-01 C1: 暗黙保存 gate を isDirty && canSave に厳密化。
-    // 未編集ブース (isDirty=false) は IDB write をスキップして navigate のみ、unsynced 増殖を防ぐ。
+    // FIX1: isDirty gate を削除。canSave のみでスワイプ保存 (IDB/prev pre-populate 済の値も保存)。
+    // 旧: isDirty && canSave → 未编集扱いでスワイプしても保存されなかった (probe h1 根本原因)。
     setTimeout(() => {
-      if (isDirty && canSave) handleSave(navFn)
+      if (canSave) handleSave(navFn)
       else navFn()
     }, 220)
   }
@@ -934,28 +947,27 @@ export default function PatrolBoothInputPage() {
         module="clawsupport"
         title={boothLabel}
         variant="compact"
-        onBack={() => handleSave(goBack)}
+        onBack={() => { if (canSave) handleSave(goBack); else goBack() }}
 
       />
 
-      {/* SPEC-PATROL-SWIPE-NAV-01 C3: subtle chevron hints (左右端、grey-300、xs、非操作)。
-          前/次が存在するときだけ表示、末端では非表示 (AC-04 視覚的フィードバック)。 */}
-      <div className="px-3 flex items-center justify-between text-gray-400/60 text-xs h-3 -mt-0.5 select-none pointer-events-none" aria-hidden="true">
-        <span data-testid="swipe-hint-prev">{prevBoothEntry ? '‹ 前' : ''}</span>
-        <span data-testid="swipe-hint-next">{nextBoothEntry ? '次 ›' : ''}</span>
-      </div>
-
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
-      </div>
-
-      <div className="px-4 py-2 shrink-0">
         <button
           type="button"
           onClick={() => setShowAlert(true)}
-          className="w-full py-2 text-sm font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-xl flex items-center justify-center gap-1.5"
+          className="text-xs font-bold text-amber-400/90 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2 py-0.5 active:opacity-60"
         >
-          📝 気づきを記録
+          📝 気づき
+        </button>
+        {/* FIX5: リセットボタン [A] input-density: text-xs, 即クリア, 確認なし */}
+        <button
+          type="button"
+          data-testid="reset-form-button"
+          onClick={handleReset}
+          className="ml-auto text-xs text-muted border border-border rounded px-2 py-0.5 active:opacity-60"
+        >
+          リセット
         </button>
       </div>
 
@@ -1002,7 +1014,6 @@ export default function PatrolBoothInputPage() {
           selectedPrizeId2={selectedPrizeId2} setSelectedPrizeId2={setSelectedPrizeId2}
           selectedPrizeId3={selectedPrizeId3} setSelectedPrizeId3={setSelectedPrizeId3}
           touched={touched} touch={touch}
-          isCollectionDay={isCollectionDay} isCollection={isCollection} setIsColl={setIsColl}
           entryType={entryType}
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}

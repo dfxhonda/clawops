@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => ({
     __GIT_SHA__: JSON.stringify(gitSha),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    // FIX1: VERCEL_ENV はサーバー側のみ公開の system env var。VITE_ prefix なしのため Vite 自動露出なし。
+    // ビルド時 process.env.VERCEL_ENV を define で bake-in → Sentry に production/preview/development が届く。
+    // VITE_VERCEL_ENV=$VERCEL_ENV の Vercel 設定が未展開でも影響なし。
+    __VERCEL_ENV__: JSON.stringify(process.env.VERCEL_ENV || process.env.NODE_ENV || 'development'),
     global: 'globalThis',
   },
   optimizeDeps: {

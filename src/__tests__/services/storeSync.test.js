@@ -98,4 +98,28 @@ describe('uploadStoreRecords', () => {
     expect(res.uploaded).toBe(2)
     vi.unstubAllGlobals()
   })
+
+  // FIX3: store_code:null でも booth_code 逆引きで補完して送信
+  it('when_store_code_null_and_booth_reversible_should_upload_via_derived_store', async () => {
+    // booth_code 'MNK01-M01-B01' → store_code 'MNK01' を逆引き
+    await putPatrolRecord({ booth_code: 'MNK01-M01-B01', store_code: null, patrol_date: '2026-06-08', in_meter: 100 })
+    saveMock.mockResolvedValue({ ok: true })
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })))
+    const res = await uploadAllUnsynced()
+    expect(res.uploaded).toBe(1)
+    vi.unstubAllGlobals()
+  })
+
+  // FIX3: store_code:null かつ booth_code 逆引き不能なら引き続き skip
+  it('when_store_code_null_and_booth_irreversible_should_skip', async () => {
+    await putPatrolRecord({ booth_code: 'NODASH', store_code: null, patrol_date: '2026-06-08', in_meter: 200 })
+    saveMock.mockResolvedValue({ ok: true })
+    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })))
+    const res = await uploadAllUnsynced()
+    expect(res.uploaded).toBe(0)
+    expect(saveMock).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
 })

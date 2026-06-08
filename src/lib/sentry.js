@@ -22,7 +22,7 @@ export function initSentry() {
 
   Sentry.init({
     dsn,
-    environment: import.meta.env.VITE_VERCEL_ENV || 'production',
+    environment: typeof __VERCEL_ENV__ !== 'undefined' ? __VERCEL_ENV__ : 'production',
     release:     import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA,
     enabled:     true,
     tracesSampleRate:         1.0,
