@@ -1,3 +1,11 @@
+// FIX3: booth_code から store_code を逆引き (PatrolBoothInputPage.deriveStoreCode と同ロジック)
+function _deriveStoreCode(boothCd) {
+  if (!boothCd) return null
+  if (/^[A-Z]{3}\d{2}::/.test(boothCd)) return boothCd.split('::')[0]
+  const p = boothCd.split('-')
+  return p.length >= 2 ? p[0] : null
+}
+
 // SPEC-LF1-STORE-LOCAL-CACHE-01: 店舗離脱時の auto-sync オーケストレーション。
 // - navigator.onLine + 軽量 connectivity probe で online 判定
 // - 未送信 record を Supabase 既存 save 経路に渡して upload
@@ -9,6 +17,7 @@ import {
   getUnsyncedRecords,
   markRecordSynced,
   getPatrolRecordsByStore,
+  putPatrolRecord,
 } from '../lib/localStore/patrolRecords'
 import { logger } from '../lib/logger'
 
@@ -83,8 +92,16 @@ export async function uploadAllUnsynced({ staff } = {}) {
   const all = await getUnsyncedRecords()
   if (!all.length) return { uploaded: 0, failed: 0, skipped: 0 }
   const byStore = new Map()
-  for (const r of all) {
-    if (!r.store_code) continue
+  for (let r of all) {
+    // FIX3: store_code:null レコードを booth_code 逆引きで補完してから送信試行。
+    // IDB record も補完更新して以降の getPatrolRecordsByStore(storeCode) で取れるようにする。
+    // 逆引き不能なら skip 継続 (FIX4 sweep の対象)。
+    if (!r.store_code) {
+      const derived = _deriveStoreCode(r.booth_code)
+      if (!derived) continue
+      r = { ...r, store_code: derived }
+      await putPatrolRecord(r).catch(() => {})
+    }
     if (!byStore.has(r.store_code)) byStore.set(r.store_code, [])
     byStore.get(r.store_code).push(r)
   }

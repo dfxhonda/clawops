@@ -41,6 +41,15 @@ import {
 // → ヒロ実機で「写真白黒なってない」報告。grayscale + Otsu 二値化を適用。
 import { preprocessForOcr } from '../../lib/ocrPreprocess'
 
+// FIX2: booth_code から store_code を逆引き (prefix パターン)
+// ABC01::suffix → ABC01 / ABC01-M01 → ABC01
+function deriveStoreCode(boothCd) {
+  if (!boothCd) return null
+  if (/^[A-Z]{3}\d{2}::/.test(boothCd)) return boothCd.split('::')[0]
+  const p = boothCd.split('-')
+  return p.length >= 2 ? p[0] : null
+}
+
 // J-PATROL-OCR-CAMERA C: 撮影/選択画像を長辺 MAX px q QUALITY に縮小して {base64, blob} を返す
 // fix-05: grayscale + コントラスト線形伸長 + Otsu 二値化 を canvas に適用、
 // OCR 送信 base64 + プレビュー blob 双方が白黒化される。
@@ -528,6 +537,14 @@ export default function PatrolBoothInputPage() {
       return
     }
     if (!canSave) return
+    // FIX2: store_code を resolvedStoreCode から確定。null の場合は booth_code prefix で逆引き。
+    // 逆引き不能 (=真のデータ異常) は ERR-METER-003 でブロック。
+    const effectiveStoreCode = resolvedStoreCode ?? deriveStoreCode(boothCode)
+    if (!effectiveStoreCode) {
+      logger.error?.('ERR-METER-003', { boothCode, hint: 'store_code 特定失敗' })
+      saveActions.setError('ERR-METER-003', 'ブースコードから店舗コードを特定できません')
+      return
+    }
     const didStart = saveActions.setLoading()
     if (!didStart) return
     logger.info('patrol_save_attempted', { boothCode, entryType, has_photo: !!ocrPhotoUrl })
@@ -544,7 +561,7 @@ export default function PatrolBoothInputPage() {
       const numRst = restock   !== '' && restock   != null ? parseInt(restock, 10)     : 0
       await putPatrolRecord({
         booth_code: boothCode,
-        store_code: storeCode ?? machine?.store_code ?? null,
+        store_code: effectiveStoreCode,
         machine_code: machine?.machine_code ?? null,
         patrol_date: today,
         read_time: new Date().toISOString(),
@@ -635,6 +652,19 @@ export default function PatrolBoothInputPage() {
   const handleSaveNext = () => handleSave(goNextBooth)
   const handleSaveList = () => handleSave(goBackToList)
 
+  // FIX5: 入力フィールドを全クリア + touched リセット (確認ダイアログなし即クリア)。
+  // pre-populate 由来の値も含め全てクリアし isDirty=false に戻す。
+  function handleReset() {
+    setIn(''); setOut1(''); setOut2(''); setOut3('')
+    setStk(''); setRst('')
+    setPrize(''); setCost('')
+    setStk2(''); setRst2(''); setPrize2(''); setCost2('')
+    setStk3(''); setRst3(''); setPrize3(''); setCost3('')
+    setSetA(''); setSetC(''); setSetL(''); setSetR(''); setSetO('')
+    setSelectedPrizeId(null); setSelectedPrizeId2(null); setSelectedPrizeId3(null)
+    setTouched({ ...EMPTY_TOUCHED })
+  }
+
   // SPEC-PATROL-SWIPE-NAV-01 C2 + SPEC-PATROL-SWIPE-ANIM-01: 横スワイプ → アニメ → 暗黙保存 → navigate。
   // 左スワイプ=次ブース、右スワイプ=前ブース。canSave 偽 (= IN 未入力等) なら保存スキップで navigate のみ。
   // 末端 (最初の前 / 最後の次) では no-op で spring back (AC-04)。OCR overlay 中は無効化。
@@ -679,10 +709,10 @@ export default function PatrolBoothInputPage() {
     // 220ms 後に navigate (+ 必要なら save)。LF1 save は IDB write のみで実時間 <10ms、
     // ここの timeout を待っても UX 影響なし (AC-06 LF1 <1s 保持)。
     //
-    // SPEC-PATROL-SWIPE-NAV-fix-01 C1: 暗黙保存 gate を isDirty && canSave に厳密化。
-    // 未編集ブース (isDirty=false) は IDB write をスキップして navigate のみ、unsynced 増殖を防ぐ。
+    // FIX1: isDirty gate を削除。canSave のみでスワイプ保存 (IDB/prev pre-populate 済の値も保存)。
+    // 旧: isDirty && canSave → 未编集扱いでスワイプしても保存されなかった (probe h1 根本原因)。
     setTimeout(() => {
-      if (isDirty && canSave) handleSave(navFn)
+      if (canSave) handleSave(navFn)
       else navFn()
     }, 220)
   }
@@ -947,6 +977,15 @@ export default function PatrolBoothInputPage() {
 
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
+        {/* FIX5: リセットボタン [A] input-density: text-xs, 即クリア, 確認なし */}
+        <button
+          type="button"
+          data-testid="reset-form-button"
+          onClick={handleReset}
+          className="ml-auto text-xs text-muted border border-border rounded px-2 py-0.5 active:opacity-60"
+        >
+          リセット
+        </button>
       </div>
 
       <div className="px-4 py-2 shrink-0">
