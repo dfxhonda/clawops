@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 // 第2引数 textFilter: 入庫先 free-text ilike 絞り (locationId と併用可能)
 // レーン判定ロジック (upcoming/overdue/recent の status + 日付条件) は spec forbidden、変更なし。
 const COLS = [
-  'order_id', 'prize_name_short', 'prize_name_raw', 'supplier_id',
+  'prize_id', 'order_id', 'prize_name_short', 'prize_name_raw', 'supplier_id',
   'expected_date', 'case_count', 'received_quantity', 'is_fully_received',
   'destination', 'status', 'arrived_at', 'unplanned_flag',
   // J-SCHEMA-DROP-FIX-01: zone_id / size_id 列は DB から削除済、COLS から除外。

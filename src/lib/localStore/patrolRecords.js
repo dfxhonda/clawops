@@ -261,7 +261,6 @@ export async function reconcileSyncedByBaseline(baselineRows) {
   return reconciled
 }
 
-
 // store メタ (storeName / machines / prefetchedAt) を保存。prefetch / load 共通。
 export async function putStoreMeta(storeCode, meta) {
   if (!storeCode) return
