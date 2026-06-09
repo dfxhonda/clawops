@@ -150,7 +150,8 @@ export default function OrderList() {
     setSaving(null)
   }
 
-  const isOverdue = (o) => o.expected_date && o.expected_date < today
+  // SPEC-ORDERLIST-OVERDUE-ARRIVED-FIX-01: arrived は予定日過去が当然。未入荷のみ遅延判定
+  const isOverdue = (o) => o.status !== 'arrived' && o.expected_date && o.expected_date < today
 
   return (
     <div className="min-h-screen bg-bg text-text flex flex-col">
