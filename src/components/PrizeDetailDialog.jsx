@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 // SPEC-PHASE-LABEL-FIX-01: phase の生値ではなく日本語ラベルで表示。
 import { getPhaseLabel } from '../constants/phaseLabels'
-import { isInternalNote } from '../lib/prizeUtils'
+import { isInternalNote, statusLabel } from '../lib/prizeUtils'
 
 const IMG_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/announcements/`
 
@@ -132,7 +132,7 @@ export default function PrizeDetailDialog({ row, onClose }) {
                 <Field label="予定日" value={fmtJstDate(row.expected_date)} testid="prize-detail-expected-date" />
               )}
               {row.status && (
-                <Field label="ステータス" value={row.status} testid="prize-detail-status" />
+                <Field label="ステータス" value={statusLabel(row.status)} testid="prize-detail-status" />
               )}
               {row.order_date && (
                 <Field label="発注日" value={fmtJstDate(row.order_date)} testid="prize-detail-order-date" />
