@@ -11,15 +11,17 @@ function makeBuilder(label) {
     _label: label,
     _eqCalls: [],
     _ilikeCalls: [],
+    _orCalls: [],
     select() { return builder },
     in() { return builder },
     gte() { return builder },
     lt() { return builder },
+    or(cond) { builder._orCalls.push(cond); return builder },
     eq(col, val) { builder._eqCalls.push([col, val]); return builder },
     ilike(col, val) { builder._ilikeCalls.push([col, val]); return builder },
     order() { return builder },
     then(resolve) {
-      calls.push({ label, eq: [...builder._eqCalls], ilike: [...builder._ilikeCalls] })
+      calls.push({ label, eq: [...builder._eqCalls], ilike: [...builder._ilikeCalls], or: [...builder._orCalls] })
       return Promise.resolve({ data: [] }).then(resolve)
     },
   }
@@ -90,6 +92,23 @@ describe('useArrivalOrders', () => {
   it('returns_lanes_with_3_keys_after_load', async () => {
     const { result } = renderHook(() => useArrivalOrders('WH-001'))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.lanes).toEqual({ upcoming: [], overdue: [], recent: [] })
+    expect(result.current.lanes).toEqual({ upcoming: [], youkakunin: [], recent: [] })
+  })
+
+  it('when_youkakunin_query_should_use_or_condition_for_null_and_past_dates', async () => {
+    const { result } = renderHook(() => useArrivalOrders())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    // q2 = youkakunin (2nd query)
+    const q2 = calls[1]
+    expect(q2.or).toHaveLength(1)
+    expect(q2.or[0]).toMatch(/expected_date\.lt\./)
+    expect(q2.or[0]).toContain('expected_date.is.null')
+  })
+
+  it('when_youkakunin_query_should_not_have_overdue_key_in_lanes', async () => {
+    const { result } = renderHook(() => useArrivalOrders())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.lanes).not.toHaveProperty('overdue')
+    expect(result.current.lanes).toHaveProperty('youkakunin')
   })
 })
