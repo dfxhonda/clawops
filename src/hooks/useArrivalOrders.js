@@ -15,26 +15,27 @@ const COLS = [
 ].join(', ')
 
 export function useArrivalOrders(locationId, textFilter) {
-  const [lanes, setLanes]   = useState({ upcoming: [], overdue: [], recent: [] })
+  const [lanes, setLanes]   = useState({ upcoming: [], youkakunin: [], recent: [] })
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const now   = new Date()
-    const today = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-    const d7    = new Date(now); d7.setDate(d7.getDate() - 7)
-    const d14   = new Date(now); d14.setDate(d14.getDate() - 14)
-    const overdue7 = d7.toLocaleDateString('sv-SE',  { timeZone: 'Asia/Tokyo' })
+    const now    = new Date()
+    const today  = now.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+    const d14    = new Date(now); d14.setDate(d14.getDate() - 14)
     const recent14 = d14.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 
     setLoading(true)
 
+    // q1: 予定 — 未入荷かつ expected_date >= today
     let q1 = supabase.from('prize_orders').select(COLS)
       .in('status', ['ordered', 'shipped', 'partial'])
       .gte('expected_date', today)
       .order('expected_date', { ascending: true })
+    // q2: 要確認 — 未入荷かつ (expected_date < today OR expected_date IS NULL)
+    // SPEC-ARRIVAL-LANE-CATCHALL-01: null(688件)/過去ordered(75件)の取りこぼしゼロ化
     let q2 = supabase.from('prize_orders').select(COLS)
-      .in('status', ['shipped', 'partial'])
-      .lt('expected_date', overdue7)
+      .in('status', ['ordered', 'shipped', 'partial'])
+      .or(`expected_date.lt.${today},expected_date.is.null`)
       .order('expected_date', { ascending: true })
     let q3 = supabase.from('prize_orders').select(COLS)
       .in('status', ['arrived', 'partial'])
@@ -55,9 +56,9 @@ export function useArrivalOrders(locationId, textFilter) {
     const [r1, r2, r3] = await Promise.all([q1, q2, q3])
 
     setLanes({
-      upcoming: r1.data ?? [],
-      overdue:  r2.data ?? [],
-      recent:   r3.data ?? [],
+      upcoming:   r1.data ?? [],
+      youkakunin: r2.data ?? [],
+      recent:     r3.data ?? [],
     })
     setLoading(false)
   }, [locationId, textFilter])

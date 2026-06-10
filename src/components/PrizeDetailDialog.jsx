@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 // SPEC-PHASE-LABEL-FIX-01: phase の生値ではなく日本語ラベルで表示。
 import { getPhaseLabel } from '../constants/phaseLabels'
+import { isInternalNote, statusLabel } from '../lib/prizeUtils'
 
 const IMG_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/announcements/`
 
@@ -94,8 +95,8 @@ export default function PrizeDetailDialog({ row, onClose }) {
             <span className="block w-12 h-1.5 rounded-full bg-border" />
           </div>
 
-          {/* 画像 (image_url ありなら全幅、なし or NULL なら非表示 = spec image_null_handling) */}
-          {imageUrl && (
+          {/* 画像: image_url ありなら全幅、なし or NULL なら『画像未登録』プレースホルダ */}
+          {imageUrl ? (
             <img
               src={IMG_BASE + imageUrl}
               alt={name}
@@ -104,6 +105,13 @@ export default function PrizeDetailDialog({ row, onClose }) {
               loading="lazy"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
+          ) : (
+            <div
+              data-testid="prize-detail-noimg"
+              className="flex items-center justify-center w-full h-20 bg-surface/40 border-b border-border/50"
+            >
+              <span className="text-sm text-muted">画像未登録</span>
+            </div>
           )}
 
           <div className="p-4 pb-8">
@@ -124,7 +132,7 @@ export default function PrizeDetailDialog({ row, onClose }) {
                 <Field label="予定日" value={fmtJstDate(row.expected_date)} testid="prize-detail-expected-date" />
               )}
               {row.status && (
-                <Field label="ステータス" value={row.status} testid="prize-detail-status" />
+                <Field label="ステータス" value={statusLabel(row.status)} testid="prize-detail-status" />
               )}
               {row.order_date && (
                 <Field label="発注日" value={fmtJstDate(row.order_date)} testid="prize-detail-order-date" />
@@ -155,7 +163,7 @@ export default function PrizeDetailDialog({ row, onClose }) {
                   {jan             && <Field label="JAN"    value={jan}             testid="prize-detail-jan" />}
                   {phase           && <Field label="フェーズ" value={getPhaseLabel(phase)} testid="prize-detail-phase" />}
                 </dl>
-                {notes && (
+                {notes && !isInternalNote(notes) && (
                   <p className="mt-3 text-sm text-text whitespace-pre-wrap px-3 py-2 rounded bg-bg/60 border border-border"
                      data-testid="prize-detail-notes">
                     {notes}

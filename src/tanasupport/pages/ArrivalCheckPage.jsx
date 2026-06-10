@@ -15,10 +15,11 @@ import PrizeDetailDialog from '../../components/PrizeDetailDialog'
 // J-ARRIVAL: 安定版で常時有効化 (VITE_FF_ARRIVAL_CHECK フラグ廃止、ヒロ承認B 2026-05-27)
 const ARRIVAL_CHECK_ENABLED = true
 
+// SPEC-ARRIVAL-LANE-CATCHALL-01: 要確認 → 予定 → 入庫済 の順、初期タブ=要確認
 const LANES = [
-  { key: 'upcoming', label: '予定',     emptyMsg: '入荷予定なし' },
-  { key: 'overdue',  label: '期日超過', emptyMsg: '超過なし' },
-  { key: 'recent',   label: '入庫済',   emptyMsg: '直近入庫なし' },
+  { key: 'youkakunin', label: '要確認', emptyMsg: '要確認なし' },
+  { key: 'upcoming',   label: '予定',   emptyMsg: '入荷予定なし' },
+  { key: 'recent',     label: '入庫済', emptyMsg: '直近入庫なし' },
 ]
 
 // J-STOCK-OWNER-FILTER-01 (司令塔Opus spec):
@@ -38,7 +39,7 @@ export default function ArrivalCheckPage() {
   const isStaff     = ownerType === 'staff'     && !!ownerId
   const locationId  = isWarehouse ? ownerId : null
 
-  const [lane, setLane]             = useState('upcoming')
+  const [lane, setLane]             = useState('youkakunin')
   // SPEC-ARRIVAL-UX-01 fix_1: 旧「入庫先で絞り込み...」textFilter UI 廃止。
   // useArrivalOrders は textFilter を依然受け取るため空文字で固定 (シグネチャ維持)。
   const textFilter = ''

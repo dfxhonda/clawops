@@ -16,6 +16,7 @@ import {
   getPhaseBadgeClass,
 } from '../../constants/phaseLabels'
 import { generateShortName } from '../../lib/shortenPrizeName'
+import { isInternalNote } from '../../lib/prizeUtils'
 
 function getImgUrl(path) {
   return path ? supabase.storage.from('announcements').getPublicUrl(path).data.publicUrl : null
@@ -98,6 +99,7 @@ export default function AdminPrizeMasterPage() {
   const [gridEdits, setGridEdits] = useState({})
   const [gridSaving, setGridSaving] = useState(false)
   const [imgLargeUrl, setImgLargeUrl] = useState(null)
+  const [editNotesOriginal, setEditNotesOriginal] = useState(null)
   // SPEC-PRIZE-MASTER-EDIT-DIALOG-01: detailRow state 撤廃、景品名タップは openEdit に統合。
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export default function AdminPrizeMasterPage() {
 
   function openNew() {
     setForm(EMPTY_FORM)
+    setEditNotesOriginal(null)
     setModal('new')
     setShowMore(false)
     setError(null)
@@ -155,8 +158,10 @@ export default function AdminPrizeMasterPage() {
       original_cost: data.original_cost ?? '', supplier_id: data.supplier_id ?? '',
       supplier_name: data.supplier_name ?? '', supplier_item_code: data.supplier_item_code ?? '',
       jan_code: data.jan_code ?? '', default_case_quantity: data.default_case_quantity ?? '',
-      image_url: data.image_url ?? '', notes: data.notes ?? '',
+      image_url: data.image_url ?? '',
+      notes: isInternalNote(data.notes) ? '' : (data.notes ?? ''),
     })
+    setEditNotesOriginal(isInternalNote(data.notes) ? data.notes : null)
     setModal(data)
     setShowMore(false)
     setError(null)
@@ -175,6 +180,7 @@ export default function AdminPrizeMasterPage() {
       short_name: shortName || null,
       original_cost: form.original_cost === '' ? null : Number(form.original_cost),
       default_case_quantity: form.default_case_quantity === '' ? null : Number(form.default_case_quantity),
+      notes: form.notes.trim() ? form.notes.trim() : (editNotesOriginal ?? (form.notes || null)),
       updated_by: staffName,
       updated_at: now,
     }
@@ -395,7 +401,9 @@ export default function AdminPrizeMasterPage() {
                       {r.image_url
                         ? <img src={getImgUrl(r.image_url)} alt="" className="w-7 h-7 object-cover rounded cursor-pointer"
                                onClick={ev => { ev.stopPropagation(); setImgLargeUrl(getImgUrl(r.image_url)) }} />
-                        : <div className="w-7 h-7 rounded bg-surface border border-border/40" />}
+                        : <div className="w-7 h-7 rounded bg-surface border border-border/40 flex items-center justify-center" data-testid="prize-list-noimg">
+                            <span className="text-[7px] text-muted leading-tight text-center">未登録</span>
+                          </div>}
                     </td>
                     <td className="py-0.5 px-1 max-w-[220px]">
                       {gridMode
@@ -537,11 +545,13 @@ export default function AdminPrizeMasterPage() {
 
               {/* 6: 画像URL */}
               <Field label="画像URL">
-                <Input value={form.image_url} onChange={v => f({ image_url: v })} placeholder="sgp/XXXXX.jpg" />
+                <Input value={form.image_url} onChange={v => f({ image_url: v })} placeholder="画像なし" />
                 {form.image_url
                   ? <img src={getImgUrl(form.image_url)} alt="" className="w-20 h-20 object-cover rounded cursor-pointer mt-1"
                          onClick={() => setImgLargeUrl(getImgUrl(form.image_url))} />
-                  : <div className="w-20 h-20 rounded bg-surface border border-border/40 mt-1" />}
+                  : <div className="w-20 h-20 rounded bg-surface border border-border/40 mt-1 flex items-center justify-center" data-testid="prize-edit-noimg">
+                      <span className="text-xs text-muted text-center">画像未登録</span>
+                    </div>}
               </Field>
 
               {/* その他 (折りたたみ) */}
@@ -573,6 +583,11 @@ export default function AdminPrizeMasterPage() {
                     <Input value={form.jan_code} onChange={v => f({ jan_code: v })} placeholder="JAN" />
                   </Field>
                   <Field label="備考">
+                    {editNotesOriginal && (
+                      <p className="text-[11px] text-muted bg-surface/50 border border-border/40 rounded px-2 py-1 mb-1 break-all" data-testid="prize-edit-internal-note-badge">
+                        内部メモ(読取専用): {editNotesOriginal}
+                      </p>
+                    )}
                     <textarea
                       value={form.notes ?? ''}
                       onChange={e => f({ notes: e.target.value })}
