@@ -15,8 +15,8 @@ const TILES = [
   { label: '取引先',       desc: '取引先マスタ管理',       path: '/admin/masters/suppliers',         impl: true  },
   { label: '区分',         desc: '入替区分マスタ管理',     path: '/admin/masters/categories',        impl: false },
   { label: '設定パターン', desc: '機械設定パターン管理',   path: '/admin/masters/settings-patterns', impl: false },
-  { label: '用語マスタ',   desc: '用語・略語マスタ管理',   path: '/admin/masters/glossary',          impl: false },
-  { label: 'マニュアル',   desc: '機械マニュアル管理',     path: '/admin/masters/manuals',           impl: false },
+  { label: '用語マスタ',   desc: '用語・略語マスタ管理',   path: '/admin/glossary',                  impl: true  },
+  { label: 'マニュアル',   desc: '機械マニュアル管理',     path: '/admin/manuals',                   impl: true  },
 ]
 
 export default function AdminMastersHubPage() {
