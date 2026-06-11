@@ -135,7 +135,7 @@ describe('StocktakeTargetPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/stock/hub?owner_type=staff&owner_id=S002')
   })
 
-  it('when_back_button_clicked_should_navigate_to_stock', async () => {
+  it('when_back_button_clicked_should_navigate_to_launcher', async () => {
     supabaseSelectHandler.mockReturnValue({ data: [] })
     mockUseAuth.mockReturnValue({ staffId: 'S001', staffRole: 'admin' })
 
@@ -143,7 +143,7 @@ describe('StocktakeTargetPage', () => {
     await waitFor(() => expect(screen.getByTestId('stocktake-target')).toBeTruthy())
 
     fireEvent.click(screen.getByTestId('page-header-back'))
-    expect(mockNavigate).toHaveBeenCalledWith('/stock')
+    expect(mockNavigate).toHaveBeenCalledWith('/launcher')
   })
 
   it('when_no_warehouses_should_show_empty_state', async () => {

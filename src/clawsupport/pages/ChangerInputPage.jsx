@@ -91,8 +91,8 @@ export default function ChangerInputPage() {
   const { machineCode } = useParams()
   const { staffId } = useAuth()
 
-  const storeName = location.state?.storeName
-  const storeId   = location.state?.storeId
+  const storeName  = location.state?.storeName
+  const storeCode  = location.state?.storeCode || location.state?.storeId || machineCode?.split('-')?.[0] || null
 
   const [machine, setMachine]               = useState(null)
   const [denominations, setDenominations]   = useState(null) // {in:[], out:[], withdraw:[], restock:[]}
@@ -301,7 +301,7 @@ export default function ChangerInputPage() {
       {/* ヘッダー */}
       <div className="sticky top-0 z-30 bg-bg border-b border-border px-4 py-3 flex items-center gap-3">
         <button
-          onClick={() => storeId ? navigate(`/clawsupport/store/${storeId}`) : navigate('/clawsupport')}
+          onClick={() => storeCode ? navigate(`/clawsupport/store/${storeCode}`) : navigate('/clawsupport')}
           className="text-2xl text-muted hover:text-accent"
           aria-label="戻る"
         >←</button>

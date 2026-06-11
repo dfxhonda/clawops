@@ -158,7 +158,10 @@ export default function OrderList() {
       <PageHeader
         module="tanasupport"
         title="発注一覧"
-        onBack={() => navigate('/tanasupport')}
+        onBack={() => ownerType && ownerId
+          ? navigate(`/stock/hub?owner_type=${ownerType}&owner_id=${ownerId}`)
+          : navigate('/stock')
+        }
       />
 
       {/* 3列サマリーバー */}

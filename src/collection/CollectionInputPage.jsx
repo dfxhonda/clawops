@@ -268,7 +268,7 @@ export default function CollectionInputPage() {
     <div data-testid="collection-input" className="flex flex-col" style={{ height: '100dvh' }}>
       <div className="flex-shrink-0 p-3 pb-2 border-b border-border">
         <div className="flex items-center justify-between mb-2">
-          <button onClick={() => navigate('/launcher')} className="text-sm text-gray-400 hover:text-white min-h-[44px] flex items-center gap-1">← 戻る</button>
+          <button onClick={() => navigate('/admin/collection')} className="text-sm text-gray-400 hover:text-white min-h-[44px] flex items-center gap-1">← 戻る</button>
           <button onClick={() => navigate('/collection/history')} className="text-sm text-blue-400 min-h-[44px]">履歴</button>
         </div>
         <h1 className="text-base font-bold text-text mb-1">集金入力</h1>

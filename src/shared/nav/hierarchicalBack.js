@@ -47,8 +47,8 @@ const OVERRIDES = [
   { test: /^\/tanasupport\/orders\/?$/, target: () => '/tanasupport' },
   { test: /^\/tanasupport\/stocktake\/?$/, target: () => '/tanasupport' },
   { test: /^\/tanasupport\/?$/, target: () => LAUNCHER },
-  { test: /^\/stock\/arrival\/?$/, target: () => '/tanasupport' },
-  { test: /^\/stock\/out\/?$/, target: () => '/tanasupport' },
+  { test: /^\/stock\/arrival\/?$/, target: () => '/stock' },
+  { test: /^\/stock\/out\/?$/, target: () => '/stock' },
 
   // 集金
   { test: /^\/collection\/history\/?$/, target: () => '/collection/input' },

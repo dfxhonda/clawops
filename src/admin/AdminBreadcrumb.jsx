@@ -31,6 +31,20 @@ const LABELS = {
   flags:               'Feature Flags',
   'replace-rules':     '入替提案ルール',
   sgp:                 'SGP連携設定',
+  orders:              '発注履歴',
+  'bulk-import':       'Excel一括取込',
+  labels:              'QRラベル',
+  import:              '取込',
+  collection:          '集金',
+  'collection-flag':   '集金フラグ',
+  'dev-assets':        'ファイル受け渡し',
+  'booth-ranking':     'ブース売上ランキング',
+  'payout-trend':      '払い出し率トレンド',
+  '7dma':              '7日移動平均',
+  'collection-cycle':  '集金サイクル',
+  'prize-cost':        '景品コスト回収',
+  'store-comparison':  '店舗間比較',
+  'profit-calendar':   '利益率カレンダー',
 }
 
 export default function AdminBreadcrumb() {
