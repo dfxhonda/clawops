@@ -75,7 +75,7 @@ export default function StocktakeTargetPage() {
         title="棚卸し対象選択"
         variant="compact"
         menuToLauncher
-        onBack={() => navigate('/stock')}
+        onBack={() => navigate('/launcher')}
       />
 
       <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-border">

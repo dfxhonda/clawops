@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useArrivalOrders } from '../../hooks/useArrivalOrders'
 import { supabase } from '../../lib/supabase'
 import ArrivalReceiveSheet from '../components/ArrivalReceiveSheet'
@@ -30,10 +29,12 @@ export default function ArrivalCheckPage() {
   if (!ARRIVAL_CHECK_ENABLED) return <Navigate to="/tanasupport" replace />
 
   const navigate = useNavigate()
-  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const [params] = useSearchParams()
   const ownerType = params.get('owner_type') ?? ''
   const ownerId   = params.get('owner_id')   ?? ''
+  const goBack = () => ownerType && ownerId
+    ? navigate(`/stock/hub?owner_type=${ownerType}&owner_id=${ownerId}`)
+    : navigate('/stock')
 
   const isWarehouse = ownerType === 'warehouse' && !!ownerId
   const isStaff     = ownerType === 'staff'     && !!ownerId

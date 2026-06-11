@@ -34,11 +34,11 @@ describe('getHierarchicalParent', () => {
     it('location/stocktake → /tanasupport', () => {
       expect(getHierarchicalParent('/tanasupport/location/abc/stocktake')).toBe('/tanasupport')
     })
-    it('arrival → /tanasupport', () => {
-      expect(getHierarchicalParent('/stock/arrival')).toBe('/tanasupport')
+    it('arrival → /stock', () => {
+      expect(getHierarchicalParent('/stock/arrival')).toBe('/stock')
     })
-    it('out → /tanasupport', () => {
-      expect(getHierarchicalParent('/stock/out')).toBe('/tanasupport')
+    it('out → /stock', () => {
+      expect(getHierarchicalParent('/stock/out')).toBe('/stock')
     })
     it('hub → /launcher', () => {
       expect(getHierarchicalParent('/tanasupport')).toBe('/launcher')

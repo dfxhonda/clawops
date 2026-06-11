@@ -3,7 +3,7 @@
 // UI-CHARTER-V2 [B] layout: text-base / 44px touch / Progressive Disclosure。
 // ERROR-HANDLING-V1: 取得失敗時は banner + 再試行可。
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import {
@@ -39,7 +39,15 @@ function formatJstDate(iso) {
 
 export default function AnnouncementsPage() {
   const navigate = useNavigate()
+  const [annoParams] = useSearchParams()
   const { staffId } = useAuth()
+  const goBack = () => {
+    const ownerType = annoParams.get('owner_type')
+    const ownerId   = annoParams.get('owner_id')
+    return ownerType && ownerId
+      ? navigate(`/stock/hub?owner_type=${ownerType}&owner_id=${ownerId}`)
+      : navigate('/stock')
+  }
   const [tab, setTab] = useState('new')        // 'new' | 'favorites'
   const [supplier, setSupplier] = useState('all')
   const [newRows, setNewRows] = useState([])
@@ -131,7 +139,7 @@ export default function AnnouncementsPage() {
         module="tanasupport"
         title="景品案内"
         variant="compact"
-        onBack={() => navigate('/tanasupport')}
+        onBack={goBack}
       />
 
       {/* タブバー */}

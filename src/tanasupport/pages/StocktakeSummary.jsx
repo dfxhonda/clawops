@@ -68,34 +68,7 @@ export default function StocktakeSummary() {
     try {
       const now = new Date().toISOString()
 
-      // 差異がある行のみ prize_stocks を更新
-      for (const line of diffLines) {
-        await supabase.from('prize_stocks')
-          .update({
-            quantity:         line.counted_quantity,
-            last_counted_at:  now,
-            last_counted_by:  line.counted_by ?? staffId,
-          })
-          .eq('prize_id', line.prize_id)
-          .eq('owner_type', session.location_owner_type)
-          .eq('owner_id', session.location_owner_id)
-
-        // 移動記録
-        await supabase.from('stock_movements').insert({
-          prize_id:        line.prize_id,
-          movement_type:   'count',
-          from_owner_type: session.location_owner_type,
-          from_owner_id:   session.location_owner_id,
-          to_owner_type:   session.location_owner_type,
-          to_owner_id:     session.location_owner_id,
-          quantity:        line.counted_quantity - line.system_quantity,
-          note:            `棚卸し ${sessionId}: ${line.system_quantity}→${line.counted_quantity}`,
-          created_by:      staffId,
-          updated_by:      staffId,
-        })
-      }
-
-      // セッション完了
+      // 在庫反映は admin 承認 lock 時 (trg_reconcile_on_stocktake_lock) が担う。completed = 現場締めのみ。
       await supabase.from('stocktake_sessions')
         .update({
           status:        'completed',
@@ -201,12 +174,15 @@ export default function StocktakeSummary() {
               disabled={applying}
               className="w-full py-4 rounded-xl bg-accent text-bg font-bold text-sm disabled:opacity-40 active:scale-[0.98] transition-all"
             >
-              {applying ? '在庫に反映中...' : '差異を在庫に反映して完了'}
+              {applying ? '処理中...' : '棚卸を締める'}
             </button>
           ) : (
             <div className="w-full py-4 rounded-xl bg-green-500/10 border border-green-500/40 text-green-400 font-bold text-sm text-center">
-              ✅ 在庫に反映済み
+              ✅ 締め済み (承認待ち)
             </div>
+          )}
+          {!applied && (
+            <p className="text-[11px] text-muted text-center">在庫への反映は管理者承認時に行われます</p>
           )}
 
           <button

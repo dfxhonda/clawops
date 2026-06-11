@@ -159,7 +159,7 @@ export default function LocationHubPage() {
           title="景品案内"
           sub="新着案内とお気に入り (発注検討用)"
           borderColor="#06b6d4"
-          onClick={() => navigate('/stock/announcements')}
+          onClick={() => navigate(`/stock/announcements?${qs}`)}
           testid="location-hub-card-announcements"
         />
       </div>

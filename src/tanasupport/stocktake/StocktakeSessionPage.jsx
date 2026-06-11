@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import {
@@ -19,7 +19,15 @@ const TABS = [
 
 export default function StocktakeSessionPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { staffId } = useAuth()
+  const goBackToHub = () => {
+    const ownerType = searchParams.get('owner_type')
+    const ownerId   = searchParams.get('owner_id')
+    return ownerType && ownerId
+      ? navigate(`/stock/hub?owner_type=${ownerType}&owner_id=${ownerId}`)
+      : navigate('/stock/stocktake')
+  }
 
   const [tab,      setTab]      = useState('machine')
   const [session,  setSession]  = useState(null)
@@ -124,7 +132,7 @@ export default function StocktakeSessionPage() {
         module="tanasupport"
         title="棚卸しセッション"
         subtitle={monthLabel}
-        onBack={() => navigate('/tanasupport')}
+        onBack={goBackToHub}
       />
 
       {/* タブバー */}
@@ -158,7 +166,7 @@ export default function StocktakeSessionPage() {
 
       <div className="fixed bottom-0 inset-x-0 bg-bg border-t border-border px-5 py-3">
         <button
-          onClick={() => navigate('/tanasupport')}
+          onClick={goBackToHub}
           className="w-full h-12 bg-surface border border-border text-text text-sm rounded-2xl font-medium active:scale-[0.98] transition-all"
         >
           ← ハブに戻る
