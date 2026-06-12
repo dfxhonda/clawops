@@ -55,7 +55,8 @@ const SevenDmaPage        = lazy(() => import('./admin/pages/reports/SevenDmaPag
 const CollectionCyclePage = lazy(() => import('./admin/pages/reports/CollectionCyclePage'))
 const PrizeCostPage       = lazy(() => import('./admin/pages/reports/PrizeCostPage'))
 const StoreComparisonPage = lazy(() => import('./admin/pages/reports/StoreComparisonPage'))
-const ProfitCalendarPage  = lazy(() => import('./admin/pages/reports/ProfitCalendarPage'))
+const ProfitCalendarPage      = lazy(() => import('./admin/pages/reports/ProfitCalendarPage'))
+const CollectionExportPage    = lazy(() => import('./admin/pages/reports/CollectionExportPage'))
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
 const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
 const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
@@ -266,6 +267,7 @@ function AppInner() {
         <Route path="reports/prize-cost"       element={<PrizeCostPage />} />
         <Route path="reports/store-comparison" element={<StoreComparisonPage />} />
         <Route path="reports/profit-calendar"  element={<ProfitCalendarPage />} />
+        <Route path="reports/collections"       element={<CollectionExportPage />} />
         <Route path="reports/*" element={<AdminPlaceholderPage />} />
         <Route path="settings" element={<AdminSettingsHubPage />} />
         <Route path="settings/*" element={<AdminPlaceholderPage />} />
