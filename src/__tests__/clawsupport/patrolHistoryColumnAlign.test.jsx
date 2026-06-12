@@ -1,0 +1,93 @@
+// @vitest-environment happy-dom
+// SPEC-PATROL-HISTORY-COLUMN-ALIGN-01: C1 mr-[17px] + C2 tabular-nums クラス存在確認
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) }),
+    }),
+  },
+}))
+
+vi.mock('../../services/patrol', () => ({
+  getPatrolMachines: vi.fn().mockResolvedValue([]),
+}))
+
+import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
+import MachineRow from '../../clawsupport/components/MachineRow'
+import MachineRowExpandedBoothList from '../../clawsupport/components/MachineRowExpandedBoothList'
+
+const DIFF_MAP = {
+  'M001': { inDiffs: [10, 20, 30, 40], outDiffs: [1, 2, 3, 4], daily: [5, 10, 15, 20], days: [2, 2, 2, 2] },
+}
+
+const MACHINE = {
+  machine_code: 'M001',
+  machine_name: 'テスト機',
+  store_code: 'TST01',
+  machine_types: { category: 'crane', locker_slots: 0 },
+  machine_models: { out_meter_count: 1 },
+  booths: [
+    { booth_code: 'B01', booth_number: 1, play_price: 100, meter_in_number: 1, meter_out_number: 1, is_active: true, machine_code: 'M001' },
+    { booth_code: 'B02', booth_number: 2, play_price: 100, meter_in_number: 1, meter_out_number: 1, is_active: true, machine_code: 'M001' },
+  ],
+  machine_lockers: [],
+}
+
+describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C1 alignment classes', () => {
+  it('when_StoreTotalsHeader_rendered_should_have_mr-17px_on_both_grid_containers', () => {
+    render(<StoreTotalsHeader diffMap={DIFF_MAP} mode="IN" />)
+    const labelGrid = screen.getByTestId('store-label-0').parentElement
+    const valueGrid = screen.getByTestId('store-value-0').parentElement
+    expect(labelGrid.className).toContain('mr-[17px]')
+    expect(valueGrid.className).toContain('mr-[17px]')
+  })
+
+  it('when_StoreTotalsHeader_rendered_should_have_tabular-nums_on_both_grid_containers', () => {
+    render(<StoreTotalsHeader diffMap={DIFF_MAP} mode="IN" />)
+    const labelGrid = screen.getByTestId('store-label-0').parentElement
+    const valueGrid = screen.getByTestId('store-value-0').parentElement
+    expect(labelGrid.className).toContain('tabular-nums')
+    expect(valueGrid.className).toContain('tabular-nums')
+  })
+})
+
+describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C2 tabular-nums', () => {
+  it('when_MachineRow_rendered_should_have_tabular-nums_on_grid', () => {
+    render(
+      <MemoryRouter>
+        <MachineRow
+          machine={MACHINE}
+          diffMap={DIFF_MAP}
+          todayMap={{}}
+          rankMap={{}}
+          mode="IN"
+          storeCode="TST01"
+        />
+      </MemoryRouter>
+    )
+    const grid = screen.getByTestId('machine-totals-M001')
+    expect(grid.className).toContain('tabular-nums')
+  })
+
+  it('when_MachineRowExpandedBoothList_rendered_should_have_tabular-nums_on_booth_grid', () => {
+    const BOOTH_SUMMARIES = {
+      B01: { inDiffs: [10, 20, 30, 40], outDiffs: [1, 2, 3, 4], daily: [5, 10, 15, 20], days: [2, 2, 2, 2] },
+    }
+    render(
+      <MemoryRouter>
+        <MachineRowExpandedBoothList
+          booths={MACHINE.booths}
+          diffMap={BOOTH_SUMMARIES}
+          todayMap={{}}
+          mode="IN"
+        />
+      </MemoryRouter>
+    )
+    const boothGrid = screen.getByTestId('booth-cell-B01-0').parentElement
+    expect(boothGrid.className).toContain('tabular-nums')
+  })
+})

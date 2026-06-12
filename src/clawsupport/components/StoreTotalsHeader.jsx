@@ -64,7 +64,7 @@ export default function StoreTotalsHeader({
           {leftSlot}
           {showToggle && <ModeToggle mode={mode} onModeChange={onModeChange} />}
         </div>
-        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-[10px] text-right leading-tight text-muted w-52">
+        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-[10px] text-right leading-tight text-muted w-52 mr-[17px] tabular-nums">
           {COLUMN_HEADERS.map((label, i) => (
             <div key={i} data-testid={`store-label-${i}`}>{label}</div>
           ))}
@@ -72,7 +72,7 @@ export default function StoreTotalsHeader({
       </div>
       <div className="px-4 pb-1.5 flex items-center gap-2">
         <div className="flex-1 min-w-0">{leftSlot2}</div>
-        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52">
+        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52 mr-[17px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div
               key={i}

@@ -25,7 +25,7 @@ export default function MachineRowExpandedBoothList({ booths, todayMap, diffMap,
                 {done && <span className="ml-1 text-emerald-400/70">✓</span>}
               </p>
             </div>
-            <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52">
+            <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52 tabular-nums">
               {Array.from({ length: COLUMN_COUNT }, (_, i) => (
                 <div
                   key={i}

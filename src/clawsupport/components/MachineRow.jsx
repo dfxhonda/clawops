@@ -56,7 +56,7 @@ export default function MachineRow({
         </div>
         <div
           data-testid={`machine-totals-${machine.machine_code}`}
-          className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52"
+          className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52 tabular-nums"
         >
           {Array.from({ length: COLUMN_COUNT }, (_, i) => {
             const isToday = i === NEWEST
