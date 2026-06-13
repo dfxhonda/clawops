@@ -132,11 +132,11 @@ export async function ensureLockerSlots(lockerId, slotCount) {
 }
 
 // スロット更新
-export async function updateLockerSlot(slotId, { prizeName, prizeValue, status, staffId, action }) {
+export async function updateLockerSlot(slotId, { prizeName, prizeValue, status, staffId, action, prizeId = null }) {
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('locker_slots')
-    .update({ prize_name: prizeName || null, prize_value: prizeValue || 0, status, updated_at: now, updated_by: staffId || null })
+    .update({ prize_name: prizeName || null, prize_value: prizeValue || 0, status, prize_id: prizeId, updated_at: now, updated_by: staffId || null })
     .eq('slot_id', slotId)
     .select()
     .single()
