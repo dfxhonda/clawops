@@ -140,9 +140,9 @@ describe('preprocessForOcr', () => {
       expect(data[i]).toBe(data[i + 1])
       expect(data[i + 1]).toBe(data[i + 2])
     }
-    // 中間画素 (120,120,120): 伸長→115, S字(1.3,midpoint=100)→(115-100)*1.3+100=119.5→120
-    // 量子化されず 120 になること (旧デフォルト4値なら 85 or 170 だった)
-    expect(data[8]).toBe(120)
+    // 中間画素 (120,120,120): 伸長→115, S字(1.3,midpoint=80)→(115-80)*1.3+80=125.5→126
+    // 量子化されず 126 になること (旧デフォルト4値なら 85 or 170 だった)
+    expect(data[8]).toBe(126)
     expect([0, 85, 170, 255]).not.toContain(data[8])
   })
 
@@ -216,7 +216,7 @@ describe('preprocessForOcr', () => {
     ])
     // posterizeLevels=0, default midpoint=100, default contrastFactor=1.3
     preprocessForOcr(data, { posterizeLevels: 0 })
-    // 伸長: min=0,max=255 → 恒等。S字(1.3, midpoint=100): (127-100)*1.3+100=135.1→135
-    expect(data[4]).toBe(135)
+    // 伸長: min=0,max=255 → 恒等。S字(1.3, midpoint=80): (127-80)*1.3+80=141.1→141
+    expect(data[4]).toBe(141)
   })
 })

@@ -99,14 +99,14 @@ export function buildHistogramFromGrayscalePixels(data) {
  *   青紫 LED 照明で B=0.114 により数字画素が暗く飛ぶ照明色依存ムラを解消。
  *   posterizeLevels default 4→0 (段階化無効)。
  *   contrastFactor default 1.8→1.3 (過剰コントラスト化を抑制)。
- *   midpoint 引数追加 default=100 (中点を白側に寄せ薄文字を拾いやすくする)。
+ *   midpoint 引数追加 default=80 (中点を白側に寄せ薄文字を拾いやすくする)。
  *
  * @param {Uint8ClampedArray|Uint8Array} data RGBA 連続バッファ
  * @param {{ binarize?: boolean, contrastFactor?: number, posterizeLevels?: number, midpoint?: number }} options
  * @returns {number|null} binarize=true 時は採用された Otsu 閾値、それ以外は null
  */
 export function preprocessForOcr(data, options = {}) {
-  const { binarize = false, contrastFactor = 1.3, posterizeLevels = 0, midpoint = 100 } = options
+  const { binarize = false, contrastFactor = 1.3, posterizeLevels = 0, midpoint = 80 } = options
   // 全チャンネル均等平均: 青紫LED照明でも色依存ムラなし (旧: ITU-R BT.601 ルマ係数)
   for (let i = 0; i < data.length; i += 4) {
     const gray = Math.round((data[i] + data[i + 1] + data[i + 2]) / 3)
