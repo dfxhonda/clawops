@@ -1,7 +1,7 @@
 // ロッカー投入ダイアログからのprize_masters即時作成
 // SPEC-LOCKER-HIGHVALUE-PHASE1-01: 手入力+画像保存フロー
 import { supabase } from '../lib/supabase'
-import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 import { writeAuditLog } from './audit'
 
 /**
@@ -35,7 +35,7 @@ export async function createLockerPrizeMaster({ name, value = 0, imageFile = nul
       prize_name: name.trim(),
       original_cost: parseInt(value) || 0,
       image_url: imageUrl,
-      organization_id: DFX_ORG_ID,
+      organization_id: CHANGE_ORG_ID,
       phase: 'active',
     })
     .select('prize_id, prize_name, original_cost, image_url')

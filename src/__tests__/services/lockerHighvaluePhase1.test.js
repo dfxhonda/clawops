@@ -48,7 +48,7 @@ describe('SPEC-LOCKER-HIGHVALUE-PHASE1-01 useLockerState prize_id threading', ()
 describe('SPEC-LOCKER-HIGHVALUE-PHASE1-01 createLockerPrizeMaster', () => {
   it('when_creating_master_should_insert_to_prize_masters_with_org_id', () => {
     expect(lockerMasterSrc).toContain('prize_masters')
-    expect(lockerMasterSrc).toContain('organization_id: DFX_ORG_ID')
+    expect(lockerMasterSrc).toContain('organization_id: CHANGE_ORG_ID')
     expect(lockerMasterSrc).toContain("phase: 'active'")
   })
 
