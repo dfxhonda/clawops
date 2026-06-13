@@ -130,6 +130,7 @@ export default function PatrolBoothInputPage() {
   const [ocrConfidence, setOcrConf]   = useState(null)
   const [ocrInputMethod,setOcrIM]     = useState('ocr')
   const [ocrError,      setOcrError]  = useState(null)
+  const [ocrPhotoUploadFailed, setOcrPhotoUploadFailed] = useState(false)
   const { runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   // Form state — OUT1
@@ -343,6 +344,7 @@ export default function PatrolBoothInputPage() {
     setOcrLoadingImg(previewUrl)
     setOcrState('loading')
     setOcrError(null)
+    setOcrPhotoUploadFailed(false)
     logger.info('ocr_photo_captured', { boothCode, blob_size: blob?.size ?? 0 })
 
     const result = await runOCR(base64, blob)
@@ -409,11 +411,14 @@ export default function PatrolBoothInputPage() {
       uploadStorage().then(up => {
         if (up?.url) {
           setOcrPhotoUrl(up.url)
+          setOcrPhotoUploadFailed(false)
           logger.info('ocr_photo_uploaded_lazy', { photo_url: up.url })
         } else if (up?.uploadError) {
+          setOcrPhotoUploadFailed(true)
           logger.error('ocr_photo_upload_error_lazy', { error: up.uploadError, code: 'ERR-OCR-PHOTO-001' })
         }
       }).catch(e => {
+        setOcrPhotoUploadFailed(true)
         logger.error('ocr_photo_upload_throw_lazy', { error: e?.message ?? String(e), code: 'ERR-OCR-PHOTO-002' })
       })
     }
@@ -882,7 +887,6 @@ export default function PatrolBoothInputPage() {
             <div className="text-xs text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span></span>
               {ocrEdited && <span className="text-amber-400">修正済み</span>}
-              {!photoUrl && <span className="text-amber-400">写真UP失敗</span>}
               {ocrInDiff != null && (
                 <span className={`font-bold px-2 py-0.5 rounded ${ocrInDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>IN差 {ocrInDiff >= 0 ? '+' : ''}{ocrInDiff}</span>
               )}
@@ -984,6 +988,11 @@ export default function PatrolBoothInputPage() {
             onClose={saveActions.reset}
             onRetry={handleSave}
           />
+        )}
+        {ocrPhotoUploadFailed && (
+          <div className="mx-4 mb-3 rounded-xl bg-red-950/50 border border-red-500/40 px-4 py-2" data-testid="ocr-photo-upload-failed-banner">
+            <span className="text-xs font-mono font-bold text-red-400">証拠写真のUPに失敗しました</span>
+          </div>
         )}
         {stockMoveErr && (
           <div className="mx-4 mb-3 rounded-xl bg-amber-950/50 border border-amber-500/40 px-4 py-2">
