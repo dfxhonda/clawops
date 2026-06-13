@@ -97,7 +97,7 @@ export function usePatrolForm(booth, machine) {
         return {
           ...o,
           meter: p?.meter != null ? String(p.meter) : '',
-          zan: prevZan != null ? String((prevZan || 0) + (prevHo || 0)) : '', // 理論残=前回残+前回補
+          zan: String((prevZan || 0) + (prevHo || 0)), // 理論残=前回残+前回補 (NULL/未定義は0扱い, 空文字生成なし)
           prize: p?.prize || '',
           prize_id: p?.prizeId || '',
           cost: p?.cost != null ? String(p.cost) : '',

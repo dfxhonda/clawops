@@ -274,7 +274,7 @@ export async function updatePatrolReading({ readingId, formData, outCount, staff
     upd.out_meter_2 = formData.outs[1].meter ? parseFloat(formData.outs[1].meter) : null
     upd.prize_name_2 = formData.outs[1].prize || null
     upd.prize_cost_2 = formData.outs[1].cost != null && formData.outs[1].cost !== '' ? parseInt(formData.outs[1].cost) : null
-    upd.stock_2 = formData.outs[1].zan ? parseInt(formData.outs[1].zan) : null
+    upd.stock_2 = formData.outs[1].zan != null && formData.outs[1].zan !== '' ? parseInt(formData.outs[1].zan) : 0
     upd.restock_2 = formData.outs[1].ho && formData.outs[1].ho !== 'ー' ? parseInt(formData.outs[1].ho) : 0
     upd.out_diff_2 = formData.outs[1].diff ?? null
   }
@@ -282,7 +282,7 @@ export async function updatePatrolReading({ readingId, formData, outCount, staff
     upd.out_meter_3 = formData.outs[2].meter ? parseFloat(formData.outs[2].meter) : null
     upd.prize_name_3 = formData.outs[2].prize || null
     upd.prize_cost_3 = formData.outs[2].cost != null && formData.outs[2].cost !== '' ? parseInt(formData.outs[2].cost) : null
-    upd.stock_3 = formData.outs[2].zan ? parseInt(formData.outs[2].zan) : null
+    upd.stock_3 = formData.outs[2].zan != null && formData.outs[2].zan !== '' ? parseInt(formData.outs[2].zan) : 0
     upd.restock_3 = formData.outs[2].ho && formData.outs[2].ho !== 'ー' ? parseInt(formData.outs[2].ho) : 0
     upd.out_diff_3 = formData.outs[2].diff ?? null
   }
@@ -368,7 +368,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     p.out_meter_2 = inp.outs[1].meter ? parseFloat(inp.outs[1].meter) : null
     p.prize_name_2 = inp.outs[1].prize || null
     p.prize_cost_2 = inp.outs[1].cost != null && inp.outs[1].cost !== '' ? parseInt(inp.outs[1].cost) : null
-    p.stock_2 = inp.outs[1].zan ? parseInt(inp.outs[1].zan) : null
+    p.stock_2 = inp.outs[1].zan != null && inp.outs[1].zan !== '' ? parseInt(inp.outs[1].zan) : 0
     p.restock_2 = inp.outs[1].ho && inp.outs[1].ho !== 'ー' ? parseInt(inp.outs[1].ho) : 0
     p.out_diff_2 = inp.outs[1].diff ?? null
   }
@@ -376,7 +376,7 @@ function _buildPayload(boothCode, entryType, inp, outCount, staffId) {
     p.out_meter_3 = inp.outs[2].meter ? parseFloat(inp.outs[2].meter) : null
     p.prize_name_3 = inp.outs[2].prize || null
     p.prize_cost_3 = inp.outs[2].cost != null && inp.outs[2].cost !== '' ? parseInt(inp.outs[2].cost) : null
-    p.stock_3 = inp.outs[2].zan ? parseInt(inp.outs[2].zan) : null
+    p.stock_3 = inp.outs[2].zan != null && inp.outs[2].zan !== '' ? parseInt(inp.outs[2].zan) : 0
     p.restock_3 = inp.outs[2].ho && inp.outs[2].ho !== 'ー' ? parseInt(inp.outs[2].ho) : 0
     p.out_diff_3 = inp.outs[2].diff ?? null
   }
