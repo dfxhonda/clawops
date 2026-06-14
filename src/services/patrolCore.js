@@ -45,6 +45,15 @@ const OPTIONAL_DEFAULT_KEYS = [
   'prize_cost_3',
 ]
 
+/** null-safe差分: いずれかのオペランドがnull/非数なら null */
+function safeDiff(newVal, prevVal) {
+  if (newVal == null || prevVal == null) return null
+  const n = Number(newVal)
+  const p = Number(prevVal)
+  if (!Number.isFinite(n) || !Number.isFinite(p)) return null
+  return n - p
+}
+
 function pickOptionalDefaultsFromPrev(prev) {
   if (!prev) return {}
   const o = {}
@@ -177,6 +186,7 @@ export async function savePatrolReading({
   staffId,
   optionalPatch = {},
   defaultsFromPrev = null,
+  playPrice = null,
 }) {
   if (!DFX_ORG_ID) {
     logger.error(ERR.AUTH_001, { message: 'DFX_ORG_ID is not set', boothCode })
@@ -203,6 +213,28 @@ export async function savePatrolReading({
   try {
     const patch = normalizeOptionalPatch(optionalPatch)
     const defaults = pickOptionalDefaultsFromPrev(defaultsFromPrev)
+
+    // prize_id/name整合: nameが変更されてidが未指定の場合、旧prize_idを継承すると不整合になる
+    if ('prize_name' in patch && !('prize_id' in patch)) {
+      delete defaults.prize_id
+    }
+
+    // 派生値計算 (null-safe: オペランドいずれかnullなら結果null、負値許容)
+    const prevOut  = defaultsFromPrev?.out_meter   ?? null
+    const prevOut2 = defaultsFromPrev?.out_meter_2 ?? null
+    const prevOut3 = defaultsFromPrev?.out_meter_3 ?? null
+    const prevIn   = defaultsFromPrev?.in_meter    ?? null
+    const newOut2  = 'out_meter_2' in patch ? patch.out_meter_2 : null
+    const newOut3  = 'out_meter_3' in patch ? patch.out_meter_3 : null
+    const outDiff  = safeDiff(numOut, prevOut)
+    const outDiff2 = safeDiff(newOut2, prevOut2)
+    const outDiff3 = safeDiff(newOut3, prevOut3)
+    const inDiff   = safeDiff(numIn, prevIn)
+    const numPrice = playPrice != null ? Number(playPrice) : null
+    const revenue  = outDiff != null && numPrice != null && Number.isFinite(numPrice)
+      ? outDiff * numPrice
+      : null
+
     const mergedOptionalForInsert = { ...defaults, ...patch }
 
     const basePayload = {
@@ -222,6 +254,12 @@ export async function savePatrolReading({
       input_method:        'manual',
       created_by:          staffId ?? null,
       organization_id:     DFX_ORG_ID,
+      out_diff:            outDiff,
+      out_diff_1:          outDiff,
+      out_diff_2:          outDiff2,
+      out_diff_3:          outDiff3,
+      in_diff:             inDiff,
+      revenue,
     }
 
     // 'replace' / 'collection' → 新規 INSERT
@@ -283,7 +321,17 @@ export async function savePatrolReading({
         entry_type:          'patrol',
         updated_at:          now,
         created_by:          staffId ?? null,
+        out_diff:            outDiff,
+        out_diff_1:          outDiff,
+        out_diff_2:          outDiff2,
+        out_diff_3:          outDiff3,
+        in_diff:             inDiff,
+        revenue,
         ...patch,
+      }
+      // prize_id整合: nameが変更されてidが未指定の場合、既存のprize_idをクリア
+      if ('prize_name' in patch && !('prize_id' in patch)) {
+        updatePayload.prize_id = null
       }
 
       const { error } = await supabase
