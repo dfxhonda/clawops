@@ -74,7 +74,6 @@ export async function uploadStoreRecords(storeCode, { staff, skipProbe = false }
         staffId: staff?.staffId ?? r.created_by ?? null,
         optionalPatch: r.optionalPatch ?? {},
         defaultsFromPrev: r.defaultsFromPrev ?? null,
-        playPrice: r.play_price ?? null,
       })
       if (res?.ok) {
         await markRecordSynced(r.localId)

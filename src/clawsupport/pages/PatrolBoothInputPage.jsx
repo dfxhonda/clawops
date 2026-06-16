@@ -526,7 +526,6 @@ export default function PatrolBoothInputPage() {
         input_method: ocrInputMethod ?? 'manual',
         ...optionalPatch,
         // store-exit autosync 用に payload を保持
-        play_price: booth?.play_price ?? machine?.machine_models?.meter_unit_price ?? null,
         optionalPatch,
         defaultsFromPrev: prev,
         created_by: staffId ?? null,
