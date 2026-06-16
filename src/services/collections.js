@@ -42,17 +42,21 @@ export async function getActiveBoothsForStore(storeCode, collectedAt, prevDate) 
   mrQuery = mrQuery.order('patrol_date', { ascending: false }).order('created_at', { ascending: false })
 
   const [{ data: machines }, { data: readings }, prevMap] = await Promise.all([
-    supabase.from('machines').select('machine_code, machine_name, machine_number').in('machine_code', machineCodes),
+    supabase.from('machines').select('machine_code, machine_name, machine_number, type_id').in('machine_code', machineCodes),
     mrQuery,
     getPrevMeterAfterDate(storeCode, boothCodes, prevDate),
   ])
   const mMap = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m]))
+
+  // COLLECTION-EXCLUDE-CHANGER-01 R1+R2: type_id==='changer'の機械のブースを集金リストから除外(表示のみ)
+  const changerMcs = new Set((machines ?? []).filter(m => m.type_id === 'changer').map(m => m.machine_code))
+
   const latestPerBooth = {}
   for (const r of readings ?? []) {
     if (!latestPerBooth[r.booth_code]) latestPerBooth[r.booth_code] = r
   }
 
-  const rows = booths.map(b => {
+  const rows = booths.filter(b => !changerMcs.has(b.machine_code)).map(b => {
     const r = latestPerBooth[b.booth_code]
     const m = mMap[b.machine_code] || {}
     const mcTail = b.machine_code?.split('-').pop() ?? b.machine_code
