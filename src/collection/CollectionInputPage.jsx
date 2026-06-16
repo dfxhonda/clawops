@@ -46,6 +46,7 @@ const COLS = [
   { key: 'in_meter_prev',     label: '前回IN',   w: 90 },
   { key: 'in_meter_current',  label: '今回IN',   w: 90 },
   { key: 'in_diff',           label: '差',       w: 64 },
+  { key: 'machine_sub',       label: '機械計',   w: 64 },
   { key: 'collection_amount', label: '集金額',   w: 96 },
   { key: 'advance_payment',   label: '立替',     w: 72 },
   { key: 'notes',             label: '備考',     w: 72 },  /* J-COLLECTION-12 ad-hoc-2: 立替と同幅 (120→72) */
@@ -183,6 +184,34 @@ export default function CollectionInputPage() {
     () => booths.reduce((s, b) => s + (Number(rowData[b.booth_code]?.advance_payment) || 0), 0),
     [booths, rowData]
   )
+
+  // COLLECTION-METER-DIFF-SUBTOTAL-01 R1+R2: 機械計+店舗計(表示のみ、保存/PDF不関与)
+  const machineSubtotalMap = useMemo(() => {
+    const byMachine = {}
+    for (const b of booths) {
+      if (!byMachine[b.machine_code]) byMachine[b.machine_code] = { total: 0, allNull: true, boothCodes: [] }
+      byMachine[b.machine_code].boothCodes.push(b.booth_code)
+      const r = rowData[b.booth_code] || emptyRow(b)
+      const d = diff(r.in_meter_current, r.in_meter_prev)
+      if (d != null) { byMachine[b.machine_code].total += d; byMachine[b.machine_code].allNull = false }
+    }
+    const result = {}
+    for (const [mc, info] of Object.entries(byMachine)) {
+      const sorted = [...info.boothCodes].sort()
+      result[mc] = { firstBoothCode: sorted[0], total: info.allNull ? null : info.total, multi: sorted.length > 1 }
+    }
+    return result
+  }, [booths, rowData])
+
+  const storeDiffTotal = useMemo(() => {
+    let total = 0, hasAny = false
+    for (const b of booths) {
+      const r = rowData[b.booth_code] || emptyRow(b)
+      const d = diff(r.in_meter_current, r.in_meter_prev)
+      if (d != null) { total += d; hasAny = true }
+    }
+    return hasAny ? total : null
+  }, [booths, rowData])
 
   // COLLECTION-SIGNATURE-REDESIGN-01 R1+R3: 先方サイン必須 → 確定 → PDF自動生成1回
   async function confirm() {
@@ -330,6 +359,8 @@ export default function CollectionInputPage() {
                 const open = openDenom === b.booth_code
                 const hasPhoto = !!r.receipt_photo_url
                 const isUploading = uploadingBooth === b.booth_code
+                const mInfo = machineSubtotalMap[b.machine_code]
+                const machineSubCell = !mInfo ? null : (!mInfo.multi || mInfo.firstBoothCode === b.booth_code) ? mInfo.total : '→↑'
                 return (
                   <Fragment key={b.booth_code}>
                   <tr data-testid="collection-booth-row" className="border-b border-border/40" style={{ height: 44 }}>
@@ -351,6 +382,10 @@ export default function CollectionInputPage() {
                     <td data-testid={`booth-in-diff-${b.booth_code}`}
                       className={`px-1 py-1 text-right tabular-nums ${inD == null ? 'text-muted' : inD < 0 ? 'text-red-600' : 'text-text'}`}>
                       {inD == null ? '—' : (inD >= 0 ? '+' : '') + inD}
+                    </td>
+                    <td data-testid={`booth-machine-sub-${b.booth_code}`}
+                      className={`px-1 py-1 text-right tabular-nums text-xs ${machineSubCell === '→↑' ? 'text-gray-400' : machineSubCell == null ? 'text-muted' : machineSubCell < 0 ? 'text-red-500' : 'text-text'}`}>
+                      {machineSubCell === '→↑' ? '→↑' : machineSubCell == null ? '—' : (machineSubCell >= 0 ? '+' : '') + machineSubCell}
                     </td>
                     <td className="px-1 py-1">
                       <button data-testid={`booth-amount-${b.booth_code}`}
@@ -431,6 +466,15 @@ export default function CollectionInputPage() {
                   </Fragment>
                 )
               })}
+              {/* COLLECTION-METER-DIFF-SUBTOTAL-01 R2: 店舗計行 */}
+              <tr data-testid="collection-store-total-row" className="border-t-2 border-border font-bold">
+                <td colSpan={6} className="px-1 py-2 text-xs text-right text-muted pr-2">店舗計</td>
+                <td data-testid="collection-store-diff-total"
+                  className={`px-1 py-2 text-right tabular-nums text-sm ${storeDiffTotal == null ? 'text-muted' : storeDiffTotal < 0 ? 'text-red-500' : 'text-text'}`}>
+                  {storeDiffTotal == null ? '—' : (storeDiffTotal >= 0 ? '+' : '') + storeDiffTotal}
+                </td>
+                <td colSpan={4} />
+              </tr>
             </tbody>
           </table>
         )}
