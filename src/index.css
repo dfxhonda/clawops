@@ -12,6 +12,23 @@
   --color-accent4: #a07af0;
   --color-text: #e8e8f0;
   --color-muted: #ccccdd; /* J-COLLECTION-12 ad-hoc-2 (Hiro 2026-05-29): 53% → 80% brightness で可視性UP */
+  /* DESIGN-TOKENS-V2 status (現物アクセントに割当、V1ライト色は採用せず) */
+  --color-success: #5ae0b0;     /* =accent3 */
+  --color-danger: #e05a5a;      /* =accent2 */
+  --color-danger-text: #ff6b6b; /* 暗背景で視認良いテキスト/アイコン用赤 */
+  --color-warning: #f0c040;     /* =accent */
+  --color-info: #5dade2;        /* 最頻青、情報/リンク/選択強調 */
+  /* DESIGN-TOKENS-V2 text hierarchy (3階層) */
+  --color-text-muted: #ccccdd;  /* 副次 (=既存mutedと同値、意味名別途提供) */
+  --color-text-dim: #8888a8;    /* 最頻グレーを外側階層に正式化 */
+  /* DESIGN-TOKENS-V2 typography scale (12pxフロア、inputは16px固定のため対象外) */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
 }
 
 html, body, #root {
