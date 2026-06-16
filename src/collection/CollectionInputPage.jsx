@@ -6,7 +6,7 @@ import {
   getActiveStores, getActiveBoothsForStore, getPrevCollectionMeters,
   saveCollection, getCollectionDetail,
   nextCollectionId, uploadReceiptPhoto,
-  uploadStaffSignature, deleteReceiptPhoto, // J-COLLECTION-09 fix_1/4
+  uploadCustomerSignature, deleteReceiptPhoto, // COLLECTION-SIGNATURE-REDESIGN-01 R1 / J-COLLECTION-09 fix_4
 } from '../services/collections'
 import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
@@ -67,7 +67,7 @@ export default function CollectionInputPage() {
   const [booths, setBooths] = useState([])
   const [rowData, setRowData] = useState({})
   const [collectionId, setCollectionId] = useState(null) // J-COLLECTION-05: 事前生成
-  const [staffSignatureData, setStaffSignatureData] = useState(null) // J-COLLECTION-07 fix_1
+  const [customerSignatureData, setCustomerSignatureData] = useState(null) // COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン
   const [openDenom, setOpenDenom] = useState(null)
   const [currentField, setCurrentField] = useState(null)
   const [loaded, setLoaded] = useState(false)
@@ -98,7 +98,7 @@ export default function CollectionInputPage() {
 
   async function handleLoad() {
     if (!storeCode) return
-    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setStaffSignatureData(null)
+    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setCustomerSignatureData(null)
     // J-COLLECTION-12 R3: 店舗再読み込み時はサインステージも初期化
     setSignStage('idle'); setSignaturePoints(0)
     const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt, prevDate || null)
@@ -183,22 +183,23 @@ export default function CollectionInputPage() {
     [booths, rowData]
   )
 
+  // COLLECTION-SIGNATURE-REDESIGN-01 R1+R3: 先方サイン必須 → 確定 → PDF自動生成1回
   async function confirm() {
-    if (!staffSignatureData) { setError('弊社担当者署名が必要です'); return }
+    if (!customerSignatureData) { setError('先方ご担当者様のサインが必要です'); return }
     setSaving(true); setError(null)
-    // J-COLLECTION-09 fix_1: 弊社署名を Storage 'receipts' に upload (失敗時は continue=DB側のみ NULL で確定継続)
-    let sigUrl = null, sigPath = null
+    // 先方サインをStorageにupload (失敗時は確定継続)
+    let customerSigUrl = null, customerSigPath = null
     try {
-      const { data: sigData, error: sigErr } = await uploadStaffSignature({
-        collectionId, dataUrl: staffSignatureData,
+      const { data: sigData, error: sigErr } = await uploadCustomerSignature({
+        collectionId, dataUrl: customerSignatureData,
       })
       if (sigErr) throw sigErr
-      sigUrl = sigData?.url ?? null
-      sigPath = sigData?.path ?? null
+      customerSigUrl = sigData?.url ?? null
+      customerSigPath = sigData?.path ?? null
     } catch (e) {
-      // 致命ではない (確定自体は継続)。 URLなしの確定は後続署名再生成時に dataURL 不可ペナルティ。
-      setError(`ERR-COLLECTION-009: 弊社署名の保存に失敗 (${e.message})、確定は継続します`)
+      setError(`ERR-COLLECTION-009: 先方署名の保存に失敗 (${e.message})、確定は継続します`)
     }
+    const now = new Date().toISOString()
     const payload = Object.fromEntries(booths.map(b => {
       const r = rowData[b.booth_code] || {}
       return [b.booth_code, {
@@ -217,10 +218,34 @@ export default function CollectionInputPage() {
       storeCode, collectedAt, prevCollectionDate: prevDate || null,
       collectedBy: staffId || null, collectedByName: staffName || null,
       booths, rowData: payload, collectionId,
-      staffSignatureUrl: sigUrl, staffSignaturePath: sigPath, // J-COLLECTION-09 fix_1
+      customerSignatureUrl: customerSigUrl,
+      customerSignaturePath: customerSigPath,
+      customerSignedAt: now,
     })
     if (e) { setError(`ERR-COLLECTION-002: ${e.message}`); setSaving(false); return }
-    setConfirmedId(data.collectionId); setSaving(false)
+    const savedId = data.collectionId
+    setConfirmedId(savedId)
+    setSaving(false)
+    // R3: 確定後にPDFを1回だけ自動生成
+    if (generatingPdfRef.current) return
+    generatingPdfRef.current = true
+    setGeneratingPdf(true)
+    try {
+      const { data: detail, error: detailErr } = await getCollectionDetail(savedId)
+      if (detailErr) throw detailErr
+      await ensureJpFont()
+      const doc = await buildCollectionSlip({
+        ...detail,
+        collectedByName: staffName,
+        customerSignatureDataUrl: customerSignatureData,
+      })
+      doc.save(slipFileName(savedId))
+    } catch (pdfErr) {
+      setError(`ERR-COLLECTION-003: PDF自動生成に失敗 (${pdfErr.message})`)
+    } finally {
+      generatingPdfRef.current = false
+      setGeneratingPdf(false)
+    }
   }
 
   // J-COLLECTION-09 fix_4 / J-COLLECTION-12 R2: レシート × ボタンは確認ダイアログ経由のみ削除実行。
@@ -238,27 +263,6 @@ export default function CollectionInputPage() {
     if (path) {
       const { error: dErr } = await deleteReceiptPhoto({ path })
       if (dErr) setError(`ERR-COLLECTION-010: レシート削除失敗 (${dErr.message})`)
-    }
-  }
-
-  // J-COLLECTION-11 fix_B: 二度押しガード。ref で同期ロック、UI は state で disabled+spinner。
-  async function outputPdf() {
-    if (generatingPdfRef.current) return
-    generatingPdfRef.current = true
-    setError(null)
-    setGeneratingPdf(true)
-    try {
-      const { data, error: e } = await getCollectionDetail(confirmedId)
-      if (e) throw e
-      await ensureJpFont()
-      // J-COLLECTION-13: getCollectionDetail が data.issuer を返す (...data で透過的に伝播)
-      const doc = await buildCollectionSlip({ ...data, collectedByName: staffName, staffSignatureDataUrl: staffSignatureData })
-      doc.save(slipFileName(confirmedId))
-    } catch (e) {
-      setError(`ERR-COLLECTION-003: ${e.message}`)
-    } finally {
-      generatingPdfRef.current = false
-      setGeneratingPdf(false)
     }
   }
 
@@ -431,14 +435,15 @@ export default function CollectionInputPage() {
         )}
       </div>
 
-      {/* J-COLLECTION-07 fix_1 / J-COLLECTION-12 R3: 弊社担当者署名は 'drawing' 段階のみ表示。
-          'idle' 中は canvas を畳んでフッタに「サイン」ボタンだけ出す。 */}
+      {/* COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン。'drawing' 段階のみ表示 (2段ボタン維持)。
+          弊社手書きUI撤去 → collectedByName はヘッダ「担当: 〇〇」で表示済み。 */}
       {loaded && booths.length > 0 && !locked && signStage === 'drawing' && (
         <div className="flex-shrink-0 px-3 pt-2">
           <SignatureCanvas
-            value={staffSignatureData}
-            onChange={setStaffSignatureData}
+            value={customerSignatureData}
+            onChange={setCustomerSignatureData}
             onPointCount={setSignaturePoints}
+            label="先方ご担当者様"
           />
         </div>
       )}
@@ -450,8 +455,8 @@ export default function CollectionInputPage() {
             <div data-testid="collection-total" className="text-2xl font-bold text-text tabular-nums">{yen(collectionTotal)} 円</div>
           </div>
           {!locked ? (
-            // J-COLLECTION-12 R3: 'idle' は「サイン」(canvas を出すための disabled-look + enabled tap)、
-            // 'drawing' は points >= SIGNATURE_MIN_POINTS で「確定」 enabled、未達は「サイン」 disabled。
+            // COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン必須2段ボタン。
+            // 'idle'→「サイン」タップでcanvas表示、signaturePoints>=閾値で「確定」enabled。
             signStage === 'idle' ? (
               <button
                 data-testid="collection-sign-toggle-button"
@@ -459,7 +464,7 @@ export default function CollectionInputPage() {
                 disabled={saving}
                 className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
               >
-                サイン
+                先方サイン
               </button>
             ) : signaturePoints < SIGNATURE_MIN_POINTS ? (
               <button
@@ -468,27 +473,25 @@ export default function CollectionInputPage() {
                 aria-disabled="true"
                 className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
               >
-                サイン
+                先方サイン
               </button>
             ) : (
               <button
                 data-testid="collection-confirm-button"
                 onClick={confirm}
-                disabled={saving || !staffSignatureData}
+                disabled={saving || !customerSignatureData}
                 className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
               >
                 {saving ? '保存中…' : '確定'}
               </button>
             )
           ) : (
+            // R3: 確定後はPDF自動生成のみ。PDF出力ボタン廃止。
             <div className="flex flex-col items-end gap-1">
               <span data-testid="collection-confirmed-badge" className="text-xs text-green-400 font-bold">確定済 {confirmedId}</span>
-              <button data-testid="collection-pdf-button" onClick={outputPdf}
-                disabled={generatingPdf}
-                aria-busy={generatingPdf || undefined}
-                className={`px-5 min-h-[48px] rounded-xl bg-emerald-600 text-white text-base font-bold disabled:opacity-60 ${generatingPdf ? 'ring-2 ring-emerald-300' : ''}`}>
-                {generatingPdf ? '生成中…' : 'PDF出力'}
-              </button>
+              {generatingPdf && (
+                <span className="text-xs text-gray-400" aria-busy="true">PDF生成中…</span>
+              )}
             </div>
           )}
         </div>

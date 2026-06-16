@@ -161,6 +161,9 @@ export async function saveCollection({
   storeCode, collectedAt, prevCollectionDate, collectedBy, collectedByName, booths, rowData, notes,
   collectionId: providedId,
   staffSignatureUrl: providedSigUrl, staffSignaturePath: providedSigPath,
+  customerSignatureUrl: providedCustomerSigUrl,
+  customerSignaturePath: providedCustomerSigPath,
+  customerSignedAt: providedCustomerSignedAt,
 }) {
   let collectionId = providedId
   if (!collectionId) {
@@ -187,6 +190,10 @@ export async function saveCollection({
     // J-COLLECTION-09 fix_1: 弊社担当者署名 Storage URL/Path
     staff_signature_url: providedSigUrl || null,
     staff_signature_path: providedSigPath || null,
+    // COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン (確定時同時保存)
+    customer_signature_url: providedCustomerSigUrl || null,
+    customer_signature_path: providedCustomerSigPath || null,
+    customer_signed_at: providedCustomerSignedAt || null,
   })
   if (e1) return { data: null, error: e1 }
 
