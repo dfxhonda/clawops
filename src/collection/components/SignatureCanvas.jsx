@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 // J-COLLECTION-12 R4: 署名有効点数の閾値 (point count、stroke count ではない)。
 export const SIGNATURE_MIN_POINTS = 20
@@ -8,9 +8,15 @@ export const SIGNATURE_MIN_POINTS = 20
 // - penイベントが来ない環境では最初のpointerIdに固定 → 指でも書ける。
 // - getCoalescedEvents()でPencil高頻度サンプリング、quadraticCurveToで手ブレ補正。
 // - 筆圧(e.pressure)で線幅可変(0または非対応は固定幅fallback)。
+// - userSelect/WebkitUserSelect/WebkitTouchCallout:none + onContextMenu で文字選択モード抑止。
 // onChange(dataURL|null) を返す。onPointCount(n)は有効点のみ加算。
-export default function SignatureCanvas({ value, onChange, height = 120, onPointCount, label = '担当者署名' }) {
-  const ref = useRef(null)
+// hideActions=true: 内部クリアボタン/ラベルを非表示(外部ボタンバーで管理する場合)。
+// ref: forwardRef で clear() を公開。
+const SignatureCanvas = forwardRef(function SignatureCanvas(
+  { value, onChange, height = 120, onPointCount, label = '担当者署名', hideActions = false },
+  ref
+) {
+  const canvasRef = useRef(null)
   const drawing = useRef(false)
   const lastPos = useRef(null)
   const pointCountRef = useRef(0)
@@ -18,8 +24,11 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
   const isPenActive = useRef(false)
   const [dirty, setDirty] = useState(!!value)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useImperativeHandle(ref, () => ({ clear }))
+
   useEffect(() => {
-    const c = ref.current
+    const c = canvasRef.current
     if (!c) return
     const r = c.getBoundingClientRect()
     c.width = Math.max(200, Math.round(r.width))
@@ -38,11 +47,11 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
   }, [height])
 
   function pos(e) {
-    const r = ref.current.getBoundingClientRect()
+    const r = canvasRef.current.getBoundingClientRect()
     const p = e.touches ? e.touches[0] : e
     return [
-      ((p.clientX - r.left) * ref.current.width) / r.width,
-      ((p.clientY - r.top) * ref.current.height) / r.height,
+      ((p.clientX - r.left) * canvasRef.current.width) / r.width,
+      ((p.clientY - r.top) * canvasRef.current.height) / r.height,
     ]
   }
 
@@ -64,7 +73,7 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
     if (!drawing.current) return
     if (e.pointerId !== activePointerId.current) return
     e.preventDefault()
-    const ctx = ref.current.getContext('2d')
+    const ctx = canvasRef.current.getContext('2d')
     const events = e.getCoalescedEvents?.() ?? [e]
     for (const ce of events) {
       const [x, y] = pos(ce)
@@ -90,13 +99,15 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
     activePointerId.current = null
     if (!drawing.current) return
     drawing.current = false
-    onChange(ref.current.toDataURL('image/png'))
+    onChange(canvasRef.current.toDataURL('image/png'))
   }
 
   function clear() {
-    const ctx = ref.current.getContext('2d')
+    const c = canvasRef.current
+    if (!c) return
+    const ctx = c.getContext('2d')
     ctx.fillStyle = '#fff'
-    ctx.fillRect(0, 0, ref.current.width, ref.current.height)
+    ctx.fillRect(0, 0, c.width, c.height)
     setDirty(false)
     pointCountRef.current = 0
     activePointerId.current = null
@@ -109,26 +120,44 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
   return (
     <div className="border border-border rounded bg-white">
       <canvas
-        ref={ref}
+        ref={canvasRef}
         data-testid="signature-canvas"
-        style={{ width: '100%', height, touchAction: 'none', display: 'block' }}
+        style={{
+          width: '100%',
+          height,
+          touchAction: 'none',
+          display: 'block',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+        }}
         onPointerDown={start}
         onPointerMove={move}
         onPointerUp={end}
         onPointerLeave={end}
         onPointerCancel={end}
+        onContextMenu={e => e.preventDefault()}
       />
-      <div className="flex items-center justify-between px-2 py-1 border-t border-border bg-gray-50">
-        <span className="text-xs text-gray-600">{label}{!dirty && <span className="text-red-500 ml-1">必須</span>}</span>
-        <button
-          type="button"
-          data-testid="signature-clear"
-          onClick={clear}
-          className="text-xs text-blue-600 px-2 min-h-[32px]"
+      {!hideActions && (
+        <div
+          className="flex items-center justify-between px-2 py-1 border-t border-border bg-gray-50"
+          style={{ userSelect: 'none' }}
         >
-          クリア
-        </button>
-      </div>
+          <span className="text-xs text-gray-600" style={{ userSelect: 'none' }}>
+            {label}{!dirty && <span className="text-red-500 ml-1">必須</span>}
+          </span>
+          <button
+            type="button"
+            data-testid="signature-clear"
+            onClick={clear}
+            className="text-xs text-blue-600 px-2 min-h-[32px]"
+          >
+            クリア
+          </button>
+        </div>
+      )}
     </div>
   )
-}
+})
+
+export default SignatureCanvas

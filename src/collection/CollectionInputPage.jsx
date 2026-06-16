@@ -78,6 +78,7 @@ export default function CollectionInputPage() {
   const [error, setError] = useState(null)
   const [generatingPdf, setGeneratingPdf] = useState(false) // J-COLLECTION-11 fix_B
   const generatingPdfRef = useRef(false) // 同期 ref ロック (state batching を待たない)
+  const signatureCanvasRef = useRef(null)
   // J-COLLECTION-12 R3: 2段ボタン状態。
   //   'idle' = SignatureCanvas 非表示、フッタボタンは「サイン」disabled→tap で 'drawing' へ
   //   'drawing' = SignatureCanvas 表示中、point < threshold は「サイン」disabled、>= は「確定」enabled
@@ -435,15 +436,43 @@ export default function CollectionInputPage() {
         )}
       </div>
 
-      {/* COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン。'drawing' 段階のみ表示 (2段ボタン維持)。
-          弊社手書きUI撤去 → collectedByName はヘッダ「担当: 〇〇」で表示済み。 */}
+      {/* COLLECTION-SIGNATURE-REDESIGN-01 R1+追補: 先方サイン。'drawing' 段階のみ表示。
+          ボタン3本(キャンセル/リセット/確定)をキャンバス上部に配置(右利き手のひら対策)。
+          height=220 で従来比約1.8倍。hideActions でキャンバス内クリアボタンを非表示。 */}
       {loaded && booths.length > 0 && !locked && signStage === 'drawing' && (
-        <div className="flex-shrink-0 px-3 pt-2">
+        <div className="flex-shrink-0 px-3 pt-2 space-y-2">
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => { setSignStage('idle'); setCustomerSignatureData(null); setSignaturePoints(0) }}
+              className="px-4 min-h-[44px] rounded-lg border border-border text-text text-sm"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={() => signatureCanvasRef.current?.clear()}
+              className="px-4 min-h-[44px] rounded-lg border border-border text-text text-sm"
+            >
+              リセット
+            </button>
+            <button
+              data-testid="collection-confirm-button"
+              onClick={confirm}
+              disabled={saving || signaturePoints < SIGNATURE_MIN_POINTS || !customerSignatureData}
+              className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
+            >
+              {saving ? '保存中…' : '確定'}
+            </button>
+          </div>
           <SignatureCanvas
+            ref={signatureCanvasRef}
             value={customerSignatureData}
             onChange={setCustomerSignatureData}
             onPointCount={setSignaturePoints}
             label="先方ご担当者様"
+            height={220}
+            hideActions
           />
         </div>
       )}
@@ -455,8 +484,8 @@ export default function CollectionInputPage() {
             <div data-testid="collection-total" className="text-2xl font-bold text-text tabular-nums">{yen(collectionTotal)} 円</div>
           </div>
           {!locked ? (
-            // COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン必須2段ボタン。
-            // 'idle'→「サイン」タップでcanvas表示、signaturePoints>=閾値で「確定」enabled。
+            // 'idle' → フッターに「先方サイン」ボタン。
+            // 'drawing' → ボタンはキャンバス上部ボタンバーで管理、フッターは合計表示のみ。
             signStage === 'idle' ? (
               <button
                 data-testid="collection-sign-toggle-button"
@@ -466,25 +495,7 @@ export default function CollectionInputPage() {
               >
                 先方サイン
               </button>
-            ) : signaturePoints < SIGNATURE_MIN_POINTS ? (
-              <button
-                data-testid="collection-confirm-button"
-                disabled
-                aria-disabled="true"
-                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
-              >
-                先方サイン
-              </button>
-            ) : (
-              <button
-                data-testid="collection-confirm-button"
-                onClick={confirm}
-                disabled={saving || !customerSignatureData}
-                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
-              >
-                {saving ? '保存中…' : '確定'}
-              </button>
-            )
+            ) : null
           ) : (
             // R3: 確定後はPDF自動生成のみ。PDF出力ボタン廃止。
             <div className="flex flex-col items-end gap-1">
