@@ -15,7 +15,7 @@ export const VIEW_MODES = {
     type:      'count',
   },
   DAILY: {
-    label:     '日売',
+    label:     'Ave',
     sourceKey: 'daily',
     type:      'perDay',
   },

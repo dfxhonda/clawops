@@ -55,12 +55,12 @@ describe('StoreTotalsHeader (SPEC-02)', () => {
     expect(screen.getByTestId('store-value-3').textContent).toBe('15.0')
   })
 
-  it('when_onModeChange_provided_should_render_3_button_toggle_IN_日売_OUT', () => {
+  it('when_onModeChange_provided_should_render_3_button_toggle_IN_Ave_OUT', () => {
     const onModeChange = vi.fn()
     render(<StoreTotalsHeader diffMap={diffMap} mode="IN" onModeChange={onModeChange} />)
     expect(screen.getByTestId('patrol-view-mode-toggle')).toBeTruthy()
     expect(screen.getByTestId('patrol-view-mode-btn-IN').textContent).toBe('IN')
-    expect(screen.getByTestId('patrol-view-mode-btn-DAILY').textContent).toBe('日売')
+    expect(screen.getByTestId('patrol-view-mode-btn-DAILY').textContent).toBe('Ave')
     expect(screen.getByTestId('patrol-view-mode-btn-OUT').textContent).toBe('OUT')
     fireEvent.click(screen.getByTestId('patrol-view-mode-btn-DAILY'))
     expect(onModeChange).toHaveBeenCalledWith('DAILY')
