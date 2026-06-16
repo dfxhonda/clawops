@@ -30,22 +30,22 @@ export function useLockerState(lockers = []) {
   )
 
   const wonSlot = useCallback(async (slotId, staffId) => {
-    await updateLockerSlot(slotId, { prizeName: null, prizeValue: 0, status: 'empty', staffId, action: 'won' })
+    await updateLockerSlot(slotId, { prizeName: null, prizeValue: 0, status: 'empty', staffId, action: 'won', prizeId: null })
     await refresh()
   }, [refresh])
 
-  const fillSlot = useCallback(async (slotId, { name, value }, staffId) => {
-    await updateLockerSlot(slotId, { prizeName: name, prizeValue: value, status: 'filled', staffId, action: 'set' })
+  const fillSlot = useCallback(async (slotId, { name, value, prizeId = null }, staffId) => {
+    await updateLockerSlot(slotId, { prizeName: name, prizeValue: value, status: 'filled', staffId, action: 'set', prizeId })
     await refresh()
   }, [refresh])
 
   const removeSlot = useCallback(async (slotId, staffId) => {
-    await updateLockerSlot(slotId, { prizeName: null, prizeValue: 0, status: 'empty', staffId, action: 'remove' })
+    await updateLockerSlot(slotId, { prizeName: null, prizeValue: 0, status: 'empty', staffId, action: 'remove', prizeId: null })
     await refresh()
   }, [refresh])
 
-  const swapSlot = useCallback(async (slotId, { name, value }, staffId) => {
-    await updateLockerSlot(slotId, { prizeName: name, prizeValue: value, status: 'filled', staffId, action: 'swap' })
+  const swapSlot = useCallback(async (slotId, { name, value, prizeId = null }, staffId) => {
+    await updateLockerSlot(slotId, { prizeName: name, prizeValue: value, status: 'filled', staffId, action: 'swap', prizeId })
     await refresh()
   }, [refresh])
 

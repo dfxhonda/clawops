@@ -70,6 +70,16 @@ export async function ensureJpFont() {
   await jpLoading
 }
 
+// COLLECTION-SIGNATURE-REDESIGN-01 R4: レシート写真の並列fetch + メモリキャッシュ。
+// Promiseをキャッシュして同一URLの並列fetch重複をゼロにする (module-level, session永続)。
+const _photoCache = new Map()
+function _prefetchPhoto(url) {
+  if (!_photoCache.has(url)) {
+    _photoCache.set(url, fetchAsDataURL(url))
+  }
+  return _photoCache.get(url)
+}
+
 const yen = n => `${Number(n || 0).toLocaleString()}`
 
 /**
@@ -242,6 +252,10 @@ export async function buildCollectionSlip({
   const cellH = (297 - RM * 2 - RG * (ROWS_GRID - 1)) / ROWS_GRID  // ≈ 68.61mm
 
   const boothsArr = booths ?? []
+  // R4: 写真URLを並列prefetch (全DLが走ってから描画ループへ)
+  await Promise.allSettled(
+    boothsArr.filter(b => b.receipt_photo_url).map(b => _prefetchPhoto(b.receipt_photo_url).catch(() => null))
+  )
   for (let i = 0; i < boothsArr.length; i++) {
     const indexOnPage = i % PER_PAGE
     if (indexOnPage === 0) {
@@ -255,7 +269,7 @@ export async function buildCollectionSlip({
     const b = boothsArr[i]
     if (!b.receipt_photo_url) continue // 空セル (写真なし)
     try {
-      const dataUrl = await fetchAsDataURL(b.receipt_photo_url)
+      const dataUrl = await _prefetchPhoto(b.receipt_photo_url) // キャッシュ済み (resolved Promise)
       const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
       // contain: アスペクト維持で cell に収める、左上起点
       const props = doc.getImageProperties(dataUrl)

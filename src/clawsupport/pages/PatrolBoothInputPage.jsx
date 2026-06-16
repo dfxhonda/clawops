@@ -130,6 +130,7 @@ export default function PatrolBoothInputPage() {
   const [ocrConfidence, setOcrConf]   = useState(null)
   const [ocrInputMethod,setOcrIM]     = useState('ocr')
   const [ocrError,      setOcrError]  = useState(null)
+  const [ocrPhotoUploadFailed, setOcrPhotoUploadFailed] = useState(false)
   const { runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
 
   // Form state — OUT1
@@ -167,6 +168,7 @@ export default function PatrolBoothInputPage() {
   // J-STOCK-MACHINE-fix-03b: stock_movements 記録失敗時の非ブロッキングバナー (best-effort)
   const [stockMoveErr,  setStockMoveErr] = useState(null)
   const [showAlert,     setShowAlert] = useState(false)
+  const [showBackConfirm, setShowBackConfirm] = useState(false)
   const [historyKey,    setHistoryKey] = useState(0)
 
   const touch = key => () => setTouched(t => ({ ...t, [key]: true }))
@@ -275,7 +277,9 @@ export default function PatrolBoothInputPage() {
     !!touched.stock3     ||
     !!touched.restock3   ||
     !!touched.prizeName3 ||
-    !!touched.prizeCost3
+    !!touched.prizeCost3 ||
+    !!touched.stock      ||
+    !!touched.restock
 
   function buildOptionalPatch() {
     const patch = {}
@@ -340,6 +344,7 @@ export default function PatrolBoothInputPage() {
     setOcrLoadingImg(previewUrl)
     setOcrState('loading')
     setOcrError(null)
+    setOcrPhotoUploadFailed(false)
     logger.info('ocr_photo_captured', { boothCode, blob_size: blob?.size ?? 0 })
 
     const result = await runOCR(base64, blob)
@@ -406,11 +411,14 @@ export default function PatrolBoothInputPage() {
       uploadStorage().then(up => {
         if (up?.url) {
           setOcrPhotoUrl(up.url)
+          setOcrPhotoUploadFailed(false)
           logger.info('ocr_photo_uploaded_lazy', { photo_url: up.url })
         } else if (up?.uploadError) {
+          setOcrPhotoUploadFailed(true)
           logger.error('ocr_photo_upload_error_lazy', { error: up.uploadError, code: 'ERR-OCR-PHOTO-001' })
         }
       }).catch(e => {
+        setOcrPhotoUploadFailed(true)
         logger.error('ocr_photo_upload_throw_lazy', { error: e?.message ?? String(e), code: 'ERR-OCR-PHOTO-002' })
       })
     }
@@ -694,8 +702,10 @@ export default function PatrolBoothInputPage() {
     //
     // FIX1: isDirty gate を削除。canSave のみでスワイプ保存 (IDB/prev pre-populate 済の値も保存)。
     // 旧: isDirty && canSave → 未编集扱いでスワイプしても保存されなかった (probe h1 根本原因)。
+    // C3 (SPEC-PATROL-BOOTH-BACK-SAVE-CONFIRM-01): isDirty gate 復活。stock/restock 含む C4 修正後は
+    // 未編集スワイプで不要保存が発生しないよう isDirty を再付与 (canSave は inMeter prefill で常 true)。
     setTimeout(() => {
-      if (canSave) handleSave(navFn)
+      if (isDirty && canSave) handleSave(navFn)
       else navFn()
     }, 220)
   }
@@ -877,7 +887,6 @@ export default function PatrolBoothInputPage() {
             <div className="text-xs text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
               <span>信頼度: <span className={confCls}>{confPct != null ? `${confPct}%` : '—'}</span></span>
               {ocrEdited && <span className="text-amber-400">修正済み</span>}
-              {!photoUrl && <span className="text-amber-400">写真UP失敗</span>}
               {ocrInDiff != null && (
                 <span className={`font-bold px-2 py-0.5 rounded ${ocrInDiff >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>IN差 {ocrInDiff >= 0 ? '+' : ''}{ocrInDiff}</span>
               )}
@@ -947,7 +956,7 @@ export default function PatrolBoothInputPage() {
         module="clawsupport"
         title={boothLabel}
         variant="compact"
-        onBack={() => { if (canSave) handleSave(goBack); else goBack() }}
+        onBack={() => { if (!isDirty) goBack(); else setShowBackConfirm(true) }}
 
       />
 
@@ -979,6 +988,11 @@ export default function PatrolBoothInputPage() {
             onClose={saveActions.reset}
             onRetry={handleSave}
           />
+        )}
+        {ocrPhotoUploadFailed && (
+          <div className="mx-4 mb-3 rounded-xl bg-red-950/50 border border-red-500/40 px-4 py-2" data-testid="ocr-photo-upload-failed-banner">
+            <span className="text-xs font-mono font-bold text-red-400">証拠写真のUPに失敗しました</span>
+          </div>
         )}
         {stockMoveErr && (
           <div className="mx-4 mb-3 rounded-xl bg-amber-950/50 border border-amber-500/40 px-4 py-2">
@@ -1080,6 +1094,49 @@ export default function PatrolBoothInputPage() {
         orgId={DFX_ORG_ID}
         staffId={staffId}
       />
+
+      {showBackConfirm && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowBackConfirm(false)}
+          data-testid="back-confirm-overlay"
+        >
+          <div
+            className="w-full max-w-lg bg-bg border-t border-border rounded-t-2xl p-5 pb-8 space-y-4"
+            onClick={e => e.stopPropagation()}
+            data-testid="back-confirm-dialog"
+          >
+            <div className="text-sm font-bold text-center">保存しますか？</div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowBackConfirm(false)}
+                className="flex-1 py-3 rounded-xl border border-border text-sm text-muted"
+                data-testid="back-confirm-cancel"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowBackConfirm(false); goBack() }}
+                className="flex-1 py-3 rounded-xl border border-border text-sm text-muted"
+                data-testid="back-confirm-discard"
+              >
+                保存せず戻る
+              </button>
+              <button
+                type="button"
+                disabled={!canSave}
+                onClick={() => { setShowBackConfirm(false); handleSave(goBack) }}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm disabled:opacity-40"
+                data-testid="back-confirm-save"
+              >
+                保存して戻る
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

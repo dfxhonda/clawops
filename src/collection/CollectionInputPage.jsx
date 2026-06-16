@@ -6,7 +6,7 @@ import {
   getActiveStores, getActiveBoothsForStore, getPrevCollectionMeters,
   saveCollection, getCollectionDetail,
   nextCollectionId, uploadReceiptPhoto,
-  uploadStaffSignature, deleteReceiptPhoto, // J-COLLECTION-09 fix_1/4
+  uploadCustomerSignature, deleteReceiptPhoto, // COLLECTION-SIGNATURE-REDESIGN-01 R1 / J-COLLECTION-09 fix_4
 } from '../services/collections'
 import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
@@ -46,6 +46,7 @@ const COLS = [
   { key: 'in_meter_prev',     label: '前回IN',   w: 90 },
   { key: 'in_meter_current',  label: '今回IN',   w: 90 },
   { key: 'in_diff',           label: '差',       w: 64 },
+  { key: 'machine_sub',       label: '機械計',   w: 64 },
   { key: 'collection_amount', label: '集金額',   w: 96 },
   { key: 'advance_payment',   label: '立替',     w: 72 },
   { key: 'notes',             label: '備考',     w: 72 },  /* J-COLLECTION-12 ad-hoc-2: 立替と同幅 (120→72) */
@@ -67,7 +68,7 @@ export default function CollectionInputPage() {
   const [booths, setBooths] = useState([])
   const [rowData, setRowData] = useState({})
   const [collectionId, setCollectionId] = useState(null) // J-COLLECTION-05: 事前生成
-  const [staffSignatureData, setStaffSignatureData] = useState(null) // J-COLLECTION-07 fix_1
+  const [customerSignatureData, setCustomerSignatureData] = useState(null) // COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン
   const [openDenom, setOpenDenom] = useState(null)
   const [currentField, setCurrentField] = useState(null)
   const [loaded, setLoaded] = useState(false)
@@ -78,6 +79,7 @@ export default function CollectionInputPage() {
   const [error, setError] = useState(null)
   const [generatingPdf, setGeneratingPdf] = useState(false) // J-COLLECTION-11 fix_B
   const generatingPdfRef = useRef(false) // 同期 ref ロック (state batching を待たない)
+  const signatureCanvasRef = useRef(null)
   // J-COLLECTION-12 R3: 2段ボタン状態。
   //   'idle' = SignatureCanvas 非表示、フッタボタンは「サイン」disabled→tap で 'drawing' へ
   //   'drawing' = SignatureCanvas 表示中、point < threshold は「サイン」disabled、>= は「確定」enabled
@@ -98,7 +100,7 @@ export default function CollectionInputPage() {
 
   async function handleLoad() {
     if (!storeCode) return
-    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setStaffSignatureData(null)
+    setLoading(true); setError(null); setLoaded(false); setConfirmedId(null); setCustomerSignatureData(null)
     // J-COLLECTION-12 R3: 店舗再読み込み時はサインステージも初期化
     setSignStage('idle'); setSignaturePoints(0)
     const { data, error: e } = await getActiveBoothsForStore(storeCode, collectedAt, prevDate || null)
@@ -183,22 +185,51 @@ export default function CollectionInputPage() {
     [booths, rowData]
   )
 
+  // COLLECTION-METER-DIFF-SUBTOTAL-01 R1+R2: 機械計+店舗計(表示のみ、保存/PDF不関与)
+  const machineSubtotalMap = useMemo(() => {
+    const byMachine = {}
+    for (const b of booths) {
+      if (!byMachine[b.machine_code]) byMachine[b.machine_code] = { total: 0, allNull: true, boothCodes: [] }
+      byMachine[b.machine_code].boothCodes.push(b.booth_code)
+      const r = rowData[b.booth_code] || emptyRow(b)
+      const d = diff(r.in_meter_current, r.in_meter_prev)
+      if (d != null) { byMachine[b.machine_code].total += d; byMachine[b.machine_code].allNull = false }
+    }
+    const result = {}
+    for (const [mc, info] of Object.entries(byMachine)) {
+      const sorted = [...info.boothCodes].sort()
+      result[mc] = { firstBoothCode: sorted[0], total: info.allNull ? null : info.total, multi: sorted.length > 1 }
+    }
+    return result
+  }, [booths, rowData])
+
+  const storeDiffTotal = useMemo(() => {
+    let total = 0, hasAny = false
+    for (const b of booths) {
+      const r = rowData[b.booth_code] || emptyRow(b)
+      const d = diff(r.in_meter_current, r.in_meter_prev)
+      if (d != null) { total += d; hasAny = true }
+    }
+    return hasAny ? total : null
+  }, [booths, rowData])
+
+  // COLLECTION-SIGNATURE-REDESIGN-01 R1+R3: 先方サイン必須 → 確定 → PDF自動生成1回
   async function confirm() {
-    if (!staffSignatureData) { setError('弊社担当者署名が必要です'); return }
+    if (!customerSignatureData) { setError('先方ご担当者様のサインが必要です'); return }
     setSaving(true); setError(null)
-    // J-COLLECTION-09 fix_1: 弊社署名を Storage 'receipts' に upload (失敗時は continue=DB側のみ NULL で確定継続)
-    let sigUrl = null, sigPath = null
+    // 先方サインをStorageにupload (失敗時は確定継続)
+    let customerSigUrl = null, customerSigPath = null
     try {
-      const { data: sigData, error: sigErr } = await uploadStaffSignature({
-        collectionId, dataUrl: staffSignatureData,
+      const { data: sigData, error: sigErr } = await uploadCustomerSignature({
+        collectionId, dataUrl: customerSignatureData,
       })
       if (sigErr) throw sigErr
-      sigUrl = sigData?.url ?? null
-      sigPath = sigData?.path ?? null
+      customerSigUrl = sigData?.url ?? null
+      customerSigPath = sigData?.path ?? null
     } catch (e) {
-      // 致命ではない (確定自体は継続)。 URLなしの確定は後続署名再生成時に dataURL 不可ペナルティ。
-      setError(`ERR-COLLECTION-009: 弊社署名の保存に失敗 (${e.message})、確定は継続します`)
+      setError(`ERR-COLLECTION-009: 先方署名の保存に失敗 (${e.message})、確定は継続します`)
     }
+    const now = new Date().toISOString()
     const payload = Object.fromEntries(booths.map(b => {
       const r = rowData[b.booth_code] || {}
       return [b.booth_code, {
@@ -217,10 +248,34 @@ export default function CollectionInputPage() {
       storeCode, collectedAt, prevCollectionDate: prevDate || null,
       collectedBy: staffId || null, collectedByName: staffName || null,
       booths, rowData: payload, collectionId,
-      staffSignatureUrl: sigUrl, staffSignaturePath: sigPath, // J-COLLECTION-09 fix_1
+      customerSignatureUrl: customerSigUrl,
+      customerSignaturePath: customerSigPath,
+      customerSignedAt: now,
     })
     if (e) { setError(`ERR-COLLECTION-002: ${e.message}`); setSaving(false); return }
-    setConfirmedId(data.collectionId); setSaving(false)
+    const savedId = data.collectionId
+    setConfirmedId(savedId)
+    setSaving(false)
+    // R3: 確定後にPDFを1回だけ自動生成
+    if (generatingPdfRef.current) return
+    generatingPdfRef.current = true
+    setGeneratingPdf(true)
+    try {
+      const { data: detail, error: detailErr } = await getCollectionDetail(savedId)
+      if (detailErr) throw detailErr
+      await ensureJpFont()
+      const doc = await buildCollectionSlip({
+        ...detail,
+        collectedByName: staffName,
+        customerSignatureDataUrl: customerSignatureData,
+      })
+      doc.save(slipFileName(savedId))
+    } catch (pdfErr) {
+      setError(`ERR-COLLECTION-003: PDF自動生成に失敗 (${pdfErr.message})`)
+    } finally {
+      generatingPdfRef.current = false
+      setGeneratingPdf(false)
+    }
   }
 
   // J-COLLECTION-09 fix_4 / J-COLLECTION-12 R2: レシート × ボタンは確認ダイアログ経由のみ削除実行。
@@ -238,27 +293,6 @@ export default function CollectionInputPage() {
     if (path) {
       const { error: dErr } = await deleteReceiptPhoto({ path })
       if (dErr) setError(`ERR-COLLECTION-010: レシート削除失敗 (${dErr.message})`)
-    }
-  }
-
-  // J-COLLECTION-11 fix_B: 二度押しガード。ref で同期ロック、UI は state で disabled+spinner。
-  async function outputPdf() {
-    if (generatingPdfRef.current) return
-    generatingPdfRef.current = true
-    setError(null)
-    setGeneratingPdf(true)
-    try {
-      const { data, error: e } = await getCollectionDetail(confirmedId)
-      if (e) throw e
-      await ensureJpFont()
-      // J-COLLECTION-13: getCollectionDetail が data.issuer を返す (...data で透過的に伝播)
-      const doc = await buildCollectionSlip({ ...data, collectedByName: staffName, staffSignatureDataUrl: staffSignatureData })
-      doc.save(slipFileName(confirmedId))
-    } catch (e) {
-      setError(`ERR-COLLECTION-003: ${e.message}`)
-    } finally {
-      generatingPdfRef.current = false
-      setGeneratingPdf(false)
     }
   }
 
@@ -325,6 +359,8 @@ export default function CollectionInputPage() {
                 const open = openDenom === b.booth_code
                 const hasPhoto = !!r.receipt_photo_url
                 const isUploading = uploadingBooth === b.booth_code
+                const mInfo = machineSubtotalMap[b.machine_code]
+                const machineSubCell = !mInfo ? null : (!mInfo.multi || mInfo.firstBoothCode === b.booth_code) ? mInfo.total : '→↑'
                 return (
                   <Fragment key={b.booth_code}>
                   <tr data-testid="collection-booth-row" className="border-b border-border/40" style={{ height: 44 }}>
@@ -346,6 +382,10 @@ export default function CollectionInputPage() {
                     <td data-testid={`booth-in-diff-${b.booth_code}`}
                       className={`px-1 py-1 text-right tabular-nums ${inD == null ? 'text-muted' : inD < 0 ? 'text-red-600' : 'text-text'}`}>
                       {inD == null ? '—' : (inD >= 0 ? '+' : '') + inD}
+                    </td>
+                    <td data-testid={`booth-machine-sub-${b.booth_code}`}
+                      className={`px-1 py-1 text-right tabular-nums text-xs ${machineSubCell === '→↑' ? 'text-gray-400' : machineSubCell == null ? 'text-muted' : machineSubCell < 0 ? 'text-red-500' : 'text-text'}`}>
+                      {machineSubCell === '→↑' ? '→↑' : machineSubCell == null ? '—' : (machineSubCell >= 0 ? '+' : '') + machineSubCell}
                     </td>
                     <td className="px-1 py-1">
                       <button data-testid={`booth-amount-${b.booth_code}`}
@@ -426,19 +466,57 @@ export default function CollectionInputPage() {
                   </Fragment>
                 )
               })}
+              {/* COLLECTION-METER-DIFF-SUBTOTAL-01 R2: 店舗計行 */}
+              <tr data-testid="collection-store-total-row" className="border-t-2 border-border font-bold">
+                <td colSpan={6} className="px-1 py-2 text-xs text-right text-muted pr-2">店舗計</td>
+                <td data-testid="collection-store-diff-total"
+                  className={`px-1 py-2 text-right tabular-nums text-sm ${storeDiffTotal == null ? 'text-muted' : storeDiffTotal < 0 ? 'text-red-500' : 'text-text'}`}>
+                  {storeDiffTotal == null ? '—' : (storeDiffTotal >= 0 ? '+' : '') + storeDiffTotal}
+                </td>
+                <td colSpan={4} />
+              </tr>
             </tbody>
           </table>
         )}
       </div>
 
-      {/* J-COLLECTION-07 fix_1 / J-COLLECTION-12 R3: 弊社担当者署名は 'drawing' 段階のみ表示。
-          'idle' 中は canvas を畳んでフッタに「サイン」ボタンだけ出す。 */}
+      {/* COLLECTION-SIGNATURE-REDESIGN-01 R1+追補: 先方サイン。'drawing' 段階のみ表示。
+          ボタン3本(キャンセル/リセット/確定)をキャンバス上部に配置(右利き手のひら対策)。
+          height=220 で従来比約1.8倍。hideActions でキャンバス内クリアボタンを非表示。 */}
       {loaded && booths.length > 0 && !locked && signStage === 'drawing' && (
-        <div className="flex-shrink-0 px-3 pt-2">
+        <div className="flex-shrink-0 px-3 pt-2 space-y-2">
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => { setSignStage('idle'); setCustomerSignatureData(null); setSignaturePoints(0) }}
+              className="px-4 min-h-[44px] rounded-lg border border-border text-text text-sm"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={() => signatureCanvasRef.current?.clear()}
+              className="px-4 min-h-[44px] rounded-lg border border-border text-text text-sm"
+            >
+              リセット
+            </button>
+            <button
+              data-testid="collection-confirm-button"
+              onClick={confirm}
+              disabled={saving || signaturePoints < SIGNATURE_MIN_POINTS || !customerSignatureData}
+              className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
+            >
+              {saving ? '保存中…' : '確定'}
+            </button>
+          </div>
           <SignatureCanvas
-            value={staffSignatureData}
-            onChange={setStaffSignatureData}
+            ref={signatureCanvasRef}
+            value={customerSignatureData}
+            onChange={setCustomerSignatureData}
             onPointCount={setSignaturePoints}
+            label="先方ご担当者様"
+            height={220}
+            hideActions
           />
         </div>
       )}
@@ -450,8 +528,8 @@ export default function CollectionInputPage() {
             <div data-testid="collection-total" className="text-2xl font-bold text-text tabular-nums">{yen(collectionTotal)} 円</div>
           </div>
           {!locked ? (
-            // J-COLLECTION-12 R3: 'idle' は「サイン」(canvas を出すための disabled-look + enabled tap)、
-            // 'drawing' は points >= SIGNATURE_MIN_POINTS で「確定」 enabled、未達は「サイン」 disabled。
+            // 'idle' → フッターに「先方サイン」ボタン。
+            // 'drawing' → ボタンはキャンバス上部ボタンバーで管理、フッターは合計表示のみ。
             signStage === 'idle' ? (
               <button
                 data-testid="collection-sign-toggle-button"
@@ -459,36 +537,16 @@ export default function CollectionInputPage() {
                 disabled={saving}
                 className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
               >
-                サイン
+                先方サイン
               </button>
-            ) : signaturePoints < SIGNATURE_MIN_POINTS ? (
-              <button
-                data-testid="collection-confirm-button"
-                disabled
-                aria-disabled="true"
-                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
-              >
-                サイン
-              </button>
-            ) : (
-              <button
-                data-testid="collection-confirm-button"
-                onClick={confirm}
-                disabled={saving || !staffSignatureData}
-                className="px-5 min-h-[48px] rounded-xl bg-blue-600 text-white text-base font-bold disabled:opacity-50"
-              >
-                {saving ? '保存中…' : '確定'}
-              </button>
-            )
+            ) : null
           ) : (
+            // R3: 確定後はPDF自動生成のみ。PDF出力ボタン廃止。
             <div className="flex flex-col items-end gap-1">
               <span data-testid="collection-confirmed-badge" className="text-xs text-green-400 font-bold">確定済 {confirmedId}</span>
-              <button data-testid="collection-pdf-button" onClick={outputPdf}
-                disabled={generatingPdf}
-                aria-busy={generatingPdf || undefined}
-                className={`px-5 min-h-[48px] rounded-xl bg-emerald-600 text-white text-base font-bold disabled:opacity-60 ${generatingPdf ? 'ring-2 ring-emerald-300' : ''}`}>
-                {generatingPdf ? '生成中…' : 'PDF出力'}
-              </button>
+              {generatingPdf && (
+                <span className="text-xs text-gray-400" aria-busy="true">PDF生成中…</span>
+              )}
             </div>
           )}
         </div>

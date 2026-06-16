@@ -1,11 +1,10 @@
-// SPEC-PATROL-ISDIRTY-FIX-01
+// SPEC-PATROL-ISDIRTY-FIX-01 + SPEC-PATROL-BOOTH-BACK-SAVE-CONFIRM-01 C4
 // Regression: isDirty only checked meter fields, ignoring prize/settings touches.
-// For entryType 入替/設定変更, swipe-save (isDirty && canSave) never triggered.
-// Fix: extend isDirty to cover all buildOptionalPatch touched fields.
+// C4 adds slot-1 stock/restock (was missing, causing back-dialog to skip when stock touched).
 
 import { describe, it, expect } from 'vitest'
 
-// Mirrors the production isDirty expression in PatrolBoothInputPage after the fix.
+// Mirrors the production isDirty expression in PatrolBoothInputPage after the C4 fix.
 function computeIsDirty(touched) {
   return !!(
     touched.inMeter    ||
@@ -26,7 +25,9 @@ function computeIsDirty(touched) {
     touched.stock3     ||
     touched.restock3   ||
     touched.prizeName3 ||
-    touched.prizeCost3
+    touched.prizeCost3 ||
+    touched.stock      ||
+    touched.restock
   )
 }
 
@@ -70,5 +71,14 @@ describe('isDirty (PatrolBoothInputPage swipe-save gate)', () => {
 
   it('when_stock3_touched_should_be_dirty', () => {
     expect(computeIsDirty({ stock3: true })).toBe(true)
+  })
+
+  // C4 regression cases: slot-1 stock/restock were missing before the fix
+  it('when_only_stock_touched_should_be_dirty', () => {
+    expect(computeIsDirty({ stock: true })).toBe(true)
+  })
+
+  it('when_only_restock_touched_should_be_dirty', () => {
+    expect(computeIsDirty({ restock: true })).toBe(true)
   })
 })

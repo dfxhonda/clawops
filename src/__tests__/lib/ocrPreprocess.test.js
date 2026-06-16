@@ -111,7 +111,7 @@ describe('preprocessForOcr', () => {
     expect(data[16]).toBe(255)
   })
 
-  it('binarize=true: カラー画像でも輝度係数で正しく処理する', () => {
+  it('binarize=true: カラー画像(RGB原色)でも均等グレースケールで正しく処理する', () => {
     const data = new Uint8ClampedArray([
       255, 0, 0, 255,
       0, 255, 0, 255,
@@ -125,7 +125,8 @@ describe('preprocessForOcr', () => {
     }
   })
 
-  it('default (fix-10 S字1.8 + posterize=4): S字後 4 段量子化で 0/85/170/255 のいずれかに丸まる', () => {
+  // AC2: default posterizeLevels=0 → 量子化なし → 連続グレー保持
+  it('default (GRAY-EQUALIZE-01: contrastFactor=1.3 + posterizeLevels=0): 連続グレーが保たれる', () => {
     const data = new Uint8ClampedArray([
       50, 50, 50, 255,
       200, 200, 200, 255,
@@ -133,14 +134,16 @@ describe('preprocessForOcr', () => {
       30, 30, 30, 255,
       230, 230, 230, 255,
     ])
-    const t = preprocessForOcr(data) // default: binarize=false, contrastFactor=1.8, posterizeLevels=4
+    const t = preprocessForOcr(data) // new default: binarize=false, contrastFactor=1.3, posterizeLevels=0, midpoint=100
     expect(t).toBeNull()
     for (let i = 0; i < data.length; i += 4) {
       expect(data[i]).toBe(data[i + 1])
       expect(data[i + 1]).toBe(data[i + 2])
-      // 4 段量子化: 0, 85, 170, 255 のどれか
-      expect([0, 85, 170, 255]).toContain(data[i])
     }
+    // 中間画素 (120,120,120): 伸長→115, S字(1.3,midpoint=80)→(115-80)*1.3+80=125.5→126
+    // 量子化されず 126 になること (旧デフォルト4値なら 85 or 170 だった)
+    expect(data[8]).toBe(126)
+    expect([0, 85, 170, 255]).not.toContain(data[8])
   })
 
   it('posterizeLevels=0 + contrastFactor=1 (両方無効): 線形伸長のみで連続グレーが残る', () => {
@@ -181,14 +184,39 @@ describe('preprocessForOcr', () => {
     }
   })
 
-  it('contrastFactor=1.8 + posterizeLevels=0 (旧 fix-08 挙動): S字のみ、中間が暗側に押される', () => {
+  it('contrastFactor=1.8 + posterizeLevels=0 + midpoint=128 (旧 fix-08 挙動): S字のみ、中間が暗側に押される', () => {
     const data = new Uint8ClampedArray([
       30, 30, 30, 255,
       120, 120, 120, 255,
       230, 230, 230, 255,
     ])
-    preprocessForOcr(data, { contrastFactor: 1.8, posterizeLevels: 0 })
+    preprocessForOcr(data, { contrastFactor: 1.8, posterizeLevels: 0, midpoint: 128 })
     // 元 120 → 線形伸長 115 → S字 (115-128)*1.8+128 = 104.6 → 105
     expect(data[4]).toBe(105)
+  })
+
+  // AC1 (SPEC-OCR-PREPROCESS-GRAY-EQUALIZE-01): 均等グレースケール検証
+  it('AC1-均等グレースケール: 青単色(0,0,255)がグレー85になる (旧ルマ係数なら29)', () => {
+    const data = new Uint8ClampedArray([
+      0, 0, 0, 255,       // black → gray=0 (伸長アンカー min)
+      0, 0, 255, 255,     // blue → (0+0+255)/3=85
+      255, 255, 255, 255, // white → gray=255 (伸長アンカー max)
+    ])
+    // contrastFactor=1 → S字スキップ。min=0,max=255 → 伸長は恒等。
+    preprocessForOcr(data, { contrastFactor: 1, posterizeLevels: 0 })
+    expect(data[4]).toBe(85) // 旧 ITU-R BT.601: Math.round(0.114*255)=29
+  })
+
+  // AC3 (SPEC-OCR-PREPROCESS-GRAY-EQUALIZE-01): midpoint=100 でS字の中点が100
+  it('AC3-midpoint100: S字の中点が100で127グレーが明側へシフトする', () => {
+    const data = new Uint8ClampedArray([
+      0, 0, 0, 255,
+      127, 127, 127, 255,
+      255, 255, 255, 255,
+    ])
+    // posterizeLevels=0, default midpoint=100, default contrastFactor=1.3
+    preprocessForOcr(data, { posterizeLevels: 0 })
+    // 伸長: min=0,max=255 → 恒等。S字(1.3, midpoint=80): (127-80)*1.3+80=141.1→141
+    expect(data[4]).toBe(141)
   })
 })

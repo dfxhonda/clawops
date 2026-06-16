@@ -1,22 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 // J-COLLECTION-12 R4: 署名有効点数の閾値 (point count、stroke count ではない)。
-// 値は spec で 20 (tunable)、ここで named constant 化して将来調整は本ファイル 1 箇所で完結。
 export const SIGNATURE_MIN_POINTS = 20
 
-// J-COLLECTION-05 fix_B: 担当者署名キャンバス。pointer/touchで線描画、クリアで消去。
-// onChange(dataURL|null) を返す。値はDB保存せずPDFのみ埋め込み。
-// J-COLLECTION-12 R3/R4: onPointCount(n) を任意で受け取り、親が「サイン → 確定」遷移判定に使う。
-//   point count = pointermove で線を引いた合計回数 (stroke 数ではなく描画密度)。
-export default function SignatureCanvas({ value, onChange, height = 120, onPointCount }) {
-  const ref = useRef(null)
+// COLLECTION-SIGNATURE-REDESIGN-01 R2: パームリジェクション実装済み。
+// - pointerType==='pen'優先ロック。Pencil接地中は他pointer(touch/手のひら)を無視。
+// - penイベントが来ない環境では最初のpointerIdに固定 → 指でも書ける。
+// - getCoalescedEvents()でPencil高頻度サンプリング、quadraticCurveToで手ブレ補正。
+// - 筆圧(e.pressure)で線幅可変(0または非対応は固定幅fallback)。
+// - userSelect/WebkitUserSelect/WebkitTouchCallout:none + onContextMenu で文字選択モード抑止。
+// onChange(dataURL|null) を返す。onPointCount(n)は有効点のみ加算。
+// hideActions=true: 内部クリアボタン/ラベルを非表示(外部ボタンバーで管理する場合)。
+// ref: forwardRef で clear() を公開。
+const SignatureCanvas = forwardRef(function SignatureCanvas(
+  { value, onChange, height = 120, onPointCount, label = '担当者署名', hideActions = false },
+  ref
+) {
+  const canvasRef = useRef(null)
   const drawing = useRef(false)
   const lastPos = useRef(null)
   const pointCountRef = useRef(0)
+  const activePointerId = useRef(null)
+  const isPenActive = useRef(false)
   const [dirty, setDirty] = useState(!!value)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useImperativeHandle(ref, () => ({ clear }))
+
   useEffect(() => {
-    const c = ref.current
+    const c = canvasRef.current
     if (!c) return
     const r = c.getBoundingClientRect()
     c.width = Math.max(200, Math.round(r.width))
@@ -24,8 +36,6 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
     const ctx = c.getContext('2d')
     ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, c.width, c.height)
-    ctx.strokeStyle = '#111'
-    ctx.lineWidth = 2.5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     if (value) {
@@ -37,46 +47,72 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
   }, [height])
 
   function pos(e) {
-    const r = ref.current.getBoundingClientRect()
+    const r = canvasRef.current.getBoundingClientRect()
     const p = e.touches ? e.touches[0] : e
     return [
-      ((p.clientX - r.left) * ref.current.width) / r.width,
-      ((p.clientY - r.top) * ref.current.height) / r.height,
+      ((p.clientX - r.left) * canvasRef.current.width) / r.width,
+      ((p.clientY - r.top) * canvasRef.current.height) / r.height,
     ]
   }
 
   function start(e) {
     e.preventDefault()
+    if (e.pointerType === 'pen') {
+      isPenActive.current = true
+      activePointerId.current = e.pointerId
+    } else {
+      if (isPenActive.current) return
+      if (activePointerId.current !== null) return
+      activePointerId.current = e.pointerId
+    }
     drawing.current = true
     lastPos.current = pos(e)
   }
+
   function move(e) {
     if (!drawing.current) return
+    if (e.pointerId !== activePointerId.current) return
     e.preventDefault()
-    const ctx = ref.current.getContext('2d')
-    const [x, y] = pos(e)
-    const [lx, ly] = lastPos.current
-    ctx.beginPath()
-    ctx.moveTo(lx, ly)
-    ctx.lineTo(x, y)
-    ctx.stroke()
-    lastPos.current = [x, y]
-    // J-COLLECTION-12 R4: point count = pointermove 累計 (stroke 数では不安定なため density で判定)
-    pointCountRef.current += 1
-    onPointCount?.(pointCountRef.current)
+    const ctx = canvasRef.current.getContext('2d')
+    const events = e.getCoalescedEvents?.() ?? [e]
+    for (const ce of events) {
+      const [x, y] = pos(ce)
+      const [lx, ly] = lastPos.current
+      const pressure = ce.pointerType === 'pen' && ce.pressure > 0 ? ce.pressure : null
+      ctx.lineWidth = pressure != null ? Math.max(1, pressure * 5) : 2.5
+      ctx.strokeStyle = '#111'
+      ctx.beginPath()
+      ctx.moveTo(lx, ly)
+      ctx.quadraticCurveTo(lx, ly, (lx + x) / 2, (ly + y) / 2)
+      ctx.lineTo(x, y)
+      ctx.stroke()
+      lastPos.current = [x, y]
+      pointCountRef.current += 1
+      onPointCount?.(pointCountRef.current)
+    }
     if (!dirty) setDirty(true)
   }
-  function end() {
+
+  function end(e) {
+    if (e.pointerId !== activePointerId.current) return
+    if (e.pointerType === 'pen') isPenActive.current = false
+    activePointerId.current = null
     if (!drawing.current) return
     drawing.current = false
-    onChange(ref.current.toDataURL('image/png'))
+    onChange(canvasRef.current.toDataURL('image/png'))
   }
+
   function clear() {
-    const ctx = ref.current.getContext('2d')
+    const c = canvasRef.current
+    if (!c) return
+    const ctx = c.getContext('2d')
     ctx.fillStyle = '#fff'
-    ctx.fillRect(0, 0, ref.current.width, ref.current.height)
+    ctx.fillRect(0, 0, c.width, c.height)
     setDirty(false)
     pointCountRef.current = 0
+    activePointerId.current = null
+    isPenActive.current = false
+    drawing.current = false
     onPointCount?.(0)
     onChange(null)
   }
@@ -84,26 +120,44 @@ export default function SignatureCanvas({ value, onChange, height = 120, onPoint
   return (
     <div className="border border-border rounded bg-white">
       <canvas
-        ref={ref}
+        ref={canvasRef}
         data-testid="signature-canvas"
-        style={{ width: '100%', height, touchAction: 'none', display: 'block' }}
+        style={{
+          width: '100%',
+          height,
+          touchAction: 'none',
+          display: 'block',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
+        }}
         onPointerDown={start}
         onPointerMove={move}
         onPointerUp={end}
         onPointerLeave={end}
         onPointerCancel={end}
+        onContextMenu={e => e.preventDefault()}
       />
-      <div className="flex items-center justify-between px-2 py-1 border-t border-border bg-gray-50">
-        <span className="text-xs text-gray-600">担当者署名{!dirty && <span className="text-red-500 ml-1">必須</span>}</span>
-        <button
-          type="button"
-          data-testid="signature-clear"
-          onClick={clear}
-          className="text-xs text-blue-600 px-2 min-h-[32px]"
+      {!hideActions && (
+        <div
+          className="flex items-center justify-between px-2 py-1 border-t border-border bg-gray-50"
+          style={{ userSelect: 'none' }}
         >
-          クリア
-        </button>
-      </div>
+          <span className="text-xs text-gray-600" style={{ userSelect: 'none' }}>
+            {label}{!dirty && <span className="text-red-500 ml-1">必須</span>}
+          </span>
+          <button
+            type="button"
+            data-testid="signature-clear"
+            onClick={clear}
+            className="text-xs text-blue-600 px-2 min-h-[32px]"
+          >
+            クリア
+          </button>
+        </div>
+      )}
     </div>
   )
-}
+})
+
+export default SignatureCanvas

@@ -42,17 +42,21 @@ export async function getActiveBoothsForStore(storeCode, collectedAt, prevDate) 
   mrQuery = mrQuery.order('patrol_date', { ascending: false }).order('created_at', { ascending: false })
 
   const [{ data: machines }, { data: readings }, prevMap] = await Promise.all([
-    supabase.from('machines').select('machine_code, machine_name, machine_number').in('machine_code', machineCodes),
+    supabase.from('machines').select('machine_code, machine_name, machine_number, type_id').in('machine_code', machineCodes),
     mrQuery,
     getPrevMeterAfterDate(storeCode, boothCodes, prevDate),
   ])
   const mMap = Object.fromEntries((machines ?? []).map(m => [m.machine_code, m]))
+
+  // COLLECTION-EXCLUDE-CHANGER-01 R1+R2: type_id==='changer'の機械のブースを集金リストから除外(表示のみ)
+  const changerMcs = new Set((machines ?? []).filter(m => m.type_id === 'changer').map(m => m.machine_code))
+
   const latestPerBooth = {}
   for (const r of readings ?? []) {
     if (!latestPerBooth[r.booth_code]) latestPerBooth[r.booth_code] = r
   }
 
-  const rows = booths.map(b => {
+  const rows = booths.filter(b => !changerMcs.has(b.machine_code)).map(b => {
     const r = latestPerBooth[b.booth_code]
     const m = mMap[b.machine_code] || {}
     const mcTail = b.machine_code?.split('-').pop() ?? b.machine_code
@@ -161,6 +165,9 @@ export async function saveCollection({
   storeCode, collectedAt, prevCollectionDate, collectedBy, collectedByName, booths, rowData, notes,
   collectionId: providedId,
   staffSignatureUrl: providedSigUrl, staffSignaturePath: providedSigPath,
+  customerSignatureUrl: providedCustomerSigUrl,
+  customerSignaturePath: providedCustomerSigPath,
+  customerSignedAt: providedCustomerSignedAt,
 }) {
   let collectionId = providedId
   if (!collectionId) {
@@ -187,6 +194,10 @@ export async function saveCollection({
     // J-COLLECTION-09 fix_1: 弊社担当者署名 Storage URL/Path
     staff_signature_url: providedSigUrl || null,
     staff_signature_path: providedSigPath || null,
+    // COLLECTION-SIGNATURE-REDESIGN-01 R1: 先方サイン (確定時同時保存)
+    customer_signature_url: providedCustomerSigUrl || null,
+    customer_signature_path: providedCustomerSigPath || null,
+    customer_signed_at: providedCustomerSignedAt || null,
   })
   if (e1) return { data: null, error: e1 }
 

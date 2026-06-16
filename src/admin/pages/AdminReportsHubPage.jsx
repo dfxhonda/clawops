@@ -14,7 +14,7 @@ const TILES = [
   { label: '日次ブース', desc: 'ブース単位の日次集計',   path: '/admin/reports/daily-booths',   impl: false },
   { label: '時別ブース', desc: 'ブース単位の時別集計',   path: '/admin/reports/hourly-booths',  impl: false },
   { label: '日次機械',   desc: '機械単位の日次集計',     path: '/admin/reports/daily-machines', impl: false },
-  { label: '集金抽出',   desc: '集金データのCSV出力',    path: '/admin/reports/collections',    impl: false },
+  { label: '集金抽出',   desc: '集金データのxlsx出力',   path: '/admin/reports/collections',    impl: true  },
   { label: '課金',       desc: '課金レポート一覧',       path: '/admin/reports/billing',        impl: false },
 ]
 
