@@ -66,6 +66,7 @@ export async function getMachines(storeId) {
     model_id: r.model_id || '',
     location_note: r.notes || '',
     active_flag: r.is_active ? '1' : '0',
+    billing_order: r.billing_order ?? null,
     round_order: r.round_order ?? null,
   }))
   setCache(ckey, result)
@@ -77,6 +78,17 @@ export async function batchUpdateRoundOrder(storeCode, updates) {
   const results = await Promise.all(
     updates.map(({ machine_code, round_order }) =>
       supabase.from('machines').update({ round_order }).eq('machine_code', machine_code)
+    )
+  )
+  const failed = results.find(r => r.error)
+  if (failed) throw new Error(failed.error.message)
+}
+
+export async function batchUpdateOrder(storeCode, updates, column) {
+  clearCache(`machines_${storeCode}`)
+  const results = await Promise.all(
+    updates.map(({ machine_code, order_value }) =>
+      supabase.from('machines').update({ [column]: order_value }).eq('machine_code', machine_code)
     )
   )
   const failed = results.find(r => r.error)

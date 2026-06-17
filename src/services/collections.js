@@ -42,7 +42,7 @@ export async function getActiveBoothsForStore(storeCode, collectedAt, prevDate) 
   mrQuery = mrQuery.order('patrol_date', { ascending: false }).order('created_at', { ascending: false })
 
   const [{ data: machines }, { data: readings }, prevMap] = await Promise.all([
-    supabase.from('machines').select('machine_code, machine_name, machine_number, type_id').in('machine_code', machineCodes),
+    supabase.from('machines').select('machine_code, machine_name, machine_number, type_id, billing_order').in('machine_code', machineCodes),
     mrQuery,
     getPrevMeterAfterDate(storeCode, boothCodes, prevDate),
   ])
@@ -75,6 +75,12 @@ export async function getActiveBoothsForStore(storeCode, collectedAt, prevDate) 
       // fix_3: prev = 当該店舗の直前confirmed cash_collection の in_meter_current
       in_meter_prev_default: prevMap?.[b.booth_code] ?? null,
     }
+  })
+  rows.sort((a, b) => {
+    const aBO = mMap[a.machine_code]?.billing_order ?? 9999
+    const bBO = mMap[b.machine_code]?.billing_order ?? 9999
+    if (aBO !== bBO) return aBO - bBO
+    return a.booth_code < b.booth_code ? -1 : a.booth_code > b.booth_code ? 1 : 0
   })
   return { data: rows, error: null }
 }

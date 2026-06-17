@@ -13,6 +13,7 @@ export const MachineRowSchema = z.object({
   meter_unit_price:  z.number(),
   out_meter_count:   z.number(),
   organization_id:   z.string(),
+  billing_order:     z.number().nullable().optional(),
   round_order:       z.number().nullable().optional(),
   created_at:        z.string().nullable(),
   updated_at:        z.string().nullable(),

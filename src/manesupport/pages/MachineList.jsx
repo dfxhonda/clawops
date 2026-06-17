@@ -25,7 +25,7 @@ import {
   deleteMachine,
   getNextMachineCode,
   addBooth,
-  batchUpdateRoundOrder,
+  batchUpdateOrder,
 } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
 
@@ -105,7 +105,7 @@ function MachineFields({ form, onChange, machineModels, hideModel = false }) {
   )
 }
 
-function SortableMachineItem({ m, editCode, editForm, editError, saving, onEditChange, onSave, onCancelEdit, onStartEdit, onDelete, machineModels }) {
+function SortableMachineItem({ m, activeColumn, editCode, editForm, editError, saving, onEditChange, onSave, onCancelEdit, onStartEdit, onDelete, machineModels }) {
   const {
     attributes,
     listeners,
@@ -122,10 +122,12 @@ function SortableMachineItem({ m, editCode, editForm, editError, saving, onEditC
     zIndex: isDragging ? 50 : 'auto',
   }
 
+  const orderValue = m[activeColumn]
+
   return (
-    <div ref={setNodeRef} style={style} className="bg-surface border border-border rounded-xl p-3.5 mx-4 mt-2">
+    <div ref={setNodeRef} style={style} className="bg-surface border border-border rounded-xl px-3 py-2 mx-4 mt-1.5">
       {editCode === m.machine_code ? (
-        <div className="space-y-3">
+        <div className="space-y-3 pt-1">
           <MachineFields
             form={editForm}
             onChange={onEditChange}
@@ -150,44 +152,35 @@ function SortableMachineItem({ m, editCode, editForm, editError, saving, onEditC
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             {...attributes}
             {...listeners}
-            className="touch-none shrink-0 mt-0.5 text-muted text-base px-1 cursor-grab active:cursor-grabbing select-none"
+            className="touch-none shrink-0 text-muted text-base px-0.5 cursor-grab active:cursor-grabbing select-none"
             aria-label="並び替え"
             tabIndex={-1}
           >
             ⠿
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-mono text-[10px] text-muted">{m.machine_code}</span>
-              {m.round_order != null && (
-                <span className="text-[10px] text-muted/60">#{m.round_order}</span>
-              )}
-            </div>
-            <div className="font-bold text-text text-sm">{m.machine_name}</div>
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-              {m.default_price != null && <span>¥{m.default_price}</span>}
-              {m.rental_code && <span>レンタル: {m.rental_code}</span>}
-              {m.location_note && <span>{m.location_note}</span>}
-            </div>
-          </div>
-          <div className="flex gap-1.5 shrink-0">
-            <button
-              onClick={() => onStartEdit(m)}
-              className="text-xs text-accent border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors"
-            >
-              編集
-            </button>
-            <button
-              onClick={() => onDelete(m)}
-              className="text-xs text-accent2 border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors"
-            >
-              削除
-            </button>
-          </div>
+          <span className="text-[10px] text-accent/70 shrink-0 font-mono w-6 text-right">
+            #{orderValue ?? '—'}
+          </span>
+          <span className="font-bold text-text text-sm flex-1 truncate min-w-0">{m.machine_name}</span>
+          {m.rental_code && (
+            <span className="text-[10px] text-muted shrink-0 hidden sm:block">{m.rental_code}</span>
+          )}
+          <button
+            onClick={() => onStartEdit(m)}
+            className="shrink-0 text-xs text-accent border border-border rounded-lg px-2 py-1 hover:bg-surface2 transition-colors"
+          >
+            編集
+          </button>
+          <button
+            onClick={() => onDelete(m)}
+            className="shrink-0 text-xs text-accent2 border border-border rounded-lg px-2 py-1 hover:bg-surface2 transition-colors"
+          >
+            削除
+          </button>
         </div>
       )}
     </div>
@@ -206,6 +199,7 @@ export default function AdminMachineList() {
   const [machines, setMachines] = useState([])
   const [loading, setLoading] = useState(false)
   const [nextCode, setNextCode] = useState('')
+  const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -214,6 +208,9 @@ export default function AdminMachineList() {
   const [editError, setEditError] = useState('')
   const [reordering, setReordering] = useState(false)
   const [reorderError, setReorderError] = useState('')
+  const [orderMode, setOrderMode] = useState('shukin')
+
+  const activeColumn = orderMode === 'shukin' ? 'billing_order' : 'round_order'
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
@@ -233,8 +230,8 @@ export default function AdminMachineList() {
   const nonChangerMachines = useMemo(
     () => machines
       .filter(m => !changerModelIds.has(m.model_id))
-      .sort((a, b) => (a.round_order ?? 9999) - (b.round_order ?? 9999)),
-    [machines, changerModelIds]
+      .sort((a, b) => (a[activeColumn] ?? 9999) - (b[activeColumn] ?? 9999)),
+    [machines, changerModelIds, activeColumn]
   )
 
   useEffect(() => {
@@ -324,6 +321,7 @@ export default function AdminMachineList() {
       }
 
       setForm(EMPTY_FORM)
+      setShowForm(false)
       await reloadMachines()
     } catch (err) {
       setFormError(err.message || '保存に失敗しました')
@@ -379,13 +377,17 @@ export default function AdminMachineList() {
     const newIdx = nonChangerMachines.findIndex(m => m.machine_code === over.id)
     if (oldIdx === -1 || newIdx === -1) return
     const reordered = arrayMove(nonChangerMachines, oldIdx, newIdx)
-    const withNewOrder = reordered.map((m, i) => ({ ...m, round_order: i + 1 }))
+    const withNewOrder = reordered.map((m, i) => ({ ...m, [activeColumn]: i + 1 }))
     const snapshot = machines
     setMachines([...changerMachines, ...withNewOrder])
     setReordering(true)
     setReorderError('')
     try {
-      await batchUpdateRoundOrder(storeCode, withNewOrder.map(m => ({ machine_code: m.machine_code, round_order: m.round_order })))
+      await batchUpdateOrder(
+        storeCode,
+        withNewOrder.map(m => ({ machine_code: m.machine_code, order_value: m[activeColumn] })),
+        activeColumn
+      )
     } catch (err) {
       setReorderError(err.message || '並び替えの保存に失敗しました')
       setMachines(snapshot)
@@ -409,9 +411,9 @@ export default function AdminMachineList() {
         <LogoutButton to="/admin/masters" />
       </div>
 
-
       <div className="flex-1 overflow-y-auto pb-16">
       <div className="md:max-w-3xl md:mx-auto">
+
       {/* Store selector */}
       <div className="mx-4 mt-4">
         <label className="block text-xs text-muted mb-1">店舗を選択</label>
@@ -428,37 +430,45 @@ export default function AdminMachineList() {
         />
       </div>
 
-      {/* Add machine form */}
+      {/* Add machine toggle */}
       {storeCode && (
-        <div className="bg-surface border border-border rounded-xl p-4 mx-4 mt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-sm font-bold text-accent flex-1">＋ 機械を追加</h3>
+        <div className="mx-4 mt-4">
+          <button
+            onClick={() => setShowForm(v => !v)}
+            className="flex items-center gap-2 text-sm font-bold text-accent"
+          >
+            <span className="text-base leading-none">{showForm ? '▾' : '▸'}</span>
+            <span>機械を追加</span>
             {nextCode && (
-              <span className="font-mono text-xs bg-surface2 border border-border rounded px-2 py-0.5 text-muted">
+              <span className="font-mono text-xs bg-surface2 border border-border rounded px-2 py-0.5 text-muted ml-2">
                 {nextCode}
               </span>
             )}
-          </div>
-          <form onSubmit={handleAdd} className="space-y-3">
-            <MachineFields
-              form={form}
-              onChange={handleFormChange}
-              machineModels={machineModels}
-            />
-            {selectedModel && Number(form.booth_count) > 0 && (
-              <p className="text-xs text-accent3">
-                保存時にブースを {form.booth_count} 個自動生成します（IN: {form.in_meter_count} / OUT: {form.out_meter_count}）
-              </p>
-            )}
-            {formError && <p className="text-accent2 text-xs">{formError}</p>}
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
-            >
-              {saving ? '保存中...' : '追加'}
-            </button>
-          </form>
+          </button>
+          {showForm && (
+            <div className="bg-surface border border-border rounded-xl p-4 mt-2">
+              <form onSubmit={handleAdd} className="space-y-3">
+                <MachineFields
+                  form={form}
+                  onChange={handleFormChange}
+                  machineModels={machineModels}
+                />
+                {selectedModel && Number(form.booth_count) > 0 && (
+                  <p className="text-xs text-accent3">
+                    保存時にブースを {form.booth_count} 個自動生成します（IN: {form.in_meter_count} / OUT: {form.out_meter_count}）
+                  </p>
+                )}
+                {formError && <p className="text-accent2 text-xs">{formError}</p>}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
+                >
+                  {saving ? '保存中...' : '追加'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
@@ -477,6 +487,24 @@ export default function AdminMachineList() {
         </div>
       )}
 
+      {/* Order mode toggle */}
+      {!loading && storeCode && machines.length > 0 && (
+        <div className="flex mx-4 mt-4 rounded-lg overflow-hidden border border-border">
+          <button
+            onClick={() => setOrderMode('shukin')}
+            className={`flex-1 py-1.5 text-xs font-bold transition-colors ${orderMode === 'shukin' ? 'bg-blue-600 text-white' : 'bg-surface text-muted hover:bg-surface2'}`}
+          >
+            集金順
+          </button>
+          <button
+            onClick={() => setOrderMode('junkai')}
+            className={`flex-1 py-1.5 text-xs font-bold transition-colors ${orderMode === 'junkai' ? 'bg-blue-600 text-white' : 'bg-surface text-muted hover:bg-surface2'}`}
+          >
+            巡回順
+          </button>
+        </div>
+      )}
+
       {/* Reorder error banner */}
       {reorderError && (
         <div className="mx-4 mt-2 px-3 py-2 bg-red-900/20 border border-red-500/30 rounded-lg text-xs text-red-400">
@@ -484,11 +512,11 @@ export default function AdminMachineList() {
         </div>
       )}
 
-      {/* Changer machines (fixed top, non-draggable) */}
+      {/* Changer machines (fixed top, non-draggable, both modes) */}
       {!loading && changerMachines.map(m => (
-        <div key={m.machine_code} className="bg-surface border border-border rounded-xl p-3.5 mx-4 mt-2 border-l-4 border-l-amber-600/60">
+        <div key={m.machine_code} className="bg-surface border border-border rounded-xl px-3 py-2 mx-4 mt-1.5 border-l-4 border-l-amber-600/60">
           {editCode === m.machine_code ? (
-            <div className="space-y-3">
+            <div className="space-y-3 pt-1">
               <MachineFields
                 form={editForm}
                 onChange={handleEditChange}
@@ -513,34 +541,22 @@ export default function AdminMachineList() {
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-2">
-              <div className="shrink-0 mt-0.5 text-muted text-base px-1 select-none opacity-20">⠿</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-mono text-[10px] text-muted">{m.machine_code}</span>
-                  <span className="text-[10px] font-bold px-1 py-0 rounded bg-amber-600/20 text-amber-400">両替機</span>
-                </div>
-                <div className="font-bold text-text text-sm">{m.machine_name}</div>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
-                  {m.default_price != null && <span>¥{m.default_price}</span>}
-                  {m.rental_code && <span>レンタル: {m.rental_code}</span>}
-                  {m.location_note && <span>{m.location_note}</span>}
-                </div>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button
-                  onClick={() => startEdit(m)}
-                  className="text-xs text-accent border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors"
-                >
-                  編集
-                </button>
-                <button
-                  onClick={() => handleDelete(m)}
-                  className="text-xs text-accent2 border border-border rounded-lg px-2.5 py-1.5 hover:bg-surface2 transition-colors"
-                >
-                  削除
-                </button>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <div className="shrink-0 text-muted text-base px-0.5 select-none opacity-20">⠿</div>
+              <span className="text-[10px] font-bold px-1 py-0 rounded bg-amber-600/20 text-amber-400 shrink-0">両替</span>
+              <span className="font-bold text-text text-sm flex-1 truncate min-w-0">{m.machine_name}</span>
+              <button
+                onClick={() => startEdit(m)}
+                className="shrink-0 text-xs text-accent border border-border rounded-lg px-2 py-1 hover:bg-surface2 transition-colors"
+              >
+                編集
+              </button>
+              <button
+                onClick={() => handleDelete(m)}
+                className="shrink-0 text-xs text-accent2 border border-border rounded-lg px-2 py-1 hover:bg-surface2 transition-colors"
+              >
+                削除
+              </button>
             </div>
           )}
         </div>
@@ -550,7 +566,7 @@ export default function AdminMachineList() {
       {!loading && nonChangerMachines.length > 0 && (
         <>
           {nonChangerMachines.length > 1 && (
-            <p className="mx-4 mt-3 mb-1 text-[11px] text-muted/60">
+            <p className="mx-4 mt-2 mb-0.5 text-[11px] text-muted/60">
               ⠿ を長押しでドラッグして並び替え{reordering ? '（保存中...）' : ''}
             </p>
           )}
@@ -567,6 +583,7 @@ export default function AdminMachineList() {
                 <SortableMachineItem
                   key={m.machine_code}
                   m={m}
+                  activeColumn={activeColumn}
                   editCode={editCode}
                   editForm={editForm}
                   editError={editError}
