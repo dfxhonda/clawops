@@ -1,17 +1,22 @@
 /**
- * SPEC-E2E-GATE4-STORE-PIN-COVERAGE-01
+ * SPEC-E2E-GATE4-STORE-PIN-COVERAGE-01 (fixed by SPEC-E2E-GATE4-FIX-01)
  *
- * RED tests (6): Pages that still use StoreSelectSheet (no pin star) — MUST FAIL.
+ * RED tests (4): Pages that still use StoreSelectSheet (no pin star) — MUST FAIL.
  *   These are intentionally left failing to document upgrade debt.
  *   Do NOT xfail / skip them.
+ *   Target: /admin/machines, /admin/booths, /admin/lockers, /datasearch
  *
  * GREEN tests (2): Pages upgraded to StorePickerSheet — MUST PASS.
+ *   Target: /admin/audit/booth-edit, /collection/input
  *
- * Route notes:
- *   - PatrolOverview.jsx: route-orphan, /patrol/overview redirects to ClawsupportHub.
- *     ClawsupportHub has no StoreSelectSheet → store-select-sheet absent → RED.
- *   - BoothQrPrint.jsx: route deleted (J-NAV-ORPHAN-CLEANUP-01).
- *     /admin/qr-print → not-found → store-select-sheet absent → RED.
+ * Removed (SPEC-E2E-GATE4-FIX-01): red-patrol-overview and red-booth-qr-print
+ *   were route-orphans: /patrol/overview redirects to ClawsupportHub (no StoreSelectSheet),
+ *   /admin/qr-print route was deleted (J-NAV-ORPHAN-CLEANUP-01 2026-05-30).
+ *   They failed for the wrong reason (unreachable, not star-absent). Removed.
+ *   Their dead StoreSelectSheet imports will be cleaned up at StoreSelectSheet deletion time.
+ *
+ * Actor: STAFF-03 (has pinned stores → GREEN star assertions are meaningful).
+ * PIN: E2E_HIRO_PIN env var (never hardcoded).
  */
 
 import { test, expect } from '@playwright/test'
@@ -47,23 +52,6 @@ test('red-locker-list: store-select-sheet should show pinned star', async ({ pag
 
 test('red-data-search: store-select-sheet should show pinned star', async ({ page }) => {
   await page.goto('/datasearch')
-  await page.getByTestId('store-select-trigger').click()
-  await expect(page.getByTestId('store-select-sheet')).toBeVisible()
-  await expect(page.locator('[data-testid="store-select-sheet"] .text-yellow-400').first()).toBeVisible()
-})
-
-// PatrolOverview is a route-orphan. /patrol/overview redirects to ClawsupportHub.
-// ClawsupportHub does not render StoreSelectSheet → store-select-sheet absent → RED.
-test('red-patrol-overview: store-select-sheet should show pinned star', async ({ page }) => {
-  await page.goto('/patrol/overview')
-  await expect(page.getByTestId('store-select-sheet')).toBeVisible()
-  await expect(page.locator('[data-testid="store-select-sheet"] .text-yellow-400').first()).toBeVisible()
-})
-
-// BoothQrPrint route was deleted (J-NAV-ORPHAN-CLEANUP-01).
-// /admin/qr-print → redirect/not-found → store-select-sheet absent → RED.
-test('red-booth-qr-print: store-select-sheet should show pinned star', async ({ page }) => {
-  await page.goto('/admin/qr-print')
   await page.getByTestId('store-select-trigger').click()
   await expect(page.getByTestId('store-select-sheet')).toBeVisible()
   await expect(page.locator('[data-testid="store-select-sheet"] .text-yellow-400').first()).toBeVisible()

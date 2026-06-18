@@ -1,9 +1,11 @@
 import { type Page } from '@playwright/test'
 
+const KANA_TABS = ['あ', 'か', 'さ', 'た', 'な', 'は', 'ま', 'や', 'ら', 'わ']
+
 /**
- * UI reproduction login for E2E tests.
- * Clicks the first available staff tile, then enters PIN from E2E_HIRO_PIN env.
- * Never hardcodes a PIN — read from environment only.
+ * Logs in as STAFF-03 (pinned-store actor) via UI reproduction.
+ * Tries the initial ★ tab first, then iterates kana tabs until login-staff-STAFF-03 is visible.
+ * PIN is read from E2E_HIRO_PIN env — never hardcoded.
  */
 export async function loginViaUI(page: Page): Promise<void> {
   const pin = process.env.E2E_HIRO_PIN
@@ -12,10 +14,28 @@ export async function loginViaUI(page: Page): Promise<void> {
 
   await page.goto('/login')
 
-  // Click the first available staff tile (login-staff-<staff_id> pattern)
-  const firstStaffTile = page.locator('[data-testid^="login-staff-"]').first()
-  await firstStaffTile.waitFor({ state: 'visible', timeout: 10_000 })
-  await firstStaffTile.click()
+  const staffTile = page.getByTestId('login-staff-STAFF-03')
+
+  // Wait for the page to render at least one staff tile
+  await page.locator('[data-testid^="login-staff-"]').first().waitFor({ state: 'visible', timeout: 10_000 })
+
+  // Try ★ tab first; if STAFF-03 not visible, iterate kana tabs
+  if (!await staffTile.isVisible()) {
+    let found = false
+    for (const tab of KANA_TABS) {
+      await page.getByRole('button', { name: tab, exact: true }).click()
+      await page.waitForTimeout(300)
+      if (await staffTile.isVisible()) {
+        found = true
+        break
+      }
+    }
+    if (!found) {
+      throw new Error('login-staff-STAFF-03 not found on any login tab — verify testid exists in StaffList')
+    }
+  }
+
+  await staffTile.click()
 
   // Enter each digit via the numpad
   for (const digit of pin) {
