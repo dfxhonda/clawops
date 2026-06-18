@@ -18,8 +18,8 @@ describe('VIEW_MODES shape (SPEC-02)', () => {
     expect(VIEW_MODES.IN.sourceKey).toBe('inDiffs')
     expect(VIEW_MODES.IN.type).toBe('count')
   })
-  it('DAILY_label_is_日売', () => {
-    expect(VIEW_MODES.DAILY.label).toBe('日売')
+  it('DAILY_label_is_Ave', () => {
+    expect(VIEW_MODES.DAILY.label).toBe('Ave')
     expect(VIEW_MODES.DAILY.sourceKey).toBe('daily')
     expect(VIEW_MODES.DAILY.type).toBe('perDay')
   })

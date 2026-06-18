@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllStores, getMachines } from '../../services/masters'
+import { getMachines } from '../../services/masters'
 import { getAllMachineLockers, addLocker, deleteLocker, activateLocker, updateLocker } from '../../services/patrol'
 import LogoutButton from '../../components/LogoutButton'
-import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
+import StorePickerSheet from '../../components/StorePickerSheet'
 
 export default function LockerList() {
   const navigate = useNavigate()
 
-  const [stores, setStores] = useState([])
   const [storeCode, setStoreCode] = useState(() => sessionStorage.getItem('admin_locker_store') || '')
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [machines, setMachines] = useState([])
   const [machineCode, setMachineCode] = useState(() => sessionStorage.getItem('admin_locker_machine') || '')
   const [lockers, setLockers] = useState([])
@@ -23,10 +21,6 @@ export default function LockerList() {
   const [editSlot, setEditSlot] = useState('5')
   const [editLockType, setEditLockType] = useState('key')
   const [editSaving, setEditSaving] = useState(false)
-
-  useEffect(() => {
-    getAllStores().then(setStores)
-  }, [])
 
   useEffect(() => {
     if (!storeCode) {
@@ -134,12 +128,12 @@ export default function LockerList() {
     <div className="h-full flex flex-col">
 
       <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted">←</button>
+        <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
         <div className="flex-1">
           <h2 className="text-base font-bold">ロッカー登録</h2>
           <p className="text-[11px] text-muted">ガチャ機のロッカー設定</p>
         </div>
-        <LogoutButton to="/admin/menu" />
+        <LogoutButton to="/admin" />
       </div>
 
 
@@ -147,16 +141,11 @@ export default function LockerList() {
       <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">
         <div>
           <label className="block text-xs text-muted mb-1">店舗</label>
-          <StoreSelectTrigger
-            storeName={stores.find(s => s.store_code === storeCode)?.store_name}
-            onClick={() => setSheetOpen(true)}
-            className="w-full"
-          />
-          <StoreSelectSheet
-            open={sheetOpen}
-            onClose={() => setSheetOpen(false)}
-            stores={stores}
-            onSelect={code => { setStoreCode(code); sessionStorage.setItem('admin_locker_store', code) }}
+          <StorePickerSheet
+            value={storeCode || null}
+            onChange={code => setStoreCode(code ?? '')}
+            showAllOption={false}
+            placeholder="店舗を選択…"
           />
         </div>
 

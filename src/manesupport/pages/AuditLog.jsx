@@ -120,9 +120,9 @@ export default function AuditLog() {
     <div className="h-full flex flex-col max-w-lg md:max-w-4xl mx-auto">
       <div className="shrink-0 px-4 pt-4" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => navigate('/admin/menu')} className="text-muted text-2xl">←</button>
+          <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
           <h1 className="flex-1 text-xl font-bold text-accent">監査ログ</h1>
-          <LogoutButton to="/admin/menu" />
+          <LogoutButton to="/admin" />
         </div>
 
         {errorProps && <ErrorDisplay {...errorProps} />}

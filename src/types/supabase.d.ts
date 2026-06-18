@@ -1818,6 +1818,7 @@ export type Database = {
           out_meter_count: number
           ownership_type: string | null
           play_price: number | null
+          round_order: number | null
           store_code: string
           type_id: string | null
           updated_at: string | null
@@ -1850,6 +1851,7 @@ export type Database = {
           out_meter_count?: number
           ownership_type?: string | null
           play_price?: number | null
+          round_order?: number | null
           store_code: string
           type_id?: string | null
           updated_at?: string | null
@@ -1882,6 +1884,7 @@ export type Database = {
           out_meter_count?: number
           ownership_type?: string | null
           play_price?: number | null
+          round_order?: number | null
           store_code?: string
           type_id?: string | null
           updated_at?: string | null

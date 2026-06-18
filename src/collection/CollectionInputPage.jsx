@@ -12,6 +12,7 @@ import { DENOMINATIONS, boothTotal } from './lib/collectionCalc'
 import { buildCollectionSlip, slipFileName, ensureJpFont } from './lib/collectionPdf'
 import { compressImage } from './lib/imageUtil'
 import SignatureCanvas, { SIGNATURE_MIN_POINTS } from './components/SignatureCanvas' // J-COLLECTION-07 fix_1 / J-COLLECTION-12 R3-R4
+import StorePickerSheet from '../components/StorePickerSheet'
 
 // J-COLLECTION-05: PDF改修+署名+レシート写真+前回IN修正
 // fix_A PDFヘッダ/注意書き  fix_B 署名Canvas  fix_C レシート撮影+upload
@@ -320,15 +321,16 @@ export default function CollectionInputPage() {
               onChange={e => setPrevDate(e.target.value)}
               className="bg-bg border border-border rounded-lg px-3 min-h-[44px] text-base text-text disabled:opacity-50" />
           </label>
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="text-xs text-muted">店舗</span>
-            <select data-testid="collection-store-select" value={storeCode} disabled={locked}
-              onChange={e => setStoreCode(e.target.value)}
-              className="bg-bg border border-border rounded-lg px-3 min-h-[44px] text-base text-text disabled:opacity-50">
-              <option value="">店舗を選択</option>
-              {stores.map(s => <option key={s.store_code} value={s.store_code}>{s.store_name}</option>)}
-            </select>
-          </label>
+            <StorePickerSheet
+              value={storeCode || null}
+              onChange={(code) => setStoreCode(code ?? '')}
+              showAllOption={false}
+              disabled={locked}
+              placeholder="店舗を選択"
+            />
+          </div>
           <button data-testid="collection-load-button" onClick={handleLoad} disabled={!storeCode || loading || locked}
             className="px-4 min-h-[44px] rounded-lg bg-blue-600 text-white text-base font-bold disabled:opacity-50">
             {loading ? '読込中…' : '読み込む'}

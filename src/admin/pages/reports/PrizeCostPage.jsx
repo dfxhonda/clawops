@@ -1,17 +1,36 @@
 // J-REPORTS-ANALYTICS-01 S5: 景品コスト回収分析
 // daily_booth_stats per prize_id + prize_masters JOIN
 // 回収率 = (revenue - prize_cost*prize_out_count) / (prize_cost*prize_out_count) * 100
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 import StorePickerSheet from '../../../components/StorePickerSheet'
+import GenreFilter from './GenreFilter'
+
+async function fetchBoothCodesByGenre(genre, storeCode) {
+  if (genre === 'all') return null
+  let q = supabase
+    .from('booths')
+    .select('booth_code, machines!machine_code(type_id)')
+    .eq('is_active', true)
+  if (storeCode !== 'all') q = q.eq('store_code', storeCode)
+  const { data } = await q
+  return (data ?? [])
+    .filter(b => {
+      const m = Array.isArray(b.machines) ? b.machines[0] : b.machines
+      return m?.type_id === genre
+    })
+    .map(b => b.booth_code)
+}
 
 export default function PrizeCostPage() {
   const [period, setPeriod] = useState('30d')
   const [from, setFrom] = useState(jstDateNDaysAgo(30))
   const [to, setTo] = useState(todayJst())
   const [storeCode, setStoreCode] = useState('all')
+  const [genre, setGenre] = useState('crane')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -21,15 +40,21 @@ export default function PrizeCostPage() {
   }, [period])
 
   useEffect(() => {
-    setLoading(true)
-    let q = supabase
-      .from('daily_booth_stats')
-      .select('prize_id, prize_cost, prize_out_count, revenue, prize_masters(prize_name)')
-      .gte('stat_date', from)
-      .lte('stat_date', to)
-      .not('prize_id', 'is', null)
-    if (storeCode !== 'all') q = q.eq('store_code', storeCode)
-    q.then(({ data }) => {
+    async function load() {
+      setLoading(true)
+      let q = supabase
+        .from('daily_booth_stats')
+        .select('prize_id, prize_cost, prize_out_count, revenue, prize_masters(prize_name), booth_code')
+        .gte('stat_date', from)
+        .lte('stat_date', to)
+        .not('prize_id', 'is', null)
+      if (storeCode !== 'all') q = q.eq('store_code', storeCode)
+      if (genre !== 'all') {
+        const codes = await fetchBoothCodesByGenre(genre, storeCode)
+        if (codes.length === 0) { setRows([]); setLoading(false); return }
+        q = q.in('booth_code', codes)
+      }
+      const { data } = await q
       const agg = {}
       for (const r of data ?? []) {
         const k = r.prize_id
@@ -55,11 +80,15 @@ export default function PrizeCostPage() {
       list.sort((a, b) => (b.recovery_rate ?? -Infinity) - (a.recovery_rate ?? -Infinity))
       setRows(list)
       setLoading(false)
-    })
-  }, [from, to, storeCode])
+    }
+    load()
+  }, [from, to, storeCode, genre])
 
   return (
     <ReportPageLayout title="景品コスト回収分析" testid="report-prize-cost">
+      {/* ジャンルフィルタ */}
+      <GenreFilter value={genre} onChange={setGenre} />
+
       <div className="flex flex-wrap gap-2 mb-3">
         {['7d', '30d', 'custom'].map(p => (
           <button key={p} onClick={() => setPeriod(p)}

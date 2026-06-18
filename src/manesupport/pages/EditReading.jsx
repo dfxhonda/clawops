@@ -87,7 +87,7 @@ export default function EditReading() {
           <h2 className="text-lg font-bold">データ修正</h2>
           <p className="text-xs text-muted">{readings[0]?.full_booth_code}</p>
         </div>
-        <LogoutButton to="/admin/menu" />
+        <LogoutButton to="/admin" />
       </div>
 
       {error && (

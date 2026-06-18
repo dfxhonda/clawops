@@ -11,7 +11,7 @@ export async function getPatrolMachines(storeCode) {
   const { data, error } = await supabase
     .from('machines')
     .select(`
-      machine_code, machine_name, store_code, type_id, model_id, billing_order,
+      machine_code, machine_name, store_code, type_id, model_id, round_order,
       machine_types!type_id(category, locker_slots),
       machine_models!model_id(out_meter_count, meter_unit_price, type_id, changer_denominations),
       booths(booth_code, booth_number, play_price, meter_in_number, meter_out_number, is_active, machine_code),
@@ -19,7 +19,7 @@ export async function getPatrolMachines(storeCode) {
     `)
     .eq('store_code', storeCode)
     .eq('is_active', true)
-    .order('billing_order', { nullsFirst: false })
+    .order('round_order', { nullsFirst: false })
   if (error) { console.error('getPatrolMachines error:', error.message); return [] }
   return (data || []).map(m => ({
     ...m,

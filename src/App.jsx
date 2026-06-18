@@ -60,7 +60,6 @@ const CollectionExportPage    = lazy(() => import('./admin/pages/reports/Collect
 const AdminSettingsHubPage  = lazy(() => import('./admin/pages/AdminSettingsHubPage'))
 const AdminPlaceholderPage  = lazy(() => import('./admin/pages/AdminPlaceholderPage'))
 const AdminQRLabelPage      = lazy(() => import('./admin/pages/AdminQRLabelPage'))
-const AdminMasterMachinePage   = lazy(() => import('./admin/pages/AdminMasterMachinePage'))
 const AdminMachineLayoutPage   = lazy(() => import('./admin/pages/AdminMachineLayoutPage'))
 const AdminStaffListPage     = lazy(() => import('./admin/pages/AdminStaffListPage'))
 const AdminSupplierPage           = lazy(() => import('./admin/pages/AdminSupplierPage'))
@@ -243,7 +242,6 @@ function AppInner() {
         <Route path="masters/store-list" element={<AdminStoreListPage />} />
         <Route path="masters/stores" element={<AdminStorePage />} />
         <Route path="masters/prizes" element={<AdminPrizeMasterPage />} />
-        <Route path="masters/machines" element={<AdminMasterMachinePage />} />
         <Route path="masters/staff" element={<AdminStaffListPage />} />
         <Route path="masters/suppliers" element={<AdminSupplierPage />} />
         <Route path="masters/*" element={<AdminPlaceholderPage />} />

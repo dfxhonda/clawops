@@ -1,14 +1,12 @@
 import AdminHubTilesGrid from '../components/AdminHubTilesGrid'
 
-// J-NAV-ORPHANS-fix-01 2026-05-30 ヒロ ad-hoc: 機械登録 (実機) / ブース一覧 の動線が UI に無い問題を解消。
-// 既存の「機械」(/admin/masters/machines = 機種マスタ) のラベルを「機種」に明確化。
 // J-ADMIN-NAV-BADGE-01 2026-05-30: タイル描画を AdminHubTilesGrid に集約 (準備中バッジ + toast)。
 const TILES = [
   { label: '取込',         desc: 'PCH Excel取込 / SGP状態',  path: '/admin/import',                    impl: true  },
   { label: '店舗',         desc: '店舗マスタ管理 (機械/ブース追加もここから)', path: '/admin/masters/store-list', impl: true  },
   { label: '機械登録',     desc: '店舗の実機を追加・編集',  path: '/admin/machines',                  impl: true  },
   { label: 'ブース一覧',   desc: 'ブース設定の確認・編集・追加', path: '/admin/booths',                impl: true  },
-  { label: '機種',         desc: '機種マスタ (型番) 管理',  path: '/admin/masters/machines',          impl: true  },
+  { label: '機種',         desc: '機種マスタ (型番) 管理',  path: '/admin/models',                    impl: true  },
   { label: '景品',         desc: '景品マスタ管理',         path: '/admin/masters/prizes',            impl: true  },
   { label: 'ロッカー',     desc: 'ロッカーマスタ管理',     path: '/admin/masters/lockers',           impl: false },
   { label: 'スタッフ',     desc: 'スタッフマスタ管理',     path: '/admin/masters/staff',             impl: true  },

@@ -22,7 +22,7 @@ export default function MachineList() {
         getPatrolMachines(storeId), getStores(), getPublishedModelIds()
       ])
       // J-CHANGER-01: 両替機 (machine_models.type_id='changer') は店舗ハブの最上位固定
-      // 残りは billing_order 順 (Supabase 側で既にソート済み)
+      // 残りは round_order 順 (Supabase 側で既にソート済み)
       const sortedMachines = [...allMachines].sort((a, b) => {
         const aChanger = a.machine_models?.[0]?.type_id === 'changer' ? 0 : 1
         const bChanger = b.machine_models?.[0]?.type_id === 'changer' ? 0 : 1

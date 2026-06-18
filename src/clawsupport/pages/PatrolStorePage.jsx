@@ -171,8 +171,10 @@ export default function PatrolStorePage() {
     return () => clearTimeout(t)
   }, [loading, machines, focusBoothByStore, storeCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const doneCnt = Object.keys(todayMap).length
-  const totalCnt = machines.reduce((s, m) => s + m.booths.length, 0)
+  const isChanger = m => (Array.isArray(m.machine_models) ? m.machine_models[0]?.type_id : m.machine_models?.type_id) === 'changer'
+  const changerBoothCodes = new Set(machines.filter(isChanger).flatMap(m => m.booths.map(b => b.booth_code)))
+  const doneCnt = Object.keys(todayMap).filter(bc => !changerBoothCodes.has(bc)).length
+  const totalCnt = machines.filter(m => !isChanger(m)).reduce((s, m) => s + m.booths.length, 0)
 
   // とりま保存 button: 手動で当店の未送信を upload。
   async function handleManualUpload() {
@@ -206,6 +208,19 @@ export default function PatrolStorePage() {
         variant="compact"
         rightSlot={
           <div className="flex items-center gap-2">
+            {totalCnt > 0 && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${
+                  doneCnt >= totalCnt
+                    ? 'text-emerald-400 border-emerald-400/40'
+                    : doneCnt > 0
+                    ? 'text-amber-400 border-amber-400/40'
+                    : 'text-muted border-border'
+                }`}
+              >
+                {doneCnt}/{totalCnt} 完了
+              </span>
+            )}
             <button
               type="button"
               data-testid="patrol-store-manual-upload"
@@ -225,21 +240,6 @@ export default function PatrolStorePage() {
         diffMap={diffMap}
         mode={viewMode}
         onModeChange={setViewMode}
-        leftSlot={
-          totalCnt > 0 && (
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full border ${
-                doneCnt >= totalCnt
-                  ? 'text-emerald-400 border-emerald-400/40'
-                  : doneCnt > 0
-                  ? 'text-amber-400 border-amber-400/40'
-                  : 'text-muted border-border'
-              }`}
-            >
-              {doneCnt}/{totalCnt} ブース完了
-            </span>
-          )
-        }
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">

@@ -1,29 +1,61 @@
 // J-REPORTS-ANALYTICS-01 S6: 店舗間パフォーマンス比較
 // 棒グラフ (revenue / booth_count 正規化) + テーブルビュー切替
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
+import GenreFilter from './GenreFilter'
+
+async function fetchBoothCodesByGenre(genre) {
+  if (genre === 'all') return null
+  const { data } = await supabase
+    .from('booths')
+    .select('booth_code, machines!machine_code(type_id)')
+    .eq('is_active', true)
+  return (data ?? [])
+    .filter(b => {
+      const m = Array.isArray(b.machines) ? b.machines[0] : b.machines
+      return m?.type_id === genre
+    })
+    .map(b => b.booth_code)
+}
 
 export default function StoreComparisonPage() {
   const [period, setPeriod] = useState('30d')
   const [view, setView] = useState('chart') // 'chart' | 'table'
   const [brandGroup, setBrandGroup] = useState(false)
+  const [genre, setGenre] = useState('crane')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setLoading(true)
-    const days = period === '7d' ? 7 : 30
-    const from = jstDateNDaysAgo(days)
-    const prevFrom = jstDateNDaysAgo(days * 2)
-    const prevTo = jstDateNDaysAgo(days)
-    Promise.all([
-      supabase.from('stores').select('store_code, store_name').eq('is_active', true),
-      supabase.from('daily_booth_stats').select('store_code, booth_code, revenue, stat_date').gte('stat_date', from),
-      supabase.from('daily_booth_stats').select('store_code, revenue, stat_date').gte('stat_date', prevFrom).lt('stat_date', prevTo),
-    ]).then(([{ data: stores }, { data: curr }, { data: prev }]) => {
+    async function load() {
+      setLoading(true)
+      const days = period === '7d' ? 7 : 30
+      const from = jstDateNDaysAgo(days)
+      const prevFrom = jstDateNDaysAgo(days * 2)
+      const prevTo = jstDateNDaysAgo(days)
+
+      let boothCodes = null
+      if (genre !== 'all') {
+        boothCodes = await fetchBoothCodesByGenre(genre)
+        if (boothCodes.length === 0) { setRows([]); setLoading(false); return }
+      }
+
+      let currQ = supabase.from('daily_booth_stats').select('store_code, booth_code, revenue, stat_date').gte('stat_date', from)
+      let prevQ = supabase.from('daily_booth_stats').select('store_code, revenue, stat_date').gte('stat_date', prevFrom).lt('stat_date', prevTo)
+      if (boothCodes) {
+        currQ = currQ.in('booth_code', boothCodes)
+        prevQ = prevQ.in('booth_code', boothCodes)
+      }
+
+      const [{ data: stores }, { data: curr }, { data: prev }] = await Promise.all([
+        supabase.from('stores').select('store_code, store_name').eq('is_active', true),
+        currQ,
+        prevQ,
+      ])
       const agg = {}
       for (const s of stores ?? []) {
         agg[s.store_code] = { store_code: s.store_code, store_name: s.store_name, total_revenue: 0, booths: new Set(), prev_revenue: 0 }
@@ -50,11 +82,15 @@ export default function StoreComparisonPage() {
         .sort((a, b) => b.revenue_per_booth - a.revenue_per_booth)
       setRows(list)
       setLoading(false)
-    })
-  }, [period])
+    }
+    load()
+  }, [period, genre])
 
   return (
     <ReportPageLayout title="店舗間パフォーマンス比較" testid="report-store-comparison">
+      {/* ジャンルフィルタ */}
+      <GenreFilter value={genre} onChange={setGenre} />
+
       <div className="flex flex-wrap gap-2 mb-3">
         {['7d', '30d'].map(p => (
           <button key={p} onClick={() => setPeriod(p)}

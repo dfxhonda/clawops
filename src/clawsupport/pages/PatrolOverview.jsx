@@ -4,7 +4,6 @@ import { getAllStores } from '../../services/masters'
 import { getPatrolMachines, getTodayReadings } from '../../services/patrol'
 import { exportPatrolDetailSheet, exportRound0FullReport } from '../../services/excelExport'
 import FullshotCamera from '../components/FullshotCamera'
-import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 
 function isGacha(machine) {
   return (
@@ -24,7 +23,6 @@ export default function PatrolOverview() {
   const navigate = useNavigate()
   const [stores, setStores] = useState([])
   const [selStore, setSelStore] = useState(() => sessionStorage.getItem('patrol_overview_store') || '')
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [loading, setLoading] = useState(false)
@@ -168,7 +166,7 @@ export default function PatrolOverview() {
           📊 DB
         </button>
         <button
-          onClick={() => navigate('/admin/menu')}
+          onClick={() => navigate('/admin')}
           className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors"
         >
           ⚙️ 管理
@@ -191,20 +189,10 @@ export default function PatrolOverview() {
 
       {/* ━━━ 店舗セレクター + 日付 ━━━ */}
       <div className="shrink-0 px-4 py-2 flex items-center gap-3">
-        <StoreSelectTrigger
-          storeName={stores.find(s => s.store_code === selStore)?.store_name}
-          onClick={() => setSheetOpen(true)}
-          className="flex-1"
-        />
+        <span className="flex-1 text-sm text-muted">{stores.find(s => s.store_code === selStore)?.store_name || '店舗未選択'}</span>
         <span className="shrink-0 text-xs text-muted">{todayLabel}</span>
       </div>
 
-      <StoreSelectSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        stores={stores}
-        onSelect={handleStoreChange}
-      />
 
       {/* ━━━ 進捗バー ━━━ */}
       {selStore && (

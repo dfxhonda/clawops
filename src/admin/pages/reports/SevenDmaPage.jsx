@@ -1,6 +1,7 @@
 // J-REPORTS-S2S3-FIX-01 2026-05-31 司令塔Opus spec
 // S3 7日移動平均分析 — DB の play_7dma が全 NULL のため、play_count から フロントエンド rolling 7day window で計算。
 // 系列選択は店舗フィルタ確定後に booth/machine 候補を masters から提示 (daily_booth_stats 由来でなく)。
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../../../lib/supabase'
@@ -8,14 +9,17 @@ import { jstDateNDaysAgo, rangePresetDays } from '../../lib/jstDate'
 import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
 import StorePickerSheet from '../../../components/StorePickerSheet'
+import GenreFilter from './GenreFilter'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa']
 const MAX_SERIES = 5
+
 
 export default function SevenDmaPage() {
   const [granularity, setGranularity] = useState('booth')
   const [period, setPeriod]           = useState('30d')
   const [storeFilter, setStoreFilter] = useState('all')
+  const [genre, setGenre]             = useState('crane')
   const [allEntities, setAllEntities] = useState([])
   const [selected, setSelected]       = useState([])
   const [series, setSeries]           = useState({}) // { entityKey: [{stat_date, value}] }
@@ -39,8 +43,11 @@ export default function SevenDmaPage() {
       if (granularity === 'machine') {
         if (storeFilter === 'all') { setAllEntities([]); setLoadingEntities(false); return }
         const { data } = await supabase
-          .from('machines').select('machine_code, machine_name').eq('store_code', storeFilter).eq('is_active', true).order('machine_code')
-        setAllEntities((data ?? []).map(m => ({ key: m.machine_code, label: m.machine_name || m.machine_code })))
+          .from('machines')
+          .select('machine_code, machine_name, type_id')
+          .eq('store_code', storeFilter).eq('is_active', true).order('machine_code')
+        const filtered = (data ?? []).filter(m => genre === 'all' || m.type_id === genre)
+        setAllEntities(filtered.map(m => ({ key: m.machine_code, label: m.machine_name || m.machine_code })))
         setLoadingEntities(false)
         return
       }
@@ -50,18 +57,21 @@ export default function SevenDmaPage() {
       if (storeFilter === 'all') { setAllEntities([]); setLoadingEntities(false); return }
       const [{ data: boothsData }, { data: machinesData }, { data: readingsData }] = await Promise.all([
         supabase.from('booths').select('booth_code, booth_number, machine_code').eq('store_code', storeFilter).eq('is_active', true).order('booth_code'),
-        supabase.from('machines').select('machine_code, machine_name').eq('store_code', storeFilter).eq('is_active', true),
-        // meter_readings から booth ごとの最新 prize_name を取得 (Supabase で DISTINCT ON 不可、
-        // patrol_date DESC で全件取得 → クライアント側で booth_code 初出を採用)
+        supabase.from('machines').select('machine_code, machine_name, type_id').eq('store_code', storeFilter).eq('is_active', true),
+        // meter_readings から booth ごとの最新 prize_name を取得
         supabase.from('meter_readings').select('booth_code, prize_name, patrol_date').eq('store_code', storeFilter).order('patrol_date', { ascending: false }).limit(2000),
       ])
       const machineMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, m.machine_name || m.machine_code]))
+      const typeMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, m.type_id ?? null]))
       const prizeMap = {}
       for (const r of readingsData ?? []) {
         if (!r.booth_code) continue
         if (!(r.booth_code in prizeMap)) prizeMap[r.booth_code] = r.prize_name || null
       }
-      setAllEntities((boothsData ?? []).map(b => {
+      const filteredBooths = genre === 'all'
+        ? (boothsData ?? [])
+        : (boothsData ?? []).filter(b => typeMap[b.machine_code] === genre)
+      setAllEntities(filteredBooths.map(b => {
         const lastSeg = b.booth_code.split('-').pop()
         const machName = machineMap[b.machine_code] || b.machine_code
         const prizeName = prizeMap[b.booth_code] || '景品未設定'
@@ -70,7 +80,7 @@ export default function SevenDmaPage() {
       setLoadingEntities(false)
     }
     loadEntities()
-  }, [granularity, storeFilter])
+  }, [granularity, storeFilter, genre])
 
   // 選択エンティティの play_count 時系列を取得 → 7DMA をフロントエンドで計算
   useEffect(() => {
@@ -91,7 +101,6 @@ export default function SevenDmaPage() {
         else if (granularity === 'machine') q = q.like('booth_code', `${key}-%`)
         else q = q.eq('store_code', key)
         const { data } = await q
-        // 日付ごとに play_count を集約 (machine/store では複数 booth 行があるので SUM)
         const byDate = {}
         for (const r of data ?? []) {
           if (!byDate[r.stat_date]) byDate[r.stat_date] = 0
@@ -100,9 +109,8 @@ export default function SevenDmaPage() {
         const sortedRaw = Object.entries(byDate)
           .map(([d, v]) => ({ stat_date: d, play_count: v }))
           .sort((a, b) => a.stat_date.localeCompare(b.stat_date))
-        // 補間 + 7日 sliding (分母 固定 7) — J-REPORTS-7DMA-FIX-01
         ser[key] = calc7dmaSeries(sortedRaw, 'play_count')
-        days[key] = sortedRaw.length // 巡回レコード数 (補間前)
+        days[key] = sortedRaw.length
       }
       setSeries(ser); setDataDays(days); setLoading(false)
     }
@@ -123,8 +131,18 @@ export default function SevenDmaPage() {
     setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : prev.length < MAX_SERIES ? [...prev, key] : prev)
   }
 
+  const genreDisabled = granularity === 'store'
+
   return (
     <ReportPageLayout title="7日移動平均分析" testid="report-7dma">
+      {/* ジャンルフィルタ */}
+      <GenreFilter
+        value={genre}
+        onChange={setGenre}
+        disabled={genreDisabled}
+        disabledReason={genreDisabled ? '店舗粒度は機種別非対応' : null}
+      />
+
       <div className="flex flex-wrap gap-2 mb-3">
         {['booth', 'machine', 'store'].map(g => (
           <button key={g} onClick={() => setGranularity(g)}

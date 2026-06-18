@@ -1,10 +1,12 @@
 // J-REPORTS-ANALYTICS-01 S4: 集金サイクル分析
 // 店舗別カード (前回集金/間隔/総回収/日当売上/推奨次回集金日) + 全店間隔ヒストグラム
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter disabled (集金は機種別非対応)
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '../../../lib/supabase'
 import { diffDays, formatJstDate, todayJst } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
+import GenreFilter from './GenreFilter'
 
 export default function CollectionCyclePage() {
   const [stores, setStores] = useState([])
@@ -63,6 +65,8 @@ export default function CollectionCyclePage() {
 
   return (
     <ReportPageLayout title="集金サイクル分析" testid="report-collection-cycle">
+      {/* 集金は機種別フィルタ非対応 */}
+      <GenreFilter value="all" onChange={() => {}} disabled disabledReason="集金は機種別非対応" />
       {loading ? (
         <p className="text-center text-muted text-sm py-12">読み込み中…</p>
       ) : (

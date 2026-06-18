@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAllStores, getMachines, getBooths, updateBooth, addBooth, getNextBoothNumber } from '../../services/masters'
+import { getMachines, getBooths, updateBooth, addBooth, getNextBoothNumber } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
-import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
+import StorePickerSheet from '../../components/StorePickerSheet'
 
 export default function BoothList() {
   const navigate = useNavigate()
 
-  const [stores, setStores] = useState([])
   const [storeCode, setStoreCode] = useState(() => sessionStorage.getItem('admin_booth_store') || '')
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [machines, setMachines] = useState([])
   const [machineCode, setMachineCode] = useState(() => sessionStorage.getItem('admin_booth_machine') || '')
   const [booths, setBooths] = useState([])
@@ -25,10 +23,6 @@ export default function BoothList() {
   const [addForm, setAddForm] = useState({ play_price: '', meter_in_number: 7, meter_out_number: 7 })
   const [addError, setAddError] = useState('')
   const [nextBoothNum, setNextBoothNum] = useState(null)
-
-  useEffect(() => {
-    getAllStores().then(setStores)
-  }, [])
 
   useEffect(() => {
     if (!storeCode) {
@@ -160,16 +154,11 @@ export default function BoothList() {
       <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">
         <div>
           <label className="block text-xs text-muted mb-1">店舗</label>
-          <StoreSelectTrigger
-            storeName={stores.find(s => s.store_code === storeCode)?.store_name}
-            onClick={() => setSheetOpen(true)}
-            className="w-full"
-          />
-          <StoreSelectSheet
-            open={sheetOpen}
-            onClose={() => setSheetOpen(false)}
-            stores={stores}
-            onSelect={code => { setStoreCode(code); sessionStorage.setItem('admin_booth_store', code) }}
+          <StorePickerSheet
+            value={storeCode || null}
+            onChange={code => setStoreCode(code ?? '')}
+            showAllOption={false}
+            placeholder="店舗を選択…"
           />
         </div>
 

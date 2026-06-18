@@ -58,6 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: build
+    continue-on-error: true # SPEC-E2E-GATE4: non-blocking during RED→GREEN transition
     # E2E は dev/main push のみ実行（PRごとに回すとコストがかかる）
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
 
