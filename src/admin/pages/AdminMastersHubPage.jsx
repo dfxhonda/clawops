@@ -8,7 +8,7 @@ const TILES = [
   { label: '店舗',         desc: '店舗マスタ管理 (機械/ブース追加もここから)', path: '/admin/masters/store-list', impl: true  },
   { label: '機械登録',     desc: '店舗の実機を追加・編集',  path: '/admin/machines',                  impl: true  },
   { label: 'ブース一覧',   desc: 'ブース設定の確認・編集・追加', path: '/admin/booths',                impl: true  },
-  { label: '機種',         desc: '機種マスタ (型番) 管理',  path: '/admin/masters/machines',          impl: true  },
+  { label: '機種',         desc: '機種マスタ (型番) 管理',  path: '/admin/models',                    impl: true  },
   { label: '景品',         desc: '景品マスタ管理',         path: '/admin/masters/prizes',            impl: true  },
   { label: 'ロッカー',     desc: 'ロッカーマスタ管理',     path: '/admin/masters/lockers',           impl: false },
   { label: 'スタッフ',     desc: 'スタッフマスタ管理',     path: '/admin/masters/staff',             impl: true  },
