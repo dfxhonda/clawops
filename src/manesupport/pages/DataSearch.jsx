@@ -1,22 +1,19 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { getStores } from '../../services/masters'
 import { parseNum } from '../../services/utils'
 import { useAsync } from '../../hooks/useAsync'
 import LogoutButton from '../../components/LogoutButton'
 import ErrorDisplay from '../../components/ErrorDisplay'
-import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
+import StorePickerSheet from '../../components/StorePickerSheet'
 
 export default function DataSearch() {
   const navigate = useNavigate()
   const [allReadings, setAllReadings] = useState([])
-  const [stores, setStores] = useState([])
   const [loading, setLoading] = useState(true)
   const [successMsg, setSuccessMsg] = useState('')
   const { loading: saving, execute, errorProps } = useAsync()
   const [filterStore, setFilterStore] = useState(() => sessionStorage.getItem('clawops_selected_store') || '')
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [filterBooth, setFilterBooth] = useState('')
   const [filterPrize, setFilterPrize] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
@@ -26,10 +23,6 @@ export default function DataSearch() {
   const [editingRow, setEditingRow] = useState(null)
   const [dateSort, setDateSort] = useState('desc') // 'desc' or 'asc'
   const [gridMode, setGridMode] = useState(false)
-
-  useEffect(() => {
-    getStores().then(storeList => setStores(storeList)).catch(() => {})
-  }, [])
 
   useEffect(() => {
     if (!filterStore) { setLoading(false); return }
@@ -213,10 +206,11 @@ export default function DataSearch() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div className="text-[10px] text-muted uppercase tracking-wider mb-1">店舗</div>
-              <StoreSelectTrigger
-                storeName={stores.find(s => s.store_code === filterStore)?.store_name}
-                onClick={() => setSheetOpen(true)}
-                className="w-full"
+              <StorePickerSheet
+                value={filterStore || null}
+                onChange={code => handleStoreChange(code ?? '')}
+                showAllOption={false}
+                placeholder="店舗を選択…"
               />
             </div>
             <div>
@@ -262,23 +256,18 @@ export default function DataSearch() {
       </div>
 
       {/* 店舗未選択時: 選択ボタンを表示 */}
-      {!filterStore && stores.length > 0 && (
+      {!filterStore && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <div className="text-5xl">🏪</div>
           <p className="text-muted text-sm">検索する店舗を選択してください</p>
-          <StoreSelectTrigger
-            onClick={() => setSheetOpen(true)}
-            className="w-64"
+          <StorePickerSheet
+            value={null}
+            onChange={code => handleStoreChange(code ?? '')}
+            showAllOption={false}
+            placeholder="店舗を選択…"
           />
         </div>
       )}
-
-      <StoreSelectSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        stores={stores}
-        onSelect={handleStoreChange}
-      />
 
       {/* スクロール可能なデータリスト（店舗選択済み時のみ） */}
       {filterStore && (

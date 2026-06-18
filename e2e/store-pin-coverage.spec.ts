@@ -50,11 +50,12 @@ test('red-locker-list: store-select-sheet should show pinned star', async ({ pag
   await expect(page.locator('[data-testid="store-select-sheet"] .text-yellow-400').first()).toBeVisible()
 })
 
-test('red-data-search: store-select-sheet should show pinned star', async ({ page }) => {
+test('green-data-search: store-picker-trigger present and sheet opens', async ({ page }) => {
   await page.goto('/datasearch')
-  await page.getByTestId('store-select-trigger').click()
-  await expect(page.getByTestId('store-select-sheet')).toBeVisible()
-  await expect(page.locator('[data-testid="store-select-sheet"] .text-yellow-400').first()).toBeVisible()
+  const trigger = page.getByTestId('store-picker-trigger')
+  await expect(trigger).toBeVisible()
+  await trigger.click()
+  await expect(page.getByTestId('store-picker-sheet')).toBeVisible()
 })
 
 // ─── GREEN: StorePickerSheet positive controls (MUST PASS) ───────────────────
