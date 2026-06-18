@@ -3,18 +3,26 @@
 //   single  = 3段ドリルダウン (店舗→機械→ブース) で 1 ブースの 2軸折れ線 + phase_at 縦線
 //   compare = 店舗選択後、その店舗の全ブースを payout_rate で重ね描き (多系列)
 // FIX-02: 右軸は play_count → play_7dma (フロント rolling 7day) に変更 (spec)、DB の play_7dma 列は全 NULL
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from '../../../lib/supabase'
-import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
+import { jstDateNDaysAgo } from '../../lib/jstDate'
 import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 import StorePickerSheet from '../../../components/StorePickerSheet'
+import GenreFilter from './GenreFilter'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa', '#22d3ee', '#fb923c', '#34d399', '#e879f9', '#facc15']
 
+function resolveTypeId(machineModels) {
+  const mm = Array.isArray(machineModels) ? machineModels[0] : machineModels
+  return mm?.type_id ?? null
+}
+
 export default function PayoutTrendPage() {
   const [mode, setMode] = useState('single') // 'single' | 'compare'
+  const [genre, setGenre] = useState('crane')
 
   // single mode state
   const [storeCode, setStoreCode] = useState(null)
@@ -29,18 +37,28 @@ export default function PayoutTrendPage() {
   const [compareStore, setCompareStore] = useState(null)
   const [compareSeries, setCompareSeries] = useState([]) // chart data row[stat_date, booth_code_X: value, ...]
   const [compareBooths, setCompareBooths] = useState([]) // [booth_code, ...]
+  const [boothTypeMap, setBoothTypeMap] = useState({})   // { booth_code: type_id }
 
   const [upper, setUpper] = useState(60)
   const [lower, setLower] = useState(30)
   const [loading, setLoading] = useState(false)
 
-  // single mode: store -> machines
+  // single mode: store + genre -> machines (type_id filter)
   useEffect(() => {
     setMachineCode(null); setBoothCode(null); setMachines([]); setBooths([]); setSeries([])
     if (mode !== 'single' || !storeCode) return
-    supabase.from('machines').select('machine_code, machine_name').eq('store_code', storeCode).eq('is_active', true)
-      .order('machine_code').then(({ data }) => setMachines(data ?? []))
-  }, [storeCode, mode])
+    supabase.from('machines')
+      .select('machine_code, machine_name, machine_models!model_id(type_id)')
+      .eq('store_code', storeCode).eq('is_active', true)
+      .order('machine_code')
+      .then(({ data }) => {
+        const filtered = (data ?? []).filter(m => {
+          if (genre === 'all') return true
+          return resolveTypeId(m.machine_models) === genre
+        })
+        setMachines(filtered)
+      })
+  }, [storeCode, mode, genre])
 
   // single mode: machine -> booths
   useEffect(() => {
@@ -66,10 +84,8 @@ export default function PayoutTrendPage() {
           payout_rate: r.payout_rate != null ? Number(r.payout_rate) * 100 : null,
           play_count: r.play_count != null ? Number(r.play_count) : 0,
         }))
-        // 7DMA を補間+sliding (分母固定7) で計算、date key で base に merge
         const dmaSeries = calc7dmaSeries(base, 'play_count')
         const dmaMap = Object.fromEntries(dmaSeries.map(d => [d.stat_date, d.value]))
-        // base + 補間で生成された日付も chart に出す
         const merged = dmaSeries.map(d => {
           const orig = base.find(p => p.stat_date === d.stat_date)
           return {
@@ -78,7 +94,6 @@ export default function PayoutTrendPage() {
             play_7dma: d.value,
           }
         })
-        // 補間で生成されなかった base 日付 (初回より前など) も保険で push
         for (const b of base) {
           if (!dmaMap[b.stat_date] && !merged.some(m => m.stat_date === b.stat_date)) {
             merged.push({ stat_date: b.stat_date, payout_rate: b.payout_rate, play_7dma: null })
@@ -96,30 +111,47 @@ export default function PayoutTrendPage() {
       })
   }, [boothCode, mode])
 
-  // compare mode: store → 全ブースの payout_rate 時系列
+  // compare mode: store → 全ブースの payout_rate 時系列 + booth type_id map
   useEffect(() => {
-    if (mode !== 'compare' || !compareStore) { setCompareSeries([]); setCompareBooths([]); return }
+    if (mode !== 'compare' || !compareStore) {
+      setCompareSeries([]); setCompareBooths([]); setBoothTypeMap({})
+      return
+    }
     setLoading(true)
     const from = jstDateNDaysAgo(60)
-    supabase.from('daily_booth_stats')
-      .select('stat_date, payout_rate, booth_code')
-      .eq('store_code', compareStore)
-      .gte('stat_date', from)
-      .order('stat_date')
-      .then(({ data }) => {
-        const boothSet = new Set()
-        const byDate = {}
-        for (const r of data ?? []) {
-          if (!r.booth_code) continue
-          boothSet.add(r.booth_code)
-          if (!byDate[r.stat_date]) byDate[r.stat_date] = { stat_date: r.stat_date }
-          byDate[r.stat_date][r.booth_code] = r.payout_rate != null ? Number(r.payout_rate) * 100 : null
-        }
-        setCompareBooths(Array.from(boothSet).sort())
-        setCompareSeries(Object.values(byDate).sort((a, b) => a.stat_date.localeCompare(b.stat_date)))
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.from('daily_booth_stats')
+        .select('stat_date, payout_rate, booth_code')
+        .eq('store_code', compareStore)
+        .gte('stat_date', from)
+        .order('stat_date'),
+      supabase.from('booths')
+        .select('booth_code, machines!machine_code(machine_models!model_id(type_id))')
+        .eq('store_code', compareStore),
+    ]).then(([{ data }, { data: boothTypeData }]) => {
+      const boothSet = new Set()
+      const byDate = {}
+      for (const r of data ?? []) {
+        if (!r.booth_code) continue
+        boothSet.add(r.booth_code)
+        if (!byDate[r.stat_date]) byDate[r.stat_date] = { stat_date: r.stat_date }
+        byDate[r.stat_date][r.booth_code] = r.payout_rate != null ? Number(r.payout_rate) * 100 : null
+      }
+      setCompareBooths(Array.from(boothSet).sort())
+      setCompareSeries(Object.values(byDate).sort((a, b) => a.stat_date.localeCompare(b.stat_date)))
+      const typeMap = {}
+      for (const b of boothTypeData ?? []) {
+        const m = Array.isArray(b.machines) ? b.machines[0] : b.machines
+        typeMap[b.booth_code] = resolveTypeId(m?.machine_models)
+      }
+      setBoothTypeMap(typeMap)
+      setLoading(false)
+    })
   }, [compareStore, mode])
+
+  const filteredCompareBooths = genre === 'all'
+    ? compareBooths
+    : compareBooths.filter(bc => boothTypeMap[bc] === genre)
 
   return (
     <ReportPageLayout title="払い出し率トレンド" testid="report-payout-trend">
@@ -136,6 +168,9 @@ export default function PayoutTrendPage() {
           店舗内ブース比較
         </button>
       </div>
+
+      {/* ジャンルフィルタ */}
+      <GenreFilter value={genre} onChange={setGenre} />
 
       {/* single 用ドリルダウン */}
       {mode === 'single' && (
@@ -170,7 +205,7 @@ export default function PayoutTrendPage() {
             onChange={v => setCompareStore(v)}
             showAllOption={false}
           />
-          <span className="text-xs text-muted self-center">選択店舗の全ブースを重ね描き ({compareBooths.length}ブース)</span>
+          <span className="text-xs text-muted self-center">選択店舗の全ブースを重ね描き ({filteredCompareBooths.length}ブース)</span>
         </div>
       )}
 
@@ -236,12 +271,12 @@ export default function PayoutTrendPage() {
                       <ReferenceLine y={upper} stroke="#ef4444" strokeDasharray="4 4" label={{ value: `上限${upper}%`, fill: '#ef4444', fontSize: 10 }} />
                       <ReferenceLine y={lower} stroke="#3b82f6" strokeDasharray="4 4" label={{ value: `下限${lower}%`, fill: '#3b82f6', fontSize: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 10 }} />
-                      {compareBooths.map((b, i) => (
+                      {filteredCompareBooths.map((b, i) => (
                         <Line key={b} type="monotone" dataKey={b} stroke={COLORS[i % COLORS.length]} strokeWidth={1.5} dot={false} />
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
-                  <p className="text-[10px] text-muted mt-2">店舗内 {compareBooths.length} ブースの払出率 (60日)</p>
+                  <p className="text-[10px] text-muted mt-2">店舗内 {filteredCompareBooths.length} ブースの払出率 (60日)</p>
                 </div>
               )
       )}

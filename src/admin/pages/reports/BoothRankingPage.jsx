@@ -6,6 +6,7 @@
 // - 面積効率 = 機械の全ブース日次売上 / (width*depth/1000000)、NULL機種は '-' 末尾ソート
 // - ランク色: 1=金, 2=銀, 3=銅 (best モード時のみ)
 // - モバイル 390px 横スクロール
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
@@ -13,6 +14,7 @@ import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import { calc7dmaSeries, periodDays } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
 import StorePickerSheet from '../../../components/StorePickerSheet'
+import GenreFilter from './GenreFilter'
 
 const UNITS = [
   { key: 'daily_avg', label: '日平均' },
@@ -43,6 +45,7 @@ export default function BoothRankingPage() {
   const [loading, setLoading]   = useState(true)
   const [sortBy, setSortBy]     = useState('selected_unit_value')
   const [sortDir, setSortDir]   = useState('desc')
+  const [genre, setGenre]       = useState('crane')
 
   useEffect(() => {
     if (period === '7d') { setFrom(jstDateNDaysAgo(7)); setTo(todayJst()) }
@@ -67,7 +70,7 @@ export default function BoothRankingPage() {
         .select(`
           booth_code, store_code, stat_date, revenue, play_count, payout_rate,
           stores(store_name),
-          booths!booth_code(machine_code, machines!machine_code(machine_name, machine_models!model_id(width_mm, depth_mm)))
+          booths!booth_code(machine_code, machines!machine_code(machine_name, machine_models!model_id(width_mm, depth_mm, type_id)))
         `)
         .gte('stat_date', qFrom)
         .lte('stat_date', qTo)
@@ -81,6 +84,7 @@ export default function BoothRankingPage() {
         const machineObj = Array.isArray(boothObj?.machines) ? boothObj.machines[0] : boothObj?.machines
         const mm = Array.isArray(machineObj?.machine_models) ? machineObj.machine_models[0] : machineObj?.machine_models
         const mc = boothObj?.machine_code ?? null
+        const typeId = mm?.type_id ?? null
         const bc = r.booth_code
         if (mc) {
           if (!byMachine[mc]) byMachine[mc] = { totalRev: 0, days: new Set(), width: mm?.width_mm ?? null, depth: mm?.depth_mm ?? null }
@@ -94,6 +98,7 @@ export default function BoothRankingPage() {
           machine_code: mc,
           store_name: r.stores?.store_name || r.store_code,
           machine_name: machineObj?.machine_name || mc || bc,
+          type_id: typeId,
           revenue_sum: 0,
           play_sum: 0,
           payout_sum: 0,
@@ -153,8 +158,10 @@ export default function BoothRankingPage() {
           is_reference: unit === '7dma' && daysN < 7,
         }
       })
+      // ジャンルフィルタ (client-side, type_id 一致)
+      const genreFiltered = genre === 'all' ? list : list.filter(b => b.type_id === genre)
       // ソート (null は末尾)
-      list.sort((a, b) => {
+      genreFiltered.sort((a, b) => {
         const va = a[sortBy]
         const vb = b[sortBy]
         const aNull = va == null
@@ -166,14 +173,14 @@ export default function BoothRankingPage() {
         return sortDir === 'asc' ? va - vb : vb - va
       })
       // best/worst モードと件数制限
-      let final = list
-      if (mode === 'worst') final = [...list].reverse()
+      let final = genreFiltered
+      if (mode === 'worst') final = [...genreFiltered].reverse()
       if (count > 0) final = final.slice(0, count)
       setRows(final.map((r, i) => ({ ...r, rank: i + 1 })))
       setLoading(false)
     }
     load()
-  }, [from, to, storeCode, unit, sortBy, sortDir, mode, count])
+  }, [from, to, storeCode, unit, sortBy, sortDir, mode, count, genre])
 
   function clickHeader(col) {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -208,6 +215,9 @@ export default function BoothRankingPage() {
           </button>
         ))}
       </div>
+
+      {/* ジャンルフィルタ */}
+      <GenreFilter value={genre} onChange={setGenre} />
 
       {/* フィルタ行 */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">

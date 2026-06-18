@@ -1,11 +1,13 @@
 // J-REPORTS-ANALYTICS-01 S7 (addendum): 利益率カレンダー (CSS grid heatmap)
 // 粗利率 = (revenue - prize_cost*prize_out_count) / revenue * 100
 // 色: 緑>=70% / 黄 50-70% / 赤<50% / グレー=データなし、prize_cost*prize_out_count=0 は除外
+// SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 import StorePickerSheet from '../../../components/StorePickerSheet'
+import GenreFilter from './GenreFilter'
 
 function colorFor(margin, target) {
   if (margin == null) return 'bg-slate-700'
@@ -27,25 +29,53 @@ function monthStart(dateStr) {
   return dateStr.slice(0, 7) // YYYY-MM
 }
 
+async function fetchBoothCodesByGenre(genre, storeCode) {
+  if (genre === 'all') return null
+  let q = supabase
+    .from('booths')
+    .select('booth_code, machines!machine_code(machine_models!model_id(type_id))')
+    .eq('is_active', true)
+  if (storeCode !== 'all') q = q.eq('store_code', storeCode)
+  const { data } = await q
+  return (data ?? [])
+    .filter(b => {
+      const m = Array.isArray(b.machines) ? b.machines[0] : b.machines
+      const mm = Array.isArray(m?.machine_models) ? m.machine_models[0] : m?.machine_models
+      return mm?.type_id === genre
+    })
+    .map(b => b.booth_code)
+}
+
 export default function ProfitCalendarPage() {
   const [granularity, setGranularity] = useState('daily') // 'daily' | 'weekly' | 'monthly'
   const [target, setTarget] = useState(70)
   const [days, setDays] = useState(30)
   const [storeCode, setStoreCode] = useState('all')
+  const [genre, setGenre] = useState('crane')
   const [grid, setGrid] = useState({ stores: [], dates: [], cells: {} })
   const [loading, setLoading] = useState(true)
   const [popup, setPopup] = useState(null)
 
   useEffect(() => {
-    setLoading(true)
-    const from = jstDateNDaysAgo(days)
-    let q = supabase
-      .from('daily_booth_stats')
-      .select('store_code, stat_date, revenue, prize_cost, prize_out_count, stores(store_name)')
-      .gte('stat_date', from)
-      .lte('stat_date', todayJst())
-    if (storeCode !== 'all') q = q.eq('store_code', storeCode)
-    q.then(({ data }) => {
+    async function load() {
+      setLoading(true)
+      const from = jstDateNDaysAgo(days)
+      let q = supabase
+        .from('daily_booth_stats')
+        .select('store_code, stat_date, revenue, prize_cost, prize_out_count, stores(store_name)')
+        .gte('stat_date', from)
+        .lte('stat_date', todayJst())
+      if (storeCode !== 'all') q = q.eq('store_code', storeCode)
+      if (genre !== 'all') {
+        const codes = await fetchBoothCodesByGenre(genre, storeCode)
+        if (codes.length === 0) {
+          setGrid({ stores: [], dates: [], cells: {} })
+          setLoading(false)
+          return
+        }
+        q = q.in('booth_code', codes)
+      }
+      const { data } = await q
       // 粒度に応じてバケット化
       const bucketize = (d) => granularity === 'weekly' ? weekStart(d)
         : granularity === 'monthly' ? monthStart(d) : d
@@ -79,11 +109,15 @@ export default function ProfitCalendarPage() {
       const dateList = Array.from(bucketSet).sort()
       setGrid({ stores: storeList, dates: dateList, cells })
       setLoading(false)
-    })
-  }, [granularity, days, storeCode])
+    }
+    load()
+  }, [granularity, days, storeCode, genre])
 
   return (
     <ReportPageLayout title="利益率カレンダー" testid="report-profit-calendar">
+      {/* ジャンルフィルタ */}
+      <GenreFilter value={genre} onChange={setGenre} />
+
       <div className="flex flex-wrap gap-2 mb-3 items-center">
         <div className="flex gap-1">
           {['daily', 'weekly', 'monthly'].map(g => (
