@@ -6,19 +6,30 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 8_000 },
   fullyParallel: false,
-  retries: 0,
+  retries: process.env.CI ? 1 : 0,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // 390x844 mobile viewport (iPhone 13 size) using chromium engine
+    {
+      name: 'mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+      },
+    },
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:5173',
+    url: process.env.E2E_BASE_URL || 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 30_000,
   },

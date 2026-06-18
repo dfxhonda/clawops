@@ -27,7 +27,7 @@ export default function StoreSelectSheet({ open, onClose, stores = [], onSelect,
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div data-testid="store-select-sheet" className="fixed inset-0 z-50 flex flex-col justify-end">
       {/* オーバーレイ */}
       <div
         className="absolute inset-0 bg-black/60"
@@ -90,10 +90,11 @@ export default function StoreSelectSheet({ open, onClose, stores = [], onSelect,
  *   onClick    () => void
  *   className  string              - 追加クラス（省略可）
  */
-export function StoreSelectTrigger({ storeName, onClick, className = '' }) {
+export function StoreSelectTrigger({ storeName, onClick, className = '', testId = 'store-select-trigger' }) {
   return (
     <button
       type="button"
+      data-testid={testId}
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface text-sm outline-none active:bg-surface2 transition-colors ${className}`}
     >

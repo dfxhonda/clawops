@@ -184,14 +184,14 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
           {/* Numpad 3x4 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {[1,2,3,4,5,6,7,8,9].map(n => (
-              <button key={n} className="kp-btn" onPointerDown={() => handleDigit(n)} disabled={isLocked || submitting}>
+              <button key={n} data-testid={`pin-key-${n}`} className="kp-btn" onPointerDown={() => handleDigit(n)} disabled={isLocked || submitting}>
                 {n}
               </button>
             ))}
             {/* 空セル */}
             <div />
-            <button className="kp-btn" onPointerDown={() => handleDigit(0)} disabled={isLocked || submitting}>0</button>
-            <button className="kp-btn" onPointerDown={handleBackspace} disabled={isLocked || submitting}
+            <button data-testid="pin-key-0" className="kp-btn" onPointerDown={() => handleDigit(0)} disabled={isLocked || submitting}>0</button>
+            <button data-testid="pin-backspace" className="kp-btn" onPointerDown={handleBackspace} disabled={isLocked || submitting}
               style={{ color: '#94a3b8', fontSize: 18 }}>⌫</button>
           </div>
         </div>

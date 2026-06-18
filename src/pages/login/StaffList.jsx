@@ -25,6 +25,7 @@ export default function StaffList({ staff, starStaffIds, isStarTab, onSelect }) 
       {staff.map(s => (
         <button
           key={s.staff_id}
+          data-testid={`login-staff-${s.staff_id}`}
           onClick={() => onSelect(s)}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 12,
