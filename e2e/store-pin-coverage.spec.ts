@@ -1,21 +1,16 @@
 /**
- * SPEC-E2E-GATE4-STORE-PIN-COVERAGE-01 (fixed by SPEC-E2E-GATE4-FIX-01)
+ * SPEC-STORE-SELECT-UNIFY-TO-PICKER-01 (migration complete 2026-06-18)
  *
- * RED tests (4): Pages that still use StoreSelectSheet (no pin star) — MUST FAIL.
- *   These are intentionally left failing to document upgrade debt.
- *   Do NOT xfail / skip them.
- *   Target: /admin/machines, /admin/booths, /admin/lockers, /datasearch
+ * ALL 6 tests GREEN: StoreSelectSheet fully replaced by StorePickerSheet.
  *
- * GREEN tests (2): Pages upgraded to StorePickerSheet — MUST PASS.
- *   Target: /admin/audit/booth-edit, /collection/input
+ * Migrated (4): /admin/machines, /datasearch, /admin/booths, /admin/lockers
+ * Original controls (2): /admin/audit/booth-edit, /collection/input
  *
- * Removed (SPEC-E2E-GATE4-FIX-01): red-patrol-overview and red-booth-qr-print
- *   were route-orphans: /patrol/overview redirects to ClawsupportHub (no StoreSelectSheet),
- *   /admin/qr-print route was deleted (J-NAV-ORPHAN-CLEANUP-01 2026-05-30).
- *   They failed for the wrong reason (unreachable, not star-absent). Removed.
- *   Their dead StoreSelectSheet imports will be cleaned up at StoreSelectSheet deletion time.
+ * StoreSelectSheet.jsx deleted. PatrolOverview+BoothQrPrint dead imports removed
+ * (route-orphans: /patrol/overview redirects to ClawsupportHub,
+ *  /admin/qr-print route deleted J-NAV-ORPHAN-CLEANUP-01 2026-05-30).
  *
- * Actor: STAFF-03 (has pinned stores → GREEN star assertions are meaningful).
+ * Actor: STAFF-03 (has pinned stores → pin star assertions are meaningful).
  * PIN: E2E_HIRO_PIN env var (never hardcoded).
  */
 

@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
 import { getStores, getMachines, getBooths } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
-import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
 
 const BASE_URL = 'https://clawops-tau.vercel.app'
 
@@ -58,7 +57,6 @@ export default function BoothQrPrint() {
   const navigate = useNavigate()
   const [stores, setStores] = useState([])
   const [storeCode, setStoreCode] = useState(() => sessionStorage.getItem('qrprint_store') || '')
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [groups, setGroups] = useState([]) // [{ machine, booths }]
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
@@ -129,17 +127,7 @@ export default function BoothQrPrint() {
       <div className="print:hidden px-4 py-3 space-y-3">
         <div>
           <label className="block text-xs text-muted mb-1">店舗を選択</label>
-          <StoreSelectTrigger
-            storeName={stores.find(s => s.store_code === storeCode)?.store_name}
-            onClick={() => setSheetOpen(true)}
-            className="w-full"
-          />
-          <StoreSelectSheet
-            open={sheetOpen}
-            onClose={() => setSheetOpen(false)}
-            stores={stores}
-            onSelect={code => { setStoreCode(code); sessionStorage.setItem('qrprint_store', code) }}
-          />
+          <span className="text-sm text-muted">{stores.find(s => s.store_code === storeCode)?.store_name || '店舗未選択'}</span>
         </div>
 
         {storeCode && !loading && totalBooths > 0 && (
