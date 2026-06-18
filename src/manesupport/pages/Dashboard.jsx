@@ -96,9 +96,9 @@ export default function Dashboard() {
     <div className="h-full flex flex-col">
       <div className="shrink-0 bg-bg border-b border-border px-3 py-2.5" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/admin/menu')} className="text-2xl text-muted hover:text-accent">←</button>
+          <button onClick={() => navigate('/admin')} className="text-2xl text-muted hover:text-accent">←</button>
           <div className="flex-1 text-base font-bold">ダッシュボード</div>
-          <LogoutButton to="/admin/menu" />
+          <LogoutButton to="/admin" />
         </div>
       </div>
 

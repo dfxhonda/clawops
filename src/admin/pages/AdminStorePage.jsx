@@ -54,7 +54,7 @@ export default function AdminStorePage() {
           <button
             key={store.store_code}
             data-testid={`store-row-${store.store_code}`}
-            onClick={() => navigate(`/admin/store/${store.store_code}/machines`)}
+            onClick={() => navigate(`/admin/audit/booth-edit/${store.store_code}/machines`)}
             className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
           >
             <span className="text-text text-base font-bold">{store.store_name}</span>

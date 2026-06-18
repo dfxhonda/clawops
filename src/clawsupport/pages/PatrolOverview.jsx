@@ -166,7 +166,7 @@ export default function PatrolOverview() {
           📊 DB
         </button>
         <button
-          onClick={() => navigate('/admin/menu')}
+          onClick={() => navigate('/admin')}
           className="h-9 px-3 flex items-center gap-1 rounded-xl bg-surface border border-border text-[11px] font-bold text-muted active:bg-surface2 transition-colors"
         >
           ⚙️ 管理

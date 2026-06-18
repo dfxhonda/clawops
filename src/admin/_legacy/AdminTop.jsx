@@ -24,7 +24,7 @@ export default function AdminTop() {
           ☰ メニュー
         </button>
         <div className="flex-1 text-base font-bold">管理メニュー</div>
-        <LogoutButton to="/admin/menu" />
+        <LogoutButton to="/admin" />
       </div>
 
       <div className="flex-1 overflow-y-auto">
