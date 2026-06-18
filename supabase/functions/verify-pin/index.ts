@@ -7,8 +7,30 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// R1: 決定的password導出 — staff_id + created_at + APP_AUTH_SALT (service_role_key非依存)
+async function derivePassword(staffId: string, createdAt: string, salt: string): Promise<string> {
+  const buf = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(`${staffId}:${createdAt}:${salt}`)
+  );
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40);
+}
+
+// R1: 旧方式 (service_role_key末8桁依存) — fallback/migration用
+function legacyPassword(staffId: string, serviceKey: string): string {
+  return `clawops_${staffId}_${serviceKey.slice(-8)}`;
+}
+
+// R2: signInWithPassword を単一ヘルパーに集約 — session null時はthrow
+async function issueSession(supabaseAdmin: any, email: string, password: string) {
+  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+  if (error || !data?.session) {
+    throw error ?? new Error('[verify-pin] session null after signInWithPassword');
+  }
+  return { session: data.session, user: data.user };
+}
+
 Deno.serve(async (req: Request) => {
-  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -39,6 +61,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const serviceKey = Deno.env.get('CLAWOPS_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const APP_AUTH_SALT = Deno.env.get('APP_AUTH_SALT');
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -46,13 +69,24 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // SPEC-LOGIN-CLIENT-BCRYPT-01 C4: skip_bcrypt=true → client already verified; fetch staff and issue session
-    let verifyResult: { success: boolean; staff_id: string; name: string; role: string; operator_id: string; store_code: string; error?: string } | null = null;
+    type VerifyResult = {
+      success: boolean;
+      staff_id: string;
+      name: string;
+      role: string;
+      operator_id: string;
+      store_code: string;
+      created_at?: string;
+      error?: string;
+    };
+
+    let verifyResult: VerifyResult | null = null;
 
     if (skip_bcrypt) {
+      // R1: created_at を取得してpassword導出に使用
       const { data: staffRow, error: staffError } = await supabaseAdmin
         .from('staff')
-        .select('staff_id, name, role, operator_id, store_code')
+        .select('staff_id, name, role, operator_id, store_code, created_at')
         .eq('staff_id', staff_id)
         .eq('is_active', true)
         .single();
@@ -64,14 +98,12 @@ Deno.serve(async (req: Request) => {
         );
       }
       verifyResult = { success: true, ...staffRow };
-      // skip_bcrypt=true: client already verified PIN via bcrypt.compare.
-      // Fall through to signInWithPassword below to issue the session.
     } else {
       const { data, error: rpcError } = await supabaseAdmin
         .rpc('verify_staff_pin', { p_staff_id: staff_id, p_pin: pin || '' });
 
       if (rpcError) {
-        console.error('RPC error:', rpcError);
+        console.error('[verify-pin] RPC error:', rpcError);
         return new Response(
           JSON.stringify({ error: 'サーバーエラーが発生しました' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -91,74 +123,143 @@ Deno.serve(async (req: Request) => {
         );
       }
       verifyResult = data;
+
+      // R1: APP_AUTH_SALT方式使用時はcreated_atを別途取得
+      if (APP_AUTH_SALT) {
+        const { data: staffRow } = await supabaseAdmin
+          .from('staff')
+          .select('created_at')
+          .eq('staff_id', staff_id)
+          .single();
+        if (staffRow?.created_at) verifyResult!.created_at = staffRow.created_at;
+      }
     }
 
     const email = `${staff_id.toLowerCase()}@clawops.local`;
-    const legacyKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const password = `clawops_${staff_id}_${legacyKey.slice(-8)}`;
-
     const newMeta = {
-      staff_id: verifyResult.staff_id,
-      name: verifyResult.name,
-      role: verifyResult.role,
-      operator_id: verifyResult.operator_id,
-      store_code: verifyResult.store_code,
+      staff_id: verifyResult!.staff_id,
+      name: verifyResult!.name,
+      role: verifyResult!.role,
+      operator_id: verifyResult!.operator_id,
+      store_code: verifyResult!.store_code,
     };
 
-    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+    let session: any = null;
 
-    let session = signInData?.session;
+    if (APP_AUTH_SALT && verifyResult!.created_at) {
+      // R1: APP_AUTH_SALT方式 — service_role_key非依存
+      const newPassword = await derivePassword(verifyResult!.staff_id, verifyResult!.created_at, APP_AUTH_SALT);
+      const oldPassword = legacyPassword(verifyResult!.staff_id, serviceKey);
 
-    if (signInError) {
-      // 新規ユーザー作成
-      const { error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: newMeta,
-        app_metadata: { staff_id: verifyResult.staff_id, role: verifyResult.role },
-      });
+      try {
+        // 新passwordでsignIn (移行済みユーザー)
+        const { session: s, user } = await issueSession(supabaseAdmin, email, newPassword);
+        session = s;
 
-      if (createError) {
-        console.error('Create user error:', createError);
-        return new Response(
-          JSON.stringify({ error: 'ユーザー作成に失敗しました' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // metaChanged確認 (移行済みユーザーのみ)
+        const existingMeta = user?.user_metadata || {};
+        const metaChanged =
+          existingMeta.role !== newMeta.role ||
+          existingMeta.name !== newMeta.name ||
+          existingMeta.store_code !== newMeta.store_code ||
+          existingMeta.operator_id !== newMeta.operator_id;
+
+        if (metaChanged) {
+          await supabaseAdmin.auth.admin.updateUserById(user.id, {
+            user_metadata: newMeta,
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+          });
+          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          session = fresh;
+        }
+      } catch {
+        // 新passwordが失敗 → 旧passwordで試行 (初回移行パス)
+        const { data: oldSignIn, error: oldError } = await supabaseAdmin.auth.signInWithPassword({ email, password: oldPassword });
+
+        if (!oldError && oldSignIn?.session) {
+          // 旧passwordユーザー確認 → 新passwordへ移行 (一度だけ走る)
+          await supabaseAdmin.auth.admin.updateUserById(oldSignIn.user.id, {
+            password: newPassword,
+            user_metadata: newMeta,
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+          });
+          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          session = fresh;
+        } else {
+          // 新規ユーザー → createUser
+          const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password: newPassword,
+            email_confirm: true,
+            user_metadata: newMeta,
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+          });
+          if (createError) {
+            console.error('[verify-pin] createUser error:', createError);
+            return new Response(
+              JSON.stringify({ error: 'ユーザー作成に失敗しました' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          session = fresh;
+        }
       }
-
-      const { data: newSignIn, error: newSignInError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
-      if (newSignInError) {
-        console.error('Sign in after create error:', newSignInError);
-        return new Response(
-          JSON.stringify({ error: 'セッション発行に失敗しました' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      session = newSignIn?.session;
     } else {
-      // 既存ユーザー: メタデータが変化した場合のみ更新+再サインイン (毎回2回呼ぶと遅い)
-      const existingMeta = signInData.user?.user_metadata || {};
-      const metaChanged =
-        existingMeta.role !== newMeta.role ||
-        existingMeta.name !== newMeta.name ||
-        existingMeta.store_code !== newMeta.store_code ||
-        existingMeta.operator_id !== newMeta.operator_id;
+      // Fallback: APP_AUTH_SALT未設定 → 旧方式 (ロックアウト防止)
+      const password = legacyPassword(verifyResult!.staff_id, serviceKey);
 
-      if (metaChanged) {
-        await supabaseAdmin.auth.admin.updateUserById(signInData.user.id, {
+      const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+
+      if (signInError) {
+        const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
           user_metadata: newMeta,
-          app_metadata: { staff_id: verifyResult.staff_id, role: verifyResult.role },
+          app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
         });
-        const { data: freshSignIn, error: freshError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
-        if (!freshError && freshSignIn?.session) {
-          session = freshSignIn.session;
+        if (createError) {
+          console.error('[verify-pin] createUser error (fallback):', createError);
+          return new Response(
+            JSON.stringify({ error: 'ユーザー作成に失敗しました' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const { session: fresh } = await issueSession(supabaseAdmin, email, password);
+        session = fresh;
+      } else {
+        session = signInData.session;
+
+        const existingMeta = signInData.user?.user_metadata || {};
+        const metaChanged =
+          existingMeta.role !== newMeta.role ||
+          existingMeta.name !== newMeta.name ||
+          existingMeta.store_code !== newMeta.store_code ||
+          existingMeta.operator_id !== newMeta.operator_id;
+
+        if (metaChanged) {
+          await supabaseAdmin.auth.admin.updateUserById(signInData.user.id, {
+            user_metadata: newMeta,
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+          });
+          const { session: fresh } = await issueSession(supabaseAdmin, email, password);
+          session = fresh;
         }
       }
     }
 
+    // R3: session null guard — access_token falsyなら500 (沈黙スルー廃止)
+    if (!session?.access_token) {
+      console.error('[verify-pin] session.access_token falsy', { staff_id, salt_mode: !!APP_AUTH_SALT });
+      return new Response(
+        JSON.stringify({ error: 'セッション発行に失敗しました' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
-      staff_id: verifyResult.staff_id,
+      staff_id: verifyResult!.staff_id,
       action: 'login_success',
       ip_address: req.headers.get('x-forwarded-for') || 'unknown',
       user_agent: req.headers.get('user-agent') || 'unknown',
@@ -167,22 +268,22 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         session: {
-          access_token: session?.access_token,
-          refresh_token: session?.refresh_token,
-          expires_at: session?.expires_at,
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          expires_at: session.expires_at,
         },
         staff: {
-          staff_id: verifyResult.staff_id,
-          name: verifyResult.name,
-          role: verifyResult.role,
-          operator_id: verifyResult.operator_id,
-          store_code: verifyResult.store_code,
+          staff_id: verifyResult!.staff_id,
+          name: verifyResult!.name,
+          role: verifyResult!.role,
+          operator_id: verifyResult!.operator_id,
+          store_code: verifyResult!.store_code,
         },
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('Unexpected error:', err);
+    console.error('[verify-pin] Unexpected error:', err);
     return new Response(
       JSON.stringify({ error: '予期しないエラーが発生しました' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

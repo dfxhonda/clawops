@@ -21,7 +21,7 @@ export async function verifyPin(staff, pin) {
       body: JSON.stringify({ staff_id: staff.staff_id, skip_bcrypt: true }),
     }).then(async res => {
       const data = await res.json()
-      if (res.ok && data.session) return { ok: true, session: data.session }
+      if (res.ok && data.session?.access_token) return { ok: true, session: data.session }
       return { ok: false }
     }).catch(() => ({ ok: false }))
     return { ok: true, optimistic: true, sessionPromise }
@@ -32,6 +32,6 @@ export async function verifyPin(staff, pin) {
     body: JSON.stringify({ staff_id: staff.staff_id, pin }),
   })
   const data = await res.json()
-  if (res.ok && data.session) return { ok: true, session: data.session }
+  if (res.ok && data.session?.access_token) return { ok: true, session: data.session }
   return { ok: false }
 }

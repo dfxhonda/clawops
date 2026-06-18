@@ -232,4 +232,64 @@ describe('verifyPin', () => {
     const confirmed = await result.sessionPromise
     expect(confirmed.ok).toBe(false)
   })
+
+  // AC7: metaChanged両経路 + R4 session.access_token guard
+  it('when_server_returns_session_without_access_token_returns_ok_false (R4 guard)', async () => {
+    bcrypt.compare.mockResolvedValueOnce(true)
+    server.use(
+      http.post(VERIFY_PIN_URL, () =>
+        HttpResponse.json({ session: { refresh_token: 'ref' } }) // access_token欠損
+      )
+    )
+
+    const result = await verifyPin(staffWithPin, '1234')
+    expect(result.optimistic).toBe(true)
+
+    const confirmed = await result.sessionPromise
+    expect(confirmed.ok).toBe(false)
+  })
+
+  it('when_server_returns_null_session_returns_ok_false (R4 guard)', async () => {
+    // no-pin path (blocking fetch) — session null
+    server.use(
+      http.post(VERIFY_PIN_URL, () =>
+        HttpResponse.json({ session: null }, { status: 200 })
+      )
+    )
+
+    const result = await verifyPin(staffNoPin, '1234')
+    expect(result.ok).toBe(false)
+  })
+
+  it('when_server_returns_session_with_access_token_optimistic_confirms_ok (AC7 metaChanged=true path)', async () => {
+    // metaChangedの有無はEdge内部処理。クライアントは常にsession+access_tokenを受け取れば成功
+    bcrypt.compare.mockResolvedValueOnce(true)
+    const metaChangedSession = { access_token: 'fresh-tok', refresh_token: 'fresh-ref' }
+    server.use(
+      http.post(VERIFY_PIN_URL, () =>
+        HttpResponse.json({ session: metaChangedSession })
+      )
+    )
+
+    const result = await verifyPin(staffWithPin, '1234')
+    expect(result.optimistic).toBe(true)
+
+    const confirmed = await result.sessionPromise
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session.access_token).toBe('fresh-tok')
+  })
+
+  it('when_server_returns_session_with_access_token_no_pin_path_ok (AC7 metaChanged=false path)', async () => {
+    // no-pin staff → blocking fetch → session with access_token → ok
+    const stableSession = { access_token: 'stable-tok', refresh_token: 'stable-ref' }
+    server.use(
+      http.post(VERIFY_PIN_URL, () =>
+        HttpResponse.json({ session: stableSession })
+      )
+    )
+
+    const result = await verifyPin(staffNoPin, '1234')
+    expect(result.ok).toBe(true)
+    expect(result.session.access_token).toBe('stable-tok')
+  })
 })
