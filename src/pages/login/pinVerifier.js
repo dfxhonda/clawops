@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 import { supabase } from '../../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL

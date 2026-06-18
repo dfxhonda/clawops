@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../msw/server'
 
 vi.mock('bcryptjs', () => ({
-  default: { compare: vi.fn() },
+  compare: vi.fn(),
 }))
 
 vi.mock('../../../lib/supabase', () => ({
@@ -15,7 +15,7 @@ vi.mock('../../../lib/supabase', () => ({
 }))
 
 const { verifyPin } = await import('../../../pages/login/pinVerifier')
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 import { supabase } from '../../../lib/supabase'
 
 const VERIFY_PIN_URL = 'http://localhost:54321/functions/v1/verify-pin'

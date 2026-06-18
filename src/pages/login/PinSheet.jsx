@@ -25,6 +25,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
   const [shaking, setShaking]       = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [remainSec, setRemainSec]   = useState(0)
+  const [systemError, setSystemError] = useState(false)
   const timerRef = useRef(null)
 
   const isLocked = fail.count >= 3 && Date.now() < fail.lockedUntil
@@ -51,6 +52,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
 
   const handleDigit = (n) => {
     if (isLocked || submitting) return
+    setSystemError(false)
     const next = [...digits, n]
     setDigits(next)
     if (next.length === 4) submitPin(next.join(''))
@@ -79,21 +81,26 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
         saveFailState(staff.staff_id, next)
         return next
       })
-    } catch {
+    } catch (e) {
+      // LOG-SPEC-01: システムエラーは内部ログへ。失敗カウント加算しない(PIN不一致と区別)
+      console.error('[PinSheet] submitPin system error:', e?.stack || e)
       setDigits([])
+      setSystemError(true)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const subMsg = isLocked
+  const subMsg = systemError
+    ? '認証処理でエラーが発生しました'
+    : isLocked
     ? `${remainSec}秒後に再試行できます`
     : fail.count >= 5
     ? '管理者に連絡してください'
     : fail.count > 0
     ? 'PINが違うようです、もう一度'
     : 'PINを入力してください'
-  const subColor = fail.count > 0 ? '#f87171' : '#94a3b8'
+  const subColor = (fail.count > 0 || systemError) ? '#f87171' : '#94a3b8'
 
   return (
     <>
