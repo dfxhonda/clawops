@@ -66,7 +66,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
     try {
       const result = await verifyPin(staff, pin)
       if (result.ok) {
-        onSuccess(staff, result.session)
+        onSuccess(staff, result.session, result.sessionPromise)
         return
       }
       setShaking(true)

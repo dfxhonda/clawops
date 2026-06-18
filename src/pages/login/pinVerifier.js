@@ -15,14 +15,16 @@ export async function verifyPin(staff, pin) {
       return { ok: true, session, reused: true }
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
+    const sessionPromise = fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ staff_id: staff.staff_id, skip_bcrypt: true }),
-    })
-    const data = await res.json()
-    if (res.ok && data.session) return { ok: true, session: data.session }
-    return { ok: false }
+    }).then(async res => {
+      const data = await res.json()
+      if (res.ok && data.session) return { ok: true, session: data.session }
+      return { ok: false }
+    }).catch(() => ({ ok: false }))
+    return { ok: true, optimistic: true, sessionPromise }
   }
   const res = await fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
     method: 'POST',

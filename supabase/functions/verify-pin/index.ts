@@ -79,12 +79,12 @@ Deno.serve(async (req: Request) => {
       }
 
       if (!data?.success) {
-        await supabaseAdmin.from('auth_logs').insert({
+        EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
           staff_id: staff_id,
           action: 'login_failed',
           ip_address: req.headers.get('x-forwarded-for') || 'unknown',
           user_agent: req.headers.get('user-agent') || 'unknown',
-        });
+        }));
         return new Response(
           JSON.stringify({ error: data?.error || '認証に失敗しました' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -157,12 +157,12 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    await supabaseAdmin.from('auth_logs').insert({
+    EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
       staff_id: verifyResult.staff_id,
       action: 'login_success',
       ip_address: req.headers.get('x-forwarded-for') || 'unknown',
       user_agent: req.headers.get('user-agent') || 'unknown',
-    });
+    }));
 
     return new Response(
       JSON.stringify({

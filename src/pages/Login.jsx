@@ -98,6 +98,16 @@ export default function Login() {
     init()
   }, [navigate])
 
+  // SPEC-LOGIN-AUTH-LATENCY-PHASE1-01 R3: 楽観遷移失敗時のエラートースト表示
+  useEffect(() => {
+    if (!initDone) return
+    const authError = sessionStorage.getItem('loginAuthError')
+    if (authError) {
+      sessionStorage.removeItem('loginAuthError')
+      showToast(authError, 'error')
+    }
+  }, [initDone])
+
   const starStaffIds = useMemo(
     () => new Set(starStaff.map(s => s.staff_id)),
     [starStaff]
@@ -110,7 +120,30 @@ export default function Login() {
     return allStaff.filter(s => regex.test(toKatakana(s.name_kana || '')))
   }, [activeTab, allStaff, starStaff])
 
-  const handleLoginSuccess = async (staff, session) => {
+  const handleLoginSuccess = async (staff, session, sessionPromise) => {
+    if (sessionPromise) {
+      // SPEC-LOGIN-AUTH-LATENCY-PHASE1-01 R3: 楽観遷移
+      // bcrypt成功後即navigate、JWT確定はPromiseで裏継続
+      setSelectedStaff(null)
+      showToast(`${staff.name} さん こんにちは`)
+      navigate('/launcher', { replace: true })
+      ;(async () => {
+        const confirmed = await sessionPromise
+        if (!confirmed.ok) {
+          sessionStorage.setItem('loginAuthError', '認証に失敗しました')
+          navigate('/login', { replace: true })
+          return
+        }
+        await supabase.auth.setSession({
+          access_token: confirmed.session.access_token,
+          refresh_token: confirmed.session.refresh_token,
+        })
+        await upsertLoginHistory(staff.staff_id)
+        await checkAndReloadIfStale()
+      })()
+      return
+    }
+    // non-optimistic: cache reuse or no-pin server path
     await supabase.auth.setSession({
       access_token:  session.access_token,
       refresh_token: session.refresh_token,
@@ -118,14 +151,8 @@ export default function Login() {
     await upsertLoginHistory(staff.staff_id)
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    // SPEC-PWA-LOGIN-VERSION-RELOAD-01: verify-pin 通過直後にバージョンチェック。
-    // sessionStorage 'version_reload_done' でこの session 中は 1 回限り。
-    // 不一致なら reload して fresh bundle に → 一致 (or fetch fail) なら通常遷移。
     const r = await checkAndReloadIfStale()
     if (r?.reloaded) return
-    // SPEC-LOGIN-LATENCY-FIX-01 C1: 旧 setTimeout 1200ms (純粋意図遅延、ウェルカム toast 表示用) を削除。
-    // toast は Toast 内部 successDuration=1200ms で fade-out するが、navigate 即時遷移で Login 側 Toast は
-    // unmount される (Launcher 側に持ち越されない)。AC-04 受け入れ通り、機能影響なし。
     navigate('/launcher', { replace: true })
   }
 

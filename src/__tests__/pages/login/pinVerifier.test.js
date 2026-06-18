@@ -58,11 +58,19 @@ describe('verifyPin', () => {
 
     const result = await verifyPin(staffWithPin, '1234')
 
+    // R3: bcrypt success returns optimistic immediately; server called in background
     expect(bcrypt.compare).toHaveBeenCalledWith('1234', staffWithPin.pin_hash)
+    expect(result.ok).toBe(true)
+    expect(result.optimistic).toBe(true)
+    expect(result.session).toBeUndefined()
+    expect(result.sessionPromise).toBeInstanceOf(Promise)
+
+    // Verify skip_bcrypt was sent and session resolves correctly
+    const confirmed = await result.sessionPromise
     expect(capturedBody?.skip_bcrypt).toBe(true)
     expect(capturedBody?.pin).toBeUndefined()
-    expect(result.ok).toBe(true)
-    expect(result.session).toEqual(fakeSession)
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session).toEqual(fakeSession)
   })
 
   it('when_bcrypt_fails_returns_bcryptFail_without_calling_verify_pin', async () => {
@@ -100,14 +108,19 @@ describe('verifyPin', () => {
     expect(result.ok).toBe(true)
   })
 
-  it('when_bcrypt_matches_but_verify_pin_fails_returns_not_ok', async () => {
+  it('when_bcrypt_matches_but_verify_pin_fails_sessionPromise_resolves_not_ok', async () => {
     bcrypt.compare.mockResolvedValueOnce(true)
     setupVerifyPinFail()
 
     const result = await verifyPin(staffWithPin, '1234')
 
-    expect(result.ok).toBe(false)
-    expect(result.bcryptFail).toBeUndefined()
+    // R3: optimistic immediate return is ok:true; server failure in sessionPromise
+    expect(result.ok).toBe(true)
+    expect(result.optimistic).toBe(true)
+
+    const confirmed = await result.sessionPromise
+    expect(confirmed.ok).toBe(false)
+    expect(confirmed.bcryptFail).toBeUndefined()
   })
 
   it('when_skip_bcrypt_true_server_skips_bcrypt', async () => {
@@ -121,10 +134,14 @@ describe('verifyPin', () => {
       })
     )
     const result = await verifyPin(staffWithPin, '1234')
+    // R3: result is optimistic; verify server received skip_bcrypt via sessionPromise
+    const confirmed = await result.sessionPromise
     expect(capturedBody?.skip_bcrypt).toBe(true)
     expect(capturedBody?.pin).toBeUndefined()
     expect(result.ok).toBe(true)
-    expect(result.session).toEqual(fakeSession)
+    expect(result.optimistic).toBe(true)
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session).toEqual(fakeSession)
   })
 
   it('when_has_pin_true_but_no_pin_hash_falls_back_to_normal_flow', async () => {
@@ -179,8 +196,40 @@ describe('verifyPin', () => {
 
     const result = await verifyPin(staffWithPin, '1234')
 
+    // R3: non-matching cached session → optimistic, server called in background
     expect(result.ok).toBe(true)
+    expect(result.optimistic).toBe(true)
     expect(result.reused).toBeUndefined()
-    expect(result.session).toEqual(fakeSession)
+
+    const confirmed = await result.sessionPromise
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session).toEqual(fakeSession)
+  })
+
+  it('when_bcrypt_matches_no_cached_session_returns_optimistic_promise_immediately', async () => {
+    bcrypt.compare.mockResolvedValueOnce(true)
+    server.use(
+      http.post(VERIFY_PIN_URL, () => HttpResponse.json({ session: fakeSession }))
+    )
+
+    const result = await verifyPin(staffWithPin, '1234')
+
+    expect(result.ok).toBe(true)
+    expect(result.optimistic).toBe(true)
+    expect(result.sessionPromise).toBeInstanceOf(Promise)
+    expect(result.session).toBeUndefined()
+  })
+
+  it('when_optimistic_sessionPromise_resolves_with_ok_false_on_network_error', async () => {
+    bcrypt.compare.mockResolvedValueOnce(true)
+    server.use(
+      http.post(VERIFY_PIN_URL, () => HttpResponse.error())
+    )
+
+    const result = await verifyPin(staffWithPin, '1234')
+    expect(result.optimistic).toBe(true)
+
+    const confirmed = await result.sessionPromise
+    expect(confirmed.ok).toBe(false)
   })
 })
