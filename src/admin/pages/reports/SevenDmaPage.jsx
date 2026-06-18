@@ -14,10 +14,6 @@ import GenreFilter from './GenreFilter'
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa']
 const MAX_SERIES = 5
 
-function resolveTypeId(machineModels) {
-  const mm = Array.isArray(machineModels) ? machineModels[0] : machineModels
-  return mm?.type_id ?? null
-}
 
 export default function SevenDmaPage() {
   const [granularity, setGranularity] = useState('booth')
@@ -48,9 +44,9 @@ export default function SevenDmaPage() {
         if (storeFilter === 'all') { setAllEntities([]); setLoadingEntities(false); return }
         const { data } = await supabase
           .from('machines')
-          .select('machine_code, machine_name, machine_models!model_id(type_id)')
+          .select('machine_code, machine_name, type_id')
           .eq('store_code', storeFilter).eq('is_active', true).order('machine_code')
-        const filtered = (data ?? []).filter(m => genre === 'all' || resolveTypeId(m.machine_models) === genre)
+        const filtered = (data ?? []).filter(m => genre === 'all' || m.type_id === genre)
         setAllEntities(filtered.map(m => ({ key: m.machine_code, label: m.machine_name || m.machine_code })))
         setLoadingEntities(false)
         return
@@ -61,12 +57,12 @@ export default function SevenDmaPage() {
       if (storeFilter === 'all') { setAllEntities([]); setLoadingEntities(false); return }
       const [{ data: boothsData }, { data: machinesData }, { data: readingsData }] = await Promise.all([
         supabase.from('booths').select('booth_code, booth_number, machine_code').eq('store_code', storeFilter).eq('is_active', true).order('booth_code'),
-        supabase.from('machines').select('machine_code, machine_name, machine_models!model_id(type_id)').eq('store_code', storeFilter).eq('is_active', true),
+        supabase.from('machines').select('machine_code, machine_name, type_id').eq('store_code', storeFilter).eq('is_active', true),
         // meter_readings から booth ごとの最新 prize_name を取得
         supabase.from('meter_readings').select('booth_code, prize_name, patrol_date').eq('store_code', storeFilter).order('patrol_date', { ascending: false }).limit(2000),
       ])
       const machineMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, m.machine_name || m.machine_code]))
-      const typeMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, resolveTypeId(m.machine_models)]))
+      const typeMap = Object.fromEntries((machinesData ?? []).map(m => [m.machine_code, m.type_id ?? null]))
       const prizeMap = {}
       for (const r of readingsData ?? []) {
         if (!r.booth_code) continue

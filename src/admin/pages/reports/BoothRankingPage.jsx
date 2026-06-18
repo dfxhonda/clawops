@@ -70,7 +70,7 @@ export default function BoothRankingPage() {
         .select(`
           booth_code, store_code, stat_date, revenue, play_count, payout_rate,
           stores(store_name),
-          booths!booth_code(machine_code, machines!machine_code(machine_name, machine_models!model_id(width_mm, depth_mm, type_id)))
+          booths!booth_code(machine_code, machines!machine_code(machine_name, type_id, machine_models!model_id(width_mm, depth_mm)))
         `)
         .gte('stat_date', qFrom)
         .lte('stat_date', qTo)
@@ -84,7 +84,7 @@ export default function BoothRankingPage() {
         const machineObj = Array.isArray(boothObj?.machines) ? boothObj.machines[0] : boothObj?.machines
         const mm = Array.isArray(machineObj?.machine_models) ? machineObj.machine_models[0] : machineObj?.machine_models
         const mc = boothObj?.machine_code ?? null
-        const typeId = mm?.type_id ?? null
+        const typeId = machineObj?.type_id ?? null
         const bc = r.booth_code
         if (mc) {
           if (!byMachine[mc]) byMachine[mc] = { totalRev: 0, days: new Set(), width: mm?.width_mm ?? null, depth: mm?.depth_mm ?? null }

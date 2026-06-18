@@ -15,10 +15,6 @@ import GenreFilter from './GenreFilter'
 
 const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa', '#22d3ee', '#fb923c', '#34d399', '#e879f9', '#facc15']
 
-function resolveTypeId(machineModels) {
-  const mm = Array.isArray(machineModels) ? machineModels[0] : machineModels
-  return mm?.type_id ?? null
-}
 
 export default function PayoutTrendPage() {
   const [mode, setMode] = useState('single') // 'single' | 'compare'
@@ -48,13 +44,13 @@ export default function PayoutTrendPage() {
     setMachineCode(null); setBoothCode(null); setMachines([]); setBooths([]); setSeries([])
     if (mode !== 'single' || !storeCode) return
     supabase.from('machines')
-      .select('machine_code, machine_name, machine_models!model_id(type_id)')
+      .select('machine_code, machine_name, type_id')
       .eq('store_code', storeCode).eq('is_active', true)
       .order('machine_code')
       .then(({ data }) => {
         const filtered = (data ?? []).filter(m => {
           if (genre === 'all') return true
-          return resolveTypeId(m.machine_models) === genre
+          return m.type_id === genre
         })
         setMachines(filtered)
       })
@@ -126,7 +122,7 @@ export default function PayoutTrendPage() {
         .gte('stat_date', from)
         .order('stat_date'),
       supabase.from('booths')
-        .select('booth_code, machines!machine_code(machine_models!model_id(type_id))')
+        .select('booth_code, machines!machine_code(type_id)')
         .eq('store_code', compareStore),
     ]).then(([{ data }, { data: boothTypeData }]) => {
       const boothSet = new Set()
@@ -142,7 +138,7 @@ export default function PayoutTrendPage() {
       const typeMap = {}
       for (const b of boothTypeData ?? []) {
         const m = Array.isArray(b.machines) ? b.machines[0] : b.machines
-        typeMap[b.booth_code] = resolveTypeId(m?.machine_models)
+        typeMap[b.booth_code] = m?.type_id ?? null
       }
       setBoothTypeMap(typeMap)
       setLoading(false)

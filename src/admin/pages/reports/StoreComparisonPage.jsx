@@ -12,13 +12,12 @@ async function fetchBoothCodesByGenre(genre) {
   if (genre === 'all') return null
   const { data } = await supabase
     .from('booths')
-    .select('booth_code, machines!machine_code(machine_models!model_id(type_id))')
+    .select('booth_code, machines!machine_code(type_id)')
     .eq('is_active', true)
   return (data ?? [])
     .filter(b => {
       const m = Array.isArray(b.machines) ? b.machines[0] : b.machines
-      const mm = Array.isArray(m?.machine_models) ? m.machine_models[0] : m?.machine_models
-      return mm?.type_id === genre
+      return m?.type_id === genre
     })
     .map(b => b.booth_code)
 }
