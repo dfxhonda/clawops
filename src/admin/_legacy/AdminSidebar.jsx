@@ -6,7 +6,6 @@ const CATEGORIES = [
     id: 'masters', label: 'マスタ', path: '/admin/masters', testid: 'admin-nav-masters',
     items: [
       { label: '店舗',         path: '/admin/masters/stores',            impl: true,  testid: 'admin-nav-masters-stores' },
-      { label: '機械',         path: '/admin/masters/machines',          impl: false },
       { label: '景品',         path: '/admin/masters/prizes',            impl: false },
       { label: 'ロッカー',     path: '/admin/masters/lockers',           impl: false },
       { label: 'スタッフ',     path: '/admin/masters/staff',             impl: false },
