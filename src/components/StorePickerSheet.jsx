@@ -6,16 +6,19 @@
 //     onChange: (store_code | null) => void
 //     showAllOption: boolean (default true)。false の場合は全店行非表示、value null 不可前提。
 //     placeholder: trigger に表示する未選択時テキスト (default '店舗を選択')。showAllOption false 時に有効。
+//     disabled: boolean (default false)。true の場合 trigger は非活性、シート開かない。
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
+import { Sentry } from '../lib/sentry'
+import { logger } from '../lib/logger'
 import { useAuth } from '../hooks/useAuth'
 import KanaIndex from '../shared/ui/KanaIndex'
 
 const ALL_KEY = '__ALL__'
 
-export default function StorePickerSheet({ value, onChange, showAllOption = true, placeholder = '店舗を選択' }) {
+export default function StorePickerSheet({ value, onChange, showAllOption = true, placeholder = '店舗を選択', disabled = false }) {
   const { staffId } = useAuth()
   const [open, setOpen] = useState(false)
   const [stores, setStores] = useState([])
@@ -51,33 +54,84 @@ export default function StorePickerSheet({ value, onChange, showAllOption = true
     setOpen(false)
   }
 
+  // Mirror ClawsupportHub L52-96 optimistic REST pattern
+  const handlePin = useCallback(async (storeCode) => {
+    if (!staffId) return
+    const isPinned = pinnedCodes.includes(storeCode)
+    Sentry.addBreadcrumb({ category: 'user', message: `pin_toggle:${storeCode}`, data: { isPinned }, level: 'info' })
+    setPinnedCodes(prev => isPinned ? prev.filter(c => c !== storeCode) : [...prev, storeCode])
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const jwt = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY
+      const base = import.meta.env.VITE_SUPABASE_URL
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const headers = {
+        apikey: key,
+        Authorization: `Bearer ${jwt}`,
+        'Content-Type': 'application/json',
+      }
+      if (isPinned) {
+        const res = await fetch(
+          `${base}/rest/v1/staff_pinned_stores?staff_id=eq.${encodeURIComponent(staffId)}&store_code=eq.${encodeURIComponent(storeCode)}`,
+          { method: 'DELETE', headers, keepalive: true }
+        )
+        if (!res.ok) throw new Error(`delete ${res.status}`)
+      } else {
+        const res = await fetch(
+          `${base}/rest/v1/staff_pinned_stores`,
+          {
+            method: 'POST',
+            headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
+            body: JSON.stringify({ staff_id: staffId, store_code: storeCode }),
+            keepalive: true,
+          }
+        )
+        if (!res.ok) throw new Error(`upsert ${res.status}`)
+      }
+    } catch (err) {
+      logger.error('handlePin_save_failed', err)
+      setPinnedCodes(prev => isPinned ? [...prev, storeCode] : prev.filter(c => c !== storeCode))
+    }
+  }, [pinnedCodes, staffId])
+
   // 全店 を仮想 item として KanaIndex 先頭 (★ タブ) に挿入
   const itemsForKana = showAllOption
     ? [{ store_code: ALL_KEY, store_name: '全店', locality: null, locality_kana: null, __virtual_all: true }, ...stores]
     : stores
   const pinnedKeys = showAllOption ? [ALL_KEY, ...pinnedCodes] : pinnedCodes
 
-  function renderCard(store) {
+  function renderCard(store, isPinned) {
     const isAll = store.store_code === ALL_KEY
     const isCurrent = isAll ? value == null : store.store_code === value
+    if (isAll) {
+      return (
+        <button
+          key={store.store_code}
+          type="button"
+          data-testid={`store-picker-item-${store.store_code}`}
+          onClick={() => handleSelect(null)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left active:scale-[0.98] transition-transform select-none ${
+            isCurrent ? 'bg-accent/20 border-accent text-text' : 'bg-surface border-border text-text'
+          }`}
+          style={{ minHeight: 56 }}
+        >
+          <span className="text-yellow-400 text-base shrink-0">⭐</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-bold truncate">{store.store_name}</p>
+          </div>
+          {isCurrent && <span className="text-accent text-base shrink-0">✓</span>}
+        </button>
+      )
+    }
     return (
-      <button
+      <StoreCardInSheet
         key={store.store_code}
-        type="button"
-        data-testid={`store-picker-item-${store.store_code}`}
-        onClick={() => handleSelect(isAll ? null : store.store_code)}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left active:scale-[0.98] transition-transform select-none ${
-          isCurrent ? 'bg-accent/20 border-accent text-text' : 'bg-surface border-border text-text'
-        }`}
-        style={{ minHeight: 56 }}
-      >
-        {isAll && <span className="text-yellow-400 text-base shrink-0">⭐</span>}
-        <div className="flex-1 min-w-0">
-          <p className="text-base font-bold truncate">{store.store_name}</p>
-          {store.locality && <p className="text-muted text-xs mt-0.5">{store.locality}</p>}
-        </div>
-        {isCurrent && <span className="text-accent text-base shrink-0">✓</span>}
-      </button>
+        store={store}
+        isCurrent={isCurrent}
+        isPinned={isPinned}
+        onSelect={() => handleSelect(store.store_code)}
+        onPin={() => handlePin(store.store_code)}
+      />
     )
   }
 
@@ -86,8 +140,9 @@ export default function StorePickerSheet({ value, onChange, showAllOption = true
       <button
         type="button"
         data-testid="store-picker-trigger"
-        onClick={() => setOpen(true)}
-        className="border border-border rounded-lg px-3 py-2 flex items-center justify-between gap-2 bg-surface text-text min-h-[44px] min-w-[140px]"
+        onClick={() => { if (!disabled) setOpen(true) }}
+        disabled={disabled}
+        className={`border border-border rounded-lg px-3 py-2 flex items-center justify-between gap-2 bg-surface text-text min-h-[44px] min-w-[140px]${disabled ? ' opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className="text-sm truncate">{triggerLabel}</span>
         <span className="text-muted text-xs shrink-0" aria-hidden>▼</span>
@@ -129,5 +184,58 @@ export default function StorePickerSheet({ value, onChange, showAllOption = true
         document.body
       )}
     </>
+  )
+}
+
+// Mirror ClawsupportHub L158-206 StoreCard long-press pattern
+function StoreCardInSheet({ store, isCurrent, isPinned, onSelect, onPin }) {
+  const timerRef = useRef(null)
+  const movedRef = useRef(false)
+  const longPressFiredRef = useRef(false)
+
+  function handlePointerDown() {
+    movedRef.current = false
+    longPressFiredRef.current = false
+    timerRef.current = setTimeout(() => {
+      if (!movedRef.current) {
+        longPressFiredRef.current = true
+        onPin()
+      }
+    }, 500)
+  }
+
+  function handlePointerUp() {
+    clearTimeout(timerRef.current)
+  }
+
+  function handlePointerMove() {
+    movedRef.current = true
+    clearTimeout(timerRef.current)
+  }
+
+  return (
+    <button
+      type="button"
+      data-testid={`store-picker-item-${store.store_code}`}
+      onClick={() => {
+        if (longPressFiredRef.current) { longPressFiredRef.current = false; return }
+        onSelect()
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerMove={handlePointerMove}
+      onPointerCancel={handlePointerUp}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left active:scale-[0.98] transition-transform select-none ${
+        isCurrent ? 'bg-accent/20 border-accent text-text' : 'bg-surface border-border text-text'
+      }`}
+      style={{ minHeight: 56 }}
+    >
+      {isPinned && <span className="text-yellow-400 text-sm shrink-0">★</span>}
+      <div className="flex-1 min-w-0">
+        <p className="text-base font-bold truncate">{store.store_name}</p>
+        {store.locality && <p className="text-muted text-xs mt-0.5">{store.locality}</p>}
+      </div>
+      {isCurrent && <span className="text-accent text-base shrink-0">✓</span>}
+    </button>
   )
 }
