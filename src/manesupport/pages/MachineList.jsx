@@ -15,9 +15,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import StoreSelectSheet, { StoreSelectTrigger } from '../../shared/ui/StoreSelectSheet'
+import StorePickerSheet from '../../components/StorePickerSheet'
 import {
-  getAllStores,
   getMachineModels,
   getMachines,
   addMachine,
@@ -190,11 +189,9 @@ function SortableMachineItem({ m, activeColumn, editCode, editForm, editError, s
 export default function AdminMachineList() {
   const navigate = useNavigate()
 
-  const [stores, setStores] = useState([])
   const [storeCode, setStoreCode] = useState(
     () => sessionStorage.getItem('admin_machine_store') || ''
   )
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [machineModels, setMachineModels] = useState([])
   const [machines, setMachines] = useState([])
   const [loading, setLoading] = useState(false)
@@ -237,7 +234,6 @@ export default function AdminMachineList() {
   )
 
   useEffect(() => {
-    getAllStores().then(setStores).catch(() => {})
     getMachineModels().then(setMachineModels).catch(() => {})
   }, [])
 
@@ -465,16 +461,11 @@ export default function AdminMachineList() {
       {/* Store selector */}
       <div className="mx-4 mt-4">
         <label className="block text-xs text-muted mb-1">店舗を選択</label>
-        <StoreSelectTrigger
-          storeName={stores.find(s => s.store_code === storeCode)?.store_name}
-          onClick={() => setSheetOpen(true)}
-          className="w-full"
-        />
-        <StoreSelectSheet
-          open={sheetOpen}
-          onClose={() => setSheetOpen(false)}
-          stores={stores}
-          onSelect={code => { setStoreCode(code); sessionStorage.setItem('admin_machine_store', code) }}
+        <StorePickerSheet
+          value={storeCode || null}
+          onChange={code => setStoreCode(code ?? '')}
+          showAllOption={false}
+          placeholder="店舗を選択…"
         />
       </div>
 
