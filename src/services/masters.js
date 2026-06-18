@@ -320,7 +320,7 @@ export async function getMachineModels() {
   if (getCache('machine_models')) return getCache('machine_models')
   const { data, error } = await supabase
     .from('machine_models')
-    .select('model_id, model_name, type_id, manufacturer, booth_count, in_meter_count, out_meter_count, meter_unit_price, size_info, weight_kg, power_w, image_url, notes')
+    .select('model_id, model_name, type_id, manufacturer, booth_count, in_meter_count, out_meter_count, meter_unit_price, size_info, weight_kg, power_w, width_mm, depth_mm, height_mm, image_url, notes, created_at')
     .order('model_id')
   if (error) { console.error('machine_models取得エラー:', error.message); return [] }
   setCache('machine_models', data)
@@ -342,6 +342,9 @@ export async function addMachineModel(m) {
       size_info: m.size_info || null,
       weight_kg: m.weight_kg ? Number(m.weight_kg) : null,
       power_w: m.power_w ? Number(m.power_w) : null,
+      width_mm: m.width_mm ? Number(m.width_mm) : null,
+      depth_mm: m.depth_mm ? Number(m.depth_mm) : null,
+      height_mm: m.height_mm ? Number(m.height_mm) : null,
       image_url: m.image_url || null,
       notes: m.notes || null,
     })
@@ -373,6 +376,9 @@ export async function updateMachineModel(modelId, updates) {
       size_info: updates.size_info || null,
       weight_kg: updates.weight_kg ? Number(updates.weight_kg) : null,
       power_w: updates.power_w ? Number(updates.power_w) : null,
+      width_mm: updates.width_mm ? Number(updates.width_mm) : null,
+      depth_mm: updates.depth_mm ? Number(updates.depth_mm) : null,
+      height_mm: updates.height_mm ? Number(updates.height_mm) : null,
       image_url: updates.image_url || null,
       notes: updates.notes || null,
       updated_at: new Date().toISOString(),
