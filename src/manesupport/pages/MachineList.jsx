@@ -208,7 +208,9 @@ export default function AdminMachineList() {
   const [editError, setEditError] = useState('')
   const [reordering, setReordering] = useState(false)
   const [reorderError, setReorderError] = useState('')
-  const [orderMode, setOrderMode] = useState('shukin')
+  const [orderMode, setOrderMode] = useState('junkai')
+  const [stagedNonChanger, setStagedNonChanger] = useState(null)
+  const [shukinSaving, setShukinSaving] = useState(false)
 
   const activeColumn = orderMode === 'shukin' ? 'billing_order' : 'round_order'
 
@@ -239,10 +241,50 @@ export default function AdminMachineList() {
     getMachineModels().then(setMachineModels).catch(() => {})
   }, [])
 
+  const displayedNonChanger = (orderMode === 'shukin' && stagedNonChanger !== null)
+    ? stagedNonChanger
+    : nonChangerMachines
+
+  const switchOrderMode = newMode => {
+    if (newMode === orderMode) return
+    if (stagedNonChanger !== null) {
+      if (!window.confirm('集金順の変更が保存されていません。破棄して切り替えますか？')) return
+      setStagedNonChanger(null)
+    }
+    setOrderMode(newMode)
+  }
+
+  const handleBack = () => {
+    if (stagedNonChanger !== null) {
+      if (!window.confirm('集金順の変更が保存されていません。移動しますか？')) return
+      setStagedNonChanger(null)
+    }
+    navigate('/admin/masters')
+  }
+
+  const handleShukinSave = async () => {
+    if (!stagedNonChanger) return
+    setShukinSaving(true)
+    try {
+      await batchUpdateOrder(
+        storeCode,
+        stagedNonChanger.map(m => ({ machine_code: m.machine_code, order_value: m.billing_order })),
+        'billing_order'
+      )
+      setStagedNonChanger(null)
+      await reloadMachines()
+    } catch (err) {
+      alert(err.message || '保存に失敗しました')
+    } finally {
+      setShukinSaving(false)
+    }
+  }
+
   useEffect(() => {
     if (!storeCode) {
       setMachines([])
       setNextCode('')
+      setStagedNonChanger(null)
       return
     }
     sessionStorage.setItem('admin_machine_store', storeCode)
@@ -373,26 +415,32 @@ export default function AdminMachineList() {
 
   const handleDragEnd = async ({ active, over }) => {
     if (!over || active.id === over.id) return
-    const oldIdx = nonChangerMachines.findIndex(m => m.machine_code === active.id)
-    const newIdx = nonChangerMachines.findIndex(m => m.machine_code === over.id)
+    const base = displayedNonChanger
+    const oldIdx = base.findIndex(m => m.machine_code === active.id)
+    const newIdx = base.findIndex(m => m.machine_code === over.id)
     if (oldIdx === -1 || newIdx === -1) return
-    const reordered = arrayMove(nonChangerMachines, oldIdx, newIdx)
+    const reordered = arrayMove(base, oldIdx, newIdx)
     const withNewOrder = reordered.map((m, i) => ({ ...m, [activeColumn]: i + 1 }))
-    const snapshot = machines
-    setMachines([...changerMachines, ...withNewOrder])
-    setReordering(true)
-    setReorderError('')
-    try {
-      await batchUpdateOrder(
-        storeCode,
-        withNewOrder.map(m => ({ machine_code: m.machine_code, order_value: m[activeColumn] })),
-        activeColumn
-      )
-    } catch (err) {
-      setReorderError(err.message || '並び替えの保存に失敗しました')
-      setMachines(snapshot)
-    } finally {
-      setReordering(false)
+
+    if (orderMode === 'junkai') {
+      const snapshot = machines
+      setMachines([...changerMachines, ...withNewOrder])
+      setReordering(true)
+      setReorderError('')
+      try {
+        await batchUpdateOrder(
+          storeCode,
+          withNewOrder.map(m => ({ machine_code: m.machine_code, order_value: m[activeColumn] })),
+          activeColumn
+        )
+      } catch (err) {
+        setReorderError(err.message || '並び替えの保存に失敗しました')
+        setMachines(snapshot)
+      } finally {
+        setReordering(false)
+      }
+    } else {
+      setStagedNonChanger(withNewOrder)
     }
   }
 
@@ -403,7 +451,7 @@ export default function AdminMachineList() {
 
       {/* Header */}
       <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin/masters')} className="text-2xl text-muted">←</button>
+        <button onClick={handleBack} className="text-2xl text-muted">←</button>
         <div className="flex-1">
           <h2 className="text-base font-bold">機械登録</h2>
           <p className="text-[11px] text-muted">機械の追加・編集・並び替え</p>
@@ -487,20 +535,40 @@ export default function AdminMachineList() {
         </div>
       )}
 
-      {/* Order mode toggle */}
+      {/* Order mode toggle: LEFT=巡回順 RIGHT=集金順 */}
       {!loading && storeCode && machines.length > 0 && (
         <div className="flex mx-4 mt-4 rounded-lg overflow-hidden border border-border">
           <button
-            onClick={() => setOrderMode('shukin')}
+            onClick={() => switchOrderMode('junkai')}
+            className={`flex-1 py-1.5 text-xs font-bold transition-colors ${orderMode === 'junkai' ? 'bg-blue-600 text-white' : 'bg-surface text-muted hover:bg-surface2'}`}
+          >
+            巡回順
+          </button>
+          <button
+            onClick={() => switchOrderMode('shukin')}
             className={`flex-1 py-1.5 text-xs font-bold transition-colors ${orderMode === 'shukin' ? 'bg-blue-600 text-white' : 'bg-surface text-muted hover:bg-surface2'}`}
           >
             集金順
           </button>
+        </div>
+      )}
+
+      {/* Shukin dirty bar: save / reset */}
+      {orderMode === 'shukin' && stagedNonChanger !== null && (
+        <div className="mx-4 mt-2 px-3 py-2 bg-amber-900/20 border border-amber-500/30 rounded-lg flex items-center gap-2">
+          <span className="text-xs text-amber-400 flex-1">集金順 未保存の変更あり</span>
           <button
-            onClick={() => setOrderMode('junkai')}
-            className={`flex-1 py-1.5 text-xs font-bold transition-colors ${orderMode === 'junkai' ? 'bg-blue-600 text-white' : 'bg-surface text-muted hover:bg-surface2'}`}
+            onClick={() => setStagedNonChanger(null)}
+            className="text-xs text-muted border border-border px-3 py-1 rounded"
           >
-            巡回順
+            リセット
+          </button>
+          <button
+            onClick={handleShukinSave}
+            disabled={shukinSaving}
+            className="text-xs text-white bg-blue-600 px-4 py-1 rounded font-bold disabled:opacity-50"
+          >
+            {shukinSaving ? '保存中…' : '保存'}
           </button>
         </div>
       )}
@@ -563,11 +631,13 @@ export default function AdminMachineList() {
       ))}
 
       {/* Non-changer machines with drag-to-reorder */}
-      {!loading && nonChangerMachines.length > 0 && (
+      {!loading && displayedNonChanger.length > 0 && (
         <>
-          {nonChangerMachines.length > 1 && (
+          {displayedNonChanger.length > 1 && (
             <p className="mx-4 mt-2 mb-0.5 text-[11px] text-muted/60">
-              ⠿ を長押しでドラッグして並び替え{reordering ? '（保存中...）' : ''}
+              ⠿ を長押しでドラッグして並び替え
+              {orderMode === 'junkai' && reordering ? '（保存中...）' : ''}
+              {orderMode === 'shukin' && '（集金順・保存ボタンで確定）'}
             </p>
           )}
           <DndContext
@@ -576,10 +646,10 @@ export default function AdminMachineList() {
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={nonChangerMachines.map(m => m.machine_code)}
+              items={displayedNonChanger.map(m => m.machine_code)}
               strategy={verticalListSortingStrategy}
             >
-              {nonChangerMachines.map(m => (
+              {displayedNonChanger.map(m => (
                 <SortableMachineItem
                   key={m.machine_code}
                   m={m}
