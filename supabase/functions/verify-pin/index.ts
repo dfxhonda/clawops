@@ -167,32 +167,36 @@ Deno.serve(async (req: Request) => {
         if (metaChanged) {
           await supabaseAdmin.auth.admin.updateUserById(user.id, {
             user_metadata: newMeta,
-            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
           const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
           session = fresh;
         }
       } catch {
-        // 新passwordが失敗 → 旧passwordで試行 (初回移行パス)
-        const { data: oldSignIn, error: oldError } = await supabaseAdmin.auth.signInWithPassword({ email, password: oldPassword });
-
-        if (!oldError && oldSignIn?.session) {
-          // 旧passwordユーザー確認 → 新passwordへ移行 (一度だけ走る)
-          await supabaseAdmin.auth.admin.updateUserById(oldSignIn.user.id, {
+        // R1: 旧passwordで試行 → issueSession経由で例外ハンドリング統一
+        let migrationDone = false;
+        try {
+          const { user: oldUser } = await issueSession(supabaseAdmin, email, oldPassword);
+          // 旧→新移行 (一度だけ走る) + salt_version:'v2' を app_metadata に付与
+          await supabaseAdmin.auth.admin.updateUserById(oldUser.id, {
             password: newPassword,
             user_metadata: newMeta,
-            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
           const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
           session = fresh;
-        } else {
-          // 新規ユーザー → createUser
+          migrationDone = true;
+        } catch {
+          // 旧passwordも失敗 → 新規ユーザー
+        }
+        if (!migrationDone) {
+          // 新規ユーザー → createUser + salt_version:'v2'
           const { error: createError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password: newPassword,
             email_confirm: true,
             user_metadata: newMeta,
-            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
           if (createError) {
             console.error('[verify-pin] createUser error:', createError);
@@ -207,11 +211,32 @@ Deno.serve(async (req: Request) => {
       }
     } else {
       // Fallback: APP_AUTH_SALT未設定 → 旧方式 (ロックアウト防止)
+      // R1: issueSession経由で例外ハンドリング統一
       const password = legacyPassword(verifyResult!.staff_id, serviceKey);
 
-      const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({ email, password });
-
-      if (signInError) {
+      let fallbackDone = false;
+      try {
+        const { session: s, user } = await issueSession(supabaseAdmin, email, password);
+        session = s;
+        fallbackDone = true;
+        const existingMeta = user?.user_metadata || {};
+        const metaChanged =
+          existingMeta.role !== newMeta.role ||
+          existingMeta.name !== newMeta.name ||
+          existingMeta.store_code !== newMeta.store_code ||
+          existingMeta.operator_id !== newMeta.operator_id;
+        if (metaChanged) {
+          await supabaseAdmin.auth.admin.updateUserById(user.id, {
+            user_metadata: newMeta,
+            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
+          });
+          const { session: fresh } = await issueSession(supabaseAdmin, email, password);
+          session = fresh;
+        }
+      } catch {
+        // signIn失敗 → 新規ユーザー (fallback)
+      }
+      if (!fallbackDone) {
         const { error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
           password,
@@ -228,24 +253,6 @@ Deno.serve(async (req: Request) => {
         }
         const { session: fresh } = await issueSession(supabaseAdmin, email, password);
         session = fresh;
-      } else {
-        session = signInData.session;
-
-        const existingMeta = signInData.user?.user_metadata || {};
-        const metaChanged =
-          existingMeta.role !== newMeta.role ||
-          existingMeta.name !== newMeta.name ||
-          existingMeta.store_code !== newMeta.store_code ||
-          existingMeta.operator_id !== newMeta.operator_id;
-
-        if (metaChanged) {
-          await supabaseAdmin.auth.admin.updateUserById(signInData.user.id, {
-            user_metadata: newMeta,
-            app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
-          });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, password);
-          session = fresh;
-        }
       }
     }
 

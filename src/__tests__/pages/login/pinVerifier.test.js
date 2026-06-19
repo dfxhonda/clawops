@@ -292,4 +292,63 @@ describe('verifyPin', () => {
     expect(result.ok).toBe(true)
     expect(result.session.access_token).toBe('stable-tok')
   })
+
+  // R3: SPEC-LOGIN-AUTH-HARDEN-A-02 — Edge Function内部3パスの結合仕様テスト
+  it('when_no_pin_staff_server_creates_new_salt_user_returns_session (R3 新規)', async () => {
+    // no-pin staff → blocking fetch (no skip_bcrypt) → server creates new user with APP_AUTH_SALT → returns session
+    const newStaff = { staff_id: 'S_NEW_SALT', has_pin: false, pin_hash: null }
+    const freshSession = { access_token: 'new-salt-tok', refresh_token: 'new-salt-ref' }
+    let capturedBody = null
+    server.use(
+      http.post(VERIFY_PIN_URL, async ({ request }) => {
+        capturedBody = await request.json()
+        return HttpResponse.json({ session: freshSession })
+      })
+    )
+    const result = await verifyPin(newStaff, '5678')
+    expect(capturedBody?.skip_bcrypt).toBeUndefined()
+    expect(capturedBody?.staff_id).toBe('S_NEW_SALT')
+    expect(result.ok).toBe(true)
+    expect(result.session.access_token).toBe('new-salt-tok')
+  })
+
+  it('when_skip_bcrypt_server_migrates_old_to_new_password_returns_migrated_session (R3 移行)', async () => {
+    // bcrypt match → skip_bcrypt=true → server: newPW失敗→oldPW試行→updateUserById→issueSession(newPW) → migrated session
+    bcrypt.compare.mockResolvedValueOnce(true)
+    const migratedSession = { access_token: 'migrated-tok', refresh_token: 'migrated-ref' }
+    let capturedBody = null
+    server.use(
+      http.post(VERIFY_PIN_URL, async ({ request }) => {
+        capturedBody = await request.json()
+        return HttpResponse.json({ session: migratedSession })
+      })
+    )
+    const result = await verifyPin(staffWithPin, '1234')
+    expect(result.optimistic).toBe(true)
+    const confirmed = await result.sessionPromise
+    // sessionPromise解決後にcapturedBodyが確定する
+    expect(capturedBody?.skip_bcrypt).toBe(true)
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session.access_token).toBe('migrated-tok')
+  })
+
+  it('when_skip_bcrypt_stale_cache_forces_server_call_metachanged_fresh_session (R3 metaChanged再signIn)', async () => {
+    // cached session exists but staff_id mismatch → server called → server runs metaChanged path → fresh token
+    bcrypt.compare.mockResolvedValueOnce(true)
+    const staleSession = { access_token: 'stale-tok', user: { user_metadata: { staff_id: 'OTHER_STAFF' } } }
+    supabase.auth.getSession.mockResolvedValueOnce({ data: { session: staleSession } })
+    const refreshedSession = { access_token: 'meta-refreshed-tok', refresh_token: 'meta-refreshed-ref' }
+    server.use(
+      http.post(VERIFY_PIN_URL, () =>
+        HttpResponse.json({ session: refreshedSession })
+      )
+    )
+    const result = await verifyPin(staffWithPin, '1234')
+    // stale session staff_id mismatch → optimistic, server called in background
+    expect(result.optimistic).toBe(true)
+    expect(result.reused).toBeUndefined()
+    const confirmed = await result.sessionPromise
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session.access_token).toBe('meta-refreshed-tok')
+  })
 })
