@@ -89,7 +89,7 @@ function PinInput({ label, value, onChange }) {
 }
 
 const baseStyle = {
-  minHeight: '100vh',
+  minHeight: '100dvh',
   background: '#0a0a0f',
   color: '#e8e8f0',
   fontFamily: "-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif",
