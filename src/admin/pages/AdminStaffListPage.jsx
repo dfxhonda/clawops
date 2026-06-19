@@ -4,6 +4,8 @@ import { useAuth } from '../../hooks/useAuth'
 import { writeAuditLog } from '../../services/audit'
 import { logger } from '../../lib/logger'
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+
 // T2c-AdminStaffListPage-refactor:
 // - UI-CHARTER-V2 準拠 (カード型 min-h 88px / role chips / + 新規追加 / 削除確認)
 // - staff_stores 中間テーブルで複数店舗担当 (checkbox)
@@ -80,6 +82,17 @@ export default function AdminStaffListPage() {
   const [editAssignedLoaded, setEditAssignedLoaded] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [inviteSending, setInviteSending] = useState(false)
+  const [inviteEmailInput, setInviteEmailInput] = useState('')
+  const [showInviteEmail, setShowInviteEmail] = useState(false)
+  const [inviteToast, setInviteToast] = useState('')
+
+  useEffect(() => {
+    if (!modal) {
+      setShowInviteEmail(false)
+      setInviteEmailInput('')
+    }
+  }, [modal])
 
   useEffect(() => {
     supabase.from('stores').select('store_code,store_name,is_active').order('store_code')
@@ -298,7 +311,7 @@ export default function AdminStaffListPage() {
     setError(null)
     try {
       const { error: pinErr } = await supabase.from('staff')
-        .update({ pin: null, has_pin: false, updated_at: new Date().toISOString() })
+        .update({ pin_hash: null, updated_at: new Date().toISOString() })
         .eq('staff_id', modal.staff_id)
       if (pinErr) throw pinErr
       await writeAuditLog({
@@ -317,6 +330,54 @@ export default function AdminStaffListPage() {
       logger.error('staff_pin_set_error', { code: 'ERR-STAFF-005', message: err.message })
     } finally {
       setPinResetting(false)
+    }
+  }
+
+  async function handleSendInvite() {
+    const targetEmail = form.email?.trim() || inviteEmailInput.trim()
+    if (!targetEmail) {
+      setShowInviteEmail(true)
+      return
+    }
+    setInviteSending(true)
+    setError(null)
+    try {
+      // email未登録でインライン入力した場合→staff.emailを先に保存
+      if (!form.email?.trim() && inviteEmailInput.trim()) {
+        const { error: emailErr } = await supabase.from('staff').update({
+          email: inviteEmailInput.trim(),
+          updated_at: new Date().toISOString(),
+          updated_by: staffName || null,
+        }).eq('staff_id', modal.staff_id)
+        if (emailErr) throw emailErr
+        setF('email')(inviteEmailInput.trim())
+      }
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('未ログイン状態です。再ログインしてください。')
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ staff_id: modal.staff_id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 400 && data.error === 'email未登録') {
+          setShowInviteEmail(true)
+          return
+        }
+        throw new Error(data.error || `エラー (${res.status})`)
+      }
+      setShowInviteEmail(false)
+      setInviteEmailInput('')
+      setInviteToast('招待メールを送信しました')
+      setTimeout(() => setInviteToast(''), 3000)
+      logger.info('staff_invite_sent', { staff_id: modal.staff_id })
+    } catch (err) {
+      setError(err.message)
+      logger.error('staff_invite_send_error', { code: 'ERR-STAFF-006', message: err.message })
+    } finally {
+      setInviteSending(false)
     }
   }
 
@@ -685,6 +746,44 @@ export default function AdminStaffListPage() {
 
             {!modal.__new && (
               <div className="px-4 pb-6 border-t border-border pt-3 flex flex-col gap-2">
+                {/* 招待メール送信 (SPEC-STAFF-INVITE-S5) */}
+                {!pinConfirm && (
+                  !showInviteEmail ? (
+                    <button
+                      type="button"
+                      data-testid="invite-send-button"
+                      onClick={handleSendInvite}
+                      disabled={inviteSending}
+                      className="w-full py-2 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-600/40 text-sm font-bold disabled:opacity-40"
+                    >
+                      {inviteSending ? '送信中…' : '招待メール送信'}
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm text-amber-400">メールアドレスを入力してください</p>
+                      <input
+                        type="email"
+                        data-testid="invite-email-input"
+                        value={inviteEmailInput}
+                        onChange={e => setInviteEmailInput(e.target.value)}
+                        placeholder="email@example.com"
+                        className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
+                      />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => { setShowInviteEmail(false); setInviteEmailInput('') }} className="flex-1 py-2 rounded-lg bg-surface text-text text-sm font-bold">キャンセル</button>
+                        <button
+                          type="button"
+                          data-testid="invite-send-confirm-button"
+                          onClick={handleSendInvite}
+                          disabled={inviteSending || !inviteEmailInput.trim()}
+                          className="flex-1 py-2 rounded-lg bg-amber-600 text-white text-sm font-bold disabled:opacity-40"
+                        >
+                          {inviteSending ? '送信中…' : '保存して送信'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
                 {!pinConfirm ? (
                   <button type="button" data-testid="pin-reset-button" onClick={() => setPinConfirm(true)} className="w-full py-2 rounded-lg bg-rose-600/20 text-rose-400 border border-rose-600/40 text-sm font-bold">
                     PIN リセット
@@ -709,6 +808,12 @@ export default function AdminStaffListPage() {
               </div>
             )}
           </form>
+        </div>
+      )}
+
+      {inviteToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-green-700 text-white text-sm font-bold px-4 py-2 rounded-lg shadow-lg pointer-events-none">
+          {inviteToast}
         </div>
       )}
 
