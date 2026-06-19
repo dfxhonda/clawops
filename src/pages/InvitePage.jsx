@@ -38,18 +38,20 @@ function Spinner() {
   )
 }
 
-function FieldRow({ label, value }) {
+// SPEC-INVITE-LAYOUT-COMPACT-01: marginBottom 10→6, label gap 2→1, style prop for grid span
+function FieldRow({ label, value, style }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 14, color: '#cbd5e1' }}>{value || '—'}</div>
+    <div style={{ marginBottom: 6, ...style }}>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 1 }}>{label}</div>
+      <div style={{ fontSize: 13, color: '#cbd5e1' }}>{value || '—'}</div>
     </div>
   )
 }
 
+// SPEC-INVITE-LAYOUT-COMPACT-01: marginBottom 12→8, padding 10px→8px, fontSize 15→14
 function EditRow({ label, value, onChange, inputMode = 'text' }) {
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 8 }}>
       <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{label}</label>
       <input
         type="text"
@@ -59,16 +61,17 @@ function EditRow({ label, value, onChange, inputMode = 'text' }) {
         style={{
           width: '100%', boxSizing: 'border-box',
           background: '#0f172a', border: '1px solid #334155', borderRadius: 8,
-          color: '#e8e8f0', fontSize: 15, padding: '10px 12px', outline: 'none',
+          color: '#e8e8f0', fontSize: 14, padding: '8px 12px', outline: 'none',
         }}
       />
     </div>
   )
 }
 
+// SPEC-INVITE-LAYOUT-COMPACT-01: fontSize 28→22, padding 10px→8px, marginBottom 12→8
 function PinInput({ label, value, onChange }) {
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 8 }}>
       <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{label}</label>
       <input
         type="password"
@@ -80,7 +83,7 @@ function PinInput({ label, value, onChange }) {
         style={{
           width: '100%', boxSizing: 'border-box',
           background: '#0f172a', border: '1px solid #334155', borderRadius: 8,
-          color: '#e8e8f0', fontSize: 28, letterSpacing: 10, padding: '10px 12px',
+          color: '#e8e8f0', fontSize: 22, letterSpacing: 10, padding: '8px 12px',
           outline: 'none', textAlign: 'center',
         }}
       />
@@ -190,50 +193,61 @@ export default function InvitePage() {
   }
 
   // S4: プロフィール確認 + PIN設定フォーム
+  // SPEC-INVITE-LAYOUT-COMPACT-01: header/container/card/section 余白圧縮、2列grid化
   return (
     <div style={baseStyle}>
-      {/* ヘッダー */}
-      <div style={{ padding: '20px 16px 16px', textAlign: 'center', borderBottom: '1px solid #1e293b' }}>
+      {/* ヘッダー: padding 20px 16px 16px → 12px 16px 10px */}
+      <div style={{ padding: '12px 16px 10px', textAlign: 'center', borderBottom: '1px solid #1e293b' }}>
         <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
-        <div style={{ fontSize: 13, color: '#9090a8', marginTop: 4 }}>アカウント設定</div>
+        <div style={{ fontSize: 13, color: '#9090a8', marginTop: 2 }}>アカウント設定</div>
       </div>
 
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px 48px' }}>
-        {/* プロフィール確認セクション */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', marginBottom: 10, letterSpacing: 1 }}>
+      {/* outer container: padding 20px 16px 48px → 14px 16px 24px */}
+      <div style={{ maxWidth: 480, margin: '0 auto', padding: '14px 16px 24px' }}>
+
+        {/* プロフィール確認セクション: marginBottom 24→14 */}
+        <div style={{ marginBottom: 14 }}>
+          {/* section heading: marginBottom 10→8 */}
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', marginBottom: 8, letterSpacing: 1 }}>
             プロフィール確認
           </div>
-          <div style={{ background: '#111827', borderRadius: 12, padding: '16px' }}>
-            {/* 編集可: 氏名・電話 */}
-            <EditRow label="氏名" value={editName} onChange={setEditName} />
-            <EditRow label="電話番号" value={editPhone} onChange={setEditPhone} inputMode="tel" />
-            {/* 表示のみ */}
-            {staff?.name_kana && <FieldRow label="氏名カナ" value={staff.name_kana} />}
-            {staff?.email && <FieldRow label="メール" value={staff.email} />}
-            <FieldRow label="ロール" value={ROLE_LABELS[staff?.role] || staff?.role} />
-            {staff?.store_code && <FieldRow label="主店舗" value={staff.store_code} />}
-            {staff?.joined_at && <FieldRow label="入社日" value={staff.joined_at} />}
-            {/* hidden: 備考・車両在庫 */}
+          {/* card: padding 16px→12px */}
+          <div style={{ background: '#111827', borderRadius: 12, padding: '12px' }}>
+            {/* 編集可: 氏名・電話 — 2列grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 10px' }}>
+              <EditRow label="氏名" value={editName} onChange={setEditName} />
+              <EditRow label="電話番号" value={editPhone} onChange={setEditPhone} inputMode="tel" />
+            </div>
+            {/* 表示のみ: 2列grid、メールは全幅スパン */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 10px' }}>
+              {staff?.name_kana && <FieldRow label="氏名カナ" value={staff.name_kana} />}
+              {staff?.email && <FieldRow label="メール" value={staff.email} style={{ gridColumn: '1 / -1' }} />}
+              <FieldRow label="ロール" value={ROLE_LABELS[staff?.role] || staff?.role} />
+              {staff?.store_code && <FieldRow label="主店舗" value={staff.store_code} />}
+              {staff?.joined_at && <FieldRow label="入社日" value={staff.joined_at} />}
+            </div>
           </div>
         </div>
 
-        {/* PIN設定セクション */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', marginBottom: 10, letterSpacing: 1 }}>
+        {/* PIN設定セクション: marginBottom 14 */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', marginBottom: 8, letterSpacing: 1 }}>
             PIN設定（4桁）
           </div>
-          <div style={{ background: '#111827', borderRadius: 12, padding: '16px' }}>
-            <PinInput
-              label="新しいPIN"
-              value={pin1}
-              onChange={v => { setPin1(v); setPinError('') }}
-            />
-            <PinInput
-              label="PINの確認（再入力）"
-              value={pin2}
-              onChange={v => { setPin2(v); setPinError('') }}
-            />
+          <div style={{ background: '#111827', borderRadius: 12, padding: '12px' }}>
+            {/* PIN 2列横並び */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 10px' }}>
+              <PinInput
+                label="新しいPIN"
+                value={pin1}
+                onChange={v => { setPin1(v); setPinError('') }}
+              />
+              <PinInput
+                label="確認（再入力）"
+                value={pin2}
+                onChange={v => { setPin2(v); setPinError('') }}
+              />
+            </div>
             {(pinMismatch || pinError) && (
               <p style={{ fontSize: 13, color: '#f87171', margin: '4px 0 0' }}>
                 {pinError || 'PINが一致しません'}
@@ -243,7 +257,7 @@ export default function InvitePage() {
         </div>
 
         {submitError && (
-          <p style={{ fontSize: 13, color: '#f87171', textAlign: 'center', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: '#f87171', textAlign: 'center', marginBottom: 12 }}>
             {submitError}
           </p>
         )}
