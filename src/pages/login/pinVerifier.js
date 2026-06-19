@@ -1,5 +1,4 @@
 import * as bcrypt from 'bcryptjs'
-import { supabase } from '../../lib/supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -8,13 +7,10 @@ export async function verifyPin(staff, pin) {
     const match = await bcrypt.compare(pin, staff.pin_hash)
     if (!match) return { ok: false, bcryptFail: true }
 
-    // SPEC-LOGIN-SESSION-REUSE-01-fix-01: getSession() is pure local read (0ms, no server call).
-    // Supabase persists session in localStorage after first signInWithPassword.
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session && session.user?.user_metadata?.staff_id === staff.staff_id) {
-      return { ok: true, session, reused: true }
-    }
-
+    // SPEC-LOGIN-HONDA-NG-INVESTIGATION-01: removed reused-session path.
+    // Stale localStorage session (from deleted auth.user) caused silent auth failure —
+    // setSession succeeded locally but getUser() at launcher rejected the deleted user.
+    // Always issue fresh session from server after bcrypt success.
     const sessionPromise = fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

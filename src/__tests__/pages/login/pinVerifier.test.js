@@ -161,14 +161,11 @@ describe('verifyPin', () => {
     expect(result.ok).toBe(true)
   })
 
-  it('when_bcrypt_matches_and_getSession_returns_matching_staff_skips_server', async () => {
+  it('when_bcrypt_matches_always_calls_server_optimistically_no_reused_path', async () => {
+    // SPEC-LOGIN-HONDA-NG-INVESTIGATION-01: reused path removed.
+    // Even if localStorage has a matching session, always go to server for fresh tokens.
+    // Stale session from deleted auth.user caused silent failure at launcher (getUser rejection).
     bcrypt.compare.mockResolvedValueOnce(true)
-    const cachedSession = {
-      access_token: 'cached-tok',
-      refresh_token: 'cached-ref',
-      user: { user_metadata: { staff_id: 'S1' } },
-    }
-    supabase.auth.getSession.mockResolvedValueOnce({ data: { session: cachedSession } })
     let serverCalled = false
     server.use(
       http.post(VERIFY_PIN_URL, () => {
@@ -178,11 +175,14 @@ describe('verifyPin', () => {
     )
 
     const result = await verifyPin(staffWithPin, '1234')
+    const confirmed = await result.sessionPromise
 
-    expect(serverCalled).toBe(false)
     expect(result.ok).toBe(true)
-    expect(result.reused).toBe(true)
-    expect(result.session.access_token).toBe('cached-tok')
+    expect(result.optimistic).toBe(true)
+    expect(result.reused).toBeUndefined()
+    expect(serverCalled).toBe(true)
+    expect(confirmed.ok).toBe(true)
+    expect(confirmed.session).toEqual(fakeSession)
   })
 
   it('when_bcrypt_matches_and_getSession_returns_different_staff_calls_server', async () => {
