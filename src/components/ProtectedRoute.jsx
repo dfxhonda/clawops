@@ -16,7 +16,7 @@ function redirectToPortal() {
  */
 export default function ProtectedRoute({ children }) {
   const { loading, isLoggedIn } = useAuth()
-  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>認証中...</div>
+  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',color:'#888'}}>認証中...</div>
   if (!isLoggedIn) return redirectToPortal()
   return children
 }
@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children }) {
  */
 export function RoleRoute({ roles, fallback = '/', children }) {
   const { loading, isLoggedIn, staffRole } = useAuth()
-  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'#888'}}>認証中...</div>
+  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',color:'#888'}}>認証中...</div>
   if (!isLoggedIn) return redirectToPortal()
   if (!roles.includes(staffRole)) return <Navigate to={fallback} replace />
   return children
