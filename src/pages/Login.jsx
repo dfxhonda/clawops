@@ -45,13 +45,31 @@ export default function Login() {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        // SPEC-PWA-LOGIN-VERSION-RELOAD-01: session 復元 (silent re-auth) 成功時も
-        // バージョン不一致なら 1 回だけ reload。reload 中は navigate 不要 (location.reload で
-        // SPA 全破棄)、reloaded:false の通常 path のみ navigate に進む。
-        const r = await checkAndReloadIfStale()
-        if (r?.reloaded) return
-        navigate('/launcher', { replace: true })
-        return
+        // SPEC-LOGIN-GHOST-SESSION-VALIDATE-FIX-01: getUser() でサーバー側の生存確認。
+        // 削除済み auth.user の亡霊 session は無音破棄して staff 一覧へフォールスルー。
+        let ghostDetected = false
+        try {
+          const { data: userData, error: userError } = await supabase.auth.getUser()
+          if (userError || !userData?.user) {
+            ghostDetected = true
+            console.warn('[ERR-LOGIN-GHOST-SESSION]', userError)
+          }
+        } catch (e) {
+          ghostDetected = true
+          console.warn('[ERR-LOGIN-GHOST-SESSION]', e)
+        }
+        if (ghostDetected) {
+          try { await supabase.auth.signOut() } catch (e) { console.warn('[ERR-LOGIN-GHOST-SESSION] signOut', e) }
+          // fall through: return せず staff 一覧ロードへ続行
+        } else {
+          // SPEC-PWA-LOGIN-VERSION-RELOAD-01: session 復元 (silent re-auth) 成功時も
+          // バージョン不一致なら 1 回だけ reload。reload 中は navigate 不要 (location.reload で
+          // SPA 全破棄)、reloaded:false の通常 path のみ navigate に進む。
+          const r = await checkAndReloadIfStale()
+          if (r?.reloaded) return
+          navigate('/launcher', { replace: true })
+          return
+        }
       }
       // SPEC-LOGIN-LATENCY-FIX-01 C2: staff SELECT と device_login_history SELECT を
       // Promise.all で並列発火 (waterfall +737ms cold 解消)。
