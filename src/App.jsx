@@ -122,6 +122,9 @@ const StocktakeDashboard        = lazy(() => import('./manesupport/admin/stockta
 // 遅延ロード — ヘルプ
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 
+// SPEC-STAFF-INVITE-S3-TOKEN-RECEIVE-01: 招待受信画面 (ProtectedRoute外、未認証可)
+const InvitePage = lazy(() => import('./pages/InvitePage'))
+
 // 遅延ロード — J-ADMIN-01 管理者ブース編集
 const AdminStorePage      = lazy(() => import('./admin/pages/AdminStorePage'))
 const AdminMachineListPage = lazy(() => import('./admin/pages/AdminMachineListPage'))
@@ -224,6 +227,8 @@ function AppInner() {
       <Suspense fallback={<PageLoader />}>
       <Routes>
       <Route path="/login" element={<Login />} />
+      {/* SPEC-STAFF-INVITE-S3-TOKEN-RECEIVE-01: 招待受信画面 (ProtectedRoute外、未認証可) */}
+      <Route path="/invite" element={<InvitePage />} />
 
       {/* ホーム = ランチャー（ロール別タイル表示） */}
       <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
