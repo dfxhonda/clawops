@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // staff情報取得 (pin_hash / pin は含めない)
     const { data: staffRow, error: staffErr } = await db
       .from('staff')
-      .select('staff_id, name, name_kana, email, role, store_code, joined_at, has_pin, is_active')
+      .select('staff_id, name, name_kana, email, phone, role, store_code, joined_at, has_pin, is_active')
       .eq('staff_id', invite.staff_id)
       .single()
 
