@@ -138,30 +138,7 @@ export default function Login() {
     return allStaff.filter(s => regex.test(toKatakana(s.name_kana || '')))
   }, [activeTab, allStaff, starStaff])
 
-  const handleLoginSuccess = async (staff, session, sessionPromise) => {
-    if (sessionPromise) {
-      // SPEC-LOGIN-AUTH-LATENCY-PHASE1-01 R3: 楽観遷移
-      // bcrypt成功後即navigate、JWT確定はPromiseで裏継続
-      setSelectedStaff(null)
-      showToast(`${staff.name} さん こんにちは`)
-      navigate('/launcher', { replace: true })
-      ;(async () => {
-        const confirmed = await sessionPromise
-        if (!confirmed.ok) {
-          sessionStorage.setItem('loginAuthError', '認証に失敗しました')
-          navigate('/login', { replace: true })
-          return
-        }
-        await supabase.auth.setSession({
-          access_token: confirmed.session.access_token,
-          refresh_token: confirmed.session.refresh_token,
-        })
-        await upsertLoginHistory(staff.staff_id)
-        await checkAndReloadIfStale()
-      })()
-      return
-    }
-    // non-optimistic: cache reuse or no-pin server path
+  const handleLoginSuccess = async (staff, session) => {
     await supabase.auth.setSession({
       access_token:  session.access_token,
       refresh_token: session.refresh_token,
