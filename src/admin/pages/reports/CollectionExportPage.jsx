@@ -1,4 +1,4 @@
-// SPEC-COLLECTION-EXPORT-FIX-02: machines(machine_name)embed追加(machine_code FK経由)
+// SPEC-COLLECTION-EXPORT-FIX-03: changer除外(type_id='changer'クライアントフィルタ)
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
@@ -46,7 +46,7 @@ export default function CollectionExportPage() {
         total,
         advance_payment,
         notes,
-        machines(machine_name),
+        machines(machine_name, type_id),
         cash_collections!inner(
           collection_id,
           collected_at,
@@ -61,7 +61,8 @@ export default function CollectionExportPage() {
       .order('cash_collections(store_code)', { ascending: true })
       .then(({ data, error }) => {
         if (error || !data) { setRows([]); setLoading(false); return }
-        const sorted = [...data].sort((a, b) => {
+        const nonChanger = data.filter(r => r.machines?.type_id !== 'changer')
+        const sorted = [...nonChanger].sort((a, b) => {
           const sc = a.cash_collections.store_code.localeCompare(b.cash_collections.store_code)
           if (sc !== 0) return sc
           const dc = a.cash_collections.collected_at.localeCompare(b.cash_collections.collected_at)

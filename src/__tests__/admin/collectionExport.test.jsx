@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SPEC-COLLECTION-EXPORT-FIX-02: machines(machine_name) embed追加
+// SPEC-COLLECTION-EXPORT-FIX-03: changer除外(type_id='changer'クライアントフィルタ)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -31,7 +31,7 @@ const CONFIRMED_ROW = {
   total: 5000,
   advance_payment: 0,
   notes: null,
-  machines: { machine_name: 'BUZZクレーン' },
+  machines: { machine_name: 'BUZZクレーン', type_id: 'claw' },
   cash_collections: {
     collection_id: 'c1',
     collected_at: '2026-05-15',
@@ -119,6 +119,50 @@ describe('CollectionExportPage when_no_data', () => {
     wrap(<CollectionExportPage />, '/admin/reports/collections')
     await waitFor(() => screen.getByText('該当データなし'))
     expect(screen.queryByRole('button', { name: /xlsx/ })).toBeNull()
+  })
+})
+
+// ────────────────────────────────────────────────
+// SPEC-COLLECTION-EXPORT-FIX-03: changer除外
+describe('CollectionExportPage when_changer_exclusion_applied', () => {
+  it('when_changer_row_present_should_exclude_from_rows', async () => {
+    const changerRow = {
+      ...CONFIRMED_ROW,
+      booth_code: 'C01',
+      machine_code: 'KOS01-M12',
+      machines: { machine_name: '両替機', type_id: 'changer' },
+      in_meter_prev: null,
+      in_meter_current: null,
+      total: 0,
+    }
+    supabase.from.mockReturnValue(mockChain([CONFIRMED_ROW, changerRow]))
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    // BUZZクレーン(claw)1行のみ表示、changer行除外
+    await waitFor(() => {
+      expect(screen.getByText('1 明細行')).toBeTruthy()
+    })
+  })
+
+  it('when_only_changer_rows_should_show_no_data', async () => {
+    const changerRow = {
+      ...CONFIRMED_ROW,
+      machines: { machine_name: '両替機', type_id: 'changer' },
+    }
+    supabase.from.mockReturnValue(mockChain([changerRow]))
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    await waitFor(() => {
+      expect(screen.getByText('該当データなし')).toBeTruthy()
+    })
+  })
+
+  it('when_machine_type_id_null_should_not_exclude', async () => {
+    // type_idがnullの機械は除外されない
+    const nullTypeRow = { ...CONFIRMED_ROW, machines: { machine_name: 'テスト機', type_id: null } }
+    supabase.from.mockReturnValue(mockChain([nullTypeRow]))
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    await waitFor(() => {
+      expect(screen.getByText('1 明細行')).toBeTruthy()
+    })
   })
 })
 
