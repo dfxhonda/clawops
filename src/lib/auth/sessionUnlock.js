@@ -1,14 +1,7 @@
-// SPEC-AUTH-LOCK-S5: ロック解除処理 (session-unlock Edge 結線)
+// SPEC-AUTH-LOCK-S5-FIX: ロック解除処理 (session-unlock begin/finish サーバー発行challenge)
 import { supabase } from '../supabase'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-
-function base64urlRandom32() {
-  const bytes = crypto.getRandomValues(new Uint8Array(32))
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
 
 async function postUnlock(body) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/session-unlock`, {
@@ -51,25 +44,30 @@ export async function unlockWithWebAuthn(staffId, accessToken) {
 
   const { startAuthentication } = await import('@simplewebauthn/browser')
 
-  // クライアントでchallenge生成 → session-unlock の webauthn_challenge 引数に渡す
-  const challenge = base64urlRandom32()
-
-  const assertion = await startAuthentication({
-    optionsJSON: {
-      challenge,
-      timeout: 60000,
-      userVerification: 'required',
-      rpId: window.location.hostname,
-      allowCredentials: [],
-    },
+  // Step 1: サーバーから challenge_token + options を取得
+  const beginRes = await fetch(`${SUPABASE_URL}/functions/v1/session-unlock`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'begin', staff_id: staffId, current_access_token: accessToken }),
   })
+  const beginData = await beginRes.json().catch(() => ({}))
+  if (!beginRes.ok) {
+    const err = new Error(beginData.error || 'begin failed')
+    err.status = beginRes.status
+    throw err
+  }
+  const { challenge_token, options } = beginData
 
+  // Step 2: WebAuthn assertion
+  const assertion = await startAuthentication({ optionsJSON: options })
+
+  // Step 3: finish — challenge_token をサーバーに送付、HMAC検証はサーバー側
   const data = await postUnlock({
     staff_id: staffId,
     current_access_token: accessToken,
     auth_method: 'webauthn',
     webauthn_assertion: assertion,
-    webauthn_challenge: challenge,
+    challenge_token,
   })
   await applySession(data)
 }

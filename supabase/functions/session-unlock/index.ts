@@ -43,6 +43,21 @@ async function issueSession(admin: ReturnType<typeof createClient>, email: strin
   return data.session;
 }
 
+// ─── HMAC stateless challenge helpers (register-passkeyと同一方式、複製) ───
+async function hmacSign(data: string, key: string): Promise<string> {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+
+function uint8ToBase64url(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
@@ -52,9 +67,78 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { staff_id, current_access_token, auth_method, webauthn_assertion, webauthn_challenge, pin } =
-      await req.json();
+    const body = await req.json();
+    const { action, staff_id, current_access_token, auth_method, webauthn_assertion, challenge_token, pin } = body;
 
+    const serviceKey = Deno.env.get('CLAWOPS_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const APP_AUTH_SALT = Deno.env.get('APP_AUTH_SALT');
+    const HMAC_KEY = APP_AUTH_SALT || serviceKey;
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+    const WEBAUTHN_RPID = Deno.env.get('WEBAUTHN_RPID') ?? '';
+
+    const supabaseAdmin = createClient(SUPABASE_URL, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // ─── BEGIN: WebAuthn解除用 challenge生成 (register-passkeyと同一HMAC stateless方式) ───
+    if (action === 'begin') {
+      if (!staff_id || !current_access_token) {
+        return new Response(JSON.stringify({ error: 'staff_id, current_access_token は必須です' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      let beginTokenPayload: Record<string, unknown>;
+      try {
+        beginTokenPayload = decodeJwtPayload(current_access_token);
+      } catch {
+        return new Response(JSON.stringify({ error: 'current_access_token のデコードに失敗しました' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const beginTokenStaffId = (beginTokenPayload?.app_metadata as Record<string, unknown>)?.staff_id;
+      if (!beginTokenStaffId || beginTokenStaffId !== staff_id) {
+        return new Response(JSON.stringify({ error: '認証情報が一致しません' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 登録済み credentials (allowCredentials)
+      const { data: creds } = await supabaseAdmin
+        .from('staff_credentials')
+        .select('credential_id, transports')
+        .eq('staff_id', staff_id);
+
+      // challenge生成 (32byte random → HMAC stateless token)
+      const challengeBytes = crypto.getRandomValues(new Uint8Array(32));
+      const challengeB64 = uint8ToBase64url(challengeBytes);
+      const iat = Date.now();
+      const meta = btoa(JSON.stringify({ iat, staff_id }))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      const sigInput = `${challengeB64}.${meta}`;
+      const sig = await hmacSign(sigInput, HMAC_KEY);
+      const challenge_token_out = `${sigInput}.${sig}`;
+
+      const allowCredentials = (creds || []).map(c => ({
+        id: c.credential_id,
+        type: 'public-key' as const,
+        transports: (c.transports as unknown as string[]) || [],
+      }));
+
+      const options = {
+        challenge: challengeB64,
+        timeout: 60000,
+        userVerification: 'required' as const,
+        rpId: WEBAUTHN_RPID || undefined,
+        allowCredentials: allowCredentials.length > 0 ? allowCredentials : [],
+      };
+
+      return new Response(JSON.stringify({ challenge_token: challenge_token_out, options }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ─── FINISH: 本人検証 + セッション再発行 ───
     if (!staff_id || !current_access_token || !auth_method) {
       return new Response(JSON.stringify({ error: 'staff_id, current_access_token, auth_method は必須です' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,20 +163,46 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const serviceKey = Deno.env.get('CLAWOPS_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const APP_AUTH_SALT = Deno.env.get('APP_AUTH_SALT');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-    const WEBAUTHN_RPID = Deno.env.get('WEBAUTHN_RPID') ?? '';
-
-    const supabaseAdmin = createClient(SUPABASE_URL, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
     // Step 2: 本人検証
     if (auth_method === 'webauthn') {
       if (!webauthn_assertion) {
         return new Response(JSON.stringify({ error: 'webauthn_assertion は必須です' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (!challenge_token) {
+        return new Response(JSON.stringify({ error: 'challenge_token は必須です (session-unlock begin で取得)' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // challenge_token HMAC検証 + iat期限(5分) + staff_id一致
+      const tokenParts = (challenge_token as string).split('.');
+      if (tokenParts.length !== 3) {
+        return new Response(JSON.stringify({ error: 'challenge_token 形式エラー' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const [challengeB64, metaB64, receivedSig] = tokenParts;
+      const sigInput = `${challengeB64}.${metaB64}`;
+      const expectedSig = await hmacSign(sigInput, HMAC_KEY);
+      if (receivedSig !== expectedSig) {
+        return new Response(JSON.stringify({ error: 'challenge_token 署名不正' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const rawMeta = metaB64.replace(/-/g, '+').replace(/_/g, '/');
+      const { iat, staff_id: challengeStaffId } = JSON.parse(
+        atob(rawMeta + '='.repeat((4 - rawMeta.length % 4) % 4))
+      );
+      if (Date.now() - iat > 5 * 60 * 1000) {
+        return new Response(JSON.stringify({ error: 'challenge の有効期限が切れています' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (challengeStaffId !== staff_id) {
+        return new Response(JSON.stringify({ error: '認証情報が一致しません' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
@@ -110,23 +220,6 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // challenge: 外部提供優先。未提供時は clientDataJSON から抽出 (S2実装前の暫定)
-      let expectedChallenge: string;
-      if (webauthn_challenge) {
-        expectedChallenge = webauthn_challenge;
-      } else {
-        try {
-          const clientData = JSON.parse(atob(
-            (webauthn_assertion.response.clientDataJSON as string).replace(/-/g, '+').replace(/_/g, '/')
-          ));
-          expectedChallenge = clientData.challenge;
-        } catch {
-          return new Response(JSON.stringify({ error: 'clientDataJSON のデコードに失敗しました' }), {
-            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-      }
-
       const origin = req.headers.get('origin') || `https://${WEBAUTHN_RPID}`;
       const rpID = WEBAUTHN_RPID || new URL(origin).hostname;
 
@@ -134,7 +227,7 @@ Deno.serve(async (req: Request) => {
       try {
         verification = await verifyAuthenticationResponse({
           response: webauthn_assertion,
-          expectedChallenge,
+          expectedChallenge: challengeB64,
           expectedOrigin: origin,
           expectedRPID: rpID,
           authenticator: {
