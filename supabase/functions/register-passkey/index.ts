@@ -200,29 +200,34 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const { credential, aaguid } = verification.registrationInfo;
+      const { credential } = verification.registrationInfo;
       const credentialIdB64 = uint8ToBase64url(credential.id);
       const publicKeyB64 = uint8ToBase64url(credential.publicKey);
       const transports: string[] = registration_response?.response?.transports || [];
 
-      // staff から organization_id 取得
+      // staff から organization_id 取得 (NOT NULL 必須、取得失敗は400で中断)
       const { data: staffRow } = await supabaseAdmin
         .from('staff')
         .select('organization_id')
         .eq('staff_id', staff_id)
         .single();
 
+      if (!staffRow?.organization_id) {
+        return new Response(JSON.stringify({ error: 'organization_id の取得に失敗しました' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const { error: insertError } = await supabaseAdmin
         .from('staff_credentials')
         .insert({
           staff_id,
-          organization_id: staffRow?.organization_id ?? null,
+          organization_id: staffRow.organization_id,
           credential_id: credentialIdB64,
           public_key: publicKeyB64,
           sign_count: credential.counter,
           device_label: device_label || null,
           transports,
-          aaguid: aaguid || null,
         });
 
       if (insertError) {
