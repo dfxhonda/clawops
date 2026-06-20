@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useGlossaryStore } from './stores/glossaryStore'
 
@@ -25,6 +25,7 @@ import UnsentBanner from './components/UnsentBanner'
 import { buildLabel } from './lib/buildInfo'
 import { useSessionLock } from './hooks/useIdleLogout'
 import { LockScreen } from './components/LockScreen'
+import { unlockWithPin, unlockWithWebAuthn } from './lib/auth/sessionUnlock'
 
 // ===== 遅延読み込み =====
 // 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
@@ -191,10 +192,20 @@ function PatrolBoothInputPageKeyed() {
 }
 
 function AppInner() {
-  const { isLoggedIn, staffName } = useAuth()
+  const { isLoggedIn, staffName, staffId, accessToken } = useAuth()
   // J-PWA-AUTO-VERSION-RELOAD-01: 自動 reload + 一瞬トースト (現場操作ゼロ)。
   const { reloading } = useVersionCheck()
   const { isLocked, unlock } = useSessionLock(isLoggedIn)
+
+  const handleUnlock = useCallback(async (method, pin) => {
+    if (method === 'pin') {
+      await unlockWithPin(staffId, accessToken, pin)
+    } else {
+      await unlockWithWebAuthn(staffId, accessToken)
+    }
+    unlock()
+  }, [staffId, accessToken, unlock])
+
   const initGlossary = useGlossaryStore(s => s.init)
   const cleanupGlossary = useGlossaryStore(s => s.cleanup)
 
@@ -204,7 +215,7 @@ function AppInner() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <ErrorBoundary>
-      {isLoggedIn && isLocked && <LockScreen staffName={staffName} onUnlock={unlock} />}
+      {isLoggedIn && isLocked && <LockScreen staffName={staffName} onUnlock={handleUnlock} />}
       {/* J-PWA-AUTO-VERSION-RELOAD-01: 一瞬 (700ms) トースト → location.reload()。
           高 z-index / fixed top で他 UI に被らない、操作不要。 */}
       {reloading && (
