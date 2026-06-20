@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SPEC-COLLECTION-EXPORT-01: CollectionExportPage + AdminReportsHubPage tile flag
+// SPEC-COLLECTION-EXPORT-FIX-02: machines(machine_name) embed追加
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -22,7 +22,7 @@ vi.mock('xlsx', () => ({
   writeFile: vi.fn(),
 }))
 
-// SPEC-COLLECTION-EXPORT-FIX-01: machine_code は booth 列, machines 埋め込みなし, collected_at は date 型
+// SPEC-COLLECTION-EXPORT-FIX-02: machines(machine_name) embed 追加, machine_code は booth 列, date 型
 const CONFIRMED_ROW = {
   booth_code: 'B01',
   machine_code: 'R2001',
@@ -31,6 +31,7 @@ const CONFIRMED_ROW = {
   total: 5000,
   advance_payment: 0,
   notes: null,
+  machines: { machine_name: 'BUZZクレーン' },
   cash_collections: {
     collection_id: 'c1',
     collected_at: '2026-05-15',
@@ -118,6 +119,26 @@ describe('CollectionExportPage when_no_data', () => {
     wrap(<CollectionExportPage />, '/admin/reports/collections')
     await waitFor(() => screen.getByText('該当データなし'))
     expect(screen.queryByRole('button', { name: /xlsx/ })).toBeNull()
+  })
+})
+
+// ────────────────────────────────────────────────
+// SPEC-COLLECTION-EXPORT-FIX-02: machine_name 表示
+describe('CollectionExportPage when_fix_02_applied', () => {
+  it('when_machines_embed_present_should_use_machine_name', async () => {
+    supabase.from.mockReturnValue(mockChain([CONFIRMED_ROW]))
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    await waitFor(() => screen.getByText('1 明細行'))
+    // DL ボタンが表示される = embed エラーがない
+    expect(screen.getByRole('button', { name: /xlsx/ })).toBeTruthy()
+  })
+
+  it('when_machine_name_null_should_show_empty_cell_not_crash', async () => {
+    const rowNullMachine = { ...CONFIRMED_ROW, machines: null }
+    supabase.from.mockReturnValue(mockChain([rowNullMachine]))
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    await waitFor(() => screen.getByText('1 明細行'))
+    expect(screen.getByRole('button', { name: /xlsx/ })).toBeTruthy()
   })
 })
 

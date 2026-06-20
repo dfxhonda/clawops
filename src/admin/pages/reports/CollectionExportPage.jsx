@@ -1,4 +1,4 @@
-// SPEC-COLLECTION-EXPORT-FIX-01: machines埋め込み除去+machine_code→booth列+date型monthRange
+// SPEC-COLLECTION-EXPORT-FIX-02: machines(machine_name)embed追加(machine_code FK経由)
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
@@ -46,6 +46,7 @@ export default function CollectionExportPage() {
         total,
         advance_payment,
         notes,
+        machines(machine_name),
         cash_collections!inner(
           collection_id,
           collected_at,
@@ -82,7 +83,7 @@ export default function CollectionExportPage() {
         toJstDate(col.collected_at),
         col.stores?.store_name ?? '',
         r.machine_code ?? '',
-        '',
+        r.machines?.machine_name ?? '',
         r.in_meter_prev != null ? Number(r.in_meter_prev) : '',
         r.in_meter_current != null ? Number(r.in_meter_current) : '',
         { f: `F${eRow}-E${eRow}` },
