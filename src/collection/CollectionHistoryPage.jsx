@@ -126,7 +126,9 @@ export default function CollectionHistoryPage() {
         {!loading && rows.length === 0 && <p className="text-center text-muted text-base py-8">集金履歴がありません</p>}
         <div className="space-y-2">
           {rows.map(r => {
-            const signed = !!r.signed_pdf_url
+            // SPEC-COLLECTION-HISTORY-SIGN-BUTTON-FIX-07: customer_signed_at を判定軸に変更
+            // signed_pdf_url は新フロー(経路A)では書かれないため判定対象外
+            const signed = !!r.customer_signed_at
             // J-COLLECTION-11 fix_B: PDF生成中は両ボタン disabled + 即時 active 色 + spinner 化。
             const busy = generatingId === r.collection_id
             const anyBusy = !!generatingId
