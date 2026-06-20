@@ -194,14 +194,17 @@ export async function buildCollectionSlip({
   y += 2
   doc.line(L, y, R, y); y += 4
 
+  // SPEC-COLLECTION-PDF-MACHINE-NAME-GROUP-01: track prev machine_code to blank name on 2nd+ rows
+  let prevMachineCode = null
   ;(booths ?? []).forEach(b => {
     const cur = b.in_meter_current != null ? Number(b.in_meter_current) : null
     const prv = b.in_meter_prev != null ? Number(b.in_meter_prev) : null
     const inDiff = (cur != null && prv != null) ? cur - prv : null
     const mName = String(b.machine_name || b.machine_code || '')
+    const displayName = (b.machine_code != null && b.machine_code === prevMachineCode) ? '' : mName
     const notes = String(b.notes || '')
     doc.text(String(b.rental_code || ''), 15, y)
-    doc.text(mName.length > 16 ? mName.slice(0, 15) + '…' : mName, 30, y)
+    doc.text(displayName.length > 16 ? displayName.slice(0, 15) + '…' : displayName, 30, y)
     doc.text(String(b.booth_name || b.booth_code || ''), 63, y)
     doc.text(yen(b.in_meter_prev), 95, y, { align: 'right' })
     doc.text(yen(b.in_meter_current), 117, y, { align: 'right' })
@@ -209,6 +212,7 @@ export async function buildCollectionSlip({
     doc.text(yen(b.total), 153, y, { align: 'right' })
     doc.text(yen(b.advance_payment), 172, y, { align: 'right' })
     doc.text(notes.length > 10 ? notes.slice(0, 9) + '…' : notes, 175, y)
+    prevMachineCode = b.machine_code ?? null
     y += 4.5
     if (y > 250) { doc.addPage(); applyFont(doc); y = 20 }
   })
