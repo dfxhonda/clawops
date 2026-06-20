@@ -1,4 +1,4 @@
-// SPEC-COLLECTION-EXPORT-01: 集金明細 xlsx エクスポートページ
+// SPEC-COLLECTION-EXPORT-FIX-01: machines埋め込み除去+machine_code→booth列+date型monthRange
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
@@ -15,15 +15,16 @@ function prevMonthJst() {
 
 function monthRange(yyyyMM) {
   const [y, m] = yyyyMM.split('-').map(Number)
-  const start = `${yyyyMM}-01T00:00:00+09:00`
+  const start = `${yyyyMM}-01`
   const nm = m === 12 ? 1 : m + 1
   const ny = m === 12 ? y + 1 : y
-  const end = `${ny}-${String(nm).padStart(2, '0')}-01T00:00:00+09:00`
+  const end = `${ny}-${String(nm).padStart(2, '0')}-01`
   return { start, end }
 }
 
-function toJstDate(isoStr) {
-  return new Date(isoStr).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+// collected_at は date 型 (YYYY-MM-DD)、そのまま返す
+function toJstDate(dateStr) {
+  return dateStr ?? ''
 }
 
 export default function CollectionExportPage() {
@@ -39,6 +40,7 @@ export default function CollectionExportPage() {
       .from('cash_collection_booths')
       .select(`
         booth_code,
+        machine_code,
         in_meter_prev,
         in_meter_current,
         total,
@@ -49,9 +51,7 @@ export default function CollectionExportPage() {
           collected_at,
           status,
           store_code,
-          stores!inner(store_name),
-          machine_code,
-          machines(machine_models(model_name))
+          stores!inner(store_name)
         )
       `)
       .eq('cash_collections.status', 'confirmed')
@@ -81,8 +81,8 @@ export default function CollectionExportPage() {
       return [
         toJstDate(col.collected_at),
         col.stores?.store_name ?? '',
-        col.machine_code ?? '',
-        col.machines?.machine_models?.model_name ?? '',
+        r.machine_code ?? '',
+        '',
         r.in_meter_prev != null ? Number(r.in_meter_prev) : '',
         r.in_meter_current != null ? Number(r.in_meter_current) : '',
         { f: `F${eRow}-E${eRow}` },

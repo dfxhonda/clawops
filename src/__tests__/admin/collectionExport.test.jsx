@@ -22,8 +22,10 @@ vi.mock('xlsx', () => ({
   writeFile: vi.fn(),
 }))
 
+// SPEC-COLLECTION-EXPORT-FIX-01: machine_code は booth 列, machines 埋め込みなし, collected_at は date 型
 const CONFIRMED_ROW = {
   booth_code: 'B01',
+  machine_code: 'R2001',
   in_meter_prev: 1000,
   in_meter_current: 1276,
   total: 5000,
@@ -31,12 +33,10 @@ const CONFIRMED_ROW = {
   notes: null,
   cash_collections: {
     collection_id: 'c1',
-    collected_at: '2026-05-15T10:00:00+09:00',
+    collected_at: '2026-05-15',
     status: 'confirmed',
     store_code: 'TST01',
     stores: { store_name: 'テスト店' },
-    machine_code: 'R2001',
-    machines: { machine_models: { model_name: 'BUZZ①' } },
   },
 }
 
@@ -118,6 +118,36 @@ describe('CollectionExportPage when_no_data', () => {
     wrap(<CollectionExportPage />, '/admin/reports/collections')
     await waitFor(() => screen.getByText('該当データなし'))
     expect(screen.queryByRole('button', { name: /xlsx/ })).toBeNull()
+  })
+})
+
+// ────────────────────────────────────────────────
+// SPEC-COLLECTION-EXPORT-FIX-01: 真因再発防止
+describe('CollectionExportPage when_fix_01_applied', () => {
+  beforeEach(() => {
+    supabase.from.mockReturnValue(mockChain([CONFIRMED_ROW]))
+  })
+
+  it('when_data_has_no_machines_embed_should_still_show_rows', async () => {
+    // machines embed 除去後でも行が表示される(修正前はPostgRESTエラー→0件だった)
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    await waitFor(() => {
+      expect(screen.getByText('1 明細行')).toBeTruthy()
+    })
+  })
+
+  it('when_machine_code_on_booth_row_should_not_read_from_cash_collections', async () => {
+    // machine_code は booth 列 (r.machine_code) であり cash_collections 列ではない
+    const rowWithoutCollectionMachineCode = {
+      ...CONFIRMED_ROW,
+      machine_code: 'R9999',
+      cash_collections: { ...CONFIRMED_ROW.cash_collections },
+    }
+    supabase.from.mockReturnValue(mockChain([rowWithoutCollectionMachineCode]))
+    wrap(<CollectionExportPage />, '/admin/reports/collections')
+    await waitFor(() => screen.getByText('1 明細行'))
+    // DL ボタンが有効になっている = 0 件エラーが起きていない
+    expect(screen.getByRole('button', { name: /xlsx/ })).toBeTruthy()
   })
 })
 
