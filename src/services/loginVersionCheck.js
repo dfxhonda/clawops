@@ -1,3 +1,4 @@
+// SPEC-PWA-LOGIN-SW-UPDATE-01: version不一致時にupdateSW(true)でSW世代交代+reload。fallback=location.reload()
 // SPEC-PWA-LOGIN-VERSION-RELOAD-01:
 // ログイン成功 (verify-pin 通過) または session 復元成功時に /version.json を no-store fetch、
 // サーバー側 buildNumber とクライアント BUILD_NUMBER が異なれば session 中 1 回だけ
@@ -43,6 +44,7 @@ function logFail(err) {
  * @param {object} [opts]
  * @param {function} [opts.fetch]      テスト時に差し替え可能な fetch (default: global)
  * @param {function} [opts.reload]     テスト時に差し替え可能な reload (default: window.location.reload)
+ * @param {function} [opts.updateSW]   vite-plugin-pwa の updateSW(true) (default: main.jsx export)
  * @param {function} [opts.getStorage] テスト時に差し替え可能な storage 取得 (default: sessionStorage)
  * @param {number}   [opts.timeoutMs]  fetch timeout (default: 3000ms)
  * @param {function} [opts.now]        テスト時に差し替え可能な now (default: Date.now)
@@ -51,6 +53,7 @@ function logFail(err) {
 export async function checkAndReloadIfStale({
   fetch: fetchFn,
   reload,
+  updateSW,
   getStorage,
   timeoutMs = FETCH_TIMEOUT_MS,
   now = Date.now,
@@ -66,7 +69,17 @@ export async function checkAndReloadIfStale({
   const f = fetchFn ?? (typeof fetch === 'function' ? fetch : null)
   if (!f) return { reloaded: false, reason: 'no-fetch' }
 
-  const doReload = reload ?? (() => { window.location.reload() })
+  const fallbackReload = reload ?? (() => { window.location.reload() })
+  // updateSW(true): SW update -> skipWaiting -> reload (公式 vite-plugin-pwa 仕様)
+  // 未提供 or 失敗時は fallbackReload に降格
+  async function doReload() {
+    const swFn = updateSW ?? (() => Promise.reject(new Error('no updateSW')))
+    try {
+      await swFn(true)
+    } catch {
+      fallbackReload()
+    }
+  }
 
   const controller = typeof AbortController === 'function' ? new AbortController() : null
   const timer = controller
@@ -86,9 +99,9 @@ export async function checkAndReloadIfStale({
     if (serverBuild === String(BUILD_NUMBER)) {
       return { reloaded: false, reason: 'match' }
     }
-    // 不一致 → guard 立て → reload (loop は STORAGE_KEY で物理防止)
+    // 不一致 → guard 立て → SW世代交代+reload (loop は STORAGE_KEY で物理防止)
     storage?.setItem(STORAGE_KEY, '1')
-    doReload()
+    await doReload()
     return { reloaded: true, reason: 'mismatch' }
   } catch (err) {
     logFail(err)

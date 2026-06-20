@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+// SPEC-PWA-LOGIN-SW-UPDATE-01: version不一致時にupdateSW(true)でSW世代交代+reload
 // SPEC-PWA-LOGIN-VERSION-RELOAD-01: login 成功 (verify-pin) or session 復元時に
 // /version.json と BUILD_NUMBER を比較し、不一致なら session 中 1 回だけ reload。
 // loop guard: sessionStorage 'version_reload_done' (boolean flag、build 非依存)。
@@ -105,6 +106,37 @@ describe('checkAndReloadIfStale (SPEC-PWA-LOGIN-VERSION-RELOAD-01)', () => {
     const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
     expect(r.reloaded).toBe(false)
     expect(reload).not.toHaveBeenCalled()
+  })
+
+  // SPEC-PWA-LOGIN-SW-UPDATE-01: updateSW(true) が呼ばれる (AC-01)
+  it('when_updateSW_provided_and_mismatch_should_call_updateSW_not_plain_reload', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2001' }))
+    const reload = vi.fn()
+    const updateSW = vi.fn(async () => {})
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload, updateSW })
+    expect(r.reloaded).toBe(true)
+    expect(updateSW).toHaveBeenCalledWith(true)
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  // SPEC-PWA-LOGIN-SW-UPDATE-01: updateSW 失敗時 fallback (AC-03)
+  it('when_updateSW_throws_should_fallback_to_plain_reload', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2001' }))
+    const reload = vi.fn()
+    const updateSW = vi.fn(async () => { throw new Error('SW failed') })
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload, updateSW })
+    expect(r.reloaded).toBe(true)
+    expect(updateSW).toHaveBeenCalledWith(true)
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  // SPEC-PWA-LOGIN-SW-UPDATE-01: updateSW 未提供時は fallback reload (後方互換)
+  it('when_updateSW_not_provided_and_mismatch_should_call_plain_reload', async () => {
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2001' }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
+    expect(r.reloaded).toBe(true)
+    expect(reload).toHaveBeenCalledTimes(1)
   })
 
   it('when_fetch_exceeds_timeout_should_abort_and_not_reload', async () => {
