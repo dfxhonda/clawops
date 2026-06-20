@@ -1,4 +1,4 @@
-// SPEC-COLLECTION-EXPORT-FIX-03: changer除外(type_id='changer'クライアントフィルタ)
+// SPEC-COLLECTION-EXPORT-FIX-04: type_id FK embed除去→別クエリで changerSet 構築してフィルタ
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
@@ -36,7 +36,9 @@ export default function CollectionExportPage() {
     if (!month) return
     setLoading(true)
     const { start, end } = monthRange(month)
-    supabase
+
+    // type_id はFK列でembedに含めると PostgREST 400 → 別クエリで取得して Set を構築
+    const mainQuery = supabase
       .from('cash_collection_booths')
       .select(`
         booth_code,
@@ -46,7 +48,7 @@ export default function CollectionExportPage() {
         total,
         advance_payment,
         notes,
-        machines(machine_name, type_id),
+        machines(machine_name),
         cash_collections!inner(
           collection_id,
           collected_at,
@@ -59,19 +61,26 @@ export default function CollectionExportPage() {
       .gte('cash_collections.collected_at', start)
       .lt('cash_collections.collected_at', end)
       .order('cash_collections(store_code)', { ascending: true })
-      .then(({ data, error }) => {
-        if (error || !data) { setRows([]); setLoading(false); return }
-        const nonChanger = data.filter(r => r.machines?.type_id !== 'changer')
-        const sorted = [...nonChanger].sort((a, b) => {
-          const sc = a.cash_collections.store_code.localeCompare(b.cash_collections.store_code)
-          if (sc !== 0) return sc
-          const dc = a.cash_collections.collected_at.localeCompare(b.cash_collections.collected_at)
-          if (dc !== 0) return dc
-          return a.booth_code.localeCompare(b.booth_code)
-        })
-        setRows(sorted)
-        setLoading(false)
+
+    const changerQuery = supabase
+      .from('machines')
+      .select('machine_code')
+      .eq('type_id', 'changer')
+
+    Promise.all([mainQuery, changerQuery]).then(([mainRes, changerRes]) => {
+      if (mainRes.error || !mainRes.data) { setRows([]); setLoading(false); return }
+      const changerSet = new Set((changerRes.data ?? []).map(m => m.machine_code))
+      const filtered = mainRes.data.filter(r => !changerSet.has(r.machine_code))
+      const sorted = [...filtered].sort((a, b) => {
+        const sc = a.cash_collections.store_code.localeCompare(b.cash_collections.store_code)
+        if (sc !== 0) return sc
+        const dc = a.cash_collections.collected_at.localeCompare(b.cash_collections.collected_at)
+        if (dc !== 0) return dc
+        return a.booth_code.localeCompare(b.booth_code)
       })
+      setRows(sorted)
+      setLoading(false)
+    })
   }, [month])
 
   function handleDownload() {
