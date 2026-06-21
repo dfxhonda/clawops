@@ -97,6 +97,8 @@ export async function checkAndReloadIfStale({
     const serverBuild = String(data?.buildNumber ?? '')
     if (!serverBuild) return { reloaded: false, reason: 'no-build' }
     if (serverBuild === String(BUILD_NUMBER)) {
+      // SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: 一致(新bundle起動成功)でguardをクリア(永久残留解消)
+      storage?.removeItem(STORAGE_KEY)
       return { reloaded: false, reason: 'match' }
     }
     // 不一致 → guard 立て → SW世代交代+reload (loop は STORAGE_KEY で物理防止)

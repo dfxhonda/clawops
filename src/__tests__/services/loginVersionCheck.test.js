@@ -139,6 +139,34 @@ describe('checkAndReloadIfStale (SPEC-PWA-LOGIN-VERSION-RELOAD-01)', () => {
     expect(reload).toHaveBeenCalledTimes(1)
   })
 
+  // SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: AC3 match時はguardをremoveItem
+  it('when_server_build_matches_should_call_removeItem_on_guard', async () => {
+    const storage = {
+      getItem: vi.fn().mockReturnValue(null), // guard未設定扱いで早期returnを回避
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    }
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2000' })) // BUILD_NUMBER=2000と一致
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, getStorage: () => storage })
+    expect(r.reason).toBe('match')
+    expect(storage.removeItem).toHaveBeenCalledWith(STORAGE_KEY)
+  })
+
+  // SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: AC4 mismatch時はsetItem維持(ループ防止)
+  it('when_server_build_differs_should_setItem_guard_and_not_removeItem', async () => {
+    const storage = {
+      getItem: vi.fn().mockReturnValue(null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    }
+    const fetchFn = vi.fn(async () => mockOkRes({ buildNumber: '2001' }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload, getStorage: () => storage })
+    expect(r.reloaded).toBe(true)
+    expect(storage.setItem).toHaveBeenCalledWith(STORAGE_KEY, '1')
+    expect(storage.removeItem).not.toHaveBeenCalled()
+  })
+
   it('when_fetch_exceeds_timeout_should_abort_and_not_reload', async () => {
     // signal abort で reject する偽 fetch を作成、timeoutMs 30ms で確実に発火
     const fetchFn = vi.fn((_url, init) => new Promise((_, reject) => {
