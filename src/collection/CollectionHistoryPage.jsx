@@ -47,6 +47,8 @@ export default function CollectionHistoryPage() {
   // J-COLLECTION-06 fix_1: buildCollectionSlip は async(J-COLLECTION-05)。await を付ける。
   // J-COLLECTION-09 fix_2 / J-COLLECTION-11: 弊社+先方署名 URL を dataURL に変換して embed。
   // J-COLLECTION-11 fix_B: 再入ロック (generatingId)。即時 disabled+spinner で連打吸収。
+  // SPEC-COLLECTION-SIGNED-PDF-REUSE-01: 署名済+signed_pdf_urlあり → stored PDF を直接 open (再生成せず)。
+  //   signed_pdf_url なし (過渡期) or 未署名 → 既存の buildCollectionSlip 生成パス。
   async function downloadPdf(id) {
     if (generatingRef.current) return // 同期 ref ロック (state batching を待たない)
     generatingRef.current = id
@@ -55,10 +57,17 @@ export default function CollectionHistoryPage() {
     try {
       const { data, error: e } = await getCollectionDetail(id)
       if (e) throw e
+      const col = data?.collection
+      if (col?.customer_signed_at && col?.signed_pdf_url) {
+        // 署名済 + stored PDF あり → 証拠性保全のため再生成せず直接 open
+        window.open(col.signed_pdf_url, '_blank', 'noopener')
+        return
+      }
+      // 未署名 or 署名済+URL欠損 (過渡期 SMD01 等) → 既存生成パス
       await ensureJpFont()
       const [staffSig, customerSig] = await Promise.all([
-        fetchStaffSigDataUrl(data?.collection?.staff_signature_url),
-        fetchCustomerSigDataUrl(data?.collection?.customer_signature_url),
+        fetchStaffSigDataUrl(col?.staff_signature_url),
+        fetchCustomerSigDataUrl(col?.customer_signature_url),
       ])
       const doc = await buildCollectionSlip({
         ...data,
