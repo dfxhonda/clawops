@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef } from 'react'
 import { logout } from '../lib/auth/session'
 
 // SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作5分アイドル → logout (lock廃止)
-// SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント(visibilitychange/focus/pageshow)網羅
-// iOS はバックグラウンドで setTimeout を suspend するため、単発タイマーに依存するとログアウト不発火になる実証あり。
-// 対策: 30秒 interval で Date.now() - lastActivity の実時間を検算し、IDLE_MS 超なら即 doLogout。
-// 画面に戻る瞬間 (visibilitychange/focus/pageshow) でも同じ実時間検算を走らせ「戻った時点で中断」を保証。
+// SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
+// SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hiddenAtRef で離席実時間を計測。
+//   visible/pageshow 復帰時は lastActivityRef でなく hiddenAt 基準で判定し、
+//   戻り際タッチ → resetActivity 競合を根本排除 (Page Visibility API 標準パターン)。
 const IDLE_MS = 5 * 60 * 1000
 const CHECK_INTERVAL = 30 * 1000 // 実時間検算 polling 間隔
 const EVENTS = ['click', 'touchstart', 'scroll', 'keydown', 'pointerdown']
@@ -13,7 +13,8 @@ const EVENTS = ['click', 'touchstart', 'scroll', 'keydown', 'pointerdown']
 export function useSessionLock(enabled = true) {
   const timerRef = useRef(null)
   const intervalRef = useRef(null)
-  const lastActivityRef = useRef(Date.now())
+  const lastActivityRef = useRef(Date.now()) // 前面での操作タイムスタンプ (フォアグラウンドidle用)
+  const hiddenAtRef = useRef(null)           // hidden になった時刻 (離席実時間計測用)
 
   const doLogout = useCallback(async () => {
     await logout()
@@ -25,7 +26,7 @@ export function useSessionLock(enabled = true) {
     timerRef.current = setTimeout(doLogout, IDLE_MS)
   }, [doLogout])
 
-  // 実時間検算: setTimeoutの相対カウントを信用せず Date.now()-lastActivity で判定
+  // 前面無操作用: setTimeoutの相対カウントを信用せずDate.now()-lastActivityで判定
   const checkElapsed = useCallback(() => {
     const elapsed = Date.now() - lastActivityRef.current
     if (elapsed >= IDLE_MS) {
@@ -49,30 +50,52 @@ export function useSessionLock(enabled = true) {
     }
 
     scheduleTimer()
-    // 定期実時間検算 (iOS timer suspend 後の次 tick で確実に実時間判定)
+    // 定期実時間検算 (フォアグラウンド無操作 + iOS timer suspend 後の次 tick 判定)
     intervalRef.current = setInterval(checkElapsed, CHECK_INTERVAL)
 
     // 活動イベント: lastActivity 更新 + タイマー再スケジュール
     EVENTS.forEach(e => window.addEventListener(e, resetActivity, { passive: true }))
 
-    // 戻りイベント網羅: 実時間 >= IDLE_MS なら即 doLogout (「戻った時点で中断」仕様)
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return
-      checkElapsed()
+    // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hidden 時刻を記録
+    // pagehide も記録 (iOS bfcache でvisibilitychange未発火の取りこぼし防止)
+    const handleHide = () => {
+      hiddenAtRef.current = Date.now()
     }
-    const handleReturn = () => checkElapsed()
 
-    document.addEventListener('visibilitychange', handleVisibility)
-    window.addEventListener('focus', handleReturn)
-    window.addEventListener('pageshow', handleReturn)
+    // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: visible 復帰時は hiddenAt 基準で離席実時間を判定。
+    //   戻り際に touchstart が先に走っても hiddenAt は操作で変化しないため競合排除。
+    //   hiddenAt がなければ (フォアグラウンドでの focus 等) スキップ。
+    const handleVisibleReturn = () => {
+      if (hiddenAtRef.current === null) return
+      if (Date.now() - hiddenAtRef.current >= IDLE_MS) {
+        doLogout()
+      } else {
+        hiddenAtRef.current = null
+        scheduleTimer()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleHide()
+      } else if (document.visibilityState === 'visible') {
+        handleVisibleReturn()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pagehide', handleHide)
+    window.addEventListener('pageshow', handleVisibleReturn)
+    window.addEventListener('focus', handleVisibleReturn)
 
     return () => {
       EVENTS.forEach(e => window.removeEventListener(e, resetActivity))
-      document.removeEventListener('visibilitychange', handleVisibility)
-      window.removeEventListener('focus', handleReturn)
-      window.removeEventListener('pageshow', handleReturn)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pagehide', handleHide)
+      window.removeEventListener('pageshow', handleVisibleReturn)
+      window.removeEventListener('focus', handleVisibleReturn)
       clearTimeout(timerRef.current)
       clearInterval(intervalRef.current)
     }
-  }, [enabled, resetActivity, scheduleTimer, checkElapsed])
+  }, [enabled, resetActivity, scheduleTimer, checkElapsed, doLogout])
 }
