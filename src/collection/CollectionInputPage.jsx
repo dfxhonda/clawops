@@ -88,6 +88,8 @@ export default function CollectionInputPage() {
   const [signaturePoints, setSignaturePoints] = useState(0)
   // J-COLLECTION-12 R2: レシート削除確認ダイアログ対象 (boothCode|null)
   const [pendingDeleteBooth, setPendingDeleteBooth] = useState(null)
+  // SPEC-COLLECTION-RECEIPT-CONFIRM-VIEW-01: レシート確認モーダル対象ブース (boothCode|null)
+  const [receiptConfirmBooth, setReceiptConfirmBooth] = useState(null)
 
   // 隠しfile input (booth毎に動的ref)
   const fileInputs = useRef({})
@@ -420,7 +422,11 @@ export default function CollectionInputPage() {
                       <div className="relative inline-block">
                         <button
                           data-testid={`booth-receipt-btn-${b.booth_code}`}
-                          onClick={() => !locked && fileInputs.current[b.booth_code]?.click()}
+                          onClick={() => {
+                            if (locked || isUploading) return
+                            if (hasPhoto) setReceiptConfirmBooth(b.booth_code)
+                            else fileInputs.current[b.booth_code]?.click()
+                          }}
                           disabled={locked || isUploading}
                           className="w-9 h-9 rounded border border-border bg-bg flex items-center justify-center disabled:opacity-60"
                           title={hasPhoto ? 'タップで再撮影' : 'レシート撮影'}
@@ -559,6 +565,36 @@ export default function CollectionInputPage() {
       </div>
 
       {/* J-COLLECTION-12 R2: レシート削除確認ダイアログ。背景タップ=キャンセル、× 'キャンセル' でも閉じる、'削除' のみ実行。 */}
+      {/* SPEC-COLLECTION-RECEIPT-CONFIRM-VIEW-01: レシート確認モーダル。写真ありブースでReceiptボタンタップ時に表示。再撮影 or 戻る。 */}
+      {receiptConfirmBooth && (
+        <div
+          data-testid="receipt-confirm-modal-backdrop"
+          className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center gap-4 px-4"
+        >
+          <img
+            data-testid="receipt-confirm-image"
+            src={rowData[receiptConfirmBooth]?.receipt_photo_url}
+            alt="レシート確認"
+            className="max-w-full max-h-[60dvh] object-contain rounded-lg"
+          />
+          <div className="flex gap-3">
+            <button
+              data-testid="receipt-confirm-back"
+              onClick={() => setReceiptConfirmBooth(null)}
+              className="px-6 min-h-[44px] rounded-xl border border-border text-text text-base bg-surface"
+            >戻る</button>
+            <button
+              data-testid="receipt-confirm-reshoot"
+              onClick={() => {
+                setReceiptConfirmBooth(null)
+                fileInputs.current[receiptConfirmBooth]?.click()
+              }}
+              className="px-6 min-h-[44px] rounded-xl bg-blue-600 text-white text-base font-bold"
+            >再撮影</button>
+          </div>
+        </div>
+      )}
+
       {pendingDeleteBooth && (
         <div
           data-testid="receipt-delete-dialog-backdrop"
