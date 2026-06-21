@@ -77,7 +77,8 @@ describe('Login init ghost session detection', () => {
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledOnce())
     expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
-    expect(mockCheckAndReloadIfStale).not.toHaveBeenCalled()
+    // SPEC-PWA-SW-LOGINMOUNT-UPDATE-S1-01: mount check fires once (ghost path does not call it again)
+    expect(mockCheckAndReloadIfStale).toHaveBeenCalledOnce()
   })
 
   it('when_getSession_returns_session_and_getUser_succeeds_navigates_to_launcher', async () => {

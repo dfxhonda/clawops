@@ -42,6 +42,10 @@ export default function Login() {
   const [initDone, setInitDone]         = useState(false)
   const [loadErr, setLoadErr]           = useState('')
 
+  // SPEC-PWA-SW-LOGINMOUNT-UPDATE-S1-01: ログアウト合流点でマウント時に即チェック(1回ログアウトで更新確実化)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { checkAndReloadIfStale({ updateSW }) }, [])
+
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
