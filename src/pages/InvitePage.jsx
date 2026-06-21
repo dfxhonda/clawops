@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { isWebAuthnSupported, registerPasskey } from '../lib/webauthn'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -117,6 +118,9 @@ export default function InvitePage() {
   const [pin2, setPin2] = useState('')
   const [pinError, setPinError] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [sessionToken, setSessionToken] = useState(null)
+  const [bioError, setBioError] = useState('')
+  const [bioLoading, setBioLoading] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -158,12 +162,32 @@ export default function InvitePage() {
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
       })
-      navigate('/launcher', { replace: true })
+      // S4: 生体認証登録ステップ (WKWebView/未対応はスキップしてlauncher直行)
+      if (isWebAuthnSupported()) {
+        setSessionToken(data.session.access_token)
+        setPageState('biometric')
+      } else {
+        navigate('/launcher', { replace: true })
+      }
     } catch {
       setSubmitError('通信エラーが発生しました')
       setPageState('setup')
     }
   }
+
+  const handleBioRegister = async () => {
+    setBioLoading(true)
+    setBioError('')
+    try {
+      await registerPasskey(sessionToken)
+      navigate('/launcher', { replace: true })
+    } catch (e) {
+      setBioError(e.message || '登録に失敗しました。あとで設定することもできます。')
+      setBioLoading(false)
+    }
+  }
+
+  const handleBioSkip = () => navigate('/launcher', { replace: true })
 
   if (pageState === 'loading') {
     return <div style={centeredStyle}><Spinner /></div>
@@ -174,6 +198,52 @@ export default function InvitePage() {
       <div style={centeredStyle}>
         <div style={{ fontSize: 32, marginBottom: 16 }}>⚠️</div>
         <p style={{ fontSize: 16, color: '#f87171' }}>招待リンクが無効です</p>
+      </div>
+    )
+  }
+
+  if (pageState === 'biometric') {
+    return (
+      <div style={centeredStyle}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#f0c040', marginBottom: 8 }}>
+          次回から顔認証でロック解除できます
+        </div>
+        <div style={{ fontSize: 13, color: '#9090a8', marginBottom: 32, maxWidth: 280, lineHeight: 1.6 }}>
+          この端末にFace ID / Touch IDを登録すると、
+          画面ロック時にPIN入力が不要になります
+        </div>
+        {bioError && (
+          <p style={{ fontSize: 13, color: '#f87171', marginBottom: 16, maxWidth: 300 }}>{bioError}</p>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320, padding: '0 16px' }}>
+          <button
+            type="button"
+            onClick={handleBioRegister}
+            disabled={bioLoading}
+            style={{
+              minHeight: 48, width: '100%', borderRadius: 12, border: 'none',
+              background: bioLoading ? '#1e293b' : '#f0c040',
+              color: bioLoading ? '#64748b' : '#0a0a0f',
+              fontSize: 16, fontWeight: 700,
+              cursor: bioLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {bioLoading ? '登録中...' : 'この端末でFace IDを登録'}
+          </button>
+          <button
+            type="button"
+            onClick={handleBioSkip}
+            style={{
+              minHeight: 48, width: '100%', borderRadius: 12,
+              border: '1px solid #334155', background: 'transparent',
+              color: '#9090a8', fontSize: 15, fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            あとで設定
+          </button>
+        </div>
       </div>
     )
   }

@@ -1,9 +1,0 @@
-﻿patrol_date,booth_number,machine_name,machine_area,unit_index,in_meter,out_meter,theoretical_stock,prize_restock_count,prize_name,prize_cost,note,r_number,is_anomaly,anomaly_tag,anomaly_reason,source_row,sheet_name,file_name
-2025-09-19,5,BUZZ④,,1,7858.0,459.0,5,3,デジタルミニカメラ,722.0,,,True,possible_2nd_round,"booth=5 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",381,浜の町,★浜の町　クレーン売上表2026.xlsx
-2025-09-19,6,BUZZ④,,1,9652.0,510.0,10,0,クーリッシュイヤホン,1100.0,,,True,possible_2nd_round,"booth=6 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",382,浜の町,★浜の町　クレーン売上表2026.xlsx
-2025-09-19,7,BUZZ④,,1,12116.0,728.0,9,0,モンチッチマスコット,528.0,,,True,possible_2nd_round,"booth=7 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",383,浜の町,★浜の町　クレーン売上表2026.xlsx
-2025-09-19,8,BUZZ④,,1,10069.0,784.0,6,0,ジョージファン,900.0,,,True,possible_2nd_round,"booth=8 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",384,浜の町,★浜の町　クレーン売上表2026.xlsx
-2026-03-17,5,BUZZ④,,1,9503.0,527.0,7,0,キティシッポ付フェイスポーチ,825.0,,,True,possible_2nd_round,"booth=5 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",155,浜の町,★浜の町　クレーン売上表2026.xlsx
-2026-03-17,6,BUZZ④,,1,10844.0,547.0,16,0,しばこ,358.0,液晶ミニカメラに変える？,,True,possible_2nd_round,"booth=6 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",156,浜の町,★浜の町　クレーン売上表2026.xlsx
-2026-03-17,7,BUZZ④,,1,13028.0,769.0,7,0,たまごっちマスコット,1500.0,,,True,possible_2nd_round,"booth=7 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",157,浜の町,★浜の町　クレーン売上表2026.xlsx
-2026-03-17,8,BUZZ④,,1,10929.0,810.0,8,1,シールバインダー,330.0,,,True,possible_2nd_round,"booth=8 > 4 (machine=BUZZ④, area=None, tag=possible_2nd_round)",158,浜の町,★浜の町　クレーン売上表2026.xlsx

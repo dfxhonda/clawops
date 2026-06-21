@@ -194,14 +194,17 @@ export async function buildCollectionSlip({
   y += 2
   doc.line(L, y, R, y); y += 4
 
+  // SPEC-COLLECTION-PDF-MACHINE-NAME-GROUP-01: track prev machine_code to blank name on 2nd+ rows
+  let prevMachineCode = null
   ;(booths ?? []).forEach(b => {
     const cur = b.in_meter_current != null ? Number(b.in_meter_current) : null
     const prv = b.in_meter_prev != null ? Number(b.in_meter_prev) : null
     const inDiff = (cur != null && prv != null) ? cur - prv : null
     const mName = String(b.machine_name || b.machine_code || '')
+    const displayName = (b.machine_code != null && b.machine_code === prevMachineCode) ? '' : mName
     const notes = String(b.notes || '')
     doc.text(String(b.rental_code || ''), 15, y)
-    doc.text(mName.length > 16 ? mName.slice(0, 15) + '…' : mName, 30, y)
+    doc.text(displayName.length > 16 ? displayName.slice(0, 15) + '…' : displayName, 30, y)
     doc.text(String(b.booth_name || b.booth_code || ''), 63, y)
     doc.text(yen(b.in_meter_prev), 95, y, { align: 'right' })
     doc.text(yen(b.in_meter_current), 117, y, { align: 'right' })
@@ -209,6 +212,7 @@ export async function buildCollectionSlip({
     doc.text(yen(b.total), 153, y, { align: 'right' })
     doc.text(yen(b.advance_payment), 172, y, { align: 'right' })
     doc.text(notes.length > 10 ? notes.slice(0, 9) + '…' : notes, 175, y)
+    prevMachineCode = b.machine_code ?? null
     y += 4.5
     if (y > 250) { doc.addPage(); applyFont(doc); y = 20 }
   })
@@ -220,16 +224,23 @@ export async function buildCollectionSlip({
   y += 10
 
   // J-COLLECTION-07: 署名欄 (左=弊社担当 / 右=先方ご担当者様、常時2枠表示)
+  // SPEC-COLLECTION-PDF-STAFF-SIGN-NAME-01: collectedByName が未設定の呼出元でも
+  //   collection.updated_by (DB保存の作業者名) にフォールバックして担当者名を大書き表示。
+  const staffName = collectedByName ?? collection?.updated_by ?? null
   const sigBoxW = 85, sigBoxH = 26
   const leftX = L, rightX = L + sigBoxW + 5
   doc.setDrawColor(140)
   doc.rect(leftX, y, sigBoxW, sigBoxH)
   doc.rect(rightX, y, sigBoxW, sigBoxH)
   doc.setFontSize(8)
-  doc.text(collectedByName ? `弊社担当: ${collectedByName}` : '弊社担当', leftX + 2, y + 4)
+  doc.text('弊社担当', leftX + 2, y + 4)
   doc.text('先方ご担当者様', rightX + 2, y + 4)
+  if (staffName) {
+    doc.setFontSize(16)
+    doc.text(String(staffName), leftX + sigBoxW / 2, y + 14, { align: 'center' })
+  }
   if (staffSignatureDataUrl) {
-    try { doc.addImage(staffSignatureDataUrl, 'PNG', leftX + 3, y + 6, sigBoxW - 6, sigBoxH - 9) } catch { /* ignore */ }
+    try { doc.addImage(staffSignatureDataUrl, 'PNG', leftX + 3, y + 17, sigBoxW - 6, sigBoxH - 19) } catch { /* ignore */ }
   }
   if (customerSignatureDataUrl) {
     try { doc.addImage(customerSignatureDataUrl, 'PNG', rightX + 3, y + 6, sigBoxW - 6, sigBoxH - 9) } catch { /* ignore */ }
@@ -252,11 +263,13 @@ export async function buildCollectionSlip({
   const cellH = (297 - RM * 2 - RG * (ROWS_GRID - 1)) / ROWS_GRID  // ≈ 68.61mm
 
   const boothsArr = booths ?? []
+  // SPEC-COLLECTION-PDF-RECEIPT-PACK-01: 写真なしブースを除外してグリッドを詰める (空セルをなくす)
+  const photoBooths = boothsArr.filter(b => b.receipt_photo_url)
   // R4: 写真URLを並列prefetch (全DLが走ってから描画ループへ)
   await Promise.allSettled(
-    boothsArr.filter(b => b.receipt_photo_url).map(b => _prefetchPhoto(b.receipt_photo_url).catch(() => null))
+    photoBooths.map(b => _prefetchPhoto(b.receipt_photo_url).catch(() => null))
   )
-  for (let i = 0; i < boothsArr.length; i++) {
+  for (let i = 0; i < photoBooths.length; i++) {
     const indexOnPage = i % PER_PAGE
     if (indexOnPage === 0) {
       doc.addPage()
@@ -266,8 +279,7 @@ export async function buildCollectionSlip({
     const col = indexOnPage % COLS_GRID
     const x = RM + col * (cellW + RG)
     const y = RM + row * (cellH + RG)
-    const b = boothsArr[i]
-    if (!b.receipt_photo_url) continue // 空セル (写真なし)
+    const b = photoBooths[i]
     try {
       const dataUrl = await _prefetchPhoto(b.receipt_photo_url) // キャッシュ済み (resolved Promise)
       const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'

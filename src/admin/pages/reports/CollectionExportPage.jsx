@@ -1,4 +1,4 @@
-// SPEC-COLLECTION-EXPORT-01: 集金明細 xlsx エクスポートページ
+// SPEC-COLLECTION-EXPORT-FIX-04: type_id FK embed除去→別クエリで changerSet 構築してフィルタ
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
@@ -15,15 +15,16 @@ function prevMonthJst() {
 
 function monthRange(yyyyMM) {
   const [y, m] = yyyyMM.split('-').map(Number)
-  const start = `${yyyyMM}-01T00:00:00+09:00`
+  const start = `${yyyyMM}-01`
   const nm = m === 12 ? 1 : m + 1
   const ny = m === 12 ? y + 1 : y
-  const end = `${ny}-${String(nm).padStart(2, '0')}-01T00:00:00+09:00`
+  const end = `${ny}-${String(nm).padStart(2, '0')}-01`
   return { start, end }
 }
 
-function toJstDate(isoStr) {
-  return new Date(isoStr).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+// collected_at は date 型 (YYYY-MM-DD)、そのまま返す
+function toJstDate(dateStr) {
+  return dateStr ?? ''
 }
 
 export default function CollectionExportPage() {
@@ -35,41 +36,51 @@ export default function CollectionExportPage() {
     if (!month) return
     setLoading(true)
     const { start, end } = monthRange(month)
-    supabase
+
+    // type_id はFK列でembedに含めると PostgREST 400 → 別クエリで取得して Set を構築
+    const mainQuery = supabase
       .from('cash_collection_booths')
       .select(`
         booth_code,
+        machine_code,
         in_meter_prev,
         in_meter_current,
         total,
         advance_payment,
         notes,
+        machines(machine_name),
         cash_collections!inner(
           collection_id,
           collected_at,
           status,
           store_code,
-          stores!inner(store_name),
-          machine_code,
-          machines(machine_models(model_name))
+          stores!inner(store_name)
         )
       `)
       .eq('cash_collections.status', 'confirmed')
       .gte('cash_collections.collected_at', start)
       .lt('cash_collections.collected_at', end)
       .order('cash_collections(store_code)', { ascending: true })
-      .then(({ data, error }) => {
-        if (error || !data) { setRows([]); setLoading(false); return }
-        const sorted = [...data].sort((a, b) => {
-          const sc = a.cash_collections.store_code.localeCompare(b.cash_collections.store_code)
-          if (sc !== 0) return sc
-          const dc = a.cash_collections.collected_at.localeCompare(b.cash_collections.collected_at)
-          if (dc !== 0) return dc
-          return a.booth_code.localeCompare(b.booth_code)
-        })
-        setRows(sorted)
-        setLoading(false)
+
+    const changerQuery = supabase
+      .from('machines')
+      .select('machine_code')
+      .eq('type_id', 'changer')
+
+    Promise.all([mainQuery, changerQuery]).then(([mainRes, changerRes]) => {
+      if (mainRes.error || !mainRes.data) { setRows([]); setLoading(false); return }
+      const changerSet = new Set((changerRes.data ?? []).map(m => m.machine_code))
+      const filtered = mainRes.data.filter(r => !changerSet.has(r.machine_code))
+      const sorted = [...filtered].sort((a, b) => {
+        const sc = a.cash_collections.store_code.localeCompare(b.cash_collections.store_code)
+        if (sc !== 0) return sc
+        const dc = a.cash_collections.collected_at.localeCompare(b.cash_collections.collected_at)
+        if (dc !== 0) return dc
+        return a.booth_code.localeCompare(b.booth_code)
       })
+      setRows(sorted)
+      setLoading(false)
+    })
   }, [month])
 
   function handleDownload() {
@@ -81,8 +92,8 @@ export default function CollectionExportPage() {
       return [
         toJstDate(col.collected_at),
         col.stores?.store_name ?? '',
-        col.machine_code ?? '',
-        col.machines?.machine_models?.model_name ?? '',
+        r.machine_code ?? '',
+        r.machines?.machine_name ?? '',
         r.in_meter_prev != null ? Number(r.in_meter_prev) : '',
         r.in_meter_current != null ? Number(r.in_meter_current) : '',
         { f: `F${eRow}-E${eRow}` },

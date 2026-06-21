@@ -6,6 +6,7 @@ import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { useToast } from '../hooks/useToast'
 import { fetchDeviceLoginRows, upsertLoginHistory } from '../services/loginHistory'
 import { checkAndReloadIfStale } from '../services/loginVersionCheck'
+import { updateSW } from '../lib/swRegistration'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
@@ -65,7 +66,7 @@ export default function Login() {
           // SPEC-PWA-LOGIN-VERSION-RELOAD-01: session 復元 (silent re-auth) 成功時も
           // バージョン不一致なら 1 回だけ reload。reload 中は navigate 不要 (location.reload で
           // SPA 全破棄)、reloaded:false の通常 path のみ navigate に進む。
-          const r = await checkAndReloadIfStale()
+          const r = await checkAndReloadIfStale({ updateSW })
           if (r?.reloaded) return
           navigate('/launcher', { replace: true })
           return
@@ -146,7 +147,7 @@ export default function Login() {
     await upsertLoginHistory(staff.staff_id)
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    const r = await checkAndReloadIfStale()
+    const r = await checkAndReloadIfStale({ updateSW })
     if (r?.reloaded) return
     navigate('/launcher', { replace: true })
   }

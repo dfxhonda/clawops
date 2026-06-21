@@ -1,62 +1,101 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { useCallback, useEffect, useRef } from 'react'
+import { logout } from '../lib/auth/session'
 
-const IDLE_MS = 15 * 60 * 1000      // 15分
-const WARN_BEFORE_MS = 60 * 1000    // 14分目に警告（残り60秒）
-
+// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作5分アイドル → logout (lock廃止)
+// SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
+// SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hiddenAtRef で離席実時間を計測。
+//   visible/pageshow 復帰時は lastActivityRef でなく hiddenAt 基準で判定し、
+//   戻り際タッチ → resetActivity 競合を根本排除 (Page Visibility API 標準パターン)。
+const IDLE_MS = 5 * 60 * 1000
+const CHECK_INTERVAL = 30 * 1000 // 実時間検算 polling 間隔
 const EVENTS = ['click', 'touchstart', 'scroll', 'keydown', 'pointerdown']
 
-/**
- * 無操作自動ログアウト
- * enabled=true の間だけタイマーを動かす（ログイン中のみ）
- *
- * - 14分無操作: showWarning=true（警告バナー表示）
- * - 15分無操作: signOut() → /login
- * - タップ/スクロール/キー: タイマーリセット、バナー非表示
- */
-export function useIdleLogout(enabled = true) {
-  const navigate = useNavigate()
-  const navigateRef = useRef(navigate)
-  navigateRef.current = navigate
+export function useSessionLock(enabled = true) {
+  const timerRef = useRef(null)
+  const intervalRef = useRef(null)
+  const lastActivityRef = useRef(Date.now()) // 前面での操作タイムスタンプ (フォアグラウンドidle用)
+  const hiddenAtRef = useRef(null)           // hidden になった時刻 (離席実時間計測用)
 
-  const [showWarning, setShowWarning] = useState(false)
-  const warnTimer = useRef(null)
-  const logoutTimer = useRef(null)
-
-  const clearTimers = useCallback(() => {
-    clearTimeout(warnTimer.current)
-    clearTimeout(logoutTimer.current)
+  const doLogout = useCallback(async () => {
+    await logout()
+    window.location.replace('/login')
   }, [])
 
-  const reset = useCallback(() => {
-    setShowWarning(false)
-    clearTimers()
+  const scheduleTimer = useCallback(() => {
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(doLogout, IDLE_MS)
+  }, [doLogout])
+
+  // 前面無操作用: setTimeoutの相対カウントを信用せずDate.now()-lastActivityで判定
+  const checkElapsed = useCallback(() => {
+    const elapsed = Date.now() - lastActivityRef.current
+    if (elapsed >= IDLE_MS) {
+      doLogout()
+    } else {
+      scheduleTimer()
+    }
+  }, [doLogout, scheduleTimer])
+
+  const resetActivity = useCallback(() => {
     if (!enabled) return
-    warnTimer.current = setTimeout(
-      () => setShowWarning(true),
-      IDLE_MS - WARN_BEFORE_MS,
-    )
-    logoutTimer.current = setTimeout(async () => {
-      setShowWarning(false)
-      await supabase.auth.signOut()
-      navigateRef.current('/login', { replace: true })
-    }, IDLE_MS)
-  }, [enabled, clearTimers])
+    lastActivityRef.current = Date.now()
+    scheduleTimer()
+  }, [enabled, scheduleTimer])
 
   useEffect(() => {
     if (!enabled) {
-      clearTimers()
-      setShowWarning(false)
+      clearTimeout(timerRef.current)
+      clearInterval(intervalRef.current)
       return
     }
-    EVENTS.forEach(e => window.addEventListener(e, reset, { passive: true }))
-    reset()
-    return () => {
-      EVENTS.forEach(e => window.removeEventListener(e, reset))
-      clearTimers()
-    }
-  }, [enabled, reset, clearTimers])
 
-  return { showWarning, reset }
+    scheduleTimer()
+    // 定期実時間検算 (フォアグラウンド無操作 + iOS timer suspend 後の次 tick 判定)
+    intervalRef.current = setInterval(checkElapsed, CHECK_INTERVAL)
+
+    // 活動イベント: lastActivity 更新 + タイマー再スケジュール
+    EVENTS.forEach(e => window.addEventListener(e, resetActivity, { passive: true }))
+
+    // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hidden 時刻を記録
+    // pagehide も記録 (iOS bfcache でvisibilitychange未発火の取りこぼし防止)
+    const handleHide = () => {
+      hiddenAtRef.current = Date.now()
+    }
+
+    // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: visible 復帰時は hiddenAt 基準で離席実時間を判定。
+    //   戻り際に touchstart が先に走っても hiddenAt は操作で変化しないため競合排除。
+    //   hiddenAt がなければ (フォアグラウンドでの focus 等) スキップ。
+    const handleVisibleReturn = () => {
+      if (hiddenAtRef.current === null) return
+      if (Date.now() - hiddenAtRef.current >= IDLE_MS) {
+        doLogout()
+      } else {
+        hiddenAtRef.current = null
+        scheduleTimer()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleHide()
+      } else if (document.visibilityState === 'visible') {
+        handleVisibleReturn()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pagehide', handleHide)
+    window.addEventListener('pageshow', handleVisibleReturn)
+    window.addEventListener('focus', handleVisibleReturn)
+
+    return () => {
+      EVENTS.forEach(e => window.removeEventListener(e, resetActivity))
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pagehide', handleHide)
+      window.removeEventListener('pageshow', handleVisibleReturn)
+      window.removeEventListener('focus', handleVisibleReturn)
+      clearTimeout(timerRef.current)
+      clearInterval(intervalRef.current)
+    }
+  }, [enabled, resetActivity, scheduleTimer, checkElapsed, doLogout])
 }

@@ -5,7 +5,7 @@ export { TABS }
 export default function TabBar({ active, onChange }) {
   return (
     <div style={{
-      display: 'flex', gap: 4, padding: '8px 8px 0', flexShrink: 0,
+      display: 'flex', gap: 6, padding: '8px 8px 0', flexShrink: 0,
       overflowX: 'auto', WebkitOverflowScrolling: 'touch',
     }}>
       {TABS.map(t => (
@@ -13,11 +13,11 @@ export default function TabBar({ active, onChange }) {
           key={t}
           onClick={() => onChange(t)}
           style={{
-            width: 28, height: 28, flexShrink: 0,
-            borderRadius: 6, border: 'none',
-            fontSize: 13, fontWeight: active === t ? 700 : 400,
-            background: active === t ? '#0e7490' : '#1e293b',
-            color: active === t ? '#fff' : '#94a3b8',
+            minWidth: 44, height: 44, flexShrink: 0,
+            borderRadius: 22, border: 'none',
+            fontSize: 16, fontWeight: active === t ? 700 : 400,
+            background: active === t ? 'var(--color-info)' : 'var(--color-surface2)',
+            color: active === t ? 'var(--color-bg)' : 'var(--color-text-dim)',
             cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
           }}

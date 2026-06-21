@@ -23,9 +23,10 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
   const [digits, setDigits]         = useState([])
   const [fail, setFail]             = useState(() => loadFailState(staff.staff_id))
   const [shaking, setShaking]       = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [remainSec, setRemainSec]   = useState(0)
-  const [systemError, setSystemError] = useState(false)
+  const [submitting, setSubmitting]       = useState(false)
+  const [remainSec, setRemainSec]         = useState(0)
+  const [systemError, setSystemError]     = useState(false)
+  const [attemptedFail, setAttemptedFail] = useState(false) // SPEC-LOGIN-PIN-CLEAN-OPEN-01: 今セッション失敗フラグ
   const timerRef = useRef(null)
 
   const isLocked = fail.count >= 3 && Date.now() < fail.lockedUntil
@@ -74,6 +75,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
       setShaking(true)
       setTimeout(() => setShaking(false), 500)
       setDigits([])
+      setAttemptedFail(true) // SPEC-LOGIN-PIN-CLEAN-OPEN-01: 今セッションで失敗した
       setFail(prev => {
         const count = prev.count + 1
         const lockedUntil = count >= 3 ? Date.now() + 30000 : prev.lockedUntil
@@ -97,10 +99,10 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
     ? `${remainSec}秒後に再試行できます`
     : fail.count >= 5
     ? '管理者に連絡してください'
-    : fail.count > 0
+    : attemptedFail
     ? 'PINが違うようです、もう一度'
     : 'PINを入力してください'
-  const subColor = (fail.count > 0 || systemError) ? '#f87171' : '#94a3b8'
+  const subColor = (attemptedFail || systemError) ? '#f87171' : '#94a3b8'
 
   return (
     <>

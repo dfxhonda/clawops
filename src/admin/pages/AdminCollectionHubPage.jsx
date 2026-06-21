@@ -4,9 +4,11 @@
 import { useNavigate } from 'react-router-dom'
 
 const TILES = [
-  { label: '集金帳票',     desc: '金種カウント・売上伝票PDF', path: '/collection/input',       impl: true },
-  { label: '集金フラグ編集', desc: '巡回 reading の集金済フラグ管理', path: '/admin/collection-flag', impl: true },
-  { label: '集金履歴',     desc: '過去の集金帳票一覧',         path: '/collection/history',     impl: true },
+  { label: '集金帳票',     desc: '金種カウント・売上伝票PDF',      path: '/collection/input',          impl: true },
+  { label: '集金フラグ編集', desc: '巡回 reading の集金済フラグ管理', path: '/admin/collection-flag',   impl: true },
+  { label: '集金履歴',     desc: '過去の集金帳票一覧',             path: '/collection/history',        impl: true },
+  // SPEC-COLLECTION-EXPORT-TAB-PLACE-01: 集金タブから集金抽出へ (route 共用)
+  { label: '集金抽出',     desc: '集金データのxlsx出力',           path: '/admin/reports/collections', impl: true },
 ]
 
 export default function AdminCollectionHubPage() {

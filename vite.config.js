@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'child_process'
 import { readFileSync, writeFileSync } from 'fs'
 
@@ -37,6 +38,25 @@ export default defineConfig(({ mode }) => ({
         writeFileSync('dist/version.json', JSON.stringify({ sha: gitSha, buildNumber, version: pkg.version }))
       }
     },
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: null,
+      manifest: false,
+      workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/assets\//,
+          /^\/docs\//,
+          /\/version\.json/,
+        ],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html}'],
+      },
+    }),
   ],
   test: {
     globals: true,
