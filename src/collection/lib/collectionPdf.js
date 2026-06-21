@@ -224,16 +224,23 @@ export async function buildCollectionSlip({
   y += 10
 
   // J-COLLECTION-07: 署名欄 (左=弊社担当 / 右=先方ご担当者様、常時2枠表示)
+  // SPEC-COLLECTION-PDF-STAFF-SIGN-NAME-01: collectedByName が未設定の呼出元でも
+  //   collection.updated_by (DB保存の作業者名) にフォールバックして担当者名を大書き表示。
+  const staffName = collectedByName ?? collection?.updated_by ?? null
   const sigBoxW = 85, sigBoxH = 26
   const leftX = L, rightX = L + sigBoxW + 5
   doc.setDrawColor(140)
   doc.rect(leftX, y, sigBoxW, sigBoxH)
   doc.rect(rightX, y, sigBoxW, sigBoxH)
   doc.setFontSize(8)
-  doc.text(collectedByName ? `弊社担当: ${collectedByName}` : '弊社担当', leftX + 2, y + 4)
+  doc.text('弊社担当', leftX + 2, y + 4)
   doc.text('先方ご担当者様', rightX + 2, y + 4)
+  if (staffName) {
+    doc.setFontSize(16)
+    doc.text(String(staffName), leftX + sigBoxW / 2, y + 14, { align: 'center' })
+  }
   if (staffSignatureDataUrl) {
-    try { doc.addImage(staffSignatureDataUrl, 'PNG', leftX + 3, y + 6, sigBoxW - 6, sigBoxH - 9) } catch { /* ignore */ }
+    try { doc.addImage(staffSignatureDataUrl, 'PNG', leftX + 3, y + 17, sigBoxW - 6, sigBoxH - 19) } catch { /* ignore */ }
   }
   if (customerSignatureDataUrl) {
     try { doc.addImage(customerSignatureDataUrl, 'PNG', rightX + 3, y + 6, sigBoxW - 6, sigBoxH - 9) } catch { /* ignore */ }
