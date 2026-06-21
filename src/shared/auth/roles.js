@@ -21,17 +21,17 @@ export const MODULE_ACCESS = {
 export const LAUNCHER_MODULE_TILES = [
   {
     key: 'clawsupport',
-    label: 'クレサポ巡回',
+    label: 'クレサポ',
     emoji: '📊',
-    desc: '店舗・ブースのメーター入力',
+    desc: '巡回・店舗メーター入力',
     path: '/clawsupport',
     requiredModules: ['patrol'],
   },
   {
     key: 'tanasupport',
-    label: 'タナサポ棚卸し',
+    label: 'タナサポ',
     emoji: '📦',
-    desc: '棚卸し・倉庫カウント',
+    desc: '棚卸し・入荷チェック',
     // J-STOCK-LAUNCHER-REDIRECT-01 (5/31): /tanasupport → /stock に変更
     // J-STOCK-LAUNCHER-REDIRECT-02 (6/1): /stock → /stock/stocktake に変更し、
     // StocktakeTargetPage (倉庫/担当 2 タブ) に直行。
@@ -40,9 +40,9 @@ export const LAUNCHER_MODULE_TILES = [
   },
   {
     key: 'manesupport',
-    label: 'マネサポ管理',
+    label: 'マネサポ',
     emoji: '⚙️',
-    desc: 'マスタ・監査・運用ツール',
+    desc: '管理・分析',
     path: '/admin',
     requiredModules: ['admin'],
   },

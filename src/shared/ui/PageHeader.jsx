@@ -1,16 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-
-const THEME_COLORS = {
-  clawsupport: '#ec4899',
-  tanasupport:  '#10b981',
-  manesupport:  '#3b82f6',
-}
+import { MODULE_COLORS } from './moduleColors'
 
 // variant: 'default'(通常画面) | 'compact'(ハブ・リスト画面)
 // rightSlot: ヘッダー右端に表示する要素 (例: 今日の日付)
 export function PageHeader({ module, title, subtitle, onBack, backLabel, children, rightSlot, variant = 'default', menuToLauncher = false }) {
   const navigate = useNavigate()
-  const color = THEME_COLORS[module] ?? '#888899'
+  const color = MODULE_COLORS[module] ?? '#888899'
   const isCompact = variant === 'compact'
   return (
     <div

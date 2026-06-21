@@ -167,8 +167,7 @@ export default function Login() {
 
       {/* ヘッダー */}
       <div style={{ flexShrink: 0, padding: '16px 16px 10px', textAlign: 'center' }}>
-        <div style={{ fontSize: 36, lineHeight: 1 }}>🎮</div>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1, marginTop: 4 }}>Round 0</div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
         <div style={{ fontSize: 12, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
       </div>
 
