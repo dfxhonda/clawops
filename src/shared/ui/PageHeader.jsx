@@ -19,7 +19,7 @@ export function PageHeader({ module, title, subtitle, onBack, backLabel, childre
           type="button"
           onClick={() => navigate('/launcher')}
           data-testid="header-launcher-menu"
-          className="shrink-0 text-muted text-sm font-bold leading-tight py-1 px-0.5 -ml-1 active:opacity-70 text-left"
+          className="shrink-0 text-muted text-base font-bold leading-tight py-1 px-0.5 -ml-1 active:opacity-70 text-left"
         >
           ☰ メニュー
         </button>
@@ -32,9 +32,9 @@ export function PageHeader({ module, title, subtitle, onBack, backLabel, childre
       <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
         <div className="min-w-0">
           <p className={`text-text font-bold leading-snug truncate ${isCompact ? 'text-xl' : 'text-xl'}`}>{title}</p>
-          {subtitle && !isCompact && <p className="text-muted text-xs mt-0.5">{subtitle}</p>}
+          {subtitle && !isCompact && <p className="text-muted text-sm mt-0.5">{subtitle}</p>}
         </div>
-        {rightSlot && <div className="text-muted text-sm shrink-0">{rightSlot}</div>}
+        {rightSlot && <div className="text-muted text-base shrink-0">{rightSlot}</div>}
       </div>
       {children}
     </div>

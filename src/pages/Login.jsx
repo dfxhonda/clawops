@@ -171,22 +171,22 @@ export default function Login() {
 
       {/* ヘッダー */}
       <div style={{ flexShrink: 0, padding: '16px 16px 10px', textAlign: 'center' }}>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
-        <div style={{ fontSize: 12, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
+        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
+        <div style={{ fontSize: 15, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
       </div>
 
       {/* タブバー */}
       <TabBar active={activeTab} onChange={setActiveTab} />
 
       {/* 件数バッジ */}
-      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 11, color: '#64748b' }}>
+      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 13, color: '#64748b' }}>
         {filteredStaff.length}件
       </div>
 
       {/* 名前リスト(スクロールエリア) */}
       <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
         {loadErr ? (
-          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#f87171', fontSize: 13 }}>{loadErr}</div>
+          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#f87171', fontSize: 15 }}>{loadErr}</div>
         ) : (
           <StaffList
             staff={filteredStaff}
