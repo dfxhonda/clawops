@@ -256,11 +256,13 @@ export async function buildCollectionSlip({
   const cellH = (297 - RM * 2 - RG * (ROWS_GRID - 1)) / ROWS_GRID  // ≈ 68.61mm
 
   const boothsArr = booths ?? []
+  // SPEC-COLLECTION-PDF-RECEIPT-PACK-01: 写真なしブースを除外してグリッドを詰める (空セルをなくす)
+  const photoBooths = boothsArr.filter(b => b.receipt_photo_url)
   // R4: 写真URLを並列prefetch (全DLが走ってから描画ループへ)
   await Promise.allSettled(
-    boothsArr.filter(b => b.receipt_photo_url).map(b => _prefetchPhoto(b.receipt_photo_url).catch(() => null))
+    photoBooths.map(b => _prefetchPhoto(b.receipt_photo_url).catch(() => null))
   )
-  for (let i = 0; i < boothsArr.length; i++) {
+  for (let i = 0; i < photoBooths.length; i++) {
     const indexOnPage = i % PER_PAGE
     if (indexOnPage === 0) {
       doc.addPage()
@@ -270,8 +272,7 @@ export async function buildCollectionSlip({
     const col = indexOnPage % COLS_GRID
     const x = RM + col * (cellW + RG)
     const y = RM + row * (cellH + RG)
-    const b = boothsArr[i]
-    if (!b.receipt_photo_url) continue // 空セル (写真なし)
+    const b = photoBooths[i]
     try {
       const dataUrl = await _prefetchPhoto(b.receipt_photo_url) // キャッシュ済み (resolved Promise)
       const fmt = dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG'
