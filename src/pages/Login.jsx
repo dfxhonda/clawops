@@ -147,12 +147,13 @@ export default function Login() {
       access_token:  session.access_token,
       refresh_token: session.refresh_token,
     })
-    await upsertLoginHistory(staff.staff_id)
+    // SPEC-LOGIN-SUCCESS-UNBLOCK-01 R1: non-blocking (do not await)
+    upsertLoginHistory(staff.staff_id).catch(e => console.warn('[ERR-LOGIN-HISTORY]', e))
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    const r = await checkAndReloadIfStale({ updateSW })
-    if (r?.reloaded) return
     navigate('/launcher', { replace: true })
+    // SPEC-LOGIN-SUCCESS-UNBLOCK-01 R2: non-blocking; SW update via triggerUpdate(mount) + register.js activated
+    checkAndReloadIfStale({ updateSW })
   }
 
   if (!initDone) {
