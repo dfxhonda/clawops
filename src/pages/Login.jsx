@@ -6,7 +6,7 @@ import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { useToast } from '../hooks/useToast'
 import { fetchDeviceLoginRows, upsertLoginHistory } from '../services/loginHistory'
 import { checkAndReloadIfStale } from '../services/loginVersionCheck'
-import { updateSW } from '../lib/swRegistration'
+import { updateSW, triggerUpdate } from '../lib/swRegistration'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
@@ -42,9 +42,8 @@ export default function Login() {
   const [initDone, setInitDone]         = useState(false)
   const [loadErr, setLoadErr]           = useState('')
 
-  // SPEC-PWA-SW-LOGINMOUNT-UPDATE-S1-01: ログアウト合流点でマウント時に即チェック(1回ログアウトで更新確実化)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { checkAndReloadIfStale({ updateSW }) }, [])
+  // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: ログアウト合流点でマウント時に能動SW update発火
+  useEffect(() => { triggerUpdate() }, [])
 
   useEffect(() => {
     async function init() {

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SPEC-PWA-SW-LOGINMOUNT-UPDATE-S1-01: Login mount-time version check
+// SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: Login mount-time triggerUpdate call (replaces S1-01 checkAndReloadIfStale)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -29,6 +29,12 @@ vi.mock('../../../lib/supabase', () => ({
 
 vi.mock('../../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
 
+const mockTriggerUpdate = vi.fn()
+vi.mock('../../../lib/swRegistration', () => ({
+  updateSW: vi.fn(),
+  triggerUpdate: () => mockTriggerUpdate(),
+}))
+
 const mockCheckAndReloadIfStale = vi.fn()
 vi.mock('../../../services/loginVersionCheck', () => ({
   checkAndReloadIfStale: (...args) => mockCheckAndReloadIfStale(...args),
@@ -52,34 +58,29 @@ vi.mock('../../../pages/login/PinSheet', () => ({ default: () => <div data-testi
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetSession.mockResolvedValue({ data: { session: null } })
+  mockTriggerUpdate.mockResolvedValue(undefined)
   mockCheckAndReloadIfStale.mockResolvedValue({ reloaded: false, reason: 'match' })
 })
 
-describe('SPEC-PWA-SW-LOGINMOUNT-UPDATE-S1-01: mount version check', () => {
-  it('when_login_mounts_calls_checkAndReloadIfStale_with_updateSW', async () => {
+describe('SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: mount triggerUpdate', () => {
+  it('when_login_mounts_should_call_triggerUpdate', async () => {
     render(<MemoryRouter><Login /></MemoryRouter>)
 
-    await waitFor(() => expect(mockCheckAndReloadIfStale).toHaveBeenCalled())
-    const [opts] = mockCheckAndReloadIfStale.mock.calls[0]
-    expect(opts).toMatchObject({ updateSW: expect.any(Function) })
+    await waitFor(() => expect(mockTriggerUpdate).toHaveBeenCalledOnce())
   })
 
-  it('when_mount_check_returns_reloaded_true_does_not_navigate_to_launcher', async () => {
-    mockCheckAndReloadIfStale.mockResolvedValue({ reloaded: true, reason: 'mismatch' })
-
+  it('when_login_mounts_should_not_navigate_to_launcher', async () => {
     render(<MemoryRouter><Login /></MemoryRouter>)
 
-    await waitFor(() => expect(mockCheckAndReloadIfStale).toHaveBeenCalled())
+    await waitFor(() => expect(mockTriggerUpdate).toHaveBeenCalled())
     expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
   })
 
-  it('when_mount_check_returns_reloaded_false_login_screen_continues_normally', async () => {
-    mockCheckAndReloadIfStale.mockResolvedValue({ reloaded: false, reason: 'match' })
-
+  it('when_login_mounts_should_not_call_checkAndReloadIfStale_from_mount', async () => {
     render(<MemoryRouter><Login /></MemoryRouter>)
 
-    await waitFor(() => expect(mockCheckAndReloadIfStale).toHaveBeenCalled())
-    // no redirect → staff list loads normally
-    expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
+    await waitFor(() => expect(mockTriggerUpdate).toHaveBeenCalled())
+    // mount no longer calls checkAndReloadIfStale (triggerUpdate replaced it)
+    expect(mockCheckAndReloadIfStale).not.toHaveBeenCalled()
   })
 })
