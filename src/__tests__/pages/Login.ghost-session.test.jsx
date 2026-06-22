@@ -30,6 +30,11 @@ vi.mock('../../lib/supabase', () => ({
 vi.mock('../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
 
 const mockCheckAndReloadIfStale = vi.fn()
+vi.mock('../../lib/swRegistration', () => ({
+  updateSW: vi.fn(),
+  triggerUpdate: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('../../services/loginVersionCheck', () => ({
   checkAndReloadIfStale: () => mockCheckAndReloadIfStale(),
 }))
@@ -77,6 +82,7 @@ describe('Login init ghost session detection', () => {
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledOnce())
     expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
+    // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: mount calls triggerUpdate; checkAndReloadIfStale not called in ghost path
     expect(mockCheckAndReloadIfStale).not.toHaveBeenCalled()
   })
 

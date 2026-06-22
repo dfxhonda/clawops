@@ -6,11 +6,12 @@ import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { useToast } from '../hooks/useToast'
 import { fetchDeviceLoginRows, upsertLoginHistory } from '../services/loginHistory'
 import { checkAndReloadIfStale } from '../services/loginVersionCheck'
-import { updateSW } from '../lib/swRegistration'
+import { updateSW, triggerUpdate } from '../lib/swRegistration'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
 import { startPrefetch } from '../lib/prefetchCache'
+import { warmupVerifyPin } from './login/pinVerifier'
 
 const KANA_GROUPS = {
   'あ': /^[アイウエオ]/,
@@ -41,6 +42,10 @@ export default function Login() {
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [initDone, setInitDone]         = useState(false)
   const [loadErr, setLoadErr]           = useState('')
+
+  // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: ログアウト合流点でマウント時に能動SW update発火
+  // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R2(A): mount時にverify-pin Edgeを事前warm-up
+  useEffect(() => { triggerUpdate(); warmupVerifyPin() }, [])
 
   useEffect(() => {
     async function init() {
@@ -144,12 +149,13 @@ export default function Login() {
       access_token:  session.access_token,
       refresh_token: session.refresh_token,
     })
-    await upsertLoginHistory(staff.staff_id)
+    // SPEC-LOGIN-SUCCESS-UNBLOCK-01 R1: non-blocking (do not await)
+    upsertLoginHistory(staff.staff_id).catch(e => console.warn('[ERR-LOGIN-HISTORY]', e))
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
-    const r = await checkAndReloadIfStale({ updateSW })
-    if (r?.reloaded) return
     navigate('/launcher', { replace: true })
+    // SPEC-LOGIN-SUCCESS-UNBLOCK-01 R2: non-blocking; SW update via triggerUpdate(mount) + register.js activated
+    checkAndReloadIfStale({ updateSW })
   }
 
   if (!initDone) {
@@ -167,23 +173,22 @@ export default function Login() {
 
       {/* ヘッダー */}
       <div style={{ flexShrink: 0, padding: '16px 16px 10px', textAlign: 'center' }}>
-        <div style={{ fontSize: 36, lineHeight: 1 }}>🎮</div>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 1, marginTop: 4 }}>Round 0</div>
-        <div style={{ fontSize: 12, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
+        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
+        <div style={{ fontSize: 15, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
       </div>
 
       {/* タブバー */}
       <TabBar active={activeTab} onChange={setActiveTab} />
 
       {/* 件数バッジ */}
-      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 11, color: '#64748b' }}>
+      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 13, color: '#64748b' }}>
         {filteredStaff.length}件
       </div>
 
       {/* 名前リスト(スクロールエリア) */}
       <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
         {loadErr ? (
-          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#f87171', fontSize: 13 }}>{loadErr}</div>
+          <div style={{ padding: '48px 16px', textAlign: 'center', color: '#f87171', fontSize: 15 }}>{loadErr}</div>
         ) : (
           <StaffList
             staff={filteredStaff}
@@ -194,6 +199,8 @@ export default function Login() {
               // SPEC-LOGIN-PREFETCH-ON-STAFF-SELECT-01: PIN入力中(2-5s)の待機時間を先読みに利用。
               // non-blocking: do not await.
               startPrefetch(staff.staff_id)
+              // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R3(C): tap時にEdgeを再warm-up(cooldown内ならskip)
+              warmupVerifyPin()
             }}
           />
         )}

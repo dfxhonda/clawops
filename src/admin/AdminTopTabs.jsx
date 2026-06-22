@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { MODULE_COLORS } from '../shared/ui/moduleColors'
 
 // J-NAV-CONSOLIDATE-01: PCH取込タブを削除、AdminMastersHubPage の '取込' カードに一本化。
 // /admin/import ルートと AdminImportHubPage 本体は変更しない (forbidden)。
@@ -17,7 +18,7 @@ export default function AdminTopTabs() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   return (
-    <nav data-testid="admin-top-tabs" className="flex overflow-x-auto gap-1 px-2 py-1.5">
+    <nav data-testid="admin-top-tabs" className="flex overflow-x-auto gap-1 px-2 py-1.5" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLORS.admin }}>
       <button
         onClick={() => navigate('/launcher')}
         className="mr-2 text-sm text-gray-400 hover:text-white flex items-center gap-1 whitespace-nowrap px-3 py-2.5"

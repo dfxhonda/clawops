@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   getModuleTilesForRole,
 } from '../shared/auth/roles'
+import { MODULE_COLORS } from '../shared/ui/moduleColors'
 import { useRole } from '../shared/auth/useRole'
 import { useAuth } from '../hooks/useAuth'
 import { logout } from '../lib/auth/session'
@@ -140,14 +141,8 @@ export default function Launcher() {
             data-testid={`launcher-tile-${tile.key}`}
             onClick={() => navigate(tile.path)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
+            style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLORS[tile.key] ?? '#888899' }}
           >
-            <span
-              className="shrink-0 flex items-center justify-center text-[44px] leading-none"
-              style={{ width: 44, height: 44 }}
-              aria-hidden
-            >
-              {tile.emoji}
-            </span>
             <div className="flex-1 min-w-0">
               <p className="text-2xl font-bold leading-tight text-white">{tile.label}</p>
               <p className="text-base text-slate-400 mt-1 leading-snug">{tile.desc}</p>

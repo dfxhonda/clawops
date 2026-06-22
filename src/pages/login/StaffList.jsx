@@ -12,7 +12,7 @@ function avatarBg(staffId) {
 export default function StaffList({ staff, starStaffIds, isStarTab, onSelect }) {
   if (staff.length === 0) {
     return (
-      <div style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+      <div style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b', fontSize: 15 }}>
         {isStarTab
           ? 'まだログイン履歴がありません。タブを右にスワイプしてスタッフを選んでください。'
           : '該当するスタッフがいません'}
@@ -39,14 +39,14 @@ export default function StaffList({ staff, starStaffIds, isStarTab, onSelect }) 
             width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
             background: avatarBg(s.staff_id),
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15, fontWeight: 700, color: '#fff',
+            fontSize: 17, fontWeight: 700, color: '#fff',
           }}>
             {(s.name || '?')[0]}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, color: '#f1f5f9', fontWeight: 500 }}>{s.name}</div>
+            <div style={{ fontSize: 17, color: '#f1f5f9', fontWeight: 500 }}>{s.name}</div>
             {s.name_kana && (
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 1 }}>{s.name_kana}</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 1 }}>{s.name_kana}</div>
             )}
           </div>
           {starStaffIds.has(s.staff_id) && !isStarTab && (
