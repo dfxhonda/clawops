@@ -11,6 +11,7 @@ import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
 import { startPrefetch } from '../lib/prefetchCache'
+import { warmupVerifyPin } from './login/pinVerifier'
 
 const KANA_GROUPS = {
   'あ': /^[アイウエオ]/,
@@ -43,7 +44,8 @@ export default function Login() {
   const [loadErr, setLoadErr]           = useState('')
 
   // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: ログアウト合流点でマウント時に能動SW update発火
-  useEffect(() => { triggerUpdate() }, [])
+  // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R2(A): mount時にverify-pin Edgeを事前warm-up
+  useEffect(() => { triggerUpdate(); warmupVerifyPin() }, [])
 
   useEffect(() => {
     async function init() {
@@ -197,6 +199,8 @@ export default function Login() {
               // SPEC-LOGIN-PREFETCH-ON-STAFF-SELECT-01: PIN入力中(2-5s)の待機時間を先読みに利用。
               // non-blocking: do not await.
               startPrefetch(staff.staff_id)
+              // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R3(C): tap時にEdgeを再warm-up(cooldown内ならskip)
+              warmupVerifyPin()
             }}
           />
         )}
