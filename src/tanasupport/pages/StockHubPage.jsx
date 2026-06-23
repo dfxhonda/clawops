@@ -146,7 +146,6 @@ export default function StockHubPage() {
           module="tanasupport"
           title={selectedStore.store_name}
           variant="compact"
-          menuToLauncher
           onBack={() => { setStep('select'); setSelectedStore(null) }}
         />
         <div className="px-4 py-2 shrink-0 flex items-center gap-3">
@@ -221,7 +220,6 @@ export default function StockHubPage() {
         module="tanasupport"
         title="タナサポ 店舗選択"
         variant="compact"
-        menuToLauncher
         onBack={() => navigate('/launcher')}
       />
       <div className="flex-1 overflow-y-auto pb-6">

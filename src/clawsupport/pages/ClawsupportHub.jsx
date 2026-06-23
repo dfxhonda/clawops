@@ -124,7 +124,6 @@ export default function ClawsupportHub() {
         module="clawsupport"
         title="クレサポ"
         variant="compact"
-        menuToLauncher
         rightSlot={<DateTime value={new Date()} format="date" />}
       />
 

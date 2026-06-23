@@ -117,7 +117,7 @@ export default function Launcher() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen text-slate-400">読み込み中...</div>
+      <div className="flex items-center justify-center h-screen text-muted">読み込み中...</div>
     )
   }
   if (!role) return null
@@ -125,12 +125,12 @@ export default function Launcher() {
   const moduleTiles = getModuleTilesForRole(role)
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-bg text-text">
       <div className="px-4 pt-10 pb-6">
-        <p className="text-slate-400 text-base">
+        <p className="text-muted text-lg">
           <DateTime value={now} format="date" />　<DateTime value={now} format="time" />
         </p>
-        <h1 className="text-2xl font-bold mt-1">こんにちは、{staffName || 'ゲスト'}さん</h1>
+        <h1 className="text-3xl font-bold mt-1">こんにちは、{staffName || 'ゲスト'}さん</h1>
       </div>
 
       <div className="px-4 pb-10 space-y-3">
@@ -140,14 +140,14 @@ export default function Launcher() {
             type="button"
             data-testid={`launcher-tile-${tile.key}`}
             onClick={() => navigate(tile.path)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-800 border border-slate-700 text-left active:scale-[0.98] transition-transform min-h-[88px]"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface border border-border text-left active:scale-[0.98] transition-transform min-h-[88px]"
             style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLORS[tile.key] ?? '#888899' }}
           >
             <div className="flex-1 min-w-0">
-              <p className="text-2xl font-bold leading-tight text-white">{tile.label}</p>
-              <p className="text-base text-slate-400 mt-1 leading-snug">{tile.desc}</p>
+              <p className="text-3xl font-bold leading-tight text-text">{tile.label}</p>
+              <p className="text-lg text-muted mt-1 leading-snug">{tile.desc}</p>
             </div>
-            <span className="text-slate-500 text-xl shrink-0" aria-hidden>›</span>
+            <span className="text-muted text-xl shrink-0" aria-hidden>›</span>
           </button>
         ))}
 
@@ -158,10 +158,10 @@ export default function Launcher() {
             collapsed = 分類 + 店舗名 + 経過時間
             expanded  = 機械名/B番号 + note + ✓対応完了ボタン (即解決、ローカルから除去)
             多ければリスト内スクロール。 */}
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden">
           <div className="px-4 pt-3 pb-2 flex items-center gap-2">
             <span className="text-2xl" aria-hidden>📋</span>
-            <p className="text-xl font-bold text-white">未対応TODO</p>
+            <p className="text-2xl font-bold text-text">未対応TODO</p>
             {unresolvedCount > 0 && (
               <span className="shrink-0 min-w-[24px] h-[24px] px-1.5 bg-red-500 text-white text-sm font-bold rounded-full flex items-center justify-center">
                 {unresolvedCount}
@@ -171,17 +171,17 @@ export default function Launcher() {
               type="button"
               onClick={() => navigate('/clawsupport/alerts')}
               data-testid="launcher-alerts-more"
-              className="ml-auto text-base text-blue-400 active:text-blue-300"
+              className="ml-auto text-lg text-blue-400 active:text-blue-300"
             >
               一覧 ›
             </button>
           </div>
           {alerts.length === 0 ? (
-            <p className="text-center text-slate-400 text-lg py-5">未対応のアラートはありません 🎉</p>
+            <p className="text-center text-muted text-xl py-5">未対応のアラートはありません 🎉</p>
           ) : (
             <div
               data-testid="launcher-alerts-scroll"
-              className="max-h-[52vh] overflow-y-auto divide-y divide-slate-700/70"
+              className="max-h-[52vh] overflow-y-auto divide-y divide-border/70"
             >
               {alerts.map(a => {
                 const isOpen = expandedId === a.alert_id
@@ -191,26 +191,26 @@ export default function Launcher() {
                     <button
                       type="button"
                       onClick={() => setExpandedId(prev => prev === a.alert_id ? null : a.alert_id)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-left active:bg-slate-700/40"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left active:bg-bg/40"
                       aria-expanded={isOpen}
                     >
                       <span className="text-2xl shrink-0" aria-hidden>{a.alert_types?.icon_emoji ?? '📌'}</span>
-                      <span className="text-lg font-bold shrink-0" style={{ color: a.alert_types?.color_hex ?? '#cbd5e1' }}>
+                      <span className="text-xl font-bold shrink-0" style={{ color: a.alert_types?.color_hex ?? '#cbd5e1' }}>
                         {a.alert_types?.label ?? a.type_code}
                       </span>
-                      <span className="text-lg text-slate-200 truncate flex-1 leading-tight">
+                      <span className="text-xl text-text truncate flex-1 leading-tight">
                         {storeMap[a.store_code] ?? a.store_code}
                       </span>
-                      <span className="text-base text-slate-400 shrink-0">{timeAgo(a.created_at)}</span>
-                      <span className="text-slate-500 text-lg shrink-0" aria-hidden>{isOpen ? '▲' : '▼'}</span>
+                      <span className="text-lg text-muted shrink-0">{timeAgo(a.created_at)}</span>
+                      <span className="text-muted text-xl shrink-0" aria-hidden>{isOpen ? '▲' : '▼'}</span>
                     </button>
                     {isOpen && (
-                      <div className="px-3 pb-3 pt-1 bg-slate-900/40 text-slate-200">
-                        <p className="text-lg leading-snug">
+                      <div className="px-3 pb-3 pt-1 bg-bg/60 text-text">
+                        <p className="text-xl leading-snug">
                           {machineMap[a.machine_code] ?? a.machine_code} / {boothLabel(boothMap[a.booth_code], a.booth_code)}
                         </p>
                         {a.note && (
-                          <p className="text-lg text-slate-300/90 mt-1 leading-snug whitespace-pre-wrap">
+                          <p className="text-xl text-text/80 mt-1 leading-snug whitespace-pre-wrap">
                             {a.note}
                           </p>
                         )}
@@ -219,7 +219,7 @@ export default function Launcher() {
                           onClick={() => handleResolveAlert(a.alert_id)}
                           disabled={isResolving}
                           data-testid={`launcher-alert-resolve-${a.alert_id}`}
-                          className="mt-2 w-full py-3 rounded-xl bg-emerald-600 text-white text-lg font-bold active:bg-emerald-700 disabled:opacity-50"
+                          className="mt-2 w-full py-3 rounded-xl bg-emerald-600 text-white text-xl font-bold active:bg-emerald-700 disabled:opacity-50"
                         >
                           {isResolving ? '更新中…' : '✓ 対応完了にする'}
                         </button>
@@ -239,7 +239,7 @@ export default function Launcher() {
         <button
           type="button"
           onClick={handleLogout}
-          className="text-sm text-slate-600 hover:text-slate-400 transition-colors px-4 py-2"
+          className="text-base text-muted hover:opacity-80 transition-opacity px-4 py-2"
         >
           ログアウト
         </button>

@@ -112,7 +112,6 @@ export default function LocationHubPage() {
         module="tanasupport"
         title={ownerName}
         variant="compact"
-        menuToLauncher
         onBack={() => navigate('/stock')}
       />
 

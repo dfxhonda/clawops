@@ -74,7 +74,6 @@ export default function StocktakeTargetPage() {
         module="tanasupport"
         title="棚卸し対象選択"
         variant="compact"
-        menuToLauncher
         onBack={() => navigate('/launcher')}
       />
 

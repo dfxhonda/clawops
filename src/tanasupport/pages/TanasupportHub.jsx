@@ -120,7 +120,6 @@ export default function TanasupportHub() {
         module="tanasupport"
         title="タナサポ"
         variant="compact"
-        menuToLauncher
       />
 
       {/* tab bar */}
