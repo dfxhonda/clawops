@@ -1,24 +1,28 @@
-// J-PATROL-IN-DAILY-fix-03/05 ad-hoc: 巡回 / 管理者編集モード の店舗ハブ最上行で共用するヘッダ。
-// 2 行構成: (1) 進捗バッジ/モードトグル + ラベル、(2) 任意の左側スロット + 全店舗合計値。
-// MachineRow / MachineRowExpandedBoothList と同一の w-52 grid + gap-x-1.5 で列 x 位置完全一致。
-//
-// SPEC-PATROL-VIEW-MODE-SWITCH-02: mode (IN/DAILY/OUT) で値配列を切替、列ラベルは固定 4 前 / 3 前 / 前回 / 今回。
-// onModeChange が渡されたら上段左に 3 ボタントグル (IN/日売/OUT) を描画。
+// SPEC-PATROL-HISTORY-HEATMAP-01: 10列横スクロール、F3 日付ラベル、F6 全展開トグル。
+// MachineRow / MachineRowExpandedBoothList と同一 grid-cols-10 + gap-x-1.5 で列 x 位置一致。
 
-import { useMemo } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import {
   VIEW_MODES,
   VIEW_MODE_ORDER,
   COLUMN_HEADERS,
   COLUMN_COUNT,
+  NEWEST,
   aggregateSummaries,
   formatCell,
+  computeColumnDates,
 } from './patrolViewModes'
-
-const NEWEST = 3
 
 export function computeStoreTotals(diffMap, mode = 'IN') {
   return aggregateSummaries(Object.values(diffMap || {}), mode)
+}
+
+// F3: 'YYYY-MM-DD' → 'M/D' 表示
+function fmtDateLabel(dateStr) {
+  if (!dateStr) return null
+  const parts = dateStr.split('-')
+  if (parts.length < 3) return null
+  return `${Number(parts[1])}/${Number(parts[2])}`
 }
 
 function ModeToggle({ mode, onModeChange }) {
@@ -50,39 +54,80 @@ function ModeToggle({ mode, onModeChange }) {
   )
 }
 
+function LabelScrollSection({ diffMap }) {
+  const scrollRef = useRef(null)
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+  }, [])
+  const dates = computeColumnDates(diffMap || {})
+  return (
+    <div className="shrink-0 overflow-x-auto w-52" ref={scrollRef}>
+      <div className="grid grid-cols-10 gap-x-1.5 text-xs text-right leading-tight text-muted w-[360px] mr-[17px] tabular-nums">
+        {COLUMN_HEADERS.map((label, i) => {
+          const dl = fmtDateLabel(dates[i])
+          return (
+            <div key={i} data-testid={`store-label-${i}`}>{dl ?? label}</div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function ValueScrollSection({ totals, modeDef }) {
+  const scrollRef = useRef(null)
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+  }, [])
+  return (
+    <div className="shrink-0 overflow-x-auto w-52" ref={scrollRef}>
+      <div className="grid grid-cols-10 gap-x-1.5 text-right leading-tight w-[360px] mr-[17px] tabular-nums">
+        {Array.from({ length: COLUMN_COUNT }, (_, i) => (
+          <div
+            key={i}
+            data-testid={`store-value-${i}`}
+            className={`font-mono text-sm font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
+          >
+            {formatCell(totals[i], modeDef.type)}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function StoreTotalsHeader({
   diffMap, leftSlot = null, leftSlot2 = null,
   mode = 'IN', onModeChange = null,
+  allExpanded = false, onExpandAllToggle = null,
 }) {
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
   const totals = useMemo(() => computeStoreTotals(diffMap || {}, mode), [diffMap, mode])
   const showToggle = typeof onModeChange === 'function'
+  const showExpandToggle = typeof onExpandAllToggle === 'function'
   return (
     <div data-testid="store-totals-header" className="shrink-0 border-b border-border">
       <div className="px-4 py-1 flex items-center gap-2">
         <div className="flex-1 min-w-0 flex items-center gap-2">
           {leftSlot}
           {showToggle && <ModeToggle mode={mode} onModeChange={onModeChange} />}
+          {/* F6: 全展開/折畳みトグル */}
+          {showExpandToggle && (
+            <button
+              type="button"
+              data-testid="expand-all-toggle"
+              onClick={onExpandAllToggle}
+              className="text-xs text-muted border border-border rounded px-1.5 py-0.5 active:bg-surface"
+            >
+              {allExpanded ? '全閉' : '全開'}
+            </button>
+          )}
         </div>
-        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-xs text-right leading-tight text-muted w-52 mr-[17px] tabular-nums">
-          {COLUMN_HEADERS.map((label, i) => (
-            <div key={i} data-testid={`store-label-${i}`}>{label}</div>
-          ))}
-        </div>
+        <LabelScrollSection diffMap={diffMap} />
       </div>
       <div className="px-4 pb-1.5 flex items-center gap-2">
         <div className="flex-1 min-w-0">{leftSlot2}</div>
-        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52 mr-[17px] tabular-nums">
-          {Array.from({ length: COLUMN_COUNT }, (_, i) => (
-            <div
-              key={i}
-              data-testid={`store-value-${i}`}
-              className={`font-mono text-sm font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
-            >
-              {formatCell(totals[i], modeDef.type)}
-            </div>
-          ))}
-        </div>
+        <ValueScrollSection totals={totals} modeDef={modeDef} />
       </div>
     </div>
   )

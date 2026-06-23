@@ -191,7 +191,7 @@ function StoreCard({ store, isPinned, onSelect, onPin }) {
       onPointerMove={handlePointerMove}
       onPointerCancel={handlePointerUp}
       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
-      style={{ minHeight: 72 }}
+      style={{ minHeight: 88 }}
     >
       {isPinned && <span className="text-yellow-400 text-sm shrink-0">★</span>}
       <div className="flex-1 min-w-0">

@@ -35,6 +35,7 @@ export default function PatrolStorePage() {
   const toggleExpanded = usePatrolListScrollStore(s => s.toggleExpanded)
   const ensureExpanded = usePatrolListScrollStore(s => s.ensureExpanded)
   const clearFocusBooth = usePatrolListScrollStore(s => s.clearFocusBooth)
+  const setExpandedForStore = usePatrolListScrollStore(s => s.setExpandedForStore)
   const expandedSet = expandedByStore[storeCode] ?? []
 
   const [storeName, setStoreName] = useState(storeCode)
@@ -154,6 +155,19 @@ export default function PatrolStorePage() {
     [machines, diffMap, viewMode],
   )
 
+  // F6: 全展開/折畳み — 複数ブース機械だけ対象
+  const multiBoothCodes = useMemo(
+    () => machines
+      .filter(m => ((Array.isArray(m.machine_models) ? m.machine_models[0]?.type_id : m.machine_models?.type_id) !== 'changer'))
+      .filter(m => (m.booths ?? []).length > 1)
+      .map(m => m.machine_code),
+    [machines],
+  )
+  const allExpanded = multiBoothCodes.length > 0 && multiBoothCodes.every(mc => expandedSet.includes(mc))
+  function handleExpandAllToggle() {
+    setExpandedForStore(storeCode, allExpanded ? [] : multiBoothCodes)
+  }
+
   // 「保存してリストに戻る」復帰時: 次ブースの machine を展開し、その位置へスクロール
   useEffect(() => {
     if (loading) return
@@ -240,6 +254,8 @@ export default function PatrolStorePage() {
         diffMap={diffMap}
         mode={viewMode}
         onModeChange={setViewMode}
+        allExpanded={allExpanded}
+        onExpandAllToggle={multiBoothCodes.length > 0 ? handleExpandAllToggle : null}
       />
 
       <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">

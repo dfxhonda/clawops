@@ -10,9 +10,10 @@ describe('computeLocalStoreView', () => {
       { booth_code: 'A-1', patrol_date: '2026-05-25', in_meter:  500, created_at: 't0' },
     ]
     const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
-    // 5 days と 7 days の交互間隔。今回 = 500 (06-02 - 06-01)、前回 = 500 (06-01 - 05-25)
-    expect(diffMap['A-1'].inDiffs[3]).toBe(500)
-    expect(diffMap['A-1'].inDiffs[2]).toBe(500)
+    // 10-col array: 3 rows → 2 diffs at indices 8 and 9
+    // 今回 = 500 (06-02 - 06-01) at index 9、前回 = 500 (06-01 - 05-25) at index 8
+    expect(diffMap['A-1'].inDiffs[9]).toBe(500)
+    expect(diffMap['A-1'].inDiffs[8]).toBe(500)
   })
 
   it('todayMap_includes_booth_with_record_on_today_jst', () => {
@@ -48,9 +49,8 @@ describe('computeLocalStoreView', () => {
       { booth_code: 'A-1', patrol_date: '2026-05-25', in_meter: 1000, synced: true,  reading_id: 'r-old'   },
     ]
     const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
-    // local 1800 が today として勝ち、5/25 は前回 → 今回 800 (1800-1000), 前回 null (前々が無い)
-    expect(diffMap['A-1'].inDiffs[3]).toBe(800)
-    // 今回 1800 が反映されたことを diff から逆算: inDiffs[3] = 1800 - 1000 = 800 ○
+    // local 1800 が today として勝ち、5/25 は前回 → 今回 800 (1800-1000) at index 9
+    expect(diffMap['A-1'].inDiffs[9]).toBe(800)
   })
 
   it('AC_04_brand_new_booth_only_today_local_shows_今回_only', () => {
@@ -68,7 +68,8 @@ describe('computeLocalStoreView', () => {
       { booth_code: 'A-1', patrol_date: '2026-05-25', in_meter: 1000, synced: true, reading_id: 'r2' },
     ]
     const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
-    expect(diffMap['A-1'].inDiffs[3]).toBe(500)
+    // 2 rows → 1 diff at index 9 (newest)
+    expect(diffMap['A-1'].inDiffs[9]).toBe(500)
   })
 
   it('dedupe_does_not_lose_distinct_patrol_dates', () => {
@@ -78,8 +79,8 @@ describe('computeLocalStoreView', () => {
       { booth_code: 'A-1', patrol_date: '2026-05-20', in_meter:  500, synced: true, reading_id: 'r3' },
     ]
     const { diffMap } = computeLocalStoreView(records, { today: '2026-06-02' })
-    // 3 distinct dates retained
-    expect(diffMap['A-1'].inDiffs[3]).toBe(500)
-    expect(diffMap['A-1'].inDiffs[2]).toBe(500)
+    // 3 distinct dates → 2 diffs at indices 8 and 9
+    expect(diffMap['A-1'].inDiffs[9]).toBe(500)
+    expect(diffMap['A-1'].inDiffs[8]).toBe(500)
   })
 })

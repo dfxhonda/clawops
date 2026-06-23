@@ -36,4 +36,10 @@ export const usePatrolListScrollStore = create((set) => ({
       delete next[storeCode]
       return { focusBoothByStore: next }
     }),
+
+  // SPEC-PATROL-HISTORY-HEATMAP-01 F6: 全機械を一括展開/折畳みする
+  setExpandedForStore: (storeCode, machineCodes) =>
+    set((s) => ({
+      expandedByStore: { ...s.expandedByStore, [storeCode]: machineCodes },
+    })),
 }))

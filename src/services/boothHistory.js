@@ -23,12 +23,10 @@ const HISTORY_SELECT =
 export const _RAW_HISTORY_SELECT = HISTORY_SELECT
 
 // SPEC-LF1-HISTORY-FIX-04: fetchStoreBaselineRows が booth ごとに保持する最大行数。
-// 5 → 9 に増やす理由: 表示の 8 diff (今回/前回/3前/4前/5前/6前/7前/8前) を計算するには
-// 9 データ点 (today + prev1..prev8) が必要 (隣接対 diff = 9-1 = 8 ペア)。週2回ラウンド × 2ヶ月
-// = 8 visit の履歴表示 が hiro 要望。KOS01 max 14 rows/booth (KOS01-M02-B04) で safety 余裕あり。
-// 注: 本 spec は LIMIT のみの 1-integer 変更。computeBoothDiffSummary の 4 要素配列出力は
-// 別 spec で 8 要素拡張予定 (本 spec.forbidden_to_touch 'boothHistory compute logic' のため未触)。
-export const STORE_BASELINE_LIMIT_PER_BOOTH = 9
+// 9 → 11 に増やす理由: 表示の 10 diff (今回/前回/.../9前) を計算するには
+// 11 データ点 (today + prev1..prev10) が必要 (隣接対 diff = 11-1 = 10 ペア)。
+// SPEC-PATROL-HISTORY-HEATMAP-01: 10列横スクロール対応。
+export const STORE_BASELINE_LIMIT_PER_BOOTH = 11
 
 // SPEC-PATROL-VIEW-MODE-SWITCH-02: 4-visit history。各列 (4 前 / 3 前 / 前回 / 今回) の
 // in_diff / out_diff / daily (= in_diff / 間隔日数) を 4 要素配列で返す。4 つの diff を
@@ -93,20 +91,20 @@ export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit =
 }
 
 /**
- * Pure helper: rows DESC (latest first、最大 5 件) → 4-visit summary。テスト用に export。
+ * Pure helper: rows DESC (latest first、最大 11 件) → 10-visit summary。テスト用に export。
  *
- * SPEC-PATROL-VIEW-MODE-SWITCH-02: 4 列 (4 前 / 3 前 / 前回 / 今回) の値配列を生成。
- *   display index 0 = 4 前 (oldest of 4 displayed visits)
- *   display index 1 = 3 前
- *   display index 2 = 前回
- *   display index 3 = 今回 (newest)
+ * SPEC-PATROL-HISTORY-HEATMAP-01: 10 列 (9前/.../前回/今回) の値配列を生成。
+ *   display index 0 = 9 前 (oldest of 10 displayed visits)
+ *   display index 9 = 今回 (newest)
  *
- *   inDiffs[d]  = rows[3-d].in_meter - rows[4-d].in_meter
- *   outDiffs[d] = sumOut(rows[3-d]) - sumOut(rows[4-d])
- *   days[d]     = diffPatrolDays(rows[4-d].patrol_date, rows[3-d].patrol_date)
- *   daily[d]    = round1(inDiffs[d] / days[d])
+ *   inDiffs[d]    = rows[9-d].in_meter - rows[10-d].in_meter
+ *   outDiffs[d]   = sumOut(rows[9-d]) - sumOut(rows[10-d])
+ *   days[d]       = diffPatrolDays(rows[10-d].patrol_date, rows[9-d].patrol_date)
+ *   daily[d]      = round1(inDiffs[d] / days[d])
+ *   dates[d]      = rows[9-d].patrol_date  (newer row の日付)
+ *   entryTypes[d] = rows[9-d].entry_type
  *
- *   レコード数 < 5 なら計算できない列は null。
+ *   レコード数 < 11 なら計算できない列は null (左端から null 埋め)。
  *
  * 後方互換: inDiff/outDiff (最新差分) と currIn/prevIn/currPerDay/prevPerDay は
  * storeMachineSummary.js / SPEC-01 期 caller で使われているため残置。
@@ -114,13 +112,16 @@ export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit =
 export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
   if (!descRows || descRows.length < 2) return null
 
-  // SPEC-02: 4 列 (4前/3前/前回/今回) を埋める。i は newer-older pair の index (0=最新ペア)。
-  // display index = 3 - i (0=4前/oldest left … 3=今回/newest right)
-  const inDiffs  = [null, null, null, null]
-  const outDiffs = [null, null, null, null]
-  const daily    = [null, null, null, null]
-  const days     = [null, null, null, null]
-  for (let i = 0; i < 4; i++) {
+  // SPEC-PATROL-HISTORY-HEATMAP-01: 10 列。i は newer-older pair の index (0=最新ペア)。
+  // display index = 9 - i (0=9前/oldest left … 9=今回/newest right)
+  const COLS = 10
+  const inDiffs    = Array(COLS).fill(null)
+  const outDiffs   = Array(COLS).fill(null)
+  const daily      = Array(COLS).fill(null)
+  const days       = Array(COLS).fill(null)
+  const dates      = Array(COLS).fill(null)
+  const entryTypes = Array(COLS).fill(null)
+  for (let i = 0; i < COLS; i++) {
     const newer = descRows[i]
     const older = descRows[i + 1]
     if (!newer || !older) break
@@ -132,32 +133,31 @@ export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
     const dailyVal = inDiff != null && intervalDays
       ? round1(inDiff / intervalDays)
       : null
-    const d = 3 - i
-    inDiffs[d]  = inDiff
-    outDiffs[d] = outDiff
-    days[d]     = intervalDays
-    daily[d]    = dailyVal
+    const d = 9 - i
+    inDiffs[d]    = inDiff
+    outDiffs[d]   = outDiff
+    days[d]       = intervalDays
+    daily[d]      = dailyVal
+    dates[d]      = newer.patrol_date ?? null
+    entryTypes[d] = newer.entry_type ?? null
   }
 
   // ---- 後方互換 (SPEC-01 / storeMachineSummary 用) ----
   const latest = descRows[0]
-  const prev   = descRows[1]
-  const prev2  = descRows[2]
-  const inDiff  = inDiffs[3]
-  const outDiff = outDiffs[3]
+  const inDiff  = inDiffs[9]
+  const outDiff = outDiffs[9]
   const revenue = inDiff != null ? inDiff * meterUnitPrice : null
   const prizeCost = Number(latest.prize_cost ?? 0)
   const profit = revenue != null ? revenue - (outDiff ?? 0) * prizeCost : null
-  const currDays   = days[3]
-  const currPerDay = daily[3]
-  const prevIn = (prev2 && prev.in_meter != null && prev2.in_meter != null)
-    ? Number(prev.in_meter) - Number(prev2.in_meter) : null
-  const prevDays = prev2 ? diffPatrolDays(prev2.patrol_date, prev.patrol_date) : null
-  const prevPerDay = prevIn != null && prevDays ? round1(prevIn / prevDays) : null
+  const currDays   = days[9]
+  const currPerDay = daily[9]
+  const prevIn     = inDiffs[8]
+  const prevDays   = days[8]
+  const prevPerDay = daily[8]
 
   return {
-    // SPEC-02 primary shape
-    inDiffs, outDiffs, daily, days,
+    // SPEC-PATROL-HISTORY-HEATMAP-01 primary shape
+    inDiffs, outDiffs, daily, days, dates, entryTypes,
     // SPEC-01 後方互換
     inDiff, outDiff, revenue, profit,
     currIn: inDiff, currDays, currPerDay,
@@ -216,13 +216,13 @@ export async function fetchBoothDiffMap(boothCodes, meterUnitPriceMap = {}) {
     .order('created_at', { ascending: false })
   if (error) return {}
 
-  // SPEC-PATROL-VIEW-MODE-SWITCH-02: 4 列分の diff を計算するため、booth あたり
-  // 最大 5 レコード保持 (5 行で 4 ペア)。SPEC-01 期は 3 だった。
+  // SPEC-PATROL-HISTORY-HEATMAP-01: 10 列分の diff を計算するため、booth あたり
+  // 最大 11 レコード保持 (11 行で 10 ペア)。
   const byBooth = {}
   for (const row of data ?? []) {
     const bc = row.booth_code
     if (!byBooth[bc]) byBooth[bc] = []
-    if (byBooth[bc].length < 5) byBooth[bc].push(row)
+    if (byBooth[bc].length < 11) byBooth[bc].push(row)
   }
 
   const result = {}

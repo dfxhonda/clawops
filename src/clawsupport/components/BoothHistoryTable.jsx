@@ -14,6 +14,7 @@ function fmtNum(v) {
 const ENTRY_BADGE = {
   carry_forward: { label: '据置', color: '#8888a8', bg: 'rgba(136,136,168,.18)' },
   replace:       { label: '入替', color: '#5dade2', bg: 'rgba(93,173,226,.18)' },
+  config:        { label: '設定', color: '#6ee7b7', bg: 'rgba(110,231,183,.15)' },
 }
 
 const TH = { padding: '4px 6px', color: '#6666a8', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }
