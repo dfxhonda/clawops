@@ -50,6 +50,7 @@ export default function PatrolStorePage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('IN')
   const [syncing, setSyncing] = useState(false)
+  const [changerExpanded, setChangerExpanded] = useState(false)
 
   // SPEC-LF1: IDB → 描画。
   const hydrateFromIdb = useCallback(async () => {
@@ -266,28 +267,42 @@ export default function PatrolStorePage() {
         onBack={() => navigate('/clawsupport')}
       />
 
-      {/* F3: 両替機タイル — controls より上、スクロール外の固定セクション */}
+      {/* SPEC-PATROL-HISTORY-HEATMAP-04 F2: 両替機セクション — デフォルト折畳み、バッジタップで展開 */}
       {changerMachines.length > 0 && (
-        <div className="shrink-0 px-4 pt-1.5 pb-1 flex flex-col gap-1.5 border-b border-border">
-          {changerMachines.map(machine => (
-            <button
-              key={machine.machine_code}
-              type="button"
-              data-testid={`changer-tile-${machine.machine_code}`}
-              onClick={() => navigate(`/clawsupport/changer/${machine.machine_code}`, { state: { storeName, storeCode } })}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-900/20 border-2 border-amber-600/60 hover:border-amber-500 text-left active:scale-[0.98] transition-transform"
-            >
-              <span className="text-2xl shrink-0">🪙</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-base font-bold text-text">{machine.machine_name}</span>
-                  <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-600/30 text-amber-300">両替機</span>
-                </div>
-                <p className="text-xs text-muted mt-0.5">{(Array.isArray(machine.machine_models) ? machine.machine_models[0]?.model_name : machine.machine_models?.model_name) ?? machine.machine_code}</p>
-              </div>
-              <span className="text-amber-400 text-lg shrink-0" aria-hidden>›</span>
-            </button>
-          ))}
+        <div className="shrink-0 border-b border-border">
+          <button
+            type="button"
+            data-testid="changer-section-toggle"
+            onClick={() => setChangerExpanded(e => !e)}
+            className="w-full flex items-center gap-2 px-4 py-1.5 text-left"
+          >
+            <span className="text-base">🪙</span>
+            <span className="text-sm font-bold text-amber-300">両替機 {changerMachines.length}台</span>
+            <span className="ml-auto text-muted text-xs">{changerExpanded ? '▲' : '▼'}</span>
+          </button>
+          {changerExpanded && (
+            <div className="px-4 pb-2 flex flex-col gap-1.5">
+              {changerMachines.map(machine => (
+                <button
+                  key={machine.machine_code}
+                  type="button"
+                  data-testid={`changer-tile-${machine.machine_code}`}
+                  onClick={() => navigate(`/clawsupport/changer/${machine.machine_code}`, { state: { storeName, storeCode } })}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-900/20 border-2 border-amber-600/60 hover:border-amber-500 text-left active:scale-[0.98] transition-transform"
+                >
+                  <span className="text-2xl shrink-0">🪙</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base font-bold text-text">{machine.machine_name}</span>
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-600/30 text-amber-300">両替機</span>
+                    </div>
+                    <p className="text-xs text-muted mt-0.5">{(Array.isArray(machine.machine_models) ? machine.machine_models[0]?.model_name : machine.machine_models?.model_name) ?? machine.machine_code}</p>
+                  </div>
+                  <span className="text-amber-400 text-lg shrink-0" aria-hidden>›</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

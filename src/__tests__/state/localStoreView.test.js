@@ -72,6 +72,23 @@ describe('computeLocalStoreView', () => {
     expect(diffMap['A-1'].inDiffs[9]).toBe(500)
   })
 
+  // SPEC-PATROL-HISTORY-HEATMAP-04 F1: 6+ records → 5+ diffs (was capped at 4 by old slice(0,5))
+  it('when_6_records_fifth_diff_is_computed_not_null', () => {
+    const records = [
+      { booth_code: 'A-1', patrol_date: '2026-06-07', in_meter: 7000 },
+      { booth_code: 'A-1', patrol_date: '2026-06-06', in_meter: 6000 },
+      { booth_code: 'A-1', patrol_date: '2026-06-05', in_meter: 5000 },
+      { booth_code: 'A-1', patrol_date: '2026-06-04', in_meter: 4000 },
+      { booth_code: 'A-1', patrol_date: '2026-06-03', in_meter: 3000 },
+      { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 2000 },
+    ]
+    const { diffMap } = computeLocalStoreView(records, { today: '2026-06-07' })
+    // old slice(0,5): max 4 diffs → inDiffs[5] = null
+    // new slice(0,11): 5 diffs → inDiffs[5] = 1000 (06-03 - 06-02)
+    expect(diffMap['A-1'].inDiffs[5]).toBe(1000)
+    expect(diffMap['A-1'].inDiffs[9]).toBe(1000)
+  })
+
   it('dedupe_does_not_lose_distinct_patrol_dates', () => {
     const records = [
       { booth_code: 'A-1', patrol_date: '2026-06-02', in_meter: 1500, synced: true, reading_id: 'r1' },

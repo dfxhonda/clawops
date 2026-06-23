@@ -1,6 +1,6 @@
 // SPEC-LF1-STORE-LOCAL-CACHE-01: IndexedDB の raw records から PatrolStorePage 描画用の
-// diffMap (booth_code → 4-visit summary) + todayMap (今日入力済 booth) を導出するピュア関数。
-// SPEC-02 の 4-visit array logic を再利用するため computeBoothDiffSummary に raw rows を渡す。
+// diffMap (booth_code → 10-visit summary) + todayMap (今日入力済 booth) を導出するピュア関数。
+// SPEC-02 の 10-visit array logic を再利用するため computeBoothDiffSummary に raw rows を渡す。
 
 import { computeBoothDiffSummary } from '../../services/boothHistory'
 
@@ -10,12 +10,12 @@ function todayJST() {
 
 // raw records (UPSERT 単位の meter_readings 等価レコード) を booth_code 単位にグループ化、
 // patrol_date DESC + (created_at / updatedLocally / createdLocally) DESC でソート、
-// 最大 5 行を computeBoothDiffSummary に渡して summary を作る。
+// 最大 11 行を computeBoothDiffSummary に渡して summary を作る。
 //
 // SPEC-LF1-HISTORY-FIX-01:
 //   dedupe by (booth_code, patrol_date) — 同 patrol_date に server baseline (synced=true) と
 //   local edit (synced=false) が並存する場合、local wins (AC-08)。
-//   booth ごと 5 行までに切り詰めて computeBoothDiffSummary に渡す。
+//   booth ごと 11 行までに切り詰めて computeBoothDiffSummary に渡す。
 export function computeLocalStoreView(records, { meterUnitPriceMap = {}, today = todayJST() } = {}) {
   const byBooth = new Map()
   for (const r of (records ?? [])) {
@@ -42,8 +42,8 @@ export function computeLocalStoreView(records, { meterUnitPriceMap = {}, today =
       )
       return at
     })
-    const top5 = deduped.slice(0, 5)
-    const summary = computeBoothDiffSummary(top5, meterUnitPriceMap[bc] ?? 100)
+    const top11 = deduped.slice(0, 11)
+    const summary = computeBoothDiffSummary(top11, meterUnitPriceMap[bc] ?? 100)
     if (summary) diffMap[bc] = summary
     // today バッジ: patrol_date === today JST の record があるか (dedup 後)
     const todayRow = deduped.find(r => r.patrol_date === today)
