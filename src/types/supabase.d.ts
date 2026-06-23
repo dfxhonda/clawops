@@ -14,61 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_logs: {
+      alert_types: {
         Row: {
-          action: string
-          after_data: Json | null
-          before_data: Json | null
+          color_hex: string | null
           created_at: string | null
-          detail: string | null
-          id: number
+          icon_emoji: string | null
+          is_active: boolean
+          label: string
           organization_id: string
-          reason: string | null
-          reason_code: string | null
-          reason_note: string | null
-          staff_id: string | null
-          target_id: string | null
-          target_table: string | null
+          sort_order: number
+          type_code: string
+          type_id: string
+          updated_at: string | null
         }
         Insert: {
-          action: string
-          after_data?: Json | null
-          before_data?: Json | null
+          color_hex?: string | null
           created_at?: string | null
-          detail?: string | null
-          id?: never
+          icon_emoji?: string | null
+          is_active?: boolean
+          label: string
           organization_id: string
-          reason?: string | null
-          reason_code?: string | null
-          reason_note?: string | null
-          staff_id?: string | null
-          target_id?: string | null
-          target_table?: string | null
+          sort_order?: number
+          type_code: string
+          type_id?: string
+          updated_at?: string | null
         }
         Update: {
-          action?: string
-          after_data?: Json | null
-          before_data?: Json | null
+          color_hex?: string | null
           created_at?: string | null
-          detail?: string | null
-          id?: never
+          icon_emoji?: string | null
+          is_active?: boolean
+          label?: string
           organization_id?: string
-          reason?: string | null
-          reason_code?: string | null
-          reason_note?: string | null
-          staff_id?: string | null
-          target_id?: string | null
-          target_table?: string | null
+          sort_order?: number
+          type_code?: string
+          type_id?: string
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["organization_id"]
-          },
-        ]
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          after: Json | null
+          before: Json | null
+          created_at: string
+          device_info: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: number
+          ip_address: string | null
+          operation: string
+          previous_hash: string
+          record_id: string
+          table_name: string
+          this_hash: string
+          user_id: string | null
+        }
+        Insert: {
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          device_info?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: number
+          ip_address?: string | null
+          operation: string
+          previous_hash?: string
+          record_id: string
+          table_name: string
+          this_hash: string
+          user_id?: string | null
+        }
+        Update: {
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          device_info?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: number
+          ip_address?: string | null
+          operation?: string
+          previous_hash?: string
+          record_id?: string
+          table_name?: string
+          this_hash?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       auth_logs: {
         Row: {
@@ -185,6 +219,45 @@ export type Database = {
           },
         ]
       }
+      billing_entities: {
+        Row: {
+          address: string | null
+          company_name: string
+          created_at: string
+          id: string
+          organization_id: string
+          seal_image_path: string | null
+          seal_image_url: string | null
+          tel: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          seal_image_path?: string | null
+          seal_image_url?: string | null
+          tel?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          seal_image_path?: string | null
+          seal_image_url?: string | null
+          tel?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
       billing_events: {
         Row: {
           billing_date: string
@@ -300,6 +373,68 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "billing_events"
             referencedColumns: ["billing_id"]
+          },
+        ]
+      }
+      booth_alerts: {
+        Row: {
+          alert_id: string
+          booth_code: string
+          created_at: string
+          created_by: string | null
+          machine_code: string
+          note: string | null
+          organization_id: string
+          photo_url: string | null
+          reading_id: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_note: string | null
+          store_code: string
+          type_code: string
+        }
+        Insert: {
+          alert_id?: string
+          booth_code: string
+          created_at?: string
+          created_by?: string | null
+          machine_code: string
+          note?: string | null
+          organization_id: string
+          photo_url?: string | null
+          reading_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_note?: string | null
+          store_code: string
+          type_code: string
+        }
+        Update: {
+          alert_id?: string
+          booth_code?: string
+          created_at?: string
+          created_by?: string | null
+          machine_code?: string
+          note?: string | null
+          organization_id?: string
+          photo_url?: string | null
+          reading_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_note?: string | null
+          store_code?: string
+          type_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booth_alerts_type_code_fkey"
+            columns: ["type_code"]
+            isOneToOne: false
+            referencedRelation: "alert_types"
+            referencedColumns: ["type_code"]
           },
         ]
       }
@@ -713,6 +848,255 @@ export type Database = {
           },
         ]
       }
+      cash_collection_booths: {
+        Row: {
+          advance_payment: number
+          bill_1000: number
+          bill_10000: number
+          bill_5000: number
+          booth_code: string
+          coin_100: number
+          coin_50: number
+          coin_500: number
+          collection_id: string
+          created_at: string | null
+          id: string
+          in_meter_current: number | null
+          in_meter_prev: number | null
+          machine_code: string
+          notes: string | null
+          out_meter_current: number | null
+          out_meter_prev: number | null
+          receipt_photo_path: string | null
+          receipt_photo_url: string | null
+          store_code: string
+          total: number | null
+        }
+        Insert: {
+          advance_payment?: number
+          bill_1000?: number
+          bill_10000?: number
+          bill_5000?: number
+          booth_code: string
+          coin_100?: number
+          coin_50?: number
+          coin_500?: number
+          collection_id: string
+          created_at?: string | null
+          id: string
+          in_meter_current?: number | null
+          in_meter_prev?: number | null
+          machine_code: string
+          notes?: string | null
+          out_meter_current?: number | null
+          out_meter_prev?: number | null
+          receipt_photo_path?: string | null
+          receipt_photo_url?: string | null
+          store_code: string
+          total?: number | null
+        }
+        Update: {
+          advance_payment?: number
+          bill_1000?: number
+          bill_10000?: number
+          bill_5000?: number
+          booth_code?: string
+          coin_100?: number
+          coin_50?: number
+          coin_500?: number
+          collection_id?: string
+          created_at?: string | null
+          id?: string
+          in_meter_current?: number | null
+          in_meter_prev?: number | null
+          machine_code?: string
+          notes?: string | null
+          out_meter_current?: number | null
+          out_meter_prev?: number | null
+          receipt_photo_path?: string | null
+          receipt_photo_url?: string | null
+          store_code?: string
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_collection_booths_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "cash_collections"
+            referencedColumns: ["collection_id"]
+          },
+        ]
+      }
+      cash_collections: {
+        Row: {
+          collected_at: string
+          collected_by: string | null
+          collection_id: string
+          created_at: string | null
+          customer_signature_path: string | null
+          customer_signature_url: string | null
+          customer_signed_at: string | null
+          notes: string | null
+          organization_id: string
+          prev_collection_date: string | null
+          signed_pdf_path: string | null
+          signed_pdf_url: string | null
+          staff_signature_path: string | null
+          staff_signature_url: string | null
+          status: string
+          store_code: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          collected_at: string
+          collected_by?: string | null
+          collection_id: string
+          created_at?: string | null
+          customer_signature_path?: string | null
+          customer_signature_url?: string | null
+          customer_signed_at?: string | null
+          notes?: string | null
+          organization_id: string
+          prev_collection_date?: string | null
+          signed_pdf_path?: string | null
+          signed_pdf_url?: string | null
+          staff_signature_path?: string | null
+          staff_signature_url?: string | null
+          status?: string
+          store_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          collected_at?: string
+          collected_by?: string | null
+          collection_id?: string
+          created_at?: string | null
+          customer_signature_path?: string | null
+          customer_signature_url?: string | null
+          customer_signed_at?: string | null
+          notes?: string | null
+          organization_id?: string
+          prev_collection_date?: string | null
+          signed_pdf_path?: string | null
+          signed_pdf_url?: string | null
+          staff_signature_path?: string | null
+          staff_signature_url?: string | null
+          status?: string
+          store_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_collections_collected_by_fkey"
+            columns: ["collected_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["staff_id"]
+          },
+          {
+            foreignKeyName: "cash_collections_collected_by_fkey"
+            columns: ["collected_by"]
+            isOneToOne: false
+            referencedRelation: "staff_public"
+            referencedColumns: ["staff_id"]
+          },
+          {
+            foreignKeyName: "cash_collections_store_code_fkey"
+            columns: ["store_code"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["store_code"]
+          },
+        ]
+      }
+      coin_changer_events: {
+        Row: {
+          adjustment_type: string | null
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_id: string
+          event_type: string
+          exchanged_in: Json | null
+          exchanged_out: Json | null
+          in_meter_readings: Json | null
+          machine_code: string
+          meter_reset_at: string | null
+          note: string | null
+          organization_id: string
+          out_meter_readings: Json | null
+          restock_source: string | null
+          restocked: Json | null
+          store_code: string
+          updated_at: string | null
+          updated_by: string | null
+          withdrawn_cash: Json | null
+        }
+        Insert: {
+          adjustment_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date: string
+          event_id?: string
+          event_type: string
+          exchanged_in?: Json | null
+          exchanged_out?: Json | null
+          in_meter_readings?: Json | null
+          machine_code: string
+          meter_reset_at?: string | null
+          note?: string | null
+          organization_id: string
+          out_meter_readings?: Json | null
+          restock_source?: string | null
+          restocked?: Json | null
+          store_code: string
+          updated_at?: string | null
+          updated_by?: string | null
+          withdrawn_cash?: Json | null
+        }
+        Update: {
+          adjustment_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_id?: string
+          event_type?: string
+          exchanged_in?: Json | null
+          exchanged_out?: Json | null
+          in_meter_readings?: Json | null
+          machine_code?: string
+          meter_reset_at?: string | null
+          note?: string | null
+          organization_id?: string
+          out_meter_readings?: Json | null
+          restock_source?: string | null
+          restocked?: Json | null
+          store_code?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          withdrawn_cash?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coin_changer_events_machine_code_fkey"
+            columns: ["machine_code"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["machine_code"]
+          },
+          {
+            foreignKeyName: "coin_changer_events_store_code_fkey"
+            columns: ["store_code"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["store_code"]
+          },
+        ]
+      }
       daily_booth_stats: {
         Row: {
           booth_code: string
@@ -876,6 +1260,79 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["store_code"]
+          },
+        ]
+      }
+      dev_assets: {
+        Row: {
+          byte_size: number | null
+          created_at: string
+          file_type: string | null
+          id: string
+          label: string
+          mime_type: string | null
+          organization_id: string | null
+          original_filename: string | null
+          purpose: string | null
+          sha256: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          byte_size?: number | null
+          created_at?: string
+          file_type?: string | null
+          id?: string
+          label: string
+          mime_type?: string | null
+          organization_id?: string | null
+          original_filename?: string | null
+          purpose?: string | null
+          sha256?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          byte_size?: number | null
+          created_at?: string
+          file_type?: string | null
+          id?: string
+          label?: string
+          mime_type?: string | null
+          organization_id?: string | null
+          original_filename?: string | null
+          purpose?: string | null
+          sha256?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_assets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "dev_assets_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["staff_id"]
+          },
+          {
+            foreignKeyName: "dev_assets_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "staff_public"
+            referencedColumns: ["staff_id"]
           },
         ]
       }
@@ -1127,12 +1584,58 @@ export type Database = {
         }
         Relationships: []
       }
+      location_zones: {
+        Row: {
+          created_at: string | null
+          is_active: boolean | null
+          location_id: string
+          organization_id: string
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+          zone_id: string
+          zone_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          is_active?: boolean | null
+          location_id: string
+          organization_id: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          zone_id?: string
+          zone_name: string
+        }
+        Update: {
+          created_at?: string | null
+          is_active?: boolean | null
+          location_id?: string
+          organization_id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          zone_id?: string
+          zone_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_zones_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           capacity_note: string | null
           created_at: string | null
+          destination_aliases: string[] | null
           is_active: boolean | null
           is_full: boolean | null
+          is_operational: boolean | null
           location_id: string
           location_name: string
           location_type: string | null
@@ -1147,8 +1650,10 @@ export type Database = {
         Insert: {
           capacity_note?: string | null
           created_at?: string | null
+          destination_aliases?: string[] | null
           is_active?: boolean | null
           is_full?: boolean | null
+          is_operational?: boolean | null
           location_id: string
           location_name: string
           location_type?: string | null
@@ -1163,8 +1668,10 @@ export type Database = {
         Update: {
           capacity_note?: string | null
           created_at?: string | null
+          destination_aliases?: string[] | null
           is_active?: boolean | null
           is_full?: boolean | null
+          is_operational?: boolean | null
           location_id?: string
           location_name?: string
           location_type?: string | null
@@ -1671,11 +2178,14 @@ export type Database = {
       machine_models: {
         Row: {
           booth_count: number | null
+          changer_denominations: Json | null
           created_at: string | null
+          depth_mm: number | null
           image_url: string | null
           in_meter_count: number
           manufacturer: string | null
           meter_count: number | null
+          meter_layout: Json | null
           meter_unit_price: number | null
           model_id: string
           model_name: string
@@ -1688,14 +2198,18 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           weight_kg: number | null
+          width_mm: number | null
         }
         Insert: {
           booth_count?: number | null
+          changer_denominations?: Json | null
           created_at?: string | null
+          depth_mm?: number | null
           image_url?: string | null
           in_meter_count?: number
           manufacturer?: string | null
           meter_count?: number | null
+          meter_layout?: Json | null
           meter_unit_price?: number | null
           model_id: string
           model_name: string
@@ -1708,14 +2222,18 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           weight_kg?: number | null
+          width_mm?: number | null
         }
         Update: {
           booth_count?: number | null
+          changer_denominations?: Json | null
           created_at?: string | null
+          depth_mm?: number | null
           image_url?: string | null
           in_meter_count?: number
           manufacturer?: string | null
           meter_count?: number | null
+          meter_layout?: Json | null
           meter_unit_price?: number | null
           model_id?: string
           model_name?: string
@@ -1728,6 +2246,7 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           weight_kg?: number | null
+          width_mm?: number | null
         }
         Relationships: [
           {
@@ -1748,13 +2267,9 @@ export type Database = {
       }
       machine_types: {
         Row: {
-          booth_count: number | null
           category: string
           created_at: string | null
           locker_slots: number | null
-          manufacturer: string | null
-          meter_count: number | null
-          meter_unit_price: number | null
           notes: string | null
           type_id: string
           type_name: string
@@ -1762,13 +2277,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          booth_count?: number | null
           category?: string
           created_at?: string | null
           locker_slots?: number | null
-          manufacturer?: string | null
-          meter_count?: number | null
-          meter_unit_price?: number | null
           notes?: string | null
           type_id: string
           type_name: string
@@ -1776,13 +2287,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          booth_count?: number | null
           category?: string
           created_at?: string | null
           locker_slots?: number | null
-          manufacturer?: string | null
-          meter_count?: number | null
-          meter_unit_price?: number | null
           notes?: string | null
           type_id?: string
           type_name?: string
@@ -1799,6 +2306,7 @@ export type Database = {
           contract_id: string | null
           created_at: string | null
           floor: string | null
+          floor_area_m2: number | null
           installed_at: string | null
           is_active: boolean | null
           last_maintenance_at: string | null
@@ -1832,6 +2340,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string | null
           floor?: string | null
+          floor_area_m2?: number | null
           installed_at?: string | null
           is_active?: boolean | null
           last_maintenance_at?: string | null
@@ -1865,6 +2374,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string | null
           floor?: string | null
+          floor_area_m2?: number | null
           installed_at?: string | null
           is_active?: boolean | null
           last_maintenance_at?: string | null
@@ -1987,10 +2497,12 @@ export type Database = {
           created_by: string | null
           cropped_photo_url: string | null
           entry_type: string | null
+          flagged_at: string | null
           full_booth_code: string | null
           in_diff: number | null
           in_meter: number | null
           input_method: string | null
+          is_collected: boolean
           machine_code: string | null
           note: string | null
           ocr_attempted_at: string | null
@@ -2039,6 +2551,7 @@ export type Database = {
           theoretical_stock: number | null
           updated_at: string | null
           updated_by: string | null
+          visit_index: number
         }
         Insert: {
           booth_code?: string | null
@@ -2049,10 +2562,12 @@ export type Database = {
           created_by?: string | null
           cropped_photo_url?: string | null
           entry_type?: string | null
+          flagged_at?: string | null
           full_booth_code?: string | null
           in_diff?: number | null
           in_meter?: number | null
           input_method?: string | null
+          is_collected?: boolean
           machine_code?: string | null
           note?: string | null
           ocr_attempted_at?: string | null
@@ -2101,6 +2616,7 @@ export type Database = {
           theoretical_stock?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          visit_index?: number
         }
         Update: {
           booth_code?: string | null
@@ -2111,10 +2627,12 @@ export type Database = {
           created_by?: string | null
           cropped_photo_url?: string | null
           entry_type?: string | null
+          flagged_at?: string | null
           full_booth_code?: string | null
           in_diff?: number | null
           in_meter?: number | null
           input_method?: string | null
+          is_collected?: boolean
           machine_code?: string | null
           note?: string | null
           ocr_attempted_at?: string | null
@@ -2163,10 +2681,76 @@ export type Database = {
           theoretical_stock?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          visit_index?: number
         }
         Relationships: [
           {
             foreignKeyName: "meter_readings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      operation_logs: {
+        Row: {
+          action: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string | null
+          detail: string | null
+          id: number
+          lat: number | null
+          lng: number | null
+          location_accuracy: number | null
+          organization_id: string
+          reason: string | null
+          reason_code: string | null
+          reason_note: string | null
+          staff_id: string | null
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string | null
+          detail?: string | null
+          id?: never
+          lat?: number | null
+          lng?: number | null
+          location_accuracy?: number | null
+          organization_id: string
+          reason?: string | null
+          reason_code?: string | null
+          reason_note?: string | null
+          staff_id?: string | null
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string | null
+          detail?: string | null
+          id?: never
+          lat?: number | null
+          lng?: number | null
+          location_accuracy?: number | null
+          organization_id?: string
+          reason?: string | null
+          reason_code?: string | null
+          reason_note?: string | null
+          staff_id?: string | null
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2467,6 +3051,9 @@ export type Database = {
           case_quantity: number | null
           created_at: string | null
           expires_at: string | null
+          favorite_memo: string | null
+          favorited_at: string | null
+          favorited_by: string[]
           id: number
           image_url: string | null
           notes: string | null
@@ -2487,6 +3074,9 @@ export type Database = {
           case_quantity?: number | null
           created_at?: string | null
           expires_at?: string | null
+          favorite_memo?: string | null
+          favorited_at?: string | null
+          favorited_by?: string[]
           id?: number
           image_url?: string | null
           notes?: string | null
@@ -2507,6 +3097,9 @@ export type Database = {
           case_quantity?: number | null
           created_at?: string | null
           expires_at?: string | null
+          favorite_memo?: string | null
+          favorited_at?: string | null
+          favorited_by?: string[]
           id?: number
           image_url?: string | null
           notes?: string | null
@@ -2539,16 +3132,13 @@ export type Database = {
           cost_updated_at: string | null
           created_at: string | null
           default_case_quantity: number | null
-          default_tag: string | null
           expected_date: string | null
           first_order_date: string | null
           image_url: string | null
           jan_code: string | null
           latest_order_date: string | null
-          lifecycle_revenue: number | null
           notes: string | null
           order_date: string | null
-          order_rules: string | null
           organization_id: string
           original_cost: number | null
           phase: string | null
@@ -2556,21 +3146,18 @@ export type Database = {
           phase_changed_by: string | null
           prize_id: string
           prize_name: string
-          prize_name_kana: string | null
           registered_at: string | null
           registered_by: string | null
-          series: string | null
           short_name: string | null
           size: string | null
           status: string | null
           supplier_id: string | null
           supplier_item_code: string | null
           supplier_name: string | null
-          tags: string | null
           total_order_cases: number | null
           updated_at: string | null
           updated_by: string | null
-          weight_g: number | null
+          zero_since_date: string | null
         }
         Insert: {
           aliases?: string | null
@@ -2578,16 +3165,13 @@ export type Database = {
           cost_updated_at?: string | null
           created_at?: string | null
           default_case_quantity?: number | null
-          default_tag?: string | null
           expected_date?: string | null
           first_order_date?: string | null
           image_url?: string | null
           jan_code?: string | null
           latest_order_date?: string | null
-          lifecycle_revenue?: number | null
           notes?: string | null
           order_date?: string | null
-          order_rules?: string | null
           organization_id: string
           original_cost?: number | null
           phase?: string | null
@@ -2595,21 +3179,18 @@ export type Database = {
           phase_changed_by?: string | null
           prize_id: string
           prize_name: string
-          prize_name_kana?: string | null
           registered_at?: string | null
           registered_by?: string | null
-          series?: string | null
           short_name?: string | null
           size?: string | null
           status?: string | null
           supplier_id?: string | null
           supplier_item_code?: string | null
           supplier_name?: string | null
-          tags?: string | null
           total_order_cases?: number | null
           updated_at?: string | null
           updated_by?: string | null
-          weight_g?: number | null
+          zero_since_date?: string | null
         }
         Update: {
           aliases?: string | null
@@ -2617,16 +3198,13 @@ export type Database = {
           cost_updated_at?: string | null
           created_at?: string | null
           default_case_quantity?: number | null
-          default_tag?: string | null
           expected_date?: string | null
           first_order_date?: string | null
           image_url?: string | null
           jan_code?: string | null
           latest_order_date?: string | null
-          lifecycle_revenue?: number | null
           notes?: string | null
           order_date?: string | null
-          order_rules?: string | null
           organization_id?: string
           original_cost?: number | null
           phase?: string | null
@@ -2634,21 +3212,18 @@ export type Database = {
           phase_changed_by?: string | null
           prize_id?: string
           prize_name?: string
-          prize_name_kana?: string | null
           registered_at?: string | null
           registered_by?: string | null
-          series?: string | null
           short_name?: string | null
           size?: string | null
           status?: string | null
           supplier_id?: string | null
           supplier_item_code?: string | null
           supplier_name?: string | null
-          tags?: string | null
           total_order_cases?: number | null
           updated_at?: string | null
           updated_by?: string | null
-          weight_g?: number | null
+          zero_since_date?: string | null
         }
         Relationships: [
           {
@@ -2669,9 +3244,9 @@ export type Database = {
           created_at: string | null
           destination: string | null
           expected_date: string | null
-          for_operator_id: string | null
           import_meta: Json | null
           is_fully_received: boolean | null
+          location_id: string | null
           notes: string | null
           order_date: string | null
           order_date_source: string | null
@@ -2693,6 +3268,7 @@ export type Database = {
           supplier_id: string | null
           total_tax_included: number | null
           unit_cost: number | null
+          unplanned_flag: boolean
           updated_at: string | null
           updated_by: string | null
         }
@@ -2704,9 +3280,9 @@ export type Database = {
           created_at?: string | null
           destination?: string | null
           expected_date?: string | null
-          for_operator_id?: string | null
           import_meta?: Json | null
           is_fully_received?: boolean | null
+          location_id?: string | null
           notes?: string | null
           order_date?: string | null
           order_date_source?: string | null
@@ -2728,6 +3304,7 @@ export type Database = {
           supplier_id?: string | null
           total_tax_included?: number | null
           unit_cost?: number | null
+          unplanned_flag?: boolean
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -2739,9 +3316,9 @@ export type Database = {
           created_at?: string | null
           destination?: string | null
           expected_date?: string | null
-          for_operator_id?: string | null
           import_meta?: Json | null
           is_fully_received?: boolean | null
+          location_id?: string | null
           notes?: string | null
           order_date?: string | null
           order_date_source?: string | null
@@ -2763,10 +3340,18 @@ export type Database = {
           supplier_id?: string | null
           total_tax_included?: number | null
           unit_cost?: number | null
+          unplanned_flag?: boolean
           updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prize_orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
           {
             foreignKeyName: "prize_orders_prize_id_fkey"
             columns: ["prize_id"]
@@ -2775,6 +3360,39 @@ export type Database = {
             referencedColumns: ["prize_id"]
           },
         ]
+      }
+      prize_sizes: {
+        Row: {
+          created_at: string | null
+          is_active: boolean | null
+          organization_id: string
+          size_id: string
+          size_name: string
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          is_active?: boolean | null
+          organization_id: string
+          size_id?: string
+          size_name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          is_active?: boolean | null
+          organization_id?: string
+          size_id?: string
+          size_name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       prize_stocks: {
         Row: {
@@ -2923,6 +3541,24 @@ export type Database = {
             referencedColumns: ["prize_id"]
           },
         ]
+      }
+      sgp_image_backfill_state: {
+        Row: {
+          id: number
+          last_page: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          last_page?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          last_page?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       sgp_import_logs: {
         Row: {
@@ -3368,7 +4004,10 @@ export type Database = {
           created_at: string | null
           locked_at: string | null
           month: string
+          opened_by: string | null
           organization_id: string
+          owner_id: string | null
+          owner_type: string | null
           session_id: string
           status: string
         }
@@ -3376,7 +4015,10 @@ export type Database = {
           created_at?: string | null
           locked_at?: string | null
           month: string
+          opened_by?: string | null
           organization_id: string
+          owner_id?: string | null
+          owner_type?: string | null
           session_id?: string
           status?: string
         }
@@ -3384,7 +4026,10 @@ export type Database = {
           created_at?: string | null
           locked_at?: string | null
           month?: string
+          opened_by?: string | null
           organization_id?: string
+          owner_id?: string | null
+          owner_type?: string | null
           session_id?: string
           status?: string
         }
@@ -3427,11 +4072,15 @@ export type Database = {
       stores: {
         Row: {
           address: string | null
+          billing_entity_id: string | null
           brand_name: string | null
           closed_at: string | null
           created_at: string | null
+          gps_verified_at: string | null
           is_active: boolean | null
           is_collection_day: boolean
+          lat: number | null
+          lng: number | null
           locality: string | null
           locality_kana: string | null
           manager_id: string | null
@@ -3439,22 +4088,27 @@ export type Database = {
           opened_at: string | null
           organization_id: string
           phone: string | null
+          prize_floor_area_m2: number | null
           region: string | null
           store_code: string
-          store_id: string | null
           store_name: string
           store_name_official: string | null
           store_type: string | null
+          total_floor_area_m2: number | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
           address?: string | null
+          billing_entity_id?: string | null
           brand_name?: string | null
           closed_at?: string | null
           created_at?: string | null
+          gps_verified_at?: string | null
           is_active?: boolean | null
           is_collection_day?: boolean
+          lat?: number | null
+          lng?: number | null
           locality?: string | null
           locality_kana?: string | null
           manager_id?: string | null
@@ -3462,22 +4116,27 @@ export type Database = {
           opened_at?: string | null
           organization_id: string
           phone?: string | null
+          prize_floor_area_m2?: number | null
           region?: string | null
           store_code: string
-          store_id?: string | null
           store_name: string
           store_name_official?: string | null
           store_type?: string | null
+          total_floor_area_m2?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
           address?: string | null
+          billing_entity_id?: string | null
           brand_name?: string | null
           closed_at?: string | null
           created_at?: string | null
+          gps_verified_at?: string | null
           is_active?: boolean | null
           is_collection_day?: boolean
+          lat?: number | null
+          lng?: number | null
           locality?: string | null
           locality_kana?: string | null
           manager_id?: string | null
@@ -3485,16 +4144,24 @@ export type Database = {
           opened_at?: string | null
           organization_id?: string
           phone?: string | null
+          prize_floor_area_m2?: number | null
           region?: string | null
           store_code?: string
-          store_id?: string | null
           store_name?: string
           store_name_official?: string | null
           store_type?: string | null
+          total_floor_area_m2?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stores_billing_entity_id_fkey"
+            columns: ["billing_entity_id"]
+            isOneToOne: false
+            referencedRelation: "billing_entities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stores_organization_id_fkey"
             columns: ["organization_id"]
@@ -3708,6 +4375,34 @@ export type Database = {
           sz: string
           unit: number
         }[]
+      }
+      fn_confirm_arrival: {
+        Args: {
+          p_order_id: string
+          p_received_quantity: number
+          p_staff_id: string
+          p_to_owner_id: string
+          p_to_owner_type: string
+        }
+        Returns: undefined
+      }
+      fn_recompute_prize_phase: { Args: never; Returns: undefined }
+      fn_reconcile_stocktake_to_ledger: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      fn_record_stock_out: {
+        Args: {
+          p_from_location_id: string
+          p_out_type: string
+          p_prize_id: string
+          p_quantity: number
+          p_reason: string
+          p_staff_id: string
+          p_target_owner_id: string
+          p_target_owner_type: string
+        }
+        Returns: undefined
       }
       get_last_readings_by_store: {
         Args: { p_store_code: string }
