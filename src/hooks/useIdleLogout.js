@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { logout } from '../lib/auth/session'
 
-// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作5分アイドル → logout (lock廃止)
+// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作15分アイドル → logout (ヒロ指示 2026-06-23: 5分→15分変更)
 // SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
 // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hiddenAtRef で離席実時間を計測。
 //   visible/pageshow 復帰時は lastActivityRef でなく hiddenAt 基準で判定し、
 //   戻り際タッチ → resetActivity 競合を根本排除 (Page Visibility API 標準パターン)。
-const IDLE_MS = 5 * 60 * 1000
+const IDLE_MS = 15 * 60 * 1000
 const CHECK_INTERVAL = 30 * 1000 // 実時間検算 polling 間隔
 const EVENTS = ['click', 'touchstart', 'scroll', 'keydown', 'pointerdown']
 

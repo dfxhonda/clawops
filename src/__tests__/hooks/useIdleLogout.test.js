@@ -11,7 +11,7 @@ vi.mock('../../lib/auth/session', () => ({
 import { useSessionLock } from '../../hooks/useIdleLogout'
 import { logout } from '../../lib/auth/session'
 
-const IDLE_MS = 5 * 60 * 1000
+const IDLE_MS = 15 * 60 * 1000
 
 let originalLocation
 
@@ -29,8 +29,8 @@ afterEach(() => {
 })
 
 describe('useSessionLock SPEC-AUTH-TIMEOUT-LOGOUT-S1-01', () => {
-  it('when_idle_5min_should_call_logout_not_lock', async () => {
-    // AC1: idle 5分 → logout() 呼ばれる
+  it('when_idle_15min_should_call_logout_not_lock', async () => {
+    // AC1: idle 15分 → logout() 呼ばれる
     renderHook(() => useSessionLock(true))
     await act(async () => {
       await vi.advanceTimersByTimeAsync(IDLE_MS)
@@ -38,7 +38,7 @@ describe('useSessionLock SPEC-AUTH-TIMEOUT-LOGOUT-S1-01', () => {
     expect(logout).toHaveBeenCalled()
   })
 
-  it('when_idle_5min_should_redirect_to_login', async () => {
+  it('when_idle_15min_should_redirect_to_login', async () => {
     // AC1: logout後に /login へリダイレクト
     renderHook(() => useSessionLock(true))
     await act(async () => {
