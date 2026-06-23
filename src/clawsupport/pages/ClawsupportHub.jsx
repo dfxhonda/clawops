@@ -22,17 +22,10 @@ export default function ClawsupportHub() {
 
   useEffect(() => {
     async function load() {
-      // Compute JST date 60 days ago as meter_readings window start (sv-SE = YYYY-MM-DD)
-      const jstToday = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-      const [jy, jm, jd] = jstToday.split('-').map(Number)
-      const startDate = new Date(jy, jm - 1, jd - 60).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-
       const [
         { data: storeData },
         { data: pinData },
-        { data: changerMachines },
-        { data: boothData },
-        { data: mrData },
+        { data: rpcRows },
       ] = await Promise.all([
         supabase
           .from('stores')
@@ -42,62 +35,15 @@ export default function ClawsupportHub() {
         staffId
           ? supabase.from('staff_pinned_stores').select('store_code').eq('staff_id', staffId)
           : Promise.resolve({ data: [] }),
-        // Get changer machine_codes via !inner join (select from machines = no booth-join duplication)
-        supabase
-          .from('machines')
-          .select('machine_code, machine_models!inner(type_id)')
-          .eq('machine_models.type_id', 'changer'),
-        supabase
-          .from('booths')
-          .select('store_code, booth_code, machine_code'),
-        supabase
-          .from('meter_readings')
-          .select('store_code, patrol_date, booth_code')
-          .gte('patrol_date', startDate),
+        supabase.rpc('store_patrol_progress'),
       ])
 
-      // Set of changer machine_codes (Set deduplicates any join artifacts)
-      const changerMachineCodes = new Set((changerMachines ?? []).map(m => m.machine_code))
-
-      // Build booth_code→machine_code map and store_code→non-changer total count
-      const boothMachineMap = {}
-      const totalByStore = {}
-      for (const b of (boothData ?? [])) {
-        boothMachineMap[b.booth_code] = b.machine_code
-        if (!changerMachineCodes.has(b.machine_code)) {
-          totalByStore[b.store_code] = (totalByStore[b.store_code] ?? 0) + 1
-        }
-      }
-
-      // Pass 1: find MAX patrol_date per store within the 60-day window
-      const lastDateByStore = {}
-      for (const mr of (mrData ?? [])) {
-        const { store_code, patrol_date } = mr
-        if (!lastDateByStore[store_code] || patrol_date > lastDateByStore[store_code]) {
-          lastDateByStore[store_code] = patrol_date
-        }
-      }
-
-      // Pass 2: count distinct non-changer booth_codes on last patrol date per store
-      const doneBoothsByStore = {}
-      for (const mr of (mrData ?? [])) {
-        const { store_code, patrol_date, booth_code } = mr
-        if (patrol_date !== lastDateByStore[store_code]) continue
-        if (!doneBoothsByStore[store_code]) doneBoothsByStore[store_code] = new Set()
-        const machineCode = boothMachineMap[booth_code]
-        if (machineCode !== undefined && !changerMachineCodes.has(machineCode)) {
-          doneBoothsByStore[store_code].add(booth_code)
-        }
-      }
-
-      // Build storeMetaMap for all stores
       const metaMap = {}
-      for (const store of (storeData ?? [])) {
-        const sc = store.store_code
-        metaMap[sc] = {
-          lastDate: lastDateByStore[sc] ?? null,
-          done: doneBoothsByStore[sc]?.size ?? 0,
-          total: totalByStore[sc] ?? 0,
+      for (const row of (rpcRows ?? [])) {
+        metaMap[row.store_code] = {
+          lastDate: row.last_patrol_date ?? null,
+          done: row.done_booths ?? 0,
+          total: row.total_booths ?? 0,
         }
       }
 
