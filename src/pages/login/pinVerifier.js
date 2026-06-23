@@ -3,7 +3,9 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01: verify-pin Edge Function cold start対策。
-// GET /verify-pin は {ok:true}を返すだけの軽量ハンドラー(index.ts L38-44)。
+// SPEC-LOGIN-UPDATE-PREFETCH-01: warmup を GET→POST に変更。GET は別インスタンスを温める可能性があり
+//   POST cold start を防げない(H2仮説)。POST warmup は同一コードパスを起動するため確実。
+//   Edge Function 側で staff_id='__warmup__' を検出して即200返し(auth_logs汚染防止)。
 // 10秒cooldown + offline skip で二重発火を防ぐ。
 let _lastWarmupTs = 0
 const WARMUP_COOLDOWN_MS = 10_000
@@ -13,8 +15,11 @@ export function warmupVerifyPin() {
   const now = Date.now()
   if (now - _lastWarmupTs < WARMUP_COOLDOWN_MS) return
   _lastWarmupTs = now
-  fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, { method: 'GET' })
-    .catch(e => console.warn('[WARMUP-VERIFY-PIN]', e))
+  fetch(`${SUPABASE_URL}/functions/v1/verify-pin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ staff_id: '__warmup__' }),
+  }).catch(e => console.warn('[WARMUP-VERIFY-PIN]', e))
 }
 
 export async function verifyPin(staff, pin) {
