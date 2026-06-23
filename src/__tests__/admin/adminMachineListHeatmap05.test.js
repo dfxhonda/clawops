@@ -29,9 +29,9 @@ describe('SPEC-PATROL-HISTORY-HEATMAP-05 F2: dateAxis伝播', () => {
 
 describe('SPEC-PATROL-HISTORY-HEATMAP-05 regression_audit: StoreTotalsHeader再利用元', () => {
   it('only_PatrolStorePage_and_AdminMachineListPage_import_StoreTotalsHeader', async () => {
-    // regression_audit_required: 第3の再利用元がないことをimport確認で担保
-    // grep結果: PatrolStorePage(巡回) + AdminMachineListPage(本spec)の2箇所のみ
-    // PatrolMachineListPageはMachineRowのみ(StoreTotalsHeader未使用)→崩壊なし
+    // regression_audit_required(HEATMAP-05+06): 第3の再利用元がないことをimport確認で担保
+    // grep結果: PatrolStorePage(巡回) + AdminMachineListPage(マネサポ)の2箇所のみ
+    // 旧巡回機械リストページはHEATMAP-06でデッドコード削除済
     const psPage = await import('../../clawsupport/pages/PatrolStorePage')
     const adminPage = await import('../../admin/pages/AdminMachineListPage')
     expect(psPage.default).toBeDefined()
