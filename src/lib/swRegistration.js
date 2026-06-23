@@ -61,6 +61,11 @@ export function setupPeriodicUpdate(swUrl, r, {
 
 export const updateSW = registerSW({
   immediate: true,
+  onNeedRefresh() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pwa-need-refresh'))
+    }
+  },
   onRegisteredSW(swUrl, r) {
     _r = r
     _swUrl = swUrl

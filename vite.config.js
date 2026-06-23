@@ -39,12 +39,10 @@ export default defineConfig(({ mode }) => ({
       }
     },
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       injectRegister: null,
       manifest: false,
       workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [
