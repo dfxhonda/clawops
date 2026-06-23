@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { MODULE_COLORS } from '../shared/ui/moduleColors'
 
 const LABELS = {
   admin:               'マネサポ',
@@ -60,21 +61,39 @@ export default function AdminBreadcrumb() {
     if (label) segments.push({ path: built, label })
   }
 
-  if (segments.length <= 2) return null
-
   return (
-    <nav data-testid="admin-breadcrumb" className="flex items-center gap-1 px-4 py-2 border-b border-border text-sm text-muted bg-bg shrink-0">
-      {segments.map((seg, i) => (
-        <span key={seg.path} className="flex items-center gap-1">
-          {i > 0 && <span className="mx-1 text-border">/</span>}
-          <button
-            onClick={() => navigate(seg.path)}
-            className={i === segments.length - 1 ? 'text-text font-semibold pointer-events-none' : 'hover:text-text transition-colors'}
-          >
-            {seg.label}
-          </button>
+    <nav
+      data-testid="admin-breadcrumb"
+      className="flex items-center gap-1 px-2 py-1 border-b border-border text-sm text-muted bg-bg shrink-0"
+      style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLORS.admin }}
+    >
+      <button
+        data-testid="admin-nav-back"
+        onClick={() => navigate(-1)}
+        className="w-12 h-12 rounded bg-surface border border-border text-2xl flex items-center justify-center shrink-0"
+        aria-label="戻る"
+      >←</button>
+      <button
+        data-testid="admin-nav-home"
+        onClick={() => navigate('/launcher')}
+        className="w-12 h-12 rounded bg-surface border border-border text-2xl flex items-center justify-center shrink-0"
+        aria-label="ホーム"
+      >⌂</button>
+      {segments.length > 2 && (
+        <span className="flex items-center gap-1 ml-1">
+          {segments.map((seg, i) => (
+            <span key={seg.path} className="flex items-center gap-1">
+              {i > 0 && <span className="mx-1 text-border">/</span>}
+              <button
+                onClick={() => navigate(seg.path)}
+                className={i === segments.length - 1 ? 'text-text font-semibold pointer-events-none' : 'hover:text-text transition-colors'}
+              >
+                {seg.label}
+              </button>
+            </span>
+          ))}
         </span>
-      ))}
+      )}
     </nav>
   )
 }
