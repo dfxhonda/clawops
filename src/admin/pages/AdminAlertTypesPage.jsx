@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { PageHeader } from '../../shared/ui/PageHeader'
 
 const EMPTY_FORM = {
   type_code: '', label: '', icon_emoji: '', color_hex: '#888888', sort_order: 0, is_active: true,
@@ -31,7 +31,6 @@ function TInput({ value, onChange, placeholder, type = 'text' }) {
 }
 
 export default function AdminAlertTypesPage() {
-  const navigate = useNavigate()
   const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffName } = useAuth()
   const [rows, setRows]       = useState([])
@@ -132,11 +131,8 @@ export default function AdminAlertTypesPage() {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <div className="px-4 py-3 border-b border-border flex items-center gap-3">
-        <button type="button" onClick={goBack} className="text-muted text-sm">← 戻る</button>
-        <h1 className="text-base font-bold flex-1">アラート種別マスタ</h1>
-        <button type="button" onClick={openNew} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg">＋ 新規</button>
-      </div>
+      <PageHeader module="admin" title="アラート種別マスタ" onBack={goBack}
+        rightSlot={<button type="button" onClick={openNew} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg">＋ 新規</button>} />
 
       <div className="px-4 py-4">
         {loading && <p className="text-center text-muted py-8">読み込み中…</p>}

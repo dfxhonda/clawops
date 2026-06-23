@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { uploadDevAsset } from '../../services/devAssets'
+import { PageHeader } from '../../shared/ui/PageHeader'
 
 // J-DEV-ASSET-HANDOFF-01: ファイル受け渡し upload 画面 (admin/manager only, route guard 済み)
 //   multi-file drop + 共通メタ (label / file_type / purpose) → 1 file ずつ raw bytes upload
@@ -53,10 +54,7 @@ export default function AdminDevAssetsUploadPage() {
 
   return (
     <div data-testid="admin-dev-assets-upload" className="flex flex-col bg-bg text-text" style={{ height: '100dvh' }}>
-      <div className="flex-shrink-0 p-3 border-b border-border flex items-center gap-2">
-        <button onClick={() => navigate('/admin/dev-assets')} className="text-sm text-muted min-h-[44px] flex items-center gap-1">← 一覧</button>
-        <h1 className="text-base font-bold flex-1">ファイル受け渡し / アップロード</h1>
-      </div>
+      <PageHeader module="admin" title="ファイル受け渡し / アップロード" onBack={() => navigate('/admin/dev-assets')} />
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         <div className="space-y-2">

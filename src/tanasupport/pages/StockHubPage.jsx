@@ -149,14 +149,6 @@ export default function StockHubPage() {
           onBack={() => { setStep('select'); setSelectedStore(null) }}
         />
         <div className="px-4 py-2 shrink-0 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { setStep('select'); setSelectedStore(null) }}
-            data-testid="stock-hub-change-store"
-            className="text-xs text-accent underline"
-          >
-            ← 店舗を変更
-          </button>
           <span className="text-xs text-muted">{selectedStore.store_code}</span>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">

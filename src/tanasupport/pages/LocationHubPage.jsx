@@ -66,41 +66,21 @@ export default function LocationHubPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-bg text-muted text-sm gap-4 px-5">
-        <p>読み込み中...</p>
-        <button
-          type="button"
-          onClick={() => navigate('/stock')}
-          data-testid="location-hub-loading-back"
-          className="text-xs underline text-muted min-h-[44px] px-3"
-        >
-          ← 対象選択に戻る
-        </button>
+      <div className="h-dvh flex flex-col bg-bg">
+        <PageHeader module="tanasupport" title="" variant="compact" onBack={() => navigate('/stock')} />
+        <div className="flex-1 flex items-center justify-center text-muted text-sm">
+          読み込み中...
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div data-testid="location-hub-error" className="min-h-screen flex flex-col items-center justify-center bg-bg text-rose-400 text-sm px-5 text-center gap-4">
-        <p className="break-all">{error}</p>
-        <div className="flex flex-col gap-2 w-full max-w-xs">
-          <button
-            type="button"
-            onClick={() => navigate('/stock')}
-            data-testid="location-hub-error-back-target"
-            className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-text font-bold"
-          >
-            ← 対象選択に戻る
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/launcher')}
-            data-testid="location-hub-error-back-launcher"
-            className="w-full min-h-[44px] rounded-xl bg-surface border border-border text-muted text-xs"
-          >
-            メインメニューへ
-          </button>
+      <div data-testid="location-hub-error" className="h-dvh flex flex-col bg-bg">
+        <PageHeader module="tanasupport" title="エラー" variant="compact" onBack={() => navigate('/stock')} />
+        <div className="flex-1 flex items-center justify-center text-rose-400 text-sm px-5 text-center">
+          <p className="break-all">{error}</p>
         </div>
       </div>
     )

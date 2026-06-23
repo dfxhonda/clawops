@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -29,7 +28,6 @@ function rowFlags(r) {
 }
 
 export default function AdminImportHubPage() {
-  const navigate = useNavigate()
   const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffRole, staffId, loading } = useAuth()
 
@@ -93,16 +91,13 @@ export default function AdminImportHubPage() {
     }
   }
 
-  const backBtn = (
-    <button onClick={goBack} className="text-sm text-muted px-2">← 戻る</button>
-  )
   const rows = preview?.records ?? []
   const conflicts = rows.filter(r => r.state === 'conflict')
 
   return (
     <>
       <div className="min-h-screen bg-bg">
-        <PageHeader title="取込ハブ" leftSlot={backBtn} />
+        <PageHeader title="取込ハブ" onBack={goBack} />
         <div className="p-4 max-w-5xl mx-auto space-y-5">
 
           {/* PCH Excel 取込 */}
