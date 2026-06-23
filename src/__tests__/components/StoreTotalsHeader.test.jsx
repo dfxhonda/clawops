@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// SPEC-PATROL-HISTORY-HEATMAP-01: 10列ヘッダ「9前/.../前回/今回」+ IN/日売/OUT モード切替
+// SPEC-PATROL-HISTORY-HEATMAP-01: 10列ヘッダ + IN/日売/OUT モード切替
 // SPEC-PATROL-HISTORY-HEATMAP-02: dateAxis prop、mode toggle / expand toggle は PatrolStorePage に移動
+// SPEC-PATROL-HISTORY-HEATMAP-03: COLUMN_HEADERS フォールバック廃止。dateAxis null列は空文字
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
@@ -29,15 +30,16 @@ const diffMap = {
 }
 
 describe('StoreTotalsHeader (SPEC-02)', () => {
-  it('column_labels_are_10_9前_to_今回_regardless_of_mode', () => {
+  it('column_labels_are_empty_when_no_dateAxis', () => {
+    // HEATMAP-03: COLUMN_HEADERS フォールバック廃止。dateAxis なし時は空文字
     const { rerender } = render(<StoreTotalsHeader diffMap={diffMap} mode="IN" />)
-    expect(screen.getByTestId('store-label-0').textContent).toBe('9前')
-    expect(screen.getByTestId('store-label-8').textContent).toBe('前回')
-    expect(screen.getByTestId('store-label-9').textContent).toBe('今回')
+    expect(screen.getByTestId('store-label-0').textContent).toBe('')
+    expect(screen.getByTestId('store-label-8').textContent).toBe('')
+    expect(screen.getByTestId('store-label-9').textContent).toBe('')
     rerender(<StoreTotalsHeader diffMap={diffMap} mode="OUT" />)
-    expect(screen.getByTestId('store-label-9').textContent).toBe('今回')
+    expect(screen.getByTestId('store-label-9').textContent).toBe('')
     rerender(<StoreTotalsHeader diffMap={diffMap} mode="DAILY" />)
-    expect(screen.getByTestId('store-label-9').textContent).toBe('今回')
+    expect(screen.getByTestId('store-label-9').textContent).toBe('')
   })
 
   it('IN_mode_renders_summed_inDiffs_at_correct_indices', () => {
@@ -77,7 +79,7 @@ describe('StoreTotalsHeader (SPEC-02)', () => {
     render(<StoreTotalsHeader diffMap={diffMap} mode="IN" dateAxis={axis} />)
     expect(screen.getByTestId('store-label-8').textContent).toBe('6/15')
     expect(screen.getByTestId('store-label-9').textContent).toBe('6/20')
-    // null slots fall back to COLUMN_HEADERS
-    expect(screen.getByTestId('store-label-0').textContent).toBe('9前')
+    // HEATMAP-03: null slots show empty string (no COLUMN_HEADERS fallback)
+    expect(screen.getByTestId('store-label-0').textContent).toBe('')
   })
 })

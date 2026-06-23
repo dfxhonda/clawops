@@ -5,7 +5,6 @@
 import { useMemo } from 'react'
 import {
   VIEW_MODES,
-  COLUMN_HEADERS,
   COLUMN_COUNT,
   NEWEST,
   aggregateSummaries,
@@ -33,17 +32,17 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
   return (
     <div data-testid="store-totals-header" className="border-b border-border">
       <div className="px-4 pt-1 flex items-center gap-2">
-        <div className="w-40 shrink-0" />
+        <div className="w-40 shrink-0 sticky left-0 z-10 bg-surface" />
         <div className="grid grid-cols-10 gap-x-1 text-base text-right leading-tight text-muted w-[400px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div key={i} data-testid={`store-label-${i}`}>
-              {fmtDateLabel(dateAxis?.[i]) ?? COLUMN_HEADERS[i]}
+              {fmtDateLabel(dateAxis?.[i]) ?? ''}
             </div>
           ))}
         </div>
       </div>
       <div className="px-4 pb-1 flex items-center gap-2">
-        <div className="w-40 shrink-0 text-sm text-muted">合計</div>
+        <div className="w-40 shrink-0 text-sm text-muted sticky left-0 z-10 bg-surface">合計</div>
         <div className="grid grid-cols-10 gap-x-1 text-right leading-tight w-[400px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div

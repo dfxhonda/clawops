@@ -1,6 +1,7 @@
 // SPEC-PATROL-HISTORY-HEATMAP-01: 10列横スクロール対応。
 // SPEC-PATROL-HISTORY-HEATMAP-02: computeColumnDates 50%閾値日付軸、mapSummaryToDateAxis、
 //   aggregateSummaries/computeWorstBoothMap dateAxis対応。
+// SPEC-PATROL-HISTORY-HEATMAP-03: computeColumnDates を全ブース日付和集合の新しい順10日に変更(閾値廃止)。
 // 巡回機械リスト 3-mode column switch。
 // IN / 日売 (daily avg) / OUT の 3 モード。
 // 10 列 (9前/8前/7前/6前/5前/4前/3前/2前/前回/今回)。
@@ -128,38 +129,30 @@ export function machineBoothSummaries(machine, diffMap) {
   return (machine?.booths ?? []).map(b => diffMap[b.booth_code] ?? null)
 }
 
-// SPEC-PATROL-HISTORY-HEATMAP-02 F1: 店舗共通日付軸を生成。
-// 各 patrol_date で巡回したブース数 / 店舗総ブース数 >= 50% の日のみ採用。
-// 歯抜け日 (単発追い巡回等) は除外。最新 10 日を古→新 で返す (display index 0=最古, 9=最新)。
+// SPEC-PATROL-HISTORY-HEATMAP-03 F1: 店舗共通日付軸を生成。
+// 全ブースの dates[] を和集合してユニーク化、新しい順10日を採用。閾値/台数比較は一切しない。
+// 採用日 < 10 の場合は左側(古い側)を null 埋め(相対ラベルフォールバック禁止)。
 // JST 遵守: patrol_date (YYYY-MM-DD) を直使用。toISOString().split/slice 禁止。
 export function computeColumnDates(diffMap) {
   const entries = Object.values(diffMap || {})
   if (!entries.length) return Array(COLUMN_COUNT).fill(null)
 
-  const total = entries.length
-  const dateCounts = new Map()
+  const allDates = new Set()
   for (const s of entries) {
-    const seen = new Set()
     for (const d of (s?.dates ?? [])) {
-      if (d != null && !seen.has(d)) {
-        seen.add(d)
-        dateCounts.set(d, (dateCounts.get(d) ?? 0) + 1)
-      }
+      if (d != null) allDates.add(d)
     }
   }
 
-  const threshold = total * 0.5
-  const qualified = [...dateCounts.entries()]
-    .filter(([, cnt]) => cnt >= threshold)
-    .map(([d]) => d)
+  const sorted = [...allDates]
     .sort((a, b) => (a > b ? -1 : 1))  // newest first
     .slice(0, COLUMN_COUNT)
 
-  if (!qualified.length) return Array(COLUMN_COUNT).fill(null)
+  if (!sorted.length) return Array(COLUMN_COUNT).fill(null)
 
-  // qualified[0]=最新 → display index NEWEST (9)
+  // sorted[0]=最新 → display index NEWEST (9)
   const axis = Array(COLUMN_COUNT).fill(null)
-  qualified.forEach((d, i) => {
+  sorted.forEach((d, i) => {
     axis[COLUMN_COUNT - 1 - i] = d
   })
   return axis

@@ -50,7 +50,7 @@ export default function MachineRow({
         onClick={handleClick}
         className="w-full flex items-center gap-2 px-4 py-1 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
-        <div className="w-40 shrink-0 flex items-center">
+        <div className="w-40 shrink-0 flex items-center sticky left-0 z-10 bg-surface">
           <span className="text-text text-lg font-bold truncate">{machine.machine_name}</span>
           {allDone && <span data-testid={`machine-row-allDone-${mc}`} className="shrink-0 ml-1 text-emerald-400/70">✓</span>}
         </div>

@@ -1,5 +1,6 @@
 // SPEC-PATROL-HISTORY-HEATMAP-01: aggregateSummaries / formatCell / VIEW_MODES shape 検証 (10列)
 // SPEC-PATROL-HISTORY-HEATMAP-02: computeColumnDates / mapSummaryToDateAxis / aggregateSummaries dateAxis
+// SPEC-PATROL-HISTORY-HEATMAP-03: computeColumnDates 閾値廃止 → 全ブース和集合の新しい順10日
 import { describe, it, expect } from 'vitest'
 import {
   aggregateSummaries,
@@ -142,31 +143,31 @@ describe('formatCell', () => {
   })
 })
 
-// SPEC-PATROL-HISTORY-HEATMAP-02 F1 新規テスト
-describe('computeColumnDates (HEATMAP-02 F1)', () => {
+// SPEC-PATROL-HISTORY-HEATMAP-03 F1 (HEATMAP-02 F1 テスト更新)
+describe('computeColumnDates (HEATMAP-03 F1: 閾値廃止・全ブース和集合)', () => {
   it('empty_diffMap_returns_10_nulls', () => {
     expect(computeColumnDates({})).toEqual(Array(10).fill(null))
     expect(computeColumnDates(null)).toEqual(Array(10).fill(null))
   })
 
-  it('returns_dates_appearing_in_at_least_50pct_of_booths', () => {
-    // 3 booths. threshold=1.5 → dates appearing >=2 are qualified.
+  it('returns_all_unique_dates_from_all_booths_regardless_of_count', () => {
+    // 3 booths. all dates from all booths are included (no threshold).
     const diffMap = {
       B1: { dates: [null, null, null, null, null, null, null, '2026-06-10', '2026-06-15', '2026-06-20'] },
       B2: { dates: [null, null, null, null, null, null, null, '2026-06-10', '2026-06-15', '2026-06-20'] },
       B3: { dates: [null, null, null, null, null, null, null, null,          '2026-06-15', '2026-06-20'] },
     }
     const axis = computeColumnDates(diffMap)
-    // 6/20=3/3=100%, 6/15=3/3=100%, 6/10=2/3=67% → all 3 qualify
-    expect(axis[9]).toBe('2026-06-20')  // newest at index 9
+    // Union of all dates: 6/10, 6/15, 6/20 → newest at index 9
+    expect(axis[9]).toBe('2026-06-20')
     expect(axis[8]).toBe('2026-06-15')
     expect(axis[7]).toBe('2026-06-10')
     // older positions are null
     expect(axis[0]).toBeNull()
   })
 
-  it('excludes_dates_below_50pct_threshold', () => {
-    // 4 booths. threshold=2. date '2026-06-01' appears in only 1 booth → excluded.
+  it('includes_all_dates_regardless_of_booth_count', () => {
+    // 4 booths. date '2026-06-01' appears in only 1 booth → still included (no threshold).
     const diffMap = {
       B1: { dates: fill10(['2026-06-01', '2026-06-10', '2026-06-20']) },
       B2: { dates: fill10(['2026-06-10', '2026-06-20']) },
@@ -174,9 +175,11 @@ describe('computeColumnDates (HEATMAP-02 F1)', () => {
       B4: { dates: fill10(['2026-06-10', '2026-06-20']) },
     }
     const axis = computeColumnDates(diffMap)
-    expect(axis).not.toContain('2026-06-01')
+    // All 3 unique dates appear (6/01 is no longer excluded)
+    expect(axis).toContain('2026-06-01')
     expect(axis[9]).toBe('2026-06-20')
     expect(axis[8]).toBe('2026-06-10')
+    expect(axis[7]).toBe('2026-06-01')
   })
 
   it('returns_newest_first_at_index_9', () => {

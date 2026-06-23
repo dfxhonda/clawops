@@ -67,7 +67,7 @@ export default function MachineRowExpandedBoothList({
             onClick={() => onBoothClick(booth)}
             className="w-full flex items-center gap-2 px-4 py-0.5 rounded-xl bg-surface/40 border border-border/40 text-left active:scale-[0.98] transition-transform"
           >
-            <div className="w-40 shrink-0 pl-4">
+            <div className="w-40 shrink-0 pl-4 sticky left-0 z-10 bg-surface">
               <p className="text-text text-base">
                 └ B{String(booth.booth_number).padStart(2, '0')}
                 {done && <span className="ml-1 text-emerald-400/70">✓</span>}
