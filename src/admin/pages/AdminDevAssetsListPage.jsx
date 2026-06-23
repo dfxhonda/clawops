@@ -66,7 +66,7 @@ export default function AdminDevAssetsListPage() {
 
   return (
     <div data-testid="admin-dev-assets-list" className="flex flex-col bg-bg text-text" style={{ height: '100dvh' }}>
-      <PageHeader module="admin" title="ファイル受け渡し" onBack={() => navigate('/admin/settings')}
+      <PageHeader module="admin" title="ファイル受け渡し" hideHome={true}
         rightSlot={
           <button
             data-testid="dev-asset-upload-link"

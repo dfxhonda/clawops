@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import ErrorBanner from '../../components/ErrorBanner'
@@ -15,7 +14,6 @@ import { ERR } from '../../lib/errorCodes'
 
 export default function AdminBulkImportPage() {
   const navigate = useNavigate()
-  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffRole, staffId, loading } = useAuth()
 
   const [stores,         setStores]         = useState([])
@@ -126,7 +124,7 @@ export default function AdminBulkImportPage() {
     <>
       {/* iPad+ */}
       <div className="hidden md:block min-h-screen bg-bg">
-        <PageHeader title="Excel一括取込" onBack={goBack} />
+        <PageHeader title="Excel一括取込" hideHome={true} />
         <div className="p-4 max-w-4xl mx-auto space-y-5">
 
           {/* Step 1: template download */}
@@ -263,7 +261,7 @@ export default function AdminBulkImportPage() {
 
       {/* Mobile: not supported */}
       <div className="block md:hidden min-h-screen bg-bg">
-        <PageHeader title="Excel一括取込" onBack={goBack} />
+        <PageHeader title="Excel一括取込" hideHome={true} />
         <div className="flex items-center justify-center p-8">
           <div className="text-center">
             <p className="text-base font-bold text-text">iPad以上の画面で開いてください</p>

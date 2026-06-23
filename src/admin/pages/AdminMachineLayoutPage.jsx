@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
 
@@ -29,7 +28,6 @@ const baseInp = 'bg-bg border border-border rounded px-2 py-0.5 text-text text-s
 const baseSel = 'bg-bg border border-border rounded px-2 py-0.5 text-text text-sm'
 
 export default function AdminMachineLayoutPage() {
-  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const [models, setModels] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -102,7 +100,7 @@ export default function AdminMachineLayoutPage() {
 
   return (
     <div className="h-screen bg-bg text-text flex flex-col overflow-hidden">
-      <PageHeader module="admin" title="メーターレイアウト設定" onBack={goBack}
+      <PageHeader module="admin" title="メーターレイアウト設定" hideHome={true}
         rightSlot={<span className="text-sm text-muted">{filtered.length}/{models.length}機種</span>} />
 
       <div className="flex flex-1 overflow-hidden">

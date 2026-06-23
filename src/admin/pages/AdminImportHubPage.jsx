@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import ErrorBanner from '../../components/ErrorBanner'
@@ -28,7 +27,6 @@ function rowFlags(r) {
 }
 
 export default function AdminImportHubPage() {
-  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffRole, staffId, loading } = useAuth()
 
   const [fileName, setFileName] = useState('')
@@ -97,7 +95,7 @@ export default function AdminImportHubPage() {
   return (
     <>
       <div className="min-h-screen bg-bg">
-        <PageHeader title="取込ハブ" onBack={goBack} />
+        <PageHeader title="取込ハブ" hideHome={true} />
         <div className="p-4 max-w-5xl mx-auto space-y-5">
 
           {/* PCH Excel 取込 */}

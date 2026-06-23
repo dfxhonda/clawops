@@ -54,7 +54,7 @@ export default function AdminDevAssetsUploadPage() {
 
   return (
     <div data-testid="admin-dev-assets-upload" className="flex flex-col bg-bg text-text" style={{ height: '100dvh' }}>
-      <PageHeader module="admin" title="ファイル受け渡し / アップロード" onBack={() => navigate('/admin/dev-assets')} />
+      <PageHeader module="admin" title="ファイル受け渡し / アップロード" hideHome={true} />
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         <div className="space-y-2">

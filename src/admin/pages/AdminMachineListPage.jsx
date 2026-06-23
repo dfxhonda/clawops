@@ -101,7 +101,7 @@ export default function AdminMachineListPage() {
         title={storeCode ? (storeName || storeCode) : '過去メーター編集'}
         variant="compact"
         rightSlot={storeCode ? <DateTime value={new Date()} format="date" /> : null}
-        onBack={() => navigate('/admin/audit')}
+        hideHome={true}
       />
 
       {/* J-UI-STORE-PICKER-SHEET-METER-02: persistent store trigger at top of machine list */}

@@ -44,7 +44,7 @@ export default function AdminStorePage() {
         module="admin"
         title="店舗一覧 (管理)"
         variant="compact"
-        onBack={() => navigate('/admin')}
+        hideHome={true}
       />
       <div data-testid="admin-store-list" className="p-4 space-y-2">
         {stores.length === 0 && (

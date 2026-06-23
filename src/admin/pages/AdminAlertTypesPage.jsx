@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
@@ -31,7 +30,6 @@ function TInput({ value, onChange, placeholder, type = 'text' }) {
 }
 
 export default function AdminAlertTypesPage() {
-  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffName } = useAuth()
   const [rows, setRows]       = useState([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +129,7 @@ export default function AdminAlertTypesPage() {
 
   return (
     <div className="min-h-screen bg-bg text-text">
-      <PageHeader module="admin" title="アラート種別マスタ" onBack={goBack}
+      <PageHeader module="admin" title="アラート種別マスタ" hideHome={true}
         rightSlot={<button type="button" onClick={openNew} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg">＋ 新規</button>} />
 
       <div className="px-4 py-4">

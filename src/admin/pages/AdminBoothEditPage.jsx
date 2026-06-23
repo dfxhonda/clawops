@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useHierarchicalBack } from '../../shared/nav/hierarchicalBack' // J-NAV-BACK-HIERARCHICAL-01
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
@@ -86,7 +85,6 @@ export default function AdminBoothEditPage() {
   const { boothCode } = useParams()
   const { state } = useLocation()
   const navigate = useNavigate()
-  const goBack = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffId, staffRole, loading } = useAuth()
   const { navigateNext, currentField, registerField } = useFieldNavigation()
   const activeTabindex = currentField?.dataTabindex ?? null
@@ -459,7 +457,7 @@ export default function AdminBoothEditPage() {
         module="admin"
         title={boothLabel}
         variant="compact"
-        onBack={goBack}
+        hideHome={true}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
