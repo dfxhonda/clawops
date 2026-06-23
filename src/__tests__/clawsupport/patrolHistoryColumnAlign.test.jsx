@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SPEC-PATROL-HISTORY-COLUMN-ALIGN-01: C1 mr-[17px] + C2 tabular-nums クラス存在確認
+// SPEC-PATROL-HISTORY-HEATMAP-02: tabular-nums クラス存在確認 (mr-[17px] は F2 統合スクロール廃止済)
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -41,15 +41,7 @@ const MACHINE = {
   machine_lockers: [],
 }
 
-describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C1 alignment classes', () => {
-  it('when_StoreTotalsHeader_rendered_should_have_mr-17px_on_both_grid_containers', () => {
-    render(<StoreTotalsHeader diffMap={DIFF_MAP} mode="IN" />)
-    const labelGrid = screen.getByTestId('store-label-0').parentElement
-    const valueGrid = screen.getByTestId('store-value-0').parentElement
-    expect(labelGrid.className).toContain('mr-[17px]')
-    expect(valueGrid.className).toContain('mr-[17px]')
-  })
-
+describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN tabular-nums', () => {
   it('when_StoreTotalsHeader_rendered_should_have_tabular-nums_on_both_grid_containers', () => {
     render(<StoreTotalsHeader diffMap={DIFF_MAP} mode="IN" />)
     const labelGrid = screen.getByTestId('store-label-0').parentElement
@@ -57,9 +49,7 @@ describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C1 alignment classes', () => {
     expect(labelGrid.className).toContain('tabular-nums')
     expect(valueGrid.className).toContain('tabular-nums')
   })
-})
 
-describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C2 tabular-nums', () => {
   it('when_MachineRow_rendered_should_have_tabular-nums_on_grid', () => {
     render(
       <MemoryRouter>

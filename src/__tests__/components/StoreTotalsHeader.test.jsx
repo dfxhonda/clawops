@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 // SPEC-PATROL-HISTORY-HEATMAP-01: 10列ヘッダ「9前/.../前回/今回」+ IN/日売/OUT モード切替
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+// SPEC-PATROL-HISTORY-HEATMAP-02: dateAxis prop、mode toggle / expand toggle は PatrolStorePage に移動
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
 
 // Helper: 10-element null array with values at rightmost positions
@@ -63,41 +64,20 @@ describe('StoreTotalsHeader (SPEC-02)', () => {
     expect(screen.getByTestId('store-value-9').textContent).toBe('15.0')
   })
 
-  it('when_onModeChange_provided_should_render_3_button_toggle_IN_Ave_OUT', () => {
-    const onModeChange = vi.fn()
-    render(<StoreTotalsHeader diffMap={diffMap} mode="IN" onModeChange={onModeChange} />)
-    expect(screen.getByTestId('patrol-view-mode-toggle')).toBeTruthy()
-    expect(screen.getByTestId('patrol-view-mode-btn-IN').textContent).toBe('IN')
-    expect(screen.getByTestId('patrol-view-mode-btn-DAILY').textContent).toBe('Ave')
-    expect(screen.getByTestId('patrol-view-mode-btn-OUT').textContent).toBe('OUT')
-    fireEvent.click(screen.getByTestId('patrol-view-mode-btn-DAILY'))
-    expect(onModeChange).toHaveBeenCalledWith('DAILY')
-    fireEvent.click(screen.getByTestId('patrol-view-mode-btn-OUT'))
-    expect(onModeChange).toHaveBeenCalledWith('OUT')
-  })
-
-  it('when_onModeChange_omitted_should_not_render_toggle', () => {
-    render(<StoreTotalsHeader diffMap={diffMap} mode="IN" />)
-    expect(screen.queryByTestId('patrol-view-mode-toggle')).toBeNull()
-  })
-
   it('when_diffMap_empty_should_render_dash_for_all_cells', () => {
     render(<StoreTotalsHeader diffMap={{}} mode="IN" />)
     expect(screen.getByTestId('store-value-0').textContent).toBe('−')
     expect(screen.getByTestId('store-value-9').textContent).toBe('−')
   })
 
-  it('when_onExpandAllToggle_provided_should_render_expand_toggle', () => {
-    const toggle = vi.fn()
-    render(<StoreTotalsHeader diffMap={diffMap} mode="IN" onModeChange={() => {}} onExpandAllToggle={toggle} allExpanded={false} />)
-    const btn = screen.getByTestId('expand-all-toggle')
-    expect(btn.textContent).toBe('全開')
-    fireEvent.click(btn)
-    expect(toggle).toHaveBeenCalledTimes(1)
-  })
-
-  it('when_allExpanded_true_should_show_全閉', () => {
-    render(<StoreTotalsHeader diffMap={diffMap} mode="IN" onModeChange={() => {}} onExpandAllToggle={() => {}} allExpanded={true} />)
-    expect(screen.getByTestId('expand-all-toggle').textContent).toBe('全閉')
+  it('when_dateAxis_provided_labels_show_M_D_format', () => {
+    const axis = Array(10).fill(null)
+    axis[8] = '2026-06-15'
+    axis[9] = '2026-06-20'
+    render(<StoreTotalsHeader diffMap={diffMap} mode="IN" dateAxis={axis} />)
+    expect(screen.getByTestId('store-label-8').textContent).toBe('6/15')
+    expect(screen.getByTestId('store-label-9').textContent).toBe('6/20')
+    // null slots fall back to COLUMN_HEADERS
+    expect(screen.getByTestId('store-label-0').textContent).toBe('9前')
   })
 })
