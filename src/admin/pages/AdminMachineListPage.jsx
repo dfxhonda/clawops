@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -9,6 +9,7 @@ import { fetchStoreMachineDiffs } from '../../services/storeMachineSummary'
 import MachineRow from '../../clawsupport/components/MachineRow'
 import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../../clawsupport/components/storeTotalsRanking'
+import { computeColumnDates } from '../../clawsupport/components/patrolViewModes'
 import { useAuth } from '../../hooks/useAuth'
 import { isAdmin } from '../../services/permissions'
 import StorePickerSheet from '../../components/StorePickerSheet'
@@ -73,6 +74,18 @@ export default function AdminMachineListPage() {
   // J-PATROL-IN-DAILY-fix-05: 機械単位ベスト3/ワースト3 ランクマップ
   const rankMap = useMemo(() => computeMachineRankMap(machines, diffMap), [machines, diffMap])
 
+  // SPEC-PATROL-HISTORY-HEATMAP-05 F2: 店舗共通日付軸(巡回側と同一ロジック)
+  const dateAxis = useMemo(() => computeColumnDates(diffMap), [diffMap])
+
+  // SPEC-PATROL-HISTORY-HEATMAP-05 F1: unified横スクロール — ロード完了時に最右(最新)列へ自動スクロール
+  const scrollRef = useRef(null)
+  useEffect(() => {
+    if (dataLoading) return
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [dataLoading])
+
   function handleStorePick(code) {
     if (!code) return
     navigate(`/admin/audit/booth-edit/${code}/machines`, { replace: true })
@@ -115,36 +128,44 @@ export default function AdminMachineListPage() {
 
       {storeCode && !dataLoading && (
         <>
-          {/* J-PATROL-IN-DAILY-fix-03 ad-hoc (ヒロ Discord IMG_4233):
-              管理者編集モードでも巡回画面と同じ 4 列ヘッダ (前IN/今IN/前/日/今/日) で揃える。 */}
-          <StoreTotalsHeader
-            diffMap={diffMap}
-            leftSlot={<span className="text-xs text-muted font-bold">管理者編集モード</span>}
-          />
+          {/* 入力済みブース数 (スクロール外固定) */}
           {Object.keys(todayMap).length > 0 && (
-            <div className="px-4 py-1 shrink-0">
+            <div className="px-4 py-1 shrink-0 border-b border-border">
               <span className="text-xs text-muted">入力済み {Object.keys(todayMap).length} / {machines.reduce((s, m) => s + m.booths.length, 0)} ブース</span>
             </div>
           )}
-
-          <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2 space-y-2">
-            {machines.length === 0 && (
-              <p className="text-center text-muted text-base py-12">機械データがありません</p>
-            )}
-            {machines.map(machine => (
-              <MachineRow
-                key={machine.machine_code}
-                machine={machine}
-                todayMap={todayMap}
-                diffMap={diffMap}
-                rankMap={rankMap}
-                onBoothClick={booth =>
-                  navigate(`/admin/audit/booth-edit/${booth.booth_code}`, {
-                    state: { machine, booth, storeCode },
-                  })
-                }
-              />
-            ))}
+          {/* SPEC-PATROL-HISTORY-HEATMAP-05 F1+F2: unified横スクロール+10列日付軸。
+              PatrolStorePageと同一容器構造で10列が整列、sticky左ラベル自動適用。 */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="overflow-x-auto" ref={scrollRef}>
+              <div className="min-w-max">
+                <StoreTotalsHeader
+                  diffMap={diffMap}
+                  dateAxis={dateAxis}
+                  leftSlot={<span className="text-xs text-muted font-bold">管理者編集モード</span>}
+                />
+                <div className="pt-2 pb-6 space-y-2">
+                  {machines.length === 0 && (
+                    <p className="text-center text-muted text-base py-12 px-4">機械データがありません</p>
+                  )}
+                  {machines.map(machine => (
+                    <MachineRow
+                      key={machine.machine_code}
+                      machine={machine}
+                      todayMap={todayMap}
+                      diffMap={diffMap}
+                      rankMap={rankMap}
+                      dateAxis={dateAxis}
+                      onBoothClick={booth =>
+                        navigate(`/admin/audit/booth-edit/${booth.booth_code}`, {
+                          state: { machine, booth, storeCode },
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </>
       )}
