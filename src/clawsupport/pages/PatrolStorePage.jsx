@@ -237,35 +237,36 @@ export default function PatrolStorePage() {
         module="clawsupport"
         title={storeName}
         variant="compact"
-        rightSlot={
-          <div className="flex items-center gap-2">
-            {totalCnt > 0 && (
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${
-                  doneCnt >= totalCnt
-                    ? 'text-emerald-400 border-emerald-400/40'
-                    : doneCnt > 0
-                    ? 'text-amber-400 border-amber-400/40'
-                    : 'text-muted border-border'
-                }`}
-              >
-                {doneCnt}/{totalCnt} 完了
-              </span>
-            )}
-            <button
-              type="button"
-              data-testid="patrol-store-manual-upload"
-              onClick={handleManualUpload}
-              disabled={syncing}
-              className="text-[11px] px-2 py-1 rounded-md bg-emerald-600/90 text-white font-bold disabled:opacity-50"
-            >
-              {syncing ? '送信中...' : 'とりま保存'}
-            </button>
-            <DateTime value={new Date()} format="date" />
-          </div>
-        }
         onBack={() => navigate('/clawsupport')}
       />
+
+      {/* SPEC-PATROL-STORE-HEADER-2ROW-01: 完了バッジ/とりま保存/日付を2段目操作バーへ移動、店名フル表示 */}
+      <div className="shrink-0 flex items-center gap-2 px-5 pb-2">
+        {totalCnt > 0 && (
+          <span
+            data-testid="patrol-store-done-badge"
+            className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${
+              doneCnt >= totalCnt
+                ? 'text-emerald-400 border-emerald-400/40'
+                : doneCnt > 0
+                ? 'text-amber-400 border-amber-400/40'
+                : 'text-muted border-border'
+            }`}
+          >
+            {doneCnt}/{totalCnt} 完了
+          </span>
+        )}
+        <button
+          type="button"
+          data-testid="patrol-store-manual-upload"
+          onClick={handleManualUpload}
+          disabled={syncing}
+          className="text-[11px] px-2 py-1 rounded-md bg-emerald-600/90 text-white font-bold disabled:opacity-50"
+        >
+          {syncing ? '送信中...' : 'とりま保存'}
+        </button>
+        <DateTime value={new Date()} format="date" />
+      </div>
 
       {/* SPEC-PATROL-HISTORY-HEATMAP-04 F2: 両替機セクション — デフォルト折畳み、バッジタップで展開 */}
       {changerMachines.length > 0 && (
