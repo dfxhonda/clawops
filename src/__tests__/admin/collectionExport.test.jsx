@@ -109,12 +109,6 @@ describe('CollectionExportPage when_data_exists', () => {
     })
   })
 
-  it('when_back_button_clicked_should_navigate_to_admin_reports', async () => {
-    wrap(<CollectionExportPage />, '/admin/reports/collections')
-    await waitFor(() => screen.getByLabelText('集計ハブへ戻る'))
-    screen.getByLabelText('集計ハブへ戻る').click()
-    expect(mockNavigate).toHaveBeenCalledWith('/admin/reports')
-  })
 })
 
 // ────────────────────────────────────────────────

@@ -378,9 +378,7 @@ export default function AdminStoreListPage() {
 
   return (
     <div data-testid="admin-store-list" className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
-      {/* page_top: ← ホーム / 店舗マスタ / + 新規追加 */}
       <div className="flex-shrink-0 p-3 pb-2 flex items-center gap-2 border-b border-border">
-        <a href="/launcher" data-testid="store-home-link" className="text-sm text-muted">← ホーム</a>
         <h1 className="text-base font-bold text-text">店舗マスタ</h1>
         <span className="text-sm text-muted">{rows.length}件</span>
         <div className="flex-1" />

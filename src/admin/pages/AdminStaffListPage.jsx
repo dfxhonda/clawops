@@ -478,7 +478,6 @@ export default function AdminStaffListPage() {
   return (
     <div data-testid="staff-list-page" className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       <div className="flex-shrink-0 p-3 pb-2 flex items-center gap-2 border-b border-border">
-        <a href="/launcher" data-testid="staff-home-link" className="text-sm text-muted">← ホーム</a>
         <h1 className="text-base font-bold text-text">スタッフマスタ</h1>
         <span className="text-sm text-muted">{rows.length}件</span>
         <div className="flex-1" />
