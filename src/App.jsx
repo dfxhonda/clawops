@@ -22,8 +22,6 @@ import { RoleGuard } from './shared/auth/RoleGuard'
 import { useVersionCheck } from './shared/hooks/useVersionCheck'
 // SPEC-LF1-STORE-LOCAL-CACHE-01: 未送信件数の app-wide banner
 import UnsentBanner from './components/UnsentBanner'
-// SPEC-PWA-SW-CONTROLLERCHANGE-RELOAD-01: prompt方式更新バナー
-import PwaUpdateBanner from './components/PwaUpdateBanner'
 import { buildLabel } from './lib/buildInfo'
 import { useSessionLock } from './hooks/useIdleLogout'
 
@@ -219,8 +217,6 @@ function AppInner() {
       )}
       {/* SPEC-LF1-STORE-LOCAL-CACHE-01: app-wide 未送信件数バナー */}
       {isLoggedIn && <UnsentBanner />}
-      {/* SPEC-PWA-SW-CONTROLLERCHANGE-RELOAD-01: prompt更新バナー (全画面共通) */}
-      <PwaUpdateBanner />
       {isLoggedIn && (
         <div className="fixed bottom-1 right-1 z-[90] text-[8px] text-muted/20 pointer-events-none select-none">
           {buildLabel()}

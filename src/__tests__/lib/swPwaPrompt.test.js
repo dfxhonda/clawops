@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-// SPEC-PWA-SW-CONTROLLERCHANGE-RELOAD-01: onNeedRefresh → pwa-need-refresh CustomEvent
+// SPEC-PWA-VERSION-CHECK-UPDATE-01: swRegistration autoUpdate化後のテスト
+// onNeedRefresh/pwa-need-refresh は撤去済み → onRegisteredSW のみ検証
 import { describe, it, expect, vi } from 'vitest'
 
 const capturedOpts = vi.hoisted(() => ({ value: {} }))
@@ -13,17 +14,13 @@ vi.mock('virtual:pwa-register', () => ({
 
 import '../../lib/swRegistration'
 
-describe('swRegistration onNeedRefresh (SPEC-PWA-SW-CONTROLLERCHANGE-RELOAD-01)', () => {
-  it('when_onNeedRefresh_called_should_dispatch_pwa_need_refresh_event', () => {
-    const dispatched = []
-    window.addEventListener('pwa-need-refresh', (e) => dispatched.push(e))
-    capturedOpts.value.onNeedRefresh?.()
-    expect(dispatched).toHaveLength(1)
-    expect(dispatched[0].type).toBe('pwa-need-refresh')
-  })
-
-  it('AC6: when_onRegisteredSW_called_should_not_throw', () => {
+describe('swRegistration (SPEC-PWA-VERSION-CHECK-UPDATE-01)', () => {
+  it('when_onRegisteredSW_called_should_not_throw', () => {
     const r = { installing: null, update: vi.fn() }
     expect(() => capturedOpts.value.onRegisteredSW?.('/sw.js', r)).not.toThrow()
+  })
+
+  it('should_not_have_onNeedRefresh_handler', () => {
+    expect(capturedOpts.value.onNeedRefresh).toBeUndefined()
   })
 })

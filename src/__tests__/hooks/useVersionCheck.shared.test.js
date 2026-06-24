@@ -49,7 +49,7 @@ afterEach(() => {
 
 describe('useVersionCheck (J-PWA-AUTO-VERSION-RELOAD-01)', () => {
   it('when_buildNumber_match_should_not_reload', async () => {
-    vi.stubGlobal('fetch', mockFetch([{ buildNumber: '1000', sha: 'abc' }]))
+    vi.stubGlobal('fetch', mockFetch([{ buildNumber: '1000', sha: 'test-sha' }]))
     const reload = vi.fn()
     const { result } = renderHook(() => useVersionCheck({ reload }))
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled())
@@ -128,7 +128,7 @@ describe('useVersionCheck (J-PWA-AUTO-VERSION-RELOAD-01)', () => {
   })
 
   it('when_response_missing_buildNumber_should_not_reload', async () => {
-    vi.stubGlobal('fetch', mockFetch([{ sha: 'x' }]))
+    vi.stubGlobal('fetch', mockFetch([{}]))
     const reload = vi.fn()
     const { result } = renderHook(() => useVersionCheck({ reload }))
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled())

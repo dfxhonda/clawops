@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => ({
       }
     },
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       injectRegister: null,
       manifest: false,
       workbox: {

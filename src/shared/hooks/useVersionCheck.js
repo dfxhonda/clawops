@@ -1,34 +1,30 @@
 // J-PWA-AUTO-VERSION-RELOAD-01 (司令塔Opus spec):
-// 起動時 + setInterval 5 分 + visibilitychange (foreground 復帰) で /version.json を no-store fetch、
-// __BUILD_NUMBER__ と異なれば一瞬トースト後 location.reload() で現場操作ゼロ。
+// 起動時1回 + 15分アイドル経過後の初回visible復帰 で /version.json を no-store fetch、
+// BUILD_SHA と異なれば一瞬トースト後 location.reload() で現場操作ゼロ。
+// SPEC-PWA-VERSION-CHECK-UPDATE-01: 照合キーをcommit SHA化。
+//   常時5分interval/毎回visibilitychange発火 → 「起動時+15分アイドル復帰のみ」に絞る。
+//   作業中(15分以内に操作継続)はreloadが割り込まない。
 //
-// loop guard: 同 buildNumber で既に reload 済なら再 reload しない (version.json 配信遅延時の無限ループ防止)。
-// オフライン / fetch fail 時は LOG-SPEC-01 準拠で console.warn 'ERR-PWA-VERSION-FETCH ...' を出力
-// (silent swallow は spec で禁止)。クラッシュさせない。
+// loop guard: 直近5分以内に既にfire済なら再reload抑制 (version.json配信遅延の無限ループ防止)。
+// オフライン / fetch fail 時は LOG-SPEC-01 準拠で console.warn 'ERR-PWA-VERSION-FETCH ...' を出力。
 import { useEffect, useState } from 'react'
-import { BUILD_NUMBER } from '../../lib/buildInfo'
+import { BUILD_SHA } from '../../lib/buildInfo'
 
-const INTERVAL_MS = 5 * 60 * 1000     // 5 分 (spec triggers)
 const RELOAD_DELAY_MS = 700           // トーストを一瞬見せてから reload
-// SPEC-PWA-VERSION-CHECK-FIX-01: 旧 'reloaded_for_build' (buildNumber-keyed) は
-// iOS Safari standalone PWA で /index.html cache 起因の bundle 更新失敗時に
-// storage に新 build 記録 + 旧 bundle 継続 → banner 永久未発火の副作用 (DIAG-PWA-UPDATE-BANNER-01)。
-// 'version_check_last_fired' (timestamp-keyed、5 分以内のみ抑制) に置換し、同 build でも
-// 5 分後に再 fire できるようにして iOS cache eviction retry path を確保する。
+// IDLE_MS: useIdleLogout と同値 (045936b)。import循環を避けるため定数複製。
+const IDLE_MS = 15 * 60 * 1000
+// SPEC-PWA-VERSION-CHECK-FIX-01: timestamp-keyed loop guard (5分窓)
 const STORAGE_KEY = 'version_check_last_fired'
-const SUPPRESS_WINDOW_MS = 5 * 60 * 1000  // 5 分
+const SUPPRESS_WINDOW_MS = 5 * 60 * 1000
 const LOG_TAG = 'ERR-PWA-VERSION-FETCH'
 
-// dev / pre-prod (BUILD_NUMBER='0' = git unavailable / 'local' = dev) ではスキップして
-// hot-reload と衝突しないようにする。production / preview build で git rev-list count が
-// 入っていれば '0' でなくなるので、本番系で自動 reload が有効化される。
+// dev / pre-prod (BUILD_SHA='local') ではスキップして hot-reload と衝突しない。
 function isDevMode() {
-  return !BUILD_NUMBER || BUILD_NUMBER === '0' || BUILD_NUMBER === 'local'
+  return !BUILD_SHA || BUILD_SHA === 'local'
 }
 
 function logFetchFail(err) {
-  // LOG-SPEC-01: 失敗は ERR-CODE 付き console.warn (Sentry に拾わせる前提、UI には出さない)。
-  // vite production build は console.log/debug/info を pure 化するが warn は残る。
+  // LOG-SPEC-01: 失敗は ERR-CODE 付き console.warn
   // eslint-disable-next-line no-console
   console.warn(`[${LOG_TAG}]`, err?.message || String(err))
 }
@@ -54,40 +50,56 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
           return
         }
         const data = await res.json()
-        const fetchedBuild = String(data?.buildNumber ?? '')
-        if (!fetchedBuild) return
-        if (fetchedBuild === String(BUILD_NUMBER)) return // 一致 = 最新、何もしない
+        if (!data.sha || data.sha === BUILD_SHA) return  // 一致 or SHA不明 = 何もしない
 
         // SPEC-PWA-VERSION-CHECK-FIX-01: timestamp ベース loop guard。
-        // 直近 fire から SUPPRESS_WINDOW_MS (5 分) 以内なら抑制、それ以降は同 build でも再 fire。
         const tsNow = typeof now === 'function' ? now() : Date.now()
         const lastFired = Number(storage?.getItem(STORAGE_KEY) ?? 0)
         if (lastFired && tsNow - lastFired < SUPPRESS_WINDOW_MS) return
 
-        // ガード記録 → トースト表示 → 短い猶予後 reload
         storage?.setItem(STORAGE_KEY, String(tsNow))
         if (cancelled) return
         setReloading(true)
         timeoutId = setTimeout(() => { if (!cancelled) doReload() }, RELOAD_DELAY_MS)
       } catch (err) {
-        // オフライン / タイムアウト / JSON parse 失敗 → ログのみ、クラッシュしない
         logFetchFail(err)
       }
     }
 
+    // 起動時1回
     check()
-    const intervalId = setInterval(check, INTERVAL_MS)
+
+    // 15分アイドル復帰時のみ check (useIdleLogout の hiddenAtRef パターン踏襲 045936b)
+    let hiddenAt = null
+
+    function handleHide() {
+      hiddenAt = typeof now === 'function' ? now() : Date.now()
+    }
+
+    function handleVisibleReturn() {
+      if (hiddenAt === null) return
+      const elapsed = (typeof now === 'function' ? now() : Date.now()) - hiddenAt
+      hiddenAt = null
+      if (elapsed >= IDLE_MS) check()
+    }
 
     function handleVisibility() {
-      if (document.visibilityState === 'visible') check()
+      if (document.visibilityState === 'hidden') handleHide()
+      else handleVisibleReturn()
     }
+
     document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('pagehide', handleHide)
+    window.addEventListener('pageshow', handleVisibleReturn)
+    window.addEventListener('focus', handleVisibleReturn)
 
     return () => {
       cancelled = true
-      clearInterval(intervalId)
       if (timeoutId) clearTimeout(timeoutId)
       document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('pagehide', handleHide)
+      window.removeEventListener('pageshow', handleVisibleReturn)
+      window.removeEventListener('focus', handleVisibleReturn)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
