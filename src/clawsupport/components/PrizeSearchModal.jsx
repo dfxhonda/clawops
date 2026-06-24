@@ -34,7 +34,7 @@ export default function PrizeSearchModal({ onSelect, onClose, prizes, vehicleSto
         <button
           onClick={() => setVehicleOnly(v => !v)}
           className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${vehicleOnly ? 'bg-accent4/20 border-accent4/40 text-accent4 font-bold' : 'bg-surface2 border-border text-muted'}`}>
-          🚗 車載のみ
+          車載のみ
         </button>
       </div>
 
@@ -79,7 +79,7 @@ export default function PrizeSearchModal({ onSelect, onClose, prizes, vehicleSto
                   <div className="px-2 py-1.5">
                     <div className="text-xs font-semibold text-text leading-tight line-clamp-2">{prize.prize_name}</div>
                     {qty != null && (
-                      <div className="mt-0.5 text-[10px] font-bold text-accent4">🚗 {qty}個</div>
+                      <div className="mt-0.5 text-[10px] font-bold text-accent4">{qty}個</div>
                     )}
                   </div>
                 </button>

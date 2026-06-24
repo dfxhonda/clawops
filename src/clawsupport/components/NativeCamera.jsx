@@ -130,10 +130,10 @@ const NativeCamera = forwardRef(function NativeCamera({ onOcrResult, storagePref
           fontSize: 15, fontWeight: 600, cursor: 'pointer',
         }}
       >
-        📸 撮影
+        撮影
       </button>
       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-        💡フラッシュONで撮ると認識精度UP
+        フラッシュONで撮ると認識精度UP
       </div>
     </div>
   )

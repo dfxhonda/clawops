@@ -521,27 +521,27 @@ const alerts = useMemo(() => detectAlerts(form.calc, form.outCount), [form.calc,
         {/* モードバッジ（全モード、日付を内包） */}
         {mode === 'new_patrol' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', marginBottom: 8, borderRadius: 6, background: '#0d1f0d', border: '1px solid rgba(46,204,113,.25)' }}>
-            <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>🆕 新規巡回入力</span>
+            <span style={{ fontWeight: 700, fontSize: 12, color: '#2ecc71' }}>新規巡回入力</span>
             <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
           </div>
         )}
         {mode === 'correction' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
             <span style={{ fontWeight: 700, fontSize: 13, color: '#f0a040' }}>
-              ✏️ {existingRecord?.entry_type === 'replace' ? '今日の入替を編集中' : '昨日の巡回を編集中'}
+              {existingRecord?.entry_type === 'replace' ? '今日の入替を編集中' : '昨日の巡回を編集中'}
             </span>
             <button
               onClick={handleSwitchToReplace}
               style={{ marginLeft: 'auto', fontSize: 11, color: '#5dade2', background: 'none', border: '1px solid rgba(93,173,226,.3)', borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}
             >
-              🔄 入替変更で記録
+              入替変更で記録
             </button>
           </div>
         )}
         {mode === 'replace' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', marginBottom: 8, borderRadius: 6, background: '#1a1a2e', border: '1px solid #2a2a44' }}>
-            <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>🔄 入替変更モード</span>
-            <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate} 🔒</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: '#5dade2' }}>入替変更モード</span>
+            <span style={{ fontSize: 11, color: '#8888a8', marginLeft: 'auto' }}>{readDate}</span>
           </div>
         )}
 

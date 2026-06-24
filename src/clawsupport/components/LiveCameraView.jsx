@@ -315,7 +315,7 @@ export default function LiveCameraView({ engine, onToggleEngine, onCapture, onQR
           onClick={() => nativeCamInputRef.current?.click()}
           style={{ color: '#000', background: '#f0c040', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
         >
-          📷 純正(フラッシュ可)
+          純正(フラッシュ可)
         </button>
       </div>
     </div>

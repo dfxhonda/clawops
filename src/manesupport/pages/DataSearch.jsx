@@ -294,7 +294,7 @@ export default function DataSearch() {
                     <span className="text-[11px] text-accent bg-surface3 px-2 py-0.5 rounded-full">編集中</span>
                   </div>
                   <div className="mb-2">
-                    <div className="text-[10px] text-muted uppercase tracking-wider mb-1">📅 日付</div>
+                    <div className="text-[10px] text-muted uppercase tracking-wider mb-1">日付</div>
                     <input className={inputCls} type="date" value={edit?.read_time||r.read_time?.slice(0,10)||''}
                       onChange={e=>updateEdit(r._idx,'read_time',e.target.value)} />
                   </div>
@@ -315,7 +315,7 @@ export default function DataSearch() {
                   <div className="flex gap-2">
                     <button className="flex-1 bg-surface2 border border-border text-text text-sm py-2 rounded-lg" onClick={()=>setEditingRow(null)}>✓ 完了</button>
                     <button className="flex-1 bg-surface2 border border-border text-accent2 text-sm py-2 rounded-lg" onClick={()=>cancelEdit(r._idx)}>取消</button>
-                    <button className="flex-1 bg-surface2 border border-border text-accent2 text-sm py-2 rounded-lg" onClick={()=>markDelete(r._idx)}>🗑 削除</button>
+                    <button className="flex-1 bg-surface2 border border-border text-accent2 text-sm py-2 rounded-lg" onClick={()=>markDelete(r._idx)}>削除</button>
                   </div>
                 </div>
               ) : (

@@ -8,9 +8,9 @@ import DateTime from '../../shared/ui/DateTime'
 // J-NAV-CONSOLIDATE-01: クレサポから集金エントリ削除、マネサポ集金タブに一本化。
 // 集金機能本体 (CollectionInputPage / /collection/input) は変更しない (forbidden)。
 const TILES = [
-  { key: 'patrol',     emoji: '📍', label: '巡回',   desc: 'メーター計測・補充・入替', active: true },
-  { key: 'replace',    emoji: '🔄', label: '入替',   desc: '景品交換記録', active: false },
-  { key: 'sales',      emoji: '📈', label: '売上',   desc: '入金・出金記録', active: false },
+  { key: 'patrol',  label: '巡回', desc: 'メーター計測・補充・入替', active: true },
+  { key: 'replace', label: '入替', desc: '景品交換記録', active: false },
+  { key: 'sales',   label: '売上', desc: '入金・出金記録', active: false },
 ]
 
 export default function ClawsupportStoreDash() {
@@ -85,8 +85,7 @@ export default function ClawsupportStoreDash() {
             }`}
             style={{ minHeight: 100 }}
           >
-            <span className="text-2xl">{tile.emoji}</span>
-            <p className={`text-sm font-bold mt-1 ${tile.active ? 'text-text' : 'text-muted'}`}>{tile.label}</p>
+            <p className={`text-sm font-bold ${tile.active ? 'text-text' : 'text-muted'}`}>{tile.label}</p>
             <p className="text-xs text-muted leading-snug">{tile.active ? tile.desc : '準備中'}</p>
           </button>
         ))}

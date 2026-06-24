@@ -31,7 +31,7 @@ export default function LockerInput({ lockers, machineCode, storeCode, staffId, 
 
   return (
     <div className="bg-surface border border-border rounded-xl p-4 mt-4">
-      <div className="text-sm font-bold text-muted mb-3">🔐 ロッカー補充</div>
+      <div className="text-sm font-bold text-muted mb-3">ロッカー補充</div>
       {lockers.map(locker => (
         <div key={locker.locker_id} className="mb-3">
           <label className="block text-sm text-muted mb-1">

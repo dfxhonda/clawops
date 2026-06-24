@@ -100,7 +100,7 @@ export default function DraftList() {
         <>
           <button onClick={handleSaveAll} disabled={saving}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition-colors mb-4">
-            {saving ? '保存中...' : `✅ ${drafts.length}件を一括保存`}
+            {saving ? '保存中...' : `${drafts.length}件を一括保存`}
           </button>
           <ErrorDisplay error={error} onRetry={handleSaveAll} onDismiss={() => setError(null)} />
 
@@ -168,7 +168,7 @@ export default function DraftList() {
 
           <button onClick={() => { clearDrafts(); setDrafts([]) }}
             className="w-full mt-3 bg-surface2 border border-border text-accent2 font-medium py-2.5 rounded-xl">
-            🗑️ 全下書きを削除
+            全下書きを削除
           </button>
         </>
       )}

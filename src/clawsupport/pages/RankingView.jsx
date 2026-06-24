@@ -94,7 +94,7 @@ export default function RankingView() {
 
       {/* モード切替 */}
       <div className="flex bg-surface2 rounded-xl p-1 mb-4">
-        {[['prev','📊 前回比'],['total','💰 集金後累計']].map(([val,label]) => (
+        {[['prev','前回比'],['total','集金後累計']].map(([val,label]) => (
           <button key={val} onClick={() => setMode(val)}
             className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all
               ${mode===val ? 'bg-surface text-accent shadow-sm' : 'text-muted'}`}>
@@ -113,7 +113,7 @@ export default function RankingView() {
       {/* TOP3 */}
       {top3.length > 0 && (
         <div className="mb-4">
-          <h3 className="text-base font-bold text-green-400 mb-2">🏆 TOP3</h3>
+          <h3 className="text-base font-bold text-green-400 mb-2">TOP3</h3>
           <div className="space-y-2">
             {top3.map((b,i) => (
               <div key={b.booth_code} className={`bg-surface border border-border rounded-xl p-3.5 border-l-4 ${medalBorders[i]}`}>
@@ -136,7 +136,7 @@ export default function RankingView() {
       {/* WORST3 */}
       {worst3.length > 0 && (
         <div className="mb-4">
-          <h3 className="text-base font-bold text-accent2 mb-2">⚠️ WORST3（入替候補）</h3>
+          <h3 className="text-base font-bold text-accent2 mb-2">WORST3（入替候補）</h3>
           <div className="space-y-2">
             {worst3.map(b => (
               <div key={b.booth_code} className="bg-surface border border-border rounded-xl p-3.5 border-l-4 border-l-accent2">
@@ -157,7 +157,7 @@ export default function RankingView() {
       )}
 
       {/* 全ブース */}
-      <h3 className="text-base font-bold mb-2">📋 全ブース（機械順）</h3>
+      <h3 className="text-base font-bold mb-2">全ブース（機械順）</h3>
       <div className="space-y-1.5">
         {boothStats.map(b => (
           <div key={b.booth_code} className={`bg-surface border border-border rounded-xl px-4 py-2.5 ${getNoData(b)?'opacity-50':''}`}>
