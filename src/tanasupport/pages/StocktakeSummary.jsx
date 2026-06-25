@@ -189,7 +189,7 @@ export default function StocktakeSummary() {
             onClick={handleExcel}
             className="w-full py-3 rounded-xl bg-surface border border-border text-sm font-bold active:scale-[0.98] transition-all"
           >
-            📥 Excelダウンロード
+            Excelダウンロード
           </button>
 
           <button

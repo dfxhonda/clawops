@@ -86,7 +86,7 @@ export default function StocktakeTargetPage() {
             tab === 'warehouse' ? 'bg-emerald-600 text-white' : 'bg-surface border border-border text-text'
           }`}
         >
-          🏭 倉庫
+          倉庫
         </button>
         <button
           type="button"
@@ -117,7 +117,6 @@ export default function StocktakeTargetPage() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
                 style={{ minHeight: 88, borderLeftWidth: 4, borderLeftColor: '#10b981' }}
               >
-                <span className="text-2xl shrink-0" style={{ minWidth: 44, textAlign: 'center' }}>🏭</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-text text-base font-bold truncate">{loc.location_name}</p>
                   <p className="text-xs text-muted mt-0.5 font-mono truncate">{loc.location_id}</p>
@@ -146,7 +145,6 @@ export default function StocktakeTargetPage() {
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
                   style={{ minHeight: 88, borderLeftWidth: 4, borderLeftColor: '#f59e0b' }}
                 >
-                  <span className="text-2xl shrink-0" style={{ minWidth: 44, textAlign: 'center' }}>🚗</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-text text-base font-bold truncate">{st.name}</p>

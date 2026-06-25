@@ -142,7 +142,6 @@ export default function TanasupportHub() {
       {tab === 'sakugyou' && (
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
           <TaskTile
-            emoji="🚚"
             title="入荷チェック"
             sub="入荷品の受取確認"
             borderColor="#f43f5e"
@@ -151,7 +150,6 @@ export default function TanasupportHub() {
             onClick={() => navigate('/stock/arrival')}
           />
           <TaskTile
-            emoji="📋"
             title="棚卸し"
             sub="棚卸しセッション管理"
             borderColor="#10b981"
@@ -160,7 +158,6 @@ export default function TanasupportHub() {
             onClick={() => navigate('/tanasupport/stocktake')}
           />
           <TaskTile
-            emoji="📦"
             title="発注追跡"
             sub="発注履歴を確認"
             borderColor="var(--color-border, #e5e7eb)"
@@ -168,7 +165,6 @@ export default function TanasupportHub() {
             onClick={() => navigate('/tanasupport/orders')}
           />
           <TaskTile
-            emoji="📤"
             title="出庫記録"
             sub="担当持出・他店送付・出庫調整"
             borderColor="#f59e0b"
@@ -183,7 +179,6 @@ export default function TanasupportHub() {
               /tanasupport (本 TanasupportHub) で /stock (StockHubPage) は通らない。
               spec acceptance a1 '/stock のメニュー' を満たすには本ハブにも同タイル追加が必要。 */}
           <TaskTile
-            emoji="🔬"
             title="OCRカウントテスト"
             sub="景品個数OCRの精度確認 (テスト版)"
             borderColor="#8b5cf6"
@@ -256,14 +251,13 @@ export default function TanasupportHub() {
   )
 }
 
-function TaskTile({ emoji, title, sub, borderColor, badge, badgeBg, onClick }) {
+function TaskTile({ title, sub, borderColor, badge, badgeBg, onClick }) {
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
     >
-      <span className="text-xl shrink-0">{emoji}</span>
       <div className="flex-1 min-w-0">
         <p className="text-text text-sm font-bold">{title}</p>
         <p className="text-xs mt-0.5" style={{ color: borderColor }}>{sub}</p>
@@ -283,7 +277,6 @@ function WarehouseCard({ location, onSelect }) {
       onClick={onSelect}
       className="flex items-center gap-2 px-3 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
     >
-      <span className="text-lg shrink-0">{isWarehouse ? '🏭' : '🏪'}</span>
       <div className="flex-1 min-w-0">
         <p className="text-text text-xs font-bold truncate">{location.location_name}</p>
         <p className="text-muted text-[10px] mt-0.5">{isWarehouse ? '倉庫' : '店舗倉庫'}</p>

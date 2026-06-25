@@ -107,7 +107,6 @@ export default function LocationHubPage() {
 
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
         <TaskTile
-          emoji="🚛"
           title="入荷チェック"
           sub="入荷品の受取確認"
           borderColor="#f43f5e"
@@ -115,7 +114,6 @@ export default function LocationHubPage() {
           testid="location-hub-card-arrival"
         />
         <TaskTile
-          emoji="📋"
           title="棚卸し"
           sub="棚卸セッション管理"
           borderColor="#10b981"
@@ -123,7 +121,6 @@ export default function LocationHubPage() {
           testid="location-hub-card-stocktake"
         />
         <TaskTile
-          emoji="📦"
           title="発注追跡"
           sub="発注履歴を確認"
           borderColor="#8b5cf6"
@@ -134,7 +131,6 @@ export default function LocationHubPage() {
             ため owner 引数なしで遷移する。元 SPEC-STOCK-ANNOUNCEMENTS-01 で TanasupportHub に
             置いたが Launcher 入口から到達不能 (DIAG-STOCK-UI-02 root cause 確定) で本箇所へ移設。 */}
         <TaskTile
-          emoji="📣"
           title="景品案内"
           sub="新着案内とお気に入り (発注検討用)"
           borderColor="#06b6d4"
@@ -146,7 +142,7 @@ export default function LocationHubPage() {
   )
 }
 
-function TaskTile({ emoji, title, sub, borderColor, onClick, testid }) {
+function TaskTile({ title, sub, borderColor, onClick, testid }) {
   return (
     <button
       type="button"
@@ -155,7 +151,6 @@ function TaskTile({ emoji, title, sub, borderColor, onClick, testid }) {
       className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none min-h-[88px]"
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
     >
-      <span className="text-2xl shrink-0" style={{ minWidth: 44, textAlign: 'center' }}>{emoji}</span>
       <div className="flex-1 min-w-0">
         <p className="text-text text-base font-bold">{title}</p>
         <p className="text-sm mt-0.5" style={{ color: borderColor }}>{sub}</p>

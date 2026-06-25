@@ -283,18 +283,18 @@ function SummaryTab({ summary }) {
   return (
     <div className="px-5 pt-4" data-testid="summary-tab">
       <div className="space-y-3">
-        <SummaryRow emoji="🏭" label="倉庫"   count={summary.location ?? 0} />
-        <SummaryRow emoji="🎮" label="機械内" count={summary.booth ?? 0} />
-        <SummaryRow emoji="👤" label="個人"   count={summary.staff ?? 0} />
+        <SummaryRow label="倉庫"   count={summary.location ?? 0} />
+        <SummaryRow label="機械内" count={summary.booth ?? 0} />
+        <SummaryRow label="個人"   count={summary.staff ?? 0} />
         <div className="border-t border-border pt-3">
-          <SummaryRow emoji="📦" label="全社合計" count={total} bold />
+          <SummaryRow label="全社合計" count={total} bold />
         </div>
       </div>
     </div>
   )
 }
 
-function SummaryRow({ emoji, label, count, bold = false }) {
+function SummaryRow({ label, count, bold = false }) {
   return (
     <div
       className={`flex items-center justify-between px-4 py-3 rounded-xl ${
