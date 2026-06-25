@@ -197,7 +197,7 @@ function MachineTab({ items }) {
     <div className="px-5 pt-4 pb-4" data-testid="machine-tab">
       <div className="flex items-center gap-1.5 mb-3">
         <span className="text-[10px] text-muted bg-surface border border-border px-2 py-0.5 rounded-full">
-          🔒 READ ONLY — M1由来スナップショット
+          READ ONLY — M1由来スナップショット
         </span>
       </div>
       {Object.entries(grouped).map(([boothCode, prizes]) => (
@@ -231,7 +231,7 @@ function PersonalTab({ items, zeroDeclared, onDeclareZero, declaring }) {
     <div className="px-5 pt-4" data-testid="personal-tab">
       {zeroDeclared ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 mb-4 text-center">
-          <p className="text-emerald-400 font-bold text-base">ゼロ申告済み ✅</p>
+          <p className="text-emerald-400 font-bold text-base">ゼロ申告済み</p>
           <p className="text-muted text-xs mt-1">
             {new Date(zeroDeclared.declared_at).toLocaleDateString('ja-JP', {
               month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -305,7 +305,7 @@ function SummaryRow({ emoji, label, count, bold = false }) {
       data-testid={`summary-row-${label}`}
     >
       <span className={`text-sm ${bold ? 'font-bold text-text' : 'text-muted'}`}>
-        {emoji} {label}
+        {label}
       </span>
       <span
         className={`font-mono ${

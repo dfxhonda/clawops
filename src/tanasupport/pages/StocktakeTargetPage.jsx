@@ -96,7 +96,7 @@ export default function StocktakeTargetPage() {
             tab === 'staff' ? 'bg-emerald-600 text-white' : 'bg-surface border border-border text-text'
           }`}
         >
-          🚗 担当持ち回り
+          担当持ち回り
         </button>
       </div>
 

@@ -266,12 +266,12 @@ export default function StocktakeInput() {
 
       {sessionLocked && (
         <div className="px-5 py-2.5 bg-rose-500/10 border-b border-rose-500/30 text-center" data-testid="lock-banner">
-          <p className="text-rose-400 text-xs font-bold">🔒 このセッションはロック済みです — 修正不可</p>
+          <p className="text-rose-400 text-xs font-bold">このセッションはロック済みです — 修正不可</p>
         </div>
       )}
       {!sessionLocked && pastMonthEnd && (
         <div className="px-5 py-2.5 bg-rose-500/10 border-b border-rose-500/30 text-center" data-testid="deadline-banner">
-          <p className="text-rose-400 text-xs font-bold">🔒 当月締切（月末23:59 JST）を過ぎたため修正できません</p>
+          <p className="text-rose-400 text-xs font-bold">当月締切（月末23:59 JST）を過ぎたため修正できません</p>
         </div>
       )}
 
@@ -298,7 +298,7 @@ export default function StocktakeInput() {
           <div className="text-center text-muted text-sm py-16">この倉庫に景品在庫データがありません</div>
         ) : filteredPrizes.length === 0 ? (
           <div className="text-center text-muted text-sm py-16">
-            {filter === 'unfilled' ? 'すべて入力済みです ✅' : '該当なし'}
+            {filter === 'unfilled' ? 'すべて入力済みです' : '該当なし'}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">

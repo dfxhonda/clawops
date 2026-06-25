@@ -178,7 +178,7 @@ export default function StocktakeSummary() {
             </button>
           ) : (
             <div className="w-full py-4 rounded-xl bg-green-500/10 border border-green-500/40 text-green-400 font-bold text-sm text-center">
-              ✅ 締め済み (承認待ち)
+              締め済み (承認待ち)
             </div>
           )}
           {!applied && (

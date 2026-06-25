@@ -72,7 +72,7 @@ export default function StoreDashboard() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text font-bold">📋 棚卸し</p>
+              <p className="text-text font-bold">棚卸し</p>
               <p className="text-muted text-sm mt-0.5">
                 {activeSessions > 0 ? `進行中 ${activeSessions} 件` : 'セッションなし'}
               </p>
@@ -94,7 +94,7 @@ export default function StoreDashboard() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-text font-bold">📦 発注追跡</p>
+              <p className="text-text font-bold">発注追跡</p>
               <p className="text-muted text-sm mt-0.5">
                 {pendingOrders > 0 ? `発注中 ${pendingOrders} 件` : '発注なし'}
               </p>

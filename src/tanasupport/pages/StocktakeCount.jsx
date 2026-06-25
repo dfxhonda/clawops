@@ -347,7 +347,7 @@ export default function StocktakeCount() {
       <div className="flex-1 pb-24">
         {filtered.length === 0 && (
           <div className="flex items-center justify-center py-16 text-muted text-sm">
-            {filter === 'uncounted' ? 'すべてカウント済みです ✅' : '該当なし'}
+            {filter === 'uncounted' ? 'すべてカウント済みです' : '該当なし'}
           </div>
         )}
         {filtered.map(line => (

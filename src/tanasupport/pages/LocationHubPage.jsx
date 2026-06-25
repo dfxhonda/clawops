@@ -97,7 +97,7 @@ export default function LocationHubPage() {
 
       <div className="px-4 py-2 shrink-0 flex items-center gap-2 border-b border-border">
         <span className="text-xs text-muted">
-          {ownerType === 'warehouse' ? '🏭 倉庫' : '🚗 担当持ち回り'}
+          {ownerType === 'warehouse' ? '倉庫' : '担当持ち回り'}
         </span>
         {isSelf && (
           <span data-testid="location-hub-self-badge" className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-600 text-white font-bold">自分</span>
