@@ -138,8 +138,8 @@ describe('formatCell', () => {
   it('count_should_use_locale_separator', () => {
     expect(formatCell(1234, 'count')).toBe('1,234')
   })
-  it('perDay_should_render_1_decimal', () => {
-    expect(formatCell(33.333, 'perDay')).toBe('33.3')
+  it('perDay_should_render_rounded_integer_with_locale', () => {
+    expect(formatCell(33.333, 'perDay')).toBe('33')
   })
 })
 

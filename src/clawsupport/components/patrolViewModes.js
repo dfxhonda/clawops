@@ -39,7 +39,7 @@ function round1(n) {
 export function formatCell(value, type) {
   if (value == null) return '−'
   switch (type) {
-    case 'perDay': return value.toFixed(1)
+    case 'perDay': return Math.round(value).toLocaleString()
     case 'count':
     default:       return value.toLocaleString()
   }

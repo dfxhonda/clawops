@@ -58,12 +58,12 @@ describe('StoreTotalsHeader (SPEC-02)', () => {
     expect(screen.getByTestId('store-value-9').textContent).toBe('5')
   })
 
-  it('DAILY_mode_renders_weighted_avg_1dp', () => {
-    // SUM(inDiffs[9]) = 40+20 = 60, SUM(days[9]) = 2+2 = 4 → 15.0
-    // SUM(inDiffs[6]) = 10+5  = 15, SUM(days[6]) = 2+2 = 4 → 3.8
+  it('DAILY_mode_renders_rounded_integer', () => {
+    // SUM(inDiffs[9]) = 40+20 = 60, SUM(days[9]) = 2+2 = 4 → 15
+    // SUM(inDiffs[6]) = 10+5  = 15, SUM(days[6]) = 2+2 = 4 → 4 (3.75 rounded)
     render(<StoreTotalsHeader diffMap={diffMap} mode="DAILY" />)
-    expect(screen.getByTestId('store-value-6').textContent).toBe('3.8')
-    expect(screen.getByTestId('store-value-9').textContent).toBe('15.0')
+    expect(screen.getByTestId('store-value-6').textContent).toBe('4')
+    expect(screen.getByTestId('store-value-9').textContent).toBe('15')
   })
 
   it('when_diffMap_empty_should_render_dash_for_all_cells', () => {
