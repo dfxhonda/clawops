@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { logout } from '../lib/auth/session'
+import { markLogoutStart, markLogoutReplaced, reportInterrupt } from '../lib/idleLogoutProbe'
 
 // SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作15分アイドル → logout (ヒロ指示 2026-06-23: 5分→15分変更)
 // SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
@@ -23,9 +24,11 @@ export function useSessionLock(enabled = true) {
   const hiddenAtRef = useRef(null)           // hidden になった時刻 (離席実時間計測用)
 
   const doLogout = useCallback(async () => {
+    markLogoutStart()
     _dbg(`doLogout enter t=${Date.now()} perf=${Math.round(performance.now())}`)
     await logout()
     _dbg(`doLogout after-logout t=${Date.now()} perf=${Math.round(performance.now())}`)
+    markLogoutReplaced()
     window.location.replace('/login')
     _dbg(`doLogout after-replace t=${Date.now()} perf=${Math.round(performance.now())}`)
   }, [])
@@ -131,6 +134,7 @@ export function useSessionLock(enabled = true) {
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       const onControllerChange = () => {
         _dbg(`T4 controllerchange t=${Date.now()} perf=${Math.round(performance.now())}`)
+        reportInterrupt('SWCHANGE')
       }
       navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
       _swCleanup = () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)

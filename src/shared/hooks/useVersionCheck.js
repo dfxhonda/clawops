@@ -9,6 +9,7 @@
 // オフライン / fetch fail 時は LOG-SPEC-01 準拠で console.warn 'ERR-PWA-VERSION-FETCH ...' を出力。
 import { useEffect, useState } from 'react'
 import { BUILD_SHA } from '../../lib/buildInfo'
+import { reportInterrupt } from '../../lib/idleLogoutProbe'
 
 const RELOAD_DELAY_MS = 700           // トーストを一瞬見せてから reload
 // IDLE_MS: useIdleLogout と同値 (045936b)。import循環を避けるため定数複製。
@@ -77,6 +78,7 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
         timeoutId = setTimeout(() => {
           if (!cancelled) {
             _dbgV(`doReload firing t=${Date.now()} perf=${Math.round(performance.now())}`)
+            reportInterrupt('RELOAD')
             doReload()
           }
         }, RELOAD_DELAY_MS)
