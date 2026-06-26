@@ -835,6 +835,8 @@ export default function PatrolBoothInputPage() {
         {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[31dvh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+          {/* SPEC-PATROL-BOOTH-LABEL-VISIBILITY-01 R2: スワイプミスで別ブースを撮った時に気づける */}
+          <div className="text-xs text-muted mb-1 truncate" data-testid="ocr-confirm-booth-label">{boothLabel}</div>
           {/* J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04: OCR 失敗時の inline 案内バナー。
               ocrCapture.avgConf === null は OCR が値を出してない (timeout / no meters)、
               ocrError 文言を表示しつつ confirming UI と numpad はそのまま使える。 */}
@@ -962,6 +964,14 @@ export default function PatrolBoothInputPage() {
 
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
+        {booth && (
+          <span
+            data-testid="booth-number-badge"
+            className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs border bg-surface border-border text-muted"
+          >
+            ブース {booth.booth_number}
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setShowAlert(true)}
