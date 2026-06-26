@@ -9,7 +9,7 @@
 // オフライン / fetch fail 時は LOG-SPEC-01 準拠で console.warn 'ERR-PWA-VERSION-FETCH ...' を出力。
 import { useEffect, useState } from 'react'
 import { BUILD_SHA } from '../../lib/buildInfo'
-import { reportInterrupt } from '../../lib/idleLogoutProbe'
+import { reportInterrupt, isLogoutInFlight } from '../../lib/idleLogoutProbe'
 
 const RELOAD_DELAY_MS = 700           // トーストを一瞬見せてから reload
 // IDLE_MS: useIdleLogout と同値 (045936b)。import循環を避けるため定数複製。
@@ -76,11 +76,15 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
         _dbgV(`check scheduling doReload in ${RELOAD_DELAY_MS}ms t=${Date.now()}`)
         setReloading(true)
         timeoutId = setTimeout(() => {
-          if (!cancelled) {
-            _dbgV(`doReload firing t=${Date.now()} perf=${Math.round(performance.now())}`)
-            reportInterrupt('RELOAD')
-            doReload()
+          if (cancelled) return
+          _dbgV(`doReload firing t=${Date.now()} perf=${Math.round(performance.now())}`)
+          const logoutActive = isLogoutInFlight()   // reportInterruptより前に取得 (順序制約)
+          reportInterrupt('RELOAD')                  // logout有無に関わらず Sentry検知継続
+          if (logoutActive) {
+            _dbgV(`doReload SKIPPED (logout in flight) t=${Date.now()}`)
+            return                                   // logout優先、reloadしない
           }
+          doReload()
         }, RELOAD_DELAY_MS)
       } catch (err) {
         logFetchFail(err)

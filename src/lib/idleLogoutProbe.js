@@ -17,6 +17,10 @@ export function markLogoutReplaced() {
   try { Sentry.addBreadcrumb({ category: 'idle-logout', message: 'logout-replaced', level: 'info' }) } catch {}
 }
 
+export function isLogoutInFlight() {
+  return logoutInFlight
+}
+
 export function reportInterrupt(source) {
   if (!logoutInFlight) return
   const elapsed = Date.now() - startTs
