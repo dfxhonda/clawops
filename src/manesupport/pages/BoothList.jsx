@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMachines, getBooths, updateBooth, addBooth, getNextBoothNumber } from '../../services/masters'
-import LogoutButton from '../../components/LogoutButton'
+import { PageHeader } from '../../shared/ui/PageHeader'
 import StorePickerSheet from '../../components/StorePickerSheet'
 
 export default function BoothList() {
@@ -140,14 +140,7 @@ export default function BoothList() {
   return (
     <div className="h-full flex flex-col">
 
-      <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin/masters')} className="text-2xl text-muted">←</button>
-        <div className="flex-1">
-          <h2 className="text-base font-bold">ブース一覧</h2>
-          <p className="text-[11px] text-muted">ブース設定の確認・編集</p>
-        </div>
-        <LogoutButton to="/admin/masters" />
-      </div>
+      <PageHeader module="admin" hideHome={true} title="ブース一覧" onBack={() => navigate('/admin/masters')} />
 
 
       <div className="flex-1 overflow-y-auto pb-16">
