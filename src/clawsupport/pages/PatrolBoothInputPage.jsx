@@ -758,10 +758,46 @@ export default function PatrolBoothInputPage() {
   const inDiffDisp  = diffDisplay(inDiff)
   const outDiffDisp = diffDisplay(outDiff)
 
+  // [DBG-KBSHIFT] INVESTIGATE-OCR-MODAL-KEYBOARD-SHIFT-01 — 計測専用、fix spec後に全撤去
+  useEffect(() => {
+    if (ocrState !== 'confirming') return
+    let kbShiftCaptures = []
+    function dbgMeasure(label) {
+      const outer  = document.querySelector('[data-dbg-kbshift="outer"]')
+      const middle = document.querySelector('[data-dbg-kbshift="middle"]')
+      const top    = document.querySelector('[data-dbg-kbshift="top"]')
+      const vv     = window.visualViewport
+      const data   = {
+        label,
+        vv_h:         vv ? Math.round(vv.height)    : null,
+        vv_offsetTop: vv ? Math.round(vv.offsetTop)  : null,
+        outer_top:    outer  ? Math.round(outer.getBoundingClientRect().top)  : null,
+        middle_top:   middle ? Math.round(middle.getBoundingClientRect().top) : null,
+        zoneTop_top:  top    ? Math.round(top.getBoundingClientRect().top)    : null,
+      }
+      logger.warn('DBG-KBSHIFT', data)
+      kbShiftCaptures.push(data)
+      Sentry.addBreadcrumb({ category: 'dbg-kbshift', message: label, data, level: 'info' })
+    }
+    let sentReported = false
+    function onVvResize() {
+      dbgMeasure('vv_resize')
+      if (!sentReported) {
+        sentReported = true
+        Sentry.captureMessage('[DBG-KBSHIFT] keyboard shift detected', {
+          level: 'info', extra: { captures: kbShiftCaptures },
+        })
+      }
+    }
+    dbgMeasure('mount')
+    window.visualViewport?.addEventListener('resize', onVvResize)
+    return () => window.visualViewport?.removeEventListener('resize', onVvResize)
+  }, [ocrState])
+
   // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-05: loading と confirming で同一の上ゾーンJSX (TransformWrapper, initialScale=1, w-full h-auto)
   function renderOcrImageZone(url) {
     return (
-      <div className="h-[33dvh] flex-none overflow-hidden bg-black">
+      <div className="h-[33dvh] flex-none overflow-hidden bg-black" data-dbg-kbshift="top">
         {url ? (
           <TransformWrapper initialScale={1} minScale={1} maxScale={6} doubleClick={{ mode: 'zoomIn' }}>
             <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ width: '100%' }}>
@@ -830,11 +866,11 @@ export default function PatrolBoothInputPage() {
     const ocrOutDiff = prev?.out_meter != null && ocrEditOut !== '' ? Number(ocrEditOut) - Number(prev.out_meter) : null
     // J-PATROL-OCR-CONFIRM-LAYOUT-01 fix-02: 3分割 (上33vh画像窓枠 / 中25vh値+ボタン / 下42vhテンキー safe-area)
     return (
-      <div className="fixed inset-x-0 top-0 h-[100dvh] z-50 bg-black flex flex-col overflow-hidden">
+      <div className="fixed inset-x-0 top-0 h-[100dvh] z-50 bg-black flex flex-col overflow-hidden" data-dbg-kbshift="outer">
         {/* zone_top: loading と共有 (fix-05) */}
         {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
-        <div className="h-[31dvh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+        <div className="h-[31dvh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2" data-dbg-kbshift="middle">
           {/* SPEC-PATROL-BOOTH-LABEL-VISIBILITY-01 R2: スワイプミスで別ブースを撮った時に気づける */}
           <div className="text-xs text-muted mb-1 truncate" data-testid="ocr-confirm-booth-label">{boothLabel}</div>
           {/* J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04: OCR 失敗時の inline 案内バナー。
@@ -927,7 +963,7 @@ export default function PatrolBoothInputPage() {
             J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
             カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
             iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
-        <div className={`${isCustomNumpadEnabled() ? 'h-[58dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${isCustomNumpadEnabled() ? 'h-[58dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`} data-dbg-kbshift="bottom">
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
