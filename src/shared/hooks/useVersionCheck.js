@@ -30,12 +30,6 @@ function logFetchFail(err) {
   console.warn(`[${LOG_TAG}]`, err?.message || String(err))
 }
 
-// --- INVESTIGATE-IDLE-LOGOUT-PWA-01 T1: 一時計装 (調査後 revert) ---
-// vitest では console.warn spy が calls[0] をチェックするテストがあるため無効化
-// eslint-disable-next-line no-console
-const _dbgV = import.meta.env.MODE === 'test' ? () => {} : (msg) => console.warn(`[DBG-VER] ${msg}`)
-// --- /T1 ---
-
 export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
   const [reloading, setReloading] = useState(false)
 
@@ -43,16 +37,12 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
     if (isDevMode()) return
 
     const storage = (getStorage ?? defaultStorage)()
-    const doReload = reload ?? (() => {
-      _dbgV(`doReload enter t=${Date.now()} perf=${Math.round(performance.now())}`)
-      window.location.reload()
-    })
+    const doReload = reload ?? (() => window.location.reload())
 
     let cancelled = false
     let timeoutId = null
 
-    async function check(trigger) {
-      _dbgV(`check entry trigger=${trigger ?? 'startup'} t=${Date.now()} BUILD_SHA=${BUILD_SHA}`)
+    async function check() {
       try {
         const ts = typeof now === 'function' ? now() : Date.now()
         const res = await fetch(`/version.json?t=${ts}`, { cache: 'no-store' })
@@ -61,27 +51,22 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
           return
         }
         const data = await res.json()
-        _dbgV(`check sha fetched=${data.sha} BUILD_SHA=${BUILD_SHA} match=${data.sha === BUILD_SHA} t=${Date.now()}`)
         if (!data.sha || data.sha === BUILD_SHA) return  // 一致 or SHA不明 = 何もしない
 
         // SPEC-PWA-VERSION-CHECK-FIX-01: timestamp ベース loop guard。
         const tsNow = typeof now === 'function' ? now() : Date.now()
         const lastFired = Number(storage?.getItem(STORAGE_KEY) ?? 0)
         const suppressed = !!(lastFired && tsNow - lastFired < SUPPRESS_WINDOW_MS)
-        _dbgV(`check loop-guard lastFired=${lastFired} suppressed=${suppressed} t=${Date.now()}`)
         if (suppressed) return
 
         storage?.setItem(STORAGE_KEY, String(tsNow))
         if (cancelled) return
-        _dbgV(`check scheduling doReload in ${RELOAD_DELAY_MS}ms t=${Date.now()}`)
         setReloading(true)
         timeoutId = setTimeout(() => {
           if (cancelled) return
-          _dbgV(`doReload firing t=${Date.now()} perf=${Math.round(performance.now())}`)
           const logoutActive = isLogoutInFlight()   // reportInterruptより前に取得 (順序制約)
           reportInterrupt('RELOAD')                  // logout有無に関わらず Sentry検知継続
           if (logoutActive) {
-            _dbgV(`doReload SKIPPED (logout in flight) t=${Date.now()}`)
             return                                   // logout優先、reloadしない
           }
           doReload()
@@ -92,7 +77,7 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
     }
 
     // 起動時1回
-    check('startup')
+    check()
 
     // 15分アイドル復帰時のみ check (useIdleLogout の hiddenAtRef パターン踏襲 045936b)
     let hiddenAt = null
@@ -101,27 +86,20 @@ export function useVersionCheck({ now = Date.now, reload, getStorage } = {}) {
       hiddenAt = typeof now === 'function' ? now() : Date.now()
     }
 
-    // T1: source 引数追加 (ログ識別用、ロジック変更なし)
-    function handleVisibleReturn(source) {
-      if (hiddenAt === null) {
-        _dbgV(`handleVisibleReturn source=${source} t=${Date.now()} hiddenAt=null skip`)
-        return
-      }
+    function handleVisibleReturn() {
+      if (hiddenAt === null) return
       const elapsed = (typeof now === 'function' ? now() : Date.now()) - hiddenAt
-      const willCheck = elapsed >= IDLE_MS
-      _dbgV(`handleVisibleReturn source=${source} t=${Date.now()} perf=${Math.round(performance.now())} hiddenAt=${hiddenAt} elapsed=${elapsed} IDLE_MS=${IDLE_MS} willCheck=${willCheck}`)
       hiddenAt = null
-      if (willCheck) check(source)
+      if (elapsed >= IDLE_MS) check()
     }
 
     function handleVisibility() {
       if (document.visibilityState === 'hidden') handleHide()
-      else handleVisibleReturn('visibilitychange')
+      else handleVisibleReturn()
     }
 
-    // T1: source 識別用 wrapper (ロジック変更なし)
-    const handlePageshow = () => handleVisibleReturn('pageshow')
-    const handleFocus    = () => handleVisibleReturn('focus')
+    const handlePageshow = () => handleVisibleReturn()
+    const handleFocus    = () => handleVisibleReturn()
 
     document.addEventListener('visibilitychange', handleVisibility)
     window.addEventListener('pagehide', handleHide)
