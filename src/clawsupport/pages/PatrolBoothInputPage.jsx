@@ -1071,6 +1071,24 @@ export default function PatrolBoothInputPage() {
           />
         </div>
       )}
+      {currentField && isCustomNumpadEnabled() && (
+        <div className="flex-1 min-h-0 overflow-y-auto px-4">
+          <BoothHistoryList
+            boothCode={boothCode}
+            meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+            storeCode={storeCode}
+            machine={machine}
+            booth={booth}
+            limit={10}
+            historyKey={historyKey}
+            draftRow={{
+              active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
+              inDiff,
+              outDiff,
+            }}
+          />
+        </div>
+      )}
       <div className={currentField ? 'h-[24dvh] flex-none shrink-0 mt-auto flex flex-col overflow-hidden' : 'flex-1 min-h-0 flex flex-col overflow-hidden'}>
         <NumpadFooterPanel
           currentField={currentField}
