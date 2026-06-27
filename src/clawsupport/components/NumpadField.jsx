@@ -1,6 +1,16 @@
 import { useRef, useEffect, useLayoutEffect, useState } from 'react'
 import { isCustomNumpadEnabled } from '../../shared/lib/device'
 
+// SPEC-NUMPAD-CARET-VISIBLE-01: 自前点滅キャレットオーバーレイ用 @keyframes を一度だけ注入
+function _injectCaretStyle() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('_numpad_caret_style')) return
+  const s = document.createElement('style')
+  s.id = '_numpad_caret_style'
+  s.textContent = '@keyframes _numpad_caret_blink{0%,100%{opacity:1}50%{opacity:0}}'
+  document.head.appendChild(s)
+}
+
 // SPEC-NUMPAD-CARET-EDIT-4COL-01: 4列×4行レイアウト。内部IDと表示ラベルを分離(ret用→とcaret用→の衝突回避)。
 // 7 8 9 ⌫ / 4 5 6 C / 1 2 3 ⏎ / ← 0 → [空]
 const KEYS = [
@@ -121,12 +131,14 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
     if (keyId === 'caretL') {
       caretPosRef.current = Math.max(0, caretPosRef.current - 1)
       inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
+      currentField.onCaretChange?.()
       return
     }
     if (keyId === 'caretR') {
       const curLen = String(valueRef.current ?? '').length
       caretPosRef.current = Math.min(curLen, caretPosRef.current + 1)
       inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
+      currentField.onCaretChange?.()
       return
     }
     // digit: caret位置に挿入、freshRefクリア
@@ -258,6 +270,10 @@ export default function NumpadField({
   const caretPosRef = useRef(String(value ?? '').length)
   // alwaysOpen path ローカルキャレット状態 (NumpadFooterPanelはcaretPosRefで管理)
   const [aoCaretPos, setAoCaretPos] = useState(() => String(value ?? '').length)
+  // SPEC-NUMPAD-CARET-VISIBLE-01: caretL/caretR時(value変化なし)に再レンダリングを起こすカウンタ
+  const [, setCaretTick] = useState(0)
+
+  useEffect(() => { _injectCaretStyle() }, [])
 
   function activate() {
     const initCaret = String(value ?? '').length
@@ -270,6 +286,7 @@ export default function NumpadField({
       caretPosRef,
       inputRef,
       onChange: (v) => onChangeRef.current(v),
+      onCaretChange: () => setCaretTick(t => t + 1),
       onNext,
       dataTabindex: Number(dataTabindex),
       allowDecimal,
@@ -380,51 +397,75 @@ export default function NumpadField({
   }
 
   const displayVal = value !== '' && value != null ? String(value) : ''
+  // SPEC-NUMPAD-CARET-VISIBLE-01: 点滅縦棒のright位置計算(等幅Courier New, textAlign:right基準)
+  const caretPos = Math.min(caretPosRef.current, displayVal.length)
+  const charsFromRight = displayVal.length - caretPos
 
   return (
-    <input
-      ref={inputRef}
-      id={id}
-      type="text"
-      readOnly
-      inputMode="none"
-      data-tabindex={dataTabindex}
-      data-testid={testId}
-      value={displayVal}
-      placeholder={inputPlaceholder ?? '—'}
-      onPointerDown={e => {
-        e.preventDefault()
-        activate()
-      }}
-      onKeyDown={e => {
-        if (e.key === 'Enter') {
+    <div style={{ position: 'relative' }}>
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        readOnly
+        inputMode="none"
+        data-tabindex={dataTabindex}
+        data-testid={testId}
+        value={displayVal}
+        placeholder={inputPlaceholder ?? '—'}
+        onPointerDown={e => {
           e.preventDefault()
-          if (onNext) onNext()
-          const all = Array.from(document.querySelectorAll('[data-tabindex]'))
-            .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
-          const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
-          const nextEl = all[idx + 1]
-          if (nextEl?._numpadActivate) nextEl._numpadActivate()
-          else if (nextEl) nextEl.focus()
-        }
-      }}
-      className={inputClassName ?? ''}
-      style={{
-        cursor: 'pointer',
-        border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
-        background: isActive ? '#eff6ff' : '#0a0a14',
-        borderRadius: 4,
-        padding: '0.4em 0.35em',
-        fontFamily: "'Courier New', Courier, monospace",
-        fontWeight: 'bold',
-        textAlign: 'right',
-        outline: 'none',
-        boxSizing: 'border-box',
-        WebkitAppearance: 'none',
-        fontSize: 16,
-        ...(isActive ? { color: '#1e3a5f' } : {}),
-        ...style,
-      }}
-    />
+          activate()
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            if (onNext) onNext()
+            const all = Array.from(document.querySelectorAll('[data-tabindex]'))
+              .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
+            const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
+            const nextEl = all[idx + 1]
+            if (nextEl?._numpadActivate) nextEl._numpadActivate()
+            else if (nextEl) nextEl.focus()
+          }
+        }}
+        className={inputClassName ?? ''}
+        style={{
+          cursor: 'pointer',
+          border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+          background: isActive ? '#eff6ff' : '#0a0a14',
+          borderRadius: 4,
+          padding: '0.4em 0.35em',
+          fontFamily: "'Courier New', Courier, monospace",
+          fontWeight: 'bold',
+          textAlign: 'right',
+          outline: 'none',
+          boxSizing: 'border-box',
+          WebkitAppearance: 'none',
+          fontSize: 16,
+          width: '100%',
+          ...(isActive ? { color: '#1e3a5f' } : {}),
+          ...style,
+        }}
+      />
+      {isActive && (
+        <span
+          aria-hidden="true"
+          data-testid="numpad-caret-overlay"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: `calc(0.35em + ${charsFromRight}ch)`,
+            transform: 'translateY(-50%)',
+            width: 2,
+            height: '1em',
+            background: '#2563eb',
+            borderRadius: 1,
+            animation: '_numpad_caret_blink 1s step-end infinite',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+    </div>
   )
 }

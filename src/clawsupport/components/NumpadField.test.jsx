@@ -112,6 +112,43 @@ describe('iPhone以外 (iPad/PC): native input', () => {
   })
 })
 
+describe('NumpadField: キャレットオーバーレイ (SPEC-NUMPAD-CARET-VISIBLE-01)', () => {
+  beforeEach(() => { window.__USE_CUSTOM_NUMPAD__ = true })
+  afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
+
+  it('when_isActive=true_should_キャレットspan描画', () => {
+    render(<NumpadField value="123" isActive onChange={vi.fn()} testId="pf" label="IN" />)
+    expect(screen.getByTestId('numpad-caret-overlay')).toBeTruthy()
+  })
+
+  it('when_isActive=false_should_キャレットspan非描画', () => {
+    render(<NumpadField value="123" isActive={false} onChange={vi.fn()} testId="pf" label="IN" />)
+    expect(screen.queryByTestId('numpad-caret-overlay')).toBeNull()
+  })
+
+  it('when_readOnly_inputMode=none_should_OSキーボード属性維持 (回帰ガード)', () => {
+    render(<NumpadField value="" isActive onChange={vi.fn()} testId="pf" label="IN" />)
+    const input = screen.getByTestId('pf')
+    expect(input).toHaveAttribute('readonly')
+    expect(input).toHaveAttribute('inputmode', 'none')
+  })
+
+  it('when_caretL押下_should_キャレットspan右位置が増加(左移動)', () => {
+    const { field } = (() => {
+      const caretPosRef = { current: 2 }
+      const onChange = vi.fn()
+      return { field: { valueRef: { current: '12' }, caretPosRef, inputRef: { current: null }, onChange, allowDecimal: false, max: 99999, freshRef: { current: false }, dataTabindex: 1, label: 'IN', onCaretChange: vi.fn() } }
+    })()
+    render(<NumpadFooterPanel currentField={field} />)
+    const spanBefore = screen.queryByTestId('numpad-caret-overlay')
+    // NumpadFooterPanel単体テスト: onCaretChange が caretL で呼ばれる
+    fireEvent.pointerDown(screen.getByText('←'))
+    expect(field.onCaretChange).toHaveBeenCalledTimes(1)
+    expect(field.caretPosRef.current).toBe(1)
+    expect(spanBefore).toBeNull() // FooterPanelにはcaret spanがない(NumpadField側にある)
+  })
+})
+
 describe('NumpadFooterPanel: カーソル編集モデル (SPEC-NUMPAD-CARET-EDIT-4COL-01)', () => {
   beforeEach(() => { window.__USE_CUSTOM_NUMPAD__ = true })
   afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
