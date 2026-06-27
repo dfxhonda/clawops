@@ -1071,27 +1071,29 @@ export default function PatrolBoothInputPage() {
           />
         </div>
       )}
-      <NumpadFooterPanel
-        currentField={currentField}
-        idleContent={
-          isCustomNumpadEnabled() ? (
-            <BoothHistoryList
-              boothCode={boothCode}
-              meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
-              storeCode={storeCode}
-              machine={machine}
-              booth={booth}
-              limit={10}
-              historyKey={historyKey}
-              draftRow={{
-                active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
-                inDiff,
-                outDiff,
-              }}
-            />
-          ) : null
-        }
-      />
+      <div className={currentField ? 'h-[40dvh] flex-none shrink-0 flex flex-col overflow-hidden' : 'flex-1 min-h-0 flex flex-col overflow-hidden'}>
+        <NumpadFooterPanel
+          currentField={currentField}
+          idleContent={
+            isCustomNumpadEnabled() ? (
+              <BoothHistoryList
+                boothCode={boothCode}
+                meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+                storeCode={storeCode}
+                machine={machine}
+                booth={booth}
+                limit={10}
+                historyKey={historyKey}
+                draftRow={{
+                  active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
+                  inDiff,
+                  outDiff,
+                }}
+              />
+            ) : null
+          }
+        />
+      </div>
 
       <AlertSheetModal
         open={showAlert}
