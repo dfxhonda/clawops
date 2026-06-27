@@ -2,7 +2,7 @@
 // NumpadField: iPhone=カスタムテンキー / iPhone以外=native input の分岐
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import NumpadField from './NumpadField'
+import NumpadField, { NumpadFooterPanel } from './NumpadField'
 
 function setUA(ua) {
   Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true })
@@ -42,9 +42,9 @@ describe('iPhone: alwaysOpen カスタムテンキー', () => {
     expect(onChange).toHaveBeenCalledWith('12')
   })
 
-  it('when_→キー_should_onNextを呼ぶ', () => {
+  it('when_retキー_should_onNextを呼ぶ', () => {
     const { onNext, key } = renderPad({ value: '5' })
-    key('→')
+    key('⏎')
     expect(onNext).toHaveBeenCalledTimes(1)
   })
 
@@ -109,5 +109,125 @@ describe('iPhone以外 (iPad/PC): native input', () => {
     expect(screen.queryByText('7')).toBeNull()
     fireEvent.change(screen.getByTestId('pf'), { target: { value: '8' } })
     expect(onChange).toHaveBeenCalledWith('8')
+  })
+})
+
+describe('NumpadFooterPanel: カーソル編集モデル (SPEC-NUMPAD-CARET-EDIT-4COL-01)', () => {
+  beforeEach(() => { window.__USE_CUSTOM_NUMPAD__ = true })
+  afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
+
+  function makeField(value) {
+    const caretPosRef = { current: String(value ?? '').length }
+    const onChange = vi.fn()
+    return {
+      field: {
+        valueRef: { current: String(value ?? '') },
+        caretPosRef,
+        inputRef: { current: null },
+        onChange,
+        allowDecimal: false,
+        max: 99999,
+        freshRef: { current: false },
+        dataTabindex: 1,
+        label: 'IN',
+      },
+      onChange,
+      caretPosRef,
+    }
+  }
+
+  it('when_4列レイアウト_should_bs/c/ret/caretL/caretRキー全て描画', () => {
+    const { field } = makeField('1')
+    render(<NumpadFooterPanel currentField={field} />)
+    expect(screen.getByText('⌫')).toBeTruthy()
+    expect(screen.getByText('C')).toBeTruthy()
+    expect(screen.getByText('⏎')).toBeTruthy()
+    expect(screen.getByText('←')).toBeTruthy()
+    expect(screen.getByText('→')).toBeTruthy()
+  })
+
+  it('when_中間caret_数字キー_should_caret位置に挿入', () => {
+    const { field, onChange, caretPosRef } = makeField('33')
+    caretPosRef.current = 0
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('5'))
+    expect(onChange).toHaveBeenCalledWith('533')
+    expect(caretPosRef.current).toBe(1)
+  })
+
+  it('when_末尾caret_数字キー_should_末尾に追加', () => {
+    const { field, onChange, caretPosRef } = makeField('12')
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('3'))
+    expect(onChange).toHaveBeenCalledWith('123')
+    expect(caretPosRef.current).toBe(3)
+  })
+
+  it('when_中間caret_bs_should_caret左を削除してcaret--', () => {
+    const { field, onChange, caretPosRef } = makeField('123')
+    caretPosRef.current = 2
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('⌫'))
+    expect(onChange).toHaveBeenCalledWith('13')
+    expect(caretPosRef.current).toBe(1)
+  })
+
+  it('when_caret=0でbs_should_onChangeしない', () => {
+    const { field, onChange, caretPosRef } = makeField('12')
+    caretPosRef.current = 0
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('⌫'))
+    expect(onChange).not.toHaveBeenCalled()
+    expect(caretPosRef.current).toBe(0)
+  })
+
+  it('when_c_should_全クリア+caret=0', () => {
+    const { field, onChange, caretPosRef } = makeField('999')
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('C'))
+    expect(onChange).toHaveBeenCalledWith('')
+    expect(caretPosRef.current).toBe(0)
+  })
+
+  it('when_caretL_should_caret左移動(下限0でクランプ)', () => {
+    const { field, onChange, caretPosRef } = makeField('12')
+    caretPosRef.current = 1
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('←'))
+    expect(caretPosRef.current).toBe(0)
+    expect(onChange).not.toHaveBeenCalled()
+    // 下限クランプ
+    fireEvent.pointerDown(screen.getByText('←'))
+    expect(caretPosRef.current).toBe(0)
+  })
+
+  it('when_caretR_should_caret右移動(上限value.lengthでクランプ)', () => {
+    const { field, onChange, caretPosRef } = makeField('12')
+    caretPosRef.current = 0
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('→'))
+    expect(caretPosRef.current).toBe(1)
+    expect(onChange).not.toHaveBeenCalled()
+    // 上限クランプ(value='12'のlength=2)
+    fireEvent.pointerDown(screen.getByText('→'))
+    expect(caretPosRef.current).toBe(2)
+    fireEvent.pointerDown(screen.getByText('→'))
+    expect(caretPosRef.current).toBe(2)
+  })
+
+  it('when_max超過挿入_should_onChangeしない', () => {
+    const { field, onChange } = makeField('99999')
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('1'))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('when_fresh_数字キー_should_既存値クリアして挿入', () => {
+    const { field, onChange, caretPosRef } = makeField('999')
+    field.freshRef.current = true
+    render(<NumpadFooterPanel currentField={field} />)
+    fireEvent.pointerDown(screen.getByText('5'))
+    expect(onChange).toHaveBeenCalledWith('5')
+    expect(caretPosRef.current).toBe(1)
   })
 })
