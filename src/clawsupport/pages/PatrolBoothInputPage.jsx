@@ -1071,7 +1071,7 @@ export default function PatrolBoothInputPage() {
           />
         </div>
       )}
-      <div className={currentField ? 'h-[40dvh] flex-none shrink-0 flex flex-col overflow-hidden' : 'flex-1 min-h-0 flex flex-col overflow-hidden'}>
+      <div className={currentField ? 'h-[40dvh] flex-none shrink-0 mt-auto flex flex-col overflow-hidden' : 'flex-1 min-h-0 flex flex-col overflow-hidden'}>
         <NumpadFooterPanel
           currentField={currentField}
           idleContent={
