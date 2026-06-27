@@ -202,7 +202,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
             data-testid="numpad-sheet"
             style={{
               flex: 1,
-              minHeight: NUMPAD_ROW_MIN_PX * 4,
+              minHeight: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
