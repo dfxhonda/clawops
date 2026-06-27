@@ -67,7 +67,13 @@ describe('iPhone: alwaysOpen カスタムテンキー', () => {
 })
 
 describe('iPhone以外 (iPad/PC): native input', () => {
-  beforeEach(() => setUA(IPAD_UA))
+  beforeEach(() => {
+    setUA(IPAD_UA)
+    // SPEC-OCR-MODAL-KEYBOARD-SHIFT-FIX-01: isCustomNumpadEnabled() はデフォルト true になったため
+    // native input 経路を明示的にテストするため false に固定
+    window.__USE_CUSTOM_NUMPAD__ = false
+  })
+  afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
 
   it('default mode は readOnly でない編集可能 input (OSキーボードに委譲)', () => {
     render(<NumpadField value="" onChange={vi.fn()} testId="pf" label="x" />)
