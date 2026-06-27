@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMachineModels, addMachineModel, updateMachineModel, deleteMachineModel } from '../../services/masters'
 import { supabase } from '../../lib/supabase'
-import LogoutButton from '../../components/LogoutButton'
+import { PageHeader } from '../../shared/ui/PageHeader'
 
 const TYPE_OPTIONS = ['crane', 'gacha', 'other']
 const TYPE_LABELS  = { crane: 'クレーン', gacha: 'ガチャ', other: 'その他' }
@@ -252,15 +252,7 @@ export default function ModelList() {
   return (
     <div className="h-full flex flex-col">
 
-      {/* ヘッダー */}
-      <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
-        <div className="flex-1">
-          <h2 className="text-base font-bold">機種マスタ</h2>
-          <p className="text-[11px] text-muted">機種の登録・編集・削除</p>
-        </div>
-        <LogoutButton to="/admin" />
-      </div>
+      <PageHeader module="admin" hideHome={true} title="機種マスタ" onBack={() => navigate('/admin')} />
 
       <div className="flex-1 overflow-y-auto pb-16">
 

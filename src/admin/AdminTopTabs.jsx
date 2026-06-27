@@ -19,12 +19,6 @@ export default function AdminTopTabs() {
   const { pathname } = useLocation()
   return (
     <nav data-testid="admin-top-tabs" className="flex overflow-x-auto gap-1 px-2 py-1.5" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: MODULE_COLORS.admin }}>
-      <button
-        onClick={() => navigate('/launcher')}
-        className="mr-2 text-sm text-gray-400 hover:text-white flex items-center gap-1 whitespace-nowrap px-3 py-2.5"
-      >
-        ← ホーム
-      </button>
       {TABS.map(tab => {
         const active = pathname.startsWith(tab.path)
         return (

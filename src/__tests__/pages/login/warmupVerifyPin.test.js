@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-// SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01: warmupVerifyPin AC1 - fire-and-forget GET, cooldown, offline skip
+// SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01: warmupVerifyPin AC1 - fire-and-forget POST, cooldown, offline skip
+// SPEC-LOGIN-UPDATE-PREFETCH-01: warmup GET→POST変更。同一コードパスで cold start を確実に温める。
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../../lib/supabase', () => ({}))
@@ -22,8 +23,8 @@ afterEach(() => {
   Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true })
 })
 
-describe('SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 AC1: warmupVerifyPin fire-and-forget GET', () => {
-  it('when_online_should_fire_GET_to_verify_pin', async () => {
+describe('SPEC-LOGIN-UPDATE-PREFETCH-01: warmupVerifyPin fire-and-forget POST', () => {
+  it('when_online_should_fire_POST_to_verify_pin_with_warmup_body', async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', mockFetch)
 
@@ -32,8 +33,10 @@ describe('SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 AC1: warmupVerifyPin fire-and-forg
     expect(mockFetch).toHaveBeenCalledOnce()
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/functions/v1/verify-pin'),
-      { method: 'GET' }
+      expect.objectContaining({ method: 'POST' })
     )
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(callBody.staff_id).toBe('__warmup__')
   })
 
   it('when_fetch_throws_should_not_propagate_error', async () => {

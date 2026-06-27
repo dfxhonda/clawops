@@ -162,7 +162,7 @@ export default function OcrCountCapture({ onLog }) {
           data-testid="ocr-count-camera-btn"
           className="flex-1 min-h-[44px] rounded-lg bg-emerald-600 text-white font-bold text-sm"
         >
-          📷 撮影する
+          撮影する
         </button>
         <button
           type="button"

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
@@ -34,7 +33,6 @@ function TInput({ value, onChange, placeholder, type = 'text' }) {
 }
 
 export default function AdminSupplierPage() {
-  const navigate = useNavigate()
   const { staffName } = useAuth()
   const [rows, setRows]             = useState([])
   const [loading, setLoading]       = useState(true)
@@ -177,12 +175,6 @@ export default function AdminSupplierPage() {
     <div className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       {/* toolbar */}
       <div className="flex-shrink-0 p-3 pb-2">
-        <button
-          onClick={() => navigate('/admin/masters')}
-          className="text-sm text-gray-400 hover:text-white flex items-center gap-1 mb-3"
-        >
-          ← 戻る
-        </button>
         <div className="flex flex-wrap gap-2 items-center">
           <input
             data-testid="supplier-search"

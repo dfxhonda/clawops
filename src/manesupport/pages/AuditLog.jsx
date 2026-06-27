@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getAuditLogs, AUDIT_ACTIONS, AUDIT_REASONS } from '../../services/audit'
 import { getStaffMap } from '../../services/readings'
 import { useAuth } from '../../hooks/useAuth'
-import LogoutButton from '../../components/LogoutButton'
+import { PageHeader } from '../../shared/ui/PageHeader'
 import ErrorDisplay from '../../components/ErrorDisplay'
 import { useAsync } from '../../hooks/useAsync'
 import DateTime from '../../shared/ui/DateTime'
@@ -118,12 +118,8 @@ export default function AuditLog() {
 
   return (
     <div className="h-full flex flex-col max-w-lg md:max-w-4xl mx-auto">
-      <div className="shrink-0 px-4 pt-4" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
-          <h1 className="flex-1 text-xl font-bold text-accent">監査ログ</h1>
-          <LogoutButton to="/admin" />
-        </div>
+      <PageHeader module="admin" hideHome={true} title="監査ログ" onBack={() => navigate('/admin')} />
+      <div className="shrink-0 px-4 pt-4">
 
         {errorProps && <ErrorDisplay {...errorProps} />}
 

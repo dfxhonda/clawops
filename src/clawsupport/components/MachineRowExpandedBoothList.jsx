@@ -1,41 +1,85 @@
-// SPEC-PATROL-VIEW-MODE-SWITCH-02: 4 列固定 (4 前 / 3 前 / 前回 / 今回)、mode で値配列が切り替わる。
-// ブース行はランク色付け対象外 (詳細レベル、機械行のみランク)。今回列のみ text-green-300。
-import { VIEW_MODES, COLUMN_COUNT, formatCell, sourceArrayFor } from './patrolViewModes'
+// SPEC-PATROL-HISTORY-HEATMAP-02: 一体横スクロール対応。BoothScrollCells の overflow-x-auto 廃止。
+// dateAxis prop でリマップ。F4 ワースト赤テキスト、F5 entry_type 背景色は維持。
+// F4: text-sm→text-base (data cells, booth label)
+// F5: py-1→py-0.5 (booth row spacing)
 
-const NEWEST = 3
+import { useMemo } from 'react'
+import {
+  VIEW_MODES,
+  COLUMN_COUNT,
+  NEWEST,
+  formatCell,
+  sourceArrayFor,
+  computeWorstBoothMap,
+  mapSummaryToDateAxis,
+} from './patrolViewModes'
 
-export default function MachineRowExpandedBoothList({ booths, todayMap, diffMap, onBoothClick, mode = 'IN' }) {
-  const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
+// F5: entry_type ごとの背景色
+const ENTRY_BG = {
+  replace: 'bg-blue-900/40',
+  config:  'bg-green-900/30',
+}
+
+function BoothScrollCells({ arr, entryTypes, boothWorst, boothCode, modeDef }) {
   return (
-    <div className="mt-1 space-y-1" data-testid="machine-expanded-booth-list">
+    <div className="grid grid-cols-10 gap-x-1 text-right leading-tight w-[400px] tabular-nums">
+      {Array.from({ length: COLUMN_COUNT }, (_, i) => {
+        const worstColor = boothWorst?.[i] ?? null
+        const textColor = worstColor ?? (i === NEWEST ? 'text-green-300' : 'text-text')
+        const bgClass = ENTRY_BG[entryTypes?.[i]] ?? ''
+        return (
+          <div
+            key={i}
+            data-testid={`booth-cell-${boothCode}-${i}`}
+            className={`font-mono text-base font-bold ${textColor} ${bgClass}`}
+          >
+            {formatCell(arr[i], modeDef.type)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function MachineRowExpandedBoothList({
+  booths, todayMap, diffMap, onBoothClick, mode = 'IN', dateAxis = null,
+}) {
+  const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
+
+  const worstMap = useMemo(
+    () => computeWorstBoothMap(diffMap, mode, dateAxis),
+    [diffMap, mode, dateAxis],
+  )
+
+  return (
+    <div className="mt-1 space-y-0.5" data-testid="machine-expanded-booth-list">
       {booths.map(booth => {
-        const done = !!todayMap[booth.booth_code]
+        const done = !!todayMap?.[booth.booth_code]
         const d = diffMap[booth.booth_code] ?? null
-        const arr = sourceArrayFor(d, mode)
+        const mapped = dateAxis ? mapSummaryToDateAxis(d, dateAxis) : d
+        const arr = sourceArrayFor(mapped, mode)
+        const entryTypes = mapped?.entryTypes ?? []
+        const boothWorst = worstMap[booth.booth_code] ?? null
         return (
           <button
             key={booth.booth_code}
             data-testid={`booth-row-${booth.booth_code}`}
             onClick={() => onBoothClick(booth)}
-            className="w-full flex items-center gap-2 px-4 py-1 rounded-xl bg-surface/40 border border-border/40 text-left active:scale-[0.98] transition-transform"
+            className="w-full flex items-center gap-2 px-4 py-0.5 rounded-xl bg-surface/40 border border-border/40 text-left active:scale-[0.98] transition-transform"
           >
-            <div className="flex-1 min-w-0 pl-4">
-              <p className="text-text text-sm">
+            <div className="w-40 shrink-0 pl-4 sticky left-0 z-10 bg-surface">
+              <p className="text-text text-base">
                 └ B{String(booth.booth_number).padStart(2, '0')}
                 {done && <span className="ml-1 text-emerald-400/70">✓</span>}
               </p>
             </div>
-            <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52 tabular-nums">
-              {Array.from({ length: COLUMN_COUNT }, (_, i) => (
-                <div
-                  key={i}
-                  data-testid={`booth-cell-${booth.booth_code}-${i}`}
-                  className={`font-mono text-sm font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
-                >
-                  {formatCell(arr[i], modeDef.type)}
-                </div>
-              ))}
-            </div>
+            <BoothScrollCells
+              arr={arr}
+              entryTypes={entryTypes}
+              boothWorst={boothWorst}
+              boothCode={booth.booth_code}
+              modeDef={modeDef}
+            />
           </button>
         )
       })}

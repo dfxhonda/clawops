@@ -1,12 +1,27 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useLayoutEffect, useState } from 'react'
 import { isCustomNumpadEnabled } from '../../shared/lib/device'
 
-const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','→']
+// SPEC-NUMPAD-CARET-VISIBLE-01: 自前点滅キャレットオーバーレイ用 @keyframes を一度だけ注入
+function _injectCaretStyle() {
+  if (typeof document === 'undefined') return
+  if (document.getElementById('_numpad_caret_style')) return
+  const s = document.createElement('style')
+  s.id = '_numpad_caret_style'
+  s.textContent = '@keyframes _numpad_caret_blink{0%,100%{opacity:1}50%{opacity:0}}'
+  document.head.appendChild(s)
+}
 
-// J-COLLECTION-12 R5: iPhone カスタムテンキー 1行の最小高さ (px)。spec 「(not squashed) double」要件に対して
-// 従来 ~44px から倍化、4 行 = 352px の minHeight を numpad-sheet に与える。iPad/PC は本 component の
-// NumpadFooterPanel 冒頭 isIPhone() ガードで早期 return しているため非適用 (UA 分岐再利用)。
-const NUMPAD_ROW_MIN_PX = 88
+// SPEC-NUMPAD-CARET-EDIT-4COL-01: 4列×4行レイアウト。内部IDと表示ラベルを分離(ret用→とcaret用→の衝突回避)。
+// 7 8 9 ⌫ / 4 5 6 C / 1 2 3 ⏎ / ← 0 → [空]
+const KEYS = [
+  { id: '7', label: '7' }, { id: '8', label: '8' }, { id: '9', label: '9' }, { id: 'bs', label: '⌫' },
+  { id: '4', label: '4' }, { id: '5', label: '5' }, { id: '6', label: '6' }, { id: 'c', label: 'C' },
+  { id: '1', label: '1' }, { id: '2', label: '2' }, { id: '3', label: '3' }, { id: 'ret', label: '⏎' },
+  { id: 'caretL', label: '←' }, { id: '0', label: '0' }, { id: 'caretR', label: '→' }, null,
+]
+
+// SPEC-NUMPAD-CARET-EDIT-4COL-01: 56px/行(4行=224px≒27%画面占有)。旧88px×4=352px(約42%)から大幅圧縮。
+const NUMPAD_ROW_MIN_PX = 56
 
 // iPhone以外 (iPad=システムKB / PC=物理KB) 用の native 数値入力。
 // カスタムテンキーを出さず、OS のキーボードに委ねる。値の検証 (max/小数/数字のみ) は維持。
@@ -81,24 +96,30 @@ function NativeNumInput({
 }
 
 export function NumpadFooterPanel({ currentField, idleContent }) {
-  // J-COLLECTION-12 派生 (ad-hoc 2026-05-29): iPhone も標準キーボード試行のため
-  // isIPhone() → isCustomNumpadEnabled() に差し替え。デフォルトは false (carrying iPad/PC と同じ native input)。
   if (!isCustomNumpadEnabled()) return null
 
   const isActive = !!currentField
 
-  function handleKey(k) {
+  function handleKey(keyId) {
     if (!currentField) return
+    const { onChange, allowDecimal, max, freshRef, valueRef, dataTabindex, caretPosRef, inputRef } = currentField
 
-    const { onChange, allowDecimal, max, freshRef, valueRef, dataTabindex } = currentField
-
-    if (k === '⌫') {
+    if (keyId === 'bs') {
       freshRef.current = false
-      onChange(String(valueRef.current ?? '').slice(0, -1))
+      const val = String(valueRef.current ?? '')
+      const caret = caretPosRef.current
+      if (caret === 0) return
+      caretPosRef.current = caret - 1
+      onChange(val.slice(0, caret - 1) + val.slice(caret))
       return
     }
-
-    if (k === '→') {
+    if (keyId === 'c') {
+      freshRef.current = false
+      caretPosRef.current = 0
+      onChange('')
+      return
+    }
+    if (keyId === 'ret') {
       const all = Array.from(document.querySelectorAll('[data-tabindex]'))
         .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
       const idx = all.findIndex(el => Number(el.dataset.tabindex) === dataTabindex)
@@ -107,15 +128,27 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
       else if (nextEl) nextEl.focus()
       return
     }
-
-    if (k === '.' && !allowDecimal) return
-
-    const base = freshRef.current ? '' : String(valueRef.current ?? '')
+    if (keyId === 'caretL') {
+      caretPosRef.current = Math.max(0, caretPosRef.current - 1)
+      inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
+      currentField.onCaretChange?.()
+      return
+    }
+    if (keyId === 'caretR') {
+      const curLen = String(valueRef.current ?? '').length
+      caretPosRef.current = Math.min(curLen, caretPosRef.current + 1)
+      inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
+      currentField.onCaretChange?.()
+      return
+    }
+    // digit: caret位置に挿入、freshRefクリア
+    const val = freshRef.current ? '' : String(valueRef.current ?? '')
+    const caret = freshRef.current ? 0 : caretPosRef.current
     freshRef.current = false
-
-    const next = base + k
+    const next = val.slice(0, caret) + keyId + val.slice(caret)
     if (!allowDecimal && isNaN(Number(next))) return
     if (Number(next) > max) return
+    caretPosRef.current = caret + 1
     onChange(next)
   }
 
@@ -165,27 +198,26 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
               {displayVal || '—'}
             </span>
           </div>
-          {/* J-COLLECTION-12 R5: iPhone のみキー行高さを倍に (iPad/PC は元々 isIPhone() で footer 非表示なので影響なし)。
-              既存の isIPhone() ガード (本 component 冒頭) 内なので、ここの minHeight 付与は iPhone path 限定。
-              閾値は 1行 = NUMPAD_ROW_MIN_PX (88px 想定、4 行で 352px) を named constant で保持。 */}
           <div
             data-testid="numpad-sheet"
             style={{
               flex: 1,
-              minHeight: NUMPAD_ROW_MIN_PX * 4,
+              minHeight: 0,
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gridTemplateRows: 'repeat(4, 1fr)',
               gap: 0,
               padding: 0,
             }}
           >
-            {KEYS.map(k => (
+            {KEYS.map((k, i) => k === null ? (
+              <div key={`empty-${i}`} />
+            ) : (
               <button
-                key={k}
-                data-numpad-key={k}
+                key={k.id}
+                data-numpad-key={k.id}
                 disabled={!isActive}
-                onPointerDown={e => { e.preventDefault(); handleKey(k) }}
+                onPointerDown={e => { e.preventDefault(); handleKey(k.id) }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   height: '100%', minHeight: 0, borderRadius: 8, fontSize: 20, fontWeight: 'bold',
@@ -193,12 +225,15 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
                   cursor: isActive ? 'pointer' : 'default',
                   touchAction: 'none',
                   background: !isActive ? '#1e293b' :
-                    k === '→' ? '#059669' : k === '⌫' ? '#4b5563' : '#1e293b',
+                    k.id === 'ret' ? '#059669' :
+                    k.id === 'bs' || k.id === 'c' ? '#4b5563' :
+                    k.id === 'caretL' || k.id === 'caretR' ? '#374151' :
+                    '#1e293b',
                   color: isActive ? '#f1f5f9' : '#374151',
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
-                {k}
+                {k.label}
               </button>
             ))}
           </div>
@@ -229,18 +264,29 @@ export default function NumpadField({
   const freshRef = useRef(false)
   const valueRef = useRef(value)
   valueRef.current = value
-
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
-
   const activateRef = useRef(null)
+  const caretPosRef = useRef(String(value ?? '').length)
+  // alwaysOpen path ローカルキャレット状態 (NumpadFooterPanelはcaretPosRefで管理)
+  const [aoCaretPos, setAoCaretPos] = useState(() => String(value ?? '').length)
+  // SPEC-NUMPAD-CARET-VISIBLE-01: caretL/caretR時(value変化なし)に再レンダリングを起こすカウンタ
+  const [, setCaretTick] = useState(0)
+
+  useEffect(() => { _injectCaretStyle() }, [])
 
   function activate() {
+    const initCaret = String(value ?? '').length
+    caretPosRef.current = initCaret
     inputRef.current?.focus()
+    inputRef.current?.setSelectionRange?.(initCaret, initCaret)
     freshRef.current = true
     onRegister?.({
       valueRef,
+      caretPosRef,
+      inputRef,
       onChange: (v) => onChangeRef.current(v),
+      onCaretChange: () => setCaretTick(t => t + 1),
       onNext,
       dataTabindex: Number(dataTabindex),
       allowDecimal,
@@ -251,15 +297,23 @@ export default function NumpadField({
   }
   activateRef.current = activate
 
+  // value変更後にsetSelectionRangeでcaret位置をDOM同期(React controlled caret jump回避)
+  useLayoutEffect(() => {
+    if (alwaysOpen || !isCustomNumpadEnabled()) return
+    if (!inputRef.current) return
+    const len = String(value ?? '').length
+    const pos = Math.min(caretPosRef.current, len)
+    inputRef.current.setSelectionRange(pos, pos)
+  }, [value, alwaysOpen])
+
   useEffect(() => {
     if (inputRef.current) {
-      inputRef.current._numpadActivate = () => activateRef.current()
+      inputRef.current._numpadActivate = () => activateRef.current?.()
     }
   }, [])
 
   // alwaysOpen branch kept for OcrCaptureScreen + StockCount usage
   if (alwaysOpen) {
-    // J-COLLECTION-12 派生 (ad-hoc): カスタムテンキー無効時は iPhone も native input (OS 標準KB)
     if (!isCustomNumpadEnabled()) {
       return (
         <NativeNumInput
@@ -269,44 +323,67 @@ export default function NumpadField({
         />
       )
     }
-    function handleKeyInline(k) {
-      if (k === '⌫') {
-        onChange(String(value || '').slice(0, -1))
+    function handleKeyInline(keyId) {
+      const val = String(value ?? '')
+      const caret = aoCaretPos
+      if (keyId === 'bs') {
+        if (caret === 0) return
+        onChange(val.slice(0, caret - 1) + val.slice(caret))
+        setAoCaretPos(caret - 1)
         return
       }
-      if (k === '→') {
+      if (keyId === 'c') {
+        onChange('')
+        setAoCaretPos(0)
+        return
+      }
+      if (keyId === 'ret') {
         if (onNext) onNext()
         return
       }
-      if (k === '.' && !allowDecimal) return
-      const next = String(value || '') + k
+      if (keyId === 'caretL') {
+        setAoCaretPos(Math.max(0, caret - 1))
+        return
+      }
+      if (keyId === 'caretR') {
+        setAoCaretPos(Math.min(val.length, caret + 1))
+        return
+      }
+      // digit
+      const next = val.slice(0, caret) + keyId + val.slice(caret)
       if (!allowDecimal && isNaN(Number(next))) return
       if (Number(next) > max) return
       onChange(next)
+      setAoCaretPos(caret + 1)
     }
     return (
-      <div className="w-full h-full grid grid-rows-4 gap-1 bg-slate-800 p-2 select-none" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        {KEYS.map(k => (
+      <div
+        className="w-full h-full gap-1 bg-slate-800 p-2 select-none"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)' }}
+      >
+        {KEYS.map((k, i) => k === null ? (
+          <div key={`empty-${i}`} />
+        ) : (
           <button
-            key={k}
-            onPointerDown={e => { e.preventDefault(); handleKeyInline(k) }}
+            key={k.id}
+            onPointerDown={e => { e.preventDefault(); handleKeyInline(k.id) }}
             className={`
               h-full flex items-center justify-center rounded-lg text-xl font-bold
               active:scale-95 transition-transform select-none
-              ${k === '→' ? 'bg-emerald-500 text-white' :
-                k === '⌫' ? 'bg-slate-600 text-slate-200' :
+              ${k.id === 'ret' ? 'bg-emerald-500 text-white' :
+                k.id === 'bs' || k.id === 'c' ? 'bg-slate-600 text-slate-200' :
+                k.id === 'caretL' || k.id === 'caretR' ? 'bg-slate-500 text-slate-200' :
                 'bg-slate-700 text-white'}
             `}
-            style={{ gridRow: 'auto', touchAction: 'none' }}
+            style={{ touchAction: 'none' }}
           >
-            {k}
+            {k.label}
           </button>
         ))}
       </div>
     )
   }
 
-  // J-COLLECTION-12 派生 (ad-hoc): カスタムテンキー無効時は iPhone も native input (OS 標準KB)。
   if (!isCustomNumpadEnabled()) {
     return (
       <NativeNumInput
@@ -320,51 +397,75 @@ export default function NumpadField({
   }
 
   const displayVal = value !== '' && value != null ? String(value) : ''
+  // SPEC-NUMPAD-CARET-VISIBLE-01: 点滅縦棒のright位置計算(等幅Courier New, textAlign:right基準)
+  const caretPos = Math.min(caretPosRef.current, displayVal.length)
+  const charsFromRight = displayVal.length - caretPos
 
   return (
-    <input
-      ref={inputRef}
-      id={id}
-      type="text"
-      readOnly
-      inputMode="none"
-      data-tabindex={dataTabindex}
-      data-testid={testId}
-      value={displayVal}
-      placeholder={inputPlaceholder ?? '—'}
-      onPointerDown={e => {
-        e.preventDefault()
-        activate()
-      }}
-      onKeyDown={e => {
-        if (e.key === 'Enter') {
+    <div style={{ position: 'relative' }}>
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        readOnly
+        inputMode="none"
+        data-tabindex={dataTabindex}
+        data-testid={testId}
+        value={displayVal}
+        placeholder={inputPlaceholder ?? '—'}
+        onPointerDown={e => {
           e.preventDefault()
-          if (onNext) onNext()
-          const all = Array.from(document.querySelectorAll('[data-tabindex]'))
-            .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
-          const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
-          const nextEl = all[idx + 1]
-          if (nextEl?._numpadActivate) nextEl._numpadActivate()
-          else if (nextEl) nextEl.focus()
-        }
-      }}
-      className={inputClassName ?? ''}
-      style={{
-        cursor: 'pointer',
-        border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
-        background: isActive ? '#eff6ff' : '#0a0a14',
-        borderRadius: 4,
-        padding: '0.4em 0.35em',
-        fontFamily: "'Courier New', Courier, monospace",
-        fontWeight: 'bold',
-        textAlign: 'right',
-        outline: 'none',
-        boxSizing: 'border-box',
-        WebkitAppearance: 'none',
-        fontSize: 16,
-        ...(isActive ? { color: '#1e3a5f' } : {}),
-        ...style,
-      }}
-    />
+          activate()
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            if (onNext) onNext()
+            const all = Array.from(document.querySelectorAll('[data-tabindex]'))
+              .sort((a, b) => Number(a.dataset.tabindex) - Number(b.dataset.tabindex))
+            const idx = all.findIndex(el => Number(el.dataset.tabindex) === Number(dataTabindex))
+            const nextEl = all[idx + 1]
+            if (nextEl?._numpadActivate) nextEl._numpadActivate()
+            else if (nextEl) nextEl.focus()
+          }
+        }}
+        className={inputClassName ?? ''}
+        style={{
+          cursor: 'pointer',
+          border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+          background: isActive ? '#eff6ff' : '#0a0a14',
+          borderRadius: 4,
+          padding: '0.4em 0.35em',
+          fontFamily: "'Courier New', Courier, monospace",
+          fontWeight: 'bold',
+          textAlign: 'right',
+          outline: 'none',
+          boxSizing: 'border-box',
+          WebkitAppearance: 'none',
+          fontSize: 16,
+          width: '100%',
+          ...(isActive ? { color: '#1e3a5f' } : {}),
+          ...style,
+        }}
+      />
+      {isActive && (
+        <span
+          aria-hidden="true"
+          data-testid="numpad-caret-overlay"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: `calc(0.35em + ${charsFromRight}ch)`,
+            transform: 'translateY(-50%)',
+            width: 2,
+            height: '1em',
+            background: '#2563eb',
+            borderRadius: 1,
+            animation: '_numpad_caret_blink 1s step-end infinite',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+    </div>
   )
 }

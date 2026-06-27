@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SPEC-PATROL-HISTORY-COLUMN-ALIGN-01: C1 mr-[17px] + C2 tabular-nums クラス存在確認
+// SPEC-PATROL-HISTORY-HEATMAP-02: tabular-nums クラス存在確認 (mr-[17px] は F2 統合スクロール廃止済)
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -20,8 +20,12 @@ import StoreTotalsHeader from '../../clawsupport/components/StoreTotalsHeader'
 import MachineRow from '../../clawsupport/components/MachineRow'
 import MachineRowExpandedBoothList from '../../clawsupport/components/MachineRowExpandedBoothList'
 
+// 10-element arrays (SPEC-PATROL-HISTORY-HEATMAP-01)
+const D10 = [null, null, null, null, null, null, 10, 20, 30, 40]
+const D10_OUT = [null, null, null, null, null, null, 1, 2, 3, 4]
+
 const DIFF_MAP = {
-  'M001': { inDiffs: [10, 20, 30, 40], outDiffs: [1, 2, 3, 4], daily: [5, 10, 15, 20], days: [2, 2, 2, 2] },
+  'M001': { inDiffs: D10, outDiffs: D10_OUT, daily: D10, days: Array(10).fill(null).fill(2, 6) },
 }
 
 const MACHINE = {
@@ -37,15 +41,7 @@ const MACHINE = {
   machine_lockers: [],
 }
 
-describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C1 alignment classes', () => {
-  it('when_StoreTotalsHeader_rendered_should_have_mr-17px_on_both_grid_containers', () => {
-    render(<StoreTotalsHeader diffMap={DIFF_MAP} mode="IN" />)
-    const labelGrid = screen.getByTestId('store-label-0').parentElement
-    const valueGrid = screen.getByTestId('store-value-0').parentElement
-    expect(labelGrid.className).toContain('mr-[17px]')
-    expect(valueGrid.className).toContain('mr-[17px]')
-  })
-
+describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN tabular-nums', () => {
   it('when_StoreTotalsHeader_rendered_should_have_tabular-nums_on_both_grid_containers', () => {
     render(<StoreTotalsHeader diffMap={DIFF_MAP} mode="IN" />)
     const labelGrid = screen.getByTestId('store-label-0').parentElement
@@ -53,9 +49,7 @@ describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C1 alignment classes', () => {
     expect(labelGrid.className).toContain('tabular-nums')
     expect(valueGrid.className).toContain('tabular-nums')
   })
-})
 
-describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C2 tabular-nums', () => {
   it('when_MachineRow_rendered_should_have_tabular-nums_on_grid', () => {
     render(
       <MemoryRouter>
@@ -75,7 +69,7 @@ describe('SPEC-PATROL-HISTORY-COLUMN-ALIGN-01 C2 tabular-nums', () => {
 
   it('when_MachineRowExpandedBoothList_rendered_should_have_tabular-nums_on_booth_grid', () => {
     const BOOTH_SUMMARIES = {
-      B01: { inDiffs: [10, 20, 30, 40], outDiffs: [1, 2, 3, 4], daily: [5, 10, 15, 20], days: [2, 2, 2, 2] },
+      B01: { inDiffs: D10, outDiffs: D10_OUT, daily: D10, days: Array(10).fill(null).fill(2, 6) },
     }
     render(
       <MemoryRouter>

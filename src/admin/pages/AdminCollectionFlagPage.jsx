@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import StorePickerSheet from '../../components/StorePickerSheet'
@@ -28,7 +27,6 @@ function flaggedAtIsoFromDate(dateStr) {
 }
 
 export default function AdminCollectionFlagPage() {
-  const navigate = useNavigate()
   const { staffName } = useAuth()
 
   const [storeCode, setStoreCode] = useState('')
@@ -150,7 +148,6 @@ export default function AdminCollectionFlagPage() {
   return (
     <div data-testid="admin-collection-flag" className="flex flex-col" style={{ height: 'calc(100dvh - 80px)' }}>
       <div className="flex-shrink-0 p-3 pb-2">
-        <button onClick={() => navigate('/admin/collection')} className="text-sm text-gray-400 hover:text-white flex items-center gap-1 mb-3 min-h-[44px]">← 戻る</button>
         <h1 className="text-base font-bold text-text mb-3">集金フラグ編集</h1>
 
         <div className="flex flex-wrap gap-2 items-end">

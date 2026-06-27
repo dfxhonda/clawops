@@ -1,83 +1,54 @@
-// J-PATROL-IN-DAILY-fix-03/05 ad-hoc: 巡回 / 管理者編集モード の店舗ハブ最上行で共用するヘッダ。
-// 2 行構成: (1) 進捗バッジ/モードトグル + ラベル、(2) 任意の左側スロット + 全店舗合計値。
-// MachineRow / MachineRowExpandedBoothList と同一の w-52 grid + gap-x-1.5 で列 x 位置完全一致。
-//
-// SPEC-PATROL-VIEW-MODE-SWITCH-02: mode (IN/DAILY/OUT) で値配列を切替、列ラベルは固定 4 前 / 3 前 / 前回 / 今回。
-// onModeChange が渡されたら上段左に 3 ボタントグル (IN/日売/OUT) を描画。
+// SPEC-PATROL-HISTORY-HEATMAP-02: 一体横スクロール対応。個別 overflow-x-auto 廃止。
+// PatrolStorePage の unified scroll に組み込まれる。dateAxis prop で店舗共通日付軸受取。
+// mode toggle / expand toggle は PatrolStorePage のコントロールバーに移動。
 
 import { useMemo } from 'react'
 import {
   VIEW_MODES,
-  VIEW_MODE_ORDER,
-  COLUMN_HEADERS,
   COLUMN_COUNT,
+  NEWEST,
   aggregateSummaries,
   formatCell,
 } from './patrolViewModes'
 
-const NEWEST = 3
-
-export function computeStoreTotals(diffMap, mode = 'IN') {
-  return aggregateSummaries(Object.values(diffMap || {}), mode)
+export function computeStoreTotals(diffMap, mode = 'IN', dateAxis = null) {
+  return aggregateSummaries(Object.values(diffMap || {}), mode, dateAxis)
 }
 
-function ModeToggle({ mode, onModeChange }) {
-  return (
-    <div
-      role="tablist"
-      data-testid="patrol-view-mode-toggle"
-      className="inline-flex items-center gap-0.5 rounded-md border border-border bg-surface/60 p-0.5"
-    >
-      {VIEW_MODE_ORDER.map(m => {
-        const active = m === mode
-        return (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            data-testid={`patrol-view-mode-btn-${m}`}
-            onClick={() => onModeChange(m)}
-            className={`min-h-[36px] px-2.5 rounded text-xs font-bold leading-tight ${
-              active ? 'bg-emerald-600 text-white' : 'text-muted active:bg-surface'
-            }`}
-          >
-            {VIEW_MODES[m].label}
-          </button>
-        )
-      })}
-    </div>
-  )
+// 'YYYY-MM-DD' → 'M/D' (JST safe: patrol_date 直使用、toISOString 禁止)
+function fmtDateLabel(dateStr) {
+  if (!dateStr) return null
+  const parts = dateStr.split('-')
+  if (parts.length < 3) return null
+  return `${Number(parts[1])}/${Number(parts[2])}`
 }
 
-export default function StoreTotalsHeader({
-  diffMap, leftSlot = null, leftSlot2 = null,
-  mode = 'IN', onModeChange = null,
-}) {
+export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN' }) {
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
-  const totals = useMemo(() => computeStoreTotals(diffMap || {}, mode), [diffMap, mode])
-  const showToggle = typeof onModeChange === 'function'
+  const totals = useMemo(
+    () => computeStoreTotals(diffMap || {}, mode, dateAxis),
+    [diffMap, mode, dateAxis],
+  )
   return (
-    <div data-testid="store-totals-header" className="shrink-0 border-b border-border">
-      <div className="px-4 py-1 flex items-center gap-2">
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          {leftSlot}
-          {showToggle && <ModeToggle mode={mode} onModeChange={onModeChange} />}
-        </div>
-        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-xs text-right leading-tight text-muted w-52 mr-[17px] tabular-nums">
-          {COLUMN_HEADERS.map((label, i) => (
-            <div key={i} data-testid={`store-label-${i}`}>{label}</div>
+    <div data-testid="store-totals-header" className="border-b border-border">
+      <div className="px-4 pt-1 flex items-center gap-2">
+        <div className="w-40 shrink-0 sticky left-0 z-10 bg-surface" />
+        <div className="grid grid-cols-10 gap-x-1 text-base text-right leading-tight text-muted w-[400px] tabular-nums">
+          {Array.from({ length: COLUMN_COUNT }, (_, i) => (
+            <div key={i} data-testid={`store-label-${i}`}>
+              {fmtDateLabel(dateAxis?.[i]) ?? ''}
+            </div>
           ))}
         </div>
       </div>
-      <div className="px-4 pb-1.5 flex items-center gap-2">
-        <div className="flex-1 min-w-0">{leftSlot2}</div>
-        <div className="shrink-0 grid grid-cols-4 gap-x-1.5 text-right leading-tight w-52 mr-[17px] tabular-nums">
+      <div className="px-4 pb-1 flex items-center gap-2">
+        <div className="w-40 shrink-0 text-sm text-muted sticky left-0 z-10 bg-surface">合計</div>
+        <div className="grid grid-cols-10 gap-x-1 text-right leading-tight w-[400px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div
               key={i}
               data-testid={`store-value-${i}`}
-              className={`font-mono text-sm font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
+              className={`font-mono text-base font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
             >
               {formatCell(totals[i], modeDef.type)}
             </div>

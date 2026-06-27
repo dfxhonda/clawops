@@ -166,7 +166,7 @@ export default function PatrolScan() {
             onClick={() => fileInputRef.current?.click()}
             disabled={resolving}
             className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 hover:bg-black/80 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm disabled:opacity-40 transition-colors">
-            🖼️ ギャラリー
+            ギャラリー
           </button>
         </div>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
@@ -177,7 +177,7 @@ export default function PatrolScan() {
             <p className="text-accent2 text-sm mb-2.5">{error}</p>
             <button onClick={handleRetry}
               className="w-full bg-surface2 border border-border text-text font-medium py-2.5 rounded-lg">
-              📷 もう一度スキャン
+              もう一度スキャン
             </button>
           </div>
         )}
@@ -191,7 +191,7 @@ export default function PatrolScan() {
 
         {/* ドロップダウン選択 */}
         <div className="bg-surface border border-border rounded-xl p-3.5">
-          <div className="text-xs text-muted font-semibold mb-2.5">📋 ドロップダウンで選択</div>
+          <div className="text-xs text-muted font-semibold mb-2.5">ドロップダウンで選択</div>
           <div className="space-y-2">
             <select
               value={selStore}

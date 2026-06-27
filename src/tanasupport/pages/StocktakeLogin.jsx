@@ -141,7 +141,7 @@ export default function StocktakeLogin() {
             {/* エラー */}
             {error && (
               <div className="text-center text-xs text-red-400 mb-3">
-                {locked ? `🔒 ロック中 あと${lockRemain}秒` : error}
+                {locked ? `ロック中 あと${lockRemain}秒` : error}
               </div>
             )}
 

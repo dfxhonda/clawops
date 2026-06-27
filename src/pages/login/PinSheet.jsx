@@ -156,17 +156,17 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
               width: 48, height: 48, borderRadius: '50%',
               background: avatarBg(staff.staff_id), flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 700, color: '#fff',
+              fontSize: 22, fontWeight: 700, color: '#fff',
             }}>
               {(staff.name || '?')[0]}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>{staff.name} さん</div>
-              <div style={{ fontSize: 11, color: subColor, marginTop: 2 }}>{subMsg}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9' }}>{staff.name} さん</div>
+              <div style={{ fontSize: 14, color: subColor, marginTop: 2 }}>{subMsg}</div>
             </div>
             <button
               onClick={onClose}
-              style={{ fontSize: 22, color: '#64748b', padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+              style={{ fontSize: 24, color: '#64748b', padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
             >×</button>
           </div>
 
@@ -201,7 +201,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
             <div />
             <button data-testid="pin-key-0" className="kp-btn" onPointerDown={() => handleDigit(0)} disabled={isLocked || submitting}>0</button>
             <button data-testid="pin-backspace" className="kp-btn" onPointerDown={handleBackspace} disabled={isLocked || submitting}
-              style={{ color: '#94a3b8', fontSize: 18 }}>⌫</button>
+              style={{ color: '#94a3b8', fontSize: 20 }}>⌫</button>
           </div>
         </div>
       </div>

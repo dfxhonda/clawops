@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMachines } from '../../services/masters'
 import { getAllMachineLockers, addLocker, deleteLocker, activateLocker, updateLocker } from '../../services/patrol'
-import LogoutButton from '../../components/LogoutButton'
+import { PageHeader } from '../../shared/ui/PageHeader'
 import StorePickerSheet from '../../components/StorePickerSheet'
 
 export default function LockerList() {
@@ -127,14 +127,7 @@ export default function LockerList() {
   return (
     <div className="h-full flex flex-col">
 
-      <div className="shrink-0 z-50 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-3 print:hidden" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin')} className="text-2xl text-muted">←</button>
-        <div className="flex-1">
-          <h2 className="text-base font-bold">ロッカー登録</h2>
-          <p className="text-[11px] text-muted">ガチャ機のロッカー設定</p>
-        </div>
-        <LogoutButton to="/admin" />
-      </div>
+      <PageHeader module="admin" hideHome={true} title="ロッカー登録" onBack={() => navigate('/admin')} />
 
 
       <div className="flex-1 overflow-y-auto pb-16">

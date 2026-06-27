@@ -138,7 +138,7 @@ export default function StocktakeTop() {
 
       {/* ヘッダー */}
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
-        <div className="text-base font-bold flex-1">📦 棚卸し</div>
+        <div className="text-base font-bold flex-1">棚卸し</div>
         <div className="text-xs text-muted">{staffName}</div>
         <button onClick={handleLogout} className="text-[10px] text-muted hover:text-accent2">
           ログアウト

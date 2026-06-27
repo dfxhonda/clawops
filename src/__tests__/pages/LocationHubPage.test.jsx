@@ -124,13 +124,15 @@ describe('LocationHubPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/stock')
   })
 
-  it('when_missing_query_params_should_show_error_with_back_buttons', async () => {
+  it('when_missing_query_params_should_show_error_with_page_header_back', async () => {
     supabaseSelectHandler.mockReturnValue({ data: null })
     mockUseAuth.mockReturnValue({ staffId: 'S001' })
     renderPage('')
     await waitFor(() => expect(screen.getByTestId('location-hub-error')).toBeTruthy())
 
-    expect(screen.getByTestId('location-hub-error-back-target')).toBeTruthy()
-    expect(screen.getByTestId('location-hub-error-back-launcher')).toBeTruthy()
+    // PageHeader [←] provides back navigation (SPEC-NAV-HUB-BACKHOME-UNIFY-01)
+    expect(screen.getByTestId('page-header-back')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('page-header-back'))
+    expect(mockNavigate).toHaveBeenCalledWith('/stock')
   })
 })

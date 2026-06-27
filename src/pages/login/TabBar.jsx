@@ -15,7 +15,7 @@ export default function TabBar({ active, onChange }) {
           style={{
             minWidth: 44, height: 44, flexShrink: 0,
             borderRadius: 22, border: 'none',
-            fontSize: 16, fontWeight: active === t ? 700 : 400,
+            fontSize: 19, fontWeight: active === t ? 700 : 400,
             background: active === t ? 'var(--color-info)' : 'var(--color-surface2)',
             color: active === t ? 'var(--color-bg)' : 'var(--color-text-dim)',
             cursor: 'pointer',

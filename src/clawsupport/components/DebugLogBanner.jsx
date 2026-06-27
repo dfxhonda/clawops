@@ -105,7 +105,7 @@ export default function DebugLogBanner() {
           justifyContent: 'space-between',
         }}
       >
-        <span>🐛 DEBUG LOG ({logs.length})</span>
+        <span>DEBUG LOG ({logs.length})</span>
         <span>{open ? '▼ タップで閉じる' : '▲ タップで開く'}</span>
       </div>
       {open && (

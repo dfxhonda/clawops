@@ -124,18 +124,7 @@ describe('triggerUpdate cooldown guard (SPEC-PWA-SW-ACTIVE-UPDATE-S2-01 AC6)', (
 })
 
 describe('visibilitychange (SPEC-PWA-SW-ACTIVE-UPDATE-S2-01 AC2)', () => {
-  it('when_page_becomes_visible_should_trigger_sw_update', async () => {
-    const r = mkReg()
-    simulateSWRegistered(r)
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })))
-
-    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-    document.dispatchEvent(new Event('visibilitychange'))
-    await Promise.resolve()
-    await Promise.resolve()
-
-    expect(r.update).toHaveBeenCalledOnce()
-  })
+  // SPEC-PWA-VERSION-CHECK-UPDATE-01: visibilitychange→triggerUpdate listener撤去済み。テスト削除。
 
   it('when_page_becomes_hidden_should_not_trigger_sw_update', async () => {
     const r = mkReg()

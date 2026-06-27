@@ -53,6 +53,14 @@ Deno.serve(async (req: Request) => {
   try {
     const { staff_id, pin, skip_bcrypt } = await req.json();
 
+    // SPEC-LOGIN-UPDATE-PREFETCH-01: POST warmup識別。auth_logs汚染防止のため即200返し。
+    if (staff_id === '__warmup__') {
+      return new Response(JSON.stringify({ ok: true, warmup: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!staff_id) {
       return new Response(
         JSON.stringify({ error: 'staff_id は必須です' }),

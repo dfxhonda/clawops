@@ -266,7 +266,7 @@ export default function OrderList() {
                     {o.destination && <span>{o.destination}</span>}
                     <span>
                       {isOverdue(o)
-                        ? <span className="text-rose-400">⚠️ 遅延 <DateTime value={o.expected_date} format="short" />予定</span>
+                        ? <span className="text-rose-400">遅延 <DateTime value={o.expected_date} format="short" />予定</span>
                         : tab === 'arrived'
                           ? <><span>入荷 </span><DateTime value={o.arrived_at} format="short" /></>
                           : <><span>予定 </span><DateTime value={o.expected_date} format="short" /></>

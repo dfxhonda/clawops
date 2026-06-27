@@ -43,8 +43,6 @@ export default defineConfig(({ mode }) => ({
       injectRegister: null,
       manifest: false,
       workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [

@@ -129,15 +129,15 @@ export default function FullshotCamera({ onComplete, currentStoreCode }) {
         onClick={() => inputRef.current?.click()}
         className="h-9 px-3 flex items-center gap-1 rounded-xl bg-teal-700 text-white text-[11px] font-bold active:bg-teal-800 transition-colors"
       >
-        📸 全景
+        全景
       </button>
-      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>💡フラッシュONで精度UP</div>
+      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>フラッシュONで精度UP</div>
     </div>
   )
 
   if (phase === 'processing') return (
     <div style={{ padding: '12px 16px', color: '#f8fafc', textAlign: 'center', fontSize: 13 }}>
-      🔍 機械コード・メーター読取中...
+      機械コード・メーター読取中...
     </div>
   )
 
@@ -152,7 +152,7 @@ export default function FullshotCamera({ onComplete, currentStoreCode }) {
     const isLow = result.confidence === 'low'
     return (
       <div style={{ position: 'fixed', inset: 0, backgroundColor: '#0f172a', zIndex: 100, display: 'flex', flexDirection: 'column', padding: 16, color: '#f8fafc', overflowY: 'auto' }}>
-        <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 12 }}>📸 全景撮影 確認</div>
+        <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 12 }}>全景撮影 確認</div>
 
         <div style={{ marginBottom: 12, padding: '10px 14px', backgroundColor: '#1e293b', borderRadius: 10 }}>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>機械コード</div>
@@ -179,7 +179,7 @@ export default function FullshotCamera({ onComplete, currentStoreCode }) {
             }}>
               <span style={{ flex: 1, fontSize: 14 }}>{b.booth_code}</span>
               <span style={{ fontSize: 11, color: isLow ? '#fbbf24' : '#86efac' }}>
-                {isLow ? '⚠️ 要確認' : '✅ 自動入力'}
+                {isLow ? '要確認' : '自動入力'}
               </span>
             </div>
           ))}
@@ -190,14 +190,14 @@ export default function FullshotCamera({ onComplete, currentStoreCode }) {
             onClick={() => setPhase('idle')}
             style={{ flex: 1, padding: '14px 0', borderRadius: 10, border: 'none', backgroundColor: '#1e293b', color: '#94a3b8', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
-            ✏️ 個別修正
+            個別修正
           </button>
           <button
             onClick={handleSave}
             disabled={result.booths.length === 0}
             style={{ flex: 2, padding: '14px 0', borderRadius: 10, border: 'none', backgroundColor: result.booths.length === 0 ? '#1e293b' : '#10b981', color: '#fff', fontWeight: 700, fontSize: 15, cursor: result.booths.length === 0 ? 'not-allowed' : 'pointer' }}
           >
-            ✅ 全部このまま保存
+            全部このまま保存
           </button>
         </div>
       </div>

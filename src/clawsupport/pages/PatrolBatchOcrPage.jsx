@@ -186,7 +186,7 @@ export default function PatrolBatchOcrPage() {
         >
           ←
         </button>
-        <div className="flex-1 text-sm font-bold">📁 ギャラリー一括登録</div>
+        <div className="flex-1 text-sm font-bold">ギャラリー一括登録</div>
         <LogoutButton />
       </div>
 

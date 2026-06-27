@@ -16,12 +16,17 @@ export default function ClawsupportHub() {
 
   const [stores, setStores] = useState([])
   const [pinnedCodes, setPinnedCodes] = useState([])
+  const [storeMetaMap, setStoreMetaMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [betaMode, setBetaMode] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [{ data: storeData }, { data: pinData }] = await Promise.all([
+      const [
+        { data: storeData },
+        { data: pinData },
+        { data: rpcRows },
+      ] = await Promise.all([
         supabase
           .from('stores')
           .select('store_code, store_name, locality, locality_kana')
@@ -30,9 +35,21 @@ export default function ClawsupportHub() {
         staffId
           ? supabase.from('staff_pinned_stores').select('store_code').eq('staff_id', staffId)
           : Promise.resolve({ data: [] }),
+        supabase.rpc('store_patrol_progress'),
       ])
+
+      const metaMap = {}
+      for (const row of (rpcRows ?? [])) {
+        metaMap[row.store_code] = {
+          lastDate: row.last_patrol_date ?? null,
+          done: row.done_booths ?? 0,
+          total: row.total_booths ?? 0,
+        }
+      }
+
       setStores(storeData ?? [])
       setPinnedCodes((pinData ?? []).map(p => p.store_code))
+      setStoreMetaMap(metaMap)
       setLoading(false)
     }
     load()
@@ -101,6 +118,7 @@ export default function ClawsupportHub() {
         key={store.store_code}
         store={store}
         isPinned={isPinned}
+        meta={storeMetaMap[store.store_code] ?? null}
         onSelect={() => {
           Sentry.addBreadcrumb({ category: 'navigation', message: `store_select:${store.store_code}`, level: 'info' })
           navigate(betaMode ? `/clawsupport/beta/store/${store.store_code}` : `/clawsupport/store/${store.store_code}`)
@@ -124,7 +142,6 @@ export default function ClawsupportHub() {
         module="clawsupport"
         title="クレサポ"
         variant="compact"
-        menuToLauncher
         rightSlot={<DateTime value={new Date()} format="date" />}
       />
 
@@ -155,7 +172,7 @@ export default function ClawsupportHub() {
   )
 }
 
-function StoreCard({ store, isPinned, onSelect, onPin }) {
+function StoreCard({ store, isPinned, onSelect, onPin, meta }) {
   const timerRef = useRef(null)
   const movedRef = useRef(false)
   const longPressFiredRef = useRef(false)
@@ -180,6 +197,31 @@ function StoreCard({ store, isPinned, onSelect, onPin }) {
     clearTimeout(timerRef.current)
   }
 
+  // Compute right meta: lastDateLabel, doneLabel, badgeColor
+  let lastDateLabel = null
+  let doneLabel = null
+  let badgeColor = 'text-muted border-border'
+
+  if (meta) {
+    const { lastDate, done, total } = meta
+    if (lastDate) {
+      const [, m, d] = lastDate.split('-').map(Number)
+      lastDateLabel = `最終 ${m}/${d}`
+      if (total > 0) {
+        doneLabel = `${done}/${total}`
+        if (done >= total) badgeColor = 'text-emerald-400 border-emerald-400/40'
+        else if (done > 0) badgeColor = 'text-amber-400 border-amber-400/40'
+        else badgeColor = 'text-muted border-border'
+      }
+    } else if (total > 0) {
+      // No patrol in last 60 days: show –/total in muted
+      doneLabel = `–/${total}`
+      badgeColor = 'text-muted border-border'
+    }
+  }
+
+  const hasRightMeta = lastDateLabel !== null || doneLabel !== null
+
   return (
     <button
       onClick={() => {
@@ -191,16 +233,25 @@ function StoreCard({ store, isPinned, onSelect, onPin }) {
       onPointerMove={handlePointerMove}
       onPointerCancel={handlePointerUp}
       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none"
-      style={{ minHeight: 72 }}
+      style={{ minHeight: 88 }}
     >
-      {isPinned && <span className="text-yellow-400 text-sm shrink-0">★</span>}
+      {isPinned && <span className="text-yellow-400 text-lg shrink-0">★</span>}
       <div className="flex-1 min-w-0">
-        <p className="text-text text-base font-bold truncate">{store.store_name}</p>
-        {store.locality && (
-          <p className="text-muted text-xs mt-0.5">{store.locality}</p>
-        )}
+        <p className="text-text text-xl font-bold truncate">{store.store_name}</p>
       </div>
-      <span className="text-muted text-lg shrink-0">›</span>
+      {hasRightMeta && (
+        <div className="flex flex-col items-end shrink-0 gap-0.5">
+          {lastDateLabel && (
+            <span className="text-xs text-muted whitespace-nowrap">{lastDateLabel}</span>
+          )}
+          {doneLabel && (
+            <span className={`text-sm font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${badgeColor}`}>
+              {doneLabel}
+            </span>
+          )}
+        </div>
+      )}
+      <span className="text-muted text-xl shrink-0">›</span>
     </button>
   )
 }

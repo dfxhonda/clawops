@@ -122,7 +122,7 @@ function SelectPhase({ staffId, staffName, onStart }) {
   return (
     <div className="min-h-screen flex flex-col bg-bg text-text">
       <div className="sticky top-0 z-50 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#10b981' }}>
-        <div className="text-base font-bold flex-1">📦 棚卸しカウント</div>
+        <div className="text-base font-bold flex-1">棚卸しカウント</div>
       </div>
 
       <div className="flex-1 px-4 pt-4 pb-24 space-y-4">
@@ -407,7 +407,7 @@ function SummaryPhase({ sessionId, lines, owner, staffId, onConfirm, onBack }) {
         )}
 
         {diffLines.length === 0 && (
-          <div className="text-center py-8 text-muted text-sm">差異なし — 完璧です ✅</div>
+          <div className="text-center py-8 text-muted text-sm">差異なし — 完璧です</div>
         )}
       </div>
 

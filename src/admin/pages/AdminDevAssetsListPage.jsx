@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listDevAssets, getDevAssetSignedUrl, deleteDevAsset } from '../../services/devAssets'
+import { PageHeader } from '../../shared/ui/PageHeader'
 
 // J-DEV-ASSET-HANDOFF-01: ファイル受け渡し 一覧画面 (admin/manager only, route guard 済み)
 //   signed URL DL / sha256 copy / 削除 (確認ダイアログ、背景タップキャンセル)
@@ -65,15 +66,14 @@ export default function AdminDevAssetsListPage() {
 
   return (
     <div data-testid="admin-dev-assets-list" className="flex flex-col bg-bg text-text" style={{ height: '100dvh' }}>
-      <div className="flex-shrink-0 p-3 border-b border-border flex items-center gap-2">
-        <button onClick={() => navigate('/admin/settings')} className="text-sm text-muted min-h-[44px] flex items-center gap-1">← 設定</button>
-        <h1 className="text-base font-bold flex-1">ファイル受け渡し</h1>
-        <button
-          data-testid="dev-asset-upload-link"
-          onClick={() => navigate('/admin/dev-assets/upload')}
-          className="text-sm bg-blue-600 text-white rounded px-3 min-h-[40px] font-bold"
-        >+ アップロード</button>
-      </div>
+      <PageHeader module="admin" title="ファイル受け渡し" hideHome={true}
+        rightSlot={
+          <button
+            data-testid="dev-asset-upload-link"
+            onClick={() => navigate('/admin/dev-assets/upload')}
+            className="text-sm bg-blue-600 text-white rounded px-3 min-h-[40px] font-bold"
+          >+ アップロード</button>
+        } />
 
       {error && <p data-testid="dev-asset-error" className="text-red-400 text-sm px-3 py-1">{error}</p>}
 

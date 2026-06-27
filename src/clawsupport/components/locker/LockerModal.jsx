@@ -95,7 +95,7 @@ function FillFlow({ slot, isSwap, onDone, onClose }) {
         <button disabled={busy}
           style={{ ...S.btn, background: 'rgba(46,204,113,.12)', color: busy ? '#666' : '#2ecc71', borderColor: '#2ecc71' }}
           onClick={submit}>
-          {busy ? '保存中...' : `✅ ${actionLabel}`}
+          {busy ? '保存中...' : actionLabel}
         </button>
         <button style={{ ...S.btn, color: '#8888a8' }} onClick={() => setView('search')}>← 検索に戻る</button>
       </>
@@ -121,7 +121,7 @@ function FillFlow({ slot, isSwap, onDone, onClose }) {
           style={{ display: 'none' }} onChange={handleImgChange} />
         <button style={{ ...S.btn, color: '#8888a8', marginBottom: 12 }}
           onClick={() => imgRef.current?.click()}>
-          📷 {manualImg ? '写真を撮り直す' : '商品画像を撮る (任意)'}
+          {manualImg ? '写真を撮り直す' : '商品画像を撮る (任意)'}
         </button>
         {manualPreview && (
           <img src={manualPreview} alt="preview"
@@ -131,7 +131,7 @@ function FillFlow({ slot, isSwap, onDone, onClose }) {
         <button disabled={busy}
           style={{ ...S.btn, background: 'rgba(46,204,113,.12)', color: busy ? '#666' : '#2ecc71', borderColor: '#2ecc71' }}
           onClick={submit}>
-          {busy ? '登録中...' : `✅ ${actionLabel}`}
+          {busy ? '登録中...' : actionLabel}
         </button>
         <button style={{ ...S.btn, color: '#8888a8' }} onClick={() => setView('search')}>← 検索に戻る</button>
       </>
@@ -163,7 +163,7 @@ function FillFlow({ slot, isSwap, onDone, onClose }) {
       )}
       <button style={{ ...S.btn, color: '#5dade2', borderColor: '#5dade2' }}
         onClick={() => setView('manual')}>
-        ✏️ 手入力で登録する (JAN後差し可)
+        手入力で登録する (JAN後差し可)
       </button>
     </>
   )
@@ -214,19 +214,19 @@ export default function LockerModal({ slot, onClose, onWon, onFill, onRemove, on
         </div>
         <button style={{ ...S.btn, background: 'rgba(255,107,107,.12)', color: '#ff6b6b', borderColor: '#ff6b6b' }}
           onClick={() => { onWon?.(slot.slot_id); onClose() }}>
-          🎯 当たり — 空にする
+          当たり — 空にする
         </button>
         {onSwap && (
           <button style={{ ...S.btn, background: 'rgba(93,173,226,.1)', color: '#5dade2', borderColor: '#5dade2' }}
             onClick={() => setEditing(true)}>
-            🔄 景品を変更
+            景品を変更
           </button>
         )}
         <button style={S.btn} onClick={onClose}>↩ キャンセル</button>
         {onRemove && (
           <button style={{ ...S.btn, color: '#ff6b6b', marginBottom: 0 }}
             onClick={() => { onRemove?.(slot.slot_id); onClose() }}>
-            🗑 撤去する
+            撤去する
           </button>
         )}
       </div>

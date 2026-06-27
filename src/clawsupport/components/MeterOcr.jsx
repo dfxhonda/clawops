@@ -227,7 +227,7 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
         {/* ヘッダー: ×はここに集約 */}
         <div className="flex items-center justify-between mb-4">
           <button onClick={onClose} className="text-slate-400 text-xl px-2 bg-transparent border-none cursor-pointer" aria-label="閉じる">✕</button>
-          <span className="font-bold text-[15px]">📷 メーター入力</span>
+          <span className="font-bold text-[15px]">メーター入力</span>
           <div className="w-8" />
         </div>
 
@@ -427,7 +427,7 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
               disabled={isSaveDisabled}
               className="w-full p-[14px] rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white disabled:text-slate-500 font-bold text-[15px] border-none cursor-pointer disabled:cursor-not-allowed mb-3 transition-colors"
             >
-              💾 保存
+              保存
             </button>
 
             {/* 副アクション: テキストリンク */}
@@ -435,7 +435,7 @@ export default function MeterOcr({ boothCode, lastIn, lastOut, onApply, onClose 
               onClick={handleRetake}
               className="w-full text-cyan-400 text-xs py-1.5 underline bg-transparent border-none cursor-pointer"
             >
-              📷 もう一度撮影する
+              もう一度撮影する
             </button>
             <button
               onClick={onClose}

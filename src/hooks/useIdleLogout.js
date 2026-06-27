@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { logout } from '../lib/auth/session'
+import { markLogoutStart, markLogoutReplaced, reportInterrupt } from '../lib/idleLogoutProbe'
 
-// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作5分アイドル → logout (lock廃止)
+// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作15分アイドル → logout (ヒロ指示 2026-06-23: 5分→15分変更)
 // SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
 // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hiddenAtRef で離席実時間を計測。
 //   visible/pageshow 復帰時は lastActivityRef でなく hiddenAt 基準で判定し、
 //   戻り際タッチ → resetActivity 競合を根本排除 (Page Visibility API 標準パターン)。
-const IDLE_MS = 5 * 60 * 1000
+const IDLE_MS = 15 * 60 * 1000
 const CHECK_INTERVAL = 30 * 1000 // 実時間検算 polling 間隔
 const EVENTS = ['click', 'touchstart', 'scroll', 'keydown', 'pointerdown']
 
@@ -17,7 +18,9 @@ export function useSessionLock(enabled = true) {
   const hiddenAtRef = useRef(null)           // hidden になった時刻 (離席実時間計測用)
 
   const doLogout = useCallback(async () => {
+    markLogoutStart()
     await logout()
+    markLogoutReplaced()
     window.location.replace('/login')
   }, [])
 
@@ -83,17 +86,31 @@ export function useSessionLock(enabled = true) {
       }
     }
 
+    const handlePageshow = () => handleVisibleReturn()
+    const handleFocus    = () => handleVisibleReturn()
+
+    // SW controllerchange 観測 (reportInterrupt probe、恒常運用)
+    let _swCleanup = null
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      const onControllerChange = () => {
+        reportInterrupt('SWCHANGE')
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
+      _swCleanup = () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('pagehide', handleHide)
-    window.addEventListener('pageshow', handleVisibleReturn)
-    window.addEventListener('focus', handleVisibleReturn)
+    window.addEventListener('pageshow', handlePageshow)
+    window.addEventListener('focus', handleFocus)
 
     return () => {
       EVENTS.forEach(e => window.removeEventListener(e, resetActivity))
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('pagehide', handleHide)
-      window.removeEventListener('pageshow', handleVisibleReturn)
-      window.removeEventListener('focus', handleVisibleReturn)
+      window.removeEventListener('pageshow', handlePageshow)
+      window.removeEventListener('focus', handleFocus)
+      if (_swCleanup) _swCleanup()
       clearTimeout(timerRef.current)
       clearInterval(intervalRef.current)
     }

@@ -142,8 +142,7 @@ const AdminAlertTypesPage = lazy(() => import('./admin/pages/AdminAlertTypesPage
 const ClawsupportHub        = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
 const ClawsupportStoreDash  = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
 const PatrolScreenV1        = lazy(() => import('./clawsupport/pages/PatrolScreenV1'))
-// M1 Stage 2: 機械リスト + ブース入力
-const PatrolMachineListPage = lazy(() => import('./clawsupport/pages/PatrolMachineListPage'))
+// M1 Stage 2: ブース入力
 const PatrolBoothInputPage  = lazy(() => import('./clawsupport/pages/PatrolBoothInputPage'))
 // M1 Stage 3: 店舗ハブ (sticky summary bar + diff chips)
 const PatrolStorePage       = lazy(() => import('./clawsupport/pages/PatrolStorePage'))
@@ -299,7 +298,7 @@ function AppInner() {
 
       {/* クレサポ v1.0 — 全ロール */}
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />
-      {/* M1 Stage 2: 機械リスト → ブース入力 */}
+      {/* M1 Stage 3: 店舗ハブ */}
       <Route path="/clawsupport/store/:storeCode" element={<ProtectedRoute><PatrolStorePage /></ProtectedRoute>} />
       {/* DIAG-SWIPE-BLACKSCREEN-01 fix A: key={boothCode} で boothCode 変更時にコンポーネントを
           強制 remount し、ANIM-01 の swipeDx state (commit swipe 後 -innerWidth 残存) を初期化。

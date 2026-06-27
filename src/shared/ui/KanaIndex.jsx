@@ -67,7 +67,7 @@ export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`min-w-[28px] h-8 px-2 rounded-lg text-base font-bold shrink-0 transition-colors ${
+            className={`min-w-[36px] h-10 px-2 rounded-lg text-lg font-bold shrink-0 transition-colors ${
               resolvedTab === tab ? 'bg-accent text-bg' : 'bg-surface text-muted'
             }`}
           >
@@ -79,9 +79,9 @@ export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_
       {/* リスト */}
       <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
         {resolvedTab === '★' && displayItems.length === 0 ? (
-          <p className="text-center text-muted text-base py-8">長押しで★登録</p>
+          <p className="text-center text-muted text-lg py-8">長押しで★登録</p>
         ) : displayItems.length === 0 ? (
-          <p className="text-center text-muted text-base py-8">該当なし</p>
+          <p className="text-center text-muted text-lg py-8">該当なし</p>
         ) : (
           displayItems.map(item => renderCard(item, pinnedSet.has(item[idKey])))
         )}

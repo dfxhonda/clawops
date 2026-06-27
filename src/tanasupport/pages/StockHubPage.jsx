@@ -146,23 +146,13 @@ export default function StockHubPage() {
           module="tanasupport"
           title={selectedStore.store_name}
           variant="compact"
-          menuToLauncher
           onBack={() => { setStep('select'); setSelectedStore(null) }}
         />
         <div className="px-4 py-2 shrink-0 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { setStep('select'); setSelectedStore(null) }}
-            data-testid="stock-hub-change-store"
-            className="text-xs text-accent underline"
-          >
-            ← 店舗を変更
-          </button>
           <span className="text-xs text-muted">{selectedStore.store_code}</span>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
           <TaskTile
-            emoji="🚚"
             title="入荷チェック"
             sub="入荷品の受取確認"
             borderColor="#f43f5e"
@@ -172,7 +162,6 @@ export default function StockHubPage() {
             testid="stock-hub-card-arrival"
           />
           <TaskTile
-            emoji="📋"
             title="棚卸し"
             sub="棚卸しセッション管理"
             borderColor="#10b981"
@@ -182,7 +171,6 @@ export default function StockHubPage() {
             testid="stock-hub-card-stocktake"
           />
           <TaskTile
-            emoji="📦"
             title="発注追跡"
             sub="発注履歴を確認"
             borderColor="var(--color-border, #e5e7eb)"
@@ -191,7 +179,6 @@ export default function StockHubPage() {
             testid="stock-hub-card-orders"
           />
           <TaskTile
-            emoji="📤"
             title="出庫記録"
             sub="担当持出・他店送付・出庫調整"
             borderColor="#f59e0b"
@@ -201,7 +188,6 @@ export default function StockHubPage() {
           />
           {/* J-STOCK-OCR-COUNT-TEST-01: 常時表示テストカード (DB 保存なし、store_id 不要) */}
           <TaskTile
-            emoji="🔬"
             title="OCRカウントテスト"
             sub="景品個数OCRの精度確認 (テスト版)"
             borderColor="#8b5cf6"
@@ -221,7 +207,6 @@ export default function StockHubPage() {
         module="tanasupport"
         title="タナサポ 店舗選択"
         variant="compact"
-        menuToLauncher
         onBack={() => navigate('/launcher')}
       />
       <div className="flex-1 overflow-y-auto pb-6">
@@ -230,7 +215,6 @@ export default function StockHubPage() {
             step='menu' (店舗選択後) 側にも追加済 (重複表示は意図、店舗選択前後どちらの動線からも到達可能)。 */}
         <div className="px-4 pt-3 pb-1 shrink-0">
           <TaskTile
-            emoji="🔬"
             title="OCRカウントテスト"
             sub="景品個数OCRの精度確認 (テスト版)"
             borderColor="#8b5cf6"
@@ -292,7 +276,7 @@ export default function StockHubPage() {
   )
 }
 
-function TaskTile({ emoji, title, sub, borderColor, badge, badgeBg, onClick, testid }) {
+function TaskTile({ title, sub, borderColor, badge, badgeBg, onClick, testid }) {
   return (
     <button
       onClick={onClick}
@@ -300,7 +284,6 @@ function TaskTile({ emoji, title, sub, borderColor, badge, badgeBg, onClick, tes
       className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform select-none min-h-[88px]"
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
     >
-      <span className="text-2xl shrink-0" style={{ minWidth: 44, textAlign: 'center' }}>{emoji}</span>
       <div className="flex-1 min-w-0">
         <p className="text-text text-base font-bold">{title}</p>
         <p className="text-sm mt-0.5" style={{ color: borderColor }}>{sub}</p>
@@ -320,7 +303,7 @@ function StoreCard({ store, isPinned, onSelect, onPin }) {
         onClick={onSelect}
         className="flex-1 flex items-center gap-2 px-3 py-3 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
-        <span className="text-lg shrink-0">{isPinned ? '★' : '🏪'}</span>
+        {isPinned && <span className="text-lg shrink-0">★</span>}
         <div className="flex-1 min-w-0">
           <p className="text-text text-sm font-bold truncate">{store.store_name}</p>
           {store.locality && <p className="text-muted text-[10px] mt-0.5 truncate">{store.locality}</p>}

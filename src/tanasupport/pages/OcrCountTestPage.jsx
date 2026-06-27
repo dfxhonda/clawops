@@ -47,7 +47,6 @@ export default function OcrCountTestPage() {
         module="tanasupport"
         title="OCRカウントテスト"
         variant="compact"
-        menuToLauncher
         onBack={() => navigate('/stock')}
       />
 

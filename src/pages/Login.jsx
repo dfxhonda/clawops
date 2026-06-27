@@ -173,15 +173,15 @@ export default function Login() {
 
       {/* ヘッダー */}
       <div style={{ flexShrink: 0, padding: '16px 16px 10px', textAlign: 'center' }}>
-        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
-        <div style={{ fontSize: 15, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
+        <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: 1 }}>Round 0</div>
+        <div style={{ fontSize: 18, color: '#9090a8', marginTop: 2 }}>スタッフを選んでPINを入力</div>
       </div>
 
       {/* タブバー */}
       <TabBar active={activeTab} onChange={setActiveTab} />
 
       {/* 件数バッジ */}
-      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 13, color: '#64748b' }}>
+      <div style={{ flexShrink: 0, padding: '4px 12px 0', fontSize: 15, color: '#64748b' }}>
         {filteredStaff.length}件
       </div>
 

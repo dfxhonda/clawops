@@ -835,6 +835,8 @@ export default function PatrolBoothInputPage() {
         {renderOcrImageZone(imageUrl)}
         {/* zone_middle: 読取値 + 差分 + 使う/撮り直す/✕ 25vh (圧縮、テンキーは置かない) */}
         <div className="h-[31dvh] flex-none overflow-y-auto bg-bg px-3 pt-2 pb-2">
+          {/* SPEC-PATROL-BOOTH-LABEL-VISIBILITY-01 R2: スワイプミスで別ブースを撮った時に気づける */}
+          <div className="text-xs text-muted mb-1 truncate" data-testid="ocr-confirm-booth-label">{boothLabel}</div>
           {/* J-PATROL-99_adhoc_ocr_failure_inline_input-fix-04: OCR 失敗時の inline 案内バナー。
               ocrCapture.avgConf === null は OCR が値を出してない (timeout / no meters)、
               ocrError 文言を表示しつつ confirming UI と numpad はそのまま使える。 */}
@@ -925,7 +927,7 @@ export default function PatrolBoothInputPage() {
             J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
             カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
             iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
-        <div className={`${isCustomNumpadEnabled() ? 'h-[58dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${currentField ? 'h-[24dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
@@ -936,7 +938,7 @@ export default function PatrolBoothInputPage() {
   return (
     <div
       ref={swipeRef}
-      className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden"
+      className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden relative"
       data-testid="patrol-booth-swipe-container"
       style={{
         transform: `translateX(${swipeDx}px)`,
@@ -962,6 +964,14 @@ export default function PatrolBoothInputPage() {
 
       <div className="px-4 flex items-center gap-2">
         <EntryTypeBadge type={entryType} />
+        {booth && (
+          <span
+            data-testid="booth-number-badge"
+            className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs border bg-surface border-border text-muted"
+          >
+            ブース {booth.booth_number}
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setShowAlert(true)}
@@ -1037,51 +1047,25 @@ export default function PatrolBoothInputPage() {
         />
       </div>
 
-      {/* J-PATROL-99_adhoc_booth_history_visibility-fix-01:
-          c5fa733 で NumpadFooterPanel が isCustomNumpadEnabled()=false 時 null を返すため、
-          idleContent として渡していた BoothHistoryList も巻き添えで消えていた。
-          custom numpad OFF (=現行 default) では panel の外に sibling として描画して常時表示。
-          custom numpad ON (=test mode 等) では従来通り panel.idleContent に渡して
-          legacy UX を維持 (numpad active 時は keys / idle 時は history)。 */}
-      {!isCustomNumpadEnabled() && (
-        <div className="flex-1 min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
-          <BoothHistoryList
-            boothCode={boothCode}
-            meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
-            storeCode={storeCode}
-            machine={machine}
-            booth={booth}
-            limit={10}
-            historyKey={historyKey}
-            draftRow={{
-              active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
-              inDiff,
-              outDiff,
-            }}
-          />
-        </div>
-      )}
-      <NumpadFooterPanel
-        currentField={currentField}
-        idleContent={
-          isCustomNumpadEnabled() ? (
-            <BoothHistoryList
-              boothCode={boothCode}
-              meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
-              storeCode={storeCode}
-              machine={machine}
-              booth={booth}
-              limit={10}
-              historyKey={historyKey}
-              draftRow={{
-                active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
-                inDiff,
-                outDiff,
-              }}
-            />
-          ) : null
-        }
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
+        <BoothHistoryList
+          boothCode={boothCode}
+          meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
+          storeCode={storeCode}
+          machine={machine}
+          booth={booth}
+          limit={10}
+          historyKey={historyKey}
+          draftRow={{
+            active: saveState.status !== 'success' && !skipped && (inDiff != null || outDiff != null),
+            inDiff,
+            outDiff,
+          }}
+        />
+      </div>
+      <div className={currentField ? 'absolute bottom-0 left-0 right-0 h-[24dvh] flex flex-col overflow-hidden' : 'hidden'}>
+        <NumpadFooterPanel currentField={currentField} />
+      </div>
 
       <AlertSheetModal
         open={showAlert}
