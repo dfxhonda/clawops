@@ -247,7 +247,7 @@ export default function NumpadField({
   value,
   onChange,
   label,
-  max = 99999,
+  max = 999999,
   allowDecimal = false,
   alwaysOpen = false,
   onNext,

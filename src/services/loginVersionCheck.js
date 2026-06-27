@@ -1,29 +1,29 @@
 // SPEC-PWA-LOGIN-SW-UPDATE-01: version不一致時にupdateSW(true)でSW世代交代+reload。fallback=location.reload()
 // SPEC-PWA-LOGIN-VERSION-RELOAD-01:
 // ログイン成功 (verify-pin 通過) または session 復元成功時に /version.json を no-store fetch、
-// サーバー側 buildNumber とクライアント BUILD_NUMBER が異なれば session 中 1 回だけ
+// サーバー側 sha とクライアント BUILD_SHA が異なれば session 中 1 回だけ
 // location.reload() で最新 bundle に揃える。
+//
+// SPEC-LOGIN-VERSION-CHECK-SHA-FIX-01: 比較キーを buildNumber → commit SHA に変更。
+// main squash promote 運用ではコミット総数(buildNumber)がほぼ固定になり誤判定を起こすため。
+// useVersionCheck.js と同じ SHA 基準に統一。version.json は既に sha を保持。
 //
 // loop guard: sessionStorage 'version_reload_done' = '1' (boolean、build 非依存)。
 // 1 度立てば次回ログインまで効かない (ブラウザタブ閉じれば sessionStorage はクリアされ再評価可)。
 // SPEC-PWA-VERSION-CHECK-FIX-01 の useVersionCheck (timestamp 5min 抑制) とは独立 storage key で
 // 共存、両者が互いを抑制しないよう完全分離する。
 //
-// version.json は vite.config.js の version-json plugin で build 時に dist/ へ書き出され、
-// 本番では /version.json で配信される (Vercel 既存配信)。"buildNumber" key を持つ
-// JSON で SPEC-PWA-VERSION-CHECK-FIX-01 と同形式 (互換維持)。
-//
 // 失敗 (network / HTTP error / timeout / JSON 不正) は LOG-SPEC-01 準拠の console.warn のみで、
-// reload せず login 処理を続行 (AC-03)。dev (BUILD_NUMBER='0' / 'local') では check 自体 skip。
+// reload せず login 処理を続行。dev (BUILD_SHA='local' / 未設定) では check 自体 skip。
 
-import { BUILD_NUMBER } from '../lib/buildInfo'
+import { BUILD_SHA } from '../lib/buildInfo'
 
 const STORAGE_KEY = 'version_reload_done'
 const FETCH_TIMEOUT_MS = 3000
 const LOG_TAG = 'ERR-PWA-LOGIN-VERSION'
 
 function isDevMode() {
-  return !BUILD_NUMBER || BUILD_NUMBER === '0' || BUILD_NUMBER === 'local'
+  return !BUILD_SHA || BUILD_SHA === 'local'
 }
 
 function defaultStorage() {
@@ -94,9 +94,9 @@ export async function checkAndReloadIfStale({
       return { reloaded: false, reason: 'http-error' }
     }
     const data = await res.json()
-    const serverBuild = String(data?.buildNumber ?? '')
-    if (!serverBuild) return { reloaded: false, reason: 'no-build' }
-    if (serverBuild === String(BUILD_NUMBER)) {
+    const serverSha = data?.sha
+    if (!serverSha) return { reloaded: false, reason: 'no-sha' }
+    if (serverSha === BUILD_SHA) {
       // SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: 一致(新bundle起動成功)でguardをクリア(永久残留解消)
       storage?.removeItem(STORAGE_KEY)
       return { reloaded: false, reason: 'match' }
