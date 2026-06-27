@@ -5,7 +5,7 @@ import { getStaffMap } from '../../services/readings'
 import { aggregateByMetric, aggregateByMonth, aggregateByStaff, aggregateByLocation } from '../../lib/auditAggregations'
 import DateRangePicker from '../components/DateRangePicker'
 import MetricCard from '../components/MetricCard'
-import LogoutButton from '../../components/LogoutButton'
+import { PageHeader } from '../../shared/ui/PageHeader'
 import ErrorDisplay from '../../components/ErrorDisplay'
 
 const TABS = ['月別', '担当者別', '拠点別']
@@ -107,12 +107,7 @@ export default function AuditSummary() {
 
   return (
     <div className="h-full flex flex-col max-w-lg md:max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="shrink-0 bg-bg border-b border-border px-4 py-3 flex items-center gap-3" style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: '#3b82f6' }}>
-        <button onClick={() => navigate('/admin')} className="text-muted text-2xl">←</button>
-        <h1 className="flex-1 text-xl font-bold text-accent">監査サマリ</h1>
-        <LogoutButton to="/admin" />
-      </div>
+      <PageHeader module="admin" hideHome={true} title="監査サマリ" onBack={() => navigate('/admin')} />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {errorProps && <ErrorDisplay {...errorProps} />}
