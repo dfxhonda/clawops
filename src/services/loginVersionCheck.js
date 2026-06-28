@@ -18,6 +18,12 @@
 
 import { BUILD_SHA } from '../lib/buildInfo'
 
+// [DBG-SWSWAP] SPEC-PWA-SW-GENERATION-SWAP-01 F3: version.json SHA compare logging (develop-only、main昇格前に撤去)
+function _dbgVersionCheck(msg, extra) {
+  // eslint-disable-next-line no-console
+  console.warn('[DBG-SWSWAP]', msg, extra ?? '')
+}
+
 const STORAGE_KEY = 'version_reload_done'
 const FETCH_TIMEOUT_MS = 3000
 const LOG_TAG = 'ERR-PWA-LOGIN-VERSION'
@@ -95,6 +101,8 @@ export async function checkAndReloadIfStale({
     }
     const data = await res.json()
     const serverSha = data?.sha
+    // [DBG-SWSWAP] F3: version.json SHA compare
+    _dbgVersionCheck('version.json fetched', { serverSha, BUILD_SHA, match: serverSha === BUILD_SHA })
     if (!serverSha) return { reloaded: false, reason: 'no-sha' }
     if (serverSha === BUILD_SHA) {
       // SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: 一致(新bundle起動成功)でguardをクリア(永久残留解消)
@@ -102,8 +110,10 @@ export async function checkAndReloadIfStale({
       return { reloaded: false, reason: 'match' }
     }
     // 不一致 → guard 立て → SW世代交代+reload (loop は STORAGE_KEY で物理防止)
+    _dbgVersionCheck('mismatch → calling updateSW(true) / reload', { serverSha, BUILD_SHA })
     storage?.setItem(STORAGE_KEY, '1')
     await doReload()
+    _dbgVersionCheck('doReload() returned (SW-path reloads page; if seen, fallback reload pending)')
     return { reloaded: true, reason: 'mismatch' }
   } catch (err) {
     logFail(err)

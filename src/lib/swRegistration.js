@@ -7,6 +7,12 @@
 //   triggerUpdate/setupPeriodicUpdate定義は残置(未使用)。
 import { registerSW } from 'virtual:pwa-register'
 
+// [DBG-SWSWAP] SPEC-PWA-SW-GENERATION-SWAP-01 F3: SW世代交代実証ログ (develop-only、main昇格前に撤去)
+function _dbgSwSwap(msg, extra) {
+  // eslint-disable-next-line no-console
+  console.warn('[DBG-SWSWAP]', msg, extra ?? '')
+}
+
 const INTERVAL_MS = 30 * 60 * 1000 // 30分 (setupPeriodicUpdate用、未使用)
 const TRIGGER_COOLDOWN_MS = 5 * 1000 // 5秒: 連続発火抑制
 
@@ -59,5 +65,27 @@ export const updateSW = registerSW({
     _r = r
     _swUrl = swUrl
     // setupPeriodicUpdate呼出撤去 (SPEC-PWA-VERSION-CHECK-UPDATE-01)
+
+    // [DBG-SWSWAP] F3: SW state monitoring (develop-only, remove before main)
+    if (r && typeof r.addEventListener === 'function') {
+      ;['installing', 'waiting', 'active'].forEach(s => {
+        const sw = r[s]
+        if (sw && typeof sw.addEventListener === 'function') {
+          _dbgSwSwap(`onRegisteredSW: already ${s}`, { state: sw.state, swUrl })
+          sw.addEventListener('statechange', e => _dbgSwSwap(`${s}:statechange`, { state: e.target.state }))
+        }
+      })
+      r.addEventListener('updatefound', () => {
+        _dbgSwSwap('updatefound', { swUrl })
+        const sw = r.installing
+        if (sw && typeof sw.addEventListener === 'function')
+          sw.addEventListener('statechange', e => _dbgSwSwap('installing:statechange', { state: e.target.state }))
+      })
+    }
+    if (typeof navigator !== 'undefined') {
+      navigator.serviceWorker?.addEventListener('controllerchange', () =>
+        _dbgSwSwap('controllerchange — new SW controlling page')
+      )
+    }
   },
 })
