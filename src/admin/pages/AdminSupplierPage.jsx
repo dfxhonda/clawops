@@ -20,10 +20,11 @@ function Field({ label, children }) {
   )
 }
 
-function TInput({ value, onChange, placeholder, type = 'text' }) {
+function TInput({ value, onChange, placeholder, type = 'text', inputMode }) {
   return (
     <input
       type={type}
+      inputMode={inputMode}
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -265,7 +266,7 @@ export default function AdminSupplierPage() {
                     </td>
                     <td className="py-0.5 px-1 text-right text-muted font-mono hidden md:table-cell">
                       {gridMode
-                        ? <input type="number" value={ge?.lead_time_days ?? r.lead_time_days ?? ''} onChange={ev => setGCell(r.supplier_id, 'lead_time_days', ev.target.value)} className={`${gridCellCls} text-right`} />
+                        ? <input type="number" inputMode="numeric" value={ge?.lead_time_days ?? r.lead_time_days ?? ''} onChange={ev => setGCell(r.supplier_id, 'lead_time_days', ev.target.value)} className={`${gridCellCls} text-right`} />
                         : (r.lead_time_days != null ? `${r.lead_time_days}日` : '')}
                     </td>
                     <td className="py-0.5 px-1">
@@ -317,7 +318,7 @@ export default function AdminSupplierPage() {
                 <TInput value={form.default_prize_tag} onChange={v => f({ default_prize_tag: v })} placeholder="タグ" />
               </Field>
               <Field label="リードタイム (日)">
-                <TInput value={form.lead_time_days} onChange={v => f({ lead_time_days: v })} placeholder="3" type="number" />
+                <TInput value={form.lead_time_days} onChange={v => f({ lead_time_days: v })} placeholder="3" type="number" inputMode="numeric" />
               </Field>
               <Field label="支払条件">
                 <TInput value={form.payment_terms} onChange={v => f({ payment_terms: v })} placeholder="月末締め翌月払い など" />

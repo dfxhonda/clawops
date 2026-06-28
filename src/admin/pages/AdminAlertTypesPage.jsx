@@ -17,10 +17,11 @@ function Field({ label, children }) {
   )
 }
 
-function TInput({ value, onChange, placeholder, type = 'text' }) {
+function TInput({ value, onChange, placeholder, type = 'text', inputMode }) {
   return (
     <input
       type={type}
+      inputMode={inputMode}
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -191,7 +192,7 @@ export default function AdminAlertTypesPage() {
             </Field>
 
             <Field label="並び順 (数値小さいほど上)">
-              <TInput type="number" value={String(form.sort_order)} onChange={v => setForm(f => ({ ...f, sort_order: Number(v) || 0 }))} />
+              <TInput type="number" inputMode="numeric" value={String(form.sort_order)} onChange={v => setForm(f => ({ ...f, sort_order: Number(v) || 0 }))} />
             </Field>
 
             {error && <p className="text-red-400 text-sm">{error}</p>}

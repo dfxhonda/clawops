@@ -180,7 +180,7 @@ export default function AdminMachineLayoutPage() {
                       {PURPOSES.map(p => <option key={p} value={p}>{PURPOSE_LABELS[p]}</option>)}
                     </select>
                     {m.purpose === 'revenue' && (
-                      <input type="number" value={m.unit_price}
+                      <input type="number" inputMode="decimal" value={m.unit_price}
                         onChange={e => setMeterField(i, 'unit_price', e.target.value)}
                         placeholder="単価"
                         className={baseInp + ' w-20'} />

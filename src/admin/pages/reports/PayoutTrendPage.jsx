@@ -208,11 +208,11 @@ export default function PayoutTrendPage() {
       {/* アラート閾値 */}
       <div className="flex flex-wrap gap-3 mb-4 text-xs items-center">
         <label className="flex items-center gap-1">
-          上限<input type="number" value={upper} onChange={e => setUpper(Number(e.target.value))}
+          上限<input type="number" inputMode="numeric" value={upper} onChange={e => setUpper(Number(e.target.value))}
             className="w-16 bg-surface border border-border rounded px-2 py-0.5" />%
         </label>
         <label className="flex items-center gap-1">
-          下限<input type="number" value={lower} onChange={e => setLower(Number(e.target.value))}
+          下限<input type="number" inputMode="numeric" value={lower} onChange={e => setLower(Number(e.target.value))}
             className="w-16 bg-surface border border-border rounded px-2 py-0.5" />%
         </label>
       </div>
