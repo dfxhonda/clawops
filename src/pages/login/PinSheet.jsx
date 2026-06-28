@@ -113,7 +113,15 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
           25% { transform: translateX(-8px); }
           75% { transform: translateX(8px); }
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .pin-shake { animation: pinShake 200ms 2; }
+        .pin-spinner {
+          width: 32px; height: 32px;
+          border: 3px solid #334155;
+          border-top-color: #06b6d4;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+        }
         .kp-btn {
           display: flex; align-items: center; justify-content: center;
           height: 56px; border-radius: 12px;
@@ -128,10 +136,10 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
         .kp-btn:disabled { opacity: 0.35; cursor: not-allowed; }
       `}</style>
 
-      {/* scrimタップ = 閉じる */}
+      {/* scrimタップ = 閉じる (submitting中は無効: 照合リクエスト宙吊り防止) */}
       <div
         style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-        onClick={onClose}
+        onClick={submitting ? undefined : onClose}
       >
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
 
@@ -147,6 +155,24 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
           }}
           onClick={e => e.stopPropagation()}
         >
+          {/* 照合中進捗オーバーレイ: submitting中のみ表示、scrim内側/sheet本体内 z-index:10 */}
+          {submitting && (
+            <div
+              data-testid="pin-verifying-overlay"
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(15,23,42,0.85)',
+                borderRadius: '16px 16px 0 0',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 12, zIndex: 10,
+              }}
+            >
+              <div className="pin-spinner" />
+              <div style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 600 }}>認証中…</div>
+            </div>
+          )}
+
           {/* grab handle */}
           <div style={{ width: 48, height: 4, background: '#334155', borderRadius: 99, margin: '0 auto 16px' }} />
 
@@ -165,8 +191,8 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
               <div style={{ fontSize: 14, color: subColor, marginTop: 2 }}>{subMsg}</div>
             </div>
             <button
-              onClick={onClose}
-              style={{ fontSize: 24, color: '#64748b', padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+              onClick={submitting ? undefined : onClose}
+              style={{ fontSize: 24, color: '#64748b', padding: '4px 8px', background: 'none', border: 'none', cursor: submitting ? 'default' : 'pointer', flexShrink: 0 }}
             >×</button>
           </div>
 
