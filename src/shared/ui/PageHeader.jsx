@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { MODULE_COLORS } from './moduleColors'
+import { useVisualViewportOffset } from '../../hooks/useVisualViewportOffset'
 
 // variant: 'default'(通常画面) | 'compact'(ハブ・リスト画面)
 // rightSlot: ヘッダー右端に表示する要素 (例: 今日の日付)
@@ -7,12 +8,17 @@ export function PageHeader({ module, title, subtitle, onBack, children, rightSlo
   const navigate = useNavigate()
   const color = MODULE_COLORS[module] ?? '#888899'
   const isCompact = variant === 'compact'
+  // SPEC-IOS-KEYBOARD-VIEWPORT-ANCHOR-FIX-01: iOS visual viewport offset shift を translateY で相殺
+  const vvOffset = useVisualViewportOffset()
   return (
     <div
       className={isCompact
         ? 'shrink-0 flex items-center gap-2 px-5 pt-6 pb-3'
         : 'shrink-0 flex items-center gap-2 px-5 pt-10 pb-6'}
-      style={{ borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: color }}
+      style={{
+        borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: color,
+        ...(vvOffset > 0 ? { transform: `translateY(${vvOffset}px)` } : {}),
+      }}
     >
       {onBack && (
         <button
