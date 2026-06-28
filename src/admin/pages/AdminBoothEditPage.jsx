@@ -521,12 +521,14 @@ export default function AdminBoothEditPage() {
 
   return (
     <div className="h-dvh flex flex-col bg-bg text-text overflow-hidden" onPointerDown={handleOutsideTap}>
-      <PageHeader
-        module="admin"
-        title={boothLabel}
-        variant="compact"
-        hideHome={true}
-      />
+      <div className="[&>div]:pt-3 [&>div]:pb-1.5">
+        <PageHeader
+          module="admin"
+          title={boothLabel}
+          variant="compact"
+          hideHome={true}
+        />
+      </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Form section — sticky header with its own scroll */}
@@ -538,9 +540,8 @@ export default function AdminBoothEditPage() {
         >
           {selectedReading ? (
             <>
-              <div data-testid="admin-edit-readonly" className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted space-y-0.5">
+              <div data-testid="admin-edit-readonly" className="mx-4 mb-1 px-3 py-1 rounded-xl bg-surface/60 border border-border text-sm text-muted">
                 <div className="flex gap-3 flex-wrap">
-                  <span>ID: <span className="font-mono text-text/70">{selectedReading.reading_id}</span></span>
                   <span>日: <span className="font-bold text-text/80">{selectedReading.patrol_date}</span></span>
                   <span>種別: <span className={`font-bold ${selectedReading.entry_type === 'replace' ? 'text-amber-400' : selectedReading.entry_type === 'collection' ? 'text-blue-400' : 'text-emerald-400'}`}>
                     {ENTRY_TYPE_LABEL[selectedReading.entry_type] ?? selectedReading.entry_type}
