@@ -560,7 +560,7 @@ export default function CollectionInputPage() {
         </div>
       )}
 
-      <div className="flex-shrink-0">
+      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 

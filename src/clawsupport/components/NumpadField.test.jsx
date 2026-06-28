@@ -149,16 +149,21 @@ describe('NumpadField: キャレットオーバーレイ (SPEC-NUMPAD-CARET-VISI
   })
 })
 
-describe('NumpadFooterPanel: idle null guard (DIAG-ADMIN-METER-EDIT-NUMPAD-3FIX-01 F1)', () => {
+describe('NumpadFooterPanel: idle表示 (DIAG-ADMIN-METER-EDIT-NUMPAD-3FIX-01 F1 revised: caller wrapper)', () => {
   beforeEach(() => { window.__USE_CUSTOM_NUMPAD__ = true })
   afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
 
-  it('when_currentField_null_and_no_idleContent_should_return_null', () => {
+  it('when_currentField_null_and_no_idleContent_should_render_panel_inactive', () => {
     const { container } = render(<NumpadFooterPanel currentField={null} />)
-    expect(container.querySelector('[data-testid="numpad-footer"]')).toBeNull()
+    expect(container.querySelector('[data-testid="numpad-footer"]')).not.toBeNull()
   })
 
-  it('when_currentField_null_but_idleContent_provided_should_render_panel', () => {
+  it('when_currentField_null_should_show_tap_to_select_hint', () => {
+    render(<NumpadFooterPanel currentField={null} />)
+    expect(screen.getByText('タップして選択')).toBeTruthy()
+  })
+
+  it('when_currentField_null_but_idleContent_provided_should_render_idleContent', () => {
     const { container } = render(
       <NumpadFooterPanel currentField={null} idleContent={<div data-testid="idle-mock">idle</div>} />
     )

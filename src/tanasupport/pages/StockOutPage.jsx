@@ -345,7 +345,9 @@ export default function StockOutPage() {
 
       </div>
 
-      <NumpadFooterPanel currentField={currentField} />
+      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <NumpadFooterPanel currentField={currentField} />
+      </div>
     </div>
   )
 }

@@ -475,7 +475,9 @@ export default function AdminBoothEditPage() {
             </button>
           </div>
         </div>
-        <NumpadFooterPanel currentField={currentField} />
+        <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+          <NumpadFooterPanel currentField={currentField} />
+        </div>
       </div>
     )
   }
@@ -601,7 +603,9 @@ export default function AdminBoothEditPage() {
         </div>
       </div>
 
-      <NumpadFooterPanel currentField={currentField} />
+      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <NumpadFooterPanel currentField={currentField} />
+      </div>
 
       {showDatePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
