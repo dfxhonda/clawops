@@ -301,8 +301,14 @@ export default function CollectionInputPage() {
 
   const locked = !!confirmedId
 
+  function handleOutsideTap(e) {
+    if (e.target.closest('[data-tabindex]')) return
+    if (e.target.closest('[data-testid="numpad-footer"]')) return
+    setCurrentField(null)
+  }
+
   return (
-    <div data-testid="collection-input" className="flex flex-col" style={{ height: '100dvh' }}>
+    <div data-testid="collection-input" className="flex flex-col" style={{ height: '100dvh' }} onPointerDown={handleOutsideTap}>
       <div className="flex-shrink-0 p-3 pb-2 border-b border-border">
         <div className="flex items-center justify-between mb-2">
           <button onClick={() => navigate('/admin/collection')} className="text-sm text-gray-400 hover:text-white min-h-[44px] flex items-center gap-1">← 戻る</button>
@@ -375,13 +381,13 @@ export default function CollectionInputPage() {
                       <NumpadField value={r.in_meter_prev} onChange={v => setRow(b.booth_code, { in_meter_prev: v })}
                         label={`前回IN ${b.booth_name}`} max={9999999}
                         dataTabindex={tabBase} testId={`booth-in-prev-${b.booth_code}`}
-                        onRegister={setCurrentField} style={cellInputStyle} />
+                        onRegister={setCurrentField} onClear={() => setCurrentField(null)} style={cellInputStyle} />
                     </td>
                     <td className="px-1 py-1">
                       <NumpadField value={r.in_meter_current} onChange={v => setRow(b.booth_code, { in_meter_current: v })}
                         label={`今回IN ${b.booth_name}`} max={9999999}
                         dataTabindex={tabBase + 1} testId={`booth-in-cur-${b.booth_code}`}
-                        onRegister={setCurrentField} style={cellInputStyle} />
+                        onRegister={setCurrentField} onClear={() => setCurrentField(null)} style={cellInputStyle} />
                     </td>
                     <td data-testid={`booth-in-diff-${b.booth_code}`}
                       className={`px-1 py-1 text-right tabular-nums ${inD == null ? 'text-muted' : inD < 0 ? 'text-red-600' : 'text-text'}`}>
@@ -402,12 +408,13 @@ export default function CollectionInputPage() {
                       <NumpadField value={r.advance_payment} onChange={v => setRow(b.booth_code, { advance_payment: v })}
                         label={`立替 ${b.booth_name}`} max={9999999}
                         dataTabindex={tabBase + 2} testId={`booth-advance-${b.booth_code}`}
-                        onRegister={setCurrentField} style={cellInputStyle} />
+                        onRegister={setCurrentField} onClear={() => setCurrentField(null)} style={cellInputStyle} />
                     </td>
                     <td className="px-1 py-1">
                       <input
                         data-testid={`booth-notes-${b.booth_code}`} type="text" value={r.notes || ''}
                         onChange={e => setRow(b.booth_code, { notes: e.target.value })}
+                        onFocus={() => setCurrentField(null)}
                         disabled={locked} enterKeyHint="next"
                         className="w-full bg-bg border border-border rounded px-2 text-xs text-text outline-none focus:border-blue-500 h-9 disabled:opacity-60"
                         placeholder="—"
@@ -461,6 +468,7 @@ export default function CollectionInputPage() {
                                 label={`${d.short} ${b.booth_name}`} max={99999}
                                 testId={`denom-input-${d.key}-${b.booth_code}`}
                                 onRegister={setCurrentField}
+                                onClear={() => setCurrentField(null)}
                                 style={denomInputStyle}
                               />
                             </div>
@@ -560,7 +568,7 @@ export default function CollectionInputPage() {
         </div>
       )}
 
-      <div className="flex-shrink-0">
+      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 

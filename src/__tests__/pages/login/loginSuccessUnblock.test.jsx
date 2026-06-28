@@ -100,22 +100,60 @@ describe('SPEC-LOGIN-SUCCESS-UNBLOCK-01: upsertLoginHistory fire-and-forget (AC1
   })
 })
 
-describe('SPEC-LOGIN-SUCCESS-UNBLOCK-01: checkAndReloadIfStale non-blocking (AC2)', () => {
-  it('when_checkAndReloadIfStale_never_resolves_should_still_navigate', async () => {
+// SPEC-PWA-RELOAD-LOGIN-GATED-01 R1: checkAndReloadIfStale は navigate 前に await。
+// UNBLOCK-01 R2(non-blocking navigate) は撤回済み。
+describe('SPEC-PWA-RELOAD-LOGIN-GATED-01: checkAndReloadIfStale gated-await (R1)', () => {
+  it('when_checkAndReloadIfStale_never_resolves_navigate_is_blocked', async () => {
     mockCheckAndReloadIfStale.mockReturnValue(new Promise(() => {})) // never resolves
 
-    await renderAndTriggerSuccess()
+    const { getByTestId } = render(<MemoryRouter><Login /></MemoryRouter>)
+    await waitFor(() => getByTestId('select-staff'))
+    fireEvent.click(getByTestId('select-staff'))
+    await waitFor(() => getByTestId('do-login'))
+    fireEvent.click(getByTestId('do-login'))
 
+    // flush microtasks — navigate should be blocked waiting for version check
+    await new Promise(r => setTimeout(r, 0))
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+
+  it('when_checkAndReloadIfStale_returns_reloaded_false_should_navigate', async () => {
+    // default mock: { reloaded: false, reason: 'match' }
+    await renderAndTriggerSuccess()
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/launcher', { replace: true }))
   })
 
-  it('when_checkAndReloadIfStale_returns_reloaded_true_should_still_navigate', async () => {
-    // Old code skipped navigate when reloaded=true. New code always navigates.
+  it('when_checkAndReloadIfStale_returns_reloaded_true_should_NOT_navigate', async () => {
     mockCheckAndReloadIfStale.mockResolvedValue({ reloaded: true, reason: 'mismatch' })
 
-    await renderAndTriggerSuccess()
+    const { getByTestId } = render(<MemoryRouter><Login /></MemoryRouter>)
+    await waitFor(() => getByTestId('select-staff'))
+    fireEvent.click(getByTestId('select-staff'))
+    await waitFor(() => getByTestId('do-login'))
+    fireEvent.click(getByTestId('do-login'))
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/launcher', { replace: true }))
+    await new Promise(r => setTimeout(r, 50))
+    expect(mockNavigate).not.toHaveBeenCalled()
+  })
+})
+
+describe('SPEC-PWA-RELOAD-LOGIN-GATED-01 R2: versionChecking spinner overlay', () => {
+  it('when_version_checking_pending_should_show_updating_overlay', async () => {
+    let resolveCheck
+    mockCheckAndReloadIfStale.mockReturnValue(new Promise(r => { resolveCheck = r }))
+
+    const { getByTestId, queryByTestId } = render(<MemoryRouter><Login /></MemoryRouter>)
+    await waitFor(() => getByTestId('select-staff'))
+    fireEvent.click(getByTestId('select-staff'))
+    await waitFor(() => getByTestId('do-login'))
+    fireEvent.click(getByTestId('do-login'))
+
+    await waitFor(() => expect(queryByTestId('version-checking-overlay')).toBeTruthy())
+
+    // resolve → overlay disappears → navigate fires
+    resolveCheck({ reloaded: false, reason: 'match' })
+    await waitFor(() => expect(queryByTestId('version-checking-overlay')).toBeFalsy())
+    expect(mockNavigate).toHaveBeenCalledWith('/launcher', { replace: true })
   })
 })
 

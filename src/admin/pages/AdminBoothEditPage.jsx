@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -9,6 +9,7 @@ import ErrorBanner from '../../components/ErrorBanner'
 import { useFieldNavigation } from '../../clawsupport/hooks/useFieldNavigation'
 import { useOCR } from '../../clawsupport/hooks/useOCR'
 import { isAdmin } from '../../services/permissions'
+import { useAdminBack } from '../AdminBackContext'
 import { logger } from '../../lib/logger'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import {
@@ -86,8 +87,14 @@ export default function AdminBoothEditPage() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const { staffId, staffRole, loading } = useAuth()
-  const { navigateNext, currentField, registerField } = useFieldNavigation()
+  const { navigateNext, currentField, registerField, clearField } = useFieldNavigation()
   const activeTabindex = currentField?.dataTabindex ?? null
+
+  function handleOutsideTap(e) {
+    if (e.target.closest('[data-tabindex]')) return
+    if (e.target.closest('[data-testid="numpad-footer"]')) return
+    clearField()
+  }
 
   const { machine, booth, storeCode } = state ?? {}
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
@@ -132,6 +139,65 @@ export default function AdminBoothEditPage() {
   const [ocrPhotoUrl,  setOcrPhotoUrl] = useState(null)
   const [ocrConf,      setOcrConf]    = useState(null)
   const { engine, toggleEngine, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
+
+  // F2: 戻る2段階 — selectedReading 有時は setSelectedReading(null)、無時は navigate(-1)
+  const backRef = useAdminBack()
+  useEffect(() => {
+    if (!backRef) return
+    backRef.current = selectedReading ? () => setSelectedReading(null) : null
+    return () => { backRef.current = null }
+  }, [selectedReading, backRef])
+
+  // W5: swipe redesign — non-passive touchmove via ref, visual feedback, numpad clear
+  const swipeFormRef = useRef(null)
+  const swipeStartY = useRef(null)
+  const swipeStartX = useRef(null)
+  const swipingRef = useRef(false)
+  const swipeTouchMoveHandlerRef = useRef(null)
+  swipeTouchMoveHandlerRef.current = function(e) {
+    if (!selectedReading || swipeStartY.current === null) return
+    const dy = e.touches[0].clientY - swipeStartY.current
+    const dx = e.touches[0].clientX - swipeStartX.current
+    if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return
+    if (Math.abs(dx) > Math.abs(dy)) return
+    e.preventDefault()
+    if (!swipingRef.current) { clearField(); swipingRef.current = true }
+    const el = swipeFormRef.current
+    if (el) el.style.transform = `translateY(${dy * 0.4}px)`
+  }
+  useEffect(() => {
+    const el = swipeFormRef.current
+    if (!el) return
+    const handler = (e) => swipeTouchMoveHandlerRef.current?.(e)
+    el.addEventListener('touchmove', handler, { passive: false })
+    return () => el.removeEventListener('touchmove', handler)
+  }, [])
+
+  function handleSwipeTouchStart(e) {
+    if (!selectedReading) return
+    swipeStartY.current = e.touches[0].clientY
+    swipeStartX.current = e.touches[0].clientX
+  }
+
+  function handleSwipeTouchEnd(e) {
+    if (swipeStartY.current === null) return
+    const dy = e.changedTouches[0].clientY - swipeStartY.current
+    const dx = e.changedTouches[0].clientX - swipeStartX.current
+    const wasSwiping = swipingRef.current
+    swipeStartY.current = null
+    swipeStartX.current = null
+    swipingRef.current = false
+    const el = swipeFormRef.current
+    if (el) el.style.transform = ''
+    if (!selectedReading || !wasSwiping) return
+    if (Math.abs(dy) < 50 || Math.abs(dx) > Math.abs(dy)) return
+    const idx = historyRows.findIndex(r => r.reading_id === selectedReading.reading_id)
+    if (idx < 0) return
+    // 下スワイプ(dy>0)=新しい方(index-1) / 上スワイプ(dy<0)=古い方(index+1)
+    const nextRow = historyRows[dy < 0 ? idx + 1 : idx - 1]
+    if (!nextRow) return
+    handleRowSelect(nextRow)
+  }
 
   const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 
@@ -442,7 +508,9 @@ export default function AdminBoothEditPage() {
             </button>
           </div>
         </div>
-        <NumpadFooterPanel currentField={currentField} />
+        <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+          <NumpadFooterPanel currentField={currentField} />
+        </div>
       </div>
     )
   }
@@ -452,7 +520,7 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text">
+    <div className="h-dvh flex flex-col bg-bg text-text overflow-hidden" onPointerDown={handleOutsideTap}>
       <PageHeader
         module="admin"
         title={boothLabel}
@@ -462,7 +530,12 @@ export default function AdminBoothEditPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Form section — sticky header with its own scroll */}
-        <div className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border">
+        <div
+          ref={swipeFormRef}
+          className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border"
+          onTouchStart={handleSwipeTouchStart}
+          onTouchEnd={handleSwipeTouchEnd}
+        >
           {selectedReading ? (
             <>
               <div data-testid="admin-edit-readonly" className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted space-y-0.5">
@@ -503,6 +576,7 @@ export default function AdminBoothEditPage() {
                 selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
                 touched={touched} touch={touch}
                 navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
+                onClearField={clearField}
                 canSave={canSave} saving={saving} result={result} onSave={handleSave}
                 onDelete={handleDelete} deleting={deleting}
                 onOCR={() => { logger.info('admin_ocr_button_pressed', { boothCode }); setShowOcr(true) }}
@@ -518,7 +592,7 @@ export default function AdminBoothEditPage() {
         {/* History section — independent scroll */}
         <div
           data-testid="booth-history-list"
-          className="flex-1 overflow-y-auto min-h-[200px] pb-[300px]"
+          className="flex-1 overflow-y-auto min-h-0"
         >
           <div className="sticky top-0 bg-bg z-10 px-4 py-2 border-b border-border flex items-center gap-2">
             <span className="text-sm font-bold text-muted flex-1">巡回履歴</span>
@@ -565,7 +639,9 @@ export default function AdminBoothEditPage() {
         </div>
       </div>
 
-      <NumpadFooterPanel currentField={currentField} />
+      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <NumpadFooterPanel currentField={currentField} />
+      </div>
 
       {showDatePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">

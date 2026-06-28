@@ -126,6 +126,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
       const nextEl = all[idx + 1]
       if (nextEl?._numpadActivate) nextEl._numpadActivate()
       else if (nextEl) nextEl.focus()
+      else currentField.onClear?.()
       return
     }
     if (keyId === 'caretL') {
@@ -251,6 +252,7 @@ export default function NumpadField({
   allowDecimal = false,
   alwaysOpen = false,
   onNext,
+  onClear,
   id,
   style,
   dataTabindex,
@@ -288,6 +290,7 @@ export default function NumpadField({
       onChange: (v) => onChangeRef.current(v),
       onCaretChange: () => setCaretTick(t => t + 1),
       onNext,
+      onClear,
       dataTabindex: Number(dataTabindex),
       allowDecimal,
       max,

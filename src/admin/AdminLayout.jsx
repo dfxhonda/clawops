@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isAdmin } from '../services/permissions'
 import AdminTopTabs from './AdminTopTabs'
 import AdminBreadcrumb from './AdminBreadcrumb'
+import { AdminBackContext } from './AdminBackContext'
 
 function UnauthorizedView() {
   const navigate = useNavigate()
@@ -22,17 +23,20 @@ function UnauthorizedView() {
 
 export default function AdminLayout() {
   const { staffRole, loading } = useAuth()
+  const backRef = useRef(null)
   if (loading) return null
   if (!isAdmin(staffRole)) return <UnauthorizedView />
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text" data-testid="admin-layout">
-      <div className="shrink-0 sticky top-0 z-10 bg-bg border-b border-border">
-        <AdminTopTabs />
+    <AdminBackContext.Provider value={backRef}>
+      <div className="h-dvh flex flex-col bg-bg text-text" data-testid="admin-layout">
+        <div className="shrink-0 sticky top-0 z-10 bg-bg border-b border-border">
+          <AdminTopTabs />
+        </div>
+        <AdminBreadcrumb />
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <Outlet />
+        </div>
       </div>
-      <AdminBreadcrumb />
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <Outlet />
-      </div>
-    </div>
+    </AdminBackContext.Provider>
   )
 }
