@@ -613,7 +613,7 @@ export default function GachaInputV3({
                       style={{ flex: 1, background: '#020617', border: '1px solid #334155', borderRadius: 6, padding: '7px 10px', fontSize: 13, color: '#f1f5f9', outline: 'none' }}
                     />
                     <input
-                      type="number" placeholder="原価" value={newPrizeCost}
+                      type="number" inputMode="decimal" placeholder="原価" value={newPrizeCost}
                       onChange={e => setNewPrizeCost(e.target.value)}
                       style={{ width: 70, background: '#020617', border: '1px solid #334155', borderRadius: 6, padding: '7px 8px', fontSize: 13, color: '#f1f5f9', outline: 'none' }}
                     />
@@ -712,7 +712,7 @@ export default function GachaInputV3({
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <input type="text" placeholder="景品名" value={lkPrizeName} onChange={e => setLkPrizeName(e.target.value)}
                     style={{ flex: 1, background: '#020617', border: '1px solid #1e293b', borderRadius: 6, padding: '8px 10px', fontSize: 13, color: '#f1f5f9', outline: 'none' }} />
-                  <input type="number" placeholder="価値(円)" value={lkPriceVal} onChange={e => setLkPriceVal(e.target.value)}
+                  <input type="number" inputMode="decimal" placeholder="価値(円)" value={lkPriceVal} onChange={e => setLkPriceVal(e.target.value)}
                     style={{ width: 80, background: '#020617', border: '1px solid #1e293b', borderRadius: 6, padding: '8px 8px', fontSize: 13, color: '#f1f5f9', outline: 'none' }} />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>

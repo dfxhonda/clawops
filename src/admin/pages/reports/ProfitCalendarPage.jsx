@@ -135,7 +135,7 @@ export default function ProfitCalendarPage() {
           ))}
         </div>
         <label className="flex items-center gap-1 text-xs">
-          目標<input type="number" value={target} onChange={e => setTarget(Number(e.target.value))}
+          目標<input type="number" inputMode="numeric" value={target} onChange={e => setTarget(Number(e.target.value))}
             className="w-14 bg-surface border border-border rounded px-2 py-0.5" />%
         </label>
         {/* J-UI-STORE-PICKER-SHEET-01: dropdown → StorePickerSheet */}

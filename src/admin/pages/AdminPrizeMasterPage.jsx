@@ -39,10 +39,11 @@ function Field({ label, children, row }) {
   )
 }
 
-function Input({ value, onChange, placeholder, type = 'text', required, className = '' }) {
+function Input({ value, onChange, placeholder, type = 'text', required, className = '', inputMode }) {
   return (
     <input
       type={type}
+      inputMode={inputMode}
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -452,7 +453,7 @@ export default function AdminPrizeMasterPage() {
                     </td>
                     <td className="py-0.5 px-1 text-right text-muted whitespace-nowrap">
                       {gridMode
-                        ? <input type="number" value={ge?.original_cost ?? r.original_cost ?? ''} onChange={ev => setGCell(r.prize_id, 'original_cost', ev.target.value)} className={`${gridCellCls} text-right`} />
+                        ? <input type="number" inputMode="decimal" value={ge?.original_cost ?? r.original_cost ?? ''} onChange={ev => setGCell(r.prize_id, 'original_cost', ev.target.value)} className={`${gridCellCls} text-right`} />
                         : (r.original_cost != null ? r.original_cost.toLocaleString() : '')}
                     </td>
                     <td className="py-0.5 px-1 text-muted whitespace-nowrap truncate max-w-[160px]">
@@ -512,11 +513,11 @@ export default function AdminPrizeMasterPage() {
               <div className="flex gap-2 items-end">
                 <div className="flex flex-col gap-0.5 w-24">
                   <span className="text-xs text-muted">単価</span>
-                  <Input value={form.original_cost} onChange={v => f({ original_cost: v })} type="number" placeholder="0" />
+                  <Input value={form.original_cost} onChange={v => f({ original_cost: v })} type="number" inputMode="decimal" placeholder="0" />
                 </div>
                 <div className="flex flex-col gap-0.5 w-20">
                   <span className="text-xs text-muted">入数</span>
-                  <Input value={form.default_case_quantity} onChange={v => f({ default_case_quantity: v })} type="number" placeholder="0" />
+                  <Input value={form.default_case_quantity} onChange={v => f({ default_case_quantity: v })} type="number" inputMode="numeric" placeholder="0" />
                 </div>
                 <div className="flex flex-col gap-0.5 flex-1">
                   <span className="text-xs text-muted">ケース金額</span>
