@@ -109,8 +109,14 @@ export default function PatrolBoothInputPage() {
   const goBack       = useHierarchicalBack() // J-NAV-BACK-HIERARCHICAL-01
   const { staffId }  = useAuth()
   const { enabled: patrolEnabled } = useFeatureFlag('patrol_core')
-  const { navigateNext, currentField, registerField } = useFieldNavigation()
+  const { navigateNext, currentField, registerField, clearField } = useFieldNavigation()
   const activeTabindex = currentField?.dataTabindex ?? null
+
+  function handleOutsideTap(e) {
+    if (e.target.closest('[data-tabindex]')) return
+    if (e.target.closest('[data-testid="numpad-footer"]')) return
+    clearField()
+  }
 
   const { machine, booth, storeCode, boothList, boothIndex } = state ?? {}
   const resolvedStoreCode = storeCode ?? machine?.store_code ?? null
@@ -938,6 +944,7 @@ export default function PatrolBoothInputPage() {
   return (
     <div
       ref={swipeRef}
+      onPointerDown={handleOutsideTap}
       className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden relative"
       data-testid="patrol-booth-swipe-container"
       style={{
@@ -1041,6 +1048,7 @@ export default function PatrolBoothInputPage() {
           entryType={entryType}
           inDiffDisp={inDiffDisp} outDiffDisp={outDiffDisp}
           navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
+          onClearField={clearField}
           canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
           onSaveNext={handleSaveNext} onSaveList={handleSaveList}
           onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'file' }); fileInputRef.current?.click() }}

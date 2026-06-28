@@ -145,8 +145,14 @@ export default function StockOutPage() {
 
   const canConfirm = !!fromLocationId && lines.every(l => l.prizeId && l.qty && l.targetId)
 
+  function handleOutsideTap(e) {
+    if (e.target.closest('[data-tabindex]')) return
+    if (e.target.closest('[data-testid="numpad-footer"]')) return
+    setCurrentField(null)
+  }
+
   return (
-    <div className="min-h-dvh flex flex-col bg-bg text-text">
+    <div className="min-h-dvh flex flex-col bg-bg text-text" onPointerDown={handleOutsideTap}>
 
       {/* ヘッダー */}
       <div className="sticky top-0 z-40 bg-bg border-b border-border px-3 py-2.5 flex items-center gap-2"
@@ -294,6 +300,7 @@ export default function StockOutPage() {
                   label={`数量 #${idx + 1}`}
                   dataTabindex={idx * 10}
                   onRegister={setCurrentField}
+                  onClear={() => setCurrentField(null)}
                   max={99999}
                   inputClassName="w-full px-3 py-2 rounded-lg border border-border bg-bg text-text text-sm text-right font-mono"
                   inputPlaceholder="0"

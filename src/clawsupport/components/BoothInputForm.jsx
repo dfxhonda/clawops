@@ -163,6 +163,7 @@ export default function BoothInputForm({
   onSaveNext, onSaveList,
   onDelete, deleting,
   onOCR,
+  onClearField,
 }) {
   const isEditMode = mode === 'edit'
   const outFields = [
@@ -500,10 +501,10 @@ export default function BoothInputForm({
             style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}
           >
             {[
-              { tab: 9,  id: 'field-set-a', testId: 'field-set-a', val: setA, set: setSetA, touchKey: 'setA'  },
-              { tab: 10, id: 'field-set-c', testId: 'field-set-c', val: setC, set: setSetC, touchKey: 'setC'  },
-              { tab: 11, id: 'field-set-l', testId: 'field-set-l', val: setL, set: setSetL, touchKey: 'setL'  },
-              { tab: 12, id: 'field-set-r', testId: 'field-set-r', val: setR, set: setSetR, touchKey: 'setR'  },
+              { tab: 9,  id: 'field-set-a', testId: 'field-set-a', val: setA, set: setSetA, touchKey: 'setA', label: 'アシスト'  },
+              { tab: 10, id: 'field-set-c', testId: 'field-set-c', val: setC, set: setSetC, touchKey: 'setC', label: 'キャッチ'   },
+              { tab: 11, id: 'field-set-l', testId: 'field-set-l', val: setL, set: setSetL, touchKey: 'setL', label: 'ロー'       },
+              { tab: 12, id: 'field-set-r', testId: 'field-set-r', val: setR, set: setSetR, touchKey: 'setR', label: 'リターン'   },
             ].map(f => (
               <div
                 key={f.id}
@@ -513,6 +514,7 @@ export default function BoothInputForm({
                   id={f.id}
                   value={f.val}
                   onChange={v => { touch?.(f.touchKey)(); f.set(v) }}
+                  label={f.label}
                   dataTabindex={f.tab}
                   testId={f.testId}
                   inputClassName={!touched?.[f.touchKey] ? 'text-gray-400' : ''}
@@ -520,6 +522,7 @@ export default function BoothInputForm({
                   onRegister={registerField}
                   isActive={activeTabindex === f.tab}
                   style={{ fontSize: 16, width: '100%', padding: '0.1em 0.35em' }}
+                  onClear={onClearField}
                 />
               </div>
             ))}
@@ -533,6 +536,7 @@ export default function BoothInputForm({
               data-tabindex={13}
               value={setO}
               onChange={e => { touch?.('setO')(); setSetO(e.target.value) }}
+              onFocus={() => onClearField?.()}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); navigateNext?.(13) } }}
               placeholder="メモ"
               style={{

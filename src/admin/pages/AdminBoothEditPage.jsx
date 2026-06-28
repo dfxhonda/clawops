@@ -87,8 +87,14 @@ export default function AdminBoothEditPage() {
   const { state } = useLocation()
   const navigate = useNavigate()
   const { staffId, staffRole, loading } = useAuth()
-  const { navigateNext, currentField, registerField } = useFieldNavigation()
+  const { navigateNext, currentField, registerField, clearField } = useFieldNavigation()
   const activeTabindex = currentField?.dataTabindex ?? null
+
+  function handleOutsideTap(e) {
+    if (e.target.closest('[data-tabindex]')) return
+    if (e.target.closest('[data-testid="numpad-footer"]')) return
+    clearField()
+  }
 
   const { machine, booth, storeCode } = state ?? {}
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
@@ -142,21 +148,48 @@ export default function AdminBoothEditPage() {
     return () => { backRef.current = null }
   }, [selectedReading, backRef])
 
-  // F3: 上下スワイプで前後日付移動
+  // W5: swipe redesign — non-passive touchmove via ref, visual feedback, numpad clear
+  const swipeFormRef = useRef(null)
   const swipeStartY = useRef(null)
   const swipeStartX = useRef(null)
+  const swipingRef = useRef(false)
+  const swipeTouchMoveHandlerRef = useRef(null)
+  swipeTouchMoveHandlerRef.current = function(e) {
+    if (!selectedReading || swipeStartY.current === null) return
+    const dy = e.touches[0].clientY - swipeStartY.current
+    const dx = e.touches[0].clientX - swipeStartX.current
+    if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return
+    if (Math.abs(dx) > Math.abs(dy)) return
+    e.preventDefault()
+    if (!swipingRef.current) { clearField(); swipingRef.current = true }
+    const el = swipeFormRef.current
+    if (el) el.style.transform = `translateY(${dy * 0.4}px)`
+  }
+  useEffect(() => {
+    const el = swipeFormRef.current
+    if (!el) return
+    const handler = (e) => swipeTouchMoveHandlerRef.current?.(e)
+    el.addEventListener('touchmove', handler, { passive: false })
+    return () => el.removeEventListener('touchmove', handler)
+  }, [])
 
   function handleSwipeTouchStart(e) {
+    if (!selectedReading) return
     swipeStartY.current = e.touches[0].clientY
     swipeStartX.current = e.touches[0].clientX
   }
 
   function handleSwipeTouchEnd(e) {
-    if (!selectedReading || swipeStartY.current === null) return
+    if (swipeStartY.current === null) return
     const dy = e.changedTouches[0].clientY - swipeStartY.current
     const dx = e.changedTouches[0].clientX - swipeStartX.current
+    const wasSwiping = swipingRef.current
     swipeStartY.current = null
     swipeStartX.current = null
+    swipingRef.current = false
+    const el = swipeFormRef.current
+    if (el) el.style.transform = ''
+    if (!selectedReading || !wasSwiping) return
     if (Math.abs(dy) < 50 || Math.abs(dx) > Math.abs(dy)) return
     const idx = historyRows.findIndex(r => r.reading_id === selectedReading.reading_id)
     if (idx < 0) return
@@ -487,7 +520,7 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text">
+    <div className="h-dvh flex flex-col bg-bg text-text overflow-hidden" onPointerDown={handleOutsideTap}>
       <PageHeader
         module="admin"
         title={boothLabel}
@@ -497,7 +530,9 @@ export default function AdminBoothEditPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Form section — sticky header with its own scroll */}
-        <div className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border"
+        <div
+          ref={swipeFormRef}
+          className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border"
           onTouchStart={handleSwipeTouchStart}
           onTouchEnd={handleSwipeTouchEnd}
         >
@@ -541,6 +576,7 @@ export default function AdminBoothEditPage() {
                 selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
                 touched={touched} touch={touch}
                 navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
+                onClearField={clearField}
                 canSave={canSave} saving={saving} result={result} onSave={handleSave}
                 onDelete={handleDelete} deleting={deleting}
                 onOCR={() => { logger.info('admin_ocr_button_pressed', { boothCode }); setShowOcr(true) }}
@@ -556,7 +592,7 @@ export default function AdminBoothEditPage() {
         {/* History section — independent scroll */}
         <div
           data-testid="booth-history-list"
-          className="flex-1 overflow-y-auto min-h-[200px] pb-[300px]"
+          className="flex-1 overflow-y-auto min-h-0"
         >
           <div className="sticky top-0 bg-bg z-10 px-4 py-2 border-b border-border flex items-center gap-2">
             <span className="text-sm font-bold text-muted flex-1">巡回履歴</span>
