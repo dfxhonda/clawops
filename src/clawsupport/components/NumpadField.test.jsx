@@ -149,6 +149,24 @@ describe('NumpadField: キャレットオーバーレイ (SPEC-NUMPAD-CARET-VISI
   })
 })
 
+describe('NumpadFooterPanel: idle null guard (DIAG-ADMIN-METER-EDIT-NUMPAD-3FIX-01 F1)', () => {
+  beforeEach(() => { window.__USE_CUSTOM_NUMPAD__ = true })
+  afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })
+
+  it('when_currentField_null_and_no_idleContent_should_return_null', () => {
+    const { container } = render(<NumpadFooterPanel currentField={null} />)
+    expect(container.querySelector('[data-testid="numpad-footer"]')).toBeNull()
+  })
+
+  it('when_currentField_null_but_idleContent_provided_should_render_panel', () => {
+    const { container } = render(
+      <NumpadFooterPanel currentField={null} idleContent={<div data-testid="idle-mock">idle</div>} />
+    )
+    expect(container.querySelector('[data-testid="numpad-footer"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="idle-mock"]')).not.toBeNull()
+  })
+})
+
 describe('NumpadFooterPanel: カーソル編集モデル (SPEC-NUMPAD-CARET-EDIT-4COL-01)', () => {
   beforeEach(() => { window.__USE_CUSTOM_NUMPAD__ = true })
   afterEach(() => { delete window.__USE_CUSTOM_NUMPAD__ })

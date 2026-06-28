@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
@@ -9,6 +9,7 @@ import ErrorBanner from '../../components/ErrorBanner'
 import { useFieldNavigation } from '../../clawsupport/hooks/useFieldNavigation'
 import { useOCR } from '../../clawsupport/hooks/useOCR'
 import { isAdmin } from '../../services/permissions'
+import { useAdminBack } from '../AdminBackContext'
 import { logger } from '../../lib/logger'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
 import {
@@ -132,6 +133,38 @@ export default function AdminBoothEditPage() {
   const [ocrPhotoUrl,  setOcrPhotoUrl] = useState(null)
   const [ocrConf,      setOcrConf]    = useState(null)
   const { engine, toggleEngine, runOCR } = useOCR({ boothCode, orgId: DFX_ORG_ID })
+
+  // F2: 戻る2段階 — selectedReading 有時は setSelectedReading(null)、無時は navigate(-1)
+  const backRef = useAdminBack()
+  useEffect(() => {
+    if (!backRef) return
+    backRef.current = selectedReading ? () => setSelectedReading(null) : null
+    return () => { backRef.current = null }
+  }, [selectedReading, backRef])
+
+  // F3: 上下スワイプで前後日付移動
+  const swipeStartY = useRef(null)
+  const swipeStartX = useRef(null)
+
+  function handleSwipeTouchStart(e) {
+    swipeStartY.current = e.touches[0].clientY
+    swipeStartX.current = e.touches[0].clientX
+  }
+
+  function handleSwipeTouchEnd(e) {
+    if (!selectedReading || swipeStartY.current === null) return
+    const dy = e.changedTouches[0].clientY - swipeStartY.current
+    const dx = e.changedTouches[0].clientX - swipeStartX.current
+    swipeStartY.current = null
+    swipeStartX.current = null
+    if (Math.abs(dy) < 50 || Math.abs(dx) > Math.abs(dy)) return
+    const idx = historyRows.findIndex(r => r.reading_id === selectedReading.reading_id)
+    if (idx < 0) return
+    // 下スワイプ(dy>0)=新しい方(index-1) / 上スワイプ(dy<0)=古い方(index+1)
+    const nextRow = historyRows[dy < 0 ? idx + 1 : idx - 1]
+    if (!nextRow) return
+    handleRowSelect(nextRow)
+  }
 
   const todayJST = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 
@@ -462,7 +495,10 @@ export default function AdminBoothEditPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Form section — sticky header with its own scroll */}
-        <div className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border">
+        <div className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border"
+          onTouchStart={handleSwipeTouchStart}
+          onTouchEnd={handleSwipeTouchEnd}
+        >
           {selectedReading ? (
             <>
               <div data-testid="admin-edit-readonly" className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted space-y-0.5">

@@ -97,6 +97,9 @@ function NativeNumInput({
 
 export function NumpadFooterPanel({ currentField, idleContent }) {
   if (!isCustomNumpadEnabled()) return null
+  // DIAG-ADMIN-METER-EDIT-NUMPAD-3FIX-01 F1: idle時(currentField=null)かつidleContent未指定は非表示。
+  // idleContent 有り経路(PatrolBoothInputPage 巡回履歴)は維持。
+  if (!currentField && !idleContent) return null
 
   const isActive = !!currentField
 

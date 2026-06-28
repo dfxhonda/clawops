@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MODULE_COLORS } from '../shared/ui/moduleColors'
+import { useAdminBack } from './AdminBackContext'
 
 const LABELS = {
   admin:               'マネサポ',
@@ -51,6 +52,7 @@ const LABELS = {
 export default function AdminBreadcrumb() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const backRef = useAdminBack()
 
   const parts = pathname.split('/').filter(Boolean)
   const segments = []
@@ -69,7 +71,7 @@ export default function AdminBreadcrumb() {
     >
       <button
         data-testid="admin-nav-back"
-        onClick={() => navigate(-1)}
+        onClick={() => { backRef?.current ? backRef.current() : navigate(-1) }}
         className="w-12 h-12 rounded bg-surface border border-border text-2xl flex items-center justify-center shrink-0"
         aria-label="戻る"
       >←</button>
