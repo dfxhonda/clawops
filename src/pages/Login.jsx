@@ -42,6 +42,8 @@ export default function Login() {
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [initDone, setInitDone]         = useState(false)
   const [loadErr, setLoadErr]           = useState('')
+  // SPEC-PWA-RELOAD-LOGIN-GATED-01 R2: スピナー表示制御
+  const [versionChecking, setVersionChecking] = useState(false)
 
   // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: ログアウト合流点でマウント時に能動SW update発火
   // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R2(A): mount時にverify-pin Edgeを事前warm-up
@@ -153,9 +155,13 @@ export default function Login() {
     upsertLoginHistory(staff.staff_id).catch(e => console.warn('[ERR-LOGIN-HISTORY]', e))
     setSelectedStaff(null)
     showToast(`${staff.name} さん こんにちは`)
+    // SPEC-PWA-RELOAD-LOGIN-GATED-01 R1: navigate前にawaitしてログイン時に更新完結。
+    // reload発火時はここで止まる(navigateしない)。更新なし時は数百msでnavigateへ続行。
+    setVersionChecking(true)
+    const r = await checkAndReloadIfStale({ updateSW })
+    setVersionChecking(false)
+    if (r?.reloaded) return
     navigate('/launcher', { replace: true })
-    // SPEC-LOGIN-SUCCESS-UNBLOCK-01 R2: non-blocking; SW update via triggerUpdate(mount) + register.js activated
-    checkAndReloadIfStale({ updateSW })
   }
 
   if (!initDone) {
@@ -169,6 +175,16 @@ export default function Login() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0a0f', color: '#e8e8f0', fontFamily: "-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif" }}>
+      {/* SPEC-PWA-RELOAD-LOGIN-GATED-01 R2: バージョンチェック/更新中スピナー */}
+      {versionChecking && (
+        <div data-testid="version-checking-overlay" style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,10,15,0.85)' }}>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 32, height: 32, border: '2px solid #f0c040', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+            <div style={{ color: '#e8e8f0', fontSize: 14 }}>最新版に更新中…</div>
+          </div>
+        </div>
+      )}
       <Toast />
 
       {/* ヘッダー */}

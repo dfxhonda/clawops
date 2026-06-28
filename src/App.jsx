@@ -17,9 +17,6 @@ import { AuthProvider } from './lib/auth/AuthProvider'
 import { useAuth } from './hooks/useAuth'
 import ProtectedRoute, { AdminRoute, ManagerRoute } from './components/ProtectedRoute'
 import { RoleGuard } from './shared/auth/RoleGuard'
-// J-PWA-AUTO-VERSION-RELOAD-01: 旧 ./hooks/useVersionCheck (手動 dismiss banner) を退役、
-// shared/hooks/useVersionCheck (自動 reload + ループガード + ERR-PWA-VERSION-FETCH ログ) に置換。
-import { useVersionCheck } from './shared/hooks/useVersionCheck'
 // SPEC-LF1-STORE-LOCAL-CACHE-01: 未送信件数の app-wide banner
 import UnsentBanner from './components/UnsentBanner'
 import { buildLabel } from './lib/buildInfo'
@@ -190,8 +187,8 @@ function PatrolBoothInputPageKeyed() {
 
 function AppInner() {
   const { isLoggedIn } = useAuth()
-  // J-PWA-AUTO-VERSION-RELOAD-01: 自動 reload + 一瞬トースト (現場操作ゼロ)。
-  const { reloading } = useVersionCheck()
+  // SPEC-PWA-RELOAD-LOGIN-GATED-01 R3: useVersionCheck撤去。起動時/15分アイドル復帰reloadを廃止。
+  // reload経路はLogin.jsx checkAndReloadIfStale(await)に一元化。
   useSessionLock(isLoggedIn)
 
   const initGlossary = useGlossaryStore(s => s.init)
@@ -203,18 +200,6 @@ function AppInner() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <ErrorBoundary>
-      {/* J-PWA-AUTO-VERSION-RELOAD-01: 一瞬 (700ms) トースト → location.reload()。
-          高 z-index / fixed top で他 UI に被らない、操作不要。 */}
-      {reloading && (
-        <div
-          data-testid="version-reload-toast"
-          className="fixed top-2 left-1/2 -translate-x-1/2 z-[120] px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-bold shadow-lg pointer-events-none"
-          role="status"
-          aria-live="polite"
-        >
-          最新版に更新中...
-        </div>
-      )}
       {/* SPEC-LF1-STORE-LOCAL-CACHE-01: app-wide 未送信件数バナー */}
       {isLoggedIn && <UnsentBanner />}
       {isLoggedIn && (
