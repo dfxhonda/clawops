@@ -414,6 +414,7 @@ export default function CollectionInputPage() {
                       <input
                         data-testid={`booth-notes-${b.booth_code}`} type="text" value={r.notes || ''}
                         onChange={e => setRow(b.booth_code, { notes: e.target.value })}
+                        onFocus={() => setCurrentField(null)}
                         disabled={locked} enterKeyHint="next"
                         className="w-full bg-bg border border-border rounded px-2 text-xs text-text outline-none focus:border-blue-500 h-9 disabled:opacity-60"
                         placeholder="—"
