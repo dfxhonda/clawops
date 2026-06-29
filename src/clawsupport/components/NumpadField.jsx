@@ -67,6 +67,7 @@ function NativeNumInput({
       pattern={allowDecimal ? '[0-9]*[.]?[0-9]*' : '[0-9]*'}
       value={displayVal}
       placeholder={inputPlaceholder ?? '—'}
+      autoComplete="off"
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       className={inputClassName ?? ''}

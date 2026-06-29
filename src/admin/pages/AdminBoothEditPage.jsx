@@ -641,6 +641,7 @@ export default function AdminBoothEditPage() {
         </div>
       </div>
 
+      <div data-testid="numpad-spacer" className={currentField ? 'h-[30dvh] shrink-0' : 'h-0'} aria-hidden="true" />
       <div data-testid="numpad-anchor" className={currentField ? 'absolute bottom-0 left-0 right-0 h-[30dvh] flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>

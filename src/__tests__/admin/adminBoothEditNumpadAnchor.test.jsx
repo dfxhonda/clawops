@@ -62,6 +62,23 @@ beforeEach(() => {
   cleanup()
 })
 
+describe('SPEC-ADMIN-METER-EDIT-NUMPAD-ANCHOR-FIX-02 R1: flow spacer', () => {
+  it('when_currentField_set_spacer_should_have_h30dvh_class', () => {
+    M.nav.currentField = { dataTabindex: 1, label: 'IN' }
+    const { getByTestId } = render(<AdminBoothEditPage />)
+    const spacer = getByTestId('numpad-spacer')
+    expect(spacer.className).toContain('h-[30dvh]')
+    expect(spacer.className).toContain('shrink-0')
+  })
+
+  it('when_currentField_null_spacer_should_have_h0_class', () => {
+    const { getByTestId } = render(<AdminBoothEditPage />)
+    const spacer = getByTestId('numpad-spacer')
+    expect(spacer.className).toContain('h-0')
+    expect(spacer.className).not.toContain('h-[30dvh]')
+  })
+})
+
 describe('SPEC-ADMIN-METER-EDIT-NUMPAD-ANCHOR-FIX-01 R1: numpad anchor', () => {
   it('when_currentField_null_numpad_container_should_be_hidden', () => {
     const { getByTestId } = render(<AdminBoothEditPage />)

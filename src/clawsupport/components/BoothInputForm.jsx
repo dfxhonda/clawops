@@ -550,6 +550,7 @@ export default function BoothInputForm({
               id="field-set-o"
               type="text"
               inputMode="text"
+              autoComplete="off"
               data-testid="field-set-o"
               data-tabindex={13}
               value={setO}
