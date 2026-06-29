@@ -520,7 +520,7 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text overflow-hidden" onPointerDown={handleOutsideTap}>
+    <div data-testid="page-root" className="h-dvh flex flex-col bg-bg text-text overflow-hidden relative" onPointerDown={handleOutsideTap}>
       <div className="[&>div]:pt-3 [&>div]:pb-1.5">
         <PageHeader
           module="admin"
@@ -641,7 +641,7 @@ export default function AdminBoothEditPage() {
         </div>
       </div>
 
-      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+      <div data-testid="numpad-anchor" className={currentField ? 'absolute bottom-0 left-0 right-0 h-[30dvh] flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
