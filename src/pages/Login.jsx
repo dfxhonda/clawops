@@ -6,7 +6,7 @@ import { DFX_ORG_ID } from '../lib/auth/orgConstants'
 import { useToast } from '../hooks/useToast'
 import { fetchDeviceLoginRows, upsertLoginHistory } from '../services/loginHistory'
 import { checkAndReloadIfStale } from '../services/loginVersionCheck'
-import { updateSW, triggerUpdate } from '../lib/swRegistration'
+import { updateSW } from '../lib/swRegistration'
 import TabBar from './login/TabBar'
 import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
@@ -45,9 +45,8 @@ export default function Login() {
   // SPEC-PWA-RELOAD-LOGIN-GATED-01 R2: スピナー表示制御
   const [versionChecking, setVersionChecking] = useState(false)
 
-  // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: ログアウト合流点でマウント時に能動SW update発火
   // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R2(A): mount時にverify-pin Edgeを事前warm-up
-  useEffect(() => { triggerUpdate(); warmupVerifyPin() }, [])
+  useEffect(() => { warmupVerifyPin() }, [])
 
   useEffect(() => {
     async function init() {
