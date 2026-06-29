@@ -561,6 +561,7 @@ export default function AdminBoothEditPage() {
               <BoothInputForm
                 mode="edit"
                 outMeterCount={outMeterCount}
+                typeId={machine?.type_id}
                 inMeter={inMeter} setIn={setIn}
                 outMeter1={outMeter1} setOut1={setOut1}
                 outMeter2={outMeter2} setOut2={setOut2}
