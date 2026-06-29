@@ -130,12 +130,14 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
       return
     }
     if (keyId === 'caretL') {
+      freshRef.current = false
       caretPosRef.current = Math.max(0, caretPosRef.current - 1)
       inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
       currentField.onCaretChange?.()
       return
     }
     if (keyId === 'caretR') {
+      freshRef.current = false
       const curLen = String(valueRef.current ?? '').length
       caretPosRef.current = Math.min(curLen, caretPosRef.current + 1)
       inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
