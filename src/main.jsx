@@ -7,11 +7,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { initSentry } from './lib/sentry'
 import './index.css'
 
+// OTA gen-3
 initSentry()
-
-// SPEC-PWA-SW-AUTOUPDATE-B1-01: SW登録 (React外、起動前クラッシュをブラウザ層で救う)
-// SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: swRegistration.jsに分離(Login.jsxとの循環dep回避)
-export { updateSW } from './lib/swRegistration'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>

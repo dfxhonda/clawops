@@ -68,18 +68,18 @@ const TT = {
 }
 
 function diffDisplay(diff) {
-  if (diff === null) return { text: '--', cls: 'text-gray-400' }
-  if (diff === 0)    return { text: '0',  cls: 'text-gray-400' }
-  if (diff > 0)      return { text: `+${diff}`, cls: 'text-green-600' }
-  return               { text: String(diff),  cls: 'text-red-600' }
+  if (diff === null) return { text: '--', style: { color: 'var(--color-text-dim)' } }
+  if (diff === 0)    return { text: '0',  style: { color: 'var(--color-text-dim)' } }
+  if (diff > 0)      return { text: `+${diff}`, style: { color: 'var(--color-text)' } }
+  return               { text: String(diff),  style: { color: 'var(--color-danger-text)' } }
 }
 
 export { diffDisplay }
 
 // field row wrapper (active highlight)
-function FRow({ tab, active, children }) {
+function FRow({ tab, active, children, style }) {
   return (
-    <div className={`rounded transition-all duration-200 ${active ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+    <div className={`rounded transition-all duration-200 ${active ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`} style={style}>
       {children}
     </div>
   )
@@ -186,8 +186,8 @@ export default function BoothInputForm({
         {isEditMode ? (
           <div data-testid="meter-row" className="border-b border-border overflow-x-auto">
             <div className="flex items-start gap-1 min-w-max px-1 pt-2 pb-1">
-              <div className="w-24 shrink-0">
-                <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">INメーター</div>
+              <div className="w-24 shrink-0" style={{ '--field-accent': 'var(--color-info)' }}>
+                <div className="text-right text-xs font-bold pr-1 pb-0.5" style={{ color: 'var(--color-info)' }}>INメーター</div>
                 <CompactCell
                   ttId="tt-field-in-meter" ttContent={TT.in_meter} label=""
                   fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
@@ -198,8 +198,8 @@ export default function BoothInputForm({
                   isActive={activeTabindex === 1}
                 />
               </div>
-              <div className="w-24 shrink-0">
-                <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">{outMeterCount > 1 ? 'OUT1' : 'OUT'}メーター</div>
+              <div className="w-24 shrink-0" style={{ '--field-accent': 'var(--color-form-out)' }}>
+                <div className="text-right text-xs font-bold pr-1 pb-0.5" style={{ color: 'var(--color-form-out)' }}>{outMeterCount > 1 ? 'OUT1' : 'OUT'}メーター</div>
                 <CompactCell
                   ttId="tt-field-out-meter" ttContent={TT.out_meter} label=""
                   fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch?.('outMeter1')}
@@ -211,8 +211,8 @@ export default function BoothInputForm({
                 />
               </div>
               {outMeterCount > 1 && (
-                <div className="w-24 shrink-0">
-                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">OUT2メーター</div>
+                <div className="w-24 shrink-0" style={{ '--field-accent': 'var(--color-form-out)' }}>
+                  <div className="text-right text-xs font-bold pr-1 pb-0.5" style={{ color: 'var(--color-form-out)' }}>OUT2メーター</div>
                   <CompactCell
                     ttId="tt-field-out-meter-2" ttContent={TT.out_meter} label=""
                     fieldId="field-out-meter-2" value={outMeter2} onChange={setOut2} onTouched={touch?.('outMeter2')}
@@ -225,8 +225,8 @@ export default function BoothInputForm({
                 </div>
               )}
               {outMeterCount > 2 && (
-                <div className="w-24 shrink-0">
-                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">OUT3メーター</div>
+                <div className="w-24 shrink-0" style={{ '--field-accent': 'var(--color-form-out)' }}>
+                  <div className="text-right text-xs font-bold pr-1 pb-0.5" style={{ color: 'var(--color-form-out)' }}>OUT3メーター</div>
                   <CompactCell
                     ttId="tt-field-out-meter-3" ttContent={TT.out_meter} label=""
                     fieldId="field-out-meter-3" value={outMeter3} onChange={setOut3} onTouched={touch?.('outMeter3')}
@@ -238,7 +238,7 @@ export default function BoothInputForm({
                   />
                 </div>
               )}
-              <div className="w-20 shrink-0">
+              <div className="w-20 shrink-0" style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                 <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">景品残</div>
                 <CompactCell
                   ttId="tt-field-stock" ttContent={TT.prize_stock} label=""
@@ -250,7 +250,7 @@ export default function BoothInputForm({
                   isActive={activeTabindex === 5}
                 />
               </div>
-              <div className="w-20 shrink-0">
+              <div className="w-20 shrink-0" style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                 <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">補充数</div>
                 <CompactCell
                   ttId="tt-field-restock" ttContent={TT.prize_restock} label=""
@@ -267,8 +267,8 @@ export default function BoothInputForm({
                 <div className="flex items-center gap-1">
                   <Tooltip id="tt-field-diff" content={TT.diff} label="差" />
                   <div data-testid="diff-cell" className="flex flex-col gap-0.5 text-xs font-mono font-bold text-right">
-                    <span data-testid="in-diff" className={inDiff.cls}>{inDiff.text}</span>
-                    <span data-testid="out-diff" className={outDiff.cls}>{outDiff.text}</span>
+                    <span data-testid="in-diff" style={inDiff.style}>{inDiff.text}</span>
+                    <span data-testid="out-diff" style={outDiff.style}>{outDiff.text}</span>
                   </div>
                 </div>
               </div>
@@ -285,8 +285,8 @@ export default function BoothInputForm({
                 className="grid px-2 pt-2 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                 style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
               >
-                <span className="text-right">INメーター</span>
-                <span className="text-right">{outMeterCount > 1 ? 'OUT1メーター' : 'OUTメーター'}</span>
+                <span className="text-right" style={{ color: 'var(--color-info)' }}>INメーター</span>
+                <span className="text-right" style={{ color: 'var(--color-form-out)' }}>{outMeterCount > 1 ? 'OUT1メーター' : 'OUTメーター'}</span>
                 <span className="text-right">景品残</span>
                 <span className="text-right">補充数</span>
               </div>
@@ -294,7 +294,7 @@ export default function BoothInputForm({
                 className="grid px-1 pb-1 gap-x-1"
                 style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
               >
-                <FRow tab={1} active={activeTabindex === 1}>
+                <FRow tab={1} active={activeTabindex === 1} style={{ '--field-accent': 'var(--color-info)' }}>
                   {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C2: OCR ボタンを IN メーター入力の左に inline 配置。
                       patrol モードのみ (edit モードは下のボタン行で従来位置維持)。
                       visual style (sky 色 + border) は維持、padding と text-size を行に収まるよう縮小。 */}
@@ -320,7 +320,7 @@ export default function BoothInputForm({
                     </div>
                   </div>
                 </FRow>
-                <FRow tab={2} active={activeTabindex === 2}>
+                <FRow tab={2} active={activeTabindex === 2} style={{ '--field-accent': 'var(--color-form-out)' }}>
                   <NumpadField id="field-out-meter" value={outMeter1}
                     onChange={v => { touch?.('outMeter1')(); setOut1(v) }}
                     label={outMeterCount > 1 ? 'OUT1' : 'OUT'} allowDecimal dataTabindex={2}
@@ -328,7 +328,7 @@ export default function BoothInputForm({
                     onNext={() => navigateNext?.(2)} onRegister={registerField} isActive={activeTabindex === 2}
                     style={{ fontSize: 16, width: '100%' }} testId="field-out-meter" />
                 </FRow>
-                <FRow tab={5} active={activeTabindex === 5}>
+                <FRow tab={5} active={activeTabindex === 5} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                   <NumpadField id="field-stock" value={stock}
                     onChange={v => { touch?.('stock')(); setStk(v) }}
                     label="残" dataTabindex={5}
@@ -336,7 +336,7 @@ export default function BoothInputForm({
                     onNext={() => navigateNext?.(5)} onRegister={registerField} isActive={activeTabindex === 5}
                     style={{ fontSize: 16, width: '100%' }} testId="field-stock" />
                 </FRow>
-                <FRow tab={6} active={activeTabindex === 6}>
+                <FRow tab={6} active={activeTabindex === 6} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                   <NumpadField id="field-restock" value={restock}
                     onChange={v => { touch?.('restock')(); setRst(v) }}
                     label="補" dataTabindex={6}
@@ -364,7 +364,7 @@ export default function BoothInputForm({
                     className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <span className="text-right">OUT2</span>
+                    <span className="text-right" style={{ color: 'var(--color-form-out)' }}>OUT2</span>
                     <span className="text-right">景品残</span>
                     <span className="text-right">補充数</span>
                   </div>
@@ -372,7 +372,7 @@ export default function BoothInputForm({
                     className="grid px-1 pb-1 gap-x-1"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <FRow tab={3} active={activeTabindex === 3}>
+                    <FRow tab={3} active={activeTabindex === 3} style={{ '--field-accent': 'var(--color-form-out)' }}>
                       <NumpadField id="field-out-meter-2" value={outMeter2}
                         onChange={v => { touch?.('outMeter2')(); setOut2(v) }}
                         label="OUT2" allowDecimal dataTabindex={3}
@@ -380,7 +380,7 @@ export default function BoothInputForm({
                         onNext={() => navigateNext?.(3)} onRegister={registerField} isActive={activeTabindex === 3}
                         style={{ fontSize: 16, width: '100%' }} testId="field-out-meter-2" />
                     </FRow>
-                    <FRow tab={15} active={activeTabindex === 15}>
+                    <FRow tab={15} active={activeTabindex === 15} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                       <NumpadField id="field-stock-2" value={stock2 ?? ''}
                         onChange={v => { touch?.('stock2')(); setStk2?.(v) }}
                         label="残2" dataTabindex={15}
@@ -388,7 +388,7 @@ export default function BoothInputForm({
                         onNext={() => navigateNext?.(15)} onRegister={registerField} isActive={activeTabindex === 15}
                         style={{ fontSize: 16, width: '100%' }} testId="field-stock-2" />
                     </FRow>
-                    <FRow tab={16} active={activeTabindex === 16}>
+                    <FRow tab={16} active={activeTabindex === 16} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                       <NumpadField id="field-restock-2" value={restock2 ?? ''}
                         onChange={v => { touch?.('restock2')(); setRst2?.(v) }}
                         label="補2" dataTabindex={16}
@@ -416,7 +416,7 @@ export default function BoothInputForm({
                     className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <span className="text-right">OUT3</span>
+                    <span className="text-right" style={{ color: 'var(--color-form-out)' }}>OUT3</span>
                     <span className="text-right">景品残</span>
                     <span className="text-right">補充数</span>
                   </div>
@@ -424,7 +424,7 @@ export default function BoothInputForm({
                     className="grid px-1 pb-1 gap-x-1"
                     style={{ gridTemplateColumns: '2fr 1fr 1fr' }}
                   >
-                    <FRow tab={4} active={activeTabindex === 4}>
+                    <FRow tab={4} active={activeTabindex === 4} style={{ '--field-accent': 'var(--color-form-out)' }}>
                       <NumpadField id="field-out-meter-3" value={outMeter3}
                         onChange={v => { touch?.('outMeter3')(); setOut3(v) }}
                         label="OUT3" allowDecimal dataTabindex={4}
@@ -432,7 +432,7 @@ export default function BoothInputForm({
                         onNext={() => navigateNext?.(4)} onRegister={registerField} isActive={activeTabindex === 4}
                         style={{ fontSize: 16, width: '100%' }} testId="field-out-meter-3" />
                     </FRow>
-                    <FRow tab={18} active={activeTabindex === 18}>
+                    <FRow tab={18} active={activeTabindex === 18} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                       <NumpadField id="field-stock-3" value={stock3 ?? ''}
                         onChange={v => { touch?.('stock3')(); setStk3?.(v) }}
                         label="残3" dataTabindex={18}
@@ -440,7 +440,7 @@ export default function BoothInputForm({
                         onNext={() => navigateNext?.(18)} onRegister={registerField} isActive={activeTabindex === 18}
                         style={{ fontSize: 16, width: '100%' }} testId="field-stock-3" />
                     </FRow>
-                    <FRow tab={19} active={activeTabindex === 19}>
+                    <FRow tab={19} active={activeTabindex === 19} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
                       <NumpadField id="field-restock-3" value={restock3 ?? ''}
                         onChange={v => { touch?.('restock3')(); setRst3?.(v) }}
                         label="補3" dataTabindex={19}
@@ -509,8 +509,8 @@ export default function BoothInputForm({
             className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
             style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}
           >
-            <span className="text-right">アシスト</span>
-            <span className="text-right">キャッチ</span>
+            <span className="text-right" style={{ color: 'var(--color-info)' }}>アシスト</span>
+            <span className="text-right" style={{ color: 'var(--color-form-out)' }}>キャッチ</span>
             <span className="text-right">ロー</span>
             <span className="text-right">リターン</span>
           </div>
@@ -519,14 +519,15 @@ export default function BoothInputForm({
             style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}
           >
             {[
-              { tab: 9,  id: 'field-set-a', testId: 'field-set-a', val: setA, set: setSetA, touchKey: 'setA', label: 'アシスト'  },
-              { tab: 10, id: 'field-set-c', testId: 'field-set-c', val: setC, set: setSetC, touchKey: 'setC', label: 'キャッチ'   },
-              { tab: 11, id: 'field-set-l', testId: 'field-set-l', val: setL, set: setSetL, touchKey: 'setL', label: 'ロー'       },
-              { tab: 12, id: 'field-set-r', testId: 'field-set-r', val: setR, set: setSetR, touchKey: 'setR', label: 'リターン'   },
+              { tab: 9,  id: 'field-set-a', testId: 'field-set-a', val: setA, set: setSetA, touchKey: 'setA', label: 'アシスト', accent: 'var(--color-info)'             },
+              { tab: 10, id: 'field-set-c', testId: 'field-set-c', val: setC, set: setSetC, touchKey: 'setC', label: 'キャッチ',  accent: 'var(--color-form-out)'          },
+              { tab: 11, id: 'field-set-l', testId: 'field-set-l', val: setL, set: setSetL, touchKey: 'setL', label: 'ロー',      accent: 'var(--color-form-gray-border)'  },
+              { tab: 12, id: 'field-set-r', testId: 'field-set-r', val: setR, set: setSetR, touchKey: 'setR', label: 'リターン',  accent: 'var(--color-form-gray-border)'  },
             ].map(f => (
               <div
                 key={f.id}
                 className={`min-w-0 rounded transition-all duration-200${activeTabindex === f.tab ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}
+                style={{ '--field-accent': f.accent }}
               >
                 <NumpadField
                   id={f.id}
@@ -545,7 +546,7 @@ export default function BoothInputForm({
               </div>
             ))}
           </div>
-          <div className={`px-1 pb-1 rounded transition-all duration-200${activeTabindex === 13 ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+          <div className={`px-1 pb-1 rounded transition-all duration-200${activeTabindex === 13 ? ' ring-2 ring-blue-500 bg-blue-50' : ''}`} style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
             <input
               id="field-set-o"
               type="text"
@@ -560,7 +561,7 @@ export default function BoothInputForm({
               placeholder="メモ"
               style={{
                 cursor: 'text',
-                border: activeTabindex === 13 ? '1px solid #3b82f6' : '1px solid #2a2a44',
+                border: activeTabindex === 13 ? '1px solid #3b82f6' : '1px solid var(--field-accent, #2a2a44)',
                 background: activeTabindex === 13 ? '#eff6ff' : '#0a0a14',
                 borderRadius: 4,
                 padding: '0.1em 0.35em',

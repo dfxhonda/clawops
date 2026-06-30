@@ -39,12 +39,13 @@ export default defineConfig(({ mode }) => ({
       }
     },
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       injectRegister: null,
       manifest: false,
       workbox: {
-        // SPEC-PWA-SW-UPDATE-REBUILD-01: prompt策略。skipWaiting/clientsClaim強制撤去。
-        // updateSW(true)はloginVersionCheck.js checkAndReloadIfStaleからのみ発火。
+        // SPEC-PWA-SW-AUTOUPDATE-PHASE2-01: autoUpdate策略。skipWaiting+clientsClaimで世代スキップ。
+        skipWaiting: true,
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [

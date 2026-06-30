@@ -29,16 +29,6 @@ vi.mock('../../lib/supabase', () => ({
 
 vi.mock('../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
 
-const mockCheckAndReloadIfStale = vi.fn()
-vi.mock('../../lib/swRegistration', () => ({
-  updateSW: vi.fn(),
-  triggerUpdate: vi.fn().mockResolvedValue(undefined),
-}))
-
-vi.mock('../../services/loginVersionCheck', () => ({
-  checkAndReloadIfStale: () => mockCheckAndReloadIfStale(),
-}))
-
 vi.mock('../../services/loginHistory', () => ({
   fetchDeviceLoginRows: vi.fn().mockResolvedValue([]),
   upsertLoginHistory: vi.fn().mockResolvedValue(null),
@@ -69,7 +59,6 @@ function makeStaffQueryBuilder() {
 beforeEach(() => {
   vi.clearAllMocks()
   mockSignOut.mockResolvedValue({})
-  mockCheckAndReloadIfStale.mockResolvedValue(null)
   mockFrom.mockReturnValue(makeStaffQueryBuilder())
 })
 
@@ -82,14 +71,11 @@ describe('Login init ghost session detection', () => {
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalledOnce())
     expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
-    // SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: mount calls triggerUpdate; checkAndReloadIfStale not called in ghost path
-    expect(mockCheckAndReloadIfStale).not.toHaveBeenCalled()
   })
 
   it('when_getSession_returns_session_and_getUser_succeeds_navigates_to_launcher', async () => {
     mockGetSession.mockResolvedValue({ data: { session: { access_token: 'valid-tok' } } })
     mockGetUser.mockResolvedValue({ data: { user: { id: 'uid-1' } }, error: null })
-    mockCheckAndReloadIfStale.mockResolvedValue(null)
 
     render(<MemoryRouter><Login /></MemoryRouter>)
 

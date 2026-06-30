@@ -187,8 +187,6 @@ function PatrolBoothInputPageKeyed() {
 
 function AppInner() {
   const { isLoggedIn } = useAuth()
-  // SPEC-PWA-RELOAD-LOGIN-GATED-01 R3: useVersionCheck撤去。起動時/15分アイドル復帰reloadを廃止。
-  // reload経路はLogin.jsx checkAndReloadIfStale(await)に一元化。
   useSessionLock(isLoggedIn)
 
   const initGlossary = useGlossaryStore(s => s.init)

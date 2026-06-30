@@ -29,15 +29,6 @@ vi.mock('../../../lib/supabase', () => ({
 
 vi.mock('../../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
 
-vi.mock('../../../lib/swRegistration', () => ({
-  updateSW: vi.fn(),
-}))
-
-const mockCheckAndReloadIfStale = vi.fn()
-vi.mock('../../../services/loginVersionCheck', () => ({
-  checkAndReloadIfStale: (...args) => mockCheckAndReloadIfStale(...args),
-}))
-
 vi.mock('../../../services/loginHistory', () => ({
   fetchDeviceLoginRows: vi.fn().mockResolvedValue([]),
   upsertLoginHistory: vi.fn().mockResolvedValue(null),
@@ -61,7 +52,6 @@ vi.mock('../../../pages/login/pinVerifier', () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetSession.mockResolvedValue({ data: { session: null } })
-  mockCheckAndReloadIfStale.mockResolvedValue({ reloaded: false, reason: 'match' })
 })
 
 describe('SPEC-PWA-SW-UPDATE-REBUILD-01: mount — triggerUpdate撤去', () => {
@@ -76,12 +66,5 @@ describe('SPEC-PWA-SW-UPDATE-REBUILD-01: mount — triggerUpdate撤去', () => {
 
     await waitFor(() => expect(mockWarmupVerifyPin).toHaveBeenCalled())
     expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
-  })
-
-  it('when_login_mounts_should_not_call_checkAndReloadIfStale_from_mount', async () => {
-    render(<MemoryRouter><Login /></MemoryRouter>)
-
-    await waitFor(() => expect(mockWarmupVerifyPin).toHaveBeenCalled())
-    expect(mockCheckAndReloadIfStale).not.toHaveBeenCalled()
   })
 })

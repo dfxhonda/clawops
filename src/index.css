@@ -18,6 +18,8 @@
   --color-danger-text: #ff6b6b; /* 暗背景で視認良いテキスト/アイコン用赤 */
   --color-warning: #f0c040;     /* =accent */
   --color-info: #5dade2;        /* 最頻青、情報/リンク/選択強調 */
+  --color-form-out: #3fa57a;   /* OUT専用ダークグリーン (SPEC-FORM-COLOR-TOKENS-IMPL-01) */
+  --color-form-gray-border: #52526e; /* 補助フィールド枠グレー */
   /* DESIGN-TOKENS-V2 text hierarchy (3階層) */
   --color-text-muted: #ccccdd;  /* 副次 (=既存mutedと同値、意味名別途提供) */
   --color-text-dim: #8888a8;    /* 最頻グレーを外側階層に正式化 */
