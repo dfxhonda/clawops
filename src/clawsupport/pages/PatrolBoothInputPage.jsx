@@ -945,7 +945,7 @@ export default function PatrolBoothInputPage() {
     <div
       ref={swipeRef}
       onPointerDown={handleOutsideTap}
-      className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden relative"
+      className="h-svh flex flex-col bg-bg text-text overflow-x-hidden relative"
       data-testid="patrol-booth-swipe-container"
       style={{
         transform: `translateX(${swipeDx}px)`,

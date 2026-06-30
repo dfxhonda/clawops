@@ -520,7 +520,7 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div data-testid="page-root" className="h-dvh flex flex-col bg-bg text-text overflow-hidden relative" onPointerDown={handleOutsideTap}>
+    <div data-testid="page-root" className="h-svh flex flex-col bg-bg text-text overflow-hidden relative" onPointerDown={handleOutsideTap}>
       <div className="[&>div]:pt-3 [&>div]:pb-1.5">
         <PageHeader
           module="admin"
