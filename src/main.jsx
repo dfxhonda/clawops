@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { initSentry } from './lib/sentry'
 import './index.css'
 
+// OTA gen-1
 initSentry()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
