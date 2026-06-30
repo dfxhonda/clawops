@@ -1071,7 +1071,7 @@ export default function PatrolBoothInputPage() {
           }}
         />
       </div>
-      <div className={currentField ? 'absolute bottom-0 left-0 right-0 h-[30dvh] flex flex-col overflow-hidden' : 'hidden'}>
+      <div className={currentField ? 'h-[30dvh] flex-none flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 

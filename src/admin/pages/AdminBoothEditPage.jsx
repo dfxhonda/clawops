@@ -530,8 +530,7 @@ export default function AdminBoothEditPage() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Form section — sticky header with its own scroll */}
+      {/* Form section — sticky header with its own scroll */}
         <div
           ref={swipeFormRef}
           className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border"
@@ -639,10 +638,8 @@ export default function AdminBoothEditPage() {
             })
           )}
         </div>
-      </div>
 
-      <div data-testid="numpad-spacer" className={currentField ? 'h-[30dvh] shrink-0' : 'h-0'} aria-hidden="true" />
-      <div data-testid="numpad-anchor" className={currentField ? 'absolute bottom-0 left-0 right-0 h-[30dvh] flex flex-col overflow-hidden' : 'hidden'}>
+      <div data-testid="numpad-anchor" className={currentField ? 'h-[30dvh] flex-none flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
