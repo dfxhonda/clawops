@@ -67,6 +67,7 @@ function NativeNumInput({
       pattern={allowDecimal ? '[0-9]*[.]?[0-9]*' : '[0-9]*'}
       value={displayVal}
       placeholder={inputPlaceholder ?? '—'}
+      autoComplete="off"
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       className={inputClassName ?? ''}
@@ -130,12 +131,14 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
       return
     }
     if (keyId === 'caretL') {
+      freshRef.current = false
       caretPosRef.current = Math.max(0, caretPosRef.current - 1)
       inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
       currentField.onCaretChange?.()
       return
     }
     if (keyId === 'caretR') {
+      freshRef.current = false
       const curLen = String(valueRef.current ?? '').length
       caretPosRef.current = Math.min(curLen, caretPosRef.current + 1)
       inputRef?.current?.setSelectionRange?.(caretPosRef.current, caretPosRef.current)
@@ -206,7 +209,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
               minHeight: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gridTemplateRows: 'repeat(4, 1fr)',
+              gridTemplateRows: 'repeat(4, minmax(44px, 64px))',
               gap: 0,
               padding: 0,
             }}
@@ -362,7 +365,7 @@ export default function NumpadField({
     return (
       <div
         className="w-full h-full gap-1 bg-slate-800 p-2 select-none"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)' }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, minmax(44px, 64px))' }}
       >
         {KEYS.map((k, i) => k === null ? (
           <div key={`empty-${i}`} />

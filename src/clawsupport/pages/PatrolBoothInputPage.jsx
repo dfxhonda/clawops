@@ -933,7 +933,7 @@ export default function PatrolBoothInputPage() {
             J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
             カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
             iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
-        <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
@@ -945,9 +945,11 @@ export default function PatrolBoothInputPage() {
     <div
       ref={swipeRef}
       onPointerDown={handleOutsideTap}
-      className="h-dvh flex flex-col bg-bg text-text overflow-x-hidden relative"
+      className="grid h-svh bg-bg text-text overflow-x-hidden overflow-y-hidden relative"
       data-testid="patrol-booth-swipe-container"
       style={{
+        gridTemplateRows: 'auto auto auto 1fr auto',
+        minHeight: 0,
         transform: `translateX(${swipeDx}px)`,
         transition: swipeTransition,
         willChange: 'transform',
@@ -997,7 +999,7 @@ export default function PatrolBoothInputPage() {
         </button>
       </div>
 
-      <div className="flex-shrink-0">
+      <div>
         {saveState.status === 'error' && (
           <ErrorBanner
             errCode={saveState.errCode}
@@ -1055,7 +1057,7 @@ export default function PatrolBoothInputPage() {
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
+      <div className="min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
         <BoothHistoryList
           boothCode={boothCode}
           meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
@@ -1071,7 +1073,7 @@ export default function PatrolBoothInputPage() {
           }}
         />
       </div>
-      <div className={currentField ? 'absolute bottom-0 left-0 right-0 h-[30dvh] flex flex-col overflow-hidden' : 'hidden'}>
+      <div className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 

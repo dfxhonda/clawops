@@ -23,4 +23,10 @@ describe('swRegistration (SPEC-PWA-VERSION-CHECK-UPDATE-01)', () => {
   it('should_not_have_onNeedRefresh_handler', () => {
     expect(capturedOpts.value.onNeedRefresh).toBeUndefined()
   })
+
+  it('when_onRegisteredSW_called_with_r_should_call_r_update', () => {
+    const r = { installing: null, update: vi.fn() }
+    capturedOpts.value.onRegisteredSW?.('/sw.js', r)
+    expect(r.update).toHaveBeenCalledTimes(1)
+  })
 })

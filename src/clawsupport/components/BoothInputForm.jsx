@@ -164,6 +164,7 @@ export default function BoothInputForm({
   onDelete, deleting,
   onOCR,
   onClearField,
+  typeId,
 }) {
   const isEditMode = mode === 'edit'
   const outFields = [
@@ -181,80 +182,97 @@ export default function BoothInputForm({
     <div data-testid="booth-input-upper">
       <div className="bg-surface/30 rounded-2xl mx-4 border border-border overflow-hidden">
 
-        {/* ===== edit mode: compact grid ===== */}
+        {/* ===== edit mode: horizontal scroll single-row layout (HSCROLL-01) ===== */}
         {isEditMode ? (
-          <div data-testid="meter-row" className="grid grid-cols-2 gap-x-2 gap-y-1 p-2 border-b border-border">
-            <CompactCell
-              className="w-full min-w-[7ch]"
-              ttId="tt-field-in-meter" ttContent={TT.in_meter} label="IN"
-              fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
-              allowDecimal dataTabindex={1}
-              inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(1)}
-              onRegister={registerField}
-              isActive={activeTabindex === 1}
-            />
-            <CompactCell
-              className="w-full min-w-[7ch]"
-              ttId="tt-field-out-meter" ttContent={TT.out_meter} label={outMeterCount > 1 ? 'OUT1' : 'OUT'}
-              fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch?.('outMeter1')}
-              allowDecimal dataTabindex={2}
-              inputClassName={!touched?.outMeter1 ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(2)}
-              onRegister={registerField}
-              isActive={activeTabindex === 2}
-            />
-            {outMeterCount > 1 && (
-              <CompactCell
-                className="w-full min-w-[7ch]"
-                ttId="tt-field-out-meter-2" ttContent={TT.out_meter} label="OUT2"
-                fieldId="field-out-meter-2" value={outMeter2} onChange={setOut2} onTouched={touch?.('outMeter2')}
-                allowDecimal dataTabindex={3}
-                inputClassName={!touched?.outMeter2 ? 'text-gray-400' : ''}
-                onNext={() => navigateNext?.(3)}
-                onRegister={registerField}
-                isActive={activeTabindex === 3}
-              />
-            )}
-            <div className="flex flex-row items-center gap-2 px-2 py-1 min-w-[7ch]">
-              <div className="shrink-0"><Tooltip id="tt-field-diff" content={TT.diff} label="差" /></div>
-              <div data-testid="diff-cell" className="flex flex-col items-end flex-1 min-h-[2rem]">
-                <div data-testid="in-diff"  className={`font-mono text-xs font-bold ${inDiff.cls}`}>{inDiff.text}</div>
-                <div data-testid="out-diff" className={`font-mono text-xs font-bold ${outDiff.cls}`}>{outDiff.text}</div>
+          <div data-testid="meter-row" className="border-b border-border overflow-x-auto">
+            <div className="flex items-start gap-1 min-w-max px-1 pt-2 pb-1">
+              <div className="w-24 shrink-0">
+                <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">INメーター</div>
+                <CompactCell
+                  ttId="tt-field-in-meter" ttContent={TT.in_meter} label=""
+                  fieldId="field-in-meter" value={inMeter} onChange={setIn} onTouched={touch?.('inMeter')}
+                  allowDecimal dataTabindex={1}
+                  inputClassName={!touched?.inMeter ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext?.(1)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === 1}
+                />
+              </div>
+              <div className="w-24 shrink-0">
+                <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">{outMeterCount > 1 ? 'OUT1' : 'OUT'}メーター</div>
+                <CompactCell
+                  ttId="tt-field-out-meter" ttContent={TT.out_meter} label=""
+                  fieldId="field-out-meter" value={outMeter1} onChange={setOut1} onTouched={touch?.('outMeter1')}
+                  allowDecimal dataTabindex={2}
+                  inputClassName={!touched?.outMeter1 ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext?.(2)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === 2}
+                />
+              </div>
+              {outMeterCount > 1 && (
+                <div className="w-24 shrink-0">
+                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">OUT2メーター</div>
+                  <CompactCell
+                    ttId="tt-field-out-meter-2" ttContent={TT.out_meter} label=""
+                    fieldId="field-out-meter-2" value={outMeter2} onChange={setOut2} onTouched={touch?.('outMeter2')}
+                    allowDecimal dataTabindex={3}
+                    inputClassName={!touched?.outMeter2 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(3)}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 3}
+                  />
+                </div>
+              )}
+              {outMeterCount > 2 && (
+                <div className="w-24 shrink-0">
+                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">OUT3メーター</div>
+                  <CompactCell
+                    ttId="tt-field-out-meter-3" ttContent={TT.out_meter} label=""
+                    fieldId="field-out-meter-3" value={outMeter3} onChange={setOut3} onTouched={touch?.('outMeter3')}
+                    allowDecimal dataTabindex={4}
+                    inputClassName={!touched?.outMeter3 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(4)}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 4}
+                  />
+                </div>
+              )}
+              <div className="w-20 shrink-0">
+                <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">景品残</div>
+                <CompactCell
+                  ttId="tt-field-stock" ttContent={TT.prize_stock} label=""
+                  fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch?.('stock')}
+                  dataTabindex={5}
+                  inputClassName={!touched?.stock ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext?.(5)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === 5}
+                />
+              </div>
+              <div className="w-20 shrink-0">
+                <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">補充数</div>
+                <CompactCell
+                  ttId="tt-field-restock" ttContent={TT.prize_restock} label=""
+                  fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch?.('restock')}
+                  dataTabindex={6}
+                  inputClassName={!touched?.restock ? 'text-gray-400' : ''}
+                  onNext={() => navigateNext?.(6)}
+                  onRegister={registerField}
+                  isActive={activeTabindex === 6}
+                />
+              </div>
+              <div className="shrink-0 flex flex-col justify-end pb-1 pl-1 pr-2">
+                <div className="text-right text-xs font-bold text-muted pb-0.5">差分</div>
+                <div className="flex items-center gap-1">
+                  <Tooltip id="tt-field-diff" content={TT.diff} label="差" />
+                  <div data-testid="diff-cell" className="flex flex-col gap-0.5 text-xs font-mono font-bold text-right">
+                    <span data-testid="in-diff" className={inDiff.cls}>{inDiff.text}</span>
+                    <span data-testid="out-diff" className={outDiff.cls}>{outDiff.text}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            {outMeterCount > 2 && (
-              <CompactCell
-                className="w-full min-w-[7ch]"
-                ttId="tt-field-out-meter-3" ttContent={TT.out_meter} label="OUT3"
-                fieldId="field-out-meter-3" value={outMeter3} onChange={setOut3} onTouched={touch?.('outMeter3')}
-                allowDecimal dataTabindex={4}
-                inputClassName={!touched?.outMeter3 ? 'text-gray-400' : ''}
-                onNext={() => navigateNext?.(4)}
-                onRegister={registerField}
-                isActive={activeTabindex === 4}
-              />
-            )}
-            <CompactCell
-              className="w-full min-w-[7ch]"
-              ttId="tt-field-stock" ttContent={TT.prize_stock} label="残"
-              fieldId="field-stock" value={stock} onChange={setStk} onTouched={touch?.('stock')}
-              dataTabindex={5}
-              inputClassName={!touched?.stock ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(5)}
-              onRegister={registerField}
-              isActive={activeTabindex === 5}
-            />
-            <CompactCell
-              className="w-full min-w-[7ch]"
-              ttId="tt-field-restock" ttContent={TT.prize_restock} label="補"
-              fieldId="field-restock" value={restock} onChange={setRst} onTouched={touch?.('restock')}
-              dataTabindex={6}
-              inputClassName={!touched?.restock ? 'text-gray-400' : ''}
-              onNext={() => navigateNext?.(6)}
-              onRegister={registerField}
-              isActive={activeTabindex === 6}
-            />
           </div>
 
         ) : (
@@ -485,8 +503,8 @@ export default function BoothInputForm({
           </div>
         )}
 
-        {/* Row: 設定ACLR + O — 2段構成: ラベル行 + 入力欄行 + メモ全幅 */}
-        <div className="border-b border-border">
+        {/* Row: 設定ACLR + O — edit mode: crane only (HSCROLL-01 R3) */}
+        {(!isEditMode || typeId === 'crane') && <div className="border-b border-border">
           <div
             className="grid px-2 pt-1.5 pb-0.5 gap-x-1 text-xs font-bold text-muted"
             style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}
@@ -532,6 +550,7 @@ export default function BoothInputForm({
               id="field-set-o"
               type="text"
               inputMode="text"
+              autoComplete="off"
               data-testid="field-set-o"
               data-tabindex={13}
               value={setO}
@@ -557,7 +576,7 @@ export default function BoothInputForm({
               }}
             />
           </div>
-        </div>
+        </div>}
 
         {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C1: patrol モードでは保存ボタン (保存してリストへ /
             保存して次へ) を削除 — SWIPE-NAV-01 の暗黙保存で代替。OCR ボタンは IN メーター左に
@@ -571,7 +590,7 @@ export default function BoothInputForm({
                 data-testid="delete-button"
                 onClick={onDelete}
                 disabled={deleting}
-                className="px-4 py-4 rounded-2xl font-bold text-base border border-red-500 text-red-400 bg-transparent active:scale-[0.98] transition-all disabled:opacity-40"
+                className="px-4 py-3 min-h-[44px] rounded-2xl font-bold text-base border border-red-500 text-red-400 bg-transparent active:scale-[0.98] transition-all disabled:opacity-40"
               >
                 {deleting ? '削除中...' : '削除'}
               </button>
@@ -580,7 +599,7 @@ export default function BoothInputForm({
               <button
                 type="button"
                 onClick={onOCR}
-                className="w-1/4 py-4 rounded-2xl font-bold text-sm text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
+                className="w-1/4 py-3 min-h-[44px] rounded-2xl font-bold text-sm text-sky-300 bg-sky-500/10 border border-sky-400/30 active:scale-[0.98] transition-all flex items-center justify-center"
               >
                 読み取り
               </button>
@@ -590,7 +609,7 @@ export default function BoothInputForm({
               data-tabindex={14}
               onClick={onSave}
               disabled={!canSave || saving}
-              className={`flex-1 py-4 rounded-2xl font-bold text-base transition-all ${
+              className={`flex-1 py-3 min-h-[44px] rounded-2xl font-bold text-base transition-all ${
                 canSave && !saving
                   ? 'bg-accent text-bg active:scale-[0.98]'
                   : 'bg-surface text-muted opacity-40'

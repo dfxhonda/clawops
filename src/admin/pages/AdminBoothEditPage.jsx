@@ -508,7 +508,7 @@ export default function AdminBoothEditPage() {
             </button>
           </div>
         </div>
-        <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
@@ -520,27 +520,27 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text overflow-hidden" onPointerDown={handleOutsideTap}>
-      <PageHeader
-        module="admin"
-        title={boothLabel}
-        variant="compact"
-        hideHome={true}
-      />
+    <div data-testid="page-root" className="grid h-full bg-bg text-text overflow-hidden relative" style={{ gridTemplateRows: 'auto auto 1fr auto', minHeight: 0 }} onPointerDown={handleOutsideTap}>
+      <div className="[&>div]:pt-3 [&>div]:pb-1.5">
+        <PageHeader
+          module="admin"
+          title={boothLabel}
+          variant="compact"
+          hideHome={true}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Form section — sticky header with its own scroll */}
+      {/* Form section — sticky header with its own scroll */}
         <div
           ref={swipeFormRef}
-          className="shrink-0 max-h-[55dvh] overflow-y-auto border-b border-border"
+          className="overflow-y-auto border-b border-border"
           onTouchStart={handleSwipeTouchStart}
           onTouchEnd={handleSwipeTouchEnd}
         >
           {selectedReading ? (
             <>
-              <div data-testid="admin-edit-readonly" className="mx-4 mb-2 px-3 py-2 rounded-xl bg-surface/60 border border-border text-base text-muted space-y-0.5">
+              <div data-testid="admin-edit-readonly" className="mx-4 mb-1 px-3 py-1 rounded-xl bg-surface/60 border border-border text-sm text-muted">
                 <div className="flex gap-3 flex-wrap">
-                  <span>ID: <span className="font-mono text-text/70">{selectedReading.reading_id}</span></span>
                   <span>日: <span className="font-bold text-text/80">{selectedReading.patrol_date}</span></span>
                   <span>種別: <span className={`font-bold ${selectedReading.entry_type === 'replace' ? 'text-amber-400' : selectedReading.entry_type === 'collection' ? 'text-blue-400' : 'text-emerald-400'}`}>
                     {ENTRY_TYPE_LABEL[selectedReading.entry_type] ?? selectedReading.entry_type}
@@ -560,6 +560,7 @@ export default function AdminBoothEditPage() {
               <BoothInputForm
                 mode="edit"
                 outMeterCount={outMeterCount}
+                typeId={machine?.type_id}
                 inMeter={inMeter} setIn={setIn}
                 outMeter1={outMeter1} setOut1={setOut1}
                 outMeter2={outMeter2} setOut2={setOut2}
@@ -592,7 +593,7 @@ export default function AdminBoothEditPage() {
         {/* History section — independent scroll */}
         <div
           data-testid="booth-history-list"
-          className="flex-1 overflow-y-auto min-h-0"
+          className="overflow-y-auto min-h-0"
         >
           <div className="sticky top-0 bg-bg z-10 px-4 py-2 border-b border-border flex items-center gap-2">
             <span className="text-sm font-bold text-muted flex-1">巡回履歴</span>
@@ -637,9 +638,8 @@ export default function AdminBoothEditPage() {
             })
           )}
         </div>
-      </div>
 
-      <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+      <div data-testid="numpad-anchor" className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
@@ -674,6 +674,7 @@ export default function AdminBoothEditPage() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

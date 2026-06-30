@@ -39,16 +39,12 @@ export default defineConfig(({ mode }) => ({
       }
     },
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       injectRegister: null,
       manifest: false,
       workbox: {
-        // SPEC-PWA-SW-GENERATION-SWAP-01 F1: 公式auto-update必須2フラグ
-        // skipWaiting: 新SW waiting状態をスキップして即activate
-        // clientsClaim: 新SW activateと同時に全クライアントを制御下に
-        // 副作用(作業中即reload)はGATED-01のlogin-time reload一元化で安全(useVersionCheck撤去済)
-        clientsClaim: true,
-        skipWaiting: true,
+        // SPEC-PWA-SW-UPDATE-REBUILD-01: prompt策略。skipWaiting/clientsClaim強制撤去。
+        // updateSW(true)はloginVersionCheck.js checkAndReloadIfStaleからのみ発火。
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [

@@ -265,7 +265,7 @@ function AppInner() {
       </Route>
 
       {/* J-ADMIN-01 backward-compat flat routes (regression keep) */}
-      <Route path="/admin/booth-edit/:boothCode" element={<ProtectedRoute><AdminBoothEditPage /></ProtectedRoute>} />
+      <Route path="/admin/booth-edit/:boothCode" element={<ProtectedRoute><div className="h-svh"><AdminBoothEditPage /></div></ProtectedRoute>} />
 
       {/* 巡回入力 — 全ロール */}
       <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />

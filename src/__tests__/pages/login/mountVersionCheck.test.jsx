@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: Login mount-time triggerUpdate call (replaces S1-01 checkAndReloadIfStale)
+// SPEC-PWA-SW-UPDATE-REBUILD-01: Login mount — triggerUpdate撤去, warmupVerifyPin呼出確認
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
@@ -29,10 +29,8 @@ vi.mock('../../../lib/supabase', () => ({
 
 vi.mock('../../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
 
-const mockTriggerUpdate = vi.fn()
 vi.mock('../../../lib/swRegistration', () => ({
   updateSW: vi.fn(),
-  triggerUpdate: () => mockTriggerUpdate(),
 }))
 
 const mockCheckAndReloadIfStale = vi.fn()
@@ -55,32 +53,35 @@ vi.mock('../../../pages/login/TabBar', () => ({ default: () => <div data-testid=
 vi.mock('../../../pages/login/StaffList', () => ({ default: () => <div data-testid="staff-list" /> }))
 vi.mock('../../../pages/login/PinSheet', () => ({ default: () => <div data-testid="pin-sheet" /> }))
 
+const mockWarmupVerifyPin = vi.fn()
+vi.mock('../../../pages/login/pinVerifier', () => ({
+  warmupVerifyPin: () => mockWarmupVerifyPin(),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetSession.mockResolvedValue({ data: { session: null } })
-  mockTriggerUpdate.mockResolvedValue(undefined)
   mockCheckAndReloadIfStale.mockResolvedValue({ reloaded: false, reason: 'match' })
 })
 
-describe('SPEC-PWA-SW-ACTIVE-UPDATE-S2-01: mount triggerUpdate', () => {
-  it('when_login_mounts_should_call_triggerUpdate', async () => {
+describe('SPEC-PWA-SW-UPDATE-REBUILD-01: mount — triggerUpdate撤去', () => {
+  it('when_login_mounts_should_call_warmupVerifyPin', async () => {
     render(<MemoryRouter><Login /></MemoryRouter>)
 
-    await waitFor(() => expect(mockTriggerUpdate).toHaveBeenCalledOnce())
+    await waitFor(() => expect(mockWarmupVerifyPin).toHaveBeenCalled())
   })
 
   it('when_login_mounts_should_not_navigate_to_launcher', async () => {
     render(<MemoryRouter><Login /></MemoryRouter>)
 
-    await waitFor(() => expect(mockTriggerUpdate).toHaveBeenCalled())
+    await waitFor(() => expect(mockWarmupVerifyPin).toHaveBeenCalled())
     expect(mockNavigate).not.toHaveBeenCalledWith('/launcher', expect.anything())
   })
 
   it('when_login_mounts_should_not_call_checkAndReloadIfStale_from_mount', async () => {
     render(<MemoryRouter><Login /></MemoryRouter>)
 
-    await waitFor(() => expect(mockTriggerUpdate).toHaveBeenCalled())
-    // mount no longer calls checkAndReloadIfStale (triggerUpdate replaced it)
+    await waitFor(() => expect(mockWarmupVerifyPin).toHaveBeenCalled())
     expect(mockCheckAndReloadIfStale).not.toHaveBeenCalled()
   })
 })
