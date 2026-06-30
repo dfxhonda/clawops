@@ -185,7 +185,7 @@ export default function BoothInputForm({
         {/* ===== edit mode: horizontal scroll single-row layout (HSCROLL-01) ===== */}
         {isEditMode ? (
           <div data-testid="meter-row" className="border-b border-border overflow-x-auto">
-            <div className="flex gap-1 min-w-max px-1 pt-2 pb-1">
+            <div className="flex items-start gap-1 min-w-max px-1 pt-2 pb-1">
               <div className="w-24 shrink-0">
                 <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">INメーター</div>
                 <CompactCell

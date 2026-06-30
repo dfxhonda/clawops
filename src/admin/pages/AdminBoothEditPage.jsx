@@ -521,7 +521,7 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div data-testid="page-root" className="h-svh flex flex-col bg-bg text-text overflow-hidden relative" onPointerDown={handleOutsideTap}>
+    <div data-testid="page-root" className="grid h-svh bg-bg text-text overflow-hidden relative" style={{ gridTemplateRows: 'auto auto 1fr auto', minHeight: 0 }} onPointerDown={handleOutsideTap}>
       <div className="[&>div]:pt-3 [&>div]:pb-1.5">
         <PageHeader
           module="admin"
@@ -534,7 +534,7 @@ export default function AdminBoothEditPage() {
       {/* Form section — sticky header with its own scroll */}
         <div
           ref={swipeFormRef}
-          className="shrink-0 overflow-y-auto border-b border-border"
+          className="overflow-y-auto border-b border-border"
           onTouchStart={handleSwipeTouchStart}
           onTouchEnd={handleSwipeTouchEnd}
         >
@@ -594,7 +594,7 @@ export default function AdminBoothEditPage() {
         {/* History section — independent scroll */}
         <div
           data-testid="booth-history-list"
-          className="flex-1 overflow-y-auto min-h-0"
+          className="overflow-y-auto min-h-0"
         >
           <div className="sticky top-0 bg-bg z-10 px-4 py-2 border-b border-border flex items-center gap-2">
             <span className="text-sm font-bold text-muted flex-1">巡回履歴</span>
@@ -640,7 +640,7 @@ export default function AdminBoothEditPage() {
           )}
         </div>
 
-      <div data-testid="numpad-anchor" className={currentField ? 'flex-shrink-0 flex flex-col overflow-hidden' : 'hidden'}>
+      <div data-testid="numpad-anchor" className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
