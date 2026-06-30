@@ -78,7 +78,7 @@ function NativeNumInput({
         WebkitAppearance: 'none', boxSizing: 'border-box',
         ...style,
       } : {
-        border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+        border: isActive ? '1px solid #3b82f6' : '1px solid var(--field-accent, #2a2a44)',
         background: isActive ? '#eff6ff' : '#0a0a14',
         borderRadius: 4,
         padding: '0.4em 0.35em',
@@ -438,7 +438,7 @@ export default function NumpadField({
         className={inputClassName ?? ''}
         style={{
           cursor: 'pointer',
-          border: isActive ? '1px solid #3b82f6' : '1px solid #2a2a44',
+          border: isActive ? '1px solid #3b82f6' : '1px solid var(--field-accent, #2a2a44)',
           background: isActive ? '#eff6ff' : '#0a0a14',
           borderRadius: 4,
           padding: '0.4em 0.35em',
