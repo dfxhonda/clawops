@@ -61,10 +61,8 @@ export async function checkAndReloadIfStale({
   if (isDevMode()) return { reloaded: false, reason: 'dev' }
 
   const storage = (getStorage ?? defaultStorage)()
-  // loop guard 最優先 (帯域 + Vercel hit 節約のため fetch も発火させない)
-  if (storage?.getItem(STORAGE_KEY)) {
-    return { reloaded: false, reason: 'already-reloaded' }
-  }
+  // SPEC-PWA-SW-GENERATION-SWAP-FIX-01: early-return guard廃止。
+  // fetchは毎回走らせ、SHAベースでguard判定する(同SHA→skip、新SHA→reload)。
 
   const f = fetchFn ?? (typeof fetch === 'function' ? fetch : null)
   if (!f) return { reloaded: false, reason: 'no-fetch' }
@@ -101,8 +99,12 @@ export async function checkAndReloadIfStale({
       storage?.removeItem(STORAGE_KEY)
       return { reloaded: false, reason: 'match' }
     }
-    // 不一致 → guard 立て → SW世代交代+reload (loop は STORAGE_KEY で物理防止)
-    storage?.setItem(STORAGE_KEY, '1')
+    // 不一致 → SHA単位guard確認(同SHAへの重複reload防止)
+    const currentGuard = storage?.getItem(STORAGE_KEY)
+    if (currentGuard === serverSha) {
+      return { reloaded: false, reason: 'already-reloaded' }
+    }
+    storage?.setItem(STORAGE_KEY, serverSha)
     await doReload()
     return { reloaded: true, reason: 'mismatch' }
   } catch (err) {
