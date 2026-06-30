@@ -11,7 +11,8 @@ export default mergeConfig(viteConfig, defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       // Target thresholds (spec: 70/70/60/70) — raise incrementally as coverage improves
-      // SPEC-PWA-SW-STRIP-PHASE1-01: lines 65→64 (loginVersionCheck.js削除でカバレッジ比率低下)
+      // lines=64: loginVersionCheck.js (~90%+ covered) was deleted by SPEC-PWA-SW-STRIP-PHASE1-01.
+      // Removing a high-coverage file pulls ratio: 3421/5287=64.7% (need 3437 for 65%, gap=16).
       thresholds: {
         statements: 60,
         branches: 50,
