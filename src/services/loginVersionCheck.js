@@ -71,6 +71,9 @@ export async function checkAndReloadIfStale({
   reloadTimeoutMs = RELOAD_TIMEOUT_MS,
 } = {}) {
   if (isDevMode()) return { reloaded: false, reason: 'dev' }
+  // DIAG-PWA-SW-OTA-REGRESSION-01 Q1: invocation entry
+  // eslint-disable-next-line no-console
+  console.warn(`[DIAG-OTA-Q1] checkAndReloadIfStale: BUILD_SHA=${BUILD_SHA}`)
 
   const storage = (getStorage ?? defaultStorage)()
   // SPEC-PWA-SW-GENERATION-SWAP-FIX-01: early-return guard廃止。
@@ -88,6 +91,16 @@ export async function checkAndReloadIfStale({
       ? swContainer
       : (typeof navigator !== 'undefined' ? navigator?.serviceWorker ?? null : null)
 
+    // DIAG-PWA-SW-OTA-REGRESSION-01 Q2: sw existence + registration.waiting state
+    // eslint-disable-next-line no-console
+    console.warn(`[DIAG-OTA-Q2] doReload: sw=${!!sw}`)
+    if (sw?.getRegistration) {
+      Promise.resolve(sw.getRegistration()).then(reg => {
+        // eslint-disable-next-line no-console
+        console.warn(`[DIAG-OTA-Q2] registration.waiting=${!!reg?.waiting} state=${reg?.waiting?.state ?? 'none'} installing=${!!reg?.installing}`)
+      }).catch(() => {})
+    }
+
     // R3: reload直前にloginReloadReasonをセット → Login.jsx復帰時にtoast表示
     const reloadWithReason = () => {
       storage?.setItem(RELOAD_REASON_KEY, RELOAD_REASON_MSG)
@@ -103,17 +116,28 @@ export async function checkAndReloadIfStale({
 
     if (sw) {
       // 定石#3: controllerchangeを先に登録してからupdateSW(true)でSKIP_WAITINGトリガー
-      sw.addEventListener('controllerchange', doActualReload, { once: true })
+      const onControllerChange = () => {
+        // eslint-disable-next-line no-console
+        console.warn('[DIAG-OTA-Q3] controllerchange fired → reloading')
+        doActualReload()
+      }
+      sw.addEventListener('controllerchange', onControllerChange, { once: true })
 
       const timer = setTimeout(() => {
-        sw.removeEventListener('controllerchange', doActualReload)
+        sw.removeEventListener('controllerchange', onControllerChange)
+        // eslint-disable-next-line no-console
+        console.warn('[DIAG-OTA-Q3] fallback-timeout: controllerchange未到達 → reload')
         doActualReload()
       }, reloadTimeoutMs)
 
       // updateSW(true)はトリガーのみ。reloadはcontrollerchangeに委ねる
+      // eslint-disable-next-line no-console
+      console.warn('[DIAG-OTA-Q3] calling updateSW(true)')
       swFn(true).catch(() => {
         clearTimeout(timer)
-        sw.removeEventListener('controllerchange', doActualReload)
+        sw.removeEventListener('controllerchange', onControllerChange)
+        // eslint-disable-next-line no-console
+        console.warn('[DIAG-OTA-Q3] updateSW(true) rejected → fallback reload')
         doActualReload()
       })
     } else {
@@ -140,6 +164,8 @@ export async function checkAndReloadIfStale({
     }
     const data = await res.json()
     const serverSha = data?.sha
+    // eslint-disable-next-line no-console
+    console.warn(`[DIAG-OTA-Q1] version.json: serverSha=${serverSha} BUILD_SHA=${BUILD_SHA} match=${serverSha === BUILD_SHA} guard=${storage?.getItem(STORAGE_KEY)}`)
     if (!serverSha) return { reloaded: false, reason: 'no-sha' }
     if (serverSha === BUILD_SHA) {
       // SPEC-PWA-SW-UPDATEWIRE-GUARD-CLEAR-01: 一致(新bundle起動成功)でguardをクリア(永久残留解消)
@@ -148,6 +174,8 @@ export async function checkAndReloadIfStale({
     }
     // 不一致 → SHA単位guard確認(同SHAへの重複reload防止)
     const currentGuard = storage?.getItem(STORAGE_KEY)
+    // eslint-disable-next-line no-console
+    console.warn(`[DIAG-OTA-Q6] guard: currentGuard=${currentGuard} serverSha=${serverSha} → ${currentGuard === serverSha ? 'already-reloaded(skip)' : 'doReload'}`)
     if (currentGuard === serverSha) {
       return { reloaded: false, reason: 'already-reloaded' }
     }

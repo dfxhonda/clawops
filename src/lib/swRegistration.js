@@ -9,6 +9,17 @@ export const updateSW = registerSW({
   onRegisteredSW(swUrl, r) {
     // r.update()で新SWを検知しwaitingに乗せる(公式issue#601/#896パターン)。
     // waiting->active遷移はloginVersionCheck.checkAndReloadIfStaleのupdateSW(true)が担う。
-    if (r) { r.update() }
+    // DIAG-PWA-SW-OTA-REGRESSION-01 Q5: registration state at onRegisteredSW
+    // eslint-disable-next-line no-console
+    console.warn(`[DIAG-OTA-Q5] onRegisteredSW: r=${!!r} installing=${!!r?.installing} waiting=${!!r?.waiting} active=${!!r?.active}`)
+    if (r) {
+      Promise.resolve(r.update()).then(() => {
+        // eslint-disable-next-line no-console
+        console.warn(`[DIAG-OTA-Q5] r.update() resolved: installing=${!!r.installing} waiting=${!!r.waiting}`)
+      }).catch(e => {
+        // eslint-disable-next-line no-console
+        console.warn(`[DIAG-OTA-Q5] r.update() rejected: ${e?.message}`)
+      })
+    }
   },
 })

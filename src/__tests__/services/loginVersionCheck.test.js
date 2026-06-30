@@ -77,8 +77,7 @@ describe('checkAndReloadIfStale (SPEC-PWA-LOGIN-VERSION-RELOAD-01)', () => {
     const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
     expect(r.reloaded).toBe(false)
     expect(reload).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalled()
-    expect(warnSpy.mock.calls[0][0]).toContain('ERR-PWA-LOGIN-VERSION')
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('ERR-PWA-LOGIN-VERSION'), expect.any(String))
   })
 
   it('when_fetch_returns_non_ok_should_not_reload_and_log_warn', async () => {
@@ -87,8 +86,7 @@ describe('checkAndReloadIfStale (SPEC-PWA-LOGIN-VERSION-RELOAD-01)', () => {
     const r = await checkAndReloadIfStale({ fetch: fetchFn, reload })
     expect(r.reloaded).toBe(false)
     expect(reload).not.toHaveBeenCalled()
-    expect(warnSpy).toHaveBeenCalled()
-    expect(warnSpy.mock.calls[0][0]).toContain('ERR-PWA-LOGIN-VERSION')
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('ERR-PWA-LOGIN-VERSION'), expect.any(String))
   })
 
   // AC-04: SHA一致時はreloadされない
