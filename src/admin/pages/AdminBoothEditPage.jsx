@@ -12,6 +12,7 @@ import { isAdmin } from '../../services/permissions'
 import { useAdminBack } from '../AdminBackContext'
 import { logger } from '../../lib/logger'
 import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import ViewportMeasureOverlay from '../components/ViewportMeasureOverlay'
 import {
   getFullReading,
   updateMeterReading,
@@ -674,6 +675,8 @@ export default function AdminBoothEditPage() {
           </div>
         </div>
       )}
+
+      <ViewportMeasureOverlay />
     </div>
   )
 }
