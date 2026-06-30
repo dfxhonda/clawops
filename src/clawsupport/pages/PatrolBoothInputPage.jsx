@@ -945,9 +945,11 @@ export default function PatrolBoothInputPage() {
     <div
       ref={swipeRef}
       onPointerDown={handleOutsideTap}
-      className="h-svh flex flex-col bg-bg text-text overflow-x-hidden relative"
+      className="grid h-svh bg-bg text-text overflow-x-hidden overflow-y-hidden relative"
       data-testid="patrol-booth-swipe-container"
       style={{
+        gridTemplateRows: 'auto auto auto 1fr auto',
+        minHeight: 0,
         transform: `translateX(${swipeDx}px)`,
         transition: swipeTransition,
         willChange: 'transform',
@@ -997,7 +999,7 @@ export default function PatrolBoothInputPage() {
         </button>
       </div>
 
-      <div className="flex-shrink-0">
+      <div>
         {saveState.status === 'error' && (
           <ErrorBanner
             errCode={saveState.errCode}
@@ -1055,7 +1057,7 @@ export default function PatrolBoothInputPage() {
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
+      <div className="min-h-0 overflow-y-auto px-4" data-testid="booth-history-outside-panel">
         <BoothHistoryList
           boothCode={boothCode}
           meterUnitPrice={machine?.machine_models?.meter_unit_price ?? 100}
@@ -1071,7 +1073,7 @@ export default function PatrolBoothInputPage() {
           }}
         />
       </div>
-      <div className={currentField ? 'flex-shrink-0 flex flex-col overflow-hidden' : 'hidden'}>
+      <div className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
