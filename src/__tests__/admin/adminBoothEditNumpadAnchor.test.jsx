@@ -63,13 +63,13 @@ beforeEach(() => {
 })
 
 describe('SPEC-NUMPAD-LAYOUT-CANONICAL-01 R1: canonical flex layout', () => {
-  it('when_currentField_set_numpad_should_have_flex_none_not_absolute', () => {
+  it('when_currentField_set_numpad_should_have_flex_shrink_0_not_absolute', () => {
     M.nav.currentField = { dataTabindex: 1, label: 'IN' }
     const { getByTestId } = render(<AdminBoothEditPage />)
     const anchor = getByTestId('numpad-anchor')
-    expect(anchor.className).toContain('flex-none')
+    expect(anchor.className).toContain('flex-shrink-0')
     expect(anchor.className).not.toContain('absolute')
-    expect(anchor.className).toContain('h-[30svh]')
+    expect(anchor.className).not.toContain('h-[30svh]')
   })
 
   it('when_currentField_null_numpad_should_be_hidden', () => {
@@ -96,12 +96,12 @@ describe('SPEC-ADMIN-METER-EDIT-NUMPAD-ANCHOR-FIX-01 R1: numpad anchor', () => {
     expect(anchor.className).not.toContain('flex-none')
   })
 
-  it('when_currentField_set_numpad_container_should_have_flex_none_h30svh', () => {
+  it('when_currentField_set_numpad_container_should_have_flex_shrink_0_no_svh', () => {
     M.nav.currentField = { dataTabindex: 1, label: 'IN' }
     const { getByTestId } = render(<AdminBoothEditPage />)
     const anchor = getByTestId('numpad-anchor')
-    expect(anchor.className).toContain('flex-none')
-    expect(anchor.className).toContain('h-[30svh]')
+    expect(anchor.className).toContain('flex-shrink-0')
+    expect(anchor.className).not.toContain('h-[30svh]')
     expect(anchor.className).not.toContain('absolute')
   })
 

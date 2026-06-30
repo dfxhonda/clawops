@@ -209,7 +209,7 @@ export function NumpadFooterPanel({ currentField, idleContent }) {
               minHeight: 0,
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gridTemplateRows: 'repeat(4, 1fr)',
+              gridTemplateRows: 'repeat(4, minmax(44px, 64px))',
               gap: 0,
               padding: 0,
             }}
@@ -365,7 +365,7 @@ export default function NumpadField({
     return (
       <div
         className="w-full h-full gap-1 bg-slate-800 p-2 select-none"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, 1fr)' }}
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(4, minmax(44px, 64px))' }}
       >
         {KEYS.map((k, i) => k === null ? (
           <div key={`empty-${i}`} />

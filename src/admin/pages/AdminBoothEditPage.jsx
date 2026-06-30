@@ -509,7 +509,7 @@ export default function AdminBoothEditPage() {
             </button>
           </div>
         </div>
-        <div className={`${currentField ? 'h-[30svh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
@@ -534,7 +534,7 @@ export default function AdminBoothEditPage() {
       {/* Form section — sticky header with its own scroll */}
         <div
           ref={swipeFormRef}
-          className="shrink-0 max-h-[55svh] overflow-y-auto border-b border-border"
+          className="shrink-0 overflow-y-auto border-b border-border"
           onTouchStart={handleSwipeTouchStart}
           onTouchEnd={handleSwipeTouchEnd}
         >
@@ -640,7 +640,7 @@ export default function AdminBoothEditPage() {
           )}
         </div>
 
-      <div data-testid="numpad-anchor" className={currentField ? 'h-[30svh] flex-none flex flex-col overflow-hidden' : 'hidden'}>
+      <div data-testid="numpad-anchor" className={currentField ? 'flex-shrink-0 flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
