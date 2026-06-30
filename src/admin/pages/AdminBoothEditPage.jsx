@@ -521,7 +521,7 @@ export default function AdminBoothEditPage() {
     : `${boothCode} [管理編集]`
 
   return (
-    <div data-testid="page-root" className="grid h-svh bg-bg text-text overflow-hidden relative" style={{ gridTemplateRows: 'auto auto 1fr auto', minHeight: 0 }} onPointerDown={handleOutsideTap}>
+    <div data-testid="page-root" className="grid h-full bg-bg text-text overflow-hidden relative" style={{ gridTemplateRows: 'auto auto 1fr auto', minHeight: 0 }} onPointerDown={handleOutsideTap}>
       <div className="[&>div]:pt-3 [&>div]:pb-1.5">
         <PageHeader
           module="admin"
