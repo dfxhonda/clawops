@@ -933,7 +933,7 @@ export default function PatrolBoothInputPage() {
             J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
             カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
             iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
-        <div className={`${currentField ? 'h-[30dvh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
+        <div className={`${currentField ? 'h-[30svh]' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
           <NumpadFooterPanel currentField={currentField} />
         </div>
       </div>
@@ -1071,7 +1071,7 @@ export default function PatrolBoothInputPage() {
           }}
         />
       </div>
-      <div className={currentField ? 'h-[30dvh] flex-none flex flex-col overflow-hidden' : 'hidden'}>
+      <div className={currentField ? 'h-[30svh] flex-none flex flex-col overflow-hidden' : 'hidden'}>
         <NumpadFooterPanel currentField={currentField} />
       </div>
 
