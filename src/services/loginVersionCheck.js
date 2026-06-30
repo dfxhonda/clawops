@@ -15,11 +15,16 @@
 //
 // 失敗 (network / HTTP error / timeout / JSON 不正) は LOG-SPEC-01 準拠の console.warn のみで、
 // reload せず login 処理を続行。dev (BUILD_SHA='local' / 未設定) では check 自体 skip。
+//
+// SPEC-PWA-SW-UPDATE-CONTROLLERCHANGE-01:
+// 定石#3: reloadをcontrollerchange発火に委ねる。updateSW(true)はSKIP_WAITINGトリガーのみ。
+// controllerchangeN秒未到達 → fallbackReload保険。iOS PWAでskipWaitingが効かない最悪ケース対策。
 
 import { BUILD_SHA } from '../lib/buildInfo'
 
 const STORAGE_KEY = 'version_reload_done'
 const FETCH_TIMEOUT_MS = 3000
+const RELOAD_TIMEOUT_MS = 3000
 const LOG_TAG = 'ERR-PWA-LOGIN-VERSION'
 
 function isDevMode() {
@@ -38,16 +43,19 @@ function logFail(err) {
 }
 
 /**
- * /version.json を fetch して BUILD_NUMBER と比較し、不一致なら 1 回だけ reload。
+ * /version.json を fetch して BUILD_SHA と比較し、不一致なら 1 回だけ reload。
  * 呼び出し側 (Login.jsx) は await して { reloaded: true } を受けたら以降の navigate を打ち切る。
+ * SPEC-PWA-SW-UPDATE-CONTROLLERCHANGE-01: controllerchange発火でreload、updateSW(true)はトリガーのみ。
  *
  * @param {object} [opts]
- * @param {function} [opts.fetch]      テスト時に差し替え可能な fetch (default: global)
- * @param {function} [opts.reload]     テスト時に差し替え可能な reload (default: window.location.reload)
- * @param {function} [opts.updateSW]   vite-plugin-pwa の updateSW(true) (default: main.jsx export)
- * @param {function} [opts.getStorage] テスト時に差し替え可能な storage 取得 (default: sessionStorage)
- * @param {number}   [opts.timeoutMs]  fetch timeout (default: 3000ms)
- * @param {function} [opts.now]        テスト時に差し替え可能な now (default: Date.now)
+ * @param {function} [opts.fetch]           テスト時に差し替え可能な fetch (default: global)
+ * @param {function} [opts.reload]          テスト時に差し替え可能な reload (default: window.location.reload)
+ * @param {function} [opts.updateSW]        vite-plugin-pwa の updateSW(true)
+ * @param {function} [opts.getStorage]      テスト時に差し替え可能な storage 取得 (default: sessionStorage)
+ * @param {number}   [opts.timeoutMs]       fetch timeout (default: 3000ms)
+ * @param {function} [opts.now]             テスト時に差し替え可能な now (default: Date.now)
+ * @param {object|null} [opts.swContainer]  テスト注入用 navigator.serviceWorker (undefined=本番自動)
+ * @param {number}   [opts.reloadTimeoutMs] controllerchange未到達時のfallbackまでのms (default: 3000ms)
  * @returns {Promise<{reloaded: boolean, reason: string}>}
  */
 export async function checkAndReloadIfStale({
@@ -57,6 +65,8 @@ export async function checkAndReloadIfStale({
   getStorage,
   timeoutMs = FETCH_TIMEOUT_MS,
   now = Date.now,
+  swContainer,
+  reloadTimeoutMs = RELOAD_TIMEOUT_MS,
 } = {}) {
   if (isDevMode()) return { reloaded: false, reason: 'dev' }
 
@@ -68,14 +78,43 @@ export async function checkAndReloadIfStale({
   if (!f) return { reloaded: false, reason: 'no-fetch' }
 
   const fallbackReload = reload ?? (() => { window.location.reload() })
-  // updateSW(true): SW update -> skipWaiting -> reload (公式 vite-plugin-pwa 仕様)
-  // 未提供 or 失敗時は fallbackReload に降格
+
   async function doReload() {
     const swFn = updateSW ?? (() => Promise.reject(new Error('no updateSW')))
-    try {
-      await swFn(true)
-    } catch {
+    // swContainer: undefined=本番(navigator.serviceWorker使用) / null=SW不在縮退
+    const sw = swContainer !== undefined
+      ? swContainer
+      : (typeof navigator !== 'undefined' ? navigator?.serviceWorker ?? null : null)
+
+    let refreshing = false
+    const doActualReload = () => {
+      if (refreshing) return
+      refreshing = true
       fallbackReload()
+    }
+
+    if (sw) {
+      // 定石#3: controllerchangeを先に登録してからupdateSW(true)でSKIP_WAITINGトリガー
+      sw.addEventListener('controllerchange', doActualReload, { once: true })
+
+      const timer = setTimeout(() => {
+        sw.removeEventListener('controllerchange', doActualReload)
+        doActualReload()
+      }, reloadTimeoutMs)
+
+      // updateSW(true)はトリガーのみ。reloadはcontrollerchangeに委ねる
+      swFn(true).catch(() => {
+        clearTimeout(timer)
+        sw.removeEventListener('controllerchange', doActualReload)
+        doActualReload()
+      })
+    } else {
+      // navigator.serviceWorker不在(テスト環境含む) → fallbackReload縮退
+      try {
+        await swFn(true)
+      } catch {
+        fallbackReload()
+      }
     }
   }
 

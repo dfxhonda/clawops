@@ -197,3 +197,85 @@ describe('checkAndReloadIfStale (SPEC-PWA-LOGIN-VERSION-RELOAD-01)', () => {
     expect(warnSpy).toHaveBeenCalled()
   })
 })
+
+// SPEC-PWA-SW-UPDATE-CONTROLLERCHANGE-01 (AC7)
+describe('checkAndReloadIfStale / controllerchange pattern (SPEC-PWA-SW-UPDATE-CONTROLLERCHANGE-01)', () => {
+  // AC1: controllerchange発火 → reload 1回のみ
+  it('when_swContainer_controllerchange_fires_should_reload_once', async () => {
+    let ccListener = null
+    const sw = {
+      addEventListener: vi.fn((event, fn) => { if (event === 'controllerchange') ccListener = fn }),
+      removeEventListener: vi.fn(),
+    }
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+    const reload = vi.fn()
+    const updateSW = vi.fn(async () => { ccListener?.() })  // controllerchange発火をシミュレート
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload, updateSW, swContainer: sw })
+    expect(r.reloaded).toBe(true)
+    expect(sw.addEventListener).toHaveBeenCalledWith('controllerchange', expect.any(Function), { once: true })
+    expect(updateSW).toHaveBeenCalledWith(true)
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  // AC2: updateSW(true)はトリガーとして呼ばれる(reloadはcontrollerchangeに委ねる)
+  it('when_swContainer_updateSW_should_be_called_with_true_as_trigger', async () => {
+    let ccListener = null
+    const sw = {
+      addEventListener: vi.fn((event, fn) => { if (event === 'controllerchange') ccListener = fn }),
+      removeEventListener: vi.fn(),
+    }
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+    const reload = vi.fn()
+    const updateSW = vi.fn(async () => { ccListener?.() })
+    await checkAndReloadIfStale({ fetch: fetchFn, reload, updateSW, swContainer: sw })
+    expect(updateSW).toHaveBeenCalledWith(true)
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  // AC1 二重防止: controllerchangeが2回呼ばれてもreloadは1回のみ(refreshingフラグ)
+  it('when_swContainer_controllerchange_fires_twice_should_reload_only_once', async () => {
+    let ccListener = null
+    const sw = {
+      addEventListener: vi.fn((event, fn) => { if (event === 'controllerchange') ccListener = fn }),
+      removeEventListener: vi.fn(),
+    }
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+    const reload = vi.fn()
+    const updateSW = vi.fn(async () => {
+      ccListener?.()  // 1回目
+      ccListener?.()  // 2回目(refreshingフラグで防止)
+    })
+    await checkAndReloadIfStale({ fetch: fetchFn, reload, updateSW, swContainer: sw })
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  // AC3: controllerchangeが来ない場合はtimeout後にfallbackReload
+  it('when_swContainer_controllerchange_does_not_fire_should_fallback_after_timeout', async () => {
+    vi.useFakeTimers()
+    try {
+      const sw = { addEventListener: vi.fn(), removeEventListener: vi.fn() }
+      const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+      const reload = vi.fn()
+      const updateSW = vi.fn(async () => {})  // controllerchangeを発火しない
+      const promise = checkAndReloadIfStale({
+        fetch: fetchFn, reload, updateSW, swContainer: sw, reloadTimeoutMs: 50,
+      })
+      await vi.runAllTimersAsync()
+      const r = await promise
+      expect(r.reloaded).toBe(true)
+      expect(reload).toHaveBeenCalledTimes(1)
+      expect(sw.removeEventListener).toHaveBeenCalledWith('controllerchange', expect.any(Function))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // AC5: navigator.serviceWorker不在(swContainer=null) → fallbackReload縮退
+  it('when_swContainer_null_should_use_fallback_reload', async () => {
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+    const reload = vi.fn()
+    const r = await checkAndReloadIfStale({ fetch: fetchFn, reload, swContainer: null })
+    expect(r.reloaded).toBe(true)
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+})
