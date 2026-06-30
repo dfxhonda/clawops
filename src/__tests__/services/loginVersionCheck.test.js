@@ -278,4 +278,26 @@ describe('checkAndReloadIfStale / controllerchange pattern (SPEC-PWA-SW-UPDATE-C
     expect(r.reloaded).toBe(true)
     expect(reload).toHaveBeenCalledTimes(1)
   })
+
+  // AC9 (R3): reload発火直前にsessionStorage loginReloadReasonがセットされる(fallback path)
+  it('when_mismatch_fallback_path_should_set_loginReloadReason_before_reload', async () => {
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+    const reload = vi.fn()
+    await checkAndReloadIfStale({ fetch: fetchFn, reload, swContainer: null })
+    expect(sessionStorage.getItem('loginReloadReason')).toBe('新しいバージョンに更新しました')
+  })
+
+  // AC9 (R3): controllerchange pathでもloginReloadReasonがセットされる
+  it('when_swContainer_controllerchange_fires_should_set_loginReloadReason', async () => {
+    let ccListener = null
+    const sw = {
+      addEventListener: vi.fn((event, fn) => { if (event === 'controllerchange') ccListener = fn }),
+      removeEventListener: vi.fn(),
+    }
+    const fetchFn = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sha: 'newer-sha-xyz' }) }))
+    const reload = vi.fn()
+    const updateSW = vi.fn(async () => { ccListener?.() })
+    await checkAndReloadIfStale({ fetch: fetchFn, reload, updateSW, swContainer: sw })
+    expect(sessionStorage.getItem('loginReloadReason')).toBe('新しいバージョンに更新しました')
+  })
 })

@@ -23,6 +23,8 @@
 import { BUILD_SHA } from '../lib/buildInfo'
 
 const STORAGE_KEY = 'version_reload_done'
+const RELOAD_REASON_KEY = 'loginReloadReason'
+const RELOAD_REASON_MSG = '新しいバージョンに更新しました'
 const FETCH_TIMEOUT_MS = 3000
 const RELOAD_TIMEOUT_MS = 3000
 const LOG_TAG = 'ERR-PWA-LOGIN-VERSION'
@@ -86,11 +88,17 @@ export async function checkAndReloadIfStale({
       ? swContainer
       : (typeof navigator !== 'undefined' ? navigator?.serviceWorker ?? null : null)
 
+    // R3: reload直前にloginReloadReasonをセット → Login.jsx復帰時にtoast表示
+    const reloadWithReason = () => {
+      storage?.setItem(RELOAD_REASON_KEY, RELOAD_REASON_MSG)
+      fallbackReload()
+    }
+
     let refreshing = false
     const doActualReload = () => {
       if (refreshing) return
       refreshing = true
-      fallbackReload()
+      reloadWithReason()
     }
 
     if (sw) {
@@ -113,7 +121,7 @@ export async function checkAndReloadIfStale({
       try {
         await swFn(true)
       } catch {
-        fallbackReload()
+        reloadWithReason()
       }
     }
   }

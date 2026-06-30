@@ -133,6 +133,16 @@ export default function Login() {
     }
   }, [initDone])
 
+  // SPEC-PWA-SW-UPDATE-CONTROLLERCHANGE-01 R3: バージョン更新reload後の理由表示
+  useEffect(() => {
+    if (!initDone) return
+    const reloadReason = sessionStorage.getItem('loginReloadReason')
+    if (reloadReason) {
+      sessionStorage.removeItem('loginReloadReason')
+      showToast(reloadReason)
+    }
+  }, [initDone])
+
   const starStaffIds = useMemo(
     () => new Set(starStaff.map(s => s.staff_id)),
     [starStaff]
