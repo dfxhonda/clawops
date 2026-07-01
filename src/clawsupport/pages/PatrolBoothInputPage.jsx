@@ -31,6 +31,7 @@ import {
   setPendingEnterFrom,
   consumePendingEnterFrom,
 } from '../state/swipeTransition'
+import { getPrevHold } from '../state/patrolPrevHold'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -204,6 +205,13 @@ export default function PatrolBoothInputPage() {
             prize_stock_count:   latestUnsynced.prize_stock_count,
             prize_restock_count: latestUnsynced.prize_restock_count,
           })
+          return
+        }
+        // tier-0: memory hold (SPEC-PATROL-SWIPE-LATENCY-FIX-03: microsecond, zero IDB/Supabase)
+        // Only reached when latestUnsynced is null (unsynced correctness preserved above).
+        const held = getPrevHold(boothCode)
+        if (held) {
+          setPrev(held)
           return
         }
         // tier-2: synced baseline from IDB (PatrolStorePage.fetchStoreBaselineRows が事前投入)
