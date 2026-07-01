@@ -332,17 +332,17 @@ export default function PatrolBoothInputPage() {
     if (touched.setO) patch.set_o = setO.trim() || null
     if (touched.outMeter2) patch.out_meter_2 = outMeter2 !== '' ? parseFloat(outMeter2) : null
     if (touched.outMeter3) patch.out_meter_3 = outMeter3 !== '' ? parseFloat(outMeter3) : null
-    // OUT2 fields
-    if (touched.stock2)    patch.stock_2    = stock2 !== '' ? parseInt(stock2, 10) : null
-    if (touched.restock2)  patch.restock_2  = restock2 !== '' ? parseInt(restock2, 10) : null
+    // OUT2 fields (stock/restock: empty→0 not null, matches patrolV2 semantics)
+    if (touched.stock2)    patch.stock_2    = stock2 !== '' ? parseInt(stock2, 10) : 0
+    if (touched.restock2)  patch.restock_2  = restock2 !== '' ? parseInt(restock2, 10) : 0
     if (touched.prizeName2) patch.prize_name_2 = prizeName2.trim() || null
     if (touched.prizeCost2) {
       const t = prizeCost2.trim()
       patch.prize_cost_2 = t === '' ? null : (Number.isFinite(parseInt(t, 10)) ? parseInt(t, 10) : null)
     }
-    // OUT3 fields
-    if (touched.stock3)    patch.stock_3    = stock3 !== '' ? parseInt(stock3, 10) : null
-    if (touched.restock3)  patch.restock_3  = restock3 !== '' ? parseInt(restock3, 10) : null
+    // OUT3 fields (stock/restock: empty→0 not null, matches patrolV2 semantics)
+    if (touched.stock3)    patch.stock_3    = stock3 !== '' ? parseInt(stock3, 10) : 0
+    if (touched.restock3)  patch.restock_3  = restock3 !== '' ? parseInt(restock3, 10) : 0
     if (touched.prizeName3) patch.prize_name_3 = prizeName3.trim() || null
     if (touched.prizeCost3) {
       const t = prizeCost3.trim()
