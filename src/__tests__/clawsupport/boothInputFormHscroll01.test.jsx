@@ -76,6 +76,61 @@ describe('SPEC-ADMIN-METER-EDIT-HSCROLL-01 R1: OUT2/OUT3 conditional', () => {
   })
 })
 
+describe('SPEC-ADMIN-METER-EDIT-OUT2-FIELDS-fix-01: edit-mode OUT2/OUT3 prize sections', () => {
+  it('when_edit_outMeterCount_1_should_not_render_out2_prize_fields', () => {
+    const { queryByTestId } = renderEdit({ outMeterCount: 1 })
+    expect(queryByTestId('field-stock-2')).toBeNull()
+    expect(queryByTestId('field-prize-name-2')).toBeNull()
+    expect(queryByTestId('field-prize-cost-2')).toBeNull()
+  })
+
+  it('when_edit_outMeterCount_2_should_render_out2_prize_section', () => {
+    const { getByTestId } = renderEdit({
+      outMeterCount: 2,
+      stock2: '10', setStk2: vi.fn(),
+      restock2: '5', setRst2: vi.fn(),
+      prizeName2: 'テスト景品B', setPrize2: vi.fn(),
+      prizeCost2: '300', setCost2: vi.fn(),
+    })
+    expect(getByTestId('field-stock-2')).toBeTruthy()
+    expect(getByTestId('field-restock-2')).toBeTruthy()
+    expect(getByTestId('field-prize-name-2')).toBeTruthy()
+    expect(getByTestId('field-prize-cost-2')).toBeTruthy()
+  })
+
+  it('when_edit_outMeterCount_2_should_not_render_out3_prize_section', () => {
+    const { queryByTestId } = renderEdit({ outMeterCount: 2 })
+    expect(queryByTestId('field-stock-3')).toBeNull()
+    expect(queryByTestId('field-prize-name-3')).toBeNull()
+  })
+
+  it('when_edit_outMeterCount_3_should_render_out2_and_out3_prize_sections', () => {
+    const { getByTestId } = renderEdit({
+      outMeterCount: 3,
+      stock2: '10', setStk2: vi.fn(),
+      restock2: '5', setRst2: vi.fn(),
+      prizeName2: 'テスト景品B', setPrize2: vi.fn(),
+      prizeCost2: '300', setCost2: vi.fn(),
+      stock3: '8', setStk3: vi.fn(),
+      restock3: '2', setRst3: vi.fn(),
+      prizeName3: 'テスト景品C', setPrize3: vi.fn(),
+      prizeCost3: '250', setCost3: vi.fn(),
+    })
+    expect(getByTestId('field-stock-2')).toBeTruthy()
+    expect(getByTestId('field-prize-name-2')).toBeTruthy()
+    expect(getByTestId('field-stock-3')).toBeTruthy()
+    expect(getByTestId('field-prize-name-3')).toBeTruthy()
+  })
+
+  it('when_patrol_mode_should_not_render_edit_out2_prize_fields', () => {
+    const { queryByTestId } = render(
+      <BoothInputForm {...DEFAULT_EDIT} mode="patrol" outMeterCount={2} />
+    )
+    expect(queryByTestId('field-prize-name-2')).toBeNull()
+    expect(queryByTestId('field-prize-cost-2')).toBeNull()
+  })
+})
+
 describe('SPEC-ADMIN-METER-EDIT-HSCROLL-01 R3: crane gate for set fields', () => {
   it('when_edit_mode_no_typeId_should_hide_set_fields', () => {
     const { queryByTestId } = renderEdit()

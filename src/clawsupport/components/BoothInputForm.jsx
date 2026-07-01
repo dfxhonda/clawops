@@ -503,6 +503,148 @@ export default function BoothInputForm({
           </div>
         )}
 
+        {/* OUT2 prize section (edit mode only) */}
+        {isEditMode && outMeterCount > 1 && (
+          <>
+            <div className="border-b border-border overflow-x-auto">
+              <div className="flex items-start gap-1 min-w-max px-1 pt-2 pb-1">
+                <div className="w-20 shrink-0" style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
+                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">B段景品残</div>
+                  <CompactCell
+                    ttId="tt-field-stock-2-edit" ttContent={TT.prize_stock} label=""
+                    fieldId="field-stock-2" value={stock2 ?? ''} onChange={setStk2 ?? (() => {})} onTouched={touch?.('stock2')}
+                    dataTabindex={15}
+                    inputClassName={!touched?.stock2 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(15)}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 15}
+                  />
+                </div>
+                <div className="w-20 shrink-0" style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
+                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">補充数</div>
+                  <CompactCell
+                    ttId="tt-field-restock-2-edit" ttContent={TT.prize_restock} label=""
+                    fieldId="field-restock-2" value={restock2 ?? ''} onChange={setRst2 ?? (() => {})} onTouched={touch?.('restock2')}
+                    dataTabindex={16}
+                    inputClassName={!touched?.restock2 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(16)}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 16}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-1 p-1 border-b border-border">
+              <div className="flex-[4] min-w-0 flex flex-row items-center gap-1 p-1">
+                <div className="shrink-0"><Tooltip id="tt-field-prize-name-2-edit" content={TT.prize_name} label="景" /></div>
+                <div className="flex-1 min-w-0">
+                  <PrizeNameAutocomplete
+                    value={prizeName2 ?? ''}
+                    onChange={v => {
+                      touch?.('prizeName2')()
+                      setPrize2?.(v)
+                      setSelectedPrizeId2?.(null)
+                    }}
+                    onSelect={({ prize_id, prize_name, original_cost }) => {
+                      setPrize2?.(prize_name)
+                      setSelectedPrizeId2?.(prize_id)
+                      setCost2?.(original_cost != null ? String(original_cost) : '')
+                      touch?.('prizeName2')()
+                      touch?.('prizeCost2')()
+                    }}
+                    placeholder="B段景品"
+                    fieldId="field-prize-name-2"
+                    testId="field-prize-name-2"
+                  />
+                </div>
+              </div>
+              <CompactCell
+                className="flex-[1] min-w-0"
+                ttId="tt-field-prize-cost-2-edit" ttContent={TT.prize_cost} label="@"
+                fieldId="field-prize-cost-2" value={prizeCost2 ?? ''} onChange={setCost2 ?? (() => {})} onTouched={touch?.('prizeCost2')}
+                allowDecimal={false} dataTabindex={17}
+                testId="field-prize-cost-2"
+                inputPlaceholder=""
+                inputClassName={!touched?.prizeCost2 ? 'text-gray-400' : ''}
+                onNext={() => navigateNext?.(17)}
+                onRegister={registerField}
+                isActive={activeTabindex === 17}
+              />
+            </div>
+          </>
+        )}
+
+        {/* OUT3 prize section (edit mode only) */}
+        {isEditMode && outMeterCount > 2 && (
+          <>
+            <div className="border-b border-border overflow-x-auto">
+              <div className="flex items-start gap-1 min-w-max px-1 pt-2 pb-1">
+                <div className="w-20 shrink-0" style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
+                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">C段景品残</div>
+                  <CompactCell
+                    ttId="tt-field-stock-3-edit" ttContent={TT.prize_stock} label=""
+                    fieldId="field-stock-3" value={stock3 ?? ''} onChange={setStk3 ?? (() => {})} onTouched={touch?.('stock3')}
+                    dataTabindex={18}
+                    inputClassName={!touched?.stock3 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(18)}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 18}
+                  />
+                </div>
+                <div className="w-20 shrink-0" style={{ '--field-accent': 'var(--color-form-gray-border)' }}>
+                  <div className="text-right text-xs font-bold text-muted pr-1 pb-0.5">補充数</div>
+                  <CompactCell
+                    ttId="tt-field-restock-3-edit" ttContent={TT.prize_restock} label=""
+                    fieldId="field-restock-3" value={restock3 ?? ''} onChange={setRst3 ?? (() => {})} onTouched={touch?.('restock3')}
+                    dataTabindex={19}
+                    inputClassName={!touched?.restock3 ? 'text-gray-400' : ''}
+                    onNext={() => navigateNext?.(19)}
+                    onRegister={registerField}
+                    isActive={activeTabindex === 19}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-1 p-1 border-b border-border">
+              <div className="flex-[4] min-w-0 flex flex-row items-center gap-1 p-1">
+                <div className="shrink-0"><Tooltip id="tt-field-prize-name-3-edit" content={TT.prize_name} label="景" /></div>
+                <div className="flex-1 min-w-0">
+                  <PrizeNameAutocomplete
+                    value={prizeName3 ?? ''}
+                    onChange={v => {
+                      touch?.('prizeName3')()
+                      setPrize3?.(v)
+                      setSelectedPrizeId3?.(null)
+                    }}
+                    onSelect={({ prize_id, prize_name, original_cost }) => {
+                      setPrize3?.(prize_name)
+                      setSelectedPrizeId3?.(prize_id)
+                      setCost3?.(original_cost != null ? String(original_cost) : '')
+                      touch?.('prizeName3')()
+                      touch?.('prizeCost3')()
+                    }}
+                    placeholder="C段景品"
+                    fieldId="field-prize-name-3"
+                    testId="field-prize-name-3"
+                  />
+                </div>
+              </div>
+              <CompactCell
+                className="flex-[1] min-w-0"
+                ttId="tt-field-prize-cost-3-edit" ttContent={TT.prize_cost} label="@"
+                fieldId="field-prize-cost-3" value={prizeCost3 ?? ''} onChange={setCost3 ?? (() => {})} onTouched={touch?.('prizeCost3')}
+                allowDecimal={false} dataTabindex={20}
+                testId="field-prize-cost-3"
+                inputPlaceholder=""
+                inputClassName={!touched?.prizeCost3 ? 'text-gray-400' : ''}
+                onNext={() => navigateNext?.(20)}
+                onRegister={registerField}
+                isActive={activeTabindex === 20}
+              />
+            </div>
+          </>
+        )}
+
         {/* Row: 設定ACLR + O — edit mode: crane only (HSCROLL-01 R3) */}
         {(!isEditMode || typeId === 'crane') && <div className="border-b border-border">
           <div

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<title>マスタ管理 | ClawOps</title>
+<title>マスタ管理 | Round-0</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -859,12 +859,12 @@ async function exportExcel(type){
     if (type === 'prizes') {
       const raw = await sbGet('prize_masters','select=prize_id,prize_name,category,supplier_id,original_cost,status,aliases,default_case_quantity,jan_code,size,series&order=prize_name.asc');
       headers = {prize_id:'景品ID',prize_name:'景品名',category:'カテゴリ',supplier_id:'仕入先',original_cost:'単価',status:'状態',aliases:'別名',default_case_quantity:'標準入数',jan_code:'JANコード',size:'サイズ',series:'シリーズ'};
-      data = raw; fileName = `ClawOps_景品マスタ_${today}`;
+      data = raw; fileName = `Round-0_景品マスタ_${today}`;
     }
     else if (type === 'orders') {
       const raw = await sbGet('prize_orders','select=order_id,prize_id,prize_name_raw,supplier_id,order_date,case_quantity,case_count,unit_cost,case_cost,destination,status,expected_date,source_file,notes&order=order_date.desc');
       headers = {order_id:'発注ID',prize_id:'景品ID',prize_name_raw:'景品名(原文)',supplier_id:'仕入先',order_date:'発注日',case_quantity:'入数',case_count:'ケース数',unit_cost:'単価',case_cost:'ケース原価',destination:'入荷先',status:'状態',expected_date:'入荷予定',source_file:'元データ',notes:'メモ'};
-      data = raw; fileName = `ClawOps_発注履歴_${today}`;
+      data = raw; fileName = `Round-0_発注履歴_${today}`;
     }
     else if (type === 'stocks') {
       const [stocks, prizes] = await Promise.all([
@@ -874,37 +874,37 @@ async function exportExcel(type){
       const pm = Object.fromEntries(prizes.map(p => [p.prize_id, p.prize_name]));
       data = stocks.map(s => ({...s, prize_name: pm[s.prize_id]||''}));
       headers = {stock_id:'在庫ID',prize_id:'景品ID',prize_name:'景品名',owner_type:'場所種別',owner_id:'場所ID',quantity:'数量',tags:'タグ',updated_at:'更新日',updated_by:'更新者',last_counted_at:'最終棚卸し'};
-      fileName = `ClawOps_在庫一覧_${today}`;
+      fileName = `Round-0_在庫一覧_${today}`;
     }
     else if (type === 'movements') {
       const raw = await sbGet('stock_movements','select=movement_id,prize_id,movement_type,from_owner_type,from_owner_id,to_owner_type,to_owner_id,quantity,note,reason,adjustment_reason,created_at,created_by&order=created_at.desc');
       headers = {movement_id:'移動ID',prize_id:'景品ID',movement_type:'種別',from_owner_type:'移動元種別',from_owner_id:'移動元ID',to_owner_type:'移動先種別',to_owner_id:'移動先ID',quantity:'数量',note:'メモ',reason:'理由',adjustment_reason:'調整理由',created_at:'日時',created_by:'操作者'};
-      data = raw; fileName = `ClawOps_在庫移動_${today}`;
+      data = raw; fileName = `Round-0_在庫移動_${today}`;
     }
     else if (type === 'suppliers') {
       const raw = await sbGet('suppliers','select=supplier_id,supplier_name,supplier_type,contact_method,order_method,lead_time_days,payment_terms,is_active,notes&order=supplier_name');
       headers = {supplier_id:'仕入先ID',supplier_name:'仕入先名',supplier_type:'タイプ',contact_method:'連絡方法',order_method:'発注方法',lead_time_days:'リードタイム(日)',payment_terms:'支払条件',is_active:'有効',notes:'メモ'};
-      data = raw; fileName = `ClawOps_仕入先_${today}`;
+      data = raw; fileName = `Round-0_仕入先_${today}`;
     }
     else if (type === 'readings') {
       const raw = await sbGet('meter_readings','select=reading_id,booth_id,full_booth_code,read_time,in_meter,out_meter,prize_restock_count,prize_stock_count,prize_name,set_a,set_c,set_l,set_r,set_o,note,source,created_at&order=read_time.desc');
       headers = {reading_id:'読取ID',booth_id:'ブースID',full_booth_code:'フルコード',read_time:'読取日時',in_meter:'INメーター',out_meter:'OUTメーター',prize_restock_count:'補充数',prize_stock_count:'残数',prize_name:'景品名',set_a:'設定A',set_c:'設定C',set_l:'設定L',set_r:'設定R',set_o:'設定O',note:'メモ',source:'ソース',created_at:'作成日時'};
-      data = raw; fileName = `ClawOps_メーター読取_${today}`;
+      data = raw; fileName = `Round-0_メーター読取_${today}`;
     }
     else if (type === 'stores') {
       const raw = await sbGet('stores','select=store_code,store_name,brand_name,region,notes&is_active=eq.true&order=store_code.asc');
       headers = {store_code:'店舗コード',store_name:'店舗名',brand_name:'ブランド',region:'地域',notes:'備考'};
-      data = raw; fileName = `ClawOps_店舗マスタ_${today}`;
+      data = raw; fileName = `Round-0_店舗マスタ_${today}`;
     }
     else if (type === 'machines') {
       const raw = await sbGet('machines','select=machine_code,store_code,machine_name,play_price,floor,zone,notes&is_active=eq.true&order=machine_code.asc');
       headers = {machine_code:'機械コード',store_code:'店舗コード',machine_name:'機械名',play_price:'遊技価格',floor:'フロア',zone:'ゾーン',notes:'備考'};
-      data = raw; fileName = `ClawOps_機械マスタ_${today}`;
+      data = raw; fileName = `Round-0_機械マスタ_${today}`;
     }
     else if (type === 'booths') {
       const raw = await sbGet('booths','select=booth_code,machine_code,store_code,booth_number,notes&is_active=eq.true&order=booth_code.asc');
       headers = {booth_code:'ブースコード',machine_code:'機械コード',store_code:'店舗コード',booth_number:'ブース番号',notes:'備考'};
-      data = raw; fileName = `ClawOps_ブースマスタ_${today}`;
+      data = raw; fileName = `Round-0_ブースマスタ_${today}`;
     }
 
     // ヘッダーキー順でデータを整形

@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
 
       const options = {
         challenge: challengeB64,
-        rp: { id: rpID, name: 'ClawOps' },
+        rp: { id: rpID, name: 'Round-0' },
         user: {
           id: uint8ToBase64url(new TextEncoder().encode(staff_id)),
           name: staff_id,
