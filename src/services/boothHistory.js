@@ -17,7 +17,11 @@ const HISTORY_SELECT =
   'reading_id, booth_code, store_code, machine_code, patrol_date, read_time, created_at, entry_type, ' +
   'in_meter, out_meter, out_meter_2, out_meter_3, ' +
   'prize_name, prize_cost, prize_stock_count, prize_restock_count, ' +
-  'set_a, set_c, set_l, set_r, set_o'
+  'set_a, set_c, set_l, set_r, set_o, ' +
+  // SPEC-PATROL-SWIPE-LATENCY-FIX-02: align with LAST_READING_SELECT so tier-2 IDB baseline
+  // carries all columns that applyPrevFields reads for OUT2/OUT3 multi-dispense booths.
+  'prize_id, prize_name_2, prize_name_3, stock_2, stock_3, restock_2, restock_3, ' +
+  'prize_cost_1, prize_cost_2, prize_cost_3, theoretical_stock, payout_rate'
 
 // テスト用 export (HISTORY-FIX-02 AC-07: 'no in_diff column dependency' 検証)
 export const _RAW_HISTORY_SELECT = HISTORY_SELECT
