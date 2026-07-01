@@ -118,6 +118,16 @@ export default function AdminBoothEditPage() {
   const [setO,       setSetO]  = useState('')
   const [touched,    setTouched] = useState(ALL_TOUCHED)
   const [selectedPrizeId, setSelectedPrizeId] = useState(null)
+  const [stock2,      setStk2]         = useState('')
+  const [restock2,    setRst2]         = useState('')
+  const [prizeName2,  setPrize2]       = useState('')
+  const [prizeCost2,  setCost2]        = useState('')
+  const [selectedPrizeId2, setSelectedPrizeId2] = useState(null)
+  const [stock3,      setStk3]         = useState('')
+  const [restock3,    setRst3]         = useState('')
+  const [prizeName3,  setPrize3]       = useState('')
+  const [prizeCost3,  setCost3]        = useState('')
+  const [selectedPrizeId3, setSelectedPrizeId3] = useState(null)
 
   const [saving,   setSaving]  = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -238,6 +248,16 @@ export default function AdminBoothEditPage() {
     setSetO(full.set_o ?? '')
     setTouched(ALL_TOUCHED)
     setSelectedPrizeId(null)
+    setStk2(full.stock_2 != null ? String(full.stock_2) : '')
+    setRst2(full.restock_2 != null ? String(full.restock_2) : '')
+    setPrize2(full.prize_name_2 ?? '')
+    setCost2(full.prize_cost_2 != null ? String(full.prize_cost_2) : '')
+    setSelectedPrizeId2(null)
+    setStk3(full.stock_3 != null ? String(full.stock_3) : '')
+    setRst3(full.restock_3 != null ? String(full.restock_3) : '')
+    setPrize3(full.prize_name_3 ?? '')
+    setCost3(full.prize_cost_3 != null ? String(full.prize_cost_3) : '')
+    setSelectedPrizeId3(null)
     setResult(null)
     setHasUnsaved(false)
   }
@@ -315,6 +335,14 @@ export default function AdminBoothEditPage() {
         prize_name:           prizeName.trim() || null,
         prize_cost:           prizeCost !== '' ? Number(prizeCost) : null,
         prize_id:             selectedPrizeId,
+        stock_2:      stock2 !== '' ? Number(stock2) : null,
+        restock_2:    restock2 !== '' ? Number(restock2) : null,
+        prize_name_2: prizeName2.trim() || null,
+        prize_cost_2: prizeCost2 !== '' ? Number(prizeCost2) : null,
+        stock_3:      stock3 !== '' ? Number(stock3) : null,
+        restock_3:    restock3 !== '' ? Number(restock3) : null,
+        prize_name_3: prizeName3.trim() || null,
+        prize_cost_3: prizeCost3 !== '' ? Number(prizeCost3) : null,
         set_a:                setA.trim() || null,
         set_c:                setC.trim() || null,
         set_l:                setL.trim() || null,
@@ -575,6 +603,16 @@ export default function AdminBoothEditPage() {
                 setR={setR} setSetR={setSetR}
                 setO={setO} setSetO={setSetO}
                 selectedPrizeId={selectedPrizeId} setSelectedPrizeId={setSelectedPrizeId}
+                stock2={stock2} setStk2={setStk2}
+                restock2={restock2} setRst2={setRst2}
+                prizeName2={prizeName2} setPrize2={setPrize2}
+                prizeCost2={prizeCost2} setCost2={setCost2}
+                selectedPrizeId2={selectedPrizeId2} setSelectedPrizeId2={setSelectedPrizeId2}
+                stock3={stock3} setStk3={setStk3}
+                restock3={restock3} setRst3={setRst3}
+                prizeName3={prizeName3} setPrize3={setPrize3}
+                prizeCost3={prizeCost3} setCost3={setCost3}
+                selectedPrizeId3={selectedPrizeId3} setSelectedPrizeId3={setSelectedPrizeId3}
                 touched={touched} touch={touch}
                 navigateNext={navigateNext} registerField={registerField} activeTabindex={activeTabindex}
                 onClearField={clearField}
