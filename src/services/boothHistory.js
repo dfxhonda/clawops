@@ -73,6 +73,19 @@ function computeDiffs(ascRows, meterUnitPrice) {
 }
 
 /**
+ * SPEC-PATROL-SWIPE-LATENCY-FIX-01: build history display rows from IDB synced baseline
+ * (zero Supabase round-trip path). descRows must be sorted DESC (newest first).
+ * Returns same shape as fetchBoothHistory. Returns null when descRows is empty/null
+ * so the caller can fall back to Supabase.
+ */
+export function buildBoothHistoryFromIdb(descRows, meterUnitPrice = 100, limit = 10) {
+  if (!descRows || !descRows.length) return null
+  const asc = [...descRows].reverse()
+  const withDiffs = computeDiffs(asc, meterUnitPrice)
+  return withDiffs.slice(-limit).reverse()
+}
+
+/**
  * Fetch last `limit` readings for a booth with diffs computed client-side.
  */
 export async function fetchBoothHistory(boothCode, meterUnitPrice = 100, limit = 10) {
