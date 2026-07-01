@@ -24,6 +24,7 @@ import {
   reconcileSyncedByBaseline,
 } from '../../lib/localStore/patrolRecords'
 import { computeLocalStoreView } from '../state/localStoreView'
+import { setPrevHold, clearPrevHold } from '../state/patrolPrevHold'
 import { uploadStoreRecords } from '../../services/storeSync'
 import { notifyLfChange } from '../../hooks/useUnsentBanner'
 import { useAuth } from '../../hooks/useAuth'
@@ -92,6 +93,17 @@ export default function PatrolStorePage() {
       // FIX_A: iOS kill でmarkRecordSynced未実行になったレコードをbaseline照合で自動回復。
       const reconciled = await reconcileSyncedByBaseline(rows)
       if (reconciled > 0) notifyLfChange()
+      // SPEC-PATROL-SWIPE-LATENCY-FIX-03: tier-0 memory hold — one prev per booth from
+      // same rows already in hand (first occurrence = latest due to fetchStoreBaselineRows DESC order).
+      try {
+        const prevMap = {}
+        for (const row of rows) {
+          if (row.booth_code && !prevMap[row.booth_code]) prevMap[row.booth_code] = row
+        }
+        setPrevHold(storeCode, prevMap)
+      } catch (err) {
+        logger.warn?.('ERR-LF1-PREVHOLD-SET', { storeCode, message: err?.message })
+      }
     } catch (err) {
       logger.warn?.('ERR-LF1-BASELINE-FETCH', { storeCode, message: err?.message })
     }
@@ -141,6 +153,8 @@ export default function PatrolStorePage() {
     return () => {
       const sCode = storeCode
       if (!sCode) return
+      // SPEC-PATROL-SWIPE-LATENCY-FIX-03: tier-0 hold を store 退出時に解放 (unbounded growth 防止)
+      clearPrevHold(sCode)
       // 非同期で実行、navigation を絶対にブロックしない
       uploadStoreRecords(sCode, { staff: { staffId: staffIdRef.current } })
         .then(res => {

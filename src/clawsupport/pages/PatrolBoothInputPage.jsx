@@ -31,6 +31,7 @@ import {
   setPendingEnterFrom,
   consumePendingEnterFrom,
 } from '../state/swipeTransition'
+import { getPrevHold } from '../state/patrolPrevHold'
 import {
   savePatrolReading,
   getLastReadingForBooth,
@@ -183,23 +184,52 @@ export default function PatrolBoothInputPage() {
     // SPEC-PATROL-REPLACE-SWIPE-SAVE-FIX-01: IDB未syncレコード優先、Supabaseフォールバック。
     // replace後ブース再訪時、景品名等の変更が prev に反映されない問題の修正。
     async function fetchPrev() {
-      const idbRecords = await getPatrolRecordsByBooth(boothCode)
-      const latestUnsynced = idbRecords
-        .filter(r => !r.synced)
-        .sort((a, b) => (b.read_time ?? '').localeCompare(a.read_time ?? ''))[0] ?? null
-      if (latestUnsynced) {
-        const defaults = latestUnsynced.defaultsFromPrev ?? {}
-        const patch = latestUnsynced.optionalPatch ?? {}
-        setPrev({
-          ...defaults,
-          ...patch,
-          in_meter:            latestUnsynced.in_meter,
-          out_meter:           latestUnsynced.out_meter,
-          prize_stock_count:   latestUnsynced.prize_stock_count,
-          prize_restock_count: latestUnsynced.prize_restock_count,
-        })
-        return
+      // SPEC-PATROL-SWIPE-LATENCY-FIX-01: 3-tier IDB-first prev fetch。
+      // tier-1: unsynced local edit (replace/edit correctness, unchanged)
+      // tier-2: synced baseline from IDB → zero Supabase round-trip
+      // tier-3: Supabase fallback (cold booth or IDB error)
+      try {
+        const idbRecords = await getPatrolRecordsByBooth(boothCode)
+        // tier-1: unsynced (replace後ブース再訪でprev反映)
+        const latestUnsynced = idbRecords
+          .filter(r => !r.synced)
+          .sort((a, b) => (b.read_time ?? '').localeCompare(a.read_time ?? ''))[0] ?? null
+        if (latestUnsynced) {
+          const defaults = latestUnsynced.defaultsFromPrev ?? {}
+          const patch = latestUnsynced.optionalPatch ?? {}
+          setPrev({
+            ...defaults,
+            ...patch,
+            in_meter:            latestUnsynced.in_meter,
+            out_meter:           latestUnsynced.out_meter,
+            prize_stock_count:   latestUnsynced.prize_stock_count,
+            prize_restock_count: latestUnsynced.prize_restock_count,
+          })
+          return
+        }
+        // tier-0: memory hold (SPEC-PATROL-SWIPE-LATENCY-FIX-03: microsecond, zero IDB/Supabase)
+        // Only reached when latestUnsynced is null (unsynced correctness preserved above).
+        const held = getPrevHold(boothCode)
+        if (held) {
+          setPrev(held)
+          return
+        }
+        // tier-2: synced baseline from IDB (PatrolStorePage.fetchStoreBaselineRows が事前投入)
+        const latestSynced = idbRecords
+          .filter(r => r.synced)
+          .sort((a, b) => {
+            const dc = (b.patrol_date ?? '').localeCompare(a.patrol_date ?? '')
+            if (dc !== 0) return dc
+            return (b.created_at ?? '').localeCompare(a.created_at ?? '')
+          })[0] ?? null
+        if (latestSynced) {
+          setPrev(latestSynced)
+          return
+        }
+      } catch (err) {
+        logger.error?.('ERR-LF1-PREV-IDB', { boothCode, message: err?.message })
       }
+      // tier-3: Supabase fallback (cold booth or IDB error)
       const supabasePrev = await getLastReadingForBooth(boothCode)
       setPrev(supabasePrev)
     }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { fetchBoothHistory } from '../../services/boothHistory'
+import { fetchBoothHistory, buildBoothHistoryFromIdb } from '../../services/boothHistory'
+import { getPatrolRecordsByBooth } from '../../lib/localStore/patrolRecords'
+import { logger } from '../../lib/logger'
 import BoothHistoryRow from './BoothHistoryRow'
 
 function draftDiffCls(diff) {
@@ -32,10 +34,32 @@ export default function BoothHistoryList({
   useEffect(() => {
     if (!boothCode) return
     setLoading(true)
-    fetchBoothHistory(boothCode, meterUnitPrice, limit).then(data => {
+    // SPEC-PATROL-SWIPE-LATENCY-FIX-01: IDB-first history (zero Supabase round-trip)
+    async function loadHistory() {
+      try {
+        const idbRecords = await getPatrolRecordsByBooth(boothCode)
+        const syncedRows = idbRecords
+          .filter(r => r.synced)
+          .sort((a, b) => {
+            const dc = (b.patrol_date ?? '').localeCompare(a.patrol_date ?? '')
+            if (dc !== 0) return dc
+            return (b.created_at ?? '').localeCompare(a.created_at ?? '')
+          })
+        const idbHistory = buildBoothHistoryFromIdb(syncedRows, meterUnitPrice, limit)
+        if (idbHistory !== null) {
+          setRows(idbHistory)
+          setLoading(false)
+          return
+        }
+      } catch (err) {
+        logger.error?.('ERR-LF1-HISTORY-IDB', { boothCode, message: err?.message })
+      }
+      // Supabase fallback (cold booth or IDB error)
+      const data = await fetchBoothHistory(boothCode, meterUnitPrice, limit)
       setRows(data)
       setLoading(false)
-    })
+    }
+    loadHistory()
   }, [boothCode, meterUnitPrice, limit, historyKey])
 
   if (loading) {
