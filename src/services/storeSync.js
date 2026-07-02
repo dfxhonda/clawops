@@ -24,6 +24,12 @@ import { logger } from '../lib/logger'
 const LOG_ERR_UPLOAD = 'ERR-LF1-SYNC-UPLOAD'
 const LOG_ERR_PROBE  = 'ERR-LF1-SYNC-PROBE'
 
+// Per-storeCode in-flight lock: prevents concurrent calls from double-uploading the same unsynced records.
+// When 2 callers race (unmount autosync + manual button + Hub autosync), the second returns the same
+// in-flight Promise rather than starting a duplicate run. Deleted in finally so subsequent calls start fresh.
+const inFlightByStore = new Map()
+export function _resetInFlight() { inFlightByStore.clear() }
+
 // 軽量 connectivity probe。navigator.onLine は嘘をつくことがあるので Supabase 系の HEAD で確認。
 // fetch 失敗は offline 扱い。
 export async function probeOnline({ fetcher = globalThis.fetch, signal } = {}) {
@@ -43,9 +49,18 @@ export async function probeOnline({ fetcher = globalThis.fetch, signal } = {}) {
  * 指定 store の未送信 record を upload。
  * - LF1 は1件ずつ savePatrolReading に渡す。失敗は次の record に進む。
  * - 完了後、(uploaded, failed) を返す。banner の集計再評価は caller 責任。
+ * - 同一 storeCode への並行呼び出しは in-flight Promise を共有し二重 INSERT を防ぐ。
  */
-export async function uploadStoreRecords(storeCode, { staff, skipProbe = false } = {}) {
-  if (!storeCode) return { uploaded: 0, failed: 0, skipped: 0 }
+export function uploadStoreRecords(storeCode, { staff, skipProbe = false } = {}) {
+  if (!storeCode) return Promise.resolve({ uploaded: 0, failed: 0, skipped: 0 })
+  if (inFlightByStore.has(storeCode)) return inFlightByStore.get(storeCode)
+  const run = _runUploadStore(storeCode, { staff, skipProbe })
+    .finally(() => inFlightByStore.delete(storeCode))
+  inFlightByStore.set(storeCode, run)
+  return run
+}
+
+async function _runUploadStore(storeCode, { staff, skipProbe = false } = {}) {
   const records = await getPatrolRecordsByStore(storeCode)
   const unsynced = records.filter(r => !r.synced)
   if (!unsynced.length) return { uploaded: 0, failed: 0, skipped: 0 }
