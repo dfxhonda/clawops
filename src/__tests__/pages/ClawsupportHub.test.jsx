@@ -24,7 +24,9 @@ vi.mock('../../lib/supabase', () => ({
       b.order = vi.fn().mockResolvedValue({ data: [] })
       return b
     }),
-    rpc: vi.fn().mockResolvedValue({ data: [] }),
+    rpc: vi.fn().mockResolvedValue({
+      data: [{ store_code: 'S1', last_patrol_date: '2026-07-02', done_booths: 3, total_booths: 5 }],
+    }),
     auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
   },
 }))

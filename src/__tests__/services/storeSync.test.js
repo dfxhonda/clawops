@@ -162,6 +162,14 @@ describe('SPEC-LF1-SYNC-CONCURRENCY-GUARD-01: in-flight lock', () => {
     vi.unstubAllGlobals()
   })
 
+  it('when_save_throws_should_count_as_failed_and_not_throw', async () => {
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
+    saveMock.mockRejectedValue(new Error('network fail'))
+    const res = await uploadStoreRecords('S1', { skipProbe: true })
+    expect(res.failed).toBe(1)
+    expect(res.uploaded).toBe(0)
+  })
+
   it('AC4: when_upload_completes_subsequent_call_should_start_fresh', async () => {
     saveMock.mockResolvedValue({ ok: true })
     await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
