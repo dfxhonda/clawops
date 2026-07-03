@@ -66,6 +66,24 @@ export default function ClawsupportHub() {
       .catch(err => logger.warn?.('ERR-LF1-HUB-SYNC', { message: err?.message }))
   }, [staffId])
 
+  // SPEC-PATROL-BOOTHUI-3FIXES-01 fix1: re-fetch progress badge on sync events
+  useEffect(() => {
+    async function refreshProgress() {
+      const { data: rpcRows } = await supabase.rpc('store_patrol_progress')
+      const metaMap = {}
+      for (const row of (rpcRows ?? [])) {
+        metaMap[row.store_code] = {
+          lastDate: row.last_patrol_date ?? null,
+          done: row.done_booths ?? 0,
+          total: row.total_booths ?? 0,
+        }
+      }
+      setStoreMetaMap(metaMap)
+    }
+    window.addEventListener('clawops-lf1-changed', refreshProgress)
+    return () => window.removeEventListener('clawops-lf1-changed', refreshProgress)
+  }, [])
+
   const handlePin = useCallback(async (storeCode) => {
     if (!staffId) {
       console.error('[handlePin] staffId null, skip save', { storeCode })

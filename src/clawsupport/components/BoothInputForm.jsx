@@ -283,7 +283,7 @@ export default function BoothInputForm({
             <div data-testid="meter-row" className="border-b border-border">
               <div
                 className="grid px-2 pt-2 pb-0.5 gap-x-1 text-xs font-bold text-muted"
-                style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
+                style={{ gridTemplateColumns: 'minmax(0,3fr) minmax(0,3fr) minmax(0,2fr) minmax(0,2fr)' }}
               >
                 <span className="text-right" style={{ color: 'var(--color-info)' }}>INメーター</span>
                 <span className="text-right" style={{ color: 'var(--color-form-out)' }}>{outMeterCount > 1 ? 'OUT1メーター' : 'OUTメーター'}</span>
@@ -292,13 +292,13 @@ export default function BoothInputForm({
               </div>
               <div
                 className="grid px-1 pb-1 gap-x-1"
-                style={{ gridTemplateColumns: '3fr 3fr 2fr 2fr' }}
+                style={{ gridTemplateColumns: 'minmax(0,3fr) minmax(0,3fr) minmax(0,2fr) minmax(0,2fr)' }}
               >
                 <FRow tab={1} active={activeTabindex === 1} style={{ '--field-accent': 'var(--color-info)' }}>
                   {/* SPEC-PATROL-BOOTH-UI-SIMPLIFY-01 C2: OCR ボタンを IN メーター入力の左に inline 配置。
                       patrol モードのみ (edit モードは下のボタン行で従来位置維持)。
                       visual style (sky 色 + border) は維持、padding と text-size を行に収まるよう縮小。 */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 min-w-0">
                     {onOCR && (
                       <button
                         type="button"
