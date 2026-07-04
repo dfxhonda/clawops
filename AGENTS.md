@@ -1,8 +1,10 @@
-# DFX ClawOps - Codex Memory (AI Machine-Readable YAML)
+# DFX ClawOps - Agent Instructions (AI Machine-Readable YAML)
+
+Cross-agent canonical ruleset (SPEC-AGENT-INSTRUCTIONS-DEDUP-01, 2026-07-04). Codex reads this file directly. Claude Code reads it via the pointer in CLAUDE.md.
 
 ```yaml
 project: dfx_clawops
-purpose: "Codex 起動時に project root から自動読込される memory file。Discord/Channels 経由で実装する Sonnet は本ルールに必ず従う。"
+purpose: "エージェント(Claude Code / Codex 等)起動時に project root から自動読込される instruction file。Discord/Channels 経由で実装する Sonnet は本ルールに必ず従う。"
 format_principle: "AI 機械可読 YAML 1ブロック化、装飾/絵文字/敬体全廃 (Notion v5.0 specs/INFRA 思想と一貫)"
 principles:
   - ヒロさん直指示も spec ベースで実装
@@ -10,6 +12,10 @@ principles:
   - 軽いレイアウト調整も commit message に対象 spec ID 含める
   - 進捗は対応 spec の status_log.entries に YAML 追記、Discord はサマリのみ
   - ntfy.sh 廃止、Discord 直返答に一本化
+memory_context:
+  added: 2026-07-04
+  source: SPEC-AGENT-INSTRUCTIONS-DEDUP-01 (AC5)
+  load: "起動時に memory/ 配下を読み込むこと: memory/glossary.md (用語集), memory/context/*.md (architecture.md, dev-workflow.md), memory/projects/*.md, memory/people/*.md。読み込み専用、内容の書き換え不可"
 ad_hoc_yaml_logging_rule:
   added: 2026-05-10
   added_by: ヒロさん要望
@@ -66,13 +72,14 @@ ad_hoc_yaml_logging_rule:
     skip_spec_for: [typo, comment, dependency_minor_bump]
     requirement: "commit message に「typo fix」「comment」等明示"
   command_tower_division_of_labor:
-    natural_language_planned: "ヒロ → 司令塔Opus (web Codex.ai 別チャット) が spec 物理化 → Discord 投げで実装"
+    natural_language_planned: "ヒロ → 司令塔Opus (web chat 別チャット) が spec 物理化 → Discord 投げで実装"
     discord_ad_hoc: "ヒロ Discord 直指示 → Sonnet が本ルール適用 → 自動 spec/status_log 物理化 → 実装"
 commit_message:
   format: |
     <type>(<scope>): <subject>
     [詳細説明]
-    Co-Authored-By: Codex Sonnet 4.6 <noreply@anthropic.com>
+    Co-Authored-By: <実装エージェントの識別子> <連絡先>
+  identity_delta_pointer: "識別子の実値は各エージェントのinstruction fileのdeltaを参照。Claude Code は CLAUDE.md 記載 (Claude Sonnet 4.6 <noreply@anthropic.com>) を使用"
   rules:
     spec_based_implementation:
       tag: "[approved-by command-tower] を subject 末尾に付与必須"
@@ -117,7 +124,8 @@ db_schema_actual_columns:
     pk: "実装時 information_schema.columns で再確認"
   reference: "prize_masters 37列 / machines 30列 / stores 21列の詳細は specs/INFRA 末尾の implementation_hints.J-INFRA-04_zod_schemas.full_column_reference 参照"
 notion_status_log_format:
-  required: "実装中の各マイルストーンで対応 spec.status_log.entries に YAML 追記"
+  v3_writeback: "2026-05-27〜 status_log は YAMLブロック外の '## status_log' Markdownセクションへ insert_content(position=end) で追記する (notion_writeback_procedure.v3_method 参照)。下記 phases は記載内容の指針"
+  required: "実装中の各マイルストーンで対応 spec の '## status_log' セクションに追記"
   phases:
     start: "spec を notion-fetch、scope 確認開始"
     scope_confirmed: "files_to_touch リスト"
@@ -167,6 +175,14 @@ scope_constraint:
     - supabase.d.ts
     - src/services/patrolCore.js
     - "各モジュール跨ぎ import (eslint-plugin-boundaries で検出)"
+test_branch_promotion_policy:
+  added: 2026-05-27
+  added_by: ヒロさん指示
+  rule: "テスト版ブランチ(ocr-unify-01 等)を ヒロ明示承認なしに main/安定版へ merge/cherry-pick することを禁止"
+  procedure:
+    - "昇格時は対象コミット(hash + 1行要約)を明示して Discord でヒロに確認してから実行"
+    - "ヒロ承認を得てからのみ merge/cherry-pick を実行"
+  forbidden: "サイレント統合(無確認での test→main 統合)を禁止"
 discord_notification:
   on_done: "J-XXX done: commit=<hash> (サマリのみ)"
   on_failure: "J-XXX fail: <reason> (詳細は status_log)"
@@ -211,10 +227,10 @@ design_charter:
     style: "text-base font-bold"
 command_tower_collaboration:
   flow:
-    step_1: "ヒロ自然言語(計画的) → 司令塔Opus (web Codex.ai)"
+    step_1: "ヒロ自然言語(計画的) → 司令塔Opus (web chat 別チャット)"
     step_2: "司令塔Opus が spec.yaml 物理化 (Notion specs/M1, specs/INFRA 等)"
     step_3: "ヒロ iPhone Discord で「specs/M1 末尾の J-XXX 実装して」短文 DM"
-    step_4: "Sonnet (Codex) が notion-fetch → AGENTS.md ルール適用 → 実装 → status_log 追記 → push → Discord サマリ"
+    step_4: "Sonnet (実装エージェント: Claude Code は CLAUDE.md 経由、Codex は本ファイル直接) が notion-fetch → AGENTS.md ルール適用 → 実装 → status_log 追記 → push → Discord サマリ"
     step_5: "ヒロ Discord 直指示(軽い派生) → Sonnet が ad_hoc_yaml_logging_rule 適用 → status_log or 新規 spec 物理化 → 実装 → 司令塔Opus が Notion polling 把握"
   command_tower_observability_routes:
     vercel_api: "commit hash + diff + deploy state"
@@ -255,4 +271,111 @@ multi_tenant_isolation:
   anon_fetch_rule: "organization_id フィルタ禁止 (RLS で担保)"
   reason: "anon 画面 fetch で organization_id 絞ると空配列になるバグ実績 (2026-04-26 ログイン v4)"
   on_new_table: RLS ポリシー必ず同時投入
+notion_writeback_procedure:
+  added: 2026-05-19
+  source: NOTION-WRITEBACK-STANDARD-V1
+  purpose: "spec の completion_report_required.write_back_to_notion: true を受けて実装完了時に必ず Notion status_log へ追記する"
+  when_required: "spec に write_back_to_notion: true AND notion_page_id が記載されている場合は必須"
+  v3_method:
+    added: 2026-05-27
+    source: "SPEC-AUTHORING-V1 (365c15b9-a458-81e6-84b0-d2a45bdccc3c) status_log.claude_code_instruction"
+    format_rule: |
+      status_log は YAML コードブロック「外」の Markdown セクション '## status_log' で管理する。
+      YAML コードブロック内には status_log を書かない (1 コードブロックルール維持)。
+      コードブロックの直後に '## status_log' ヘッダ + 箇条書きを置く。
+    how_to_write:
+      step_1: |
+        mcp__claude_ai_Notion__notion-update-page で id=<notion_page_id>,
+        command=insert_content, position=end,
+        content="- <ISO8601+09:00> / <実装エージェント名> / commit=<hash> / <要点>"
+      note: |
+        コードブロック「外」へ paragraph を append するだけ (改行のみで動作)。
+        code ブロックの取得/書換は不要。旧方式 (mcp__notion__API-update-a-block /
+        API-patch-block-children で code ブロックを編集) は廃止。
+    writeback_template: |
+      - <ISO8601+09:00> / <実装エージェント名> / commit=<hash> / <acceptance三値 + implementation_notes 要点>
+  important: "自己評価は参考値。司令塔Opusが Vercel/Supabase 実態照合して二重チェックする"
+  v2_note: "J-INFRA-CLAUDE-MD-PROCEDURES-V2: 自己評価 → self_verification+implementation_notes に格上げ。二重チェックは司令塔レビューのみで完結 (歴史的spec ID、原文ママ)"
+completion_self_verification_procedure:
+  added: 2026-05-20
+  source: J-INFRA-CLAUDE-MD-PROCEDURES-V2
+  purpose: "実装+commit+push 完了後、Discord 完了報告投稿前に実装エージェント自身が実行する機械照合 4 ステップ"
+  step_1_vercel:
+    tool: "Vercel MCP (list_deployments 等)"
+    verify:
+      - 自分の commit_hash が Vercel 最新 deployment に存在
+      - "state == 'READY', target == 'production'"
+      - inspectorUrl を completion_report に記録
+    on_fail:
+      building_or_queued: "30 秒 sleep → 再 poll、最大 5 回"
+      error: "build logs 取得 → error 内容を report に含めて停止"
+  step_2_supabase:
+    tool: mcp__supabase__execute_sql
+    verify:
+      - spec.acceptance に SQL 検証可能条件があれば実行
+      - スキーマ変更があれば information_schema.columns で確認
+    report: SQL クエリと結果を completion_report に含める
+    when_to_skip: "DB 変更なし / acceptance に SQL 条件なし"
+  step_3_acceptance_trivalue:
+    values: ["○ (検証済み+根拠)", "× (未達+内容明記)", "? (自動検証不可、ヒロ実機テスト必要)"]
+    required: "spec.acceptance 全項目を 1 行ずつ ○×? 判定して completion_report に記載"
+    on_cross: "自動で原因究明 → 修正 → 再 commit → 再検証、最大 3 周"
+    on_3_rounds_failed: "Discord に '× 残: <理由>' 付きで報告して司令塔判断を待つ"
+    ok_to_report: "○ のみ、または ? 混在なら通常完了報告"
+  step_4_notion_writeback:
+    tool: "mcp__claude_ai_Notion__notion-update-page (command=insert_content, position=end)"
+    method: "notion_writeback_procedure.v3_method 参照。YAMLブロック外の '## status_log' セクションへ paragraph append"
+    required: "本 spec page に 1 行 append (- <ISO8601+09:00> / <実装エージェント名> / commit=<hash> / acceptance三値+implementation_notes要点)"
+    deprecated: "旧 mcp__notion__API-patch-block-children / API-update-a-block での code ブロック編集は廃止"
+    on_fail: "Discord 完了報告に 'Notion書き戻し失敗' 明記、司令塔Opus 代行依頼"
+implementation_notes_requirement:
+  added: 2026-05-20
+  source: J-INFRA-CLAUDE-MD-PROCEDURES-V2
+  purpose: "完了報告 Notion paragraph に必ず含める 6 項目。spec 通り実装部分と実装エージェント独自判断を区別して記録"
+  six_categories:
+    1_decisions_not_in_spec: "spec 不在で勝手に決定した点 (ライブラリ選択/命名規則/ファイル分割等) 形式: 決定内容/候補/採用理由"
+    2_ambiguity_resolutions: "spec 解釈で迷った点と採用した解釈・根拠 (depends_on の類似条項参照等)"
+    3_compromises: "時間的・技術的制約による妥協点と後続 fix 計画"
+    4_deviations_from_spec: "spec 逸脱 (最小限必須、必ずヒロ確認推奨フラグ付与)"
+    5_considered_but_rejected: "検討したが採用しなかった案と理由"
+    6_deferred_tbd: "未確定/保留事項と次 spec での扱い予定"
+  format_rule: "全 6 項目を列挙、該当なしの場合は 'なし' と明記 (省略禁止)"
+spec_reference_priority:
+  added: 2026-05-20
+  source: "J-INFRA-CLAUDE-MD-PROCEDURES-V2 (SPEC-AUTHORING-V1 準拠)"
+  purpose: "spec 実装中に曖昧点に遭遇したら、以下の順で参照して自己解決"
+  order:
+    a: "該当 spec 本文 (implementation_scope, scope.write, acceptance, forbidden)"
+    b: "depends_on に含まれる累積要件 spec (Layer 3: 機能別 _REQUIREMENTS-V1)"
+    c: "共通規格 spec (Layer 2: UI-CHARTER-V2 / DESIGN-TOKENS-V1 / LOG-SPEC-01 / ERROR-HANDLING-V1)"
+    d: "similar_implementations に列挙された既存コード"
+    e: "上記 a-d で不明な場合のみ司令塔 Opus に問い合わせ (Discord or Notion comment)"
+  unresolved_list_rule: |
+    a-d で自己解決できなかった項目は status_log paragraph に「不明点リスト」として記録。
+    クリティカルなもののみ実装前に司令塔へ問い合わせ。
+    ノンクリティカルなものは「類似実装踏襲」で進め、完了報告 implementation_notes に明示。
 ```
+
+## Gate 4: Mobile UX Playwright (MANDATORY - VERIFICATION-GATES-V1)
+Before ANY spec is marked complete, run Playwright on mobile viewport 390x844:
+1. login → target screen → all interactions → back navigation → logout
+2. All buttons must be visible and tappable (not hidden by keyboard/overflow)
+3. Back button or equivalent must exist on every screen
+4. Console errors must be 0
+5. Write results to spec status_log in Notion before Discord report
+If spec acceptance lacks mobile_ux_playwright block, add it before implementing.
+No complete status without gate_4 pass.
+Reference: https://www.notion.so/367c15b9a45881b28099e39334768646
+
+## テスト方針 (Test Policy - MANDATORY)
+毎プロンプトで指示しなくても本節が標準動作。ヒロが「今回はTDD無しで」等と明示した時のみ崩してよい。
+1. TDD: 新機能・バグ修正は「失敗ケースのテストを先に書く」。テストが明確なゴールになり実装が迷走しない。
+2. バグ修正の commit には、そのバグを再現する test を必ずペアで入れる(再発防止)。
+3. test 名 = when_X_should_Y 形式(「〜の時 X が起こるべき」)。原則 1 test 1 assertion(壊れた箇所を即特定)。
+4. テストピラミッド:
+   - ロジック(関数単位) = Vitest (最速、最初に書く)
+   - コンポーネント / hook = React Testing Library + Vitest
+   - ユーザー操作シナリオ = Playwright E2E (e2e/、リグレッション最強)
+   - Supabase 等の外部依存は必ず MSW か page.route mock でモック(ネット非依存テスト)
+5. E2E 認証は e2e/helpers.ts の setupAuth({role}) を使う(admin/manager/patrol/staff のペルソナ再現)。supabase は setupPatrolMocks 等でモック。
+6. テストはトークン0で回る (npm test=vitest / npm run test:e2e=playwright、pre-push+CIで自動)。spec 完了前に該当テストが緑であること。
