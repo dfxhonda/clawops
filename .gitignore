@@ -35,3 +35,8 @@ CLAUDE.md.v1.bak
 
 *storybook.log
 storybook-static
+
+# ビルド成果物 (SPEC-REPO-HYGIENE-01)
+coverage/
+test-results/
+src/scripts/**/output/
