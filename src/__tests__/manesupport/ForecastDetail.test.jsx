@@ -45,8 +45,8 @@ const COLLECTION_STORE_DETAIL = {
     projected_landing: 504111.9, booth_count: 23, origin_source: 'collection', last_reading_date: '2026-07-03',
   },
   booths: [
-    { booth_code: 'KOS01-M01-B01', machine_code: 'KOS01-M01', ctd_revenue: 24000, dma7_daily: 1904.76, projected_landing: 44952 },
-    { booth_code: 'KOS01-M14-B01', machine_code: 'KOS01-M14', ctd_revenue: 29100, dma7_daily: 1857.14, projected_landing: 49528 },
+    { booth_code: 'KOS01-M01-B01', machine_code: 'KOS01-M01', model_name: 'ガチャコロステーション2', booth_no: 'B01', prize_name: null, ctd_revenue: 24000, dma7_daily: 1904.76, projected_landing: 44952 },
+    { booth_code: 'KOS01-M14-B01', machine_code: 'KOS01-M14', model_name: 'BUZZCRE TWINS', booth_no: 'B01', prize_name: '1000円用カプセル景品', ctd_revenue: 29100, dma7_daily: 1857.14, projected_landing: 49528 },
   ],
   daily: [
     { d: '2026-06-16', actual_cum: 0, projected_cum: null },
@@ -74,8 +74,33 @@ describe('ForecastDetail', () => {
     wrap('KOS01')
     await waitFor(() => expect(screen.getByTestId('forecast-booth-table')).toBeTruthy())
     const rows = screen.getAllByRole('row').slice(1) // skip header
-    expect(rows[0].textContent).toContain('KOS01-M14-B01') // 49528 > 44952
-    expect(rows[1].textContent).toContain('KOS01-M01-B01')
+    expect(rows[0].textContent).toContain('BUZZCRE TWINS') // 49528 > 44952
+    expect(rows[1].textContent).toContain('ガチャコロステーション2')
+  })
+
+  // SPEC-ADMIN-FORECAST-CYCLE-S2C-UI-POLISH-01
+  it('S2C-AC2: booth rows show model_name + booth_no + prize_name; null prize renders cleanly', async () => {
+    getForecastStoreDetail.mockResolvedValue(COLLECTION_STORE_DETAIL)
+    wrap('KOS01')
+    await waitFor(() => expect(screen.getByTestId('forecast-booth-table')).toBeTruthy())
+    const table = screen.getByTestId('forecast-booth-table')
+    // model_name + booth_no shown; prize_name shown when present
+    expect(table.textContent).toContain('BUZZCRE TWINS')
+    expect(table.textContent).toContain('B01')
+    expect(table.textContent).toContain('1000円用カプセル景品')
+    // null prize renders no literal 'null'; raw booth_code no longer shown
+    expect(table.textContent).not.toContain('null')
+    expect(table.textContent).not.toContain('KOS01-M01-B01')
+  })
+
+  it('S2C-AC1: labels use 現在累計 / Ave/日, not 着地累計 / 日当', async () => {
+    getForecastStoreDetail.mockResolvedValue(COLLECTION_STORE_DETAIL)
+    wrap('KOS01')
+    await waitFor(() => expect(screen.getByTestId('forecast-booth-table')).toBeTruthy())
+    expect(screen.getAllByText('現在累計').length).toBeGreaterThan(0)
+    expect(screen.getByText('Ave/日')).toBeTruthy()
+    expect(screen.queryByText('着地累計')).toBeNull()
+    expect(screen.queryByText('日当')).toBeNull()
   })
 
   it('AC6: when_origin_is_collection_cycle_start_date_input_should_not_render', async () => {

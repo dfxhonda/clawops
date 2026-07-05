@@ -87,4 +87,21 @@ describe('ForecastList', () => {
     fireEvent.click(screen.getByTestId('forecast-store-row-KOS01'))
     expect(mockNavigate).toHaveBeenCalledWith('/admin/forecast/KOS01')
   })
+
+  // SPEC-ADMIN-FORECAST-CYCLE-S2C-UI-POLISH-01
+  it('S2C-AC1: uses 現在累計 label, no 着地累計', async () => {
+    wrap()
+    await waitFor(() => expect(screen.getByTestId('forecast-store-row-KOS01')).toBeTruthy())
+    expect(screen.getAllByText('現在累計').length).toBeGreaterThan(0)
+    expect(screen.queryByText('着地累計')).toBeNull()
+  })
+
+  it('S2C-AC3: origin-bearing card shows period + days + both figures (values match RPC)', async () => {
+    wrap()
+    await waitFor(() => expect(screen.getByTestId('forecast-store-row-KOS01')).toBeTruthy())
+    const card = screen.getByTestId('forecast-store-row-KOS01')
+    expect(card.textContent).toContain('残り11日')
+    expect(card.textContent).toContain('¥100,000') // ctd
+    expect(card.textContent).toContain('¥200,000') // projected
+  })
 })

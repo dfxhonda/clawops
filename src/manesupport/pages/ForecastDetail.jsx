@@ -93,15 +93,24 @@ function BoothTable({ booths }) {
         <thead>
           <tr className="text-muted border-b border-border">
             <th className="text-left py-2 pr-2 font-normal">ブース</th>
-            <th className="text-right py-2 px-1 font-normal whitespace-nowrap">着地累計</th>
-            <th className="text-right py-2 px-1 font-normal whitespace-nowrap">日当</th>
+            <th className="text-right py-2 px-1 font-normal whitespace-nowrap">現在累計</th>
+            <th className="text-right py-2 px-1 font-normal whitespace-nowrap">Ave/日</th>
             <th className="text-right py-2 pl-1 font-normal whitespace-nowrap">着地予測</th>
           </tr>
         </thead>
         <tbody>
           {sorted.map(b => (
             <tr key={b.booth_code} className="border-b border-border/50">
-              <td className="py-2 pr-2 font-mono">{b.booth_code}</td>
+              {/* SPEC-S2C: model_name + booth_no + prize_name (prize null は省略) */}
+              <td className="py-2 pr-2">
+                <div className="flex items-baseline gap-1">
+                  <span className="truncate max-w-[7rem]">{b.model_name ?? b.machine_code}</span>
+                  <span className="text-[10px] font-mono text-muted shrink-0">{b.booth_no}</span>
+                </div>
+                {b.prize_name && (
+                  <div className="text-[10px] text-muted truncate max-w-[9rem]">{b.prize_name}</div>
+                )}
+              </td>
               <td className="text-right py-2 px-1 font-mono">{fmtYen(b.ctd_revenue)}</td>
               <td className="text-right py-2 px-1 font-mono text-muted">{fmtYen(b.dma7_daily)}</td>
               <td className="text-right py-2 pl-1 font-mono text-accent font-bold">{fmtYen(b.projected_landing)}</td>
@@ -237,7 +246,7 @@ export default function ForecastDetail() {
               </p>
               <div className="grid grid-cols-2 gap-2 font-mono mt-1">
                 <div>
-                  <p className="text-xs text-muted">着地累計</p>
+                  <p className="text-xs text-muted">現在累計</p>
                   <p className="text-lg font-bold">{fmtYen(store.ctd_revenue)}</p>
                 </div>
                 <div>

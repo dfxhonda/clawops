@@ -57,7 +57,7 @@ export default function ForecastList() {
           <p className="text-xs text-muted mb-1">全店合計 ({totals.count}店舗)</p>
           <div className="flex items-center justify-between font-mono">
             <div>
-              <span className="text-muted text-xs mr-1">着地累計</span>
+              <span className="text-muted text-xs mr-1">現在累計</span>
               <span className="text-base font-bold">{fmtYen(totals.ctd)}</span>
             </div>
             <div>
@@ -85,24 +85,36 @@ export default function ForecastList() {
                 noOrigin ? 'border-border bg-surface/40 opacity-60' : 'border-border bg-surface hover:border-accent/40'
               }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-bold text-sm truncate">{storeNames[row.store_code] ?? row.store_code}</p>
-                <span className="text-[10px] font-mono text-muted">{row.store_code}</span>
-              </div>
-
               {noOrigin ? (
-                <p className="text-xs text-accent">集金記録・開始日ともに未設定 — タップして開始日を設定</p>
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-bold text-sm truncate">{storeNames[row.store_code] ?? row.store_code}</p>
+                    <span className="text-[10px] font-mono text-muted">{row.store_code}</span>
+                  </div>
+                  <p className="text-xs text-accent">集金記録・開始日ともに未設定 — タップして開始日を設定</p>
+                </>
               ) : (
                 <>
-                  <p className="text-xs text-muted mb-1.5">
-                    {formatJstDate(row.cycle_start)} 〜 {formatJstDate(row.next_collection)}
-                    <span className="ml-2">残り{row.days_remaining ?? '—'}日</span>
-                  </p>
-                  <div className="grid grid-cols-2 gap-1 text-xs font-mono">
-                    <span className="text-muted">着地累計</span>
-                    <span className="text-right">{fmtYen(row.ctd_revenue)}</span>
-                    <span className="text-muted">着地予測</span>
-                    <span className="text-right text-accent font-bold">{fmtYen(row.projected_landing)}</span>
+                  {/* row 1: 店名 + コード + サイクル期間 + 残り日数 */}
+                  <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <p className="font-bold text-sm truncate">{storeNames[row.store_code] ?? row.store_code}</p>
+                      <span className="text-[10px] font-mono text-muted shrink-0">{row.store_code}</span>
+                    </div>
+                    <p className="text-[10px] text-muted whitespace-nowrap shrink-0">
+                      {formatJstDate(row.cycle_start)}〜{formatJstDate(row.next_collection)} 残り{row.days_remaining ?? '—'}日
+                    </p>
+                  </div>
+                  {/* row 2: 現在累計 + 着地予測 (予測を強調) */}
+                  <div className="flex items-baseline justify-between font-mono">
+                    <div>
+                      <span className="text-muted text-xs mr-1">現在累計</span>
+                      <span className="text-sm">{fmtYen(row.ctd_revenue)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted text-xs mr-1">着地予測</span>
+                      <span className="text-base font-bold text-accent">{fmtYen(row.projected_landing)}</span>
+                    </div>
                   </div>
                 </>
               )}
