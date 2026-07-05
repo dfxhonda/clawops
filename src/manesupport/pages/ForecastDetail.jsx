@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot,
 } from 'recharts'
-import { PageHeader } from '../../shared/ui/PageHeader'
+import LandscapeSideHeader from '../../components/LandscapeSideHeader'
 import ErrorDisplay from '../../components/ErrorDisplay'
 import { getForecastStoreDetail, saveForecastSettings } from '../../services/forecast'
 import { getAllStores } from '../../services/masters'
@@ -231,8 +231,8 @@ export default function ForecastDetail() {
   const noOrigin = store?.origin_source === 'none'
 
   return (
-    <div className="h-svh flex flex-col max-w-lg md:max-w-3xl mx-auto">
-      <PageHeader module="admin" title={storeName} subtitle={storeCode} onBack={() => navigate('/admin/forecast')} />
+    <div className="h-svh flex flex-col landscape-short:flex-row max-w-lg md:max-w-3xl mx-auto">
+      <LandscapeSideHeader module="admin" title={storeName} subtitle={storeCode} onBack={() => navigate('/admin/forecast')} />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {error && <ErrorDisplay error={error} onRetry={load} onDismiss={() => setError(null)} />}
