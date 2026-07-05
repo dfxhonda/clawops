@@ -26,7 +26,7 @@ vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ staffId: 'staff-1' }),
 }))
 
-import ForecastDetail from '../../manesupport/pages/ForecastDetail'
+import ForecastDetail, { fmtYenK, pickMilestones, MilestoneLabel, buildChartData } from '../../manesupport/pages/ForecastDetail'
 
 function wrap(storeCode = 'KOS01') {
   return render(
@@ -128,5 +128,53 @@ describe('ForecastDetail', () => {
     await waitFor(() => expect(screen.getByText('この店舗は集金記録も開始日設定もありません')).toBeTruthy())
     expect(screen.queryByTestId('forecast-booth-table')).toBeNull()
     expect(document.body.textContent).not.toContain('NaN')
+  })
+})
+
+// SPEC-ADMIN-FORECAST-CYCLE-S2D2-CHART-POLISH-01
+describe('S2D2 chart polish', () => {
+  it('AC1: fmtYenK renders compact k-format for y ticks', () => {
+    expect(fmtYenK(800000)).toBe('800k')
+    expect(fmtYenK(453419)).toBe('453k')
+    expect(fmtYenK('284442.86')).toBe('284k')
+    expect(fmtYenK(0)).toBe('0')
+    expect(fmtYenK(500)).toBe('500')
+    expect(fmtYenK(null)).toBe('')
+    expect(fmtYenK('')).toBe('')
+    // no raw yen glyph / commas on the compact tick
+    expect(fmtYenK(800000)).not.toContain('¥')
+    expect(fmtYenK(800000)).not.toContain(',')
+  })
+
+  it('AC3: pickMilestones flags first and landing for label clamping', () => {
+    const rows = buildChartData([
+      { d: '2026-06-16', actual_cum: 0, projected_cum: null },
+      { d: '2026-07-03', actual_cum: 284442.86, projected_cum: null },
+      { d: '2026-07-16', actual_cum: null, projected_cum: 504111.9 },
+    ])
+    const ms = pickMilestones(rows)
+    expect(ms[0].isFirst).toBe(true)
+    expect(ms[0].isLanding).toBe(false)
+    expect(ms[ms.length - 1].isLanding).toBe(true)
+    expect(ms[ms.length - 1].isFirst).toBe(false)
+  })
+
+  it('AC3: MilestoneLabel is 2-line (date + amount) and anchors to stay inside bounds', () => {
+    const landing = MilestoneLabel({ viewBox: { x: 300, y: 20 }, m: { d: '2026-07-16', value: 504111.9, isLanding: true, isFirst: false } })
+    // landing anchors to the right edge growing left -> textAnchor end
+    expect(landing.props.textAnchor).toBe('end')
+    const tspans = landing.props.children
+    expect(tspans).toHaveLength(2)
+    expect(tspans[0].props.children).toBe('7/16') // date line (formatJstDate ja-JP, MM/DD portion)
+    expect(tspans[1].props.children).toBe('¥504,112') // amount line, full value unchanged
+
+    const first = MilestoneLabel({ viewBox: { x: 4, y: 200 }, m: { d: '2026-06-16', value: 0, isFirst: true, isLanding: false } })
+    expect(first.props.textAnchor).toBe('start')
+
+    const mid = MilestoneLabel({ viewBox: { x: 150, y: 120 }, m: { d: '2026-06-25', value: 100000, isFirst: false, isLanding: false } })
+    expect(mid.props.textAnchor).toBe('middle')
+
+    // no viewBox -> render nothing (defensive)
+    expect(MilestoneLabel({ m: { isLanding: true } })).toBeNull()
   })
 })

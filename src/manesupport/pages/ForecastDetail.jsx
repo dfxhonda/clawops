@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, Label,
 } from 'recharts'
 import LandscapeSideHeader from '../../components/LandscapeSideHeader'
 import ErrorDisplay from '../../components/ErrorDisplay'
@@ -14,6 +14,37 @@ import { formatJstDate } from '../../admin/lib/jstDate'
 
 const DATE_INPUT_CLASS =
   'w-full bg-surface2 border border-border rounded-lg px-2 py-1.5 text-xs text-text [color-scheme:dark]'
+
+// SPEC-S2D2: compact k-format for y-axis ticks (¥800,000 -> 800k). Ticks only;
+// tooltip/table/summary keep full fmtYen (values unchanged).
+export function fmtYenK(v) {
+  if (v == null || v === '') return ''
+  const num = typeof v === 'string' ? parseFloat(v) : Number(v)
+  if (isNaN(num)) return ''
+  if (num === 0) return '0'
+  const abs = Math.abs(num)
+  if (abs < 1000) return String(Math.round(num))
+  return `${Math.round(num / 1000)}k`
+}
+
+// SPEC-S2D2: JS mirror of the CSS `landscape-short` variant
+// (@media (orientation: landscape) and (max-height: 500px)) — Recharts props
+// (mirror/inside ticks) can't key off a Tailwind variant, so detect in JS.
+const LANDSCAPE_SHORT_QUERY = '(orientation: landscape) and (max-height: 500px)'
+function useLandscapeShort() {
+  const [match, setMatch] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(LANDSCAPE_SHORT_QUERY).matches
+  )
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia(LANDSCAPE_SHORT_QUERY)
+    const onChange = () => setMatch(mq.matches)
+    onChange()
+    mq.addEventListener?.('change', onChange)
+    return () => mq.removeEventListener?.('change', onChange)
+  }, [])
+  return match
+}
 
 // テスト用 export (純粋関数)
 export function buildChartData(daily) {
@@ -31,17 +62,73 @@ export function pickMilestones(rows) {
   const idxs = rows.map((_, i) => i).filter(i => i % 5 === 0 || i === rows.length - 1)
   return idxs.map(i => {
     const r = rows[i]
-    return { d: r.d, value: r.actual_cum ?? r.projected_cum, isLanding: i === rows.length - 1 }
+    return { d: r.d, value: r.actual_cum ?? r.projected_cum, isLanding: i === rows.length - 1, isFirst: i === 0 }
   })
+}
+
+// SPEC-S2D2: 2-line (date / amount) milestone label, clamped INSIDE chart bounds.
+// Horizontal clamp via textAnchor (landing -> end grows left, first -> start grows
+// right, else middle); vertical clamp: landing / top-edge dots render below.
+export function MilestoneLabel({ viewBox, m, landscapeShort }) {
+  const vb = viewBox || {}
+  // ReferenceDot's cartesian viewBox is the dot's bounding box {x,y,width,height};
+  // recover the dot center. Fallback to cx/cy or bare x/y for other callers/tests.
+  const cx = vb.x != null ? vb.x + (vb.width ?? 0) / 2 : vb.cx
+  const cy = vb.y != null ? vb.y + (vb.height ?? 0) / 2 : vb.cy
+  if (cx == null || cy == null || !m) return null
+  const anchor = m.isLanding ? 'end' : m.isFirst ? 'start' : 'middle'
+  // landscape renders y ticks INSIDE the plot at the left; push the first-point
+  // label clear of that tick column (AC2: no overlap).
+  const firstDx = landscapeShort ? 18 : 6
+  const dx = m.isLanding ? -6 : m.isFirst ? firstDx : 0
+  const fontSize = m.isLanding ? 11 : 9
+  const lineGap = fontSize + 1
+  const below = m.isLanding || cy < 28 // top-edge dots flip below to avoid clipping
+  const line1Y = below ? cy + 14 + fontSize : cy - 10 - lineGap
+  const x = cx + dx
+  return (
+    <text
+      x={x}
+      y={line1Y}
+      textAnchor={anchor}
+      fontSize={fontSize}
+      fontWeight={m.isLanding ? 'bold' : 'normal'}
+      fill={m.isLanding ? 'var(--color-accent)' : 'var(--color-text-dim)'}
+    >
+      <tspan x={x} dy={0}>{formatJstDate(m.d).slice(5)}</tspan>
+      <tspan x={x} dy={lineGap}>{fmtYen(m.value)}</tspan>
+    </text>
+  )
+}
+
+// SPEC-S2D2: landscape-short only — y tick label rotated vertical, rendered inside
+// the plot (paired with YAxis mirror) so the plot claims the former axis gutter.
+// Vertical (thin) keeps the ticks out of the first data-point label's way.
+function VerticalYTick({ x, y, payload }) {
+  return (
+    <g transform={`translate(${(x ?? 0) + 7},${y ?? 0}) rotate(-90)`}>
+      <text textAnchor="middle" dy={3} fontSize={9} fill="var(--color-text-dim)">
+        {fmtYenK(payload?.value)}
+      </text>
+    </g>
+  )
 }
 
 function ForecastChart({ daily }) {
   const chartData = useMemo(() => buildChartData(daily), [daily])
   const milestones = useMemo(() => pickMilestones(chartData), [chartData])
+  const landscapeShort = useLandscapeShort()
 
   if (!chartData.length) {
     return <p className="text-center text-muted text-sm py-8">推移データがありません</p>
   }
+
+  // SPEC-S2D2: landscape-short renders y ticks INSIDE the plot (mirror + vertical
+  // angle, narrow gutter) so the plot claims the full width; portrait keeps normal
+  // outside ticks. Both use compact k-format.
+  const yAxisProps = landscapeShort
+    ? { mirror: true, width: 14, tick: <VerticalYTick /> }
+    : { width: 40, tickFormatter: fmtYenK }
 
   return (
     <div className="bg-surface border border-border rounded-lg p-3">
@@ -50,7 +137,7 @@ function ForecastChart({ daily }) {
         <LineChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis dataKey="d" stroke="var(--color-text-dim)" fontSize={10} tickFormatter={d => formatJstDate(d)} />
-          <YAxis stroke="var(--color-text-dim)" fontSize={10} tickFormatter={v => fmtYen(v)} width={70} />
+          <YAxis stroke="var(--color-text-dim)" fontSize={10} {...yAxisProps} />
           <Tooltip
             contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', fontSize: 11 }}
             labelFormatter={d => formatJstDate(d)}
@@ -66,13 +153,7 @@ function ForecastChart({ daily }) {
               r={m.isLanding ? 5 : 3}
               fill={m.isLanding ? 'var(--color-accent)' : 'var(--color-success)'}
               stroke="none"
-              label={{
-                value: `${formatJstDate(m.d).slice(5)} ${fmtYen(m.value)}`,
-                position: 'top',
-                fontSize: m.isLanding ? 11 : 9,
-                fontWeight: m.isLanding ? 'bold' : 'normal',
-                fill: m.isLanding ? 'var(--color-accent)' : 'var(--color-text-dim)',
-              }}
+              label={<Label content={props => <MilestoneLabel {...props} m={m} landscapeShort={landscapeShort} />} />}
             />
           ))}
         </LineChart>
