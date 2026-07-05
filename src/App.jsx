@@ -48,7 +48,6 @@ const AdminReportsHubPage   = lazy(() => import('./admin/pages/AdminReportsHubPa
 const BoothRankingPage    = lazy(() => import('./admin/pages/reports/BoothRankingPage'))
 const PayoutTrendPage     = lazy(() => import('./admin/pages/reports/PayoutTrendPage'))
 const SevenDmaPage        = lazy(() => import('./admin/pages/reports/SevenDmaPage'))
-const CollectionCyclePage = lazy(() => import('./admin/pages/reports/CollectionCyclePage'))
 const PrizeCostPage       = lazy(() => import('./admin/pages/reports/PrizeCostPage'))
 const StoreComparisonPage = lazy(() => import('./admin/pages/reports/StoreComparisonPage'))
 const ProfitCalendarPage      = lazy(() => import('./admin/pages/reports/ProfitCalendarPage'))
@@ -249,7 +248,6 @@ function AppInner() {
         <Route path="reports/booth-ranking"    element={<BoothRankingPage />} />
         <Route path="reports/payout-trend"     element={<PayoutTrendPage />} />
         <Route path="reports/7dma"             element={<SevenDmaPage />} />
-        <Route path="reports/collection-cycle" element={<CollectionCyclePage />} />
         <Route path="reports/prize-cost"       element={<PrizeCostPage />} />
         <Route path="reports/store-comparison" element={<StoreComparisonPage />} />
         <Route path="reports/profit-calendar"  element={<ProfitCalendarPage />} />

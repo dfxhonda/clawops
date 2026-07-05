@@ -7,7 +7,6 @@ const TILES = [
   { label: 'ブース売上ランキング', desc: 'ブース別売上 ベスト/ワースト', path: '/admin/reports/booth-ranking', impl: true  },
   { label: '払い出し率トレンド',   desc: 'ブース別 payout_rate 時系列',  path: '/admin/reports/payout-trend',  impl: true  },
   { label: '7日移動平均分析',     desc: '7DMA play_count 多系列折れ線',  path: '/admin/reports/7dma',          impl: true  },
-  { label: '集金サイクル分析',     desc: '店舗別集金間隔と推奨次回日',    path: '/admin/reports/collection-cycle', impl: true  },
   { label: '景品コスト回収',       desc: '景品別の回収率ランキング',      path: '/admin/reports/prize-cost',    impl: true  },
   { label: '店舗間比較',           desc: '店舗別 売上/ブース 単価比較',    path: '/admin/reports/store-comparison', impl: true  },
   { label: '利益率カレンダー',     desc: '日次粗利率ヒートマップ',        path: '/admin/reports/profit-calendar', impl: true  },
