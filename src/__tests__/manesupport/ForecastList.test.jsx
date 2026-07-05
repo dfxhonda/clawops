@@ -104,4 +104,31 @@ describe('ForecastList', () => {
     expect(card.textContent).toContain('¥100,000') // ctd
     expect(card.textContent).toContain('¥200,000') // projected
   })
+
+  // SPEC-ADMIN-FORECAST-CYCLE-S2C2-CARD-STACK-01
+  // 現在累計 は 着地予測 の「上」に縦積み (DOM 上で先に出現する)
+  const isBefore = (a, b) =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+
+  it('S2C2-AC1: store card stacks 現在累計 above 着地予測 (現在累計 precedes in DOM)', async () => {
+    wrap()
+    await waitFor(() => expect(screen.getByTestId('forecast-store-row-KOS01')).toBeTruthy())
+    const card = screen.getByTestId('forecast-store-row-KOS01')
+    const ctd = [...card.querySelectorAll('span')].find(s => s.textContent === '現在累計')
+    const proj = [...card.querySelectorAll('span')].find(s => s.textContent === '着地予測')
+    expect(ctd).toBeTruthy()
+    expect(proj).toBeTruthy()
+    expect(isBefore(ctd, proj)).toBe(true)
+  })
+
+  it('S2C2-AC2: totals header stacks 現在累計 above 着地予測 (same pairing)', async () => {
+    wrap()
+    await waitFor(() => expect(screen.getByTestId('forecast-totals-header')).toBeTruthy())
+    const header = screen.getByTestId('forecast-totals-header')
+    const ctd = [...header.querySelectorAll('span')].find(s => s.textContent === '現在累計')
+    const proj = [...header.querySelectorAll('span')].find(s => s.textContent === '着地予測')
+    expect(ctd).toBeTruthy()
+    expect(proj).toBeTruthy()
+    expect(isBefore(ctd, proj)).toBe(true)
+  })
 })
