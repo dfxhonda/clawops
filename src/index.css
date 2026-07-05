@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* SPEC-UI-LANDSCAPE-SIDEHEADER-01: phone-landscape gate (orientation + short height).
+   Used by LandscapeSideHeader + its adopters to flip header/layout only on phones
+   rotated to landscape; PC/tablet (tall) and portrait are unaffected. */
+@custom-variant landscape-short (@media (orientation: landscape) and (max-height: 500px));
+
 @theme {
   --color-bg: #0a0a0f;
   --color-surface: #13131c;

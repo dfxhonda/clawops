@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export default function AdminHubTilesGrid({ tiles, testid }) {
+export default function AdminHubTilesGrid({ tiles, testid, tileTestidPrefix = 'hub-tile-' }) {
   const navigate = useNavigate()
   const [toast, setToast] = useState(null)
 
@@ -24,7 +24,7 @@ export default function AdminHubTilesGrid({ tiles, testid }) {
           return (
             <button
               key={t.path}
-              data-testid={`hub-tile-${t.label}`}
+              data-testid={`${tileTestidPrefix}${t.label}`}
               onClick={() => isComingSoon ? setToast('現在開発中です') : navigate(t.path)}
               aria-disabled={isComingSoon || undefined}
               className={`relative rounded-xl p-4 min-h-[100px] w-full text-center border transition-colors cursor-pointer ${
@@ -33,13 +33,13 @@ export default function AdminHubTilesGrid({ tiles, testid }) {
                   : 'bg-surface hover:bg-surface/80 active:ring-2 active:ring-blue-500 border-border'
               }`}
             >
-              <span className={`absolute top-2 right-2 rounded-full text-xs font-bold px-2 py-0.5 ${
-                isComingSoon
-                  ? 'bg-gray-600 text-gray-200'
-                  : 'bg-green-500 text-white'
-              }`}>
-                {isComingSoon ? '準備中' : '実装済'}
-              </span>
+              {/* SPEC-ADMIN-REPORTS-BADGE-CLEANUP-01: 実装済 = 通常状態なのでバッジなし。
+                  例外の準備中 (impl:false) のみ灰バッジで明示。 */}
+              {isComingSoon && (
+                <span className="absolute top-2 right-2 rounded-full text-xs font-bold px-2 py-0.5 bg-gray-600 text-gray-200">
+                  準備中
+                </span>
+              )}
               <p className="text-base font-bold text-text whitespace-nowrap mt-3">{t.label}</p>
               <p className="text-sm text-muted mt-1 line-clamp-2">{t.desc}</p>
             </button>

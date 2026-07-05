@@ -29,4 +29,21 @@ describe('AdminHubTilesGrid', () => {
     expect(screen.getByText('現在開発中です')).toBeTruthy()
     expect(mockNavigate).not.toHaveBeenCalled()
   })
+
+  // SPEC-ADMIN-REPORTS-BADGE-CLEANUP-01
+  it('when_tile_is_implemented_should_render_no_badge', () => {
+    render(<AdminHubTilesGrid tiles={TILES} testid="hub" />)
+    // 実装済 badge removed entirely; the green 実装済 label must not appear
+    expect(screen.queryByText('実装済')).toBeNull()
+    const implTile = screen.getByTestId('hub-tile-マスター')
+    expect(implTile.querySelector('span')).toBeNull()
+  })
+
+  it('when_tile_is_coming_soon_should_still_render_準備中_badge', () => {
+    render(<AdminHubTilesGrid tiles={TILES} testid="hub" />)
+    expect(screen.getByText('準備中')).toBeTruthy()
+    const soonTile = screen.getByTestId('hub-tile-未来機能')
+    // grayed style unchanged
+    expect(soonTile.className).toContain('opacity-50')
+  })
 })

@@ -1,7 +1,10 @@
 // @vitest-environment happy-dom
 // SPEC-ADMIN-METER-EDIT-HSCROLL-01: hscroll edit layout + crane gate
+// SPEC-PATROL-BOOTHUI-3FIXES-01: patrol-mode minmax grid + min-w-0 (AC3/AC4)
 import { describe, it, expect, vi } from 'vitest'
 import { render, within } from '@testing-library/react'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
 import BoothInputForm from '../../clawsupport/components/BoothInputForm'
 
 vi.mock('../../clawsupport/components/NumpadField', () => ({
@@ -152,5 +155,20 @@ describe('SPEC-ADMIN-METER-EDIT-HSCROLL-01 R3: crane gate for set fields', () =>
       <BoothInputForm {...DEFAULT_EDIT} mode="patrol" />
     )
     expect(getByTestId('field-set-a')).toBeTruthy()
+  })
+})
+
+describe('SPEC-PATROL-BOOTHUI-3FIXES-01 AC3/AC4: patrol-mode grid overflow fix (source check)', () => {
+  const src = readFileSync(
+    resolve(__dirname, '../../clawsupport/components/BoothInputForm.jsx'), 'utf-8'
+  )
+
+  it('AC3: when_patrol_mode_grid_should_use_minmax_0_fr_columns', () => {
+    expect(src).toContain("'minmax(0,3fr) minmax(0,3fr) minmax(0,2fr) minmax(0,2fr)'")
+    expect(src).not.toContain("'3fr 3fr 2fr 2fr'")
+  })
+
+  it('AC4: when_patrol_mode_ocr_wrapper_should_have_min_w_0_class', () => {
+    expect(src).toContain('flex items-center gap-1 min-w-0')
   })
 })

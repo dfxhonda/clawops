@@ -43,7 +43,6 @@ const LABELS = {
   'booth-ranking':     'ブース売上ランキング',
   'payout-trend':      '払い出し率トレンド',
   '7dma':              '7日移動平均',
-  'collection-cycle':  '集金サイクル',
   'prize-cost':        '景品コスト回収',
   'store-comparison':  '店舗間比較',
   'profit-calendar':   '利益率カレンダー',

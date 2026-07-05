@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { staff_id, pin, skip_bcrypt } = await req.json();
+    const { staff_id, pin } = await req.json();
 
     // SPEC-LOGIN-UPDATE-PREFETCH-01: POST warmup識別。auth_logs汚染防止のため即200返し。
     if (staff_id === '__warmup__') {
@@ -90,57 +90,39 @@ Deno.serve(async (req: Request) => {
 
     let verifyResult: VerifyResult | null = null;
 
-    if (skip_bcrypt) {
-      // R1: created_at を取得してpassword導出に使用
-      const { data: staffRow, error: staffError } = await supabaseAdmin
+    const { data, error: rpcError } = await supabaseAdmin
+      .rpc('verify_staff_pin', { p_staff_id: staff_id, p_pin: pin || '' });
+
+    if (rpcError) {
+      console.error('[verify-pin] RPC error:', rpcError);
+      return new Response(
+        JSON.stringify({ error: 'サーバーエラーが発生しました' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!data?.success) {
+      EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
+        staff_id: staff_id,
+        action: 'login_failed',
+        ip_address: req.headers.get('x-forwarded-for') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown',
+      }));
+      return new Response(
+        JSON.stringify({ error: data?.error || '認証に失敗しました' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    verifyResult = data;
+
+    // R1: APP_AUTH_SALT方式使用時はcreated_atを別途取得
+    if (APP_AUTH_SALT) {
+      const { data: staffRow } = await supabaseAdmin
         .from('staff')
-        .select('staff_id, name, role, operator_id, store_code, created_at')
+        .select('created_at')
         .eq('staff_id', staff_id)
-        .eq('is_active', true)
         .single();
-
-      if (staffError || !staffRow) {
-        return new Response(
-          JSON.stringify({ error: '認証に失敗しました' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      verifyResult = { success: true, ...staffRow };
-    } else {
-      const { data, error: rpcError } = await supabaseAdmin
-        .rpc('verify_staff_pin', { p_staff_id: staff_id, p_pin: pin || '' });
-
-      if (rpcError) {
-        console.error('[verify-pin] RPC error:', rpcError);
-        return new Response(
-          JSON.stringify({ error: 'サーバーエラーが発生しました' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (!data?.success) {
-        EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
-          staff_id: staff_id,
-          action: 'login_failed',
-          ip_address: req.headers.get('x-forwarded-for') || 'unknown',
-          user_agent: req.headers.get('user-agent') || 'unknown',
-        }));
-        return new Response(
-          JSON.stringify({ error: data?.error || '認証に失敗しました' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      verifyResult = data;
-
-      // R1: APP_AUTH_SALT方式使用時はcreated_atを別途取得
-      if (APP_AUTH_SALT) {
-        const { data: staffRow } = await supabaseAdmin
-          .from('staff')
-          .select('created_at')
-          .eq('staff_id', staff_id)
-          .single();
-        if (staffRow?.created_at) verifyResult!.created_at = staffRow.created_at;
-      }
+      if (staffRow?.created_at) verifyResult!.created_at = staffRow.created_at;
     }
 
     const email = `${staff_id.toLowerCase()}@clawops.local`;

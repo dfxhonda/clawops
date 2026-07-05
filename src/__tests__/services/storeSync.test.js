@@ -12,11 +12,12 @@ vi.mock('../../services/patrolCore', () => ({
   savePatrolReading: (...args) => saveMock(...args),
 }))
 
-import { probeOnline, uploadStoreRecords, uploadAllUnsynced } from '../../services/storeSync'
+import { probeOnline, uploadStoreRecords, uploadAllUnsynced, _resetInFlight } from '../../services/storeSync'
 
 beforeEach(async () => {
   await _resetDb()
   saveMock.mockReset()
+  _resetInFlight()
 })
 
 describe('probeOnline', () => {
@@ -121,5 +122,64 @@ describe('uploadStoreRecords', () => {
     expect(res.uploaded).toBe(0)
     expect(saveMock).not.toHaveBeenCalled()
     vi.unstubAllGlobals()
+  })
+})
+
+describe('SPEC-LF1-SYNC-CONCURRENCY-GUARD-01: in-flight lock', () => {
+  it('AC1: when_same_store_called_concurrently_should_call_save_once_per_record', async () => {
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
+    saveMock.mockResolvedValue({ ok: true })
+    const [r1, r2] = await Promise.all([
+      uploadStoreRecords('S1', { skipProbe: true }),
+      uploadStoreRecords('S1', { skipProbe: true }),
+    ])
+    expect(saveMock).toHaveBeenCalledTimes(1)
+    expect(r1).toEqual(r2)
+  })
+
+  it('AC2: when_different_stores_called_concurrently_should_upload_all', async () => {
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
+    await putPatrolRecord({ booth_code: 'B-1', store_code: 'S2', patrol_date: '2026-07-02', in_meter: 2 })
+    saveMock.mockResolvedValue({ ok: true })
+    const [r1, r2] = await Promise.all([
+      uploadStoreRecords('S1', { skipProbe: true }),
+      uploadStoreRecords('S2', { skipProbe: true }),
+    ])
+    expect(r1.uploaded).toBe(1)
+    expect(r2.uploaded).toBe(1)
+    expect(saveMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('AC3: when_uploadAllUnsynced_and_uploadStoreRecords_concurrent_should_not_duplicate', async () => {
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
+    saveMock.mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })))
+    await Promise.all([
+      uploadAllUnsynced(),
+      uploadStoreRecords('S1', { skipProbe: true }),
+    ])
+    expect(saveMock).toHaveBeenCalledTimes(1)
+    vi.unstubAllGlobals()
+  })
+
+  it('when_save_throws_should_count_as_failed_and_not_throw', async () => {
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
+    saveMock.mockRejectedValue(new Error('network fail'))
+    const res = await uploadStoreRecords('S1', { skipProbe: true })
+    expect(res.failed).toBe(1)
+    expect(res.uploaded).toBe(0)
+  })
+
+  it('AC4: when_upload_completes_subsequent_call_should_start_fresh', async () => {
+    saveMock.mockResolvedValue({ ok: true })
+    await putPatrolRecord({ booth_code: 'A-1', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 1 })
+    const r1 = await uploadStoreRecords('S1', { skipProbe: true })
+    expect(r1.uploaded).toBe(1)
+    expect(saveMock).toHaveBeenCalledTimes(1)
+    // Lock must be released; second run with a new unsynced record must invoke save again
+    await putPatrolRecord({ booth_code: 'A-2', store_code: 'S1', patrol_date: '2026-07-02', in_meter: 2 })
+    const r2 = await uploadStoreRecords('S1', { skipProbe: true })
+    expect(r2.uploaded).toBe(1)
+    expect(saveMock).toHaveBeenCalledTimes(2)
   })
 })

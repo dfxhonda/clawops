@@ -57,6 +57,8 @@ export default function BoothHistoryRow({
   const prof = fmtMoney(row.profit)
 
   const prizeChanged = prevPrizeName != null && row.prize_name !== prevPrizeName
+  // Guard: undefined row.reading_id must never match undefined selectedReadingId (phantom-ring bug)
+  const effectiveIsSelected = isSelected && row.reading_id != null
 
   function handlePointerDown() {
     didLongPress.current = false
@@ -88,7 +90,7 @@ export default function BoothHistoryRow({
   return (
     <div
       data-testid="history-row"
-      className={`border-b border-border last:border-b-0${isSelected ? ' ring-2 ring-blue-500 bg-blue-900/20 rounded' : ''}`}
+      className={`border-b border-border last:border-b-0${effectiveIsSelected ? ' ring-2 ring-blue-500 bg-blue-900/20 rounded' : ''}`}
     >
       <button
         className="w-full text-left select-none"
