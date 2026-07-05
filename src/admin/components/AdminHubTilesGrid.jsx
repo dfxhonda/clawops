@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export default function AdminHubTilesGrid({ tiles, testid }) {
+export default function AdminHubTilesGrid({ tiles, testid, tileTestidPrefix = 'hub-tile-' }) {
   const navigate = useNavigate()
   const [toast, setToast] = useState(null)
 
@@ -24,7 +24,7 @@ export default function AdminHubTilesGrid({ tiles, testid }) {
           return (
             <button
               key={t.path}
-              data-testid={`hub-tile-${t.label}`}
+              data-testid={`${tileTestidPrefix}${t.label}`}
               onClick={() => isComingSoon ? setToast('現在開発中です') : navigate(t.path)}
               aria-disabled={isComingSoon || undefined}
               className={`relative rounded-xl p-4 min-h-[100px] w-full text-center border transition-colors cursor-pointer ${
