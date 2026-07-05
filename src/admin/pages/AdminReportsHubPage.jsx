@@ -3,6 +3,7 @@ import AdminHubTilesGrid from '../components/AdminHubTilesGrid'
 // J-REPORTS-ANALYTICS-01 2026-05-30: 7 集計画面を impl:true に変更、AdminHubTilesGrid 集約。
 // 旧 5 タイル (日次/時別/集金抽出/課金) は spec で削除指示なしのため残置、未実装で「準備中」維持。
 const TILES = [
+  { label: '売上予測',           desc: '集金サイクル別の着地予測',      path: '/admin/forecast',              impl: true  },
   { label: 'ブース売上ランキング', desc: 'ブース別売上 ベスト/ワースト', path: '/admin/reports/booth-ranking', impl: true  },
   { label: '払い出し率トレンド',   desc: 'ブース別 payout_rate 時系列',  path: '/admin/reports/payout-trend',  impl: true  },
   { label: '7日移動平均分析',     desc: '7DMA play_count 多系列折れ線',  path: '/admin/reports/7dma',          impl: true  },

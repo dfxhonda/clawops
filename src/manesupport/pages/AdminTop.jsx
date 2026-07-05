@@ -7,7 +7,6 @@ const ITEMS = [
   { label: 'ブース管理',  desc: 'ブース設定の確認・編集',     path: '/admin/booths' },
   { label: 'マニュアル',  desc: '機種マニュアルの作成・編集', path: '/admin/manuals' },
   { label: 'ロッカー',   desc: 'ガチャ機のロッカー設定',     path: '/admin/lockers' },
-  { label: '売上予測',   desc: '集金サイクル別の着地予測',   path: '/admin/forecast' },
 ]
 
 export default function AdminTop() {
