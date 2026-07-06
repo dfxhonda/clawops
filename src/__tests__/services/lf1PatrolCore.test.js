@@ -83,3 +83,41 @@ describe('D3: stale guard (server-newer wins)', () => {
     expect(updateSpy).toHaveBeenCalledTimes(1)
   })
 })
+
+// SPEC-LF1-REPLAY-CONSTRAINT-NORMALIZE-01: stock_N defaulted to 0 when out_meter_N present (AC1)
+describe('slot stock normalize (chk_stock2/3_present_when_out2/3)', () => {
+  it('patrol insert: out_meter_2 without stock_2 gets stock_2=0', async () => {
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-03', optionalPatch: { out_meter_2: 123 } })
+    const payload = insertSpy.mock.calls[0][0]
+    expect(payload.out_meter_2).toBe(123)
+    expect(payload.stock_2).toBe(0)
+  })
+
+  it('does NOT overwrite an explicit stock_2', async () => {
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-03', optionalPatch: { out_meter_2: 123, stock_2: 5 } })
+    expect(insertSpy.mock.calls[0][0].stock_2).toBe(5)
+  })
+
+  it('no out_meter_2 -> no stock_2 injected', async () => {
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-03', optionalPatch: {} })
+    expect(insertSpy.mock.calls[0][0].stock_2).toBeUndefined()
+  })
+
+  it('slot 3: out_meter_3 without stock_3 gets stock_3=0', async () => {
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-03', optionalPatch: { out_meter_3: 45 } })
+    expect(insertSpy.mock.calls[0][0].stock_3).toBe(0)
+  })
+
+  it('replace/collection insert path also normalizes', async () => {
+    await savePatrolReading({ ...base, entryType: 'replace', optionalPatch: { out_meter_2: 7 } })
+    expect(insertSpy.mock.calls[0][0].stock_2).toBe(0)
+  })
+
+  it('update path: out_meter_2 in patch without stock_2 gets stock_2=0', async () => {
+    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z' } }
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-06', optionalPatch: { out_meter_2: 99 }, clientTimestamp: '2026-07-06T09:00:00Z' })
+    const payload = updateSpy.mock.calls[0][0]
+    expect(payload.out_meter_2).toBe(99)
+    expect(payload.stock_2).toBe(0)
+  })
+})

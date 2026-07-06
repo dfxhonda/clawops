@@ -17,6 +17,16 @@ function strNorm(v) {
   return String(v).trim()
 }
 
+// SPEC-LF1-REPLAY-CONSTRAINT-NORMALIZE-01: DB CHECK chk_stock2/3_present_when_out2/3 =
+// (out_meter_N IS NULL OR stock_N IS NOT NULL)。out_meter_N があるのに stock_N が無い
+// payload は POST 400。空 stock=0 のアプリ意味に忠実に補完する (捏造ではない)。
+// INSERT / UPDATE payload を送信前に正規化する。
+function normalizeSlotStock(payload) {
+  if (payload.out_meter_2 != null && payload.stock_2 == null) payload.stock_2 = 0
+  if (payload.out_meter_3 != null && payload.stock_3 == null) payload.stock_3 = 0
+  return payload
+}
+
 /**
  * getLastReadingForBooth の完全列（SELECT 欠落 → UI 空白・NULL 上書り事故防止）
  */
@@ -231,13 +241,14 @@ export async function savePatrolReading({
 
     // 'replace' / 'collection' → 新規 INSERT
     if (entryType === 'replace' || entryType === 'collection') {
+      const insertPayload = normalizeSlotStock({
+        ...basePayload,
+        ...mergedOptionalForInsert,
+        reading_id: readingId ?? crypto.randomUUID(),
+      })
       const { data, error } = await supabase
         .from('meter_readings')
-        .insert({
-          ...basePayload,
-          ...mergedOptionalForInsert,
-          reading_id: readingId ?? crypto.randomUUID(),
-        })
+        .insert(insertPayload)
         .select('reading_id')
         .single()
       if (error) {
@@ -295,7 +306,7 @@ export async function savePatrolReading({
 
       if (coreUnchanged && optionalUnchanged) return { ok: true, skipped: true }
 
-      const updatePayload = {
+      const updatePayload = normalizeSlotStock({
         in_meter:            numIn,
         out_meter:           numOut,
         prize_stock_count:   numStk,
@@ -304,7 +315,7 @@ export async function savePatrolReading({
         updated_at:          now,
         created_by:          staffId ?? null,
         ...patch,
-      }
+      })
 
       const { error } = await supabase
         .from('meter_readings')
@@ -319,13 +330,14 @@ export async function savePatrolReading({
       return { ok: true, updated: true, entryType: 'patrol', readingId: existing.reading_id }
     }
 
+    const patrolInsertPayload = normalizeSlotStock({
+      ...basePayload,
+      ...mergedOptionalForInsert,
+      reading_id: readingId ?? crypto.randomUUID(),
+    })
     const { data, error } = await supabase
       .from('meter_readings')
-      .insert({
-        ...basePayload,
-        ...mergedOptionalForInsert,
-        reading_id: readingId ?? crypto.randomUUID(),
-      })
+      .insert(patrolInsertPayload)
       .select('reading_id')
       .single()
     if (error) {
