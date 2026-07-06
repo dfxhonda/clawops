@@ -27,8 +27,8 @@ function legacyPassword(staffId: string, serviceKey: string): string {
 }
 
 // R2: signInWithPassword を単一ヘルパーに集約 — session null時はthrow
-async function issueSession(supabaseAdmin: any, email: string, password: string) {
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+async function issueSession(supabaseAuth: any, email: string, password: string) {
+  const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
   if (error || !data?.session) {
     throw error ?? new Error('[verify-pin] session null after signInWithPassword');
   }
@@ -77,6 +77,21 @@ Deno.serve(async (req: Request) => {
     const APP_AUTH_SALT = Deno.env.get('APP_AUTH_SALT');
 
     const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      serviceKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // BUG-AUTHLOGS-SUCCESS-NEVER-WRITTEN root-cause fix (v23):
+    // supabase-js switches a client's PostgREST Authorization to the signed-in user's JWT
+    // after signInWithPassword (persistSession:false only disables storage persistence; the
+    // in-memory session still hijacks subsequent requests). On the SUCCESS path this made
+    // writeAuthLog('login_success') run as role=authenticated, where auth_logs RLS
+    // (service_role_full_access only) rejects the insert with 42501 -> swallowed by
+    // writeAuthLog's try/catch -> login_success was NEVER persisted, while login_failed
+    // (written BEFORE any signIn) always succeeded. Fix: a DEDICATED auth client used
+    // ONLY for signInWithPassword, so supabaseAdmin永久にservice_roleのまま.
+    const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       serviceKey,
       { auth: { autoRefreshToken: false, persistSession: false } }
@@ -174,8 +189,8 @@ Deno.serve(async (req: Request) => {
       const oldPassword = legacyPassword(verifyResult!.staff_id, serviceKey);
 
       try {
-        // 新passwordでsignIn (移行済みユーザー)
-        const { session: s, user } = await issueSession(supabaseAdmin, email, newPassword);
+        // 新passwordでsignIn (移行済みユーザー) — v23: supabaseAuth (dedicated) 経由
+        const { session: s, user } = await issueSession(supabaseAuth, email, newPassword);
         session = s;
 
         // metaChanged確認 (移行済みユーザーのみ)
@@ -198,14 +213,14 @@ Deno.serve(async (req: Request) => {
         // R1: 旧passwordで試行 → issueSession経由で例外ハンドリング統一
         let migrationDone = false;
         try {
-          const { user: oldUser } = await issueSession(supabaseAdmin, email, oldPassword);
+          const { user: oldUser } = await issueSession(supabaseAuth, email, oldPassword);
           // 旧→新移行 (一度だけ走る) + salt_version:'v2' を app_metadata に付与
           await supabaseAdmin.auth.admin.updateUserById(oldUser.id, {
             password: newPassword,
             user_metadata: newMeta,
             app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          const { session: fresh } = await issueSession(supabaseAuth, email, newPassword);
           session = fresh;
           migrationDone = true;
         } catch {
@@ -227,7 +242,7 @@ Deno.serve(async (req: Request) => {
               { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
-          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          const { session: fresh } = await issueSession(supabaseAuth, email, newPassword);
           session = fresh;
         }
       }
@@ -238,7 +253,7 @@ Deno.serve(async (req: Request) => {
 
       let fallbackDone = false;
       try {
-        const { session: s, user } = await issueSession(supabaseAdmin, email, password);
+        const { session: s, user } = await issueSession(supabaseAuth, email, password);
         session = s;
         fallbackDone = true;
         const existingMeta = user?.user_metadata || {};
@@ -272,7 +287,7 @@ Deno.serve(async (req: Request) => {
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const { session: fresh } = await issueSession(supabaseAdmin, email, password);
+        const { session: fresh } = await issueSession(supabaseAuth, email, password);
         session = fresh;
       }
     }
@@ -286,9 +301,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: awaited before the 200. waitUntil was dropped on
-    // isolate shutdown, so login_success never persisted -> throttle's reset point was missing
-    // and failure counts would accumulate forever. try/catch: log failure never breaks login.
+    // SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: awaited before the 200.
+    // v23: written via supabaseAdmin which now NEVER signs in, so this insert is guaranteed
+    // to run as service_role (auth_logs RLS allows only service_role). This is the reset
+    // point for the throttle's rolling-window failure count.
     await writeAuthLog(supabaseAdmin, {
       staff_id: verifyResult!.staff_id,
       action: 'login_success',
