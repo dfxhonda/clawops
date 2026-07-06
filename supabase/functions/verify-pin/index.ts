@@ -1,11 +1,18 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// SPEC-AUTH-VERIFYPIN-NPM-BUNDLE-01: npm: specifier is bundled at deploy time by Supabase,
+// eliminating the runtime esm.sh CDN fetch that inflated cold starts (observed up to 14s).
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog, updateUserMetaAsync } from "./throttle.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// SPEC-AUTH-VERIFYPIN-TIMELOCK-01: single generic auth-failure message for BOTH wrong-PIN
+// and unknown/inactive staff, so the response never leaks staff existence or lock state.
+const AUTH_FAIL_MSG = '暗証番号が違います';
 
 // R1: 決定的password導出 — staff_id + created_at + APP_AUTH_SALT (service_role_key非依存)
 async function derivePassword(staffId: string, createdAt: string, salt: string): Promise<string> {
@@ -22,8 +29,8 @@ function legacyPassword(staffId: string, serviceKey: string): string {
 }
 
 // R2: signInWithPassword を単一ヘルパーに集約 — session null時はthrow
-async function issueSession(supabaseAdmin: any, email: string, password: string) {
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
+async function issueSession(supabaseAuth: any, email: string, password: string) {
+  const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
   if (error || !data?.session) {
     throw error ?? new Error('[verify-pin] session null after signInWithPassword');
   }
@@ -77,6 +84,21 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // BUG-AUTHLOGS-SUCCESS-NEVER-WRITTEN root-cause fix (v23):
+    // supabase-js switches a client's PostgREST Authorization to the signed-in user's JWT
+    // after signInWithPassword (persistSession:false only disables storage persistence; the
+    // in-memory session still hijacks subsequent requests). On the SUCCESS path this made
+    // writeAuthLog('login_success') run as role=authenticated, where auth_logs RLS
+    // (service_role_full_access only) rejects the insert with 42501 -> swallowed by
+    // writeAuthLog's try/catch -> login_success was NEVER persisted, while login_failed
+    // (written BEFORE any signIn) always succeeded. Fix: a DEDICATED auth client used
+    // ONLY for signInWithPassword, so supabaseAdmin永久にservice_roleのまま.
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      serviceKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
     type VerifyResult = {
       success: boolean;
       staff_id: string;
@@ -102,14 +124,41 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!data?.success) {
-      EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
+      // SPEC-AUTH-VERIFYPIN-TIMELOCK-01
+      // Enumeration-safe: unknown / inactive staff -> identical generic 401, NO auth_logs row.
+      if (isStaffNotFound(data?.error)) {
+        return new Response(
+          JSON.stringify({ error: AUTH_FAIL_MSG }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Wrong PIN on an existing staff: rolling-window (60min) failure count since the last
+      // login_success -> capped exponential TIME LOCK, enforced in the function runtime on the
+      // FAILED path only (a correct PIN is never delayed; throttle slows guessing, not success).
+      const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recent } = await supabaseAdmin
+        .from('auth_logs')
+        .select('action, created_at')
+        .eq('staff_id', staff_id)
+        .gte('created_at', windowStart)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      const attemptNumber = failsSinceLastSuccess(recent ?? []) + 1;
+      const delaySec = throttleDelaySec(attemptNumber);
+      if (delaySec > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delaySec * 1000));
+      }
+      // SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: awaited (so the next attempt's rolling-window
+      // count includes it) + try/catch inside writeAuthLog (a log failure must not turn the
+      // 401 into a 500).
+      await writeAuthLog(supabaseAdmin, {
         staff_id: staff_id,
         action: 'login_failed',
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
         user_agent: req.headers.get('user-agent') || 'unknown',
-      }));
+      });
       return new Response(
-        JSON.stringify({ error: data?.error || '認証に失敗しました' }),
+        JSON.stringify({ error: AUTH_FAIL_MSG }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -142,8 +191,8 @@ Deno.serve(async (req: Request) => {
       const oldPassword = legacyPassword(verifyResult!.staff_id, serviceKey);
 
       try {
-        // 新passwordでsignIn (移行済みユーザー)
-        const { session: s, user } = await issueSession(supabaseAdmin, email, newPassword);
+        // 新passwordでsignIn (移行済みユーザー) — v23: supabaseAuth (dedicated) 経由
+        const { session: s, user } = await issueSession(supabaseAuth, email, newPassword);
         session = s;
 
         // metaChanged確認 (移行済みユーザーのみ)
@@ -155,25 +204,25 @@ Deno.serve(async (req: Request) => {
           existingMeta.operator_id !== newMeta.operator_id;
 
         if (metaChanged) {
-          await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          // SPEC-AUTH-TIMELOCK-TUNE-AND-SPINNER-01 C: JWT メタ更新は fire-and-forget、
+          // session は最初の s を使用 (二重 signInWithPassword 撤去)。
+          updateUserMetaAsync(supabaseAdmin, user.id, {
             user_metadata: newMeta,
             app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
-          session = fresh;
         }
       } catch {
         // R1: 旧passwordで試行 → issueSession経由で例外ハンドリング統一
         let migrationDone = false;
         try {
-          const { user: oldUser } = await issueSession(supabaseAdmin, email, oldPassword);
+          const { user: oldUser } = await issueSession(supabaseAuth, email, oldPassword);
           // 旧→新移行 (一度だけ走る) + salt_version:'v2' を app_metadata に付与
           await supabaseAdmin.auth.admin.updateUserById(oldUser.id, {
             password: newPassword,
             user_metadata: newMeta,
             app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          const { session: fresh } = await issueSession(supabaseAuth, email, newPassword);
           session = fresh;
           migrationDone = true;
         } catch {
@@ -195,7 +244,7 @@ Deno.serve(async (req: Request) => {
               { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
-          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
+          const { session: fresh } = await issueSession(supabaseAuth, email, newPassword);
           session = fresh;
         }
       }
@@ -206,7 +255,7 @@ Deno.serve(async (req: Request) => {
 
       let fallbackDone = false;
       try {
-        const { session: s, user } = await issueSession(supabaseAdmin, email, password);
+        const { session: s, user } = await issueSession(supabaseAuth, email, password);
         session = s;
         fallbackDone = true;
         const existingMeta = user?.user_metadata || {};
@@ -216,12 +265,11 @@ Deno.serve(async (req: Request) => {
           existingMeta.store_code !== newMeta.store_code ||
           existingMeta.operator_id !== newMeta.operator_id;
         if (metaChanged) {
-          await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          // SPEC-AUTH-TIMELOCK-TUNE-AND-SPINNER-01 C: 同上 — updateUserById 非同期化 + 再issueSession削除。
+          updateUserMetaAsync(supabaseAdmin, user.id, {
             user_metadata: newMeta,
             app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
           });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, password);
-          session = fresh;
         }
       } catch {
         // signIn失敗 → 新規ユーザー (fallback)
@@ -241,7 +289,7 @@ Deno.serve(async (req: Request) => {
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const { session: fresh } = await issueSession(supabaseAdmin, email, password);
+        const { session: fresh } = await issueSession(supabaseAuth, email, password);
         session = fresh;
       }
     }
@@ -255,12 +303,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
+    // SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: awaited before the 200.
+    // v23: written via supabaseAdmin which now NEVER signs in, so this insert is guaranteed
+    // to run as service_role (auth_logs RLS allows only service_role). This is the reset
+    // point for the throttle's rolling-window failure count.
+    await writeAuthLog(supabaseAdmin, {
       staff_id: verifyResult!.staff_id,
       action: 'login_success',
       ip_address: req.headers.get('x-forwarded-for') || 'unknown',
       user_agent: req.headers.get('user-agent') || 'unknown',
-    }));
+    });
 
     return new Response(
       JSON.stringify({

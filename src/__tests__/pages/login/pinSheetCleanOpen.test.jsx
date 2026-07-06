@@ -3,8 +3,8 @@
 // AC1: 初開 → エラー出ず「PINを入力してください」グレー
 // AC2: 今回PIN間違え → 「PINが違うようです」赤
 // AC3: 過去failあり → 初開では赤エラー非表示
-// AC4: 3回ロック中 → 「×秒後に再試行」表示
-// AC5: 5回以上 → 「管理者に連絡」表示
+// AC4/AC5 UPDATED by SPEC-AUTH-TIMELOCK-TUNE-AND-SPINNER-01 B: the frontend 30s lock +
+//   admin-contact message were removed (server-side throttle only) -> assert their ABSENCE.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
@@ -59,19 +59,20 @@ describe('SPEC-LOGIN-PIN-CLEAN-OPEN-01 PINシート初開クリーン表示', ()
     expect(screen.queryByText(/PINが違う/)).toBeNull()
   })
 
-  it('when_lockout_active_should_show_countdown_not_pin_error', () => {
-    // AC4: 3回失敗ロック中 → 「×秒後に再試行」表示
-    const lockedUntil = Date.now() + 25000
-    sessionStorage.setItem(`fail_${STAFF.staff_id}`, JSON.stringify({ count: 3, lockedUntil }))
+  it('no_frontend_lockout_countdown_even_with_stale_lock_data (D-028 B)', () => {
+    // Front 30s lock removed -> stale sessionStorage is ignored, keypad never locks.
+    sessionStorage.setItem(`fail_${STAFF.staff_id}`, JSON.stringify({ count: 3, lockedUntil: Date.now() + 25000 }))
     render(<PinSheet {...mkProps()} />)
-    expect(screen.getByText(/秒後に再試行/)).toBeTruthy()
-    expect(screen.queryByText(/PINが違う/)).toBeNull()
+    expect(screen.getByText('PINを入力してください')).toBeTruthy()
+    expect(screen.queryByText(/秒後に再試行/)).toBeNull()
+    expect(screen.getByTestId('pin-key-1').disabled).toBe(false)
   })
 
-  it('when_fail_count_5_or_more_should_show_admin_contact_message', () => {
-    // AC5: fail.count >= 5 → 「管理者に連絡」表示
+  it('no_admin_contact_lockout_message (D-028 B removed it)', () => {
+    // lock-state must not be surfaced; throttle is a delay, not a lockout.
     sessionStorage.setItem(`fail_${STAFF.staff_id}`, JSON.stringify({ count: 5, lockedUntil: 0 }))
     render(<PinSheet {...mkProps()} />)
-    expect(screen.getByText('管理者に連絡してください')).toBeTruthy()
+    expect(screen.queryByText('管理者に連絡してください')).toBeNull()
+    expect(screen.getByText('PINを入力してください')).toBeTruthy()
   })
 })

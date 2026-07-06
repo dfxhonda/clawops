@@ -1,7 +1,20 @@
 // J-COLLECTION-02: 集金データアクセス層 (J-COLLECTION-01全面置換)
 import { supabase } from '../lib/supabase'
+import { Sentry } from '../lib/sentry'
 import { DFX_ORG_ID, CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 import { genCollectionId, boothTotal } from '../collection/lib/collectionCalc'
+
+// SPEC-ANOMALY-METER-P1-COLLECTION-AUDIT-01: 集金保存成功後に単価乖離監査RPCを非同期実行。
+// fire-and-forget。RPC失敗は集金保存を絶対にブロック/ロールバックしない (Sentry記録のみ)。
+// サーバ側集計 (fn_audit_collection_meters) のみ、クライアント集計禁止。
+export async function auditCollectionMeters(collectionId) {
+  try {
+    const { error } = await supabase.rpc('fn_audit_collection_meters', { p_collection_id: collectionId })
+    if (error) throw error
+  } catch (e) {
+    Sentry.captureException(e, { tags: { area: 'collection-meter-audit' }, extra: { collectionId } })
+  }
+}
 
 // アクティブ店舗 (is_active=true)
 export async function getActiveStores() {
@@ -235,6 +248,11 @@ export async function saveCollection({
   })
   const { error: e2 } = await supabase.from('cash_collection_booths').insert(boothRows)
   if (e2) return { data: null, error: e2 }
+
+  // SPEC-ANOMALY-METER-P1-COLLECTION-AUDIT-01: 両 insert commit 後に fire-and-forget で監査。
+  // await しない (保存応答をブロックしない)。auditCollectionMeters は内部で例外を握り潰す。
+  auditCollectionMeters(collectionId)
+
   return { data: { collectionId }, error: null }
 }
 
