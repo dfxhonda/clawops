@@ -1,11 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess } from "./throttle.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// SPEC-AUTH-VERIFYPIN-TIMELOCK-01: single generic auth-failure message for BOTH wrong-PIN
+// and unknown/inactive staff, so the response never leaks staff existence or lock state.
+const AUTH_FAIL_MSG = '暗証番号が違います';
 
 // R1: 決定的password導出 — staff_id + created_at + APP_AUTH_SALT (service_role_key非依存)
 async function derivePassword(staffId: string, createdAt: string, salt: string): Promise<string> {
@@ -102,14 +107,39 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!data?.success) {
-      EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
+      // SPEC-AUTH-VERIFYPIN-TIMELOCK-01
+      // Enumeration-safe: unknown / inactive staff -> identical generic 401, NO auth_logs row.
+      if (isStaffNotFound(data?.error)) {
+        return new Response(
+          JSON.stringify({ error: AUTH_FAIL_MSG }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Wrong PIN on an existing staff: rolling-window (60min) failure count since the last
+      // login_success -> capped exponential TIME LOCK, enforced in the function runtime on the
+      // FAILED path only (a correct PIN is never delayed; throttle slows guessing, not success).
+      const windowStart = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recent } = await supabaseAdmin
+        .from('auth_logs')
+        .select('action, created_at')
+        .eq('staff_id', staff_id)
+        .gte('created_at', windowStart)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      const attemptNumber = failsSinceLastSuccess(recent ?? []) + 1;
+      const delaySec = throttleDelaySec(attemptNumber);
+      if (delaySec > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delaySec * 1000));
+      }
+      // Record this failure (awaited, so the next attempt's rolling-window count includes it).
+      await supabaseAdmin.from('auth_logs').insert({
         staff_id: staff_id,
         action: 'login_failed',
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
         user_agent: req.headers.get('user-agent') || 'unknown',
-      }));
+      });
       return new Response(
-        JSON.stringify({ error: data?.error || '認証に失敗しました' }),
+        JSON.stringify({ error: AUTH_FAIL_MSG }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
