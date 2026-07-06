@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// SPEC-AUTH-VERIFYPIN-NPM-BUNDLE-01: npm: specifier is bundled at deploy time by Supabase,
+// eliminating the runtime esm.sh CDN fetch that inflated cold starts (observed up to 14s).
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog, updateUserMetaAsync } from "./throttle.ts";
 
 const corsHeaders = {
