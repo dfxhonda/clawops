@@ -165,6 +165,25 @@ export async function markRecordSynced(localId) {
   }
 }
 
+// SPEC-LF1-IDEMPOTENT-SYNC-01 D5: 送信失敗時のみ lastErrCode を IDB record に残す。
+// server 側で不可視な stuck record を D7 バナー詳細で端末側から診断するため。synced は変えない。
+export async function setRecordLastErrCode(localId, errCode) {
+  if (!localId) return null
+  try {
+    const db = await getDb()
+    const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')
+    const existing = await tx.store.get(localId)
+    if (!existing) { await tx.done; return null }
+    const next = { ...existing, lastErrCode: errCode ?? null, lastErrAt: new Date().toISOString() }
+    await tx.store.put(next)
+    await tx.done
+    return next
+  } catch (err) {
+    logger.error?.(LOG_ERR_WRITE, { localId, message: err?.message })
+    return null
+  }
+}
+
 // 未送信件数 + 関与 store 数 を集計してバナーに渡す。
 export async function getUnsyncedSummary() {
   const unsynced = await getUnsyncedRecords()

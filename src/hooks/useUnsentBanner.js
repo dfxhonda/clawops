@@ -13,11 +13,12 @@ export function notifyLfChange() {
 }
 
 export function useUnsentBanner() {
-  const [summary, setSummary] = useState({ count: 0, storeCount: 0 })
+  // SPEC-LF1-IDEMPOTENT-SYNC-01 D7: records も公開しバナー詳細 (端末側診断) で使う。
+  const [summary, setSummary] = useState({ count: 0, storeCount: 0, records: [] })
 
   const recompute = useCallback(async () => {
     const s = await getUnsyncedSummary()
-    setSummary({ count: s.count, storeCount: s.storeCount })
+    setSummary({ count: s.count, storeCount: s.storeCount, records: s.records ?? [] })
   }, [])
 
   const sweptRef = useRef(false)
@@ -37,5 +38,5 @@ export function useUnsentBanner() {
     }
   }, [recompute])
 
-  return summary
+  return { ...summary, refresh: recompute }
 }

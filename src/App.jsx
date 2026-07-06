@@ -19,6 +19,7 @@ import ProtectedRoute, { AdminRoute, ManagerRoute } from './components/Protected
 import { RoleGuard } from './shared/auth/RoleGuard'
 // SPEC-LF1-STORE-LOCAL-CACHE-01: 未送信件数の app-wide banner
 import UnsentBanner from './components/UnsentBanner'
+import { makeDebouncedUploadAll } from './services/storeSync'
 import { buildLabel } from './lib/buildInfo'
 import { useSessionLock } from './hooks/useIdleLogout'
 
@@ -187,7 +188,7 @@ function PatrolBoothInputPageKeyed() {
 }
 
 function AppInner() {
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, staffId } = useAuth()
   useSessionLock(isLoggedIn)
 
   const initGlossary = useGlossaryStore(s => s.init)
@@ -197,6 +198,21 @@ function AppInner() {
     initGlossary()
     return () => cleanupGlossary()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // SPEC-LF1-IDEMPOTENT-SYNC-01 D6: iOS tab-kill が unmount trigger を飛ばす対策。
+  // 'online' 復帰 + visibilitychange(visible) で shared 10s debounce → uploadAllUnsynced を
+  // fire-and-forget。ClawsupportHub / PatrolStorePage 既存 trigger はそのまま残す (追加のみ)。
+  useEffect(() => {
+    if (!isLoggedIn || typeof window === 'undefined') return
+    const trigger = makeDebouncedUploadAll({ getStaff: () => ({ staffId }) })
+    const onVisible = () => { if (document.visibilityState === 'visible') trigger() }
+    window.addEventListener('online', trigger)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', trigger)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [isLoggedIn, staffId])
   return (
     <ErrorBoundary>
       {/* SPEC-LF1-STORE-LOCAL-CACHE-01: app-wide 未送信件数バナー */}
