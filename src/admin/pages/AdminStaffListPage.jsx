@@ -310,10 +310,11 @@ export default function AdminStaffListPage() {
     setPinResetting(true)
     setError(null)
     try {
-      const { error: pinErr } = await supabase.from('staff')
-        .update({ pin_hash: null, updated_at: new Date().toISOString() })
-        .eq('staff_id', modal.staff_id)
+      // SPEC-SEC-PINHASH-ANON-PATH-CLEANUP-01 R2: anon .update(pin_hash) 廃止。
+      // service_role 相当の security-definer RPC 経由 (内部で current_staff_role()=admin 検査)。
+      const { data: pinRes, error: pinErr } = await supabase.rpc('fn_admin_clear_pin', { p_staff_id: modal.staff_id })
       if (pinErr) throw pinErr
+      if (pinRes && pinRes.success === false) throw new Error(pinRes.error || 'PIN解除に失敗しました')
       await writeAuditLog({
         staff_id: staffId || undefined,
         action: 'UPDATE',
