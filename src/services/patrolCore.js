@@ -152,7 +152,7 @@ export function classifyEntryType({ prev, next, isCollection = false }) {
 
 const TODAY_EXISTING_SELECT =
   'reading_id, in_meter, out_meter, prize_stock_count, prize_restock_count, ' +
-  'prize_name, prize_id, set_a, set_c, set_l, set_r, set_o, prize_cost'
+  'prize_name, prize_id, set_a, set_c, set_l, set_r, set_o, prize_cost, updated_at'
 
 /**
  * 巡回記録 UPSERT / INSERT
@@ -177,13 +177,18 @@ export async function savePatrolReading({
   staffId,
   optionalPatch = {},
   defaultsFromPrev = null,
+  // SPEC-LF1-IDEMPOTENT-SYNC-01 D1/D2/D3: LF1 replay carries the queued record's own values.
+  patrolDate,        // D1: queued record の patrol_date (未指定=UI直接保存 → todayJST)
+  readingId,         // D2: 冪等キー (r.localId)。INSERT 時に reading_id として使う
+  clientTimestamp,   // D3: r.createdLocally。UPDATE stale-guard 判定に使う
 }) {
   if (!DFX_ORG_ID) {
     logger.error(ERR.AUTH_001, { message: 'DFX_ORG_ID is not set', boothCode })
     return { ok: false, errCode: ERR.AUTH_001, message: 'organization_id が設定されていません', raw: null }
   }
 
-  const today  = todayJST()
+  // D1: patrol_date と既存行 lookup は patrolDate を優先 (LF1 が D 日作成→D+k replay しても D 日行になる)
+  const today  = patrolDate ?? todayJST()
   const now    = new Date().toISOString()
   const numIn  = inMeter      !== '' && inMeter      != null ? parseFloat(inMeter)       : null
   const numOut = outMeter     !== '' && outMeter     != null ? parseFloat(outMeter)      : null
@@ -231,11 +236,16 @@ export async function savePatrolReading({
         .insert({
           ...basePayload,
           ...mergedOptionalForInsert,
-          reading_id: crypto.randomUUID(),
+          reading_id: readingId ?? crypto.randomUUID(),
         })
         .select('reading_id')
         .single()
       if (error) {
+        // D2: 23505 = 同一 reading_id/一意制約 で既に配信済み → 冪等成功として扱う
+        if (error.code === '23505') {
+          logger.info('patrol_save_duplicate_skipped', { boothCode, patrol_date: today, entryType, readingId })
+          return { ok: true, skipped: 'duplicate', entryType, readingId: readingId ?? null }
+        }
         const ctx = { boothCode, patrol_date: today, entryType, raw: error }
         logger.error(ERR.METER_002, ctx)
         return { ok: false, errCode: ERR.METER_002, message: `${entryType} 記録エラー: ${error.message}`, raw: error }
@@ -267,6 +277,16 @@ export async function savePatrolReading({
       })
 
     if (existing) {
+      // D3: stale-guard — server 行が client record 作成時刻以降に更新済みなら書かない
+      // (古い queued record が新しい手動入力を上書きしない。server-newer wins)。
+      if (
+        clientTimestamp &&
+        existing.updated_at &&
+        new Date(existing.updated_at).getTime() >= new Date(clientTimestamp).getTime()
+      ) {
+        return { ok: true, skipped: 'stale', entryType: 'patrol', readingId: existing.reading_id }
+      }
+
       const coreUnchanged =
         Number(existing.in_meter)            === numIn  &&
         Number(existing.out_meter)           === numOut &&
@@ -304,11 +324,16 @@ export async function savePatrolReading({
       .insert({
         ...basePayload,
         ...mergedOptionalForInsert,
-        reading_id: crypto.randomUUID(),
+        reading_id: readingId ?? crypto.randomUUID(),
       })
       .select('reading_id')
       .single()
     if (error) {
+      // D2: 23505 = 既に配信済み (並行 replay / DB uq_meter_readings_patrol_day) → 冪等成功
+      if (error.code === '23505') {
+        logger.info('patrol_save_duplicate_skipped', { boothCode, patrol_date: today, entryType: 'patrol', readingId })
+        return { ok: true, skipped: 'duplicate', entryType: 'patrol', readingId: readingId ?? null }
+      }
       const ctx = { boothCode, patrol_date: today, entryType, raw: error }
       logger.error(ERR.METER_001, ctx)
       return { ok: false, errCode: ERR.METER_001, message: 'メーター保存エラー: ' + error.message, raw: error }

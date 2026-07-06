@@ -18,6 +18,7 @@ import {
   markRecordSynced,
   getPatrolRecordsByStore,
   putPatrolRecord,
+  setRecordLastErrCode,
 } from '../lib/localStore/patrolRecords'
 import { logger } from '../lib/logger'
 
@@ -89,20 +90,36 @@ async function _runUploadStore(storeCode, { staff, skipProbe = false } = {}) {
         staffId: staff?.staffId ?? r.created_by ?? null,
         optionalPatch: r.optionalPatch ?? {},
         defaultsFromPrev: r.defaultsFromPrev ?? null,
+        // SPEC-LF1-IDEMPOTENT-SYNC-01 D1/D2/D3: replay は queued record 自身の値を渡す。
+        patrolDate: r.patrol_date,        // D1: D 日作成→D+k replay でも D 日行になる
+        readingId: r.localId,             // D2: 冪等キー。23505 は ok:true skipped:duplicate
+        clientTimestamp: r.createdLocally, // D3: 新しい手動入力を古い queued で上書きしない
       })
       if (res?.ok) {
+        // ok:true は inserted / updated / skipped(duplicate|stale) 全て「配信済み」→ synced
         await markRecordSynced(r.localId)
         uploaded++
       } else {
         failed++
-        logger.warn?.(LOG_ERR_UPLOAD, { localId: r.localId, errCode: res?.errCode, message: res?.message })
+        // D5: 失敗は Sentry (logger.error) へ。server 不可視な同期失敗を可視化する。
+        logger.error?.(LOG_ERR_UPLOAD, {
+          localId: r.localId, booth_code: r.booth_code, patrol_date: r.patrol_date,
+          errCode: res?.errCode, message: res?.message,
+        })
+        await setRecordLastErrCode(r.localId, res?.errCode ?? 'unknown').catch(() => {})
       }
     } catch (err) {
       failed++
-      logger.error?.(LOG_ERR_UPLOAD, { localId: r.localId, message: err?.message })
+      logger.error?.(LOG_ERR_UPLOAD, {
+        localId: r.localId, booth_code: r.booth_code, patrol_date: r.patrol_date, message: err?.message,
+      })
+      await setRecordLastErrCode(r.localId, 'exception').catch(() => {})
     }
   }
-  logger.info?.('LF1_UPLOAD_DONE', { storeCode, uploaded, failed, skipped: 0 })
+  // D5: 失敗ありのサマリは logger.error (Sentry)、全成功は info。
+  const doneCtx = { storeCode, uploaded, failed, skipped: 0 }
+  if (failed > 0) logger.error?.('LF1_UPLOAD_DONE', doneCtx)
+  else logger.info?.('LF1_UPLOAD_DONE', doneCtx)
   return { uploaded, failed, skipped: 0 }
 }
 
@@ -132,4 +149,18 @@ export async function uploadAllUnsynced({ staff } = {}) {
     skipped  += res.skipped
   }
   return { uploaded, failed, skipped }
+}
+
+// SPEC-LF1-IDEMPOTENT-SYNC-01 D6: shared trailing-debounce trigger for the app-level
+// 'online' + visibilitychange listeners. A burst of events collapses to ONE
+// uploadAllUnsynced after debounceMs of quiet. fire-and-forget (never rejects to the caller).
+export function makeDebouncedUploadAll({ getStaff, debounceMs = 10000, uploader = uploadAllUnsynced } = {}) {
+  let timer = null
+  return function trigger() {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      timer = null
+      Promise.resolve(uploader({ staff: getStaff?.() })).catch(() => {})
+    }, debounceMs)
+  }
 }
