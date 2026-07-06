@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { verifyPin } from './pinVerifier'
 
 const AVATAR_BG = ['#0e7490','#7c3aed','#059669','#d97706','#db2777','#4338ca','#e11d48']
@@ -8,51 +8,19 @@ function avatarBg(staffId) {
   return AVATAR_BG[Math.abs(h) % AVATAR_BG.length]
 }
 
-function loadFailState(staffId) {
-  try {
-    const raw = sessionStorage.getItem(`fail_${staffId}`)
-    if (raw) return JSON.parse(raw)
-  } catch { /* ignore */ }
-  return { count: 0, lockedUntil: 0 }
-}
-function saveFailState(staffId, state) {
-  sessionStorage.setItem(`fail_${staffId}`, JSON.stringify(state))
-}
-
 export default function PinSheet({ staff, onClose, onSuccess }) {
-  const [digits, setDigits]         = useState([])
-  const [fail, setFail]             = useState(() => loadFailState(staff.staff_id))
-  const [shaking, setShaking]       = useState(false)
+  const [digits, setDigits]               = useState([])
+  const [shaking, setShaking]             = useState(false)
   const [submitting, setSubmitting]       = useState(false)
-  const [remainSec, setRemainSec]         = useState(0)
   const [systemError, setSystemError]     = useState(false)
-  const [attemptedFail, setAttemptedFail] = useState(false) // SPEC-LOGIN-PIN-CLEAN-OPEN-01: 今セッション失敗フラグ
-  const timerRef = useRef(null)
+  const [attemptedFail, setAttemptedFail] = useState(false) // 今セッション失敗フラグ (メッセージ表示用)
 
-  const isLocked = fail.count >= 3 && Date.now() < fail.lockedUntil
-
-  // ロック中のカウントダウン
-  useEffect(() => {
-    if (!isLocked) return
-    const tick = () => {
-      const rem = Math.ceil((fail.lockedUntil - Date.now()) / 1000)
-      if (rem <= 0) {
-        clearInterval(timerRef.current)
-        const unlocked = { count: 0, lockedUntil: 0 }
-        setFail(unlocked)
-        saveFailState(staff.staff_id, unlocked)
-        setRemainSec(0)
-      } else {
-        setRemainSec(rem)
-      }
-    }
-    tick()
-    timerRef.current = setInterval(tick, 1000)
-    return () => clearInterval(timerRef.current)
-  }, [fail.lockedUntil, staff.staff_id, isLocked])
+  // SPEC-AUTH-TIMELOCK-TUNE-AND-SPINNER-01 B: フロントの固定ロック (30秒/localStorage永続) を撤去し
+  // サーバー側の指数 throttle に一本化。フロントは「認証中」スピナー + サーバーエラー表示のみ担当
+  // (サーバーが待ってから 401 を返すので、その間 submitting スピナーがそのまま "待ち" を表現する)。
 
   const handleDigit = (n) => {
-    if (isLocked || submitting) return
+    if (submitting) return
     setSystemError(false)
     const next = [...digits, n]
     setDigits(next)
@@ -60,7 +28,7 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
   }
 
   const handleBackspace = () => {
-    if (isLocked || submitting) return
+    if (submitting) return
     setDigits(prev => prev.slice(0, -1))
   }
 
@@ -75,14 +43,9 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
       setShaking(true)
       setTimeout(() => setShaking(false), 500)
       setDigits([])
-      setAttemptedFail(true) // SPEC-LOGIN-PIN-CLEAN-OPEN-01: 今セッションで失敗した
-      setFail(prev => {
-        const count = prev.count + 1
-        const lockedUntil = count >= 3 ? Date.now() + 30000 : prev.lockedUntil
-        const next = { count, lockedUntil }
-        saveFailState(staff.staff_id, next)
-        return next
-      })
+      // 今セッションで失敗 (メッセージ表示用のみ)。失敗カウント永続 / 30秒固定ロックは廃止 —
+      // 締め出しはサーバー側の指数 throttle が担う (共有端末で別スタッフに波及しない)。
+      setAttemptedFail(true)
     } catch (e) {
       // LOG-SPEC-01: システムエラーは内部ログへ。失敗カウント加算しない(PIN不一致と区別)
       console.error('[PinSheet] submitPin system error:', e?.stack || e)
@@ -95,10 +58,6 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
 
   const subMsg = systemError
     ? '認証処理でエラーが発生しました'
-    : isLocked
-    ? `${remainSec}秒後に再試行できます`
-    : fail.count >= 5
-    ? '管理者に連絡してください'
     : attemptedFail
     ? 'PINが違うようです、もう一度'
     : 'PINを入力してください'
@@ -219,14 +178,14 @@ export default function PinSheet({ staff, onClose, onSuccess }) {
           {/* Numpad 3x4 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {[1,2,3,4,5,6,7,8,9].map(n => (
-              <button key={n} data-testid={`pin-key-${n}`} className="kp-btn" onPointerDown={() => handleDigit(n)} disabled={isLocked || submitting}>
+              <button key={n} data-testid={`pin-key-${n}`} className="kp-btn" onPointerDown={() => handleDigit(n)} disabled={submitting}>
                 {n}
               </button>
             ))}
             {/* 空セル */}
             <div />
-            <button data-testid="pin-key-0" className="kp-btn" onPointerDown={() => handleDigit(0)} disabled={isLocked || submitting}>0</button>
-            <button data-testid="pin-backspace" className="kp-btn" onPointerDown={handleBackspace} disabled={isLocked || submitting}
+            <button data-testid="pin-key-0" className="kp-btn" onPointerDown={() => handleDigit(0)} disabled={submitting}>0</button>
+            <button data-testid="pin-backspace" className="kp-btn" onPointerDown={handleBackspace} disabled={submitting}
               style={{ color: '#94a3b8', fontSize: 20 }}>⌫</button>
           </div>
         </div>

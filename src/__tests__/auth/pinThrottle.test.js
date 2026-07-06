@@ -1,19 +1,41 @@
 // SPEC-AUTH-VERIFYPIN-TIMELOCK-01: verify-pin throttle helpers (pure)
 import { describe, it, expect } from 'vitest'
-import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog } from '../../../supabase/functions/verify-pin/throttle.ts'
+import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog, updateUserMetaAsync } from '../../../supabase/functions/verify-pin/throttle.ts'
 import { vi } from 'vitest'
 
-describe('throttleDelaySec (AC1 curve)', () => {
-  it('returns 0,0,1,2,4,8,8 for fail counts 1..7', () => {
-    expect([1, 2, 3, 4, 5, 6, 7].map(throttleDelaySec)).toEqual([0, 0, 1, 2, 4, 8, 8])
+describe('throttleDelaySec (AC1 curve — 5-attempt start)', () => {
+  it('returns 0,0,0,0,4,8,8 for fail counts 1..7', () => {
+    expect([1, 2, 3, 4, 5, 6, 7].map(throttleDelaySec)).toEqual([0, 0, 0, 0, 4, 8, 8])
   })
   it('caps at 8s for very high fail counts (>=50 backstop)', () => {
     expect(throttleDelaySec(50)).toBe(8)
     expect(throttleDelaySec(1000)).toBe(8)
   })
-  it('grace for the first two fails', () => {
-    expect(throttleDelaySec(1)).toBe(0)
-    expect(throttleDelaySec(2)).toBe(0)
+  it('grace for the first four fails, 4s on the fifth', () => {
+    expect([1, 2, 3, 4].map(throttleDelaySec)).toEqual([0, 0, 0, 0])
+    expect(throttleDelaySec(5)).toBe(4)
+  })
+})
+
+describe('updateUserMetaAsync (AC2/AC3: single signIn, non-destructive meta refresh)', () => {
+  const meta = { user_metadata: { role: 'admin' }, app_metadata: { role: 'admin' } }
+
+  it('updates meta via updateUserById WITHOUT issuing a new session (fire-and-forget, returns void)', () => {
+    const updateUserById = vi.fn().mockResolvedValue({})
+    const signInWithPassword = vi.fn()
+    const admin = { auth: { admin: { updateUserById }, signInWithPassword } }
+    const r = updateUserMetaAsync(admin, 'u1', meta)
+    expect(r).toBeUndefined()
+    expect(updateUserById).toHaveBeenCalledWith('u1', meta)
+    expect(signInWithPassword).not.toHaveBeenCalled() // no second signIn -> single-signIn success path
+  })
+
+  it('does not throw and does not break login when updateUserById rejects', async () => {
+    const updateUserById = vi.fn().mockRejectedValue(new Error('meta boom'))
+    const admin = { auth: { admin: { updateUserById } } }
+    expect(() => updateUserMetaAsync(admin, 'u1', meta)).not.toThrow()
+    await new Promise(r => setTimeout(r, 0)) // let the .then/.catch microtasks run
+    expect(updateUserById).toHaveBeenCalled()
   })
 })
 

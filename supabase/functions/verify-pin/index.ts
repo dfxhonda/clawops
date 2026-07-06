@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog } from "./throttle.ts";
+import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog, updateUserMetaAsync } from "./throttle.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -187,12 +187,12 @@ Deno.serve(async (req: Request) => {
           existingMeta.operator_id !== newMeta.operator_id;
 
         if (metaChanged) {
-          await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          // SPEC-AUTH-TIMELOCK-TUNE-AND-SPINNER-01 C: JWT メタ更新は fire-and-forget、
+          // session は最初の s を使用 (二重 signInWithPassword 撤去)。
+          updateUserMetaAsync(supabaseAdmin, user.id, {
             user_metadata: newMeta,
             app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role, salt_version: 'v2' },
           });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, newPassword);
-          session = fresh;
         }
       } catch {
         // R1: 旧passwordで試行 → issueSession経由で例外ハンドリング統一
@@ -248,12 +248,11 @@ Deno.serve(async (req: Request) => {
           existingMeta.store_code !== newMeta.store_code ||
           existingMeta.operator_id !== newMeta.operator_id;
         if (metaChanged) {
-          await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          // SPEC-AUTH-TIMELOCK-TUNE-AND-SPINNER-01 C: 同上 — updateUserById 非同期化 + 再issueSession削除。
+          updateUserMetaAsync(supabaseAdmin, user.id, {
             user_metadata: newMeta,
             app_metadata: { staff_id: verifyResult!.staff_id, role: verifyResult!.role },
           });
-          const { session: fresh } = await issueSession(supabaseAdmin, email, password);
-          session = fresh;
         }
       } catch {
         // signIn失敗 → 新規ユーザー (fallback)
