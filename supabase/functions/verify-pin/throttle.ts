@@ -27,3 +27,20 @@ export function failsSinceLastSuccess(rows: Array<{ action: string }>): number {
   }
   return count;
 }
+
+// SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: audit-log writes MUST be awaited (EdgeRuntime.waitUntil
+// is dropped when the isolate shuts down after responding, so login_success/login_failed rows
+// were probabilistically lost). Awaiting guarantees the row commits before the Response returns.
+// try/catch: a logging failure must NEVER break login (console.error only, for Sentry).
+type AuthLogRow = { staff_id: string; action: string; ip_address: string; user_agent: string };
+export async function writeAuthLog(
+  db: { from: (t: string) => { insert: (row: AuthLogRow) => Promise<{ error: unknown }> } },
+  row: AuthLogRow,
+): Promise<void> {
+  try {
+    const { error } = await db.from("auth_logs").insert(row);
+    if (error) throw error;
+  } catch (e) {
+    console.error("[verify-pin] auth_logs insert failed", row?.action, e);
+  }
+}

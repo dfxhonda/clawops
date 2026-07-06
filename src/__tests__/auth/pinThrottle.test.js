@@ -1,6 +1,7 @@
 // SPEC-AUTH-VERIFYPIN-TIMELOCK-01: verify-pin throttle helpers (pure)
 import { describe, it, expect } from 'vitest'
-import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess } from '../../../supabase/functions/verify-pin/throttle.ts'
+import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog } from '../../../supabase/functions/verify-pin/throttle.ts'
+import { vi } from 'vitest'
 
 describe('throttleDelaySec (AC1 curve)', () => {
   it('returns 0,0,1,2,4,8,8 for fail counts 1..7', () => {
@@ -40,5 +41,34 @@ describe('failsSinceLastSuccess (reset-on-success + rolling window)', () => {
   })
   it('returns 0 for no rows', () => {
     expect(failsSinceLastSuccess([])).toBe(0)
+  })
+})
+
+// SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01
+describe('writeAuthLog (awaited, non-destructive)', () => {
+  const row = { staff_id: 'S1', action: 'login_success', ip_address: 'x', user_agent: 'y' }
+
+  it('awaits the insert (not fire-and-forget)', async () => {
+    let resolveInsert
+    const insert = vi.fn(() => new Promise(r => { resolveInsert = r }))
+    const db = { from: () => ({ insert }) }
+    let done = false
+    const p = writeAuthLog(db, row).then(() => { done = true })
+    await Promise.resolve()
+    expect(insert).toHaveBeenCalledWith(row)
+    expect(done).toBe(false) // still pending -> it is awaiting the insert
+    resolveInsert({ error: null })
+    await p
+    expect(done).toBe(true)
+  })
+
+  it('swallows a thrown insert error (login not broken)', async () => {
+    const db = { from: () => ({ insert: vi.fn().mockRejectedValue(new Error('boom')) }) }
+    await expect(writeAuthLog(db, row)).resolves.toBeUndefined()
+  })
+
+  it('swallows a returned {error} (login not broken)', async () => {
+    const db = { from: () => ({ insert: vi.fn().mockResolvedValue({ error: new Error('rls') }) }) }
+    await expect(writeAuthLog(db, { ...row, action: 'login_failed' })).resolves.toBeUndefined()
   })
 })

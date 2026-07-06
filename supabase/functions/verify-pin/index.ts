@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess } from "./throttle.ts";
+import { throttleDelaySec, isStaffNotFound, failsSinceLastSuccess, writeAuthLog } from "./throttle.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -131,8 +131,10 @@ Deno.serve(async (req: Request) => {
       if (delaySec > 0) {
         await new Promise((resolve) => setTimeout(resolve, delaySec * 1000));
       }
-      // Record this failure (awaited, so the next attempt's rolling-window count includes it).
-      await supabaseAdmin.from('auth_logs').insert({
+      // SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: awaited (so the next attempt's rolling-window
+      // count includes it) + try/catch inside writeAuthLog (a log failure must not turn the
+      // 401 into a 500).
+      await writeAuthLog(supabaseAdmin, {
         staff_id: staff_id,
         action: 'login_failed',
         ip_address: req.headers.get('x-forwarded-for') || 'unknown',
@@ -285,12 +287,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    EdgeRuntime.waitUntil(supabaseAdmin.from('auth_logs').insert({
+    // SPEC-AUTH-AUTHLOGS-WAITUNTIL-AWAIT-01: awaited before the 200. waitUntil was dropped on
+    // isolate shutdown, so login_success never persisted -> throttle's reset point was missing
+    // and failure counts would accumulate forever. try/catch: log failure never breaks login.
+    await writeAuthLog(supabaseAdmin, {
       staff_id: verifyResult!.staff_id,
       action: 'login_success',
       ip_address: req.headers.get('x-forwarded-for') || 'unknown',
       user_agent: req.headers.get('user-agent') || 'unknown',
-    }));
+    });
 
     return new Response(
       JSON.stringify({
