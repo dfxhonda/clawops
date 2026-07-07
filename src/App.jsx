@@ -178,6 +178,25 @@ function PageLoader() {
   )
 }
 
+// SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hidden 中の視覚カバー。position:fixed + inset-0 で viewport
+// 端固定 (既知の iOS h-dvh/h-svh cutoff を避けるため height-class は使わない)。Routes は下で
+// マウントされ続けるので、復帰(isLocked→false)時は離れた画面へ remount/reload なしで即戻る。
+// 既存 design token のみ (--color-bg / --color-accent / --color-muted)。読み込みではないので spinner なし。
+function AppLockOverlay() {
+  return (
+    <div className="fixed inset-0 z-[200] bg-bg flex items-center justify-center">
+      <div className="text-center">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor"
+             strokeWidth="1.8" className="text-accent mx-auto mb-3" aria-hidden="true">
+          <rect x="4" y="10" width="16" height="10" rx="2" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </svg>
+        <p className="text-muted text-sm">ロック中</p>
+      </div>
+    </div>
+  )
+}
+
 // DIAG-SWIPE-BLACKSCREEN-01 fix A: useParams から boothCode を読み、key prop に渡すことで
 // React Router v6 の param-only update では起きないコンポーネント再マウントを強制する。
 // これにより PatrolBoothInputPage の useState 初期化 (consumePendingEnterFrom) と
@@ -189,7 +208,8 @@ function PatrolBoothInputPageKeyed() {
 
 function AppInner() {
   const { isLoggedIn, staffId } = useAuth()
-  useSessionLock(isLoggedIn)
+  // SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hidden 中は isLocked=true。ログイン中のみカバー表示。
+  const isLocked = useSessionLock(isLoggedIn)
 
   const initGlossary = useGlossaryStore(s => s.init)
   const cleanupGlossary = useGlossaryStore(s => s.cleanup)
@@ -215,6 +235,9 @@ function AppInner() {
   }, [isLoggedIn, staffId])
   return (
     <ErrorBoundary>
+      {/* SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hidden 中の視覚カバー。Routes を unmount せず被せるだけ。
+          ツリー先頭に置き、復帰時に最速で描画されるようにする。 */}
+      {isLoggedIn && isLocked && <AppLockOverlay />}
       {/* SPEC-LF1-STORE-LOCAL-CACHE-01: app-wide 未送信件数バナー */}
       {isLoggedIn && <UnsentBanner />}
       {isLoggedIn && (

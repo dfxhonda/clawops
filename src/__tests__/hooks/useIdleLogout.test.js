@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
-// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: idle → logout (lock廃止)
+// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: idle 30分 → logout
 // SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
+// SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: IDLE_MS 30分化 + hidden中 isLocked カバー
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
@@ -11,7 +12,7 @@ vi.mock('../../lib/auth/session', () => ({
 import { useSessionLock } from '../../hooks/useIdleLogout'
 import { logout } from '../../lib/auth/session'
 
-const IDLE_MS = 15 * 60 * 1000
+const IDLE_MS = 30 * 60 * 1000
 
 let originalLocation
 
@@ -81,10 +82,63 @@ describe('useSessionLock SPEC-AUTH-TIMEOUT-LOGOUT-S1-01', () => {
     expect(logout).toHaveBeenCalled()
   })
 
-  it('hook_should_return_nothing_not_isLocked_or_unlock', () => {
-    // AC6: isLocked/unlock は返さない (return value undefined)
+})
+
+describe('useSessionLock SPEC-AUTH-TIMEOUT-LOCKSCREEN-01', () => {
+  it('AC1_IDLE_MS_is_30_minutes', async () => {
+    // 30分未満では logout せず、30分ちょうどで logout する = IDLE_MS===30*60*1000
+    renderHook(() => useSessionLock(true))
+    await act(async () => { await vi.advanceTimersByTimeAsync(30 * 60 * 1000 - 1000) })
+    expect(logout).not.toHaveBeenCalled()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+    expect(logout).toHaveBeenCalled()
+  })
+
+  it('AC2_returns_boolean_initial_false', () => {
     const { result } = renderHook(() => useSessionLock(true))
-    expect(result.current).toBeUndefined()
+    expect(typeof result.current).toBe('boolean')
+    expect(result.current).toBe(false)
+  })
+
+  it('AC3_hidden_sets_isLocked_true_synchronously', () => {
+    const { result } = renderHook(() => useSessionLock(true))
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(result.current).toBe(true)
+  })
+
+  it('AC4_return_within_idle_unlocks_and_does_not_logout', async () => {
+    const { result } = renderHook(() => useSessionLock(true))
+    await act(async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(result.current).toBe(true)
+    await act(async () => {
+      vi.setSystemTime(Date.now() + IDLE_MS - 1000) // 30分未満
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(result.current).toBe(false)
+    expect(logout).not.toHaveBeenCalled()
+  })
+
+  it('AC5_return_after_idle_logs_out_and_keeps_isLocked_true', async () => {
+    const { result } = renderHook(() => useSessionLock(true))
+    await act(async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await act(async () => {
+      vi.setSystemTime(Date.now() + IDLE_MS + 1000) // 30分超過
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(logout).toHaveBeenCalled()
+    // カバーはリダイレクトまで張ったまま (false にしない)
+    expect(result.current).toBe(true)
   })
 })
 

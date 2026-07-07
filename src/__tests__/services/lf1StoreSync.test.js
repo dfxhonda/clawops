@@ -20,7 +20,12 @@ vi.mock('../../lib/localStore/patrolRecords', () => ({
 const loggerError = vi.fn()
 vi.mock('../../lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: (...a) => loggerError(...a) } }))
 
-const { uploadStoreRecords, makeDebouncedUploadAll, _resetInFlight } = await import('../../services/storeSync')
+// SPEC-LF1-PROBE-SUPABASE-DIRECT-01: probe reads url/key off the resolved client instance.
+vi.mock('../../lib/supabase', () => ({
+  supabase: { supabaseUrl: 'https://proj.supabase.co', supabaseKey: 'anon-key-xyz' },
+}))
+
+const { uploadStoreRecords, makeDebouncedUploadAll, probeOnline, _resetInFlight } = await import('../../services/storeSync')
 
 const rec = {
   localId: 'l1', synced: false, booth_code: 'TST01-M01-B01', store_code: 'TST01',
@@ -59,6 +64,43 @@ describe('D5: failures go to Sentry (logger.error) with context (AC4)', () => {
     expect(setRecordLastErrCode).toHaveBeenCalledWith('l1', 'ERR-METER-001')
     // failed>0 summary also goes to logger.error
     expect(loggerError).toHaveBeenCalledWith('LF1_UPLOAD_DONE', expect.objectContaining({ failed: 1 }))
+  })
+})
+
+describe('probeOnline hits Supabase directly, not same-origin (PROBE-SUPABASE-DIRECT-01 AC2)', () => {
+  const okFetch = vi.fn(async () => ({ ok: true }))
+
+  beforeEach(() => { vi.unstubAllGlobals() })
+
+  it('fetches the Supabase auth health endpoint with the apikey header (not /version.json)', async () => {
+    const fetcher = vi.fn(async () => ({ ok: true }))
+    const res = await probeOnline({ fetcher })
+    expect(res).toBe(true)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    const [url, opts] = fetcher.mock.calls[0]
+    expect(url).toContain('https://proj.supabase.co')
+    expect(url).toContain('/auth/v1/health')
+    expect(url).not.toContain('version.json')
+    expect(opts.headers.apikey).toBe('anon-key-xyz')
+    expect(opts.cache).toBe('no-store')
+  })
+
+  it('non-2xx response -> false', async () => {
+    const res = await probeOnline({ fetcher: vi.fn(async () => ({ ok: false, status: 302 })) })
+    expect(res).toBe(false)
+  })
+
+  it('network error (fetch rejects) -> false', async () => {
+    const res = await probeOnline({ fetcher: vi.fn(async () => { throw new Error('ECONNREFUSED') }) })
+    expect(res).toBe(false)
+  })
+
+  it('navigator.onLine === false short-circuits without fetching', async () => {
+    vi.stubGlobal('navigator', { onLine: false })
+    const res = await probeOnline({ fetcher: okFetch })
+    expect(res).toBe(false)
+    expect(okFetch).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
   })
 })
 

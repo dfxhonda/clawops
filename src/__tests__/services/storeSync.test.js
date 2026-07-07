@@ -29,10 +29,16 @@ describe('probeOnline', () => {
   })
 
   it('returns_true_when_fetch_ok', async () => {
+    // SPEC-LF1-PROBE-SUPABASE-DIRECT-01: probe now targets Supabase GoTrue health,
+    // not the same-origin /version.json (which Vercel Deployment Protection could 302).
     const fetcher = vi.fn(async () => ({ ok: true }))
     const ok = await probeOnline({ fetcher })
     expect(ok).toBe(true)
-    expect(fetcher).toHaveBeenCalledWith('/version.json?probe=1', expect.objectContaining({ cache: 'no-store' }))
+    const [url, opts] = fetcher.mock.calls[0]
+    expect(url).toContain('/auth/v1/health')
+    expect(url).not.toContain('version.json')
+    expect(opts.cache).toBe('no-store')
+    expect(opts.headers.apikey).toBeTruthy()
   })
 
   it('returns_false_when_fetch_throws_and_logs', async () => {

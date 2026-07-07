@@ -13,6 +13,7 @@ function _deriveStoreCode(boothCd) {
 // - 失敗は ERR-XXX log + 未送信のまま、banner で表示継続
 
 import { savePatrolReading } from './patrolCore'
+import { supabase } from '../lib/supabase'
 import {
   getUnsyncedRecords,
   markRecordSynced,
@@ -31,14 +32,28 @@ const LOG_ERR_PROBE  = 'ERR-LF1-SYNC-PROBE'
 const inFlightByStore = new Map()
 export function _resetInFlight() { inFlightByStore.clear() }
 
-// 軽量 connectivity probe。navigator.onLine は嘘をつくことがあるので Supabase 系の HEAD で確認。
-// fetch 失敗は offline 扱い。
+// SPEC-LF1-PROBE-SUPABASE-DIRECT-01: 軽量 connectivity probe。navigator.onLine は嘘をつく
+// ことがあるので Supabase 本体の到達性を直接確認する。公式の軽量エンドポイント GoTrue の
+// GET {url}/auth/v1/health (apikey 必須) を叩く — テーブル非依存で cheap な 200 を返す
+// (実測 107B, {"name":"GoTrue","version":...})。url/apikey は supabase client instance の
+// 解決済み値を使う (SPEC-HOTFIX-APIKEY-FALLBACK-01 の JWT フォールバック済みキーを尊重)。
+//
+// 旧実装は same-origin '/version.json' を叩いていたため、develop preview の Vercel
+// Deployment Protection が 302→vercel.com SSO を返し probe が false になって全同期が沈黙
+// する事故を起こした (根本原因 = probe 先が Supabase でなくアプリ自身の origin だったこと)。
+// fetch 失敗 / 非2xx は offline 扱い。
 export async function probeOnline({ fetcher = globalThis.fetch, signal } = {}) {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return false
   if (!fetcher) return true // SSR / test: 信用する
   try {
-    // /version.json は Vercel 上で no-cache 配信されているのでこれを probe に流用。
-    const res = await fetcher('/version.json?probe=1', { cache: 'no-store', signal })
+    const base = String(supabase?.supabaseUrl ?? '').replace(/\/+$/, '')
+    const apikey = supabase?.supabaseKey
+    const res = await fetcher(`${base}/auth/v1/health`, {
+      method: 'GET',
+      headers: { apikey },
+      cache: 'no-store',
+      signal,
+    })
     return !!res?.ok
   } catch (err) {
     logger.warn?.(LOG_ERR_PROBE, { message: err?.message })

@@ -22,6 +22,7 @@ import {
   getStoreMeta,
   putBaselineRows,
   reconcileSyncedByBaseline,
+  sweepBaselineOrphans,
 } from '../../lib/localStore/patrolRecords'
 import { computeLocalStoreView } from '../state/localStoreView'
 import { setPrevHold, clearPrevHold } from '../state/patrolPrevHold'
@@ -93,6 +94,25 @@ export default function PatrolStorePage() {
       // FIX_A: iOS kill でmarkRecordSynced未実行になったレコードをbaseline照合で自動回復。
       const reconciled = await reconcileSyncedByBaseline(rows)
       if (reconciled > 0) notifyLfChange()
+      // SPEC-LF1-BASELINE-AUTHORITATIVE-SWEEP-01: baseline を権威として、server 削除済みの
+      // 幽霊 synced 行 / localId!=reading_id の legacy 重複を booth 単位で掃除する。
+      // reconcile の後に実行 (tab-kill 回復で synced 化した行を評価対象へ含める為)。
+      // fire-and-forget: sweep 例外は history 描画/upload を絶対に壊さない。
+      try {
+        const byBooth = new Map()
+        for (const row of rows) {
+          if (!row.booth_code) continue
+          if (!byBooth.has(row.booth_code)) byBooth.set(row.booth_code, [])
+          byBooth.get(row.booth_code).push(row)
+        }
+        let swept = 0
+        for (const [bCode, bRows] of byBooth) {
+          swept += await sweepBaselineOrphans(bRows, { boothCode: bCode })
+        }
+        if (swept > 0) notifyLfChange()
+      } catch (err) {
+        logger.warn?.('ERR-LF1-BASELINE-SWEEP', { storeCode, message: err?.message })
+      }
       // SPEC-PATROL-SWIPE-LATENCY-FIX-03: tier-0 memory hold — one prev per booth from
       // same rows already in hand (first occurrence = latest due to fetchStoreBaselineRows DESC order).
       try {

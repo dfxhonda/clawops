@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { logout } from '../lib/auth/session'
 import { markLogoutStart, markLogoutReplaced, reportInterrupt } from '../lib/idleLogoutProbe'
 
-// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作15分アイドル → logout (ヒロ指示 2026-06-23: 5分→15分変更)
+// SPEC-AUTH-TIMEOUT-LOGOUT-S1-01: 無操作30分アイドル → logout
+//   (ヒロ指示 2026-07-07: 15分→30分変更。2026-06-23の5分→15分を更新)
 // SPEC-AUTH-TIMEOUT-REALTIME-RESUME-FIX-01: setInterval実時間検算 + 戻りイベント網羅
 // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: hiddenAtRef で離席実時間を計測。
 //   visible/pageshow 復帰時は lastActivityRef でなく hiddenAt 基準で判定し、
 //   戻り際タッチ → resetActivity 競合を根本排除 (Page Visibility API 標準パターン)。
-const IDLE_MS = 15 * 60 * 1000
+// SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hide-on-hide/decide-on-return。hidden 化した瞬間に
+//   isLocked=true (最後に描画されるフレームをカバーにする) → 復帰時に window 内なら
+//   isLocked=false で即座に元画面へ、window 超過なら doLogout。前画面のフラッシュを構造的に排除。
+const IDLE_MS = 30 * 60 * 1000
 const CHECK_INTERVAL = 30 * 1000 // 実時間検算 polling 間隔
 const EVENTS = ['click', 'touchstart', 'scroll', 'keydown', 'pointerdown']
 
@@ -16,6 +20,8 @@ export function useSessionLock(enabled = true) {
   const intervalRef = useRef(null)
   const lastActivityRef = useRef(Date.now()) // 前面での操作タイムスタンプ (フォアグラウンドidle用)
   const hiddenAtRef = useRef(null)           // hidden になった時刻 (離席実時間計測用)
+  // SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hidden 中はカバーを被せる。UI 専用フラグ (logout 判定には非関与)。
+  const [isLocked, setIsLocked] = useState(false)
 
   const doLogout = useCallback(async () => {
     markLogoutStart()
@@ -63,6 +69,9 @@ export function useSessionLock(enabled = true) {
     // pagehide も記録 (iOS bfcache でvisibilitychange未発火の取りこぼし防止)
     const handleHide = () => {
       hiddenAtRef.current = Date.now()
+      // SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hidden と同じ同期 tick でカバーを立てる (復帰時に
+      // 前画面が先に描画されないよう、backgrounding 完了前の最後のフレームをカバーにする)。
+      setIsLocked(true)
     }
 
     // SPEC-AUTH-TIMEOUT-HIDDEN-TIMESTAMP-FIX-01: visible 復帰時は hiddenAt 基準で離席実時間を判定。
@@ -71,9 +80,12 @@ export function useSessionLock(enabled = true) {
     const handleVisibleReturn = () => {
       if (hiddenAtRef.current === null) return
       if (Date.now() - hiddenAtRef.current >= IDLE_MS) {
+        // window 超過: doLogout() は window.location.replace('/login') で全 state を破棄する
+        // ため、カバーは張ったまま (isLocked=false にしない) → リダイレクトまで前画面を出さない。
         doLogout()
       } else {
         hiddenAtRef.current = null
+        setIsLocked(false) // window 内: カバーを外し、離れた画面をそのまま即復帰 (remount なし)。
         scheduleTimer()
       }
     }
@@ -115,4 +127,7 @@ export function useSessionLock(enabled = true) {
       clearInterval(intervalRef.current)
     }
   }, [enabled, resetActivity, scheduleTimer, checkElapsed, doLogout])
+
+  // SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: App.jsx がカバー表示に使う (既存の値無視 caller は不変)。
+  return isLocked
 }

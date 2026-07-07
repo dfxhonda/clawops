@@ -113,11 +113,40 @@ describe('slot stock normalize (chk_stock2/3_present_when_out2/3)', () => {
     expect(insertSpy.mock.calls[0][0].stock_2).toBe(0)
   })
 
-  it('update path: out_meter_2 in patch without stock_2 gets stock_2=0', async () => {
-    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z' } }
+  it('update path: out_meter_2 in patch, existing stock_2 also null -> stock_2=0', async () => {
+    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z', stock_2: null, stock_3: null } }
     await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-06', optionalPatch: { out_meter_2: 99 }, clientTimestamp: '2026-07-06T09:00:00Z' })
     const payload = updateSpy.mock.calls[0][0]
     expect(payload.out_meter_2).toBe(99)
     expect(payload.stock_2).toBe(0)
+  })
+})
+
+// SPEC-LF1-REPLAY-CONSTRAINT-NORMALIZE-02: UPDATE injection must not destroy an existing stock
+describe('update path conditional stock injection (NORMALIZE-02)', () => {
+  it('AC1: existing stock_2=5 + patch out_meter_2 only -> NO stock_2 key (5 preserved)', async () => {
+    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z', stock_2: 5, stock_3: null } }
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-06', optionalPatch: { out_meter_2: 900 }, clientTimestamp: '2026-07-06T09:00:00Z' })
+    const payload = updateSpy.mock.calls[0][0]
+    expect(payload.out_meter_2).toBe(900)
+    expect('stock_2' in payload).toBe(false)
+  })
+
+  it('AC2: existing stock_2 null + patch out_meter_2 -> stock_2=0 injected', async () => {
+    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z', stock_2: null, stock_3: null } }
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-06', optionalPatch: { out_meter_2: 900 }, clientTimestamp: '2026-07-06T09:00:00Z' })
+    expect(updateSpy.mock.calls[0][0].stock_2).toBe(0)
+  })
+
+  it('AC2: explicit patch stock_2 always wins (no injection)', async () => {
+    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z', stock_2: null } }
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-06', optionalPatch: { out_meter_2: 900, stock_2: 7 }, clientTimestamp: '2026-07-06T09:00:00Z' })
+    expect(updateSpy.mock.calls[0][0].stock_2).toBe(7)
+  })
+
+  it('slot 3 mirror: existing stock_3=9 preserved on out_meter_3-only patch', async () => {
+    existingResult = { data: { reading_id: 'r1', in_meter: 1, out_meter: 1, prize_stock_count: 0, prize_restock_count: 0, updated_at: '2026-07-06T08:00:00Z', stock_3: 9 } }
+    await savePatrolReading({ ...base, entryType: 'patrol', patrolDate: '2026-07-06', optionalPatch: { out_meter_3: 300 }, clientTimestamp: '2026-07-06T09:00:00Z' })
+    expect('stock_3' in updateSpy.mock.calls[0][0]).toBe(false)
   })
 })

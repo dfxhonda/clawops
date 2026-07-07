@@ -162,7 +162,8 @@ export function classifyEntryType({ prev, next, isCollection = false }) {
 
 const TODAY_EXISTING_SELECT =
   'reading_id, in_meter, out_meter, prize_stock_count, prize_restock_count, ' +
-  'prize_name, prize_id, set_a, set_c, set_l, set_r, set_o, prize_cost, updated_at'
+  'prize_name, prize_id, set_a, set_c, set_l, set_r, set_o, prize_cost, updated_at, ' +
+  'stock_2, stock_3'
 
 /**
  * 巡回記録 UPSERT / INSERT
@@ -306,7 +307,7 @@ export async function savePatrolReading({
 
       if (coreUnchanged && optionalUnchanged) return { ok: true, skipped: true }
 
-      const updatePayload = normalizeSlotStock({
+      const updatePayload = {
         in_meter:            numIn,
         out_meter:           numOut,
         prize_stock_count:   numStk,
@@ -315,7 +316,12 @@ export async function savePatrolReading({
         updated_at:          now,
         created_by:          staffId ?? null,
         ...patch,
-      })
+      }
+      // SPEC-LF1-REPLAY-CONSTRAINT-NORMALIZE-02: UPDATE の CHECK は結果行全体で評価される。
+      // -01 の無条件 normalizeSlotStock は既存 stock_N を 0 で破壊した。既存行も stock_N が
+      // 無い時だけ 0 を注入する (patch が out_meter_N を立て、patch/existing 両方 null)。
+      if (patch.out_meter_2 != null && patch.stock_2 == null && existing.stock_2 == null) updatePayload.stock_2 = 0
+      if (patch.out_meter_3 != null && patch.stock_3 == null && existing.stock_3 == null) updatePayload.stock_3 = 0
 
       const { error } = await supabase
         .from('meter_readings')
