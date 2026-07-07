@@ -61,7 +61,7 @@ export default function PatrolScreenV1() {
     : ''
 
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text">
+    <div className="h-svh flex flex-col bg-bg text-text">
       <PageHeader
         module="clawsupport"
         title={storeName}

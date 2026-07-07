@@ -1143,7 +1143,7 @@ export default function PatrolBoothInputPage() {
               <button
                 type="button"
                 onClick={() => { setShowBackConfirm(false); goBack() }}
-                className="flex-1 py-3 rounded-xl border border-border text-sm text-muted"
+                className="flex-1 min-h-[44px] py-3 rounded-xl border border-border text-sm text-muted"
                 data-testid="back-confirm-discard"
               >
                 保存せず戻る
@@ -1152,7 +1152,7 @@ export default function PatrolBoothInputPage() {
                 type="button"
                 disabled={!canSave}
                 onClick={() => { setShowBackConfirm(false); handleSave(goBack) }}
-                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm disabled:opacity-40"
+                className="flex-1 min-h-[44px] py-3 rounded-xl bg-blue-600 text-white font-bold text-sm disabled:opacity-40"
                 data-testid="back-confirm-save"
               >
                 保存して戻る

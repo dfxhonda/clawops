@@ -266,7 +266,7 @@ export default function PatrolStorePage() {
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text">
+    <div className="h-svh flex flex-col bg-bg text-text">
       <PageHeader
         module="clawsupport"
         title={storeName}
@@ -295,7 +295,7 @@ export default function PatrolStorePage() {
           data-testid="patrol-store-manual-upload"
           onClick={handleManualUpload}
           disabled={syncing}
-          className="text-[11px] px-2 py-1 rounded-md bg-emerald-600/90 text-white font-bold disabled:opacity-50"
+          className="text-[11px] min-h-[44px] px-3 py-1 rounded-md bg-emerald-600/90 text-white font-bold disabled:opacity-50"
         >
           {syncing ? '送信中...' : 'とりま保存'}
         </button>
@@ -358,7 +358,7 @@ export default function PatrolStorePage() {
                 aria-selected={active}
                 data-testid={`patrol-view-mode-btn-${m}`}
                 onClick={() => setViewMode(m)}
-                className={`min-h-[36px] px-2.5 rounded text-xs font-bold leading-tight ${
+                className={`min-h-[44px] px-2.5 rounded text-xs font-bold leading-tight ${
                   active ? 'bg-emerald-600 text-white' : 'text-muted active:bg-surface'
                 }`}
               >
@@ -372,7 +372,7 @@ export default function PatrolStorePage() {
             type="button"
             data-testid="expand-all-toggle"
             onClick={handleExpandAllToggle}
-            className="text-xs text-muted border border-border rounded px-1.5 py-0.5 min-h-[36px] active:bg-surface"
+            className="text-xs text-muted border border-border rounded px-2 py-0.5 min-h-[44px] min-w-[44px] active:bg-surface"
           >
             {allExpanded ? '全閉' : '全開'}
           </button>
