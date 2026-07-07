@@ -399,18 +399,15 @@ export default function AdminStaffListPage() {
     setDeleting(true)
     setError(null)
     try {
-      await supabase.from('staff_stores').delete().eq('staff_id', modal.staff_id)
-      const { error: delErr } = await supabase.from('staff').delete().eq('staff_id', modal.staff_id)
-      if (delErr) throw delErr
-      await writeAuditLog({
-        staff_id: staffId || undefined,
-        action: 'DELETE',
-        target_table: 'staff',
-        target_id: modal.staff_id,
-        detail: `スタッフ削除: ${modal.name ?? ''} (24h内ログイン=${deleteConfirm?.active_within_24h ? 'YES' : 'NO'})`,
-        before_data: { staff_id: modal.staff_id, name: modal.name, role: modal.role },
-        after_data: null,
+      // SPEC-ADMIN-STAFF-SOFT-DELETE-01: single atomic SECURITY DEFINER RPC replaces the two
+      // raw client .delete() calls. The RPC soft-deletes (deleted_at), cleans staff_stores,
+      // and writes the operation_logs audit inside one transaction — so the client-side
+      // writeAuditLog for this action is removed to avoid double-logging (other actions keep it).
+      const { error: rpcErr } = await supabase.rpc('fn_admin_delete_staff', {
+        p_staff_id: modal.staff_id,
+        p_actor_staff_id: staffId,
       })
+      if (rpcErr) throw rpcErr
       logger.info('staff_delete_success', { staff_id: modal.staff_id })
       setDeleteConfirm(null)
       setModal(null)
