@@ -11,6 +11,11 @@ const LOG_ERR_QUOTA   = 'ERR-LF1-IDB-QUOTA'
 
 function syncedKey(b) { return b ? 'true' : 'false' }
 
+// JST 日付 (yyyy-mm-dd)。toISOString() は UTC ずれで前/翌日事故を起こすため sv-SE + Asia/Tokyo。
+function todayJST() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+}
+
 /**
  * 1 booth 1 record の atomic put。
  * record shape (LF1 で取り扱う最小 subset):
@@ -296,8 +301,10 @@ function baselineLocalId(row) {
  * 安全不変条件:
  *   INV1 synced=false 行は絶対に削除しない (step3 で無条件除外)
  *   INV2 空/失敗 baseline では 0 削除
- *   INV3 baseline カバー範囲 [minDate,maxDate] 外の行は削除しない
- *        (baseline fetch は件数制限あり、範囲外の不在は削除根拠にならない)
+ *   INV3 カバー範囲 [minDate(baseline), today(JST)] 外の行は削除しない
+ *        (下限=baseline最小日付。上限は today まで拡張: D-040 — baseline fetch は最新N件の
+ *         desc pull なので、baseline最大日付より新しく today以下の synced 行は server 削除済み
+ *         幽霊と確定できる。today超の未来日 (clock skew) は触らない)
  *   INV4 最悪ケースは「まだ server に在る synced コピーの削除」= 次の baseline fetch で復元。
  *        表示のみ影響でデータ喪失ゼロ。安全>確実>快適 の順序を構造的に保持。
  *
@@ -314,28 +321,29 @@ export async function sweepBaselineOrphans(baselineRows, { boothCode } = {}) {
   const boothBaseline = baselineRows.filter(r => r && r.booth_code === boothCode)
   if (!boothBaseline.length) return 0
 
-  // coverage window と「生かす localId」set をこの booth 分だけで構築。
+  // 下限 = この booth の baseline 最小日付。「生かす localId」set も同時に構築。
   let minDate = null
-  let maxDate = null
   const keepIds = new Set()
   for (const r of boothBaseline) {
     keepIds.add(baselineLocalId(r))
     const d = r.patrol_date
     if (d == null) continue
     if (minDate == null || d < minDate) minDate = d
-    if (maxDate == null || d > maxDate) maxDate = d
   }
-  if (minDate == null || maxDate == null) return 0
+  if (minDate == null) return 0
+  // D-040: 上限は baseline 最大日付ではなく today(JST)。baseline より新しく today以下の
+  // synced 行 = server 削除済み幽霊 (最新N件 desc fetch に載るはずの行が不在 → 削除された)。
+  const today = todayJST()
 
   try {
     const rows = await getPatrolRecordsByBooth(boothCode)
     // step3: synced===true かつ window 内のみ対象。synced=false は無条件除外 (INV1)。
-    // step5: window 外 (patrol_date < minDate or > maxDate) は対象外 (INV3)。
+    // step5: window 外 (patrol_date < minDate or > today) は対象外 (INV3)。today超の未来日も除外。
     const orphans = rows.filter(r =>
       r.synced === true &&
       r.patrol_date != null &&
       r.patrol_date >= minDate &&
-      r.patrol_date <= maxDate &&
+      r.patrol_date <= today &&
       !keepIds.has(r.localId)
     )
     if (!orphans.length) return 0

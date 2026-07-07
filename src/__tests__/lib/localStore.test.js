@@ -403,6 +403,38 @@ describe('sweepBaselineOrphans (SPEC-LF1-BASELINE-AUTHORITATIVE-SWEEP-01)', () =
     expect(deleted).toBe(0)
     expect((await getPatrolRecordsByBooth(BOOTH)).map(r => r.localId)).toContain('booth1-0515')
   })
+
+  // D-040: upper bound extended from baseline maxDate to today (JST).
+  it('AC10_sweeps_ghost_dated_after_baseline_maxDate_but_on_or_before_today', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-07T09:00:00+09:00'))
+    try {
+      await putBaselineRows(baseline) // baseline maxDate = 2026-06-29
+      // field case: 07-01 replace ghost deleted server-side; dated AFTER baseline maxDate but
+      // on/before today (2026-07-07) -> previously outside window (not swept), now swept.
+      await putPatrolRecord({ localId: 'ghost-0701', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-07-01', entry_type: 'replace', in_meter: 400, out_meter: 300, synced: true })
+      const deleted = await sweepBaselineOrphans(baseline, { boothCode: BOOTH })
+      expect(deleted).toBe(1)
+      expect((await getPatrolRecordsByBooth(BOOTH)).map(r => r.localId)).not.toContain('ghost-0701')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('AC11_does_not_sweep_future_dated_row_beyond_today', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-07T09:00:00+09:00'))
+    try {
+      await putBaselineRows(baseline)
+      // clock-skew / future-dated synced row (> today) -> upper bound is today, NOT unbounded.
+      await putPatrolRecord({ localId: 'future-0710', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-07-10', entry_type: 'patrol', in_meter: 1, synced: true })
+      const deleted = await sweepBaselineOrphans(baseline, { boothCode: BOOTH })
+      expect(deleted).toBe(0)
+      expect((await getPatrolRecordsByBooth(BOOTH)).map(r => r.localId)).toContain('future-0710')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('store meta', () => {
