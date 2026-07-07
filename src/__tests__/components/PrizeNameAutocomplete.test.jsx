@@ -103,8 +103,9 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
     expect(ul.className).toContain('z-[9999]')
   })
 
-  // AC-02: 候補が多い場合、リスト内でスクロールできる (max-h-[400px] overflow-y-auto)
-  it('listbox_should_have_max_h_400px_and_overflow_y_auto', async () => {
+  // AC-02: 候補が多い場合、リスト内でスクロールできる
+  // (UX-02 で max-h は fixed 400px → inline min(45svh,...) + overscroll-contain に変更)
+  it('listbox_should_scroll_within_with_svh_maxheight_and_overscroll_contain', async () => {
     searchPrizeMasters.mockResolvedValue(makeCandidates(10))
     renderAutocomplete()
     const input = screen.getByTestId('prize-name-input')
@@ -115,8 +116,9 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
       expect(screen.getByTestId('prize-autocomplete-list')).toBeTruthy()
     })
     const ul = screen.getByTestId('prize-autocomplete-list')
-    expect(ul.className).toContain('max-h-[400px]')
     expect(ul.className).toContain('overflow-y-auto')
+    expect(ul.className).toContain('overscroll-contain')
+    expect(ul.style.maxHeight).toContain('svh')
   })
 
   // AC-03: 文字を増やすと候補が絞り込まれる (再 fetch される、フィルター維持)
@@ -219,5 +221,50 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-INPUT-IOS-QUIRKS-FIX-01)', ()
     const ul = screen.getByTestId('prize-autocomplete-list')
     expect(ul.className).toContain('select-none')
     expect(ul.style.webkitTouchCallout || ul.style.WebkitTouchCallout).toBe('none')
+  })
+})
+
+describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-UX-02)', () => {
+  it('W1: dropdown is a full-width fixed portal (left-3 right-3, z-[9999]), not w-72 absolute', async () => {
+    searchPrizeMasters.mockResolvedValue(makeCandidates(3))
+    renderAutocomplete()
+    await typeQuery(screen.getByTestId('prize-name-input'), 'テスト')
+    await waitFor(() => expect(screen.getByTestId('prize-autocomplete-list')).toBeTruthy())
+    const ul = screen.getByTestId('prize-autocomplete-list')
+    expect(ul.className).toContain('fixed')
+    expect(ul.className).toContain('left-3')
+    expect(ul.className).toContain('right-3')
+    expect(ul.className).toContain('z-[9999]')
+    expect(ul.className).not.toContain('w-72')
+    // portaled to document.body (not nested under the input's relative wrapper)
+    expect(ul.closest('[data-testid="prize-name-input"]')).toBeNull()
+  })
+
+  it('W2: candidate name wraps 2 lines (line-clamp-2), not truncate', async () => {
+    searchPrizeMasters.mockResolvedValue([
+      { prize_id: 'P1', prize_name: '●5/10締切 400 アミューズ不可 とても長い景品名テスト', short_name: null, original_cost: 400, latest_order_date: '2026-05-10' },
+    ])
+    renderAutocomplete()
+    await typeQuery(screen.getByTestId('prize-name-input'), 'テスト')
+    await waitFor(() => expect(screen.getByTestId('prize-candidate-0')).toBeTruthy())
+    const nameSpan = screen.getByTestId('prize-candidate-0').querySelector('.font-bold')
+    expect(nameSpan.className).toContain('line-clamp-2')
+    expect(nameSpan.className).not.toContain('truncate')
+  })
+
+  it('W5: identical-name candidates get a distinguishing sub-line (納期), unique ones do not', async () => {
+    searchPrizeMasters.mockResolvedValue([
+      { prize_id: 'A', prize_name: '●400 アミューズ不可', short_name: 'a', original_cost: 400, latest_order_date: '2026-05-10' },
+      { prize_id: 'B', prize_name: '●400 アミューズ不可', short_name: 'b', original_cost: 400, latest_order_date: '2026-04-01' },
+      { prize_id: 'C', prize_name: 'ユニーク景品', short_name: 'c', original_cost: 500, latest_order_date: '2026-03-01' },
+    ])
+    renderAutocomplete()
+    await typeQuery(screen.getByTestId('prize-name-input'), 'テスト')
+    await waitFor(() => expect(screen.getByTestId('prize-candidate-2')).toBeTruthy())
+    // twins (0,1) get the hint sub-line...
+    expect(screen.getByTestId('prize-candidate-hint-0').textContent).toContain('納期 2026-05-10')
+    expect(screen.getByTestId('prize-candidate-hint-1').textContent).toContain('納期 2026-04-01')
+    // ...the unique one (2) does not
+    expect(screen.queryByTestId('prize-candidate-hint-2')).toBeNull()
   })
 })
