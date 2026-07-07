@@ -36,6 +36,10 @@ export default function PrizeNameAutocomplete({
   const [open, setOpen] = useState(false)
   const debouncedQuery = useDebounce(query, 300)
   const inputRef = useRef(null)
+  // SPEC-PATROL-PRIZE-INPUT-IOS-QUIRKS-FIX-01 B1: iOS は id/name に英語 "name" を含むと連絡先
+  // フィールドと誤判定し「連絡先を自動入力」バーを出す。id から name トークンを除去した中立
+  // id を使う (fieldId は label/focus から未参照なので安全)。name も中立固定。
+  const neutralId = String(fieldId || testId || 'pz').replace(/name/gi, 'f')
 
   useEffect(() => {
     if (debouncedQuery.trim().length < 2) {
@@ -93,7 +97,8 @@ export default function PrizeNameAutocomplete({
     <div className="relative flex-1 min-w-0">
       <input
         ref={inputRef}
-        id={fieldId}
+        id={neutralId}
+        name="pz_field"
         type="text"
         inputMode="text"
         data-testid={testId}
@@ -102,8 +107,15 @@ export default function PrizeNameAutocomplete({
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         placeholder={placeholder}
+        aria-label="景品"
+        // SPEC-PATROL-PRIZE-INPUT-IOS-QUIRKS-FIX-01 B1: autocomplete=off だけでは iOS の連絡先
+        // 推定を止められないため、name/id 中立化 + autoCorrect/Capitalize off + contacts-auto-fill
+        // ボタン非表示 CSS (.prize-name-field, index.css) を併用。
         autoComplete="off"
-        className="w-full bg-transparent text-right text-sm text-text outline-none placeholder:text-gray-500"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        className="prize-name-field w-full bg-transparent text-right text-sm text-text outline-none placeholder:text-gray-500"
         style={{ fontSize: 16, WebkitAppearance: 'none' }}
       />
       {open && (
@@ -112,7 +124,11 @@ export default function PrizeNameAutocomplete({
           data-testid="prize-autocomplete-list"
           // SPEC-PATROL-PRIZE-SUGGEST-01: 表示件数の物理 cap を排除して max-h-[400px] + overflow-y-auto に。
           // 角丸との両立のため overflow-y-auto 単独 (overflow-hidden 廃止)、ul 自体に rounded-xl + border 維持。
-          className="absolute right-0 top-full z-[9999] w-72 bg-surface border border-border rounded-xl shadow-2xl mt-1 max-h-[400px] overflow-y-auto"
+          // SPEC-PATROL-PRIZE-INPUT-IOS-QUIRKS-FIX-01 B2: 候補テキストが長押し選択可能だと iOS の
+          // 「選択/すべてを選択/ペースト」callout が候補を覆う。dropdown 側 (input ではない) を
+          // 選択不可 + touch-callout none にして callout を抑止する。
+          className="prize-suggest-list absolute right-0 top-full z-[9999] w-72 bg-surface border border-border rounded-xl shadow-2xl mt-1 max-h-[400px] overflow-y-auto select-none"
+          style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           {candidates.length === 0 ? (
             <li

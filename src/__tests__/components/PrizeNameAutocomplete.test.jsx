@@ -168,3 +168,56 @@ describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-SUGGEST-01)', () => {
     expect(screen.queryByTestId('prize-autocomplete-list')).toBeNull()
   })
 })
+
+describe('PrizeNameAutocomplete (SPEC-PATROL-PRIZE-INPUT-IOS-QUIRKS-FIX-01)', () => {
+  // AC2: neutral name/id (no English "name" token that iOS reads as a contact field) + class hook
+  it('B1_input_has_neutral_name_and_id_without_name_token', () => {
+    render(
+      <PrizeNameAutocomplete value="" onChange={vi.fn()} onSelect={vi.fn()}
+        placeholder="B段景品" fieldId="field-prize-name" testId="prize-name-input" />
+    )
+    const input = screen.getByTestId('prize-name-input')
+    expect(input.getAttribute('name')).toBe('pz_field')
+    expect(input.id.toLowerCase()).not.toContain('name') // field-prize-name -> field-prize-f
+    expect(input.className).toContain('prize-name-field') // contacts-auto-fill CSS hook
+  })
+
+  // AC2: iOS heuristic dampeners present
+  it('B1_input_disables_autocomplete_autocorrect_autocapitalize', () => {
+    render(
+      <PrizeNameAutocomplete value="" onChange={vi.fn()} onSelect={vi.fn()}
+        placeholder="B段景品" fieldId="field-prize-name" testId="prize-name-input" />
+    )
+    const input = screen.getByTestId('prize-name-input')
+    expect(input.getAttribute('autocomplete')).toBe('off')
+    expect(input.getAttribute('autocorrect')).toBe('off')
+    expect(input.getAttribute('autocapitalize')).toBe('off')
+  })
+
+  // AC3: focusing the prize field must NOT select-all (no select()/setSelectionRange on the input)
+  it('B2_AC3_focus_does_not_select_all_text', () => {
+    render(
+      <PrizeNameAutocomplete value="たまごっち" onChange={vi.fn()} onSelect={vi.fn()}
+        placeholder="B段景品" fieldId="field-prize-name" testId="prize-name-input" />
+    )
+    const input = screen.getByTestId('prize-name-input')
+    fireEvent.focus(input)
+    // a select-all would set selectionStart=0, selectionEnd=length; caret placement keeps them equal
+    expect(input.selectionStart).toBe(input.selectionEnd)
+  })
+
+  // AC4: suggest dropdown suppresses the iOS long-press edit-menu callout (not the input)
+  it('B2_AC4_dropdown_has_touch_callout_and_user_select_none', async () => {
+    searchPrizeMasters.mockResolvedValue(makeCandidates(5))
+    render(
+      <PrizeNameAutocomplete value="" onChange={vi.fn()} onSelect={vi.fn()}
+        placeholder="B段景品" fieldId="field-prize-name" testId="prize-name-input" />
+    )
+    const input = screen.getByTestId('prize-name-input')
+    await typeQuery(input, 'テスト')
+    await waitFor(() => expect(screen.getByTestId('prize-autocomplete-list')).toBeTruthy())
+    const ul = screen.getByTestId('prize-autocomplete-list')
+    expect(ul.className).toContain('select-none')
+    expect(ul.style.webkitTouchCallout || ul.style.WebkitTouchCallout).toBe('none')
+  })
+})
