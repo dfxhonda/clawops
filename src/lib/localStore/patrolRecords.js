@@ -280,6 +280,82 @@ export async function reconcileSyncedByBaseline(baselineRows) {
   return reconciled
 }
 
+// putBaselineRows と同一の localId 採番 (localId = reading_id、無ければ合成キー)。
+// sweep が「生き残すべき baseline 行の localId」を正確に判定するため必ず一致させる。
+function baselineLocalId(row) {
+  return row.reading_id ?? `baseline-${row.booth_code}-${row.patrol_date}`
+}
+
+/**
+ * SPEC-LF1-BASELINE-AUTHORITATIVE-SWEEP-01: server baseline を「その booth のカバー日付
+ * 範囲内では権威」とみなし、baseline に含まれない synced=true の IDB 幽霊行を掃除する。
+ * - server で削除された行 (admin_delete_meter_reading) の端末側残留を消す
+ * - localId != reading_id の legacy 重複 (idempotent upload 以前) を消す。生き残るのは
+ *   putBaselineRows が localId=reading_id で書いた baseline 行そのもの。
+ *
+ * 安全不変条件:
+ *   INV1 synced=false 行は絶対に削除しない (step3 で無条件除外)
+ *   INV2 空/失敗 baseline では 0 削除
+ *   INV3 baseline カバー範囲 [minDate,maxDate] 外の行は削除しない
+ *        (baseline fetch は件数制限あり、範囲外の不在は削除根拠にならない)
+ *   INV4 最悪ケースは「まだ server に在る synced コピーの削除」= 次の baseline fetch で復元。
+ *        表示のみ影響でデータ喪失ゼロ。安全>確実>快適 の順序を構造的に保持。
+ *
+ * baselineRows は store 全体を渡しても良い (boothCode で内部的に絞り込み、window を
+ * 他 booth の日付で広げない = INV3 を跨ぎから守る)。
+ *
+ * @param {Array} baselineRows  server baseline rows
+ * @param {{boothCode: string}} opts
+ * @returns {Promise<number>} 削除件数
+ */
+export async function sweepBaselineOrphans(baselineRows, { boothCode } = {}) {
+  // INV2 + guard: 空/null baseline、boothCode 不在なら何もしない。
+  if (!baselineRows || !baselineRows.length || !boothCode) return 0
+  const boothBaseline = baselineRows.filter(r => r && r.booth_code === boothCode)
+  if (!boothBaseline.length) return 0
+
+  // coverage window と「生かす localId」set をこの booth 分だけで構築。
+  let minDate = null
+  let maxDate = null
+  const keepIds = new Set()
+  for (const r of boothBaseline) {
+    keepIds.add(baselineLocalId(r))
+    const d = r.patrol_date
+    if (d == null) continue
+    if (minDate == null || d < minDate) minDate = d
+    if (maxDate == null || d > maxDate) maxDate = d
+  }
+  if (minDate == null || maxDate == null) return 0
+
+  try {
+    const rows = await getPatrolRecordsByBooth(boothCode)
+    // step3: synced===true かつ window 内のみ対象。synced=false は無条件除外 (INV1)。
+    // step5: window 外 (patrol_date < minDate or > maxDate) は対象外 (INV3)。
+    const orphans = rows.filter(r =>
+      r.synced === true &&
+      r.patrol_date != null &&
+      r.patrol_date >= minDate &&
+      r.patrol_date <= maxDate &&
+      !keepIds.has(r.localId)
+    )
+    if (!orphans.length) return 0
+    const db = await getDb()
+    const tx = db.transaction(STORE_PATROL_RECORDS, 'readwrite')
+    let deleted = 0
+    for (const r of orphans) {
+      await tx.store.delete(r.localId)
+      deleted++
+    }
+    await tx.done
+    if (deleted > 0) logger.info?.('LF1_BASELINE_SWEEP', { boothCode, deleted })
+    return deleted
+  } catch (err) {
+    // reconciliation は正常系。Sentry error にせず継続 (呼び出し側で描画を止めない)。
+    logger.error?.(LOG_ERR_WRITE, { phase: 'baseline_sweep', boothCode, message: err?.message })
+    return 0
+  }
+}
+
 // store メタ (storeName / machines / prefetchedAt) を保存。prefetch / load 共通。
 export async function putStoreMeta(storeCode, meta) {
   if (!storeCode) return

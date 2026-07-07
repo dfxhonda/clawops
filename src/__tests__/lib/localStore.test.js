@@ -15,6 +15,7 @@ import {
   getStoreMeta,
   putBaselineRows,
   reconcileSyncedByBaseline,
+  sweepBaselineOrphans,
 } from '../../lib/localStore/patrolRecords'
 
 beforeEach(async () => {
@@ -319,6 +320,88 @@ describe('reconcileSyncedByBaseline (SPEC-LF1-UNSENT-RECONCILE-FIX-01 AC5)', () 
       in_meter: 100,
     }])
     expect(count).toBe(0)
+  })
+})
+
+describe('sweepBaselineOrphans (SPEC-LF1-BASELINE-AUTHORITATIVE-SWEEP-01)', () => {
+  const BOOTH = 'YTS01-M01-B01'
+  // baseline = server truth: 3 rows (06-29 / 06-23 / 06-20). localId=reading_id via putBaselineRows.
+  const baseline = [
+    { reading_id: 'r-0629', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-29', entry_type: 'patrol', in_meter: 300, out_meter: 200 },
+    { reading_id: 'r-0623', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-23', entry_type: 'patrol', in_meter: 250, out_meter: 150 },
+    { reading_id: 'r-0620', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-20', entry_type: 'patrol', in_meter: 200, out_meter: 100 },
+  ]
+
+  it('AC1_deletes_synced_ghost_in_window_absent_from_baseline', async () => {
+    await putBaselineRows(baseline)
+    // ghost: server-deleted 07-01... but window is 06-20..06-29 so use an in-window ghost date.
+    await putPatrolRecord({ localId: 'ghost-0625', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-25', entry_type: 'patrol', in_meter: 999, out_meter: 0, synced: true })
+    const before = await getPatrolRecordsByBooth(BOOTH)
+    expect(before.map(r => r.localId)).toContain('ghost-0625')
+
+    const deleted = await sweepBaselineOrphans(baseline, { boothCode: BOOTH })
+    expect(deleted).toBe(1)
+    const after = await getPatrolRecordsByBooth(BOOTH)
+    expect(after.map(r => r.localId)).not.toContain('ghost-0625')
+    // baseline rows survive
+    expect(after.map(r => r.localId).sort()).toEqual(['r-0620', 'r-0623', 'r-0629'])
+  })
+
+  it('AC2_preserves_unsynced_row_same_booth_and_date', async () => {
+    await putBaselineRows(baseline)
+    await putPatrolRecord({ localId: 'local-edit', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-25', entry_type: 'patrol', in_meter: 777, synced: false })
+    const deleted = await sweepBaselineOrphans(baseline, { boothCode: BOOTH })
+    expect(deleted).toBe(0)
+    const after = await getPatrolRecordsByBooth(BOOTH)
+    expect(after.map(r => r.localId)).toContain('local-edit')
+  })
+
+  it('AC3_empty_or_null_baseline_deletes_nothing', async () => {
+    await putBaselineRows(baseline)
+    await putPatrolRecord({ localId: 'ghost-0625', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-25', entry_type: 'patrol', in_meter: 999, synced: true })
+    expect(await sweepBaselineOrphans([], { boothCode: BOOTH })).toBe(0)
+    expect(await sweepBaselineOrphans(null, { boothCode: BOOTH })).toBe(0)
+    const after = await getPatrolRecordsByBooth(BOOTH)
+    expect(after.map(r => r.localId)).toContain('ghost-0625')
+  })
+
+  it('AC4_preserves_synced_row_before_baseline_minDate', async () => {
+    await putBaselineRows(baseline)
+    // dated 2026-06-10, before minDate 06-20 -> outside coverage, never touched (INV3).
+    await putPatrolRecord({ localId: 'old-0610', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-10', entry_type: 'patrol', in_meter: 50, synced: true })
+    const deleted = await sweepBaselineOrphans(baseline, { boothCode: BOOTH })
+    expect(deleted).toBe(0)
+    const after = await getPatrolRecordsByBooth(BOOTH)
+    expect(after.map(r => r.localId)).toContain('old-0610')
+  })
+
+  it('AC5_legacy_duplicate_deleted_baseline_kept_one_row_per_reading', async () => {
+    await putBaselineRows(baseline)
+    // legacy duplicate: localId != reading_id, values equal to the 06-29 baseline row.
+    await putPatrolRecord({ localId: 'legacy-uuid-xyz', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-06-29', entry_type: 'patrol', in_meter: 300, out_meter: 200, synced: true })
+    const beforeCount = (await getPatrolRecordsByBooth(BOOTH)).filter(r => r.patrol_date === '2026-06-29').length
+    expect(beforeCount).toBe(2) // baseline r-0629 + legacy duplicate
+
+    const deleted = await sweepBaselineOrphans(baseline, { boothCode: BOOTH })
+    expect(deleted).toBe(1)
+    const rows0629 = (await getPatrolRecordsByBooth(BOOTH)).filter(r => r.patrol_date === '2026-06-29')
+    expect(rows0629.map(r => r.localId)).toEqual(['r-0629']) // exactly one, the baseline copy
+  })
+
+  it('window_derived_per_booth_not_widened_by_other_booths', async () => {
+    // Passing store-wide baseline (2 booths) must not widen THIS booth's window.
+    const otherBooth = 'YTS01-M02-B01'
+    const storeWide = [
+      ...baseline,
+      { reading_id: 'r-b2-0501', booth_code: otherBooth, store_code: 'YTS01', patrol_date: '2026-05-01', entry_type: 'patrol', in_meter: 10, out_meter: 5 },
+    ]
+    await putBaselineRows(storeWide)
+    // synced row for BOOTH dated 2026-05-15: inside store-wide (05-01..06-29) but OUTSIDE
+    // BOOTH's own window (06-20..06-29) -> must be preserved.
+    await putPatrolRecord({ localId: 'booth1-0515', booth_code: BOOTH, store_code: 'YTS01', patrol_date: '2026-05-15', entry_type: 'patrol', in_meter: 1, synced: true })
+    const deleted = await sweepBaselineOrphans(storeWide, { boothCode: BOOTH })
+    expect(deleted).toBe(0)
+    expect((await getPatrolRecordsByBooth(BOOTH)).map(r => r.localId)).toContain('booth1-0515')
   })
 })
 
