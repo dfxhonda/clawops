@@ -83,3 +83,13 @@ textarea {
     min-height: 44px;
   }
 }
+
+/* SPEC-PATROL-PRIZE-INPUT-IOS-QUIRKS-FIX-01 B1: 景品名入力の iOS「連絡先を自動入力」ボタンを
+   除去する (name/id 中立化と併用)。景品名フィールドのみに限定 (.prize-name-field)。 */
+.prize-name-field::-webkit-contacts-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}

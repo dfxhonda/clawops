@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import LandscapeSideHeader from '../../components/LandscapeSideHeader'
 import ErrorDisplay from '../../components/ErrorDisplay'
 import { getForecastStoreList } from '../../services/forecast'
+import { s1gBadge } from '../lib/s1gStatus'
 import { getAllStores } from '../../services/masters'
 import { fmtYen } from '../../utils/format'
 import { formatJstDate } from '../../admin/lib/jstDate'
@@ -102,6 +103,15 @@ export default function ForecastList() {
                     <div className="flex items-baseline gap-2">
                       <p className="font-bold text-sm truncate">{storeNames[row.store_code] ?? row.store_code}</p>
                       <span className="text-[10px] font-mono text-muted shrink-0">{row.store_code}</span>
+                      {/* SPEC-S1G-DONKI-DEADLINE-ALERT-01: 締日アラート badge (unplanned/overdue のみ) */}
+                      {(() => {
+                        const badge = s1gBadge(row.s1g_status)
+                        return badge ? (
+                          <span className={`shrink-0 inline-block rounded px-1.5 py-0.5 text-xs font-bold ${badge.cls}`}>
+                            {badge.text}
+                          </span>
+                        ) : null
+                      })()}
                     </div>
                     <p className="text-[10px] text-muted mt-0.5">
                       {formatJstDate(row.cycle_start)}〜{formatJstDate(row.next_collection)} 残り{row.days_remaining ?? '—'}日

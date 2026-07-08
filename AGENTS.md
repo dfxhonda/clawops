@@ -354,6 +354,14 @@ spec_reference_priority:
     a-d で自己解決できなかった項目は status_log paragraph に「不明点リスト」として記録。
     クリティカルなもののみ実装前に司令塔へ問い合わせ。
     ノンクリティカルなものは「類似実装踏襲」で進め、完了報告 implementation_notes に明示。
+incident_derived_rules:
+  added: 2026-07-08
+  source: "D-048 (ヒロ Discord 直指示。incident 2026-07-07 staff.deleted_at + D-045)"
+  rules:
+    rls_qual_edit_rule: "roles={public} な policy の qual / with_check を編集したら、done 前に live で SET ROLE anon および SET ROLE authenticated による end-to-end SELECT テストを必須とする (2026-07-07 staff.deleted_at インシデント: qual 追加が anon SELECT を全滅させた)"
+    viewport_rule: "h-dvh 禁止。親要素・子要素とも一貫して h-svh を使う (iOS PWA で dvh は下端がクリップされる、D-045)"
+    alter_table_notify_rule: "ALTER TABLE ADD COLUMN の後は必ず NOTIFY pgrst, 'reload schema' を実行する (PostgREST スキーマキャッシュ更新)"
+    rebase_before_start_rule: "作業開始前に必ず最新 develop に rebase する"
 ```
 
 ## Gate 4: Mobile UX Playwright (MANDATORY - VERIFICATION-GATES-V1)

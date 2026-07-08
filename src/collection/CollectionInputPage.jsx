@@ -308,7 +308,7 @@ export default function CollectionInputPage() {
   }
 
   return (
-    <div data-testid="collection-input" className="flex flex-col" style={{ height: '100dvh' }} onPointerDown={handleOutsideTap}>
+    <div data-testid="collection-input" className="flex flex-col" style={{ height: '100svh' }} onPointerDown={handleOutsideTap}>
       <div className="flex-shrink-0 p-3 pb-2 border-b border-border">
         <div className="flex items-center justify-between mb-2">
           <button onClick={() => navigate('/admin/collection')} className="text-sm text-gray-400 hover:text-white min-h-[44px] flex items-center gap-1">← 戻る</button>
@@ -474,7 +474,7 @@ export default function CollectionInputPage() {
                             </div>
                           ))}
                           <span className="ml-auto text-sm font-bold text-text tabular-nums" data-testid={`denom-subtotal-${b.booth_code}`}>合計 {yen(sub)} 円</span>
-                          <button data-testid={`denom-close-${b.booth_code}`} onClick={() => setOpenDenom(null)} className="text-xs text-blue-400 px-2 min-h-[36px]">閉じる</button>
+                          <button data-testid={`denom-close-${b.booth_code}`} onClick={() => setOpenDenom(null)} className="text-xs text-blue-400 px-3 min-h-[44px]">閉じる</button>
                         </div>
                       </td>
                     </tr>

@@ -24,14 +24,13 @@ import { buildLabel } from './lib/buildInfo'
 import { useSessionLock } from './hooks/useIdleLogout'
 
 // ===== 遅延読み込み =====
-// 初回ロードは Login + MainInput のみ。他は画面遷移時にロード。
+// 初回ロードは Login + Launcher のみ。他は画面遷移時にロード。
 
 // 即時ロード（初回表示に必要）
 import Login from './pages/Login'
 import Launcher from './pages/Launcher'
 
 // 遅延ロード — メインタブ
-const MainInput = lazy(() => import('./clawsupport/pages/MainInput'))
 const Dashboard = lazy(() => import('./manesupport/pages/Dashboard'))
 const DashboardTop = lazy(() => import('./dashboard/pages/DashboardTop'))
 // J-ADMIN-02: Admin IA layout + hub pages (旧実装は _legacy/ に移動)
@@ -68,11 +67,7 @@ const AdminBulkImportPage         = lazy(() => import('./admin/pages/AdminBulkIm
 const AdminImportHubPage          = lazy(() => import('./admin/pages/AdminImportHubPage'))
 
 // 遅延ロード — 巡回入力
-const BoothInput = lazy(() => import('./clawsupport/pages/BoothInput'))
-const DraftList = lazy(() => import('./clawsupport/pages/DraftList'))
-const Complete = lazy(() => import('./clawsupport/pages/Complete'))
 const RankingView = lazy(() => import('./clawsupport/pages/RankingView'))
-const MachineList = lazy(() => import('./clawsupport/pages/MachineList'))
 
 // 遅延ロード — マスタ追加
 // J-NAV-ORPHAN-CLEANUP-01 2026-05-30: BoothQrPrint は /admin/qr-print の動線無し orphan、
@@ -86,9 +81,6 @@ const ManualView = lazy(() => import('./manesupport/pages/ManualView'))
 // 遅延ロード — 管理系
 const EditReading = lazy(() => import('./manesupport/pages/EditReading'))
 const DataSearch = lazy(() => import('./manesupport/pages/DataSearch'))
-const PatrolScan = lazy(() => import('./clawsupport/pages/PatrolScan'))
-const PatrolInput = lazy(() => import('./clawsupport/pages/PatrolInput'))
-const PatrolPage  = lazy(() => import('./clawsupport/pages/PatrolPage'))
 const LockerList = lazy(() => import('./manesupport/pages/LockerList'))
 const ForecastList = lazy(() => import('./manesupport/pages/ForecastList'))
 const ForecastDetail = lazy(() => import('./manesupport/pages/ForecastDetail'))
@@ -254,7 +246,8 @@ function AppInner() {
       {/* ホーム = ランチャー（ロール別タイル表示） */}
       <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute><Navigate to="/launcher" replace /></ProtectedRoute>} />
-      <Route path="/input" element={<ProtectedRoute><MainInput /></ProtectedRoute>} />
+      {/* SPEC-UI-B-DECOMM-LEGACY-PATROL-01: 旧 /input (MainInput) 削除 → Navigate catch */}
+      <Route path="/input" element={<Navigate to="/clawsupport" replace />} />
       {/* J-COLLECTION-01: 集金 / J-COLLECTION-12 R1: admin/manager のみ。
           staff/patrol で直接 URL 入力時は ManagerRoute (RoleRoute) が '/' へ redirect → /launcher。 */}
       <Route path="/collection/input" element={<ManagerRoute><CollectionInputPage /></ManagerRoute>} />
@@ -304,12 +297,13 @@ function AppInner() {
       {/* J-ADMIN-01 backward-compat flat routes (regression keep) */}
       <Route path="/admin/booth-edit/:boothCode" element={<ProtectedRoute><div className="h-svh"><AdminBoothEditPage /></div></ProtectedRoute>} />
 
-      {/* 巡回入力 — 全ロール */}
-      <Route path="/booth/:machineId" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
-      <Route path="/drafts" element={<ProtectedRoute><DraftList /></ProtectedRoute>} />
-      <Route path="/complete" element={<ProtectedRoute><Complete /></ProtectedRoute>} />
+      {/* SPEC-UI-B-DECOMM-LEGACY-PATROL-01: 旧巡回フロー削除。ブックマーク/PWA残存URLが404に
+          ならないよう Navigate catch に置換 (canonical /clawsupport へ)。 */}
+      <Route path="/booth/:machineId" element={<Navigate to="/clawsupport" replace />} />
+      <Route path="/drafts" element={<Navigate to="/clawsupport" replace />} />
+      <Route path="/complete" element={<Navigate to="/clawsupport" replace />} />
       <Route path="/ranking/:storeId" element={<ProtectedRoute><RankingView /></ProtectedRoute>} />
-      <Route path="/machines/:storeId" element={<ProtectedRoute><MachineList /></ProtectedRoute>} />
+      <Route path="/machines/:storeId" element={<Navigate to="/clawsupport" replace />} />
 
       {/* J-PATROL-ALERTS-HUB-01 */}
       <Route path="/clawsupport/alerts" element={<ProtectedRoute><AlertListPage /></ProtectedRoute>} />
@@ -331,12 +325,12 @@ function AppInner() {
       <Route path="/clawsupport/store/:storeCode/dash" element={<ProtectedRoute><ClawsupportStoreDash /></ProtectedRoute>} />
       <Route path="/clawsupport/store/:storeCode/patrol" element={<ProtectedRoute><PatrolScreenV1 /></ProtectedRoute>} />
 
-      {/* 巡回 — 全ロール */}
+      {/* SPEC-UI-B-DECOMM-LEGACY-PATROL-01: 旧巡回 /patrol クラスタ削除 → Navigate catch。
+          OCR ツール (/patrol/camera, /patrol/batch-ocr) は legacy ではないので残す。 */}
       <Route path="/patrol/overview" element={<Navigate to="/clawsupport" replace />} />
-      <Route path="/patrol" element={<ProtectedRoute><PatrolScan /></ProtectedRoute>} />
-      <Route path="/patrol/input" element={<ProtectedRoute><PatrolPage /></ProtectedRoute>} />
-      {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /patrol/input-legacy ルート削除 (動線無し) */}
-      <Route path="/patrol/booth" element={<ProtectedRoute><BoothInput /></ProtectedRoute>} />
+      <Route path="/patrol" element={<Navigate to="/clawsupport" replace />} />
+      <Route path="/patrol/input" element={<Navigate to="/clawsupport" replace />} />
+      <Route path="/patrol/booth" element={<Navigate to="/clawsupport" replace />} />
 
       {/* 監査ログ — manager以上 (旧ルート、/admin/audit は AdminLayout 配下に移行) */}
       {/* J-DEV-ASSET-HANDOFF-01: ファイル受け渡し (admin/manager 両方アクセス可、AdminLayout 外、ManagerRoute で staff/patrol ブロック) */}
@@ -394,9 +388,7 @@ function AppInner() {
       {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /admin/daily-stats ルート削除 (動線無し orphan) */}
 
 
-      {/* Phase 4一時無効化中 - OcrConfirmのReferenceError調査中
-          導線はPatrolOverviewで隠しているが、直URL入力で到達可能 */}
-      {/* OCR巡回入力 — 全ロール */}
+      {/* OCR巡回入力 — 全ロール (OCRツール、legacy巡回とは別系統で維持) */}
       <Route path="/patrol/camera"    element={<ProtectedRoute><PatrolCameraPage /></ProtectedRoute>} />
       <Route path="/patrol/batch-ocr" element={<ProtectedRoute><PatrolBatchOcrPage /></ProtectedRoute>} />
       <Route path="/ocr-test"         element={<ProtectedRoute><OCRTestPage /></ProtectedRoute>} />

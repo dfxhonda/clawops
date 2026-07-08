@@ -11,7 +11,7 @@ export default function FallbackUI({ error, resetErrorBoundary }) {
 
   return (
     <div style={{
-      minHeight: '100dvh',
+      minHeight: '100svh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

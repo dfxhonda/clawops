@@ -181,8 +181,9 @@ export default function AlertListPage() {
   const unresolvedCount = tab === 'unresolved' ? alerts.length : null
 
   return (
-    // scroll fix: min-h-screen → h-dvh + 内部 min-h-0 で sticky header + 縦スクロール確立
-    <div className="h-dvh bg-bg text-text flex flex-col">
+    // scroll fix: min-h-screen → h-svh + 内部 min-h-0 で sticky header + 縦スクロール確立
+    // SPEC-UI-B-SVH-44PX-FIELD-01: iOS PWA 下端 cutoff 対策で dvh→svh 統一。
+    <div className="h-svh bg-bg text-text flex flex-col">
       <PageHeader
         module="clawsupport"
         title="未対応TODO"
