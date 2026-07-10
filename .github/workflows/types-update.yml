@@ -1,8 +1,9 @@
 name: Supabase Types Update
 
 on:
-  schedule:
-    - cron: '0 22 * * *'
+  # schedule:
+  #   - cron: '0 22 * * *'
+  # schedule disabled 2026-07-08 pending SUPABASE_ACCESS_TOKEN re-issue (D-050)
   workflow_dispatch:
 
 jobs:
