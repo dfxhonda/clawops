@@ -7,7 +7,7 @@ import { writeAuditLog } from '../../services/audit'
 import { logger } from '../../lib/logger'
 import StoreCrudDrawer from '../components/StoreCrudDrawer'
 // SPEC-LIST-FILTER-SORT-01-fix-02: 共通 filter dropdown bar + sortable header + ソート hook。
-// store_type 列が stores に存在 (db_facts: donki_tenant/other/external/donki) を確認し、
+// store_type 列が stores に存在 (D-051 正規化後: donki/tenant/other/external/null) を確認し、
 // 種別フィルタは store_type で正実装。サーバーソートは廃止し、全件 fetch 後 client-side
 // useListSort で SortableTableHeader 適用 (49 行以下なので性能問題なし)。
 import ListFilterBar from '../../components/ListFilterBar'
@@ -390,17 +390,17 @@ export default function AdminStoreListPage() {
       </div>
 
       {/* SPEC-LIST-FILTER-SORT-01-fix-02: 共通 ListFilterBar (種別=store_type 正実装、active toggle 連動)。
-          stores.store_type 列が確認済 (db_facts: donki_tenant/other/external/donki)、
-          fix-01 の brand_name 代用は撤去。 */}
+          stores.store_type 列が確認済。SPEC-STORETYPE-DONKI-NORMALIZE-S1G-REPOINT-01 (D-051) で
+          donki_tenant -> donki 正規化、tenant(末締め、将来 IIZ02) を追加。fix-01 の brand_name 代用は撤去。 */}
       <ListFilterBar
         filters={[
           { key: 'store_type', label: '種別',
             options: [
-              { value: '',             label: '全て' },
-              { value: 'donki_tenant', label: 'donkiテナント' },
-              { value: 'donki',        label: 'donki' },
-              { value: 'external',     label: 'external' },
-              { value: 'other',        label: 'other' },
+              { value: '',         label: '全て' },
+              { value: 'donki',    label: 'ドンキ(20日締め)' },
+              { value: 'tenant',   label: 'テナント(末締め)' },
+              { value: 'external', label: 'external' },
+              { value: 'other',    label: 'other' },
             ] },
           { key: 'active', label: '状態',
             options: [

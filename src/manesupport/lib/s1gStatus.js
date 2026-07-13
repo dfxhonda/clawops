@@ -1,4 +1,5 @@
-// SPEC-S1G-DONKI-DEADLINE-ALERT-01: donki_tenant 締日 (毎月20日 JST) アラート
+// SPEC-S1G-DONKI-DEADLINE-ALERT-01: donki 締日 (毎月20日 JST) アラート
+// SPEC-STORETYPE-DONKI-NORMALIZE-S1G-REPOINT-01 (D-051): 対象 store_type を donki_tenant -> donki に再ポイント
 //
 // 本番の唯一の真実は SQL 側 fn_forecast_store_list.s1g_status (RPC が返す row.s1g_status)。
 // UI はその値を s1gBadge() で badge に変換するだけ (再計算しない — UI は
@@ -18,7 +19,7 @@
  * @returns {'done'|'overdue'|'planned'|'unplanned'|null}
  */
 export function deriveS1gStatus({ storeType, lastReadingDate, nextCollectionDate, doneThisMonth, today }) {
-  if (storeType !== 'donki_tenant' || !lastReadingDate) return null
+  if (storeType !== 'donki' || !lastReadingDate) return null
   if (doneThisMonth) return 'done'
   const twentieth = today.slice(0, 7) + '-20'
   if (today > twentieth) return 'overdue'
