@@ -549,9 +549,11 @@ export default function AdminBoothEditPage() {
     ? `${machine?.machine_name ?? ''} ブース ${booth.booth_number} [管理編集]`
     : `${boothCode} [管理編集]`
 
+  // SPEC-PASTMETER-HEADER-OVERFLOW-FIX-01 (D-059): min-w-0 で grid track blowout を抑止
+  // (長名機械の横溢れ→+過去日追加ボタン画面外 を修正)。3箇所とも既存クラス保持で min-w-0 追加のみ。
   return (
-    <div data-testid="page-root" className="grid h-full bg-bg text-text overflow-hidden relative" style={{ gridTemplateRows: 'auto auto 1fr auto', minHeight: 0 }} onPointerDown={handleOutsideTap}>
-      <div className="[&>div]:pt-3 [&>div]:pb-1.5">
+    <div data-testid="page-root" className="grid h-full bg-bg text-text overflow-hidden relative min-w-0" style={{ gridTemplateRows: 'auto auto 1fr auto', minHeight: 0 }} onPointerDown={handleOutsideTap}>
+      <div className="[&>div]:pt-3 [&>div]:pb-1.5 min-w-0">
         <PageHeader
           module="admin"
           title={boothLabel}
@@ -633,7 +635,7 @@ export default function AdminBoothEditPage() {
         {/* History section — independent scroll */}
         <div
           data-testid="booth-history-list"
-          className="overflow-y-auto min-h-0"
+          className="overflow-y-auto min-h-0 min-w-0"
         >
           <div className="sticky top-0 bg-bg z-10 px-4 py-2 border-b border-border flex items-center gap-2">
             <span className="text-sm font-bold text-muted flex-1">巡回履歴</span>
