@@ -179,6 +179,8 @@ export function computeBoothDiffSummary(descRows, meterUnitPrice = 100) {
     inDiff, outDiff, revenue, profit,
     currIn: inDiff, currDays, currPerDay,
     prevIn, prevDays, prevPerDay,
+    // SPEC-PATROL-HEATMAP-PRIZE-NAME-01 (D-060): 最新行の現在景品名 (表示専用、既存SELECTのprize_name)
+    latestPrizeName: latest.prize_name ?? null,
   }
 }
 

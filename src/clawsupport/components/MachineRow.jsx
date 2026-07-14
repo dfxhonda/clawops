@@ -32,6 +32,8 @@ export default function MachineRow({
   const mc = machine.machine_code
   const rank = rankMap?.[mc] ?? null
   const allDone = booths.length > 0 && booths.every(b => !!todayMap[b.booth_code])
+  // SPEC-PATROL-HEATMAP-PRIZE-NAME-01 (D-060): 単一ブース機械のみ機械名の下に現在景品名。複数ブースは展開ブース行に個別表示。
+  const singlePrizeName = isSingleBooth ? (diffMap[booths[0]?.booth_code]?.latestPrizeName ?? null) : null
 
   const handleClick = () => {
     if (isSingleBooth) {
@@ -50,9 +52,14 @@ export default function MachineRow({
         onClick={handleClick}
         className="w-full flex items-center gap-2 px-4 py-1 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
-        <div className="w-40 shrink-0 flex items-center sticky left-0 z-10 bg-surface">
-          <span className="text-text text-lg font-bold truncate">{machine.machine_name}</span>
-          {allDone && <span data-testid={`machine-row-allDone-${mc}`} className="shrink-0 ml-1 text-emerald-400/70">✓</span>}
+        <div className="w-40 shrink-0 flex flex-col justify-center sticky left-0 z-10 bg-surface">
+          <div className="flex items-center min-w-0">
+            <span className="text-text text-lg font-bold truncate">{machine.machine_name}</span>
+            {allDone && <span data-testid={`machine-row-allDone-${mc}`} className="shrink-0 ml-1 text-emerald-400/70">✓</span>}
+          </div>
+          {singlePrizeName && (
+            <span data-testid={`machine-row-prize-${mc}`} className="text-xs text-muted truncate">{singlePrizeName}</span>
+          )}
         </div>
         <div
           data-testid={`machine-totals-${machine.machine_code}`}
