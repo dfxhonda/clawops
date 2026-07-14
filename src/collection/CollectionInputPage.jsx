@@ -384,12 +384,14 @@ export default function CollectionInputPage() {
                       <NumpadField value={r.in_meter_prev} onChange={v => setRow(b.booth_code, { in_meter_prev: v })}
                         label={`前回IN ${b.booth_name}`} max={9999999}
                         dataTabindex={tabBase} testId={`booth-in-prev-${b.booth_code}`}
+                        isActive={currentField?.testId === `booth-in-prev-${b.booth_code}`} strongActive
                         onRegister={setCurrentField} onClear={() => setCurrentField(null)} style={cellInputStyle} />
                     </td>
                     <td className="px-1 py-1">
                       <NumpadField value={r.in_meter_current} onChange={v => setRow(b.booth_code, { in_meter_current: v })}
                         label={`今回IN ${b.booth_name}`} max={9999999}
                         dataTabindex={tabBase + 1} testId={`booth-in-cur-${b.booth_code}`}
+                        isActive={currentField?.testId === `booth-in-cur-${b.booth_code}`} strongActive
                         onRegister={setCurrentField} onClear={() => setCurrentField(null)} style={cellInputStyle} />
                     </td>
                     <td data-testid={`booth-in-diff-${b.booth_code}`}
@@ -411,6 +413,7 @@ export default function CollectionInputPage() {
                       <NumpadField value={r.advance_payment} onChange={v => setRow(b.booth_code, { advance_payment: v })}
                         label={`立替 ${b.booth_name}`} max={9999999}
                         dataTabindex={tabBase + 2} testId={`booth-advance-${b.booth_code}`}
+                        isActive={currentField?.testId === `booth-advance-${b.booth_code}`} strongActive
                         onRegister={setCurrentField} onClear={() => setCurrentField(null)} style={cellInputStyle} />
                     </td>
                     <td className="px-1 py-1">
@@ -470,6 +473,8 @@ export default function CollectionInputPage() {
                                 onChange={v => setCount(b.booth_code, d.key, v)}
                                 label={`${d.short} ${b.booth_name}`} max={99999}
                                 testId={`denom-input-${d.key}-${b.booth_code}`}
+                                isActive={currentField?.testId === `denom-input-${d.key}-${b.booth_code}`}
+                                strongActive
                                 onRegister={setCurrentField}
                                 onClear={() => setCurrentField(null)}
                                 style={denomInputStyle}
