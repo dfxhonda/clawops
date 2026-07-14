@@ -145,3 +145,22 @@ describe('computeBoothDiffSummary (SPEC-PATROL-HISTORY-HEATMAP-01 10-visit histo
     expect(s.entryTypes[8]).toBe('patrol')
   })
 })
+
+// SPEC-PATROL-HEATMAP-PRIZE-NAME-01 (D-060): 最新行の景品名を latestPrizeName で公開
+describe('computeBoothDiffSummary latestPrizeName (D-060)', () => {
+  it('when_newest_row_has_prize_name_should_expose_it', () => {
+    const rows = [
+      { patrol_date: '2026-05-30', in_meter: 1500, out_meter: 200, prize_name: 'ミルクスクイーズ' },
+      { patrol_date: '2026-05-25', in_meter: 1000, out_meter: 100, prize_name: '旧景品' },
+    ]
+    expect(computeBoothDiffSummary(rows).latestPrizeName).toBe('ミルクスクイーズ')
+  })
+
+  it('when_newest_row_prize_name_missing_should_be_null', () => {
+    const rows = [
+      { patrol_date: '2026-05-30', in_meter: 1500, out_meter: 200 },
+      { patrol_date: '2026-05-25', in_meter: 1000, out_meter: 100, prize_name: '旧景品' },
+    ]
+    expect(computeBoothDiffSummary(rows).latestPrizeName).toBeNull()
+  })
+})

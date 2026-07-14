@@ -22,7 +22,8 @@ import { useListSort } from '../../hooks/useListSort'
 // - feature: card view (min-h 88px) を default、grid 表編集を toggle
 // - feature: ← ホーム / + 新規追加 / 検索 + 50音タブ + ソート / 削除確認 (ブース数 + meter_readings 件数)
 // - audit: 全 CUD を writeAuditLog (services/audit) + logger.info/error (lib/logger)
-// - forbidden: stores schema 不変 / store_name_official の UI 表示なし (内部保持) / 他画面 .single() 不触
+// - forbidden: stores schema 不変 / 他画面 .single() 不触
+// - SPEC-STORE-OFFICIAL-NAME-EDIT-01 (D-057): store_name_official は編集フォームで表示・編集可 (旧「UI表示なし」解除)
 
 // SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 store_id 列を SELECT から除外 (DB DROP 済)。
 const LIST_SELECT = 'store_code,store_name,store_name_official,brand_name,store_type,phone,address,region,locality,locality_kana,is_active,opened_at,closed_at,is_collection_day,notes'
@@ -170,7 +171,7 @@ export default function AdminStoreListPage() {
       // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id は DROP 済、参照しない。
       store_code:           data.store_code ?? '',
       store_name:           data.store_name ?? '',
-      store_name_official:  data.store_name_official ?? '', // UI 非表示、編集も外す (forbidden)
+      store_name_official:  data.store_name_official ?? '', // SPEC-STORE-OFFICIAL-NAME-EDIT-01 (D-057): 編集フォームで表示・編集可
       brand_name:           data.brand_name ?? '',
       store_type:           data.store_type ?? '',
       phone:                data.phone ?? '',
@@ -197,7 +198,7 @@ export default function AdminStoreListPage() {
     const payload = {
       // SPEC-STORE-MASTER-STORE-ID-FIX-01: store_id 列 DROP 済、payload から除外。
       store_name:          form.store_name.trim(),
-      store_name_official: form.store_name_official || null, // 内部保持、UI 表示なし
+      store_name_official: form.store_name_official || null, // SPEC-STORE-OFFICIAL-NAME-EDIT-01 (D-057): 空保存は null (帳票は store_name フォールバック)
       store_code:          form.store_code || null,
       brand_name:          form.brand_name || null,
       store_type:          form.store_type || null,
@@ -596,6 +597,12 @@ export default function AdminStoreListPage() {
             <div className="flex flex-col gap-3">
               <Field label="店舗名 *">
                 <TInput value={form.store_name} onChange={v => f({ store_name: v })} placeholder="店舗名" testId="store-edit-name" />
+              </Field>
+              {/* SPEC-STORE-OFFICIAL-NAME-EDIT-01 (D-057): 集金帳票の宛名用。旧 forbidden「UI表示なし」は hiro 指示で解除。 */}
+              <Field label="正式名称">
+                <TInput value={form.store_name_official} onChange={v => f({ store_name_official: v })}
+                  placeholder={form.store_name || '店舗名'} testId="store-edit-name-official" />
+                <span className="text-xs text-muted">集金帳票の宛名に使用。空の場合は店舗名を使用</span>
               </Field>
               <Field label="店舗コード">
                 <TInput value={form.store_code} onChange={v => f({ store_code: v })} placeholder="KKY01" testId="store-edit-code" />

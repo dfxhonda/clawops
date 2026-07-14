@@ -3,6 +3,13 @@ import { MODULE_COLORS } from './moduleColors'
 
 // variant: 'default'(通常画面) | 'compact'(ハブ・リスト画面)
 // rightSlot: ヘッダー右端に表示する要素 (例: 今日の日付)
+function titleFontClass(title) {
+  if (typeof title !== 'string') return 'text-2xl'
+  if (title.length >= 20) return 'text-lg'
+  if (title.length >= 16) return 'text-xl'
+  return 'text-2xl'
+}
+
 export function PageHeader({ module, title, subtitle, onBack, children, rightSlot, variant = 'default', hideHome = false }) {
   const navigate = useNavigate()
   const color = MODULE_COLORS[module] ?? '#888899'
@@ -36,7 +43,7 @@ export function PageHeader({ module, title, subtitle, onBack, children, rightSlo
       )}
       <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-text font-bold leading-snug truncate text-2xl">{title}</p>
+          <p className={`text-text font-bold leading-snug truncate ${titleFontClass(title)}`}>{title}</p>
           {subtitle && !isCompact && <p className="text-muted text-base mt-0.5">{subtitle}</p>}
         </div>
         {rightSlot && <div className="text-muted text-base shrink-0">{rightSlot}</div>}

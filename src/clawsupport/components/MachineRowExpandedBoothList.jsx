@@ -60,6 +60,8 @@ export default function MachineRowExpandedBoothList({
         const arr = sourceArrayFor(mapped, mode)
         const entryTypes = mapped?.entryTypes ?? []
         const boothWorst = worstMap[booth.booth_code] ?? null
+        // SPEC-PATROL-HEATMAP-PRIZE-NAME-01 (D-060): 各ブース行に現在景品名 (null/空は非表示)
+        const prizeName = d?.latestPrizeName ?? null
         return (
           <button
             key={booth.booth_code}
@@ -72,6 +74,9 @@ export default function MachineRowExpandedBoothList({
                 └ B{String(booth.booth_number).padStart(2, '0')}
                 {done && <span className="ml-1 text-emerald-400/70">✓</span>}
               </p>
+              {prizeName && (
+                <p data-testid={`booth-row-prize-${booth.booth_code}`} className="text-xs text-muted truncate pl-3">{prizeName}</p>
+              )}
             </div>
             <BoothScrollCells
               arr={arr}

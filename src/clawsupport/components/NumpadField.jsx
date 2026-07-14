@@ -265,6 +265,9 @@ export default function NumpadField({
   inputPlaceholder,
   onRegister,
   isActive = false,
+  // SPEC-COLLECTION-ACTIVE-FIELD-HIGHLIGHT-01 (D-054): opt-in で active フィールドを 2px枠+ring で強調。
+  // 既定 false = 従来の 1px 挙動を維持 (patrol/booth 等 他ページは restyle しない=forbidden 遵守)。
+  strongActive = false,
 }) {
   const inputRef = useRef(null)
   const freshRef = useRef(false)
@@ -299,6 +302,7 @@ export default function NumpadField({
       allowDecimal,
       max,
       label,
+      testId,
       freshRef,
     })
   }
@@ -440,6 +444,7 @@ export default function NumpadField({
         className={inputClassName ?? ''}
         style={{
           cursor: 'pointer',
+          // 従来の 1px active 挙動 (patrol/booth 等 legacy caller はこちら)。base の後に caller style が勝つ。
           border: isActive ? '1px solid #3b82f6' : '1px solid var(--field-accent, #2a2a44)',
           background: isActive ? '#eff6ff' : '#0a0a14',
           borderRadius: 4,
@@ -454,6 +459,14 @@ export default function NumpadField({
           width: '100%',
           ...(isActive ? { color: '#1e3a5f' } : {}),
           ...style,
+          // SPEC-COLLECTION-ACTIVE-FIELD-HIGHLIGHT-01 (D-054): strongActive オプトイン時のみ
+          // caller の layout style より後に spread し、2px枠+ring を確実に勝たせる。
+          ...(strongActive && isActive ? {
+            border: '2px solid #3b82f6',
+            background: '#eff6ff',
+            color: '#1e3a5f',
+            boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.35)',
+          } : {}),
         }}
       />
       {isActive && (

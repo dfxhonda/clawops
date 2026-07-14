@@ -977,7 +977,7 @@ export default function PatrolBoothInputPage() {
     <div
       ref={swipeRef}
       onPointerDown={handleOutsideTap}
-      className="grid h-svh bg-bg text-text overflow-x-hidden overflow-y-hidden relative"
+      className="grid h-svh bg-bg text-text overflow-x-hidden overflow-y-hidden relative min-w-0"
       data-testid="patrol-booth-swipe-container"
       style={{
         gridTemplateRows: 'auto auto auto 1fr auto',
