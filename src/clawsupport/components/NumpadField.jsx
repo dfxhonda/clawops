@@ -61,6 +61,7 @@ function NativeNumInput({
     <input
       id={id}
       data-tabindex={dataTabindex}
+      data-numpad-field="1"
       data-testid={testId}
       type="text"
       inputMode={allowDecimal ? 'decimal' : 'numeric'}
@@ -416,6 +417,7 @@ export default function NumpadField({
         readOnly
         inputMode="none"
         data-tabindex={dataTabindex}
+        data-numpad-field="1"
         data-testid={testId}
         value={displayVal}
         placeholder={inputPlaceholder ?? '—'}

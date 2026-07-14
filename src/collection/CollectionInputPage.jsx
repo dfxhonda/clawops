@@ -302,6 +302,9 @@ export default function CollectionInputPage() {
   const locked = !!confirmedId
 
   function handleOutsideTap(e) {
+    // HOTFIX-COLLECTION-DENOM-INPUT-DEAD-01 (D-052): dataTabindex を持たない金種フィールド等も
+    // numpad を閉じない。data-numpad-field で全 NumpadField を保護 (denom は dataTabindex 非付与)。
+    if (e.target.closest('[data-numpad-field]')) return
     if (e.target.closest('[data-tabindex]')) return
     if (e.target.closest('[data-testid="numpad-footer"]')) return
     setCurrentField(null)

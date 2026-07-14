@@ -114,6 +114,8 @@ export default function PatrolBoothInputPage() {
   const activeTabindex = currentField?.dataTabindex ?? null
 
   function handleOutsideTap(e) {
+    // HOTFIX-COLLECTION-DENOM-INPUT-DEAD-01 (D-052): dataTabindex 非付与フィールド保護 (F3 一貫性)
+    if (e.target.closest('[data-numpad-field]')) return
     if (e.target.closest('[data-tabindex]')) return
     if (e.target.closest('[data-testid="numpad-footer"]')) return
     clearField()
