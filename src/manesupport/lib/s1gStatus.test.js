@@ -8,15 +8,20 @@ import { deriveS1gStatus, s1gBadge } from './s1gStatus'
 // 当月20日 = today.slice(0,7)+'-20'。
 describe('deriveS1gStatus (derivation matrix, simulated dates)', () => {
   const base = {
-    storeType: 'donki_tenant',
+    storeType: 'donki',
     lastReadingDate: '2026-07-07',
     nextCollectionDate: '2026-07-14',
     doneThisMonth: false,
     today: '2026-07-08',
   }
 
-  it('when_store_type_not_donki_tenant_should_be_null', () => {
+  it('when_store_type_not_donki_should_be_null', () => {
     expect(deriveS1gStatus({ ...base, storeType: 'external' })).toBeNull()
+  })
+
+  it('when_store_type_tenant_should_be_null', () => {
+    // tenant (末締め、将来 IIZ02) は s1g 対象外
+    expect(deriveS1gStatus({ ...base, storeType: 'tenant' })).toBeNull()
   })
 
   it('when_last_reading_date_missing_should_be_null_dormant', () => {
