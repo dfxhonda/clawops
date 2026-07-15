@@ -4,7 +4,7 @@
 import { supabase } from '../lib/supabase'
 import { getCache, setCache, clearCache, supName, SUPPLIER_MAP } from './utils'
 import { writeAuditLog } from './audit'
-import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 import { z } from 'zod'
 import { PrizeMasterRowSchema } from './schemas/index.js'
 
@@ -69,7 +69,7 @@ export async function addPrize(p) {
     // SPEC-PRIZE-MASTER-STATUS-DEPRECATE-01: status 列廃止、phase で表現
     phase: p.is_active === 'FALSE' ? 'dead' : 'active',
     notes: p.notes || null,
-    organization_id: DFX_ORG_ID,
+    organization_id: CHANGE_ORG_ID,
   }).select().single()
   if (error) throw new Error('景品登録エラー: ' + error.message)
   clearCache()

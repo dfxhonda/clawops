@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 // SPEC-LIST-FILTER-SORT-01-fix-01: sortable header (canonical d0cf209)。
 // SPEC-PRIZE-MASTER-UI-CLEANUP-01: ListFilterBar (2 行目) は撤廃、inline 1 行 flex に統合。
 import SortableTableHeader from '../../components/SortableTableHeader'
@@ -188,7 +188,7 @@ export default function AdminPrizeMasterPage() {
     if (modal === 'new') {
       const { error: e } = await supabase.from('prize_masters').insert({
         prize_id: crypto.randomUUID(),
-        organization_id: DFX_ORG_ID,
+        organization_id: CHANGE_ORG_ID,
         ...payload,
         registered_by: staffName,
       })

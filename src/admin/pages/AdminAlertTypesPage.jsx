@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import { PageHeader } from '../../shared/ui/PageHeader'
 
 const EMPTY_FORM = {
@@ -82,7 +82,7 @@ export default function AdminAlertTypesPage() {
           type_code:  form.type_code.trim(),
           label:      form.label.trim(),
           sort_order: Number(form.sort_order) || 0,
-          organization_id: DFX_ORG_ID,
+          organization_id: CHANGE_ORG_ID,
         })
         if (e) throw e
       } else {

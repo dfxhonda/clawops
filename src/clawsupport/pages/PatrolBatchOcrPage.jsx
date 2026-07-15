@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import { callMeterOcrBatch } from '../services/ocrApi'
 import { validateMeterReading, is2BoothType } from '../utils/meterValidation'
 import { getBooths, findMachineById } from '../../services/masters'
@@ -112,7 +112,8 @@ export default function PatrolBatchOcrPage() {
         const is2B    = is2BoothType(result.machine_type_guess)
         const storeCode = machine?.store_code || ''
         const readTimeIso = takenAt ? new Date(takenAt).toISOString() : new Date().toISOString()
-        const patrolDate  = readTimeIso.slice(0, 10)
+        // SPEC-ORG-DFX-RESIDUAL-SWEEP-01 (D-066) F2: patrol_date は JST 日付 (UTC slice は 9時前巡回で前日化)
+        const patrolDate  = new Date(readTimeIso).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
         const conf        = result.confidence ?? 0
         const m           = result.meters || {}
 
@@ -130,7 +131,7 @@ export default function PatrolBatchOcrPage() {
             read_time:       readTimeIso,
             patrol_date:     patrolDate,
             created_by:      staffId,
-            organization_id: DFX_ORG_ID,
+            organization_id: CHANGE_ORG_ID,
           })
           records.push({
             booth_id:        booths[1].booth_code,
@@ -144,7 +145,7 @@ export default function PatrolBatchOcrPage() {
             read_time:       readTimeIso,
             patrol_date:     patrolDate,
             created_by:      staffId,
-            organization_id: DFX_ORG_ID,
+            organization_id: CHANGE_ORG_ID,
           })
         } else {
           records.push({
@@ -159,7 +160,7 @@ export default function PatrolBatchOcrPage() {
             read_time:       readTimeIso,
             patrol_date:     patrolDate,
             created_by:      staffId,
-            organization_id: DFX_ORG_ID,
+            organization_id: CHANGE_ORG_ID,
           })
         }
 

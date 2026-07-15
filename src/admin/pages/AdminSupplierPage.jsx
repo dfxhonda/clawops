@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 
 const LIST_SELECT = 'supplier_id,supplier_name,supplier_type,contact_method,contact_detail,order_method,default_prize_tag,lead_time_days,payment_terms,is_active,notes'
 
@@ -115,7 +115,7 @@ export default function AdminSupplierPage() {
     if (modal === 'new') {
       const { error: saveErr } = await supabase.from('suppliers').insert({
         supplier_id:     crypto.randomUUID(),
-        organization_id: DFX_ORG_ID,
+        organization_id: CHANGE_ORG_ID,
         ...payload,
         created_by: staffName,
       })

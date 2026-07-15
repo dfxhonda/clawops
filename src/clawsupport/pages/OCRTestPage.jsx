@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+// SPEC-ORG-DFX-RESIDUAL-SWEEP-01 (D-066): meter_readings insert は CHANGE org。
+// DFX_ORG_ID は useOCR の storage path prefix 温存にのみ残す (collections path と同カテゴリ、既決据置)。
+import { DFX_ORG_ID, CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import LiveCameraView from '../components/LiveCameraView'
 import CustomNumpad from '../components/CustomNumpad'
 import { useOCR } from '../hooks/useOCR'
@@ -184,7 +186,7 @@ export default function OCRTestPage() {
       booth_code: boothCode,
       store_code: boothCode.split('-')[0],
       machine_code: boothCode.split('-').slice(0, 2).join('-'),
-      organization_id: DFX_ORG_ID,
+      organization_id: CHANGE_ORG_ID,
       patrol_date: jstDate(),
       ...cols,
       entry_type: 'ocr_test',

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { validateMeterReading, is2BoothType } from '../utils/meterValidation'
 import { getBooths, findMachineById } from '../../services/masters'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 
 const INP = 'w-24 text-right bg-surface2 border border-border rounded-lg px-2 py-1.5 font-mono font-bold focus:border-accent outline-none'
 
@@ -75,7 +75,8 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
       const storeCode = machineInfo?.store_code || machineCode.split('-')[0] + machineCode.slice(3, 5)
 
       const readTimeIso = new Date(readTime).toISOString()
-      const patrolDate  = readTimeIso.slice(0, 10)
+      // SPEC-ORG-DFX-RESIDUAL-SWEEP-01 (D-066) F2: patrol_date は JST 日付 (UTC slice は 9時前巡回で前日化)
+      const patrolDate  = new Date(readTime).toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
 
       const records = []
       if (is2Booth && booths.length >= 2) {
@@ -93,7 +94,7 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
           read_time:       readTimeIso,
           patrol_date:     patrolDate,
           created_by:      staffId,
-          organization_id: DFX_ORG_ID,
+          organization_id: CHANGE_ORG_ID,
         })
         records.push({
           booth_id:        b02.booth_code,
@@ -107,7 +108,7 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
           read_time:       readTimeIso,
           patrol_date:     patrolDate,
           created_by:      staffId,
-          organization_id: DFX_ORG_ID,
+          organization_id: CHANGE_ORG_ID,
         })
       } else {
         const b = booths[0]
@@ -123,7 +124,7 @@ export default function OcrConfirm({ imageUrl, ocrResult, readTime: initialReadT
           read_time:       readTimeIso,
           patrol_date:     patrolDate,
           created_by:      staffId,
-          organization_id: DFX_ORG_ID,
+          organization_id: CHANGE_ORG_ID,
         })
       }
 
