@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import { writeAuditLog } from '../../services/audit'
 import { logger } from '../../lib/logger'
 import StoreCrudDrawer from '../components/StoreCrudDrawer'
@@ -219,7 +219,9 @@ export default function AdminStoreListPage() {
       if (modal === 'new') {
         const insertPayload = {
           ...payload,
-          organization_id: DFX_ORG_ID,
+          // SPEC-STORE-REGISTER-TYPE-DROPDOWN-AND-ORG-DEFAULT-01 (D-063) F2: 実運用全店は CHANGE org。
+          // DFX org で登録すると RLS/リストフィルタで弾かれ新規店が出ない不具合の根治。
+          organization_id: CHANGE_ORG_ID,
         }
         const { error: saveErr } = await supabase.from('stores').insert(insertPayload)
         if (saveErr) throw saveErr
@@ -611,8 +613,23 @@ export default function AdminStoreListPage() {
               <Field label="ブランド名">
                 <TInput value={form.brand_name} onChange={v => f({ brand_name: v })} placeholder="ブランド名" />
               </Field>
+              {/* SPEC-STORE-REGISTER-TYPE-DROPDOWN-AND-ORG-DEFAULT-01 (D-063) F1: 自由入力を D-051 正規化値の select 化 */}
               <Field label="店舗種別">
-                <TInput value={form.store_type} onChange={v => f({ store_type: v })} placeholder="店舗種別" />
+                <select
+                  data-testid="store-edit-type"
+                  value={form.store_type ?? ''}
+                  onChange={e => f({ store_type: e.target.value })}
+                  className="bg-bg border border-border rounded px-2 py-1 text-sm text-text w-full"
+                >
+                  <option value="">未設定</option>
+                  <option value="donki">ドンキ</option>
+                  <option value="tenant">テナント</option>
+                  <option value="external">外部</option>
+                  <option value="other">その他</option>
+                  {form.store_type && !['donki', 'tenant', 'external', 'other'].includes(form.store_type) && (
+                    <option value={form.store_type}>{form.store_type}（旧値）</option>
+                  )}
+                </select>
               </Field>
               <Field label="電話番号">
                 <TInput value={form.phone} onChange={v => f({ phone: v })} placeholder="0120-..." type="tel" />
