@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabase'
-import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+// SPEC-METER-READINGS-ORG-AND-DENORM-FIX-01 (D-065): meter_readings insert は CHANGE org。
+// DFX_ORG_ID は operation_logs (本spec scope外, P3別途) の温存にのみ残す。
+import { DFX_ORG_ID, CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 
 const ADMIN_HISTORY_SELECT =
   'reading_id, booth_code, patrol_date, read_time, created_at, entry_type, ' +
@@ -121,12 +123,17 @@ export async function getPrevReadingBeforeDate(boothCode, targetDate) {
 
 export async function insertPastDateReading({ boothCode, patrolDate, staffId, prevRow = null }) {
   const readingId = crypto.randomUUID()
+  // SPEC-METER-READINGS-ORG-AND-DENORM-FIX-01 (D-065) F2: denorm 列を booth_code から導出 (null 保存不能化)
+  const machineCode = boothCode.replace(/-B\d+$/, '')
+  const storeCode = boothCode.split('-')[0]
   const { data, error } = await supabase
     .from('meter_readings')
     .insert({
       reading_id:          readingId,
       booth_id:            boothCode,
       booth_code:          boothCode,
+      machine_code:        machineCode,
+      store_code:          storeCode,
       patrol_date:         patrolDate,
       entry_type:          'patrol',
       source:              'manual',
@@ -144,7 +151,7 @@ export async function insertPastDateReading({ boothCode, patrolDate, staffId, pr
       set_l:               prevRow?.set_l               ?? null,
       set_r:               prevRow?.set_r               ?? null,
       set_o:               prevRow?.set_o               ?? null,
-      organization_id:     DFX_ORG_ID,
+      organization_id:     CHANGE_ORG_ID,
       created_by:          staffId,
       updated_by:          staffId,
     })

@@ -13,6 +13,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 vi.mock('../../lib/auth/orgConstants', () => ({
   get DFX_ORG_ID() { return _orgId },
+  get CHANGE_ORG_ID() { return _orgId }, // D-065: patrolCore は CHANGE org を使用
 }))
 vi.mock('../../lib/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn() },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getPrizeMasters } from '../../services/prizes'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import GachaCheckBar from './GachaCheckBar'
 import NumpadField from './NumpadField'
 
@@ -631,7 +631,7 @@ export default function GachaInputV3({
                           prize_name: newPrizeName.trim(),
                           original_cost: parseInt(newPrizeCost) || 0,
                           status: 'provisional',
-                          organization_id: DFX_ORG_ID,
+                          organization_id: CHANGE_ORG_ID,
                         })
                         setNewPrizeAdding(false)
                         if (error) { setPrizeError('追加失敗: ' + error.message); setNewPrizeMode(false); return }

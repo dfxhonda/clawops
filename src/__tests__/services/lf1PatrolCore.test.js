@@ -26,7 +26,7 @@ vi.mock('../../lib/supabase', () => ({
     }),
   },
 }))
-vi.mock('../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
+vi.mock('../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org', CHANGE_ORG_ID: 'test-org' }))
 vi.mock('../../lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }))
 
 const { savePatrolReading } = await import('../../services/patrolCore')
