@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import { nextMachineCode, nextBoothCode, nextBoothNumber } from '../lib/machineBoothCrud'
 
 // J-ADMIN-MACHINE-BOOTH-CRUD-01
@@ -117,7 +117,8 @@ export default function StoreCrudDrawer({ storeCode, storeName, onClose, onEditS
         const { error: e } = await supabase.from('machines').insert({
           machine_code: d.machine_code.trim(),
           store_code: storeCode,
-          organization_id: DFX_ORG_ID,
+          // SPEC-MACHINE-REGISTER-ORG-DEFAULT-CHANGE-01 (D-064): store と org 一致のため CHANGE org (D-063 と同型)
+          organization_id: CHANGE_ORG_ID,
           machine_name: d.machine_name.trim() || null,
           model_id: d.model_id || null,
           is_active: d.is_active,
