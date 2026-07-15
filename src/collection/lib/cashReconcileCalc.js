@@ -1,4 +1,4 @@
-// SPEC-CASH-RECONCILE-PAGE-01 (D-067): 金庫照合の純計算 + 表示分岐ヘルパー (UI/service で共有、vitest 可能)。
+// SPEC-CASH-RECONCILE-PAGE-01 (D-067): 集金額照合の純計算 + 表示分岐ヘルパー (UI/service で共有、vitest 可能)。
 
 // 金種 額面 (円)。上から 10000..1。denominations jsonb は { "<額面>": 枚数 } で保持。
 export const DENOMINATIONS = [10000, 5000, 2000, 1000, 500, 100, 50, 10, 5, 1]

@@ -1,4 +1,4 @@
-// SPEC-CASH-RECONCILE-PAGE-01 (D-067): 金庫照合ページ。手持ち金種 vs 集金総計 の差額照合 + 保存 + 履歴。
+// SPEC-CASH-RECONCILE-PAGE-01 (D-067): 集金額照合ページ。手持ち金種 vs 集金総計 の差額照合 + 保存 + 履歴。
 // cash_collections / meter_readings へは書き込まない (読みのみ)。JST 日付厳守。grid は min-w-0。
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -114,7 +114,7 @@ export default function CashReconcilePage() {
 
   return (
     <div data-testid="cash-reconcile" className="flex flex-col min-w-0" style={{ height: '100svh' }} onPointerDown={handleOutsideTap}>
-      <PageHeader module="admin" title="金庫照合" onBack={() => navigate('/admin/collection')} />
+      <PageHeader module="admin" title="集金額照合" onBack={() => navigate('/admin/collection')} />
 
       <div className="flex-1 overflow-y-auto min-h-0 min-w-0 p-3 pb-2 space-y-4">
         {error && <p data-testid="recon-error" className="text-red-400 text-sm">{error}</p>}

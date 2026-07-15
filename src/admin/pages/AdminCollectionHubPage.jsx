@@ -8,8 +8,8 @@ const TILES = [
   { label: '集金帳票',     desc: '金種カウント・売上伝票PDF',      path: '/collection/input',          impl: true },
   { label: '集金フラグ編集', desc: '巡回 reading の集金済フラグ管理', path: '/admin/collection-flag',   impl: true },
   { label: '集金履歴',     desc: '過去の集金帳票一覧',             path: '/collection/history',        impl: true },
-  // SPEC-CASH-RECONCILE-PAGE-01 (D-067): 金庫照合 (手持ち金種 vs 集金総計の差額照合)
-  { label: '金庫照合',     desc: '手持ち金種と集金の差額照合',       path: '/collection/reconciliation', impl: true },
+  // SPEC-CASH-RECONCILE-PAGE-01 (D-067): 集金額照合 (手持ち金種 vs 集金総計の差額照合)
+  { label: '集金額照合',     desc: '手持ち金種と集金の差額照合',       path: '/collection/reconciliation', impl: true },
   // SPEC-COLLECTION-EXPORT-TAB-PLACE-01: 集金タブから集金抽出へ (route 共用)
   { label: '集金抽出',     desc: '集金データのxlsx出力',           path: '/admin/reports/collections', impl: true },
 ]
