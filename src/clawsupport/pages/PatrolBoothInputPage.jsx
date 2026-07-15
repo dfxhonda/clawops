@@ -7,6 +7,7 @@ import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { useSaveState } from '../../hooks/useSaveState'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
+import NumpadFooterSlot from '../components/NumpadFooterSlot'
 import { isCustomNumpadEnabled } from '../../shared/lib/device'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import Tooltip from '../components/Tooltip'
@@ -964,10 +965,10 @@ export default function PatrolBoothInputPage() {
         {/* zone_bottom: テンキー 固定領域。
             J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
             カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
-            iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
-        <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
-          <NumpadFooterPanel currentField={currentField} />
-        </div>
+            iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。
+            SPEC-MOTION-W1_5-NUMPAD-PATROL-ADMIN-01 (D-070) F2: 主フッターを NumpadFooterSlot 化
+            (grid-rows transition + scrollIntoView)。L855 null固定 / L1108 別配置は不変。 */}
+        <NumpadFooterSlot currentField={currentField} />
       </div>
     )
   }

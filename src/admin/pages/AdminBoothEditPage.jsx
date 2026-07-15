@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
+import NumpadFooterSlot from '../../clawsupport/components/NumpadFooterSlot'
 import BoothInputForm, { ALL_TOUCHED } from '../../clawsupport/components/BoothInputForm'
 import LiveCameraView from '../../clawsupport/components/LiveCameraView'
 import ErrorBanner from '../../components/ErrorBanner'
@@ -538,9 +539,8 @@ export default function AdminBoothEditPage() {
             </button>
           </div>
         </div>
-        <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
-          <NumpadFooterPanel currentField={currentField} />
-        </div>
+        {/* SPEC-MOTION-W1_5-NUMPAD-PATROL-ADMIN-01 (D-070) F1: 主フッターを NumpadFooterSlot 化 (grid-rows transition + scrollIntoView)。L684 anchor版は test 保護のため不変。 */}
+        <NumpadFooterSlot currentField={currentField} />
       </div>
     )
   }
