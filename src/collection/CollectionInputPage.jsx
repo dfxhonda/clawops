@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import NumpadField, { NumpadFooterPanel } from '../clawsupport/components/NumpadField'
+import NumpadField from '../clawsupport/components/NumpadField'
+import NumpadFooterSlot from '../clawsupport/components/NumpadFooterSlot'
+import Collapse from '../components/Collapse'
 import {
   getActiveStores, getActiveBoothsForStore, getPrevCollectionMeters,
   saveCollection, getCollectionDetail,
@@ -310,6 +312,13 @@ export default function CollectionInputPage() {
     setCurrentField(null)
   }
 
+  // SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F4: 金種展開時、行が画面外なら滑らかに追従スクロール。
+  useEffect(() => {
+    if (!openDenom || typeof document === 'undefined') return
+    const el = document.querySelector(`[data-testid="denom-inline-${CSS.escape(openDenom)}"]`)
+    el?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+  }, [openDenom])
+
   return (
     <div data-testid="collection-input" className="flex flex-col" style={{ height: '100svh' }} onPointerDown={handleOutsideTap}>
       <div className="flex-shrink-0 p-3 pb-2 border-b border-border">
@@ -351,7 +360,8 @@ export default function CollectionInputPage() {
 
       {error && <p data-testid="collection-error" className="text-red-400 text-sm px-3 py-1 flex-shrink-0">{error}</p>}
 
-      <div className="flex-1 overflow-auto min-h-0">
+      {/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F5: overflow-anchor で開閉時のスクロール位置を安定化 */}
+      <div className="flex-1 overflow-auto min-h-0" style={{ overflowAnchor: 'auto' }}>
         {!loaded && !loading && <p className="text-center text-muted text-base py-8">店舗を選んで読み込んでください</p>}
         {loaded && booths.length === 0 && <p className="text-center text-muted text-base py-8">アクティブブースがありません</p>}
         {loaded && booths.length > 0 && (
@@ -461,10 +471,11 @@ export default function CollectionInputPage() {
                       </div>
                     </td>
                   </tr>
-                  {open && (
-                    <tr data-testid={`denom-inline-${b.booth_code}`} className="bg-surface/40">
-                      <td colSpan={COLS.length} className="px-3 py-2">
-                        <div className="flex flex-wrap items-center gap-3">
+                  {/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F4: {open&&tr} を常時 tr + Collapse に。DOM 瞬間挿入を断ち、タップ誤爆/スクロール飛びを防ぐ。 */}
+                  <tr data-testid={`denom-inline-${b.booth_code}`} className="bg-surface/40">
+                    <td colSpan={COLS.length} className="p-0">
+                      <Collapse open={open} testId={`denom-collapse-${b.booth_code}`}>
+                        <div className="flex flex-wrap items-center gap-3 px-3 py-2">
                           {DENOMINATIONS.map(d => (
                             <div key={d.key} className="flex items-center gap-1">
                               <span className="text-xs text-muted w-10 text-right">{d.short}</span>
@@ -484,9 +495,9 @@ export default function CollectionInputPage() {
                           <span className="ml-auto text-sm font-bold text-text tabular-nums" data-testid={`denom-subtotal-${b.booth_code}`}>合計 {yen(sub)} 円</span>
                           <button data-testid={`denom-close-${b.booth_code}`} onClick={() => setOpenDenom(null)} className="text-xs text-blue-400 px-3 min-h-[44px]">閉じる</button>
                         </div>
-                      </td>
-                    </tr>
-                  )}
+                      </Collapse>
+                    </td>
+                  </tr>
                   </Fragment>
                 )
               })}
@@ -576,9 +587,8 @@ export default function CollectionInputPage() {
         </div>
       )}
 
-      <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
-        <NumpadFooterPanel currentField={currentField} />
-      </div>
+      {/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F3: h-0 即時 → NumpadFooterSlot (grid-rows transition + scrollIntoView) */}
+      <NumpadFooterSlot currentField={currentField} />
 
       {/* J-COLLECTION-12 R2: レシート削除確認ダイアログ。背景タップ=キャンセル、× 'キャンセル' でも閉じる、'削除' のみ実行。 */}
       {/* SPEC-COLLECTION-RECEIPT-CONFIRM-VIEW-01: レシート確認モーダル。写真ありブースでReceiptボタンタップ時に表示。再撮影 or 戻る。 */}

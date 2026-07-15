@@ -6,7 +6,8 @@ import { useAuth } from '../../hooks/useAuth'
 import { useSaveState } from '../../hooks/useSaveState'
 import ErrorBanner from '../../components/ErrorBanner'
 import { logger } from '../../lib/logger'
-import NumpadField, { NumpadFooterPanel } from '../../clawsupport/components/NumpadField'
+import NumpadField from '../../clawsupport/components/NumpadField'
+import NumpadFooterSlot from '../../clawsupport/components/NumpadFooterSlot'
 
 const OUT_TYPES = [
   { key: 'out_to_staff',    label: '担当持出',   targetType: 'staff' },
@@ -354,9 +355,8 @@ export default function StockOutPage() {
 
       </div>
 
-      <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
-        <NumpadFooterPanel currentField={currentField} />
-      </div>
+      {/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F3: NumpadFooterSlot (grid-rows transition + scrollIntoView) */}
+      <NumpadFooterSlot currentField={currentField} />
     </div>
   )
 }

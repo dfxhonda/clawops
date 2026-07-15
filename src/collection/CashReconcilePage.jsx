@@ -3,7 +3,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeader } from '../shared/ui/PageHeader'
-import NumpadField, { NumpadFooterPanel } from '../clawsupport/components/NumpadField'
+import NumpadField from '../clawsupport/components/NumpadField'
+import NumpadFooterSlot from '../clawsupport/components/NumpadFooterSlot'
 import StorePickerSheet from '../components/StorePickerSheet'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -257,9 +258,8 @@ export default function CashReconcilePage() {
       </div>
 
       {/* テンキー footer (D-052/D-054 パターン) */}
-      <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
-        <NumpadFooterPanel currentField={currentField} />
-      </div>
+      {/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F3: NumpadFooterSlot (grid-rows transition + scrollIntoView) */}
+      <NumpadFooterSlot currentField={currentField} />
 
       {/* 削除確認 */}
       {deleteConfirm && (
