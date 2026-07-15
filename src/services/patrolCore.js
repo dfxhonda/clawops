@@ -2,7 +2,7 @@
 // patrolCore: M1 巡回コアサービス (Stage 2+3)
 // ============================================
 import { supabase } from '../lib/supabase'
-import { DFX_ORG_ID } from '../lib/auth/orgConstants'
+import { CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 import { logger } from '../lib/logger'
 import { ERR } from '../lib/errorCodes'
 
@@ -193,8 +193,8 @@ export async function savePatrolReading({
   readingId,         // D2: 冪等キー (r.localId)。INSERT 時に reading_id として使う
   clientTimestamp,   // D3: r.createdLocally。UPDATE stale-guard 判定に使う
 }) {
-  if (!DFX_ORG_ID) {
-    logger.error(ERR.AUTH_001, { message: 'DFX_ORG_ID is not set', boothCode })
+  if (!CHANGE_ORG_ID) {
+    logger.error(ERR.AUTH_001, { message: 'CHANGE_ORG_ID is not set', boothCode })
     return { ok: false, errCode: ERR.AUTH_001, message: 'organization_id が設定されていません', raw: null }
   }
 
@@ -209,7 +209,7 @@ export async function savePatrolReading({
   logger.info('patrol_save_attempted', {
     boothCode,
     patrol_date: today,
-    organization_id: DFX_ORG_ID,
+    organization_id: CHANGE_ORG_ID,
     entryType,
     has_in_meter: numIn != null,
     has_out_meter: numOut != null,
@@ -225,8 +225,10 @@ export async function savePatrolReading({
       booth_id:            boothCode,
       full_booth_code:     boothCode,
       booth_code:          boothCode,
-      store_code:          storeCode   ?? null,
-      machine_code:        machineCode ?? null,
+      // SPEC-METER-READINGS-ORG-AND-DENORM-FIX-01 (D-065) F2: 引数未供給時は booth_code から導出し
+      // denorm null 保存を構造的に不能化 (machine_code=末尾 -B\d+ 除去 / store_code=先頭ハイフン前)。
+      store_code:          storeCode   ?? boothCode.split('-')[0],
+      machine_code:        machineCode ?? boothCode.replace(/-B\d+$/, ''),
       patrol_date:         today,
       read_time:           now,
       in_meter:            numIn,
@@ -237,7 +239,7 @@ export async function savePatrolReading({
       source:              'manual',
       input_method:        'manual',
       created_by:          staffId ?? null,
-      organization_id:     DFX_ORG_ID,
+      organization_id:     CHANGE_ORG_ID,
     }
 
     // 'replace' / 'collection' → 新規 INSERT

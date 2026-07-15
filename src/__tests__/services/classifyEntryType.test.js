@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../../lib/supabase', () => ({ supabase: {} }))
-vi.mock('../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org' }))
+vi.mock('../../lib/auth/orgConstants', () => ({ DFX_ORG_ID: 'test-org', CHANGE_ORG_ID: 'test-org' }))
 vi.mock('../../lib/logger', () => ({ logger: { info: vi.fn(), error: vi.fn() } }))
 vi.mock('../../lib/errorCodes', () => ({ ERR: {} }))
 

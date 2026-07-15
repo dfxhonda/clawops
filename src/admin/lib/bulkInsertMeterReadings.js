@@ -1,10 +1,12 @@
 import { supabase } from '../../lib/supabase'
-import { DFX_ORG_ID } from '../../lib/auth/orgConstants'
+// SPEC-METER-READINGS-ORG-AND-DENORM-FIX-01 (D-065): meter_readings insert は CHANGE org。
+// DFX_ORG_ID は operation_logs (本spec scope外, P3別途) の温存にのみ残す。
+import { DFX_ORG_ID, CHANGE_ORG_ID } from '../../lib/auth/orgConstants'
 import { logger } from '../../lib/logger'
 import { ERR } from '../../lib/errorCodes'
 
 export async function bulkInsertMeterReadings({ validatedRows, staffId }) {
-  if (!DFX_ORG_ID) {
+  if (!CHANGE_ORG_ID) {
     return { ok: false, errCode: ERR.AUTH_001, message: 'organization_id 未設定' }
   }
   if (!validatedRows?.length) {
@@ -17,6 +19,9 @@ export async function bulkInsertMeterReadings({ validatedRows, staffId }) {
     booth_id:            r.boothCode,
     booth_code:          r.boothCode,
     full_booth_code:     r.boothCode,
+    // SPEC-METER-READINGS-ORG-AND-DENORM-FIX-01 (D-065) F2: denorm 列を booth_code から導出
+    machine_code:        r.boothCode.replace(/-B\d+$/, ''),
+    store_code:          r.boothCode.split('-')[0],
     patrol_date:         r.patrolDate,
     read_time:           now,
     entry_type:          'patrol',
@@ -35,7 +40,7 @@ export async function bulkInsertMeterReadings({ validatedRows, staffId }) {
     set_r:               r.setR,
     set_o:               r.setO,
     note:                r.note,
-    organization_id:     DFX_ORG_ID,
+    organization_id:     CHANGE_ORG_ID,
     created_by:          staffId ?? null,
   }))
 
