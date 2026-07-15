@@ -40,6 +40,7 @@ const AdminCollectionFlagPage = lazy(() => import('./admin/pages/AdminCollection
 const AdminCollectionHubPage  = lazy(() => import('./admin/pages/AdminCollectionHubPage'))
 const CollectionInputPage   = lazy(() => import('./collection/CollectionInputPage'))
 const CollectionHistoryPage = lazy(() => import('./collection/CollectionHistoryPage'))
+const CashReconcilePage     = lazy(() => import('./collection/CashReconcilePage'))
 const AdminDevAssetsListPage = lazy(() => import('./admin/pages/AdminDevAssetsListPage'))
 const AdminDevAssetsUploadPage = lazy(() => import('./admin/pages/AdminDevAssetsUploadPage'))
 const AdminAuditHubPage     = lazy(() => import('./admin/pages/AdminAuditHubPage'))
@@ -252,6 +253,7 @@ function AppInner() {
           staff/patrol で直接 URL 入力時は ManagerRoute (RoleRoute) が '/' へ redirect → /launcher。 */}
       <Route path="/collection/input" element={<ManagerRoute><CollectionInputPage /></ManagerRoute>} />
       <Route path="/collection/history" element={<ManagerRoute><CollectionHistoryPage /></ManagerRoute>} />
+      <Route path="/collection/reconciliation" element={<ManagerRoute><CashReconcilePage /></ManagerRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardTop /></ProtectedRoute>} />
       {/* J-NAV-ORPHAN-CLEANUP-01 2026-05-30: /dashboard/legacy ルート削除 (動線無し) */}
       {/* J-ADMIN-02: AdminLayout nested routes (新 IA ナビ骨組) */}
