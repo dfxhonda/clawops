@@ -46,6 +46,16 @@ html, body, #root {
   overscroll-behavior: none;
 }
 
+/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F1: OS の視差効果軽減を尊重 (全 transition/animation を実質無効化)。 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--color-bg);
