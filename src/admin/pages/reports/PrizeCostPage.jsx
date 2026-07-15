@@ -4,6 +4,8 @@
 // SPEC-ADMIN-ANALYTICS-RELABEL-GENREFILTER-TABPILL-01 R3: GenreFilter 追加
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useTrackPageUsage } from '../../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../../constants/pageKeys'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 import StorePickerSheet from '../../../components/StorePickerSheet'
@@ -26,6 +28,7 @@ async function fetchBoothCodesByGenre(genre, storeCode) {
 }
 
 export default function PrizeCostPage() {
+  useTrackPageUsage(PAGE_KEY.PRIZE_COST_RECOVERY) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const [period, setPeriod] = useState('30d')
   const [from, setFrom] = useState(jstDateNDaysAgo(30))
   const [to, setTo] = useState(todayJst())

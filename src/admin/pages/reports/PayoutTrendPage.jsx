@@ -7,6 +7,8 @@
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { supabase } from '../../../lib/supabase'
+import { useTrackPageUsage } from '../../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../../constants/pageKeys'
 import { jstDateNDaysAgo } from '../../lib/jstDate'
 import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
@@ -17,6 +19,7 @@ const COLORS = ['#fbbf24', '#60a5fa', '#10b981', '#f472b6', '#a78bfa', '#22d3ee'
 
 
 export default function PayoutTrendPage() {
+  useTrackPageUsage(PAGE_KEY.PAYOUT_TREND) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const [mode, setMode] = useState('single') // 'single' | 'compare'
   const [genre, setGenre] = useState('crane')
 

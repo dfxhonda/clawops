@@ -5,6 +5,8 @@
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '../../../lib/supabase'
+import { useTrackPageUsage } from '../../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../../constants/pageKeys'
 import { jstDateNDaysAgo, rangePresetDays } from '../../lib/jstDate'
 import { calc7dmaSeries } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
@@ -16,6 +18,7 @@ const MAX_SERIES = 5
 
 
 export default function SevenDmaPage() {
+  useTrackPageUsage(PAGE_KEY.DMA7) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const [granularity, setGranularity] = useState('booth')
   const [period, setPeriod]           = useState('30d')
   const [storeFilter, setStoreFilter] = useState('all')

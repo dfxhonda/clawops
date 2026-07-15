@@ -1,6 +1,8 @@
 // SPEC-ADMIN-FORECAST-CYCLE-S2-UI-01: 集金サイクル売上着地予測 店舗一覧
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTrackPageUsage } from '../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../constants/pageKeys'
 import LandscapeSideHeader from '../../components/LandscapeSideHeader'
 import ErrorDisplay from '../../components/ErrorDisplay'
 import { getForecastStoreList } from '../../services/forecast'
@@ -10,6 +12,7 @@ import { fmtYen } from '../../utils/format'
 import { formatJstDate } from '../../admin/lib/jstDate'
 
 export default function ForecastList() {
+  useTrackPageUsage(PAGE_KEY.FORECAST) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const navigate = useNavigate()
   const [rows, setRows] = useState([])
   const [storeNames, setStoreNames] = useState({})
