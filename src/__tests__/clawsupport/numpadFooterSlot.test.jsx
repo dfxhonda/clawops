@@ -22,17 +22,19 @@ const field = (over = {}) => ({
 })
 
 describe('AC2: NumpadFooterSlot', () => {
-  it('currentField あり → grid-template-rows 1fr + panel 描画', () => {
+  // SPEC-MOTION-W1_7-NUMPAD-SLOT-MAXHEIGHT-01 (D-078): grid-template-rows 0fr/1fr → max-height 0/70svh 方式。
+  it('currentField あり → max-height 70svh + panel 描画', () => {
     stubReducedMotion(false)
     const { getByTestId } = render(<NumpadFooterSlot currentField={field()} />)
-    expect(getByTestId('numpad-slot').style.gridTemplateRows).toBe('1fr')
+    expect(getByTestId('numpad-slot').style.maxHeight).toBe('70svh')
+    expect(getByTestId('numpad-slot').style.gridTemplateRows).toBe('') // grid 方式は撤去
     expect(getByTestId('numpad-footer')).toBeTruthy() // canonical panel が中に居る
   })
 
-  it('currentField null → grid-template-rows 0fr (閉)', () => {
+  it('currentField null → max-height 0 (閉)', () => {
     stubReducedMotion(false)
     const { getByTestId } = render(<NumpadFooterSlot currentField={null} />)
-    expect(getByTestId('numpad-slot').style.gridTemplateRows).toBe('0fr')
+    expect(['0', '0px']).toContain(getByTestId('numpad-slot').style.maxHeight)
   })
 
   it('開時にアクティブフィールドを scrollIntoView({block:nearest}) で追従', () => {
@@ -42,10 +44,10 @@ describe('AC2: NumpadFooterSlot', () => {
     expect(f.inputRef.current.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' })
   })
 
-  it('transition は grid-template-rows 200ms (reduced-motion 時は none)', () => {
+  it('transition は max-height 200ms (reduced-motion 時は none)', () => {
     stubReducedMotion(false)
     const a = render(<NumpadFooterSlot currentField={field()} />)
-    expect(a.getByTestId('numpad-slot').style.transition).toContain('grid-template-rows')
+    expect(a.getByTestId('numpad-slot').style.transition).toContain('max-height')
     cleanup()
     stubReducedMotion(true)
     const b = render(<NumpadFooterSlot currentField={field()} />)
