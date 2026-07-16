@@ -26,6 +26,12 @@ export default defineConfig({
         userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
       },
     },
+    // SPEC-DIAG-NUMPAD-NPLOG-WEBKIT-01 (D-077): iOS 実機 (WebKit) と同一エンジンで numpad transition を実測。
+    // iPhone プロファイル (WebKit engine, 390x844 相当)。DIAG-NUMPAD の engine 切り分け用。
+    {
+      name: 'webkit',
+      use: { ...devices['iPhone 13'] },
+    },
   ],
   webServer: {
     command: 'npm run dev',

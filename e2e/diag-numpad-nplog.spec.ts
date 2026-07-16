@@ -31,6 +31,21 @@ async function cycle(
   }
 }
 
+// SPEC-DIAG-NUMPAD-NPLOG-WEBKIT-01 (D-077): engine 別に reduced-motion 判定と Slot の computed transition を採取。
+async function engineInfo(page: import('@playwright/test').Page): Promise<string> {
+  const info = await page.evaluate(() => {
+    const rm = matchMedia('(prefers-reduced-motion: reduce)').matches
+    const slot = document.querySelector('[data-testid="numpad-slot"]')
+    const cs = slot ? getComputedStyle(slot as Element) : null
+    return {
+      rm,
+      tr: cs ? `${cs.transitionProperty}/${cs.transitionDuration}/${cs.transitionTimingFunction}` : 'no-slot',
+      rows: cs ? cs.gridTemplateRows : 'no-slot',
+    }
+  })
+  return `[engine] reduced-motion.matches=${info.rm} slot.computed.transition=${info.tr} slot.gridTemplateRows=${info.rows}`
+}
+
 function dump(label: string, logs: string[]) {
   // marker で挟んで生ログを吐く (status_log に全文転記する対象)。
   // e2e/ は console.log 禁止 (pre-push) のため process.stdout.write を使う。
@@ -39,7 +54,7 @@ function dump(label: string, logs: string[]) {
 }
 
 test.describe('D-075 numpad [nplog] auto-capture', () => {
-  test('flow A: 巡回 booth-input numpad 開閉3往復の [nplog]', async ({ page }) => {
+  test('flow A: 巡回 booth-input numpad 開閉3往復の [nplog]', async ({ page, browserName }) => {
     const logs: string[] = []
     page.on('console', (m) => {
       const t = m.text()
@@ -92,21 +107,24 @@ test.describe('D-075 numpad [nplog] auto-capture', () => {
       3,
     )
 
-    const finding = `[finding] patrol booth-input: __NUMPAD_LOG__=${flag} numpad-footer.visible=${footerVisible} active-label="${activeLabel}" numpad-slot(count)=${slotCount} nplog-captured=${logs.length}`
-    dump('PATROL', [finding, ...logs])
+    const engine = await engineInfo(page)
+    const finding = `[finding] patrol booth-input engine=${browserName}: __NUMPAD_LOG__=${flag} numpad-footer.visible=${footerVisible} active-label="${activeLabel}" numpad-slot(count)=${slotCount} nplog-captured=${logs.length}`
+    dump(`PATROL-${browserName}`, [engine, finding, ...logs])
 
-    // D-076 修正後の期待状態 (回帰計測): Main patrol form の footer が NumpadFooterSlot 化され、
-    // numpad-slot が DOM に存在し、開閉で [nplog] transition events が発火する = 「ぬるっと」。
+    // 構造 (footer 可視 + Slot 存在) は全 engine で成立想定。transition 発火の有無こそが engine 差の観測点。
     expect(footerVisible, 'patrol numpad should open (footer visible)').toBe(true)
     expect(activeLabel).toContain('入力中')
-    expect(slotCount, 'patrol main-form footer should now be NumpadFooterSlot (>=1)').toBeGreaterThanOrEqual(1)
-    expect(logs.length, 'patrol should now emit [nplog] via Slot').toBeGreaterThan(0)
-    const types = logs.join('\n')
-    expect(types, 'transitionrun should fire on patrol slot').toContain('[nplog] transitionrun')
-    expect(types, 'transitionend should fire on patrol slot').toContain('[nplog] transitionend')
+    expect(slotCount, 'patrol main-form footer should be NumpadFooterSlot (>=1)').toBeGreaterThanOrEqual(1)
+    // [nplog] transition 発火の断定は chromium のみ (webkit は採取優先、fail させず所見にする)
+    if (browserName === 'chromium') {
+      const types = logs.join('\n')
+      expect(logs.length, 'patrol should emit [nplog] via Slot').toBeGreaterThan(0)
+      expect(types, 'transitionrun should fire on patrol slot').toContain('[nplog] transitionrun')
+      expect(types, 'transitionend should fire on patrol slot').toContain('[nplog] transitionend')
+    }
   })
 
-  test('flow B: 集金 input numpad 開閉3往復の [nplog] (対照群)', async ({ page }) => {
+  test('flow B: 集金 input numpad 開閉3往復の [nplog] (対照群)', async ({ page, browserName }) => {
     const logs: string[] = []
     page.on('console', (m) => {
       const t = m.text()
@@ -146,6 +164,9 @@ test.describe('D-075 numpad [nplog] auto-capture', () => {
     await page.getByTestId(`booth-amount-${COL_BOOTH}`).click()
     const denomField = page.getByTestId(`denom-input-bill_10000-${COL_BOOTH}`)
     await expect(denomField).toBeVisible()
+    await denomField.dispatchEvent('pointerdown')
+    await page.waitForTimeout(300)
+    const engine = await engineInfo(page)
 
     await cycle(
       page,
@@ -154,7 +175,10 @@ test.describe('D-075 numpad [nplog] auto-capture', () => {
       3,
     )
 
-    dump('COLLECTION', logs)
-    expect(logs.length, 'no [nplog] captured for collection').toBeGreaterThan(0)
+    dump(`COLLECTION-${browserName}`, [engine, ...logs])
+    // 集金は対照群。chromium では [nplog] 発火必須、webkit は採取優先 (所見化)。
+    if (browserName === 'chromium') {
+      expect(logs.length, 'no [nplog] captured for collection').toBeGreaterThan(0)
+    }
   })
 })
