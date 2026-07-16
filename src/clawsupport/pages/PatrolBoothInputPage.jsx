@@ -983,9 +983,14 @@ export default function PatrolBoothInputPage() {
       style={{
         gridTemplateRows: 'auto auto auto 1fr auto',
         minHeight: 0,
-        transform: `translateX(${swipeDx}px)`,
+        // SPEC-MOTION-W1_8-PATROL-PARENT-TRANSFORM-GATE-01 (D-079) C1: transform/willChange を swipeDx!==0 時のみ出力。
+        // 真因 = swipeDx=0(通常時)でも translateX(0px)+willChange:transform を常時出すと親が containing block /
+        // 合成レイヤを作り、iOS Safari で子孫 (NumpadFooterSlot/Collapse) の高さ transition を合成抑制していた
+        // (集金親は transform 無し = ぬるっと動く、の差分で確定)。dx=0 で transform 無しは集金親と同条件・視覚差ゼロ。
+        // スワイプ追従/入退場/springBack (dx 非ゼロ) は従来通り transform 適用 = swipe ロジック非破壊。
+        transform: swipeDx !== 0 ? `translateX(${swipeDx}px)` : undefined,
         transition: swipeTransition,
-        willChange: 'transform',
+        willChange: swipeDx !== 0 ? 'transform' : undefined,
       }}
     >
       {/* J-PATROL-OCR-CAMERA C: 読み取り写真の入力。capture指定なしでiOSは「写真を撮る(純正カメラ+フラッシュ)/写真を選ぶ」メニュー */}
