@@ -95,11 +95,15 @@ test.describe('D-075 numpad [nplog] auto-capture', () => {
     const finding = `[finding] patrol booth-input: __NUMPAD_LOG__=${flag} numpad-footer.visible=${footerVisible} active-label="${activeLabel}" numpad-slot(count)=${slotCount} nplog-captured=${logs.length}`
     dump('PATROL', [finding, ...logs])
 
-    // numpad は開く (footer 可視 + 入力中ラベル) が、可視フッターは NumpadFooterSlot ではない (slot count=0)。
-    // = D-071 計測器 (Slot のみ instrument) が巡回では発火しない主因。ここが transition 未適用 = 「パッと出る」の正体。
+    // D-076 修正後の期待状態 (回帰計測): Main patrol form の footer が NumpadFooterSlot 化され、
+    // numpad-slot が DOM に存在し、開閉で [nplog] transition events が発火する = 「ぬるっと」。
     expect(footerVisible, 'patrol numpad should open (footer visible)').toBe(true)
     expect(activeLabel).toContain('入力中')
-    expect(slotCount, 'patrol visible footer is NOT NumpadFooterSlot → 0 (finding)').toBe(0)
+    expect(slotCount, 'patrol main-form footer should now be NumpadFooterSlot (>=1)').toBeGreaterThanOrEqual(1)
+    expect(logs.length, 'patrol should now emit [nplog] via Slot').toBeGreaterThan(0)
+    const types = logs.join('\n')
+    expect(types, 'transitionrun should fire on patrol slot').toContain('[nplog] transitionrun')
+    expect(types, 'transitionend should fire on patrol slot').toContain('[nplog] transitionend')
   })
 
   test('flow B: 集金 input numpad 開閉3往復の [nplog] (対照群)', async ({ page }) => {

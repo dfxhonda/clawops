@@ -1106,9 +1106,10 @@ export default function PatrolBoothInputPage() {
           }}
         />
       </div>
-      <div className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}>
-        <NumpadFooterPanel currentField={currentField} />
-      </div>
+      {/* SPEC-MOTION-W1_6-NUMPAD-PATROL-MAINFORM-SLOT-01 (D-076) C1: Main patrol form の日常フッター。
+          旧 hidden↔flex 即時トグル (display:none からは transition 発火不能) を NumpadFooterSlot に置換し
+          grid-rows 0fr↔1fr の 200ms transition に一本化。D-075 で「巡回パッと出る」の実フッターと確定した箇所。 */}
+      <NumpadFooterSlot currentField={currentField} />
 
       <AlertSheetModal
         open={showAlert}

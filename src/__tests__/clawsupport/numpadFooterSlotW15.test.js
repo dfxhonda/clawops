@@ -45,11 +45,15 @@ describe('AC2: PatrolBoothInputPage 主フッターのみ Slot 化', () => {
   it('null固定パス (無効化) は NumpadFooterPanel currentField={null} のまま温存', () => {
     expect(patrol).toContain('<NumpadFooterPanel currentField={null} />')
   })
-  it('別配置フッター (currentField ? ... : hidden) は NumpadFooterPanel のまま温存', () => {
-    expect(patrol).toContain("className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}")
-    // Slot は主フッターの 1 箇所のみ
-    expect(count(patrol, 'NumpadFooterSlot currentField={currentField}')).toBe(1)
-    // Panel は import + null固定 + 別配置 の合計 (currentField={currentField} 版は別配置の 1 箇所のみ)
-    expect(count(patrol, '<NumpadFooterPanel currentField={currentField} />')).toBe(1)
+  // SPEC-MOTION-W1_6-NUMPAD-PATROL-MAINFORM-SLOT-01 (D-076): D-075 で確定したとおり、日常の巡回で出る実フッターは
+  // Main patrol form の L1110 raw NumpadFooterPanel (hidden↔flex 即時) だった。D-076 でこれも Slot 化。
+  it('Main patrol form フッター (旧 hidden↔flex) も NumpadFooterSlot 化済 (D-076)', () => {
+    // 旧 hidden↔flex 即時トグル wrapper は消滅
+    expect(patrol).not.toContain("className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}")
+    // NumpadFooterSlot currentField={currentField} は 2 箇所 (OCR confirming L971 + Main form L1112)
+    expect(count(patrol, 'NumpadFooterSlot currentField={currentField}')).toBe(2)
+    // currentField={currentField} 版の raw Panel は消滅 (残るは L856 の null固定のみ)
+    expect(count(patrol, '<NumpadFooterPanel currentField={currentField} />')).toBe(0)
+    expect(count(patrol, '<NumpadFooterPanel currentField={null} />')).toBe(1)
   })
 })
