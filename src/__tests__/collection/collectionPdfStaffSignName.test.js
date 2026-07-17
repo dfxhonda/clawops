@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // SPEC-COLLECTION-PDF-STAFF-SIGN-NAME-01: staff署名欄に担当者名大書き
-// AC1: collectedByName undefined → collection.updated_by にフォールバック
+// SPEC-COLLECTION-STAFF-NAME-SEPARATION-01 (D-090): フォールバックは collection.collected_by_name (旧 updated_by 廃止)
+// AC1: collectedByName undefined → collection.collected_by_name にフォールバック
 // AC2: staffName を fontSize>=14 で大書き
 // AC3: null/undefined の場合は 弊社担当 ラベルのみ (クラッシュなし)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -33,7 +34,7 @@ vi.mock('../../collection/lib/imageUtil', () => ({
 import { buildCollectionSlip } from '../../collection/lib/collectionPdf'
 
 const BASE = {
-  collection: { collection_id: 'test-001', collected_at: '2026-06-21', updated_by: '本田' },
+  collection: { collection_id: 'test-001', collected_at: '2026-06-21', collected_by_name: '本田', updated_by: 'STAFF-03' },
   store: { store_name: 'Test Store', store_name_official: 'Test Store Ltd' },
   booths: [],
   total: 10000,
@@ -46,13 +47,15 @@ const BASE = {
 beforeEach(() => { vi.clearAllMocks() })
 
 describe('SPEC-COLLECTION-PDF-STAFF-SIGN-NAME-01 staff signature name rendering', () => {
-  it('when_collectedByName_undefined_should_resolve_name_from_collection_updated_by', async () => {
+  it('when_collectedByName_undefined_should_resolve_name_from_collection_collected_by_name', async () => {
     await buildCollectionSlip({ ...BASE, collectedByName: undefined })
     const textCalls = mockText.mock.calls.map(c => c[0])
     expect(textCalls).toContain('本田')
+    // D-090: 監査カラム updated_by の値 (staffId) は担当欄に出さない
+    expect(textCalls).not.toContain('STAFF-03')
   })
 
-  it('when_collectedByName_provided_should_use_it_over_updated_by', async () => {
+  it('when_collectedByName_provided_should_use_it_over_collected_by_name', async () => {
     await buildCollectionSlip({ ...BASE, collectedByName: '山田' })
     const textCalls = mockText.mock.calls.map(c => c[0])
     expect(textCalls).toContain('山田')

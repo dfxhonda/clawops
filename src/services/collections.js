@@ -202,6 +202,8 @@ export async function saveCollection({
     collection_id: collectionId,
     store_code: storeCode,
     collected_by: collectedBy || null,
+    // SPEC-COLLECTION-STAFF-NAME-SEPARATION-01 (D-090): 弊社担当の表示名は専用カラム collected_by_name へ。
+    collected_by_name: collectedByName || null,
     collected_at: collectedAt,
     prev_collection_date: prevCollectionDate || null,
     status: 'confirmed',
@@ -209,7 +211,8 @@ export async function saveCollection({
     organization_id: CHANGE_ORG_ID,
     created_at: now,
     updated_at: now,
-    updated_by: collectedByName || null,
+    // D-090: updated_by は純監査 (最終更新者の staffId)。旧実装は表示名を流用していたが collected_by_name に分離。
+    updated_by: collectedBy || null,
     // J-COLLECTION-09 fix_1: 弊社担当者署名 Storage URL/Path
     staff_signature_url: providedSigUrl || null,
     staff_signature_path: providedSigPath || null,
