@@ -40,10 +40,10 @@ async function engineInfo(page: import('@playwright/test').Page): Promise<string
     return {
       rm,
       tr: cs ? `${cs.transitionProperty}/${cs.transitionDuration}/${cs.transitionTimingFunction}` : 'no-slot',
-      mh: cs ? cs.maxHeight : 'no-slot',
+      rows: cs ? cs.gridTemplateRows : 'no-slot',
     }
   })
-  return `[engine] reduced-motion.matches=${info.rm} slot.computed.transition=${info.tr} slot.maxHeight=${info.mh}`
+  return `[engine] reduced-motion.matches=${info.rm} slot.computed.transition=${info.tr} slot.gridTemplateRows=${info.rows}`
 }
 
 function dump(label: string, logs: string[]) {
