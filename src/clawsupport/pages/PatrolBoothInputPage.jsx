@@ -128,7 +128,11 @@ export default function PatrolBoothInputPage() {
   const outMeterCount = machine?.machine_models?.out_meter_count ?? 1
 
   // OCR state
-  const fileInputRef = useRef(null) // 読み取り写真の入力 (iOSは「写真を撮る/選ぶ」メニューが出る = 純正カメラ+フラッシュ可)
+  const fileInputRef = useRef(null) // 読み取り写真の入力 (ギャラリー用、capture無し。iOSは「写真を撮る/選ぶ」メニュー)
+  // SPEC-OCR-ANDROID-CAMERA-2BTN-HOTFIX-01 (D-082): Android14+ の Chrome フォトピッカー仕様変更で capture 無 input は
+  // カメラ選択肢が消えギャラリー直行するため、カメラ直行用に capture=environment の別 input + 2ボタン選択を追加。
+  const cameraInputRef = useRef(null)
+  const [showOcrSource, setShowOcrSource] = useState(false)
   const [ocrState,      setOcrState]  = useState('idle') // 'idle' | 'loading' | 'confirming'
   const [ocrCapture,    setOcrCapture] = useState(null)  // { imageUrl, cols, photoUrl, avgConf }
   const [ocrLoadingImg, setOcrLoadingImg] = useState(null) // 解析中に上ゾーンへ表示する撮影画像URL
@@ -483,7 +487,8 @@ export default function PatrolBoothInputPage() {
     setOcrEditOut('')
     setOcrEdited(false)
     setOcrState('idle')
-    fileInputRef.current?.click()
+    // D-082: 撮り直しも撮影/ギャラリー選択シート経由 (Android カメラ直行を担保)
+    setShowOcrSource(true)
   }
 
   // J-PATROL-OCR-UNIFY-01-fix-01: 確認画面から手入力に戻る (OCR破棄)。
@@ -987,14 +992,61 @@ export default function PatrolBoothInputPage() {
         willChange: 'transform',
       }}
     >
-      {/* J-PATROL-OCR-CAMERA C: 読み取り写真の入力。capture指定なしでiOSは「写真を撮る(純正カメラ+フラッシュ)/写真を選ぶ」メニュー */}
+      {/* SPEC-OCR-ANDROID-CAMERA-2BTN-HOTFIX-01 (D-082): 撮影(capture=environment=カメラ直行)/ギャラリー(capture無)の
+          2入力に分離。onChange は共に handleReadFile 共用。display:none は input 自身に直接付与 (親 div 不可=iOS Safari
+          change 未発火事故回避、SPEC-UI iOS ルール)。 */}
+      <input
+        ref={cameraInputRef}
+        data-testid="ocr-camera-input"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handleReadFile}
+      />
+      {/* J-PATROL-OCR-CAMERA C: ギャラリー入力 (capture無し)。iOSは従来通り「撮る/選ぶ」メニュー、Androidはギャラリー */}
       <input
         ref={fileInputRef}
+        data-testid="ocr-gallery-input"
         type="file"
         accept="image/*"
         style={{ display: 'none' }}
         onChange={handleReadFile}
       />
+      {showOcrSource && (
+        <div
+          data-testid="ocr-source-picker"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+          onClick={() => setShowOcrSource(false)}
+        >
+          <div
+            className="w-full max-w-md bg-surface border-t border-border p-4 pb-8 rounded-t-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-center text-xs text-muted mb-3">読み取り画像の取得方法</div>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                data-testid="ocr-source-camera"
+                onClick={() => { setShowOcrSource(false); cameraInputRef.current?.click() }}
+                className="flex-1 max-w-[180px] bg-blue-600 text-white font-bold py-4 px-2 rounded-xl text-[15px] flex flex-col items-center gap-1 min-h-[44px] border-none"
+              >
+                <span className="text-[28px]">📸</span>
+                <span>撮影する</span>
+              </button>
+              <button
+                type="button"
+                data-testid="ocr-source-gallery"
+                onClick={() => { setShowOcrSource(false); fileInputRef.current?.click() }}
+                className="flex-1 max-w-[180px] bg-surface2 border-2 border-border text-text font-bold py-4 px-2 rounded-xl text-[15px] flex flex-col items-center gap-1 min-h-[44px]"
+              >
+                <span className="text-[28px]">🖼️</span>
+                <span>ギャラリー</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <PageHeader
         module="clawsupport"
         title={boothLabel}
@@ -1085,7 +1137,7 @@ export default function PatrolBoothInputPage() {
           onClearField={clearField}
           canSave={canSave} saving={savingProp} result={resultProp} onSave={handleSave}
           onSaveNext={handleSaveNext} onSaveList={handleSaveList}
-          onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'file' }); fileInputRef.current?.click() }}
+          onOCR={() => { logger.info('ocr_button_pressed', { booth_code: boothCode, source: 'picker' }); setShowOcrSource(true) }}
         />
       </div>
 
