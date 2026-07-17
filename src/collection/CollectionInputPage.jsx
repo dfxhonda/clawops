@@ -513,6 +513,10 @@ export default function CollectionInputPage() {
             </tbody>
           </table>
         )}
+        {/* SPEC-COLLECTION-BOTTOM-SPACER-01 (D-083) C1: リストスクロール領域末尾に固定 50svh spacer。
+            NumpadFooterSlot (最大70svh) 迫り上がり時に最下行をスクロールで Slot 上部へ逃がす逃げ余白。
+            動的増減はそれ自体がガタつき源になるため固定値 (numpad 開閉と非連動)。 */}
+        <div aria-hidden data-testid="collection-bottom-spacer" style={{ height: '50svh', flexShrink: 0 }} />
       </div>
 
       {/* COLLECTION-SIGNATURE-REDESIGN-01 R1+追補: 先方サイン。'drawing' 段階のみ表示。
