@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { setupAuth, setupPatrolMocks, makePatrolState, injectRouteState } from './helpers'
+import { setupAuth, setupPatrolMocks } from './helpers'
 
 // ── スモークテスト ──────────────────────────────────────────────────────
 
@@ -24,74 +24,19 @@ test.describe('smoke', () => {
   })
 })
 
-// ── 巡回保存 → 次ブース遷移 リグレッションテスト ────────────────────────
+// ── SPEC-UI-B-DECOMM-LEGACY-PATROL-01: 旧巡回ルート削除 → Navigate catch (AC3) ─────────
+// (旧 PatrolPage の保存リセット回帰テストは、PatrolPage 削除に伴い撤去)
 
-test.describe('PatrolPage — ブース保存後の状態リセット', () => {
-  /**
-   * 修正した不具合の回帰テスト:
-   * 「1ブース保存後に次ブースへ遷移したとき、saved=true が残って
-   *  保存ボタンが表示されないままになる」バグが再発しないことを確認する。
-   *
-   * 関連修正: PatrolPage の useEffect でブース切り替え時に saved をリセット
-   */
-  test('B01保存後にB02へ遷移し、保存ボタンが復活する', async ({ page }) => {
-    const state = makePatrolState() // 2ブース構成
-
-    // 1. auth bypass（goto より前に設定）
-    await setupAuth(page)
-
-    // 2. React Router の route state を事前注入
-    //    addInitScript が React より先に動くため、初期化時に state を渡せる
-    await injectRouteState(page, '/patrol/input', state as Record<string, unknown>)
-
-    // 3. API mocks（goto より前に設定）
-    await setupPatrolMocks(page)
-
-    // 4. ページロード
-    await page.goto('/patrol/input', { waitUntil: 'domcontentloaded' })
-
-    // 5. フォームがロードされるまで待つ
-    //    new_patrol モードになると saveLabel = "B01 を保存" のボタンが出る
-    const saveBtn = page.getByRole('button', { name: 'B01 を保存' })
-    await expect(saveBtn).toBeVisible({ timeout: 10_000 })
-
-    // 6. 保存ボタンをクリック
-    //    prevIn = 50000 がセットされているためバリデーション通過 → 保存成功
-    await saveBtn.click()
-
-    // 7. 保存直後は「✅ 保存しました」が表示される
-    await expect(page.getByText('保存しました')).toBeVisible({ timeout: 3_000 })
-
-    // 8. 800ms後に B02 へ navigate() される（PatrolPage の setTimeout）
-    //    B02 のページに切り替わったら saved がリセットされて保存ボタンが復活するはず
-    const saveBtn2 = page.getByRole('button', { name: 'B02 を保存' })
-    await expect(saveBtn2).toBeVisible({ timeout: 5_000 })
-
-    // 9. 「保存しました」は消えている（saved が false にリセットされた証拠）
-    await expect(page.getByText('保存しました')).not.toBeVisible()
-  })
-
-  test('B01保存後にB02で値入力してから保存できる', async ({ page }) => {
-    const state = makePatrolState()
-
-    await setupAuth(page)
-    await injectRouteState(page, '/patrol/input', state as Record<string, unknown>)
-    await setupPatrolMocks(page)
-    await page.goto('/patrol/input', { waitUntil: 'domcontentloaded' })
-
-    // B01 を保存
-    await expect(page.getByRole('button', { name: 'B01 を保存' })).toBeVisible({ timeout: 10_000 })
-    await page.getByRole('button', { name: 'B01 を保存' }).click()
-
-    // B02 が表示されるまで待つ
-    const b02SaveBtn = page.getByRole('button', { name: 'B02 を保存' })
-    await expect(b02SaveBtn).toBeVisible({ timeout: 5_000 })
-
-    // B02 の保存ボタンも正常にクリックできる
-    await b02SaveBtn.click()
-
-    // B02 も保存完了 → 最後のブースなので /clawsupport/store/TST01/patrol へ遷移
-    // または /patrol/overview へ遷移（storeCode 付きなら前者）
-    await expect(page).toHaveURL(/clawsupport|patrol/, { timeout: 5_000 })
-  })
+test.describe('legacy patrol routes redirect to /clawsupport (DECOMM-01)', () => {
+  const removed = ['/input', '/patrol', '/patrol/input', '/patrol/booth', '/booth/TST-M01', '/machines/TST01', '/complete', '/drafts']
+  for (const path of removed) {
+    test(`direct-visit ${path} -> /clawsupport`, async ({ page }) => {
+      await setupAuth(page)
+      await setupPatrolMocks(page)
+      await page.goto(path, { waitUntil: 'domcontentloaded' })
+      // Navigate replace catch: 認証済みなら canonical hub へ着地 (404/旧画面にならない)
+      await page.waitForURL('**/clawsupport', { timeout: 8000 })
+      await expect(page).toHaveURL(/\/clawsupport$/)
+    })
+  }
 })

@@ -7,6 +7,7 @@ import { useFeatureFlag } from '../../hooks/useFeatureFlag'
 import { useSaveState } from '../../hooks/useSaveState'
 import { PageHeader } from '../../shared/ui/PageHeader'
 import NumpadField, { NumpadFooterPanel } from '../components/NumpadField'
+import NumpadFooterSlot from '../components/NumpadFooterSlot'
 import { isCustomNumpadEnabled } from '../../shared/lib/device'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import Tooltip from '../components/Tooltip'
@@ -969,10 +970,10 @@ export default function PatrolBoothInputPage() {
         {/* zone_bottom: テンキー 固定領域。
             J-COLLECTION-12 R5 + ad-hoc 2026-05-29: カスタムテンキー有効時のみ wrapper も拡張 (倍化に対応)。
             カスタムテンキー無効時は NumpadFooterPanel が null を返すので wrapper は 0 高 (h-0)。
-            iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。 */}
-        <div className={`${currentField ? 'flex-shrink-0' : 'h-0'} flex-none shrink-0 flex flex-col overflow-hidden`}>
-          <NumpadFooterPanel currentField={currentField} />
-        </div>
+            iPad/PC は元々 isIPhone() で footer 非表示、本フラグ反映後も挙動不変。
+            SPEC-MOTION-W1_5-NUMPAD-PATROL-ADMIN-01 (D-070) F2: 主フッターを NumpadFooterSlot 化
+            (grid-rows transition + scrollIntoView)。L855 null固定 / L1108 別配置は不変。 */}
+        <NumpadFooterSlot currentField={currentField} />
       </div>
     )
   }
@@ -987,9 +988,14 @@ export default function PatrolBoothInputPage() {
       style={{
         gridTemplateRows: 'auto auto auto 1fr auto',
         minHeight: 0,
-        transform: `translateX(${swipeDx}px)`,
+        // SPEC-MOTION-W1_8-PATROL-PARENT-TRANSFORM-GATE-01 (D-079) C1: transform/willChange を swipeDx!==0 時のみ出力。
+        // 真因 = swipeDx=0(通常時)でも translateX(0px)+willChange:transform を常時出すと親が containing block /
+        // 合成レイヤを作り、iOS Safari で子孫 (NumpadFooterSlot/Collapse) の高さ transition を合成抑制していた
+        // (集金親は transform 無し = ぬるっと動く、の差分で確定)。dx=0 で transform 無しは集金親と同条件・視覚差ゼロ。
+        // スワイプ追従/入退場/springBack (dx 非ゼロ) は従来通り transform 適用 = swipe ロジック非破壊。
+        transform: swipeDx !== 0 ? `translateX(${swipeDx}px)` : undefined,
         transition: swipeTransition,
-        willChange: 'transform',
+        willChange: swipeDx !== 0 ? 'transform' : undefined,
       }}
     >
       {/* SPEC-OCR-ANDROID-CAMERA-2BTN-HOTFIX-01 (D-082): 撮影(capture=environment=カメラ直行)/ギャラリー(capture無)の
@@ -1157,9 +1163,10 @@ export default function PatrolBoothInputPage() {
           }}
         />
       </div>
-      <div className={currentField ? 'flex flex-col overflow-hidden' : 'hidden'}>
-        <NumpadFooterPanel currentField={currentField} />
-      </div>
+      {/* SPEC-MOTION-W1_6-NUMPAD-PATROL-MAINFORM-SLOT-01 (D-076) C1: Main patrol form の日常フッター。
+          旧 hidden↔flex 即時トグル (display:none からは transition 発火不能) を NumpadFooterSlot に置換し
+          grid-rows 0fr↔1fr の 200ms transition に一本化。D-075 で「巡回パッと出る」の実フッターと確定した箇所。 */}
+      <NumpadFooterSlot currentField={currentField} />
 
       <AlertSheetModal
         open={showAlert}

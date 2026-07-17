@@ -20,7 +20,7 @@ function guessOwner(destination) {
   return null
 }
 
-export default function ArrivalConfirmDrawer({ order, staffId, onDone, onCancel }) {
+export default function ArrivalConfirmDrawer({ order, staffId, onDone, onCancel, contextLocationId = null }) {
   const [locations, setLocations] = useState([])
   const [ownerMode, setOwnerMode] = useState('location')
   const [locationId, setLocationId] = useState('')
@@ -36,14 +36,21 @@ export default function ArrivalConfirmDrawer({ order, staffId, onDone, onCancel 
       .then(({ data }) => {
         const locs = data || []
         setLocations(locs)
-        const guess = guessOwner(order.destination)
-        if (guess?.owner_type === 'location') {
-          setLocationId(guess.owner_id)
-        } else if (locs.length) {
-          setLocationId(locs[0].location_id)
+        // SPEC-ARRIVAL-RECEIVE-LOCATION-CONTEXT-01 (D-084) C3: 拠点コンテキスト優先、locs[0]=エイド 自動選択 fallback 廃止。
+        // (1) 拠点コンテキスト (warehouse 文脈で開いている拠点) → それを採用。
+        // (2) 無ければ order.destination テキスト推測。
+        // (3) どちらも無理なら空欄 (黙って誤拠点入庫を招く旧 locs[0] fallback は安全違反のため廃止)。既存バリデーションがブロック。
+        if (contextLocationId && locs.some(l => l.location_id === contextLocationId)) {
+          setOwnerMode('location')
+          setLocationId(contextLocationId)
+        } else {
+          const guess = guessOwner(order.destination)
+          if (guess?.owner_type === 'location') {
+            setLocationId(guess.owner_id)
+          }
         }
       })
-  }, [order.destination])
+  }, [order.destination, contextLocationId])
 
   const toOwnerType = ownerMode === 'location' ? 'location' : 'staff'
   const toOwnerId   = ownerMode === 'location' ? locationId : (staffId || '')

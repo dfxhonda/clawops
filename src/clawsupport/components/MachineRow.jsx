@@ -4,6 +4,7 @@
 // F5: py-1.5→py-1 (row spacing)
 
 import { useState } from 'react'
+import Collapse from '../../components/Collapse'
 import MachineRowExpandedBoothList from './MachineRowExpandedBoothList'
 import { rankColor } from './storeTotalsRanking'
 import {
@@ -81,15 +82,21 @@ export default function MachineRow({
         </div>
       </button>
 
-      {!isSingleBooth && isExpanded && (
-        <MachineRowExpandedBoothList
-          booths={booths}
-          todayMap={todayMap}
-          diffMap={diffMap}
-          onBoothClick={onBoothClick}
-          mode={mode}
-          dateAxis={dateAxis}
-        />
+      {/* SPEC-MOTION-W2-MACHINEROW-BOOTH-EXPAND-COLLAPSE-01 (D-080) C1: ブース展開を共有 Collapse で常時mount化。
+          条件レンダー (DOM 瞬間挿入=いきなり出る) → grid-fr 0fr↔1fr transition で集金金種展開と同じ「ぬるっと」。
+          isSingleBooth (単一ブース=展開不要) は従来通り Collapse を mount しない。親に transform 無し (gate_1 確認) なので
+          W1 の合成抑制罠なし = iOS でも発火見込み。 */}
+      {!isSingleBooth && (
+        <Collapse open={isExpanded} testId={`booth-collapse-${machine.machine_code}`}>
+          <MachineRowExpandedBoothList
+            booths={booths}
+            todayMap={todayMap}
+            diffMap={diffMap}
+            onBoothClick={onBoothClick}
+            mode={mode}
+            dateAxis={dateAxis}
+          />
+        </Collapse>
       )}
     </div>
   )

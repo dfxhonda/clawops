@@ -4,6 +4,8 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { supabase } from '../../../lib/supabase'
+import { useTrackPageUsage } from '../../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../../constants/pageKeys'
 import { jstDateNDaysAgo } from '../../lib/jstDate'
 import ReportPageLayout, { EmptyState } from './ReportPageLayout'
 import GenreFilter from './GenreFilter'
@@ -23,6 +25,7 @@ async function fetchBoothCodesByGenre(genre) {
 }
 
 export default function StoreComparisonPage() {
+  useTrackPageUsage(PAGE_KEY.STORE_COMPARE) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const [period, setPeriod] = useState('30d')
   const [view, setView] = useState('chart') // 'chart' | 'table'
   const [brandGroup, setBrandGroup] = useState(false)

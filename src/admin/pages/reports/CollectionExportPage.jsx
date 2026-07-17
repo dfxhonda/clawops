@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
+import { useTrackPageUsage } from '../../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../../constants/pageKeys'
 import ReportPageLayout from './ReportPageLayout'
 
 function prevMonthJst() {
@@ -28,6 +30,7 @@ function toJstDate(dateStr) {
 }
 
 export default function CollectionExportPage() {
+  useTrackPageUsage(PAGE_KEY.COLLECTION_EXPORT) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const [month, setMonth] = useState(prevMonthJst)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(false)

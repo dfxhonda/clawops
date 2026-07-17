@@ -21,7 +21,7 @@ function guessLocationId(destination) {
   return ''
 }
 
-export default function ArrivalReceiveSheet({ order, onDone, onCancel }) {
+export default function ArrivalReceiveSheet({ order, onDone, onCancel, contextLocationId = null }) {
   const { staffId } = useAuth()
   const [locations, setLocations]   = useState([])
   const [locationId, setLocationId] = useState('')
@@ -34,14 +34,21 @@ export default function ArrivalReceiveSheet({ order, onDone, onCancel }) {
       .then(({ data }) => {
         const locs = data ?? []
         setLocations(locs)
-        const guess = guessLocationId(order.destination)
-        if (guess && locs.some(l => l.location_id === guess)) {
-          setLocationId(guess)
-        } else if (locs.length) {
-          setLocationId(locs[0].location_id)
+        // SPEC-ARRIVAL-RECEIVE-LOCATION-CONTEXT-01 (D-084) C2: 入庫先初期値の優先度。
+        // (1) 拠点コンテキスト = 拠点を選んで入荷チェックを開いているのが真実、テキスト推測より優先。
+        // (2) コンテキスト無しのみ order.destination テキスト推測 (guessLocationId)。
+        // (3) どちらも無理なら空欄のまま。旧 locs[0] (location_name 順先頭=エイド) 自動選択 fallback は
+        //     黙って誤拠点入庫を招く安全違反のため廃止。未選択保存は既存 ERR-STOCK-003 がブロック。
+        if (contextLocationId && locs.some(l => l.location_id === contextLocationId)) {
+          setLocationId(contextLocationId)
+        } else {
+          const guess = guessLocationId(order.destination)
+          if (guess && locs.some(l => l.location_id === guess)) {
+            setLocationId(guess)
+          }
         }
       })
-  }, [order.destination])
+  }, [order.destination, contextLocationId])
 
   const alreadyReceived = order.received_quantity ?? 0
   const remaining       = (order.case_count ?? 0) - alreadyReceived

@@ -5,10 +5,15 @@ import { SpeedInsights } from '@vercel/speed-insights/react'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import { initSentry } from './lib/sentry'
+import { maybeInitDebugConsole } from './lib/debugConsole'
 import './index.css'
 
 // OTA gen-3
 initSentry()
+
+// SPEC-DEBUG-ERUDA-INSCREEN-CONSOLE-01 (D-072): gate 付き動的 import (?debug=1 / __DEBUG__ / localStorage np_debug=1)。
+// static import しないので通常ユーザーの bundle には乗らない。eruda 起動時に __NUMPAD_LOG__ も自動 ON。
+maybeInitDebugConsole()
 
 // SPEC-SW-UPDATE-TRIGGER-01: side-effect import, registerSW()を実行する唯一の経路。
 // SPEC-PWA-SW-STRIP-PHASE1-01でmain.jsxの `export { updateSW } from './lib/swRegistration'`

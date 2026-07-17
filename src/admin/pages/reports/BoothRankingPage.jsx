@@ -10,6 +10,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useTrackPageUsage } from '../../../hooks/useTrackPageUsage'
+import { PAGE_KEY } from '../../../constants/pageKeys'
 import { jstDateNDaysAgo, todayJst } from '../../lib/jstDate'
 import { calc7dmaSeries, periodDays } from '../../lib/play7dma'
 import ReportPageLayout, { EmptyState, ReferenceBadge } from './ReportPageLayout'
@@ -34,6 +36,7 @@ function rankBg(rank, mode) {
 }
 
 export default function BoothRankingPage() {
+  useTrackPageUsage(PAGE_KEY.BOOTH_RANKING) // SPEC-ANALYTICS-USAGE-SORT-W1-01 (D-068)
   const [unit, setUnit]         = useState('daily_avg')
   const [period, setPeriod]     = useState('30d')
   const [from, setFrom]         = useState(jstDateNDaysAgo(30))

@@ -212,6 +212,7 @@ export default function ArrivalCheckPage() {
       {selected && (
         <ArrivalReceiveSheet
           order={selected}
+          contextLocationId={locationId}
           onDone={() => { setSelected(null); reload() }}
           onCancel={() => setSelected(null)}
         />

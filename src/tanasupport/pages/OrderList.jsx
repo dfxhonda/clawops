@@ -300,6 +300,7 @@ export default function OrderList() {
               <ArrivalConfirmDrawer
                 order={o}
                 staffId={staffId}
+                contextLocationId={ownerType === 'warehouse' ? ownerId : null}
                 onDone={() => {
                   setOrders(prev => prev.filter(x => x.order_id !== o.order_id))
                   setCounts(c => ({ ...c, shipped: Math.max(0, c.shipped - 1), arrived: c.arrived + 1 }))
