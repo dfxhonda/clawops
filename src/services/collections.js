@@ -336,6 +336,46 @@ export async function getCollectionDetail(collectionId) {
   }
 }
 
+// SPEC-COLLECTION-PAST-EDIT-ADVANCE-01 (D-086): 過去集金編集用、店舗別の集金履歴 (collected_at 降順)。
+// RLS 厳守、anon フィルタに organization_id を付けない (spec forbidden)。
+export async function getCollectionHistoryByStore(storeCode) {
+  if (!storeCode) return { data: [], error: null }
+  const { data: cols, error } = await supabase.from('cash_collections')
+    .select('collection_id, store_code, collected_at, status, collected_by')
+    .eq('store_code', storeCode)
+    .order('collected_at', { ascending: false })
+  if (error) return { data: null, error }
+  const ids = (cols ?? []).map(c => c.collection_id)
+  const totals = {}
+  if (ids.length) {
+    const { data: bts } = await supabase.from('cash_collection_booths')
+      .select('collection_id, total').in('collection_id', ids)
+    for (const b of bts ?? []) totals[b.collection_id] = (totals[b.collection_id] || 0) + Number(b.total || 0)
+  }
+  return { data: (cols ?? []).map(c => ({ ...c, total: totals[c.collection_id] || 0 })), error: null }
+}
+
+// SPEC-COLLECTION-PAST-EDIT-ADVANCE-01 (D-086): 立替金 (advance_payment) と備考 (notes) "のみ" を更新する。
+// メーター/集金額/金種/署名は署名済確定値のため一切触らない (update 列を advance_payment/notes に限定)。
+// 立替は合計除外の参考値のため事後編集で署名済合計と矛盾しない。親 cash_collections の updated_at/updated_by を
+// 監査として更新する (cash_collection_booths に updated_* 列は無いため親側に記録)。
+export async function updateCollectionAdvanceNotes(collectionId, boothUpdates, staffId) {
+  if (!collectionId) return { error: new Error('updateCollectionAdvanceNotes: missing collectionId') }
+  for (const u of boothUpdates ?? []) {
+    // 更新列は advance_payment / notes のみ (他列の更新経路を作らない = AC3)
+    const payload = {
+      advance_payment: (u.advance_payment === '' || u.advance_payment == null) ? 0 : Number(u.advance_payment),
+      notes: (u.notes && String(u.notes).trim()) ? String(u.notes).trim() : null,
+    }
+    const { error } = await supabase.from('cash_collection_booths').update(payload).eq('id', u.id)
+    if (error) return { error }
+  }
+  const { error: pErr } = await supabase.from('cash_collections')
+    .update({ updated_at: new Date().toISOString(), updated_by: staffId ?? null })
+    .eq('collection_id', collectionId)
+  return { error: pErr ?? null }
+}
+
 // J-COLLECTION-05: 撮影画像を Storage 'receipts' バケットにupload。upsertで再撮影上書き可。
 //   path: '{org_id}/{collection_id}/{booth_code}.jpg'
 //   返り値: { data:{path,url}, error }
