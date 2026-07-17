@@ -1,6 +1,0 @@
-{
-  "entry": ["src/main.jsx", "index.html", "vite.config.js"],
-  "project": ["src/**/*.{js,jsx}"],
-  "ignore": ["src/__tests__/**", "e2e/**", "scripts/**", "coverage/**", "dist/**"],
-  "ignoreDependencies": ["virtual:pwa-register"]
-}
