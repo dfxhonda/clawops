@@ -40,30 +40,32 @@ describe('HISTORY_SELECT contract (AC-07)', () => {
     expect(STORE_BASELINE_LIMIT_PER_BOOTH).toBe(11)
   })
 
-  // SPEC-LF1-HISTORY-FIX-05 AC-03: fetchStoreBaselineRows は entry_type='patrol' のみを返す。
-  it('SPEC_LF1_HISTORY_FIX_05_entry_type_patrol_only', async () => {
-    const eqCalls = []
+  // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): FIX-05 の entry_type='patrol' 限定を
+  // patrol+replace に緩和 (景品最新値の道連れ削除を解消)。diff は consumer 側で patrol 限定を維持。
+  it('SPEC_D094_entry_type_patrol_and_replace', async () => {
+    const inCalls = []
     const fakeChain = {
       select: vi.fn().mockReturnThis(),
-      in:     vi.fn().mockReturnThis(),
-      eq:     vi.fn(function (col, val) { eqCalls.push([col, val]); return this }),
+      in:     vi.fn(function (col, val) { inCalls.push([col, val]); return this }),
+      eq:     vi.fn().mockReturnThis(),
       order:  vi.fn().mockReturnThis(),
       then:   undefined,
     }
     fakeChain.order.mockReturnValueOnce(fakeChain)
     fakeChain.order.mockResolvedValueOnce({
       data: [
+        { reading_id: 'r1', booth_code: 'A-1', entry_type: 'replace', patrol_date: '2026-06-03', in_meter: 0 },
         { reading_id: 'p1', booth_code: 'A-1', entry_type: 'patrol',  patrol_date: '2026-06-02', in_meter: 1500 },
-        { reading_id: 'p2', booth_code: 'A-1', entry_type: 'patrol',  patrol_date: '2026-05-25', in_meter: 1000 },
       ],
       error: null,
     })
     const fromSpy = vi.spyOn(supabase, 'from').mockReturnValue(fakeChain)
     try {
       const result = await fetchStoreBaselineRows(['A-1'])
-      expect(eqCalls).toContainEqual(['entry_type', 'patrol'])
+      // entry_type フィルタは .in(['patrol','replace']) に (もう .eq('entry_type','patrol') ではない)
+      expect(inCalls).toContainEqual(['entry_type', ['patrol', 'replace']])
       expect(result.length).toBeGreaterThan(0)
-      expect(result.every(r => r.entry_type === 'patrol')).toBe(true)
+      expect(result.every(r => ['patrol', 'replace'].includes(r.entry_type))).toBe(true)
     } finally {
       fromSpy.mockRestore()
     }

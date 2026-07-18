@@ -20,6 +20,10 @@ export function computeLocalStoreView(records, { meterUnitPriceMap = {}, today =
   const byBooth = new Map()
   for (const r of (records ?? [])) {
     if (!r?.booth_code) continue
+    // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): baseline fetch が replace 行も IDB に
+    // 投入するようになったため、diff/heatmap 集計は patrol 限定を維持する (FIX-05 の diff 0 汚染防止を継続)。
+    // local 未 sync 行は entry_type 未設定でも patrol 相当として残す (明示的な非 patrol type のみ除外)。
+    if (r.entry_type && r.entry_type !== 'patrol') continue
     const arr = byBooth.get(r.booth_code) ?? []
     arr.push(r)
     byBooth.set(r.booth_code, arr)
