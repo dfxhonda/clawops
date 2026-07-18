@@ -24,11 +24,12 @@ const boothHistorySvc = readFileSync(
 describe('SPEC-PATROL-SWIPE-LATENCY-FIX-01: PatrolBoothInputPage fetchPrev 3-tier', () => {
   it('when_no_unsynced_idb_record_should_check_synced_baseline_before_supabase', () => {
     expect(patrolSrc).toContain('r.synced')
-    expect(patrolSrc).toContain('latestSynced')
+    // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): tier-2 は buildPrevFromRows 合成に変更
+    expect(patrolSrc).toContain('buildPrevFromRows(syncedRows)')
   })
 
   it('when_synced_baseline_found_should_setPrev_without_calling_supabase', () => {
-    expect(patrolSrc).toContain('setPrev(latestSynced)')
+    expect(patrolSrc).toContain('setPrev(prevComposite)')
   })
 
   it('when_tier1_and_tier2_both_miss_should_fall_back_to_getLastReadingForBooth', () => {

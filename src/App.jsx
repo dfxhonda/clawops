@@ -120,6 +120,8 @@ const InvitePage = lazy(() => import('./pages/InvitePage'))
 const AdminStorePage      = lazy(() => import('./admin/pages/AdminStorePage'))
 const AdminMachineListPage = lazy(() => import('./admin/pages/AdminMachineListPage'))
 const AdminBoothEditPage   = lazy(() => import('./admin/pages/AdminBoothEditPage'))
+const AdminCollectionEditPage = lazy(() => import('./admin/pages/AdminCollectionEditPage'))
+const AdminCollectionBoothEditPage = lazy(() => import('./admin/pages/AdminCollectionBoothEditPage'))
 
 // 遅延ロード — J-ADMIN-05 景品マスタ + 発注履歴
 const AdminPrizeMasterPage  = lazy(() => import('./admin/pages/AdminPrizeMasterPage'))
@@ -271,6 +273,8 @@ function AppInner() {
         <Route path="audit/booth-edit" element={<AdminMachineListPage />} />
         <Route path="audit/booth-edit/:storeCode/machines" element={<AdminMachineListPage />} />
         <Route path="audit/booth-edit/:boothCode" element={<AdminBoothEditPage />} />
+        <Route path="audit/collection-edit" element={<AdminCollectionEditPage />} />
+        <Route path="audit/collection-edit/c/:collectionId" element={<AdminCollectionBoothEditPage />} />
         <Route path="audit/operations"  element={<AdminOperationLogsPage />} />
         <Route path="audit/logins"      element={<AdminLoginLogsPage />} />
         <Route path="audit/prize-phases" element={<AdminPrizePhaseHistoryPage />} />

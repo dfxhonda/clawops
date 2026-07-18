@@ -197,9 +197,12 @@ export async function fetchStoreBaselineRows(boothCodes) {
     .from('meter_readings')
     .select(HISTORY_SELECT)
     .in('booth_code', boothCodes)
-    // SPEC-LF1-HISTORY-FIX-05: replace/config 行 (in_meter=0 主体) は history 集計の
-    // diff を 0 で汚すため、entry_type='patrol' のみに限定。KOS01: patrol=229 / replace=17 / config=1。
-    .eq('entry_type', 'patrol')
+    // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): FIX-05 は diff 0 汚染防止で patrol 限定にしたが、
+    // それが入替後の景品最新値まで道連れで消し DB 汚染ループを招いた。景品系は replace の最新も必要なため
+    // patrol+replace を取得し、用途別に分離する: diff/heatmap 集計は consumer 側で patrol 限定を維持
+    // (computeLocalStoreView が entry_type!=='patrol' を除外)、prev 合成は buildPrevFromRows が
+    // 景品=最新any / メーター=patrol の分離を行う。
+    .in('entry_type', ['patrol', 'replace'])
     .order('patrol_date', { ascending: false })
     .order('created_at', { ascending: false })
   if (error) return []

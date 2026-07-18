@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import * as Sentry from '@sentry/react'
 import FallbackUI from './FallbackUI'
+import { logDebug } from '../lib/debugLog'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -37,6 +38,19 @@ export default class ErrorBoundary extends Component {
       Sentry.captureException(error, { extra: { componentStack: info?.componentStack } })
     } catch (_sentryErr) {
       // Sentry未初期化時はサイレント無視
+    }
+    // SPEC-DEBUG-LOGS-WIRING-AND-CRASH-RESEARCH-01 (D-092) A1: React クラッシュを debug_logs へ。
+    // logDebug 内部で develop-only gate + try/catch (A4) 済だが、ここでも二重に握りつぶして
+    // ErrorBoundary が絶対に二次クラッシュしないようにする (A3)。
+    try {
+      logDebug({
+        level: 'error',
+        tag: 'react-crash',
+        message: error?.message,
+        payload: { stack: error?.stack ?? null, componentStack: info?.componentStack ?? null, name: error?.name ?? null },
+      })?.catch?.(() => {})
+    } catch (_logErr) {
+      // debug ログの失敗で fallback UI を壊さない
     }
   }
 

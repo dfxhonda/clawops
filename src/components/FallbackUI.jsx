@@ -56,14 +56,33 @@ export default function FallbackUI({ error, resetErrorBoundary }) {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* SPEC-DEBUG-LOGS-WIRING-AND-CRASH-RESEARCH-01 (D-092) A1: 黒画面でも確実に復旧できる強制再読み込み。
+              旧 chunk / 壊れた状態を hard reload で最新に置き換える。 */}
           <button
-            onClick={() => navigate('/')}
+            data-testid="fallback-reload"
+            onClick={() => window.location.reload()}
             style={{
               backgroundColor: '#2563eb',
               color: '#fff',
               fontWeight: 700,
               fontSize: '15px',
               border: 'none',
+              borderRadius: '8px',
+              padding: '12px 0',
+              cursor: 'pointer',
+              width: '100%',
+            }}
+          >
+            再読み込み
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              backgroundColor: '#fff',
+              color: '#2563eb',
+              fontWeight: 600,
+              fontSize: '15px',
+              border: '2px solid #2563eb',
               borderRadius: '8px',
               padding: '12px 0',
               cursor: 'pointer',

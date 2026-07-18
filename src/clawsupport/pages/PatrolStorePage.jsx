@@ -6,6 +6,7 @@ import { PageHeader } from '../../shared/ui/PageHeader'
 import DateTime from '../../shared/ui/DateTime'
 import { getPatrolMachines } from '../../services/patrol'
 import { fetchStoreBaselineRows } from '../../services/boothHistory'
+import { buildPrevFromRows } from '../../services/prevBaseline'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../components/storeTotalsRanking'
@@ -113,12 +114,19 @@ export default function PatrolStorePage() {
       } catch (err) {
         logger.warn?.('ERR-LF1-BASELINE-SWEEP', { storeCode, message: err?.message })
       }
-      // SPEC-PATROL-SWIPE-LATENCY-FIX-03: tier-0 memory hold — one prev per booth from
-      // same rows already in hand (first occurrence = latest due to fetchStoreBaselineRows DESC order).
+      // SPEC-PATROL-SWIPE-LATENCY-FIX-03: tier-0 memory hold — one prev per booth from rows already in hand。
+      // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): rows は patrol+replace 混在になったので、
+      // 単純な first-occurrence ではなく buildPrevFromRows で booth ごとに景品=最新any/メーター=patrol を合成する。
       try {
-        const prevMap = {}
+        const byBooth = {}
         for (const row of rows) {
-          if (row.booth_code && !prevMap[row.booth_code]) prevMap[row.booth_code] = row
+          if (!row.booth_code) continue
+          ;(byBooth[row.booth_code] ??= []).push(row)
+        }
+        const prevMap = {}
+        for (const bc of Object.keys(byBooth)) {
+          const prev = buildPrevFromRows(byBooth[bc])
+          if (prev) prevMap[bc] = prev
         }
         setPrevHold(storeCode, prevMap)
       } catch (err) {

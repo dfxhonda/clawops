@@ -224,9 +224,10 @@ export async function buildCollectionSlip({
   y += 10
 
   // J-COLLECTION-07: 署名欄 (左=弊社担当 / 右=先方ご担当者様、常時2枠表示)
-  // SPEC-COLLECTION-PDF-STAFF-SIGN-NAME-01: collectedByName が未設定の呼出元でも
-  //   collection.updated_by (DB保存の作業者名) にフォールバックして担当者名を大書き表示。
-  const staffName = collectedByName ?? collection?.updated_by ?? null
+  // SPEC-COLLECTION-PDF-STAFF-SIGN-NAME-01 + SPEC-COLLECTION-STAFF-NAME-SEPARATION-01 (D-090):
+  //   collectedByName 未設定の呼出元では専用カラム collection.collected_by_name にフォールバック。
+  //   旧・監査カラムへのフォールバックは廃止 (D-086 で監査カラム=staffId が正しい意味になり、表示に使うと ID が出るため)。
+  const staffName = collectedByName ?? collection?.collected_by_name ?? null
   const sigBoxW = 85, sigBoxH = 26
   const leftX = L, rightX = L + sigBoxW + 5
   doc.setDrawColor(140)

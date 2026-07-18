@@ -38,6 +38,7 @@ import {
   getLastReadingForBooth,
   classifyEntryType,
 } from '../../services/patrolCore'
+import { buildPrevFromRows } from '../../services/prevBaseline'
 // J-PATROL-99_adhoc_ocr_preprocess_patrol_path-fix-05 (2026-05-30 ヒロ実機FB):
 // fix-03 取りこぼし対応。本番巡回経路の resizeImageFile に preprocessForOcr 未適用
 // → ヒロ実機で「写真白黒なってない」報告。grayscale + Otsu 二値化を適用。
@@ -221,16 +222,13 @@ export default function PatrolBoothInputPage() {
           setPrev(held)
           return
         }
-        // tier-2: synced baseline from IDB (PatrolStorePage.fetchStoreBaselineRows が事前投入)
-        const latestSynced = idbRecords
-          .filter(r => r.synced)
-          .sort((a, b) => {
-            const dc = (b.patrol_date ?? '').localeCompare(a.patrol_date ?? '')
-            if (dc !== 0) return dc
-            return (b.created_at ?? '').localeCompare(a.created_at ?? '')
-          })[0] ?? null
-        if (latestSynced) {
-          setPrev(latestSynced)
+        // tier-2: synced baseline from IDB (PatrolStorePage.fetchStoreBaselineRows が事前投入)。
+        // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): IDB に patrol+replace が並存するため、
+        // 単純な最新1行ではなく buildPrevFromRows で 景品=最新any / メーター=patrol を合成する。
+        const syncedRows = idbRecords.filter(r => r.synced)
+        const prevComposite = buildPrevFromRows(syncedRows)
+        if (prevComposite) {
+          setPrev(prevComposite)
           return
         }
       } catch (err) {

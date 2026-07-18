@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { CHANGE_ORG_ID } from '../lib/auth/orgConstants'
 import { logger } from '../lib/logger'
 import { ERR } from '../lib/errorCodes'
+import { buildPrevFromRows } from './prevBaseline'
 
 // JST の今日の日付文字列 (YYYY-MM-DD)
 function todayJST() {
@@ -36,6 +37,9 @@ export const LAST_READING_SELECT =
   'prize_stock_count, prize_restock_count, stock_2, stock_3, restock_2, restock_3, ' +
   'theoretical_stock, payout_rate, ' +
   'prize_cost, prize_cost_1, prize_cost_2, prize_cost_3, ' +
+  // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): entry_type/created_at を追加し、
+  // getLastReadingForBooth(tier-3) も buildPrevFromRows で 景品=最新any / メーター=patrol を合成できるようにする。
+  'entry_type, created_at, ' +
   'in_meter, out_meter, out_meter_2, out_meter_3, patrol_date, read_time'
 
 /** INSERT 時に prev から補完するオプション列（触ってない値＝規定値） */
@@ -106,15 +110,17 @@ export async function getTodayReadingsMap(boothCodes) {
  * ブース直近読み値取得（前回値表示 + 入替判定用）
  */
 export async function getLastReadingForBooth(boothCode) {
+  // SPEC-PATROL-PRIZE-PREFILL-REPLACE-VISIBLE-FIX-01 (D-094): tier-3 も合成方式に統一。
+  // 単一行 (最新any) だと replace 直後は in_meter=0 の replace 行が景品もメーターも供給してしまう。
+  // 直近複数行を取り buildPrevFromRows で 景品=最新any / メーター=patrol に分離する。
   const { data } = await supabase
     .from('meter_readings')
     .select(LAST_READING_SELECT)
     .eq('booth_code', boothCode)
     .order('patrol_date', { ascending: false })
     .order('read_time', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  return data ?? null
+    .limit(11)
+  return buildPrevFromRows(data ?? [])
 }
 
 // ─────────────────────────────────────────────────────────

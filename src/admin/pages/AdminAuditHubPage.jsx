@@ -3,6 +3,7 @@ import AdminHubTilesGrid from '../components/AdminHubTilesGrid'
 // J-ADMIN-NAV-BADGE-01 2026-05-30: AdminHubTilesGrid に集約 (準備中バッジ + toast)。
 const TILES = [
   { label: '過去メーター編集',   desc: 'メーター記録の修正・削除',     path: '/admin/audit/booth-edit',    impl: true  },
+  { label: '過去集金編集',       desc: '集金の立替金・備考を修正',     path: '/admin/audit/collection-edit', impl: true  },
   { label: '発注履歴',           desc: '景品発注の一覧・詳細閲覧',     path: '/admin/audit/orders',        impl: true  },
   { label: '全操作ログ',         desc: '全スタッフの操作履歴',         path: '/admin/audit/operations',    impl: true  },
   { label: 'ログイン履歴',       desc: 'ログイン・ログアウト記録',     path: '/admin/audit/logins',        impl: true  },

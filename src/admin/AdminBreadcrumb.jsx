@@ -18,6 +18,7 @@ const LABELS = {
   manuals:             'マニュアル',
   audit:               '監査・履歴',
   'booth-edit':        '過去メーター編集',
+  'collection-edit':   '過去集金編集',
   operations:          '全操作ログ',
   logins:              'ログイン履歴',
   'prize-phases':      '景品phase履歴',
