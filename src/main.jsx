@@ -7,6 +7,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { initSentry } from './lib/sentry'
 import { maybeInitDebugConsole } from './lib/debugConsole'
 import { installGlobalErrorLogging } from './lib/debugLog'
+import { handlePreloadError } from './lib/preloadReloadGuard'
+import { defaultWaitForController } from './lib/versionReload'
 import './index.css'
 
 // OTA gen-3
@@ -16,17 +18,14 @@ initSentry()
 // debug_logs へ (develop preview のみ、内部 gate 済)。React 到達前のエラーも拾う。
 installGlobalErrorLogging()
 
-// SPEC-DEBUG-LOGS-WIRING-AND-CRASH-RESEARCH-01 (D-092) quick-win: Vite 公式の dynamic import 失敗復旧。
-// 頻繁な再デプロイで旧 chunk (Failed to fetch dynamically imported module) を掴んだ時、Vite は window に
-// 'vite:preloadError' を発火する (https://vite.dev/guide/build.html#load-error-handling)。一度だけ reload で
-// 新 index/chunk に復旧させ、黒画面化を未然に防ぐ。sessionStorage 一発ガードで壊れたデプロイの reload-storm を防止
-// (ErrorBoundary が起動成功時に 'chunk-reload' を clear)。index.html は no-cache 前提 (vercel.json)。
+// SPEC-DEBUG-LOGS-WIRING-AND-CRASH-RESEARCH-01 (D-092) quick-win / SPEC-PWA-SW-AUTOUPDATE-KILL-RELOAD-LOOP-01 (D-095):
+// Vite は dynamic import 失敗 (旧 chunk = Failed to fetch dynamically imported module) 時に window へ
+// 'vite:preloadError' を発火する (https://vite.dev/guide/build.html#load-error-handling)。
+// D-092 の生 reload 直呼び (1回フラグのみ) は iOS PWA の sessionStorage 揮発ですり抜け無限reload の一因(穴2)だった。
+// D-095 で handlePreloadError に置換: リトライ上限(3) + controllerchange 待ち。上限超過は reload せず warn のみ。
 if (typeof window !== 'undefined') {
   window.addEventListener('vite:preloadError', () => {
-    if (!sessionStorage.getItem('chunk-reload')) {
-      sessionStorage.setItem('chunk-reload', '1')
-      window.location.reload()
-    }
+    handlePreloadError({ waitForController: defaultWaitForController })
   })
 }
 

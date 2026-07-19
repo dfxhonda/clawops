@@ -44,4 +44,8 @@ export const updateSW = registerSW({
   onRegisteredSW(_swUrl, registration) {
     setupPeriodicUpdateCheck(registration)
   },
+  // SPEC-PWA-SW-AUTOUPDATE-KILL-RELOAD-LOOP-01 (D-095): registerType='prompt' 化に伴い、新SW待機検知時の
+  // onNeedRefresh は明示的に no-op にする。更新適用関数を引数 true (=即reload) で呼ばない (呼ぶと autoUpdate と同じ穴1 再現)。
+  // 更新適用は /login マウント時の versionReload.js (controllerchange待ち・sha単位1回ガード) に一本化。
+  onNeedRefresh() { /* no-op: 自動 reload しない (versionReload に一本化) */ },
 })

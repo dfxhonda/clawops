@@ -15,7 +15,9 @@ function defaultGetRegistration() {
 
 // step4 の controllerchange レース: SW が新世代に切り替わるのを最大 timeoutMs 待つ。
 // addEventListener(once) と timeout のどちらでも先に進む。テストでは差し替え可能。
-function defaultWaitForController(timeoutMs) {
+// SPEC-PWA-SW-AUTOUPDATE-KILL-RELOAD-LOOP-01 (D-095): main.jsx の preloadError ガードから再利用するため export
+// (checkVersionAndReload のガードロジックは無変更)。
+export function defaultWaitForController(timeoutMs) {
   return new Promise(resolve => {
     if (typeof navigator === 'undefined' || !navigator.serviceWorker) { resolve(); return }
     let settled = false

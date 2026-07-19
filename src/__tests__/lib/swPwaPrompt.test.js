@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
-// SPEC-PWA-VERSION-CHECK-UPDATE-01: swRegistration autoUpdate化後のテスト
-// onNeedRefresh/pwa-need-refresh は撤去済み
-// SPEC-SW-UPDATE-TRIGGER-01: onRegisteredSW を定期更新チェック配線のため再導入
-// (旧onNeedRefreshのプロンプト用途とは別目的、visibilitychange/interval設定のみ)
+// SPEC-PWA-VERSION-CHECK-UPDATE-01: swRegistration のテスト
+// SPEC-SW-UPDATE-TRIGGER-01: onRegisteredSW を定期更新チェック配線のため導入 (visibilitychange/interval のみ)
+// SPEC-PWA-SW-AUTOUPDATE-KILL-RELOAD-LOOP-01 (D-095): registerType='prompt' 化に伴い onNeedRefresh を no-op で明示
+// (自動 reload を絶対に撃たない = 更新適用は /login の versionReload に一本化)。
 import { describe, it, expect, vi } from 'vitest'
 
 const capturedOpts = vi.hoisted(() => ({ value: {} }))
@@ -21,8 +21,10 @@ describe('swRegistration (SPEC-PWA-VERSION-CHECK-UPDATE-01 + SPEC-SW-UPDATE-TRIG
     expect(typeof capturedOpts.value.onRegisteredSW).toBe('function')
   })
 
-  it('should_not_have_onNeedRefresh_handler', () => {
-    expect(capturedOpts.value.onNeedRefresh).toBeUndefined()
+  it('should_have_noop_onNeedRefresh_that_does_not_auto_reload', () => {
+    // D-095: onNeedRefresh は存在するが no-op (自動 reload/updateSW(true) を撃たない)。
+    expect(typeof capturedOpts.value.onNeedRefresh).toBe('function')
+    expect(capturedOpts.value.onNeedRefresh()).toBeUndefined()
   })
 
   it('should_have_immediate_true', () => {
