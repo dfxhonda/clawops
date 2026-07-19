@@ -39,7 +39,12 @@ export default defineConfig(({ mode }) => ({
       }
     },
     VitePWA({
-      registerType: 'autoUpdate',
+      // SPEC-PWA-SW-AUTOUPDATE-KILL-RELOAD-LOOP-01 (D-095, P0): 'autoUpdate' → 'prompt'。
+      // autoUpdate は新SW検知で自動即reload(skipWaiting+clientsClaim強制)を撃ち、versionReload.js の堅牢な
+      // 一本化層(/login限定・controllerchange待ち・sha単位1回ガード)をバイパス → iOS26 Safari 初回で黒チカチカ無限reload の主犯。
+      // prompt は新SWを waiting に留め自動reloadを撃たない。更新適用は /login の versionReload に一本化 (割り込みreloadゼロ)。
+      // workbox の skipWaiting/clientsClaim/cleanupOutdatedCaches/navigateFallback/globPatterns は precache に必要なため現状維持。
+      registerType: 'prompt',
       injectRegister: null,
       manifest: false,
       workbox: {
