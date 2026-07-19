@@ -45,6 +45,18 @@ export function formatCell(value, type) {
   }
 }
 
+// SPEC-PATROL-HEATMAP-NOCOMMA-COLGAP-01 (D-089): 日付軸ヒートマップ表示用のカンマ無しフォーマッタ。
+// 桁の視認より横並び密度優先で、5桁数値(40721)が隣接列と干渉するのを避けるためカンマ(toLocaleString)を使わない。
+// 既存 formatCell はシグネチャ互換維持のため残置 (他テスト参照の可能性)。表示3箇所のみ本関数へ差し替える。
+export function formatCellPlain(value, type) {
+  if (value == null) return '−'
+  switch (type) {
+    case 'perDay': return String(Math.round(value))
+    case 'count':
+    default:       return String(value)
+  }
+}
+
 // 10 要素配列を booth summary から取り出す。null safe。
 export function sourceArrayFor(summary, mode) {
   const def = VIEW_MODES[mode] ?? VIEW_MODES.IN

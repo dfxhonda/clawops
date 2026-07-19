@@ -8,7 +8,7 @@ import {
   COLUMN_COUNT,
   NEWEST,
   aggregateSummaries,
-  formatCell,
+  formatCellPlain,
 } from './patrolViewModes'
 
 export function computeStoreTotals(diffMap, mode = 'IN', dateAxis = null) {
@@ -33,7 +33,7 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
     <div data-testid="store-totals-header" className="border-b border-border">
       <div className="px-4 pt-1 flex items-center gap-2">
         <div className="w-40 shrink-0 sticky left-0 z-10 bg-surface" />
-        <div className="grid grid-cols-10 gap-x-1 text-base text-right leading-tight text-muted w-[400px] tabular-nums">
+        <div className="grid grid-cols-10 gap-x-2 text-base text-right leading-tight text-muted w-[440px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div key={i} data-testid={`store-label-${i}`}>
               {fmtDateLabel(dateAxis?.[i]) ?? ''}
@@ -43,14 +43,14 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
       </div>
       <div className="px-4 pb-1 flex items-center gap-2">
         <div className="w-40 shrink-0 text-sm text-muted sticky left-0 z-10 bg-surface">合計</div>
-        <div className="grid grid-cols-10 gap-x-1 text-right leading-tight w-[400px] tabular-nums">
+        <div className="grid grid-cols-10 gap-x-2 text-right leading-tight w-[440px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div
               key={i}
               data-testid={`store-value-${i}`}
               className={`font-mono text-base font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
             >
-              {formatCell(totals[i], modeDef.type)}
+              {formatCellPlain(totals[i], modeDef.type)}
             </div>
           ))}
         </div>
