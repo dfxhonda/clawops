@@ -51,7 +51,7 @@ export default function CollectionExportPage() {
         total,
         advance_payment,
         notes,
-        machines(machine_name),
+        machines(machine_name, billing_order, machine_number),
         cash_collections!inner(
           collection_id,
           collected_at,
@@ -74,11 +74,17 @@ export default function CollectionExportPage() {
       if (mainRes.error || !mainRes.data) { setRows([]); setLoading(false); return }
       const changerSet = new Set((changerRes.data ?? []).map(m => m.machine_code))
       const filtered = mainRes.data.filter(r => !changerSet.has(r.machine_code))
+      // SPEC-COLLECTION-EXPORT-ADD-BILLINGORDER-RENTALNO-01 (D-087): store_code -> billing_order(NULLS LAST) -> booth_code。
+      // 従来の collected_at ソートキーは撤去 (店舗内を集金順番で並べ替える、ヒロ確定)。
       const sorted = [...filtered].sort((a, b) => {
         const sc = a.cash_collections.store_code.localeCompare(b.cash_collections.store_code)
         if (sc !== 0) return sc
-        const dc = a.cash_collections.collected_at.localeCompare(b.cash_collections.collected_at)
-        if (dc !== 0) return dc
+        const ao = a.machines?.billing_order
+        const bo = b.machines?.billing_order
+        const aNull = ao == null
+        const bNull = bo == null
+        if (aNull !== bNull) return aNull ? 1 : -1 // NULLS LAST
+        if (!aNull && !bNull && ao !== bo) return ao - bo
         return a.booth_code.localeCompare(b.booth_code)
       })
       setRows(sorted)
@@ -88,18 +94,22 @@ export default function CollectionExportPage() {
 
   function handleDownload() {
     if (rows.length === 0) return
-    const header = ['集金日', '店舗名', '機械番号', '機械名', '前回メーター', '今回メーター', 'メーター差', '集金金額', '建て替え金額', '備考']
+    // SPEC-COLLECTION-EXPORT-ADD-BILLINGORDER-RENTALNO-01 (D-087): 集金順番(先頭)/レンタル番号 の2列を追加した全12列。
+    const header = ['集金順番', '集金日', '店舗名', '機械番号', 'レンタル番号', '機械名', '前回メーター', '今回メーター', 'メーター差', '集金金額', '建て替え金額', '備考']
     const dataRows = rows.map((r, i) => {
       const col = r.cash_collections
       const eRow = i + 2 // 1-indexed, row 1 = header
+      // メーター差 = 今回(H) - 前回(G)。集金順番を先頭挿入し列がずれたため、旧 F-E → 実列 H-G に追従 (AC4)。
       return [
+        r.machines?.billing_order != null ? Number(r.machines.billing_order) : '', // 集金順番 (数値)
         toJstDate(col.collected_at),
         col.stores?.store_name ?? '',
         r.machine_code ?? '',
+        r.machines?.machine_number != null ? String(r.machines.machine_number) : '', // レンタル番号 (文字列, 空欄可)
         r.machines?.machine_name ?? '',
         r.in_meter_prev != null ? Number(r.in_meter_prev) : '',
         r.in_meter_current != null ? Number(r.in_meter_current) : '',
-        { f: `F${eRow}-E${eRow}` },
+        { f: `H${eRow}-G${eRow}` },
         r.total != null ? Number(r.total) : '',
         r.advance_payment != null ? Number(r.advance_payment) : '',
         r.notes ?? '',
