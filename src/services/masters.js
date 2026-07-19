@@ -322,7 +322,7 @@ export async function getMachineModels() {
   if (getCache('machine_models')) return getCache('machine_models')
   const { data, error } = await supabase
     .from('machine_models')
-    .select('model_id, model_name, type_id, manufacturer, booth_count, in_meter_count, out_meter_count, meter_unit_price, size_info, weight_kg, power_w, width_mm, depth_mm, height_mm, image_url, notes, created_at')
+    .select('model_id, model_name, short_name, type_id, manufacturer, booth_count, in_meter_count, out_meter_count, meter_unit_price, size_info, weight_kg, power_w, width_mm, depth_mm, height_mm, image_url, notes, created_at')
     .order('model_id')
   if (error) { console.error('machine_models取得エラー:', error.message); return [] }
   setCache('machine_models', data)
@@ -335,6 +335,8 @@ export async function addMachineModel(m) {
     .insert({
       model_id: crypto.randomUUID(),
       model_name: m.model_name,
+      // SPEC-MODEL-SHORTNAME-EDIT-01 (D-100): 短縮通名。null許容 (空で保存可、必須バリデーションなし)。
+      short_name: m.short_name || null,
       type_id: m.type_id || null,
       manufacturer: m.manufacturer || null,
       booth_count: m.booth_count ? Number(m.booth_count) : null,
@@ -369,6 +371,8 @@ export async function updateMachineModel(modelId, updates) {
     .from('machine_models')
     .update({
       model_name: updates.model_name,
+      // SPEC-MODEL-SHORTNAME-EDIT-01 (D-100): 短縮通名。null許容。
+      short_name: updates.short_name || null,
       type_id: updates.type_id || null,
       manufacturer: updates.manufacturer || null,
       booth_count: updates.booth_count ? Number(updates.booth_count) : null,
