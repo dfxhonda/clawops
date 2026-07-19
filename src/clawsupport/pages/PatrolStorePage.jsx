@@ -189,6 +189,9 @@ export default function PatrolStorePage() {
   // ref で staffId を保持してクロージャ陳腐化を回避。
   const staffIdRef = useRef(staffId)
   staffIdRef.current = staffId
+  // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 退店 upload 後の累計引き直しで、店スワイプ中の別店取り違えを防ぐ現在店 ref。
+  const storeCodeRef = useRef(storeCode)
+  storeCodeRef.current = storeCode
   useEffect(() => {
     return () => {
       const sCode = storeCode
@@ -198,7 +201,14 @@ export default function PatrolStorePage() {
       // 非同期で実行、navigation を絶対にブロックしない
       uploadStoreRecords(sCode, { staff: { staffId: staffIdRef.current } })
         .then(res => {
-          if (res.uploaded > 0 || res.failed > 0) notifyLfChange()
+          if (res.uploaded > 0 || res.failed > 0) {
+            notifyLfChange()
+            // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 退店 upload 成功後も累計引き直し (次回入店整合、best-effort)。
+            // 現在店が sCode のままの時のみ setAccumMap (別店へスワイプ済みなら破棄=取り違え防止)。navigation はブロックしない。
+            fetchCollectionBaseline(sCode)
+              .then(m => { if (storeCodeRef.current === sCode) setAccumMap(m) })
+              .catch(() => {})
+          }
         })
         .catch(err => logger.warn?.('ERR-LF1-AUTO-SYNC', { storeCode: sCode, message: err?.message }))
     }
@@ -271,6 +281,10 @@ export default function PatrolStorePage() {
       if (res.uploaded > 0 || res.failed > 0) {
         notifyLfChange()
         await hydrateFromIdb()
+        // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全台サーバー保存(とりま保存)成功後、その場で累計を引き直して累計列を最新化。
+        // 保存後も同じ店の画面に残って入替検討する用途 (ヒロ確定 B案)。fetchCollectionBaseline は失敗時 {} を返し巡回をブロックしない。
+        const accum = await fetchCollectionBaseline(storeCode)
+        setAccumMap(accum)
       }
     } finally {
       setSyncing(false)

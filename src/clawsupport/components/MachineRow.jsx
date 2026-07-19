@@ -14,11 +14,13 @@ import {
   aggregateSummaries,
   formatCellPlain,
   machineBoothSummaries,
+  ACCUM_COL_WIDTH,
+  sumAccum,
 } from './patrolViewModes'
 
 export default function MachineRow({
   machine, todayMap, diffMap, onBoothClick, expanded, onToggleExpand, rankMap,
-  mode = 'IN', dateAxis = null,
+  mode = 'IN', dateAxis = null, accumMap = {},
 }) {
   const controlled = typeof onToggleExpand === 'function'
   const [localExpanded, setLocalExpanded] = useState(false)
@@ -29,6 +31,8 @@ export default function MachineRow({
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
   const summaries = machineBoothSummaries(machine, diffMap)
   const totals = aggregateSummaries(summaries, mode, dateAxis)
+  // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 当該機械=全boothの前回集金後累計を合算。
+  const machineAccum = sumAccum(accumMap, booths.map(b => b.booth_code))
 
   const mc = machine.machine_code
   const rank = rankMap?.[mc] ?? null
@@ -61,6 +65,13 @@ export default function MachineRow({
           {singlePrizeName && (
             <span data-testid={`machine-row-prize-${mc}`} className="text-xs text-muted truncate">{singlePrizeName}</span>
           )}
+        </div>
+        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 前回集金後累計 固定列 (日付軸の外、w-40とgridの間)。カンマ抜き/null='−' */}
+        <div
+          data-testid={`machine-accum-${mc}`}
+          className={`${ACCUM_COL_WIDTH} font-mono text-base font-bold text-right tabular-nums text-amber-300`}
+        >
+          {formatCellPlain(machineAccum, 'count')}
         </div>
         <div
           data-testid={`machine-totals-${machine.machine_code}`}
@@ -95,6 +106,7 @@ export default function MachineRow({
             onBoothClick={onBoothClick}
             mode={mode}
             dateAxis={dateAxis}
+            accumMap={accumMap}
           />
         </Collapse>
       )}

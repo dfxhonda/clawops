@@ -12,6 +12,7 @@ import {
   sourceArrayFor,
   computeWorstBoothMap,
   mapSummaryToDateAxis,
+  ACCUM_COL_WIDTH,
 } from './patrolViewModes'
 
 // F5: entry_type ごとの背景色
@@ -42,7 +43,7 @@ function BoothScrollCells({ arr, entryTypes, boothWorst, boothCode, modeDef }) {
 }
 
 export default function MachineRowExpandedBoothList({
-  booths, todayMap, diffMap, onBoothClick, mode = 'IN', dateAxis = null,
+  booths, todayMap, diffMap, onBoothClick, mode = 'IN', dateAxis = null, accumMap = {},
 }) {
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
 
@@ -77,6 +78,13 @@ export default function MachineRowExpandedBoothList({
               {prizeName && (
                 <p data-testid={`booth-row-prize-${booth.booth_code}`} className="text-xs text-muted truncate pl-3">{prizeName}</p>
               )}
+            </div>
+            {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): ブース別 前回集金後累計 固定列 (機械行と同幅=同位置)。 */}
+            <div
+              data-testid={`booth-accum-${booth.booth_code}`}
+              className={`${ACCUM_COL_WIDTH} font-mono text-base font-bold text-right tabular-nums text-amber-300`}
+            >
+              {formatCellPlain(accumMap[booth.booth_code]?.accum ?? null, 'count')}
             </div>
             <BoothScrollCells
               arr={arr}
