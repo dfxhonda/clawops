@@ -7,6 +7,7 @@ import DateTime from '../../shared/ui/DateTime'
 import { getPatrolMachines } from '../../services/patrol'
 import { fetchStoreBaselineRows } from '../../services/boothHistory'
 import { buildPrevFromRows } from '../../services/prevBaseline'
+import { fetchCollectionBaseline } from '../../services/collectionBaseline'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../components/storeTotalsRanking'
@@ -50,6 +51,8 @@ export default function PatrolStorePage() {
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
+  // SPEC-PATROL-ACCUM-COL-S2-SUPPLY-01 (D-097): 集金軸の累計/baseline 供給 (日付軸 diffMap とは別レーン)。表示は S3。
+  const [accumMap, setAccumMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('IN')
   const [syncing, setSyncing] = useState(false)
@@ -166,6 +169,15 @@ export default function PatrolStorePage() {
     init()
     return () => { cancel = true }
   }, [hydrateFromIdb, refreshBaselineAndRender, storeCode])
+
+  // SPEC-PATROL-ACCUM-COL-S2-SUPPLY-01 (D-097): 入店時 (storeCode 変化=入店/スワイプ先店舗) に集金累計 baseline を 1 回だけ RPC fetch。
+  // per-swipe の往復再fetch はしない (deps=[storeCode] のみ)。RPC 失敗時も accumMap 空で継続 (巡回本体をブロックしない)。
+  useEffect(() => {
+    let alive = true
+    fetchCollectionBaseline(storeCode).then(m => { if (alive) setAccumMap(m) })
+    return () => { alive = false }
+  }, [storeCode])
+
   // SPEC-LF1-STOREPAGE-STALE-FIX-01
   useEffect(() => {
     function handler() { hydrateFromIdb() }
@@ -395,6 +407,7 @@ export default function PatrolStorePage() {
               diffMap={diffMap}
               dateAxis={dateAxis}
               mode={viewMode}
+              accumMap={accumMap}
             />
             <div className="pt-2 pb-6 space-y-1.5">
               {nonChangerMachines.length === 0 && (
@@ -409,6 +422,7 @@ export default function PatrolStorePage() {
                   rankMap={rankMap}
                   mode={viewMode}
                   dateAxis={dateAxis}
+                  accumMap={accumMap}
                   expanded={expandedSet.includes(machine.machine_code)}
                   onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
                   onBoothClick={booth =>
