@@ -12,7 +12,7 @@ import {
   COLUMN_COUNT,
   NEWEST,
   aggregateSummaries,
-  formatCell,
+  formatCellPlain,
   machineBoothSummaries,
 } from './patrolViewModes'
 
@@ -64,7 +64,7 @@ export default function MachineRow({
         </div>
         <div
           data-testid={`machine-totals-${machine.machine_code}`}
-          className="grid grid-cols-10 gap-x-1 text-right leading-tight w-[400px] tabular-nums"
+          className="grid grid-cols-10 gap-x-2 text-right leading-tight w-[440px] tabular-nums"
         >
           {Array.from({ length: COLUMN_COUNT }, (_, i) => {
             const isToday = i === NEWEST
@@ -75,7 +75,7 @@ export default function MachineRow({
                 data-testid={`machine-cell-${mc}-${i}`}
                 className={`font-mono text-base font-bold ${colorClass}`}
               >
-                {formatCell(totals[i], modeDef.type)}
+                {formatCellPlain(totals[i], modeDef.type)}
               </div>
             )
           })}

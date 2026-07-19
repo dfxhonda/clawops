@@ -8,7 +8,7 @@ import {
   VIEW_MODES,
   COLUMN_COUNT,
   NEWEST,
-  formatCell,
+  formatCellPlain,
   sourceArrayFor,
   computeWorstBoothMap,
   mapSummaryToDateAxis,
@@ -22,7 +22,7 @@ const ENTRY_BG = {
 
 function BoothScrollCells({ arr, entryTypes, boothWorst, boothCode, modeDef }) {
   return (
-    <div className="grid grid-cols-10 gap-x-1 text-right leading-tight w-[400px] tabular-nums">
+    <div className="grid grid-cols-10 gap-x-2 text-right leading-tight w-[440px] tabular-nums">
       {Array.from({ length: COLUMN_COUNT }, (_, i) => {
         const worstColor = boothWorst?.[i] ?? null
         const textColor = worstColor ?? (i === NEWEST ? 'text-green-300' : 'text-text')
@@ -33,7 +33,7 @@ function BoothScrollCells({ arr, entryTypes, boothWorst, boothCode, modeDef }) {
             data-testid={`booth-cell-${boothCode}-${i}`}
             className={`font-mono text-base font-bold ${textColor} ${bgClass}`}
           >
-            {formatCell(arr[i], modeDef.type)}
+            {formatCellPlain(arr[i], modeDef.type)}
           </div>
         )
       })}
