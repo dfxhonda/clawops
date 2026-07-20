@@ -9,15 +9,16 @@ import { PageHeader } from '../../shared/ui/PageHeader'
 
 // 常時表示列 (暫定: ヒロ実機後調整前提)。machine_code=読取専用, short_name=機種マスタ引き表示のみ(読取専用),
 // store_code=不変キー(machine_code に内包)ゆえ読取専用扱い。
+// w = 内容フィット用の min-width (D-103 A案: 横スクロール前提で余白削減、編集inputは潰れない最低幅を保証)。
 const ALWAYS_COLS = [
   { key: 'store_code',     label: '店舗',       type: 'ro' },
   { key: 'machine_code',   label: '機械コード', type: 'ro' },
-  { key: 'machine_name',   label: '機械名',     type: 'text', w: 'w-40' },
-  { key: 'model_id',       label: '機種(model)', type: 'model', w: 'w-44' },
+  { key: 'machine_name',   label: '機械名',     type: 'text', w: 'min-w-[10rem]' },
+  { key: 'model_id',       label: '機種(model)', type: 'model', w: 'min-w-[10rem]' },
   { key: 'short_name',     label: '短縮名',     type: 'shortname' },
-  { key: 'name_suffix',    label: '丸数字',     type: 'text', w: 'w-20' },
-  { key: 'type_id',        label: '種別',       type: 'text', w: 'w-24' },
-  { key: 'machine_number', label: '型番',       type: 'text', w: 'w-24' },
+  { key: 'name_suffix',    label: '丸数字',     type: 'text', w: 'min-w-[3.5rem]' },
+  { key: 'type_id',        label: '種別',       type: 'text', w: 'min-w-[5rem]' },
+  { key: 'machine_number', label: '型番',       type: 'text', w: 'min-w-[6rem]' },
   { key: 'billing_order',  label: '請求順',     type: 'int' },
   { key: 'round_order',    label: '巡回順',     type: 'int' },
   { key: 'is_active',      label: '稼働',       type: 'bool' },
@@ -29,20 +30,54 @@ const DETAIL_COLS = [
   { key: 'play_price',         label: 'プレイ単価',  type: 'num' },
   { key: 'meter_per_play',     label: 'M/play',      type: 'num' },
   { key: 'out_meter_count',    label: 'OUT数',       type: 'int' },
-  { key: 'floor',              label: 'フロア',      type: 'text', w: 'w-20' },
-  { key: 'zone',               label: 'ゾーン',      type: 'text', w: 'w-20' },
+  { key: 'floor',              label: 'フロア',      type: 'text', w: 'min-w-[4rem]' },
+  { key: 'zone',               label: 'ゾーン',      type: 'text', w: 'min-w-[4rem]' },
   { key: 'floor_area_m2',      label: '面積㎡',      type: 'num' },
-  { key: 'ownership_type',     label: '所有区分',    type: 'text', w: 'w-24' },
+  { key: 'ownership_type',     label: '所有区分',    type: 'text', w: 'min-w-[6rem]' },
   { key: 'acquisition_cost',   label: '取得原価',    type: 'num' },
   { key: 'acquired_at',        label: '取得日',      type: 'date' },
   { key: 'installed_at',       label: '設置日',      type: 'date' },
   { key: 'lease_monthly',      label: '月額リース',  type: 'num' },
   { key: 'lease_months',       label: 'リース月数',  type: 'int' },
   { key: 'lease_end_date',     label: 'リース終了',  type: 'date' },
-  { key: 'maintenance_status', label: '保守状態',    type: 'text', w: 'w-24' },
+  { key: 'maintenance_status', label: '保守状態',    type: 'text', w: 'min-w-[6rem]' },
   { key: 'last_maintenance_at', label: '最終保守',   type: 'date' },
-  { key: 'notes',              label: '備考',        type: 'text', w: 'w-48' },
+  { key: 'notes',              label: '備考',        type: 'text', w: 'min-w-[12rem]' },
 ]
+
+const COL_BY_KEY = [...ALWAYS_COLS, ...DETAIL_COLS].reduce((acc, c) => { acc[c.key] = c; return acc }, {})
+
+// D-103 R1: ヘッダクリック 3-state (無→asc→desc→無)。純関数=単体テスト可。
+export function nextSortState(sortKey, sortDir, key) {
+  if (sortKey !== key) return { sortKey: key, sortDir: 'asc' }
+  if (sortDir === 'asc') return { sortKey: key, sortDir: 'desc' }
+  return { sortKey: null, sortDir: 'asc' } // desc の次=無ソート(供給順へ復帰)
+}
+
+// D-103 R1: 型別比較ソート。表示順のみを返す新配列 (元 rows は不変=machine_code 実体・edits 紐付き無傷)。
+// int/num=数値, bool=真偽, その他(ro/text/date/model/shortname)=文字列localeCompare。null/空は dir 無関係で末尾。
+// model=model_name, shortname=short_name でソート (人間に自然)。
+export function sortMachines(rows, sortKey, sortDir) {
+  if (!sortKey) return rows // 無ソート=masters供給順 (store_code ASC → machine_code ASC)
+  const col = COL_BY_KEY[sortKey]
+  if (!col) return rows
+  const dir = sortDir === 'desc' ? -1 : 1
+  const valOf = (row) => col.type === 'model' ? row.model_name
+    : col.type === 'shortname' ? row.short_name
+    : row[col.key]
+  return [...rows].sort((ra, rb) => {
+    const a = valOf(ra), b = valOf(rb)
+    const an = a == null || a === '', bn = b == null || b === ''
+    if (an && bn) return 0
+    if (an) return 1
+    if (bn) return -1
+    let c
+    if (col.type === 'int' || col.type === 'num') c = Number(a) - Number(b)
+    else if (col.type === 'bool') c = (a === b) ? 0 : (a ? 1 : -1)
+    else c = String(a).localeCompare(String(b), 'ja')
+    return c * dir
+  })
+}
 
 export default function MachineModelLinkPage() {
   const navigate = useNavigate()
@@ -59,6 +94,15 @@ export default function MachineModelLinkPage() {
   const [typeFilter, setTypeFilter]   = useState('')
   const [unlinkedOnly, setUnlinkedOnly] = useState(false)
   const [showDetail, setShowDetail]   = useState(false)
+  // D-103 R1: ヘッダクリック 3-state ソート (無→asc→desc→無)。表示順のみ=machine_code紐付き無傷。
+  const [sortKey, setSortKey] = useState(null)
+  const [sortDir, setSortDir] = useState('asc')
+
+  const toggleSort = (key) => {
+    const next = nextSortState(sortKey, sortDir, key)
+    setSortKey(next.sortKey)
+    setSortDir(next.sortDir)
+  }
 
   const load = async () => {
     setLoading(true)
@@ -121,6 +165,9 @@ export default function MachineModelLinkPage() {
     return r
   }, [rows, storeFilter, typeFilter, unlinkedOnly, edits])
 
+  // D-103 R1: 表示順のみソート (元行不変=machine_code実体・edits紐付き無傷)。edits非依存=元供給値で安定ソート。
+  const sorted = useMemo(() => sortMachines(filtered, sortKey, sortDir), [filtered, sortKey, sortDir])
+
   const cols = showDetail ? [...ALWAYS_COLS, ...DETAIL_COLS] : ALWAYS_COLS
   const dirtyCodes = Object.keys(edits).filter(c => Object.keys(edits[c] ?? {}).length > 0)
   const unlinkedCount = useMemo(() => rows.filter(r => !effModelId(r)).length, [rows, edits])
@@ -177,7 +224,7 @@ export default function MachineModelLinkPage() {
             data-testid={`model-${code}`}
             value={cellValue(row, 'model_id') ?? ''}
             onChange={e => setCell(code, 'model_id', e.target.value)}
-            className={`${inputCls} ${dirty ? 'border-amber-400' : ''} ${col.w ?? ''} bg-bg`}
+            className={`${inputCls} ${dirty ? 'border-amber-400' : ''} ${col.w ?? 'min-w-[9rem]'} bg-bg`}
           >
             <option value="">（未設定）</option>
             {models.map(m => <option key={m.model_id} value={m.model_id}>{m.model_name}</option>)}
@@ -200,7 +247,7 @@ export default function MachineModelLinkPage() {
             type="number"
             value={cellValue(row, col.key) ?? ''}
             onChange={e => setCell(code, col.key, e.target.value)}
-            className={`${inputCls} text-right ${dirty ? 'border-amber-400' : ''} w-20`}
+            className={`${inputCls} text-right ${dirty ? 'border-amber-400' : ''} ${col.type === 'int' ? 'min-w-[3.5rem]' : 'min-w-[4.5rem]'}`}
           />
         )
       case 'date':
@@ -209,7 +256,7 @@ export default function MachineModelLinkPage() {
             type="date"
             value={cellValue(row, col.key) ?? ''}
             onChange={e => setCell(code, col.key, e.target.value)}
-            className={`${inputCls} ${dirty ? 'border-amber-400' : ''} w-32`}
+            className={`${inputCls} ${dirty ? 'border-amber-400' : ''} min-w-[8rem]`}
           />
         )
       default: // text
@@ -218,7 +265,7 @@ export default function MachineModelLinkPage() {
             type="text"
             value={cellValue(row, col.key) ?? ''}
             onChange={e => setCell(code, col.key, e.target.value)}
-            className={`${inputCls} ${dirty ? 'border-amber-400' : ''} ${col.w ?? 'w-28'}`}
+            className={`${inputCls} ${dirty ? 'border-amber-400' : ''} ${col.w ?? 'min-w-[7rem]'}`}
           />
         )
     }
@@ -280,12 +327,24 @@ export default function MachineModelLinkPage() {
           <table className="text-sm border-collapse min-w-max">
             <thead className="sticky top-0 z-10 bg-surface">
               <tr className="border-b border-border text-muted text-xs font-bold">
-                {cols.map(c => <th key={c.key} className={thCls}>{c.label}</th>)}
+                {cols.map(c => (
+                  <th key={c.key} className={thCls}>
+                    <button
+                      type="button"
+                      data-testid={`sort-${c.key}`}
+                      onClick={() => toggleSort(c.key)}
+                      className="flex items-center gap-0.5 font-bold hover:text-accent"
+                    >
+                      {c.label}
+                      {sortKey === c.key && <span className="text-accent">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                    </button>
+                  </th>
+                ))}
                 <th className={thCls}>操作</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(row => {
+              {sorted.map(row => {
                 const isDirty = !!(edits[row.machine_code] && Object.keys(edits[row.machine_code]).length > 0)
                 return (
                   <tr key={row.machine_code} data-testid={`row-${row.machine_code}`} className={`border-b border-border ${isDirty ? 'bg-amber-900/10' : 'hover:bg-surface/50'}`}>
