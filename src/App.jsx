@@ -135,6 +135,7 @@ const AdminAlertTypesPage = lazy(() => import('./admin/pages/AdminAlertTypesPage
 
 // 遅延ロード — クレサポ v1.0 ハブ
 const ClawsupportHub        = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
+const PatrolRoutePage       = lazy(() => import('./clawsupport/pages/PatrolRoutePage'))
 const ClawsupportStoreDash  = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
 const PatrolScreenV1        = lazy(() => import('./clawsupport/pages/PatrolScreenV1'))
 // M1 Stage 2: ブース入力
@@ -321,6 +322,8 @@ function AppInner() {
 
       {/* クレサポ v1.0 — 全ロール */}
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />
+      {/* SPEC-PATROL-ROUTE-BUILDER-01 (D-106): 今日の巡回ルート作成 */}
+      <Route path="/clawsupport/route" element={<ProtectedRoute><PatrolRoutePage /></ProtectedRoute>} />
       {/* M1 Stage 3: 店舗ハブ */}
       <Route path="/clawsupport/store/:storeCode" element={<ProtectedRoute><PatrolStorePage /></ProtectedRoute>} />
       {/* DIAG-SWIPE-BLACKSCREEN-01 fix A: key={boothCode} で boothCode 変更時にコンポーネントを

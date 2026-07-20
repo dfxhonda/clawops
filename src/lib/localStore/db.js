@@ -10,11 +10,13 @@
 import { openDB } from 'idb'
 
 export const DB_NAME = 'clawops_lf'
-export const DB_VERSION = 1
+// SPEC-PATROL-ROUTE-BUILDER-01 (D-106): v2 で patrol_route_today ストア追加。
+export const DB_VERSION = 2
 
 // object stores
 export const STORE_PATROL_RECORDS = 'patrol_records' // 巡回 1 booth 1 record (in_meter 等)
 export const STORE_STORE_META     = 'store_meta'     // 店舗メタ (storeCode -> { storeName, machines, prefetchedAt })
+export const STORE_PATROL_ROUTE   = 'patrol_route_today' // 今日の巡回予定 (作業中の一時状態。日付JST付き1レコード)
 
 let dbPromise = null
 
@@ -32,6 +34,10 @@ export function getDb() {
         }
         if (!db.objectStoreNames.contains(STORE_STORE_META)) {
           db.createObjectStore(STORE_STORE_META, { keyPath: 'store_code' })
+        }
+        // D-106: 今日の巡回予定 (単一レコード keyPath 'id'。中身に stored_date(JST) と items)。
+        if (!db.objectStoreNames.contains(STORE_PATROL_ROUTE)) {
+          db.createObjectStore(STORE_PATROL_ROUTE, { keyPath: 'id' })
         }
       },
     })

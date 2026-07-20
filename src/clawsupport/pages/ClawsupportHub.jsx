@@ -179,6 +179,20 @@ export default function ClawsupportHub() {
       </div>
       */}
 
+      {/* SPEC-PATROL-ROUTE-BUILDER-01 (D-106): 今日の巡回ルート作成への導線 (既存店舗カード順序は不変) */}
+      <div className="shrink-0 px-4 py-2 border-b border-border">
+        <button
+          type="button"
+          data-testid="hub-patrol-route-link"
+          onClick={() => navigate('/clawsupport/route')}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-surface border border-border active:scale-[0.98] transition-transform text-left"
+        >
+          <span className="text-lg shrink-0">🗺️</span>
+          <span className="flex-1 text-sm font-bold">今日の巡回ルート作成</span>
+          <span className="text-muted text-xl shrink-0">›</span>
+        </button>
+      </div>
+
       <KanaIndex
         items={stores}
         pinnedKeys={pinnedCodes}
