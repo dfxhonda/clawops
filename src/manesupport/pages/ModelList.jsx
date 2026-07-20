@@ -16,6 +16,7 @@ const SORT_OPTIONS = [
 
 const EMPTY_FORM = {
   model_name: '',
+  short_name: '',
   type_id: '',
   manufacturer: '',
   booth_count: '',
@@ -106,6 +107,7 @@ export default function ModelList() {
     setEditId(m.model_id)
     setForm({
       model_name:       m.model_name      || '',
+      short_name:       m.short_name      || '',
       type_id:          m.type_id         || '',
       manufacturer:     m.manufacturer    || '',
       booth_count:      m.booth_count     ?? '',
@@ -210,6 +212,9 @@ export default function ModelList() {
       const row = models.find(r => r.model_id === id)
       const base = prev[id] ?? {
         model_name:       row?.model_name       ?? '',
+        // SPEC-MODEL-SHORTNAME-EDIT-01 (D-100): 未編集行の short_name を base に取り込み、
+        // 別セルのみ編集した際に saveGridEdits で short_name が null 上書きされるのを防ぐ。
+        short_name:       row?.short_name       ?? '',
         type_id:          row?.type_id          ?? 'crane',
         manufacturer:     row?.manufacturer     ?? '',
         meter_unit_price: row?.meter_unit_price ?? '',
@@ -227,6 +232,7 @@ export default function ModelList() {
       const patch = {
         ...row,
         model_name:       ge.model_name,
+        short_name:       ge.short_name,
         type_id:          ge.type_id,
         manufacturer:     ge.manufacturer || null,
         meter_unit_price: ge.meter_unit_price !== '' ? Number(ge.meter_unit_price) : null,
@@ -341,6 +347,7 @@ export default function ModelList() {
                 <thead>
                   <tr className="border-b border-border text-muted text-left bg-surface text-xs font-bold">
                     <th className="py-1.5 px-2">機種名</th>
+                    <th className="py-1.5 px-2">短縮名</th>
                     <th className="py-1.5 px-2">種別</th>
                     <th className="py-1.5 px-2">メーカー</th>
                     <th className="py-1.5 px-2 text-right">単価</th>
@@ -355,6 +362,9 @@ export default function ModelList() {
                       <tr key={row.model_id} className={`border-b border-border ${ge ? 'bg-amber-900/20' : 'hover:bg-surface'}`}>
                         <td className="py-0.5 px-1">
                           <input value={ge?.model_name ?? row.model_name ?? ''} onChange={ev => setGCell(row.model_id, 'model_name', ev.target.value)} className={gridCellCls} />
+                        </td>
+                        <td className="py-0.5 px-1">
+                          <input value={ge?.short_name ?? row.short_name ?? ''} onChange={ev => setGCell(row.model_id, 'short_name', ev.target.value)} placeholder="短縮名" className={gridCellCls} />
                         </td>
                         <td className="py-0.5 px-1">
                           <select value={ge?.type_id ?? row.type_id ?? ''} onChange={ev => setGCell(row.model_id, 'type_id', ev.target.value)} className="h-8 px-1 bg-bg border border-border text-text text-xs rounded w-full">
@@ -463,6 +473,18 @@ export default function ModelList() {
                     {searching ? '検索中...' : '仕様を検索'}
                   </button>
                 </div>
+              </div>
+
+              {/* SPEC-MODEL-SHORTNAME-EDIT-01 (D-100): 短縮名 (機種名の下、任意)。機械名合成の参照通名。空で保存可。 */}
+              <div>
+                <label className="block text-xs text-muted mb-1">短縮名（機械名に使う通名・任意）</label>
+                <input
+                  type="text"
+                  value={form.short_name}
+                  onChange={e => handleChange('short_name', e.target.value)}
+                  placeholder="例: バズクレDX"
+                  className={inputCls}
+                />
               </div>
 
               {/* 仕様検索結果 */}

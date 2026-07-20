@@ -75,6 +75,7 @@ const RankingView = lazy(() => import('./clawsupport/pages/RankingView'))
 // /admin/labels (AdminQRLabelPage) が現役のため lazy import 削除。
 const AdminModelList = lazy(() => import('./manesupport/pages/ModelList'))
 const AdminMachineList = lazy(() => import('./manesupport/pages/MachineList'))
+const AdminMachineModelLink = lazy(() => import('./manesupport/pages/MachineModelLinkPage'))
 const AdminBoothList = lazy(() => import('./manesupport/pages/BoothList'))
 const ManualEditor = lazy(() => import('./manesupport/pages/ManualEditor'))
 const ManualView = lazy(() => import('./manesupport/pages/ManualView'))
@@ -134,6 +135,7 @@ const AdminAlertTypesPage = lazy(() => import('./admin/pages/AdminAlertTypesPage
 
 // 遅延ロード — クレサポ v1.0 ハブ
 const ClawsupportHub        = lazy(() => import('./clawsupport/pages/ClawsupportHub'))
+const PatrolRoutePage       = lazy(() => import('./clawsupport/pages/PatrolRoutePage'))
 const ClawsupportStoreDash  = lazy(() => import('./clawsupport/pages/ClawsupportStoreDash'))
 const PatrolScreenV1        = lazy(() => import('./clawsupport/pages/PatrolScreenV1'))
 // M1 Stage 2: ブース入力
@@ -320,6 +322,8 @@ function AppInner() {
 
       {/* クレサポ v1.0 — 全ロール */}
       <Route path="/clawsupport" element={<ProtectedRoute><ClawsupportHub /></ProtectedRoute>} />
+      {/* SPEC-PATROL-ROUTE-BUILDER-01 (D-106): 今日の巡回ルート作成 */}
+      <Route path="/clawsupport/route" element={<ProtectedRoute><PatrolRoutePage /></ProtectedRoute>} />
       {/* M1 Stage 3: 店舗ハブ */}
       <Route path="/clawsupport/store/:storeCode" element={<ProtectedRoute><PatrolStorePage /></ProtectedRoute>} />
       {/* DIAG-SWIPE-BLACKSCREEN-01 fix A: key={boothCode} で boothCode 変更時にコンポーネントを
@@ -382,6 +386,8 @@ function AppInner() {
       <Route path="/admin/models" element={<AdminRoute><AdminModelList /></AdminRoute>} />
       <Route path="/admin/machine-models" element={<AdminRoute><AdminMachineLayoutPage /></AdminRoute>} />
       <Route path="/admin/machines" element={<AdminRoute><AdminMachineList /></AdminRoute>} />
+      {/* SPEC-MACHINE-MODEL-LINK-ADMIN-01 (D-101): 全店横断 機械一覧・model_id紐付管理 */}
+      <Route path="/admin/machine-links" element={<AdminRoute><AdminMachineModelLink /></AdminRoute>} />
       <Route path="/admin/booths" element={<AdminRoute><AdminBoothList /></AdminRoute>} />
       {/* マニュアル — admin管理 + 全ロール閲覧 */}
       <Route path="/admin/manuals" element={<AdminRoute><ManualEditor /></AdminRoute>} />

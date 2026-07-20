@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -26,12 +26,33 @@ import { useListSort } from '../../hooks/useListSort'
 // - SPEC-STORE-OFFICIAL-NAME-EDIT-01 (D-057): store_name_official は編集フォームで表示・編集可 (旧「UI表示なし」解除)
 
 // SPEC-STORE-MASTER-STORE-ID-FIX-01: 旧 store_id 列を SELECT から除外 (DB DROP 済)。
-const LIST_SELECT = 'store_code,store_name,store_name_official,brand_name,store_type,phone,address,region,locality,locality_kana,is_active,opened_at,closed_at,is_collection_day,notes'
+// SPEC-STORE-INFO-WEBSEARCH-01 (D-105): openEdit プリフィル用に lat/lng を追加取得。
+const LIST_SELECT = 'store_code,store_name,store_name_official,brand_name,store_type,phone,address,region,locality,locality_kana,lat,lng,is_active,opened_at,closed_at,is_collection_day,notes'
+
+// SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 店舗情報検索候補を form に null合体マージ。
+// 候補.x が null/空なら現状 form 値を温存 (上書きしない)。store_code/store_name は候補で上書きしない (人間確定・検索キー)。
+export function mergeStoreCandidate(form, c) {
+  if (!c) return form
+  const keep = (cand, cur) => (cand != null && cand !== '' ? cand : cur)
+  return {
+    ...form,
+    store_name_official: keep(c.store_name_official, form.store_name_official),
+    brand_name:          keep(c.brand_name, form.brand_name),
+    address:             keep(c.address, form.address),
+    phone:               keep(c.phone, form.phone),
+    region:              keep(c.region, form.region),
+    locality:            keep(c.locality, form.locality),
+    locality_kana:       keep(c.locality_kana, form.locality_kana),
+    lat:                 c.lat != null ? String(c.lat) : form.lat,
+    lng:                 c.lng != null ? String(c.lng) : form.lng,
+  }
+}
 
 const EMPTY_FORM = {
   store_code: '', store_name: '', store_name_official: '',
   brand_name: '', store_type: '', phone: '', address: '',
   region: '', locality: '', locality_kana: '',
+  lat: '', lng: '', // SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 巡回ルート用座標
   is_active: true, opened_at: '', closed_at: '',
   is_collection_day: false, notes: '',
 }
@@ -101,6 +122,10 @@ export default function AdminStoreListPage() {
   const [gridEdits, setGridEdits]   = useState({})
   const [gridSaving, setGridSaving] = useState(false)
   const [detailStore, setDetailStore] = useState(null)
+  // SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 店舗情報Web検索 (B方式=候補表示→確認→反映)
+  const [storeCandidate, setStoreCandidate] = useState(null)
+  const [searching, setSearching] = useState(false)
+  const [latLngVerified, setLatLngVerified] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null) // { boothCount, readingCount, forceChecked }
   const [deleting, setDeleting] = useState(false)
   const [boothCounts, setBoothCounts] = useState({})
@@ -158,6 +183,8 @@ export default function AdminStoreListPage() {
     setForm(EMPTY_FORM)
     setModal('new')
     setError(null)
+    setStoreCandidate(null)
+    setLatLngVerified(false)
   }
 
   async function openEdit(row) {
@@ -179,6 +206,8 @@ export default function AdminStoreListPage() {
       region:               data.region ?? '',
       locality:             data.locality ?? '',
       locality_kana:        data.locality_kana ?? '',
+      lat:                  data.lat ?? '', // SPEC-STORE-INFO-WEBSEARCH-01 (D-105)
+      lng:                  data.lng ?? '',
       is_active:            data.is_active ?? true,
       opened_at:            data.opened_at ?? '',
       closed_at:            data.closed_at ?? '',
@@ -187,6 +216,36 @@ export default function AdminStoreListPage() {
     })
     setModal(data)
     setError(null)
+    setStoreCandidate(null)
+    setLatLngVerified(false)
+  }
+
+  // SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 店名(+住所ヒント)から store-info-search を叩き候補を得る (B方式=確認を挟む)。
+  async function handleStoreSearch() {
+    const q = form.store_name.trim()
+    if (!q) { setError('店舗名を入力してください'); return }
+    setSearching(true)
+    setStoreCandidate(null)
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('store-info-search', {
+        body: { storeName: q, address: form.address || undefined },
+      })
+      if (fnErr) throw fnErr
+      if (!data?.store) throw new Error('店舗情報を取得できませんでした')
+      setStoreCandidate(data.store)
+    } catch (e) {
+      alert('検索に失敗しました: ' + (e?.message || String(e)))
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  // 候補を null合体で form に反映 (store_code/store_name は上書きしない)。lat/lng が入れば gps_verified フラグを立てる。
+  function applyStoreCandidate() {
+    if (!storeCandidate) return
+    setForm(prev => mergeStoreCandidate(prev, storeCandidate))
+    if (storeCandidate.lat != null && storeCandidate.lng != null) setLatLngVerified(true)
+    setStoreCandidate(null)
   }
 
   async function handleSave() {
@@ -207,6 +266,9 @@ export default function AdminStoreListPage() {
       region:              form.region || null,
       locality:            form.locality || null,
       locality_kana:       form.locality_kana || null,
+      // SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 巡回ルート用座標。空はnull、値は数値化。
+      lat:                 form.lat !== '' && form.lat != null ? Number(form.lat) : null,
+      lng:                 form.lng !== '' && form.lng != null ? Number(form.lng) : null,
       is_active:           form.is_active,
       opened_at:           form.opened_at || null,
       closed_at:           form.closed_at || null,
@@ -214,6 +276,8 @@ export default function AdminStoreListPage() {
       notes:               form.notes || null,
       updated_by:          staffName,
       updated_at:          now,
+      // 検索候補から lat/lng を反映して保存した時のみ GPS確認時刻を打刻
+      ...(latLngVerified ? { gps_verified_at: now } : {}),
     }
     try {
       if (modal === 'new') {
@@ -600,6 +664,45 @@ export default function AdminStoreListPage() {
               <Field label="店舗名 *">
                 <TInput value={form.store_name} onChange={v => f({ store_name: v })} placeholder="店舗名" testId="store-edit-name" />
               </Field>
+
+              {/* SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 店名からWeb検索→候補確認→反映 (B方式)。lat/lng誤植で巡回ナビが狂うのを目視で防ぐ */}
+              <button
+                type="button"
+                data-testid="store-info-search-button"
+                onClick={handleStoreSearch}
+                disabled={!form.store_name.trim() || searching}
+                className="self-start px-3 py-1.5 rounded-lg border border-border text-xs font-bold text-muted bg-surface2 hover:bg-bg disabled:opacity-40"
+              >
+                {searching ? '検索中...' : '🔍 店舗情報を検索'}
+              </button>
+              {storeCandidate && (
+                <div data-testid="store-candidate" className="rounded-xl border border-border bg-surface2 p-3 text-xs space-y-1.5">
+                  <p className="font-bold text-muted uppercase tracking-wide text-[10px]">検索結果（確認して反映）</p>
+                  <div className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1">
+                    {[
+                      ['正式名称', storeCandidate.store_name_official],
+                      ['ブランド', storeCandidate.brand_name],
+                      ['住所', storeCandidate.address],
+                      ['電話', storeCandidate.phone],
+                      ['地域', storeCandidate.region],
+                      ['市区町村', storeCandidate.locality],
+                      ['カナ', storeCandidate.locality_kana],
+                      ['緯度 lat', storeCandidate.lat],
+                      ['経度 lng', storeCandidate.lng],
+                    ].map(([k, v]) => (
+                      <Fragment key={k}>
+                        <span className="text-muted">{k}</span>
+                        <span className="font-medium text-text break-all">{v == null || v === '' ? '—' : String(v)}</span>
+                      </Fragment>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" data-testid="store-candidate-apply" onClick={applyStoreCandidate} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 rounded-lg text-xs">フォームに反映</button>
+                    <button type="button" onClick={() => setStoreCandidate(null)} className="px-3 bg-surface border border-border text-muted font-bold py-1.5 rounded-lg text-xs">閉じる</button>
+                  </div>
+                  <p className="text-[10px] text-muted">※ 店舗コード・店舗名は上書きしません。緯度経度は反映前に必ず目視確認を。</p>
+                </div>
+              )}
               {/* SPEC-STORE-OFFICIAL-NAME-EDIT-01 (D-057): 集金帳票の宛名用。旧 forbidden「UI表示なし」は hiro 指示で解除。 */}
               <Field label="正式名称">
                 <TInput value={form.store_name_official} onChange={v => f({ store_name_official: v })}
@@ -646,6 +749,15 @@ export default function AdminStoreListPage() {
               <Field label="市区町村カナ">
                 <TInput value={form.locality_kana} onChange={v => f({ locality_kana: v })} placeholder="カタカナ" />
               </Field>
+              {/* SPEC-STORE-INFO-WEBSEARCH-01 (D-105): 巡回ルート用 緯度経度。検索候補から反映 or 手入力可 */}
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="緯度 lat">
+                  <TInput value={form.lat} onChange={v => { f({ lat: v }); setLatLngVerified(false) }} placeholder="33.5902" type="text" testId="store-edit-lat" />
+                </Field>
+                <Field label="経度 lng">
+                  <TInput value={form.lng} onChange={v => { f({ lng: v }); setLatLngVerified(false) }} placeholder="130.4017" type="text" testId="store-edit-lng" />
+                </Field>
+              </div>
               <Field label="開業日">
                 <TInput value={form.opened_at} onChange={v => f({ opened_at: v })} type="date" />
               </Field>

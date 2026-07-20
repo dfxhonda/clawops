@@ -7,6 +7,7 @@ import DateTime from '../../shared/ui/DateTime'
 import { getPatrolMachines } from '../../services/patrol'
 import { fetchStoreBaselineRows } from '../../services/boothHistory'
 import { buildPrevFromRows } from '../../services/prevBaseline'
+import { fetchCollectionBaseline } from '../../services/collectionBaseline'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
 import { computeMachineRankMap } from '../components/storeTotalsRanking'
@@ -50,6 +51,8 @@ export default function PatrolStorePage() {
   const [machines, setMachines] = useState([])
   const [todayMap, setTodayMap] = useState({})
   const [diffMap, setDiffMap] = useState({})
+  // SPEC-PATROL-ACCUM-COL-S2-SUPPLY-01 (D-097): 集金軸の累計/baseline 供給 (日付軸 diffMap とは別レーン)。表示は S3。
+  const [accumMap, setAccumMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('IN')
   const [syncing, setSyncing] = useState(false)
@@ -166,6 +169,15 @@ export default function PatrolStorePage() {
     init()
     return () => { cancel = true }
   }, [hydrateFromIdb, refreshBaselineAndRender, storeCode])
+
+  // SPEC-PATROL-ACCUM-COL-S2-SUPPLY-01 (D-097): 入店時 (storeCode 変化=入店/スワイプ先店舗) に集金累計 baseline を 1 回だけ RPC fetch。
+  // per-swipe の往復再fetch はしない (deps=[storeCode] のみ)。RPC 失敗時も accumMap 空で継続 (巡回本体をブロックしない)。
+  useEffect(() => {
+    let alive = true
+    fetchCollectionBaseline(storeCode).then(m => { if (alive) setAccumMap(m) })
+    return () => { alive = false }
+  }, [storeCode])
+
   // SPEC-LF1-STOREPAGE-STALE-FIX-01
   useEffect(() => {
     function handler() { hydrateFromIdb() }
@@ -177,6 +189,9 @@ export default function PatrolStorePage() {
   // ref で staffId を保持してクロージャ陳腐化を回避。
   const staffIdRef = useRef(staffId)
   staffIdRef.current = staffId
+  // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 退店 upload 後の累計引き直しで、店スワイプ中の別店取り違えを防ぐ現在店 ref。
+  const storeCodeRef = useRef(storeCode)
+  storeCodeRef.current = storeCode
   useEffect(() => {
     return () => {
       const sCode = storeCode
@@ -186,7 +201,14 @@ export default function PatrolStorePage() {
       // 非同期で実行、navigation を絶対にブロックしない
       uploadStoreRecords(sCode, { staff: { staffId: staffIdRef.current } })
         .then(res => {
-          if (res.uploaded > 0 || res.failed > 0) notifyLfChange()
+          if (res.uploaded > 0 || res.failed > 0) {
+            notifyLfChange()
+            // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 退店 upload 成功後も累計引き直し (次回入店整合、best-effort)。
+            // 現在店が sCode のままの時のみ setAccumMap (別店へスワイプ済みなら破棄=取り違え防止)。navigation はブロックしない。
+            fetchCollectionBaseline(sCode)
+              .then(m => { if (storeCodeRef.current === sCode) setAccumMap(m) })
+              .catch(() => {})
+          }
         })
         .catch(err => logger.warn?.('ERR-LF1-AUTO-SYNC', { storeCode: sCode, message: err?.message }))
     }
@@ -259,6 +281,10 @@ export default function PatrolStorePage() {
       if (res.uploaded > 0 || res.failed > 0) {
         notifyLfChange()
         await hydrateFromIdb()
+        // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全台サーバー保存(とりま保存)成功後、その場で累計を引き直して累計列を最新化。
+        // 保存後も同じ店の画面に残って入替検討する用途 (ヒロ確定 B案)。fetchCollectionBaseline は失敗時 {} を返し巡回をブロックしない。
+        const accum = await fetchCollectionBaseline(storeCode)
+        setAccumMap(accum)
       }
     } finally {
       setSyncing(false)
@@ -395,6 +421,7 @@ export default function PatrolStorePage() {
               diffMap={diffMap}
               dateAxis={dateAxis}
               mode={viewMode}
+              accumMap={accumMap}
             />
             <div className="pt-2 pb-6 space-y-1.5">
               {nonChangerMachines.length === 0 && (
@@ -409,6 +436,7 @@ export default function PatrolStorePage() {
                   rankMap={rankMap}
                   mode={viewMode}
                   dateAxis={dateAxis}
+                  accumMap={accumMap}
                   expanded={expandedSet.includes(machine.machine_code)}
                   onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
                   onBoothClick={booth =>

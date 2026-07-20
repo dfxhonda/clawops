@@ -9,6 +9,8 @@ import {
   NEWEST,
   aggregateSummaries,
   formatCellPlain,
+  ACCUM_COL_WIDTH,
+  sumAccum,
 } from './patrolViewModes'
 
 export function computeStoreTotals(diffMap, mode = 'IN', dateAxis = null) {
@@ -23,16 +25,20 @@ function fmtDateLabel(dateStr) {
   return `${Number(parts[1])}/${Number(parts[2])}`
 }
 
-export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN' }) {
+export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN', accumMap = {} }) {
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
   const totals = useMemo(
     () => computeStoreTotals(diffMap || {}, mode, dateAxis),
     [diffMap, mode, dateAxis],
   )
+  // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店の前回集金後累計 合計。
+  const accumTotal = useMemo(() => sumAccum(accumMap), [accumMap])
   return (
     <div data-testid="store-totals-header" className="border-b border-border">
       <div className="px-4 pt-1 flex items-center gap-2">
         <div className="w-40 shrink-0 sticky left-0 z-10 bg-surface" />
+        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 累計列ヘッダラベル (日付ラベル行と同段)。 */}
+        <div className={`${ACCUM_COL_WIDTH} text-base text-right leading-tight text-amber-300/80`}>累計</div>
         <div className="grid grid-cols-10 gap-x-2 text-base text-right leading-tight text-muted w-[440px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div key={i} data-testid={`store-label-${i}`}>
@@ -43,6 +49,13 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
       </div>
       <div className="px-4 pb-1 flex items-center gap-2">
         <div className="w-40 shrink-0 text-sm text-muted sticky left-0 z-10 bg-surface">合計</div>
+        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店累計合計 (合計行と同段、カンマ抜き/null='−')。 */}
+        <div
+          data-testid="store-accum-total"
+          className={`${ACCUM_COL_WIDTH} font-mono text-base font-bold text-right tabular-nums text-amber-300`}
+        >
+          {formatCellPlain(accumTotal, 'count')}
+        </div>
         <div className="grid grid-cols-10 gap-x-2 text-right leading-tight w-[440px] tabular-nums">
           {Array.from({ length: COLUMN_COUNT }, (_, i) => (
             <div

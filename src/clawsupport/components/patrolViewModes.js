@@ -57,6 +57,26 @@ export function formatCellPlain(value, type) {
   }
 }
 
+// SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 「前回集金後からの累計」固定列。
+// 日付軸 (grid-cols-10 w-[440px]) の外、w-40 stickyラベルと日付gridの間に挿入する新規1列。
+// 幅クラスは 4コンポーネント共有 (StoreTotalsHeader/MachineRow/MachineRowExpandedBoothList/Admin子呼び)。
+// この定数を全挿入箇所で使うことで同幅を保証 → 機械行/ブース行/ヘッダで縦ズレしない (HEATMAP-05 orphan教訓)。
+export const ACCUM_COL_WIDTH = 'w-16 shrink-0'
+
+// accumMap[booth_code] = { accum, baselineIn, baselineSource } (S2/D-097供給)。
+// boothCodes 指定=該当ブースのみ合算 (機械行=当該機械の全booth accum合計)、null=全 accumMap 合算 (店ヘッダ合計)。
+// 全て null/未供給なら null を返す → formatCellPlain で '−' 表示。
+export function sumAccum(accumMap, boothCodes = null) {
+  if (!accumMap) return null
+  const codes = boothCodes ?? Object.keys(accumMap)
+  let sum = null
+  for (const bc of codes) {
+    const v = accumMap[bc]?.accum
+    if (v != null) sum = (sum ?? 0) + v
+  }
+  return sum
+}
+
 // 10 要素配列を booth summary から取り出す。null safe。
 export function sourceArrayFor(summary, mode) {
   const def = VIEW_MODES[mode] ?? VIEW_MODES.IN

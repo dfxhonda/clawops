@@ -5,6 +5,8 @@ const TILES = [
   { label: '取込',         desc: 'PCH Excel取込 / SGP状態',  path: '/admin/import',                    impl: true  },
   { label: '店舗',         desc: '店舗マスタ管理 (機械/ブース追加もここから)', path: '/admin/masters/store-list', impl: true  },
   { label: '機械登録',     desc: '店舗の実機を追加・編集',  path: '/admin/machines',                  impl: true  },
+  // SPEC-MACHINE-MODEL-LINK-ADMIN-HUB-CARD-fix-01 (D-102): D-101 の全店横断 model_id 紐付ページ入口 (機械登録直後=A案)
+  { label: '全店機械確認', desc: '全店横断で機種(model_id)紐付・全カラム編集', path: '/admin/machine-links',      impl: true  },
   { label: 'ブース一覧',   desc: 'ブース設定の確認・編集・追加', path: '/admin/booths',                impl: true  },
   { label: '機種',         desc: '機種マスタ (型番) 管理',  path: '/admin/models',                    impl: true  },
   { label: '景品',         desc: '景品マスタ管理',         path: '/admin/masters/prizes',            impl: true  },
