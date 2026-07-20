@@ -75,6 +75,7 @@ const RankingView = lazy(() => import('./clawsupport/pages/RankingView'))
 // /admin/labels (AdminQRLabelPage) が現役のため lazy import 削除。
 const AdminModelList = lazy(() => import('./manesupport/pages/ModelList'))
 const AdminMachineList = lazy(() => import('./manesupport/pages/MachineList'))
+const AdminMachineModelLink = lazy(() => import('./manesupport/pages/MachineModelLinkPage'))
 const AdminBoothList = lazy(() => import('./manesupport/pages/BoothList'))
 const ManualEditor = lazy(() => import('./manesupport/pages/ManualEditor'))
 const ManualView = lazy(() => import('./manesupport/pages/ManualView'))
@@ -382,6 +383,8 @@ function AppInner() {
       <Route path="/admin/models" element={<AdminRoute><AdminModelList /></AdminRoute>} />
       <Route path="/admin/machine-models" element={<AdminRoute><AdminMachineLayoutPage /></AdminRoute>} />
       <Route path="/admin/machines" element={<AdminRoute><AdminMachineList /></AdminRoute>} />
+      {/* SPEC-MACHINE-MODEL-LINK-ADMIN-01 (D-101): 全店横断 機械一覧・model_id紐付管理 */}
+      <Route path="/admin/machine-links" element={<AdminRoute><AdminMachineModelLink /></AdminRoute>} />
       <Route path="/admin/booths" element={<AdminRoute><AdminBoothList /></AdminRoute>} />
       {/* マニュアル — admin管理 + 全ロール閲覧 */}
       <Route path="/admin/manuals" element={<AdminRoute><ManualEditor /></AdminRoute>} />

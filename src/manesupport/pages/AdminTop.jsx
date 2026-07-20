@@ -4,6 +4,7 @@ import LogoutButton from '../../components/LogoutButton'
 const ITEMS = [
   { label: '機種マスタ',  desc: '機種の登録・編集・削除',     path: '/admin/models' },
   { label: '機械管理',    desc: '機械の追加・編集・削除',     path: '/admin/machines' },
+  { label: '機械モデル紐付', desc: '全店横断でmodel_id紐付・全カラム編集', path: '/admin/machine-links' },
   { label: 'ブース管理',  desc: 'ブース設定の確認・編集',     path: '/admin/booths' },
   { label: 'マニュアル',  desc: '機種マニュアルの作成・編集', path: '/admin/manuals' },
   { label: 'ロッカー',   desc: 'ガチャ機のロッカー設定',     path: '/admin/lockers' },

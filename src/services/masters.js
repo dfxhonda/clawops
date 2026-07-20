@@ -300,6 +300,77 @@ export async function deleteMachine(machineCode) {
   })
 }
 
+// ============================================
+// SPEC-MACHINE-MODEL-LINK-ADMIN-01 (D-101): 全店横断 機械一覧・model_id紐付管理
+// ============================================
+// 全店舗・非稼働含む全機械を取得し、model_id 経由で機種の model_name/short_name を JOIN(表示ラベルのみ)。
+// is_active フィルタなし(既存 getMachines は稼働のみ・店舗指定)。organization_id フィルタは付けない(RLS担保)。
+export async function getAllMachinesForAdmin() {
+  const [machinesRes, modelsRes] = await Promise.all([
+    supabase.from('machines').select('*').order('store_code').order('machine_code'),
+    supabase.from('machine_models').select('model_id, model_name, short_name'),
+  ])
+  if (machinesRes.error) { console.error('全機械取得エラー:', machinesRes.error.message); return [] }
+  const modelMap = {}
+  for (const m of (modelsRes.data ?? [])) modelMap[m.model_id] = m
+  return (machinesRes.data ?? []).map(r => ({
+    ...r,
+    // 機種マスタ参照の表示ラベル (machines 側にはコピー保存しない=機種側変更に自動追従)
+    model_name: r.model_id ? (modelMap[r.model_id]?.model_name ?? null) : null,
+    short_name: r.model_id ? (modelMap[r.model_id]?.short_name ?? null) : null,
+  }))
+}
+
+// 行単位更新。編集許可カラムのみホワイトリスト適用。machine_code/store_code(不変キー)・organization_id・監査列は更新不可。
+// meter_unit_price/out_meter_count は NOT NULL のため空値では触らない(既存温存)。model_id 空→null(紐付解除)。
+const EDITABLE_MACHINE_COLS = new Set([
+  'model_id', 'machine_name', 'name_suffix', 'type_id', 'machine_number', 'billing_order', 'round_order', 'is_active',
+  'meter_unit_price', 'play_price', 'meter_per_play', 'out_meter_count', 'floor', 'zone', 'floor_area_m2',
+  'ownership_type', 'acquisition_cost', 'acquired_at', 'installed_at', 'lease_monthly', 'lease_months', 'lease_end_date',
+  'maintenance_status', 'last_maintenance_at', 'notes', 'operator_id', 'contract_id',
+])
+const NUMERIC_MACHINE_COLS = new Set([
+  'meter_unit_price', 'play_price', 'meter_per_play', 'out_meter_count', 'floor_area_m2',
+  'acquisition_cost', 'lease_monthly', 'lease_months', 'billing_order', 'round_order',
+])
+const NOT_NULL_MACHINE_COLS = new Set(['meter_unit_price', 'out_meter_count'])
+
+export async function updateMachineAdmin(machineCode, patch) {
+  const upd = {}
+  for (const key of Object.keys(patch || {})) {
+    if (!EDITABLE_MACHINE_COLS.has(key)) continue // machine_code/store_code/organization_id/監査/JOIN列は破棄
+    const v = patch[key]
+    if (key === 'is_active') { upd[key] = !!v; continue }
+    const empty = v === '' || v === null || v === undefined
+    if (empty) {
+      if (NOT_NULL_MACHINE_COLS.has(key)) continue // NOT NULL列は空なら触らない
+      upd[key] = null
+      continue
+    }
+    upd[key] = NUMERIC_MACHINE_COLS.has(key) ? Number(v) : v
+  }
+  if (Object.keys(upd).length === 0) return null
+  const { data: before } = await supabase.from('machines').select('*').eq('machine_code', machineCode).single()
+  upd.updated_at = new Date().toISOString()
+  const { data: updated, error } = await supabase
+    .from('machines')
+    .update(upd)
+    .eq('machine_code', machineCode)
+    .select()
+  if (error) throw new Error(error.message)
+  if (!updated || updated.length === 0) throw new Error('更新できませんでした（権限不足の可能性があります）')
+  clearCache()
+  await writeAuditLog({
+    action: 'master_update',
+    target_table: 'machines',
+    target_id: machineCode,
+    detail: `機械管理更新: ${machineCode}`,
+    before_data: before,
+    after_data: upd,
+  })
+  return updated[0]
+}
+
 export async function getAllStores() {
   const { data, error } = await supabase
     .from('stores')
