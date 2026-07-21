@@ -44,14 +44,14 @@ describe('AC1: 4コンポーネント全てに同幅の累計固定列 (ACCUM_CO
     MachineRowExpandedBoothList: read('../../clawsupport/components/MachineRowExpandedBoothList.jsx'),
     StoreTotalsHeader: read('../../clawsupport/components/StoreTotalsHeader.jsx'),
   }
-  it('MachineRow/ExpandedBoothList/StoreTotalsHeader が ACCUM_COL_WIDTH を使用 (同幅保証)', () => {
-    for (const [name, src] of Object.entries(files)) {
-      expect(src, `${name} ACCUM_COL_WIDTH import`).toContain('ACCUM_COL_WIDTH')
+  // SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): table 化で累計列幅は colgroup(64px) が持つ。
+  //   累計セルは専用 <td>/<th> になり、testid で同一列に整列する (ACCUM_COL_WIDTH クラス依存を廃止)。
+  it('累計列は colgroup の 64px 固定幅で整列 (両ページの table に col 定義)', () => {
+    const patrol = read('../../clawsupport/pages/PatrolStorePage.jsx')
+    const admin = read('../../admin/pages/AdminMachineListPage.jsx')
+    for (const [name, src] of [['PatrolStorePage', patrol], ['AdminMachineListPage', admin]]) {
+      expect(src, `${name} colgroup accum col`).toContain('width: 64')
     }
-  })
-  it('ACCUM_COL_WIDTH 定義は shrink-0 固定幅 (日付gridの w-[440px] とは別)', () => {
-    const vm = read('../../clawsupport/components/patrolViewModes.js')
-    expect(vm).toMatch(/ACCUM_COL_WIDTH\s*=\s*'w-16 shrink-0'/)
   })
   it('各行の累計セル testid (機械/ブース/店ヘッダ合計)', () => {
     expect(files.MachineRow).toContain('machine-accum-')
@@ -65,12 +65,13 @@ describe('AC1: 4コンポーネント全てに同幅の累計固定列 (ACCUM_CO
   })
 })
 
-describe('AC3: 日付軸 (grid-cols-10 w-[440px]) は不可侵', () => {
-  it('累計セルは grid-cols-10 でも w-[440px] でもない (日付gridの外)', () => {
-    // 累計セルの className は ACCUM_COL_WIDTH(w-16) を使い、grid/w-[440px] を含まない
+describe('AC3(D-110更新): 累計セルは独立 td、日付グリッド由来クラスなし', () => {
+  it('累計セルは grid-cols-10 でも w-[440px] でもない (table td)', () => {
     const mr = read('../../clawsupport/components/MachineRow.jsx')
-    const accumBlock = mr.slice(mr.indexOf('machine-accum-'), mr.indexOf('machine-totals-'))
-    expect(accumBlock).toContain('ACCUM_COL_WIDTH')
+    // machine-accum- の <td> 要素を切り出す (testid の少し手前から)
+    const i = mr.indexOf('machine-accum-')
+    const accumBlock = mr.slice(Math.max(0, i - 40), i + 200)
+    expect(accumBlock).toContain('<td')
     expect(accumBlock).not.toContain('grid-cols-10')
     expect(accumBlock).not.toContain('w-[440px]')
   })

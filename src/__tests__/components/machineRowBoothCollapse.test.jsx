@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-// SPEC-MOTION-W2-MACHINEROW-BOOTH-EXPAND-COLLAPSE-01 (D-080):
-// ブース展開を条件レンダー → 共有 Collapse 包み (常時mount, open=isExpanded, grid-fr) に置換した検証。
+// SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): D-080 のブース展開アコーディオン(Collapse)を廃止。
+// 機械ビューは集約のみ = MachineRow に Collapse / 展開リストは存在しない (ブース詳細はブースビューへ)。
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import MachineRow from '../../clawsupport/components/MachineRow'
@@ -13,40 +13,23 @@ function makeMachine(boothCodes) {
   }
 }
 
-const rowProps = {
-  todayMap: {}, diffMap: {}, rankMap: {}, mode: 'IN',
-  onToggleExpand: vi.fn(), onBoothClick: vi.fn(),
-}
+const rowProps = { todayMap: {}, diffMap: {}, rankMap: {}, mode: 'IN', onBoothClick: vi.fn() }
+const inTable = (node) => <table><tbody>{node}</tbody></table>
 
-describe('AC2/AC3: MachineRow booth expand Collapse (D-080)', () => {
-  it('AC2: multi-booth は Collapse を常時mount、open は isExpanded に追従', () => {
-    const machine = makeMachine(['B01', 'B02'])
-    // collapsed (expanded=false): Collapse は mount されるが open=false (grid 0fr)
-    const collapsed = render(<MachineRow machine={machine} {...rowProps} expanded={false} />)
-    const c = collapsed.getByTestId('booth-collapse-M01')
-    expect(c).toBeTruthy()
-    expect(c.style.gridTemplateRows).toBe('0fr')
-    // 中身は常時mount (条件レンダー廃止) = 展開リストが DOM に存在
-    expect(collapsed.getByTestId('machine-expanded-booth-list')).toBeTruthy()
-    collapsed.unmount()
-
-    // expanded=true: open (grid 1fr)
-    const expanded = render(<MachineRow machine={machine} {...rowProps} expanded={true} />)
-    expect(expanded.getByTestId('booth-collapse-M01').style.gridTemplateRows).toBe('1fr')
-  })
-
-  it('AC3: single-booth は展開部を持たない (Collapse も mount しない)', () => {
-    const machine = makeMachine(['B01'])
-    render(<MachineRow machine={machine} {...rowProps} expanded={true} />)
+describe('D-110: MachineRow アコーディオン廃止 (機械ビュー集約のみ)', () => {
+  it('multi-booth でも Collapse / 展開ブースリストを mount しない', () => {
+    render(inTable(<MachineRow machine={makeMachine(['B01', 'B02'])} {...rowProps} />))
     expect(screen.queryByTestId('booth-collapse-M01')).toBeNull()
     expect(screen.queryByTestId('machine-expanded-booth-list')).toBeNull()
   })
 
-  it('AC2: 閉時は inert + aria-hidden でタブ到達不可 (Collapse 仕様)', () => {
-    const machine = makeMachine(['B01', 'B02'])
-    const { getByTestId } = render(<MachineRow machine={machine} {...rowProps} expanded={false} />)
-    const inner = getByTestId('booth-collapse-M01-inner')
-    expect(inner.hasAttribute('inert')).toBe(true)
-    expect(inner.getAttribute('aria-hidden')).toBe('true')
+  it('single-booth も展開部を持たない', () => {
+    render(inTable(<MachineRow machine={makeMachine(['B01'])} {...rowProps} />))
+    expect(screen.queryByTestId('booth-collapse-M01')).toBeNull()
+  })
+
+  it('機械行は <tr> で描画される (table 化)', () => {
+    render(inTable(<MachineRow machine={makeMachine(['B01', 'B02'])} {...rowProps} />))
+    expect(screen.getByTestId('machine-row-M01').tagName).toBe('TR')
   })
 })
