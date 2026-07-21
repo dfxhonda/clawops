@@ -10,7 +10,6 @@ import StaffList from './login/StaffList'
 import PinSheet from './login/PinSheet'
 import { startPrefetch } from '../lib/prefetchCache'
 import { warmupVerifyPin } from './login/pinVerifier'
-import { checkVersionAndReload } from '../lib/versionReload'
 
 const KANA_GROUPS = {
   'あ': /^[アイウエオ]/,
@@ -45,8 +44,9 @@ export default function Login() {
   // SPEC-LOGIN-VERIFYPIN-WARMUP-IMPL-01 R2(A): mount時にverify-pin Edgeを事前warm-up
   useEffect(() => { warmupVerifyPin() }, [])
 
-  // SPEC-PWA-LOGIN-VERSIONJSON-RELOAD-02 (D-062): /login マウント時に deploy 世代を検知し単発 reload (保険層)
-  useEffect(() => { checkVersionAndReload() }, [])
+  // SPEC-PWA-SW-UPDATE-REDUCTION-01 (D-112): 層D撤去。/login マウント時の version.json 比較→reload (D-062 保険層)
+  // を断つ。SW更新検知は swRegistration の statechange 購読 + バナー明示タップ適用に一本化 (ログイン中フラッシュ排除)。
+  // versionReload.js 自体は defaultWaitForController を preloadReloadGuard が再利用するため温存 (呼び出し元のみ撤去)。
 
   useEffect(() => {
     async function init() {
