@@ -71,6 +71,9 @@ export function getNeedRefresh() {
 }
 
 function markNeedRefresh() {
+  // SPEC-PWA-SW-UPDATE-REDUCTION-01 (D-112) AC6: 二重発火ガード。複数検知経路(起動時waiting/statechange/
+  // update()後ポーリング/onNeedRefreshイベント)が同一 waiting SW に対して叩いても、バナーは一度だけ。
+  if (_needRefresh) return
   _needRefresh = true
   _emitNeedRefresh()
 }
@@ -80,14 +83,39 @@ export function __resetNeedRefreshForTest() {
   _needRefresh = false
 }
 
+// SPEC-PWA-SW-UPDATE-REDUCTION-01 (D-112): SW更新検知の本命=installing worker の statechange 購読。
+// iOS Safari は起動後に新SWを installing に載せ、install 完了(installed)が update() 解決の後になる回がある
+// (D-111 の起動時/解決時 waiting チェックが空振りする真因)。installing→installed 遷移の瞬間に waiting を見て発火。
+// controller 存在を条件に「更新(既存SWあり)」に限定し、初回インストール(controller無し)では発火しない。
+export function watchInstalling(registration) {
+  if (!registration) return
+  const onInstalled = (sw) => {
+    if (sw?.state !== 'installed') return
+    // 更新であって初回インストールでない (=既に active controller が居る) 時のみ。
+    if (!navigator.serviceWorker?.controller) return
+    if (registration.waiting) markNeedRefresh()
+  }
+  const track = (sw) => {
+    if (!sw) return
+    onInstalled(sw) // 既に installed 済のケースも即拾う
+    sw.addEventListener?.('statechange', () => onInstalled(sw))
+  }
+  // (1) 取得時点で既に installing 中の worker
+  track(registration.installing)
+  // (2) 以後に現れる新規 installing worker
+  registration.addEventListener?.('updatefound', () => track(registration.installing))
+}
+
 export const updateSW = registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registration) {
     if (!registration) return
-    // D-111 (a): iOS Safari は起動前に SW を更新し waiting に留めるが updatefound を投げないことがある。
-    // 起動時に waiting 実在を能動チェックし、居たら即バナー (イベントを待たない)。
+    // D-111 (a): 起動時に waiting 実在を能動チェック (起動前に更新済で既に waiting の回を拾う正経路)。
     if (registration.waiting) markNeedRefresh()
-    // D-111 (b): KILL 再起動時の初回チェック確保 — 起動時に1回 update() を即実行し、解決後 waiting を再チェック。
+    // D-112 検知の本命: installing→installed 遷移の statechange 購読。update()解決後にwaiting化する回を確実に拾う。
+    watchInstalling(registration)
+    // D-111 (b): KILL 再起動時の初回チェック確保 — 起動時に1回 update() を即実行 (statechange のトリガ)。
+    //   解決後 waiting ポーリングも残すが、検知は markNeedRefresh の冪等ガードで二重発火しない (D-112 AC6)。
     Promise.resolve(registration.update?.())
       .then(() => { if (registration.waiting) markNeedRefresh() })
       .catch(() => {})
