@@ -23,9 +23,6 @@ export default defineConfig(({ mode }) => ({
     __VERCEL_ENV__: JSON.stringify(process.env.VERCEL_ENV || process.env.NODE_ENV || 'development'),
     global: 'globalThis',
   },
-  optimizeDeps: {
-    include: ['bcryptjs'],
-  },
   esbuild: {
     pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
   },

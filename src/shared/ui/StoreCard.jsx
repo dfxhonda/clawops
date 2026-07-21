@@ -51,8 +51,10 @@ export default function StoreCard({ store, isPinned, onSelect, onPin, meta, dist
     }
   }
 
-  // D-107: distanceLabel を右メタに併存 (未渡しなら hasRightMeta に影響させない)
-  const hasRightMeta = lastDateLabel !== null || doneLabel !== null || distanceLabel != null
+  // SPEC-PATROL-ROUTE-STORECARD-RIGHTMETA-01 (D-113): distanceLabel は店名行(左側)へ移動したので、
+  // 右メタ列は最終日+進捗バッジの最大2段のみ。hasRightMeta 判定から distanceLabel を除外
+  // (distanceLabel だけ存在するケースでも右メタ列は出さない = D-107以前のクレサポ本体と同構造)。
+  const hasRightMeta = lastDateLabel !== null || doneLabel !== null
 
   return (
     <button
@@ -69,14 +71,17 @@ export default function StoreCard({ store, isPinned, onSelect, onPin, meta, dist
       style={{ minHeight: 88 }}
     >
       {isPinned && <span className="text-yellow-400 text-lg shrink-0">★</span>}
-      <div className="flex-1 min-w-0">
-        <p className="text-text text-xl font-bold truncate">{store.store_name}</p>
+      {/* SPEC-PATROL-ROUTE-STORECARD-RIGHTMETA-01 (D-113): distanceLabel を店名行の右(左寄せ小青)に併置。
+          小さめ text-xs ゆえ text-xl の店名行より背が低く行高は増えない(distanceLabel 有無でカード高不変)。
+          店名は truncate、距離は shrink-0 で潰れない。distanceLabel 未渡し(クレサポ本体)は span 非描画=従来通り。 */}
+      <div className="flex-1 min-w-0 flex items-baseline gap-1.5">
+        <p className="text-text text-xl font-bold truncate min-w-0">{store.store_name}</p>
+        {distanceLabel && (
+          <span data-testid="store-card-distance" className="shrink-0 text-xs font-bold text-blue-300 whitespace-nowrap">{distanceLabel}</span>
+        )}
       </div>
       {hasRightMeta && (
         <div className="flex flex-col items-end shrink-0 gap-0.5">
-          {distanceLabel && (
-            <span className="text-xs font-bold text-blue-300 whitespace-nowrap">{distanceLabel}</span>
-          )}
           {lastDateLabel && (
             <span className="text-xs text-muted whitespace-nowrap">{lastDateLabel}</span>
           )}
