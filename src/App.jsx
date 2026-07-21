@@ -19,6 +19,7 @@ import ProtectedRoute, { AdminRoute, ManagerRoute } from './components/Protected
 import { RoleGuard } from './shared/auth/RoleGuard'
 // SPEC-LF1-STORE-LOCAL-CACHE-01: 未送信件数の app-wide banner
 import UnsentBanner from './components/UnsentBanner'
+import TestBuildWatermark from './components/TestBuildWatermark'
 import { makeDebouncedUploadAll } from './services/storeSync'
 import { buildLabel } from './lib/buildInfo'
 import { useSessionLock } from './hooks/useIdleLogout'
@@ -232,6 +233,9 @@ function AppInner() {
   }, [isLoggedIn, staffId])
   return (
     <ErrorBoundary>
+      {/* SPEC-TESTBADGE-WATERMARK-ALLPAGES-01 (D-114): テスト版透かし。ログイン前画面(/login,/invite)含む全ページで
+          識別したいので isLoggedIn 条件を付けず無条件mount。本番(__VERCEL_ENV__=production)では自動で null。 */}
+      <TestBuildWatermark />
       {/* SPEC-AUTH-TIMEOUT-LOCKSCREEN-01: hidden 中の視覚カバー。Routes を unmount せず被せるだけ。
           ツリー先頭に置き、復帰時に最速で描画されるようにする。 */}
       {isLoggedIn && isLocked && <AppLockOverlay />}
