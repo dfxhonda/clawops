@@ -135,9 +135,9 @@ export default function AdminMachineListPage() {
             </div>
           )}
           {/* SPEC-PATROL-HISTORY-HEATMAP-05 F1+F2: unified横スクロール+10列日付軸。
-              SPEC-PATROL-HISTORY-CROSS-FREEZE-01 (D-110): PatrolStorePage と同一の単一スクロールコンテナ(縦横1祖先 overflow-auto)に統一。
-              共通コンポーネント(StoreTotalsHeader/MachineRow)の sticky十字がマネサポ側でも同構造で成立 (HEATMAP-05 片割れ取り残し防止)。 */}
-          <div className="flex-1 min-h-0 overflow-auto" ref={scrollRef}>
+              PatrolStorePageと同一容器構造で10列が整列、sticky左ラベル自動適用。 */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="overflow-x-auto" ref={scrollRef}>
               <div className="min-w-max">
                 <StoreTotalsHeader
                   diffMap={diffMap}
@@ -165,6 +165,7 @@ export default function AdminMachineListPage() {
                   ))}
                 </div>
               </div>
+            </div>
           </div>
         </>
       )}

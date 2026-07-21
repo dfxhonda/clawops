@@ -33,12 +33,10 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
   )
   // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店の前回集金後累計 合計。
   const accumTotal = useMemo(() => sumAccum(accumMap), [accumMap])
-  // SPEC-PATROL-HISTORY-CROSS-FREEZE-01 (D-110): 単一スクロールコンテナ内で日付ヘッダー行を sticky top-0 縦固定。
-  // 左端ラベルセルは左上コーナー (sticky left-0 top-0, z最上位)。bg 不透明 (#0a0a0f/#13131c) で中央数値の透けなし。
   return (
-    <div data-testid="store-totals-header" className="border-b border-border sticky top-0 z-30 bg-bg">
+    <div data-testid="store-totals-header" className="border-b border-border">
       <div className="px-4 pt-1 flex items-center gap-2">
-        <div className="w-40 shrink-0 sticky left-0 top-0 z-40 bg-surface" />
+        <div className="w-40 shrink-0 sticky left-0 z-10 bg-surface" />
         {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 累計列ヘッダラベル (日付ラベル行と同段)。 */}
         <div className={`${ACCUM_COL_WIDTH} text-base text-right leading-tight text-amber-300/80`}>累計</div>
         <div className="grid grid-cols-10 gap-x-2 text-base text-right leading-tight text-muted w-[440px] tabular-nums">
@@ -50,7 +48,7 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
         </div>
       </div>
       <div className="px-4 pb-1 flex items-center gap-2">
-        <div className="w-40 shrink-0 text-sm text-muted sticky left-0 top-0 z-40 bg-surface">合計</div>
+        <div className="w-40 shrink-0 text-sm text-muted sticky left-0 z-10 bg-surface">合計</div>
         {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店累計合計 (合計行と同段、カンマ抜き/null='−')。 */}
         <div
           data-testid="store-accum-total"

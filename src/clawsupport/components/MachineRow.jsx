@@ -57,8 +57,7 @@ export default function MachineRow({
         onClick={handleClick}
         className="w-full flex items-center gap-2 px-4 py-1 rounded-xl bg-surface border border-border text-left active:scale-[0.98] transition-transform"
       >
-        {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-01 (D-110): 左端機械名列。単一コンテナ内で sticky left-0 横固定 (中位 z-20 = 上端ヘッダー z-30 未満・中央セル超)。bg 不透明で透けなし。 */}
-        <div className="w-40 shrink-0 flex flex-col justify-center sticky left-0 z-20 bg-surface">
+        <div className="w-40 shrink-0 flex flex-col justify-center sticky left-0 z-10 bg-surface">
           <div className="flex items-center min-w-0">
             <span className="text-text text-lg font-bold truncate">{machine.machine_name}</span>
             {allDone && <span data-testid={`machine-row-allDone-${mc}`} className="shrink-0 ml-1 text-emerald-400/70">✓</span>}
