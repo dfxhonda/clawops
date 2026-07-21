@@ -9,6 +9,7 @@ import { maybeInitDebugConsole } from './lib/debugConsole'
 import { installGlobalErrorLogging } from './lib/debugLog'
 import { handlePreloadError } from './lib/preloadReloadGuard'
 import { defaultWaitForController } from './lib/versionReload'
+import SwUpdateBanner from './shared/ui/SwUpdateBanner'
 import './index.css'
 
 // OTA gen-3
@@ -44,6 +45,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <ErrorBoundary>
       <App />
+      {/* SPEC-PWA-SW-UPDATE-FIX-A-01 (D-109): 控えめトースト常駐の更新バナー (自動reloadせず明示タップのみ適用) */}
+      <SwUpdateBanner />
       <SpeedInsights />
     </ErrorBoundary>
   </BrowserRouter>

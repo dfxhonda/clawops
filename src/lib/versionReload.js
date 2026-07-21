@@ -2,6 +2,12 @@
 // 単発 reload で新 bundle へ揃える保険層。workbox-window の activated イベント配送に依存しない。
 // /login 限定で呼ぶため、現場入力中の reload 事故は構造的に不可能 (DOUBLE-LOGOUT-01 教訓)。
 //
+// SPEC-PWA-SW-UPDATE-FIX-A-01 (D-109): 位置づけを「主経路 → 保険」に降格 (ロジックは無変更)。
+//   更新適用の主経路は D-109 の prompt バナー (onNeedRefresh→バナー→タップ→updateSW(true))。
+//   本層は iOS が PWA を kill してバナーを取り逃した場合の /login catch-up 保険として残す。
+//   D-108実測で判明した「層1(本層) と 層3(workbox skipWaiting) の login 画面での競合」は、層3 撤去により解消。
+//   競合相手が消えたため本層は単独で綺麗に効く (同一 sha 1回ガード + controllerchange 待ちで入力中 reload 不能は不変)。
+//
 // 純関数 + 副作用は依存注入で分離しテスト可能に。production 呼び出しはデフォルト引数を使う。
 import { BUILD_SHA } from './buildInfo'
 

@@ -42,15 +42,16 @@ export default defineConfig(({ mode }) => ({
       // SPEC-PWA-SW-AUTOUPDATE-KILL-RELOAD-LOOP-01 (D-095, P0): 'autoUpdate' → 'prompt'。
       // autoUpdate は新SW検知で自動即reload(skipWaiting+clientsClaim強制)を撃ち、versionReload.js の堅牢な
       // 一本化層(/login限定・controllerchange待ち・sha単位1回ガード)をバイパス → iOS26 Safari 初回で黒チカチカ無限reload の主犯。
-      // prompt は新SWを waiting に留め自動reloadを撃たない。更新適用は /login の versionReload に一本化 (割り込みreloadゼロ)。
-      // workbox の skipWaiting/clientsClaim/cleanupOutdatedCaches/navigateFallback/globPatterns は precache に必要なため現状維持。
+      // prompt は新SWを waiting に留め自動reloadを撃たない。更新適用はバナータップ→updateSW(true) に一本化。
+      // SPEC-PWA-SW-UPDATE-FIX-A-01 (D-109): 層3 workbox skipWaiting/clientsClaim を除去。
+      //   D-108実測で skipWaiting を有効にすると新SWが waiting に留まらず即activate→画面フラッシュ(自動reload)=巡回入力中に飛ぶと入力吹き飛び(安全tier違反)。
+      //   prompt戦略に skipWaiting/clientsClaim を手足しするのは autoUpdate相当の暴発を自作していた誤り (vite-plugin-pwa公式: prompt時は付けない)。
+      //   precache は globPatterns + MD5改訂ハッシュで担保され skipWaiting/clientsClaim とは無関係 (D-095コメントの「precacheに必要」は誤解)。
       registerType: 'prompt',
       injectRegister: null,
       manifest: false,
       workbox: {
-        // SPEC-PWA-SW-AUTOUPDATE-PHASE2-01: autoUpdate策略。skipWaiting+clientsClaimで世代スキップ。
-        skipWaiting: true,
-        clientsClaim: true,
+        // 適用タイミングは prompt(バナータップ→updateSW(true)) 制御。skipWaiting/clientsClaim は付けない(=新SWを waiting に正しく留める)。
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [
