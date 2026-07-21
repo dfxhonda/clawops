@@ -413,10 +413,10 @@ export default function PatrolStorePage() {
         )}
       </div>
 
-      {/* F2: 一体横スクロール — StoreTotalsHeader + 全機械行が同一コンテナで水平同期スクロール */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="overflow-x-auto" ref={unifiedScrollRef}>
-          <div className="min-w-max">
+      {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-01 (D-110): 単一スクロールコンテナ(縦横を1祖先 overflow-auto で)。
+          2祖先入れ子(overflow-y-auto > overflow-x-auto)を廃止し、sticky十字(左列/上端ヘッダー/左上コーナー)を成立させる。 */}
+      <div className="flex-1 min-h-0 overflow-auto" ref={unifiedScrollRef}>
+        <div className="min-w-max">
             <StoreTotalsHeader
               diffMap={diffMap}
               dateAxis={dateAxis}
@@ -452,7 +452,6 @@ export default function PatrolStorePage() {
               ))}
             </div>
           </div>
-        </div>
       </div>
     </div>
   )
