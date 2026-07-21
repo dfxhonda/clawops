@@ -10,9 +10,13 @@ import { buildPrevFromRows } from '../../services/prevBaseline'
 import { fetchCollectionBaseline } from '../../services/collectionBaseline'
 import MachineRow from '../components/MachineRow'
 import StoreTotalsHeader from '../components/StoreTotalsHeader'
+import BoothFlatRows from '../components/MachineRowExpandedBoothList'
 import { computeMachineRankMap } from '../components/storeTotalsRanking'
 import {
   computeColumnDates,
+  mapSummaryToDateAxis,
+  sourceArrayFor,
+  NEWEST,
   VIEW_MODES,
   VIEW_MODE_ORDER,
 } from '../components/patrolViewModes'
@@ -39,13 +43,9 @@ export default function PatrolStorePage() {
   const { staffId } = useAuth()
 
   // 巡回ブースリストの展開状態 + 復帰時スクロール先 (保存ボタン「リストに戻る」用)
-  const expandedByStore = usePatrolListScrollStore(s => s.expandedByStore)
+  // SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): アコーディオン廃止 → 展開系 store slice は不使用。
   const focusBoothByStore = usePatrolListScrollStore(s => s.focusBoothByStore)
-  const toggleExpanded = usePatrolListScrollStore(s => s.toggleExpanded)
-  const ensureExpanded = usePatrolListScrollStore(s => s.ensureExpanded)
   const clearFocusBooth = usePatrolListScrollStore(s => s.clearFocusBooth)
-  const setExpandedForStore = usePatrolListScrollStore(s => s.setExpandedForStore)
-  const expandedSet = expandedByStore[storeCode] ?? []
 
   const [storeName, setStoreName] = useState(storeCode)
   const [machines, setMachines] = useState([])
@@ -57,6 +57,9 @@ export default function PatrolStorePage() {
   const [viewMode, setViewMode] = useState('IN')
   const [syncing, setSyncing] = useState(false)
   const [changerExpanded, setChangerExpanded] = useState(false)
+  // SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): 2ビュー(機械集約/ブースフラット) + ブースビュー並び順トグル。
+  const [view, setView] = useState('machine')            // 'machine' | 'booth'
+  const [boothOrder, setBoothOrder] = useState('machine') // 'machine' | 'ranking'
 
   // SPEC-LF1: IDB → 描画。
   const hydrateFromIdb = useCallback(async () => {
@@ -242,26 +245,39 @@ export default function PatrolStorePage() {
   const changerMachines = machines.filter(isChanger)
   const nonChangerMachines = machines.filter(m => !isChanger(m))
 
-  const multiBoothCodes = useMemo(
-    () => nonChangerMachines.filter(m => (m.booths ?? []).length > 1).map(m => m.machine_code),
-    [machines], // eslint-disable-line react-hooks/exhaustive-deps
-  )
-  const allExpanded = multiBoothCodes.length > 0 && multiBoothCodes.every(mc => expandedSet.includes(mc))
-  function handleExpandAllToggle() {
-    setExpandedForStore(storeCode, allExpanded ? [] : multiBoothCodes)
-  }
+  // SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): ブースビューのフラットブース行。
+  //   機械順 = 機械順→各機械のブース順でフラット化 (帳簿重要順を保持)。
+  //   ランキング = 現 mode の今回(NEWEST)値で機械跨ぎ降順 (既存供給値の並び替えのみ、集計はしない)。
+  const boothFlat = useMemo(() => {
+    const entries = nonChangerMachines.flatMap(m => (m.booths ?? []).map(b => ({ booth: b, machine: m })))
+    if (boothOrder !== 'ranking') return entries
+    const valueOf = (bc) => {
+      const summary = diffMap[bc]
+      if (!summary) return null
+      const mapped = dateAxis ? mapSummaryToDateAxis(summary, dateAxis) : summary
+      return sourceArrayFor(mapped, viewMode)[NEWEST] ?? null
+    }
+    return [...entries].sort((a, b) => {
+      const va = valueOf(a.booth.booth_code)
+      const vb = valueOf(b.booth.booth_code)
+      if (va == null && vb == null) return 0
+      if (va == null) return 1
+      if (vb == null) return -1
+      return vb - va
+    })
+  }, [nonChangerMachines, diffMap, dateAxis, viewMode, boothOrder]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const changerBoothCodes = new Set(changerMachines.flatMap(m => m.booths.map(b => b.booth_code)))
   const doneCnt = Object.keys(todayMap).filter(bc => !changerBoothCodes.has(bc)).length
   const totalCnt = nonChangerMachines.reduce((s, m) => s + m.booths.length, 0)
 
-  // 「保存してリストに戻る」復帰時: 次ブースの machine を展開し、その位置へスクロール
+  // 「保存してリストに戻る」復帰時: ブースビューへ切替え、そのブース行へスクロール (アコーディオン廃止)。
   useEffect(() => {
     if (loading) return
     const fb = focusBoothByStore[storeCode]
     if (!fb) return
+    setView('booth')
     const m = machines.find(mm => (mm.booths ?? []).some(b => b.booth_code === fb))
-    if (m && (m.booths?.length ?? 0) > 1) ensureExpanded(storeCode, m.machine_code)
     const t = setTimeout(() => {
       const el =
         document.querySelector(`[data-testid="booth-row-${fb}"]`) ||
@@ -375,8 +391,26 @@ export default function PatrolStorePage() {
         </div>
       )}
 
-      {/* Controls: mode toggle + expand toggle (fixed、スクロール外) */}
-      <div className="shrink-0 px-4 py-1.5 flex items-center gap-2 border-b border-border">
+      {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): 2ビュータブ(機械/ブース) + mode(IN/Ave/OUT) + ブースビュー並び順トグル。既存セグメントトグル流用。 */}
+      <div className="shrink-0 px-4 py-1.5 flex items-center gap-2 border-b border-border flex-wrap">
+        {/* 2ビュータブ */}
+        <div
+          role="tablist"
+          data-testid="patrol-view-toggle"
+          className="inline-flex items-center gap-0.5 rounded-md border border-border bg-surface/60 p-0.5"
+        >
+          <button
+            type="button" role="tab" aria-selected={view === 'machine'} data-testid="patrol-view-tab-machine"
+            onClick={() => setView('machine')}
+            className={`min-h-[44px] px-2.5 rounded text-xs font-bold leading-tight ${view === 'machine' ? 'bg-emerald-600 text-white' : 'text-muted active:bg-surface'}`}
+          >機械</button>
+          <button
+            type="button" role="tab" aria-selected={view === 'booth'} data-testid="patrol-view-tab-booth"
+            onClick={() => setView('booth')}
+            className={`min-h-[44px] px-2.5 rounded text-xs font-bold leading-tight ${view === 'booth' ? 'bg-emerald-600 text-white' : 'text-muted active:bg-surface'}`}
+          >ブース</button>
+        </div>
+        {/* mode toggle (IN Ave OUT) */}
         <div
           role="tablist"
           data-testid="patrol-view-mode-toggle"
@@ -401,58 +435,90 @@ export default function PatrolStorePage() {
             )
           })}
         </div>
-        {multiBoothCodes.length > 0 && (
-          <button
-            type="button"
-            data-testid="expand-all-toggle"
-            onClick={handleExpandAllToggle}
-            className="text-xs text-muted border border-border rounded px-2 py-0.5 min-h-[44px] min-w-[44px] active:bg-surface"
+        {/* ブースビュー: 並び順トグル (機械順⇄ランキング, デフォルト機械順) */}
+        {view === 'booth' && (
+          <div
+            role="tablist"
+            data-testid="patrol-booth-order-toggle"
+            className="inline-flex items-center gap-0.5 rounded-md border border-border bg-surface/60 p-0.5"
           >
-            {allExpanded ? '全閉' : '全開'}
-          </button>
+            <button
+              type="button" role="tab" aria-selected={boothOrder === 'machine'} data-testid="patrol-booth-order-machine"
+              onClick={() => setBoothOrder('machine')}
+              className={`min-h-[44px] px-2.5 rounded text-xs font-bold leading-tight ${boothOrder === 'machine' ? 'bg-emerald-600 text-white' : 'text-muted active:bg-surface'}`}
+            >機械順</button>
+            <button
+              type="button" role="tab" aria-selected={boothOrder === 'ranking'} data-testid="patrol-booth-order-ranking"
+              onClick={() => setBoothOrder('ranking')}
+              className={`min-h-[44px] px-2.5 rounded text-xs font-bold leading-tight ${boothOrder === 'ranking' ? 'bg-emerald-600 text-white' : 'text-muted active:bg-surface'}`}
+            >ランキング</button>
+          </div>
         )}
       </div>
 
-      {/* F2: 一体横スクロール — StoreTotalsHeader + 全機械行が同一コンテナで水平同期スクロール */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="overflow-x-auto" ref={unifiedScrollRef}>
-          <div className="min-w-max">
-            <StoreTotalsHeader
-              diffMap={diffMap}
-              dateAxis={dateAxis}
-              mode={viewMode}
-              accumMap={accumMap}
-            />
-            <div className="pt-2 pb-6 space-y-1.5">
-              {nonChangerMachines.length === 0 && (
-                <p className="text-center text-muted text-base py-12 px-4">機械データがありません</p>
-              )}
-              {nonChangerMachines.map(machine => (
-                <MachineRow
-                  key={machine.machine_code}
-                  machine={machine}
+      {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): 単一 overflow-auto コンテナ + table(table-fixed) + セル単位 sticky 十字フリーズ。
+          colgroup で列幅固定 (左端160 / 累計64 / 日付10列×44 = 664px)。thead=sticky top, 左端th=sticky left, 左上=両軸。 */}
+      <div className="flex-1 min-h-0 overflow-auto" ref={unifiedScrollRef}>
+        <table className="table-fixed border-collapse text-text" style={{ width: 664 }}>
+          <colgroup>
+            <col style={{ width: 160 }} />
+            <col style={{ width: 64 }} />
+            {Array.from({ length: 10 }, (_, i) => <col key={i} style={{ width: 44 }} />)}
+          </colgroup>
+          <StoreTotalsHeader diffMap={diffMap} dateAxis={dateAxis} mode={viewMode} accumMap={accumMap} />
+          <tbody>
+            {view === 'machine' ? (
+              nonChangerMachines.length === 0 ? (
+                <tr><td colSpan={12} className="text-center text-muted text-base py-12 px-4">機械データがありません</td></tr>
+              ) : (
+                nonChangerMachines.map(machine => (
+                  <MachineRow
+                    key={machine.machine_code}
+                    machine={machine}
+                    todayMap={todayMap}
+                    diffMap={diffMap}
+                    rankMap={rankMap}
+                    mode={viewMode}
+                    dateAxis={dateAxis}
+                    accumMap={accumMap}
+                    onBoothClick={booth =>
+                      navigate(`/clawsupport/booth/${booth.booth_code}`, {
+                        state: {
+                          machine, booth, storeCode,
+                          boothList,
+                          boothIndex: boothList.findIndex(x => x.booth.booth_code === booth.booth_code),
+                        },
+                      })
+                    }
+                  />
+                ))
+              )
+            ) : (
+              boothFlat.length === 0 ? (
+                <tr><td colSpan={12} className="text-center text-muted text-base py-12 px-4">ブースデータがありません</td></tr>
+              ) : (
+                <BoothFlatRows
+                  entries={boothFlat}
                   todayMap={todayMap}
                   diffMap={diffMap}
-                  rankMap={rankMap}
+                  accumMap={accumMap}
                   mode={viewMode}
                   dateAxis={dateAxis}
-                  accumMap={accumMap}
-                  expanded={expandedSet.includes(machine.machine_code)}
-                  onToggleExpand={() => toggleExpanded(storeCode, machine.machine_code)}
                   onBoothClick={booth =>
                     navigate(`/clawsupport/booth/${booth.booth_code}`, {
                       state: {
-                        machine, booth, storeCode,
+                        machine: boothFlat.find(e => e.booth.booth_code === booth.booth_code)?.machine,
+                        booth, storeCode,
                         boothList,
                         boothIndex: boothList.findIndex(x => x.booth.booth_code === booth.booth_code),
                       },
                     })
                   }
                 />
-              ))}
-            </div>
-          </div>
-        </div>
+              )
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

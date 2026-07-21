@@ -134,21 +134,24 @@ export default function AdminMachineListPage() {
               <span className="text-xs text-muted">入力済み {Object.keys(todayMap).length} / {machines.reduce((s, m) => s + m.booths.length, 0)} ブース</span>
             </div>
           )}
-          {/* SPEC-PATROL-HISTORY-HEATMAP-05 F1+F2: unified横スクロール+10列日付軸。
-              PatrolStorePageと同一容器構造で10列が整列、sticky左ラベル自動適用。 */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <div className="overflow-x-auto" ref={scrollRef}>
-              <div className="min-w-max">
-                <StoreTotalsHeader
-                  diffMap={diffMap}
-                  dateAxis={dateAxis}
-                  leftSlot={<span className="text-xs text-muted font-bold">管理者編集モード</span>}
-                />
-                <div className="pt-2 pb-6 space-y-2">
-                  {machines.length === 0 && (
-                    <p className="text-center text-muted text-base py-12 px-4">機械データがありません</p>
-                  )}
-                  {machines.map(machine => (
+          {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): PatrolStorePage と同一の単一 overflow-auto + table(table-fixed) 十字フリーズ構造。
+              共通コンポーネント(StoreTotalsHeader/MachineRow)を両ページ同構造で使い、片割れ回帰(HEATMAP-05)を構造的に潰す。 */}
+          <div className="flex-1 min-h-0 overflow-auto" ref={scrollRef}>
+            <table className="table-fixed border-collapse text-text" style={{ width: 664 }}>
+              <colgroup>
+                <col style={{ width: 160 }} />
+                <col style={{ width: 64 }} />
+                {Array.from({ length: 10 }, (_, i) => <col key={i} style={{ width: 44 }} />)}
+              </colgroup>
+              <StoreTotalsHeader
+                diffMap={diffMap}
+                dateAxis={dateAxis}
+              />
+              <tbody>
+                {machines.length === 0 ? (
+                  <tr><td colSpan={12} className="text-center text-muted text-base py-12 px-4">機械データがありません</td></tr>
+                ) : (
+                  machines.map(machine => (
                     <MachineRow
                       key={machine.machine_code}
                       machine={machine}
@@ -162,10 +165,10 @@ export default function AdminMachineListPage() {
                         })
                       }
                     />
-                  ))}
-                </div>
-              </div>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </>
       )}

@@ -1,7 +1,7 @@
-// SPEC-PATROL-ROUTE-BUILDER-01 (D-106): 今日の巡回ルート作成。
-// 現地取得(useGeolocation)→lat/lngあり店に直線距離表示+近い順→予定に追加→dnd-kitドラッグ/AIおすすめ順→
+// SPEC-PATROL-ROUTE-BUILDER-01 (D-106) + SPEC-PATROL-ROUTE-STORECARD-UNIFY-01 (D-107):
+// 今日の巡回ルート作成。現地取得→lat/lngあり店に直線距離表示→予定に追加→dnd-kitドラッグ/AIおすすめ順→
 // Googleマップ経由地URL丸投げでナビ開始。予定は idb (patrol_route_today, 日付JST) にローカル保存(今日のみ)。
-// 履歴専用保存なし(meter_readings 流用=DDLゼロ)。既存 useGeolocation は利用のみ(無改変)。
+// D-107: 店選択をクレサポ本体と同じ KanaIndex + 共有 StoreCard (★カナインデックス) に統一、右メタに距離併存。
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -12,8 +12,11 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { useGeolocation } from '../../shared/hooks/useGeolocation'
 import { PageHeader } from '../../shared/ui/PageHeader'
+import KanaIndex from '../../shared/ui/KanaIndex'
+import StoreCard from '../../shared/ui/StoreCard'
 import { logger } from '../../lib/logger'
 import { buildMapsDirUrl } from '../../utils/geo'
 import { annotateStores, sortByDistance, recommendOrder } from '../lib/patrolRouteLogic'
@@ -26,6 +29,7 @@ function fmtDist(km) {
 
 export default function PatrolRoutePage() {
   const navigate = useNavigate()
+  const { staffId } = useAuth()
   const { getLocation } = useGeolocation()
 
   const [stores, setStores] = useState([])
@@ -33,26 +37,38 @@ export default function PatrolRoutePage() {
   const [locating, setLocating] = useState(false)
   const [route, setRoute] = useState([])     // 順序付き予定 [{ store_code, store_name, lat, lng }]
   const [loading, setLoading] = useState(true)
+  const [pinnedCodes, setPinnedCodes] = useState([]) // ★ (staff_pinned_stores 共有)
+  const [metaMap, setMetaMap] = useState({})         // 巡回状況 (store_patrol_progress)
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor))
 
-  // 稼働店の座標を取得 + idb から今日の予定を復元
+  // 稼働店の座標/カナ + ★ + 巡回状況を取得、idb から今日の予定を復元
   useEffect(() => {
     let alive = true
     async function load() {
-      const [{ data, error }, saved] = await Promise.all([
-        supabase.from('stores').select('store_code, store_name, lat, lng').eq('is_active', true),
+      const [storesRes, saved, pinsRes, progRes] = await Promise.all([
+        supabase.from('stores').select('store_code, store_name, lat, lng, locality_kana').eq('is_active', true),
         loadRouteToday(),
+        staffId
+          ? supabase.from('staff_pinned_stores').select('store_code').eq('staff_id', staffId)
+          : Promise.resolve({ data: [] }),
+        supabase.rpc('store_patrol_progress'),
       ])
       if (!alive) return
-      if (error) logger.warn?.('ERR-ROUTE-STORES-FETCH', { message: error.message })
-      setStores(data ?? [])
+      if (storesRes.error) logger.warn?.('ERR-ROUTE-STORES-FETCH', { message: storesRes.error.message })
+      setStores(storesRes.data ?? [])
       setRoute(saved ?? [])
+      setPinnedCodes((pinsRes.data ?? []).map(p => p.store_code))
+      const mm = {}
+      for (const row of (progRes.data ?? [])) {
+        mm[row.store_code] = { lastDate: row.last_patrol_date ?? null, done: row.done_booths ?? 0, total: row.total_booths ?? 0 }
+      }
+      setMetaMap(mm)
       setLoading(false)
     }
     load()
     return () => { alive = false }
-  }, [])
+  }, [staffId])
 
   // 予定が変わるたび idb 保存 (作業中の一時状態)
   useEffect(() => {
@@ -70,15 +86,31 @@ export default function PatrolRoutePage() {
     }
   }
 
+  // ★トグル (クレサポ本体と同じ staff_pinned_stores を共有。楽観更新+失敗ロールバック)
+  async function handlePin(storeCode) {
+    if (!staffId) return
+    const isPinned = pinnedCodes.includes(storeCode)
+    setPinnedCodes(prev => isPinned ? prev.filter(c => c !== storeCode) : [...prev, storeCode])
+    try {
+      if (isPinned) {
+        await supabase.from('staff_pinned_stores').delete().eq('staff_id', staffId).eq('store_code', storeCode)
+      } else {
+        await supabase.from('staff_pinned_stores').upsert({ staff_id: staffId, store_code: storeCode })
+      }
+    } catch (e) {
+      logger.warn?.('ERR-ROUTE-PIN', { message: e?.message })
+      setPinnedCodes(prev => isPinned ? [...prev, storeCode] : prev.filter(c => c !== storeCode))
+    }
+  }
+
   const routeCodes = useMemo(() => new Set(route.map(r => r.store_code)), [route])
 
-  // 追加候補: 予定未追加の店を距離注釈+近い順。座標なしは末尾(選択不可)。
+  // 追加候補: 予定未追加の店を距離注釈+近い順。KanaIndex はフィルタのみで並び不変=距離順維持。
   const candidates = useMemo(
     () => sortByDistance(annotateStores(stores.filter(s => !routeCodes.has(s.store_code)), origin)),
     [stores, origin, routeCodes],
   )
 
-  // 予定リストの距離表示用に注釈 (順序は route のまま保持)
   const annotatedRoute = useMemo(() => annotateStores(route, origin), [route, origin])
 
   function addStore(s) {
@@ -102,12 +134,24 @@ export default function PatrolRoutePage() {
       return arrayMove(prev, oldIdx, newIdx)
     })
   }
-
   function handleStartNavi() {
     const url = buildMapsDirUrl(origin, route)
     if (!url) return
     window.open(url, '_blank', 'noopener')
   }
+
+  // KanaIndex renderCard(item, isPinned): 共有 StoreCard に距離ラベルを併存で渡す。
+  const renderCard = (item, isPinned) => (
+    <StoreCard
+      key={item.store_code}
+      store={item}
+      isPinned={isPinned}
+      meta={metaMap[item.store_code] ?? null}
+      distanceLabel={item.hasCoords ? (fmtDist(item.distanceKm) ?? '距離は現在地取得後') : '座標未登録'}
+      onSelect={() => addStore(item)}
+      onPin={() => handlePin(item.store_code)}
+    />
+  )
 
   return (
     <div className="h-svh flex flex-col bg-bg text-text">
@@ -129,82 +173,57 @@ export default function PatrolRoutePage() {
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {/* 今日の巡回予定 (ドラッグ並べ替え) */}
-        <div className="px-4 pt-3">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-bold">今日の巡回予定（{route.length}）</h2>
-            <button
-              type="button"
-              data-testid="route-recommend"
-              onClick={handleRecommend}
-              disabled={route.length < 2 || !origin}
-              className="text-xs px-2.5 py-1 rounded border border-border bg-surface disabled:opacity-40"
-            >
-              🤖 AIおすすめ順
-            </button>
-            <button
-              type="button"
-              data-testid="route-start-navi"
-              onClick={handleStartNavi}
-              disabled={route.length === 0}
-              className="ml-auto text-xs px-3 py-1.5 rounded bg-emerald-600 text-white font-bold disabled:opacity-40"
-            >
-              🚗 案内スタート
-            </button>
-          </div>
-          {route.length === 0 ? (
-            <p className="text-xs text-muted py-3">下の一覧から店を追加してください</p>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={route.map(r => r.store_code)} strategy={verticalListSortingStrategy}>
-                {annotatedRoute.map((r, i) => (
-                  <SortableRouteItem key={r.store_code} r={r} index={i} onRemove={() => removeStore(r.store_code)} distLabel={fmtDist(r.distanceKm)} />
-                ))}
-              </SortableContext>
-            </DndContext>
-          )}
+      {/* 今日の巡回予定 (ドラッグ並べ替え) */}
+      <div className="shrink-0 max-h-[42vh] overflow-y-auto px-4 pt-3 border-b border-border">
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-sm font-bold">今日の巡回予定（{route.length}）</h2>
+          <button
+            type="button"
+            data-testid="route-recommend"
+            onClick={handleRecommend}
+            disabled={route.length < 2 || !origin}
+            className="text-xs px-2.5 py-1 rounded border border-border bg-surface disabled:opacity-40"
+          >
+            🤖 AIおすすめ順
+          </button>
+          <button
+            type="button"
+            data-testid="route-start-navi"
+            onClick={handleStartNavi}
+            disabled={route.length === 0}
+            className="ml-auto text-xs px-3 py-1.5 rounded bg-emerald-600 text-white font-bold disabled:opacity-40"
+          >
+            🚗 案内スタート
+          </button>
         </div>
-
-        {/* 店選択 (近い順・座標なしはグレーアウト) */}
-        <div className="px-4 pt-4 pb-8">
-          <h2 className="text-sm font-bold mb-1">店を追加</h2>
-          {loading ? (
-            <p className="text-xs text-muted py-3">読み込み中…</p>
-          ) : candidates.length === 0 ? (
-            <p className="text-xs text-muted py-3">追加できる店がありません</p>
-          ) : (
-            <div className="space-y-1">
-              {candidates.map(s => {
-                const dist = fmtDist(s.distanceKm)
-                return (
-                  <div
-                    key={s.store_code}
-                    data-testid={`route-candidate-${s.store_code}`}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${s.hasCoords ? 'bg-surface border-border' : 'bg-surface/40 border-border/40 opacity-50'}`}
-                  >
-                    <span className="flex-1 text-sm truncate">{s.store_name}</span>
-                    {s.hasCoords ? (
-                      <span className="text-xs text-muted tabular-nums">{dist ?? '距離は現在地取得後'}</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-400/70">座標未登録</span>
-                    )}
-                    <button
-                      type="button"
-                      data-testid={`route-add-${s.store_code}`}
-                      onClick={() => addStore(s)}
-                      disabled={!s.hasCoords}
-                      className="text-xs px-2.5 py-1 rounded bg-blue-600 text-white font-bold disabled:opacity-30"
-                    >
-                      ＋追加
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        {route.length === 0 ? (
+          <p className="text-xs text-muted py-3">下の一覧から店を追加してください</p>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={route.map(r => r.store_code)} strategy={verticalListSortingStrategy}>
+              {annotatedRoute.map((r, i) => (
+                <SortableRouteItem key={r.store_code} r={r} index={i} onRemove={() => removeStore(r.store_code)} distLabel={fmtDist(r.distanceKm)} />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
       </div>
+
+      {/* 店選択 (クレサポ本体と同じ ★カナインデックス。各タブ内は距離順維持) */}
+      <div className="shrink-0 px-4 pt-2">
+        <h2 className="text-sm font-bold">店を追加</h2>
+      </div>
+      {loading ? (
+        <p className="text-xs text-muted px-5 py-3">読み込み中…</p>
+      ) : (
+        <KanaIndex
+          items={candidates}
+          pinnedKeys={pinnedCodes}
+          idKey="store_code"
+          groupKey="locality_kana"
+          renderCard={renderCard}
+        />
+      )}
     </div>
   )
 }

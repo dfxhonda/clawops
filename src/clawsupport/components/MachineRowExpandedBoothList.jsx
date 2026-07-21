@@ -1,8 +1,7 @@
-// SPEC-PATROL-HISTORY-HEATMAP-02: 一体横スクロール対応。BoothScrollCells の overflow-x-auto 廃止。
-// dateAxis prop でリマップ。F4 ワースト赤テキスト、F5 entry_type 背景色は維持。
-// F4: text-sm→text-base (data cells, booth label)
-// F5: py-1→py-0.5 (booth row spacing)
-
+// SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): 役割変更 = ブースビューのフラットブース行描画 (BoothFlatRows)。
+// 旧「機械展開ブースリスト」から、全機械横断のフラットブース行 (<tr> 群) を返す描画に載せ替え。
+// 左端ブース名 = <th scope="row"> sticky left-0 横フリーズ (中位 z-20, 不透明 bg)。行タップでそのブースへ遷移。
+// entries は page 側で 機械順/ランキング に並べ替え済 (集計はしない、既存供給値の並び替えのみ)。
 import { useMemo } from 'react'
 import {
   VIEW_MODES,
@@ -12,38 +11,19 @@ import {
   sourceArrayFor,
   computeWorstBoothMap,
   mapSummaryToDateAxis,
-  ACCUM_COL_WIDTH,
 } from './patrolViewModes'
 
-// F5: entry_type ごとの背景色
+// F5: entry_type ごとの背景色 (中央セルのみ、sticky セルには付けない)
 const ENTRY_BG = {
   replace: 'bg-blue-900/40',
   config:  'bg-green-900/30',
 }
 
-function BoothScrollCells({ arr, entryTypes, boothWorst, boothCode, modeDef }) {
-  return (
-    <div className="grid grid-cols-10 gap-x-2 text-right leading-tight w-[440px] tabular-nums">
-      {Array.from({ length: COLUMN_COUNT }, (_, i) => {
-        const worstColor = boothWorst?.[i] ?? null
-        const textColor = worstColor ?? (i === NEWEST ? 'text-green-300' : 'text-text')
-        const bgClass = ENTRY_BG[entryTypes?.[i]] ?? ''
-        return (
-          <div
-            key={i}
-            data-testid={`booth-cell-${boothCode}-${i}`}
-            className={`font-mono text-base font-bold ${textColor} ${bgClass}`}
-          >
-            {formatCellPlain(arr[i], modeDef.type)}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
+const STICKY_LEFT = 'sticky left-0 z-20 bg-surface'
 
-export default function MachineRowExpandedBoothList({
-  booths, todayMap, diffMap, onBoothClick, mode = 'IN', dateAxis = null, accumMap = {},
+// entries: [{ booth, machine }] のフラット配列 (全機械横断、page で並べ替え済)。
+export default function BoothFlatRows({
+  entries, todayMap, diffMap, onBoothClick, mode = 'IN', dateAxis = null, accumMap = {},
 }) {
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
 
@@ -53,8 +33,8 @@ export default function MachineRowExpandedBoothList({
   )
 
   return (
-    <div className="mt-1 space-y-0.5" data-testid="machine-expanded-booth-list">
-      {booths.map(booth => {
+    <>
+      {(entries ?? []).map(({ booth, machine }) => {
         const done = !!todayMap?.[booth.booth_code]
         const d = diffMap[booth.booth_code] ?? null
         const mapped = dateAxis ? mapSummaryToDateAxis(d, dateAxis) : d
@@ -64,38 +44,42 @@ export default function MachineRowExpandedBoothList({
         // SPEC-PATROL-HEATMAP-PRIZE-NAME-01 (D-060): 各ブース行に現在景品名 (null/空は非表示)
         const prizeName = d?.latestPrizeName ?? null
         return (
-          <button
+          <tr
             key={booth.booth_code}
             data-testid={`booth-row-${booth.booth_code}`}
             onClick={() => onBoothClick(booth)}
-            className="w-full flex items-center gap-2 px-4 py-0.5 rounded-xl bg-surface/40 border border-border/40 text-left active:scale-[0.98] transition-transform"
+            className="border-b border-border/40 cursor-pointer active:bg-surface/60"
           >
-            <div className="w-40 shrink-0 pl-4 sticky left-0 z-10 bg-surface">
-              <p className="text-text text-base">
-                └ B{String(booth.booth_number).padStart(2, '0')}
+            <th scope="row" className={`px-2 py-0.5 text-left align-middle ${STICKY_LEFT}`}>
+              <p className="text-text text-sm font-bold truncate">
+                {machine?.machine_name ? `${machine.machine_name} ` : ''}B{String(booth.booth_number).padStart(2, '0')}
                 {done && <span className="ml-1 text-emerald-400/70">✓</span>}
               </p>
               {prizeName && (
-                <p data-testid={`booth-row-prize-${booth.booth_code}`} className="text-xs text-muted truncate pl-3">{prizeName}</p>
+                <p data-testid={`booth-row-prize-${booth.booth_code}`} className="text-xs text-muted truncate">{prizeName}</p>
               )}
-            </div>
-            {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): ブース別 前回集金後累計 固定列 (機械行と同幅=同位置)。 */}
-            <div
-              data-testid={`booth-accum-${booth.booth_code}`}
-              className={`${ACCUM_COL_WIDTH} font-mono text-base font-bold text-right tabular-nums text-amber-300`}
-            >
+            </th>
+            {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): ブース別 前回集金後累計。 */}
+            <td data-testid={`booth-accum-${booth.booth_code}`} className="px-1 py-0.5 text-right font-mono text-base font-bold tabular-nums text-amber-300">
               {formatCellPlain(accumMap[booth.booth_code]?.accum ?? null, 'count')}
-            </div>
-            <BoothScrollCells
-              arr={arr}
-              entryTypes={entryTypes}
-              boothWorst={boothWorst}
-              boothCode={booth.booth_code}
-              modeDef={modeDef}
-            />
-          </button>
+            </td>
+            {Array.from({ length: COLUMN_COUNT }, (_, i) => {
+              const worstColor = boothWorst?.[i] ?? null
+              const textColor = worstColor ?? (i === NEWEST ? 'text-green-300' : 'text-text')
+              const bgClass = ENTRY_BG[entryTypes?.[i]] ?? ''
+              return (
+                <td
+                  key={i}
+                  data-testid={`booth-cell-${booth.booth_code}-${i}`}
+                  className={`px-1 py-0.5 text-right font-mono text-base font-bold tabular-nums ${textColor} ${bgClass}`}
+                >
+                  {formatCellPlain(arr[i], modeDef.type)}
+                </td>
+              )
+            })}
+          </tr>
         )
       })}
-    </div>
+    </>
   )
 }

@@ -1,7 +1,6 @@
-// SPEC-PATROL-HISTORY-HEATMAP-02: 一体横スクロール対応。個別 overflow-x-auto 廃止。
-// PatrolStorePage の unified scroll に組み込まれる。dateAxis prop で店舗共通日付軸受取。
-// mode toggle / expand toggle は PatrolStorePage のコントロールバーに移動。
-
+// SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): ヒートマップを table 化。本コンポーネントは <thead>。
+// 日付ラベル行 + 合計行を <th> で出し、sticky top で縦フリーズ。左端 th:first-child は左上コーナー(左+上, z最上位)。
+// 全 sticky セルは不透明 bg (bg-surface #13131c)。列幅は親 table の <colgroup> + table-layout:fixed が決める。
 import { useMemo } from 'react'
 import {
   VIEW_MODES,
@@ -9,7 +8,6 @@ import {
   NEWEST,
   aggregateSummaries,
   formatCellPlain,
-  ACCUM_COL_WIDTH,
   sumAccum,
 } from './patrolViewModes'
 
@@ -25,6 +23,12 @@ function fmtDateLabel(dateStr) {
   return `${Number(parts[1])}/${Number(parts[2])}`
 }
 
+// z階層: 左上コーナー(40) > 上端ヘッダー行(30) > 左端列(20) > 中央(0)。h-7=28px ゆえ2行目 sticky top-7。
+const HEAD_ROW1 = 'sticky top-0 z-30 bg-surface'
+const HEAD_ROW2 = 'sticky top-7 z-30 bg-surface'
+const CORNER_ROW1 = 'sticky left-0 top-0 z-40 bg-surface'
+const CORNER_ROW2 = 'sticky left-0 top-7 z-40 bg-surface'
+
 export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN', accumMap = {} }) {
   const modeDef = VIEW_MODES[mode] ?? VIEW_MODES.IN
   const totals = useMemo(
@@ -34,40 +38,31 @@ export default function StoreTotalsHeader({ diffMap, dateAxis = null, mode = 'IN
   // SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店の前回集金後累計 合計。
   const accumTotal = useMemo(() => sumAccum(accumMap), [accumMap])
   return (
-    <div data-testid="store-totals-header" className="border-b border-border">
-      <div className="px-4 pt-1 flex items-center gap-2">
-        <div className="w-40 shrink-0 sticky left-0 z-10 bg-surface" />
-        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 累計列ヘッダラベル (日付ラベル行と同段)。 */}
-        <div className={`${ACCUM_COL_WIDTH} text-base text-right leading-tight text-amber-300/80`}>累計</div>
-        <div className="grid grid-cols-10 gap-x-2 text-base text-right leading-tight text-muted w-[440px] tabular-nums">
-          {Array.from({ length: COLUMN_COUNT }, (_, i) => (
-            <div key={i} data-testid={`store-label-${i}`}>
-              {fmtDateLabel(dateAxis?.[i]) ?? ''}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="px-4 pb-1 flex items-center gap-2">
-        <div className="w-40 shrink-0 text-sm text-muted sticky left-0 z-10 bg-surface">合計</div>
-        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店累計合計 (合計行と同段、カンマ抜き/null='−')。 */}
-        <div
-          data-testid="store-accum-total"
-          className={`${ACCUM_COL_WIDTH} font-mono text-base font-bold text-right tabular-nums text-amber-300`}
-        >
+    <thead data-testid="store-totals-header">
+      {/* 日付ラベル行 */}
+      <tr>
+        <th className={`h-7 px-2 text-left border-b border-border ${CORNER_ROW1}`} />
+        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 累計列ヘッダ (列幅は colgroup)。 */}
+        <th data-testid="store-accum-header" className={`h-7 px-1 text-right text-base leading-tight text-amber-300/80 border-b border-border ${HEAD_ROW1}`}>累計</th>
+        {Array.from({ length: COLUMN_COUNT }, (_, i) => (
+          <th key={i} data-testid={`store-label-${i}`} className={`h-7 px-1 text-right text-base leading-tight text-muted tabular-nums border-b border-border ${HEAD_ROW1}`}>
+            {fmtDateLabel(dateAxis?.[i]) ?? ''}
+          </th>
+        ))}
+      </tr>
+      {/* 合計行 */}
+      <tr>
+        <th className={`h-7 px-2 text-left text-sm text-muted border-b border-border ${CORNER_ROW2}`}>合計</th>
+        {/* SPEC-PATROL-ACCUM-COL-S3-DISPLAY-01 (D-098): 全店累計合計 (カンマ抜き/null='−')。 */}
+        <th data-testid="store-accum-total" className={`h-7 px-1 text-right font-mono text-base font-bold tabular-nums text-amber-300 border-b border-border ${HEAD_ROW2}`}>
           {formatCellPlain(accumTotal, 'count')}
-        </div>
-        <div className="grid grid-cols-10 gap-x-2 text-right leading-tight w-[440px] tabular-nums">
-          {Array.from({ length: COLUMN_COUNT }, (_, i) => (
-            <div
-              key={i}
-              data-testid={`store-value-${i}`}
-              className={`font-mono text-base font-bold ${i === NEWEST ? 'text-green-300' : 'text-text'}`}
-            >
-              {formatCellPlain(totals[i], modeDef.type)}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+        </th>
+        {Array.from({ length: COLUMN_COUNT }, (_, i) => (
+          <th key={i} data-testid={`store-value-${i}`} className={`h-7 px-1 text-right font-mono text-base font-bold tabular-nums border-b border-border ${i === NEWEST ? 'text-green-300' : 'text-text'} ${HEAD_ROW2}`}>
+            {formatCellPlain(totals[i], modeDef.type)}
+          </th>
+        ))}
+      </tr>
+    </thead>
   )
 }

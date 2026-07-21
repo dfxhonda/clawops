@@ -63,10 +63,15 @@ describe('AC3/AC5: 自動reload経路の監査 (grep)', () => {
   const swSrc = readFileSync(resolve(__dirname, '../../lib/swRegistration.js'), 'utf-8')
   const mainSrc = readFileSync(resolve(__dirname, '../../main.jsx'), 'utf-8')
 
-  it('AC3: swRegistration に onNeedRefresh があり updateSW(true)/location.reload を撃たない', () => {
+  it('AC3(D-109更新): onNeedRefresh は自動reloadせず、updateSW(true) は applyUpdate(明示タップ)のみ', () => {
     expect(swSrc).toContain('onNeedRefresh')
-    expect(swSrc).not.toMatch(/updateSW\s*\(\s*true\s*\)/)
-    expect(swSrc).not.toMatch(/location\.reload/)
+    expect(swSrc).not.toMatch(/location\.reload/) // 手動 reload 直呼びは無し
+    // D-109: updateSW(true) は存在するが applyUpdate 内 (バナー明示タップ経路) のみ。onNeedRefresh 本体は撃たない。
+    expect(swSrc).toContain('export function applyUpdate')
+    const m = swSrc.match(/onNeedRefresh\s*\(\)\s*\{([\s\S]*?)\}/)
+    expect(m).toBeTruthy()
+    expect(m[1]).toContain('markNeedRefresh')          // フラグを立てるだけ
+    expect(m[1]).not.toMatch(/updateSW\s*\(\s*true\s*\)/) // 自動適用しない
   })
 
   it('AC2/AC5: main.jsx の preloadError が handlePreloadError 経由 (生 location.reload 直呼び廃止)', () => {
@@ -77,13 +82,14 @@ describe('AC3/AC5: 自動reload経路の監査 (grep)', () => {
     expect(mainSrc).not.toMatch(/vite:preloadError[\s\S]{0,160}window\.location\.reload/)
   })
 
-  it('AC1: vite.config registerType が prompt (autoUpdate 廃止)', () => {
+  it('AC1(D-109更新): registerType prompt 維持 + skipWaiting/clientsClaim 除去、precache系は保全', () => {
     const viteSrc = readFileSync(resolve(__dirname, '../../../vite.config.js'), 'utf-8')
     expect(viteSrc).toContain("registerType: 'prompt'")
     expect(viteSrc).not.toContain("registerType: 'autoUpdate'")
-    // workbox 設定は保全
-    expect(viteSrc).toContain('skipWaiting: true')
-    expect(viteSrc).toContain('clientsClaim: true')
+    // D-109: 層3 skipWaiting/clientsClaim を workbox オプションから除去 (行頭のオプション記述が無いこと。コメント言及は可)
+    expect(viteSrc).not.toMatch(/^\s*skipWaiting:\s*true/m)
+    expect(viteSrc).not.toMatch(/^\s*clientsClaim:\s*true/m)
+    // precache/フォールバック系は保全
     expect(viteSrc).toContain('cleanupOutdatedCaches: true')
     expect(viteSrc).toContain("navigateFallback: '/index.html'")
   })
