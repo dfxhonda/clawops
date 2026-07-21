@@ -47,6 +47,11 @@ export default defineConfig(({ mode }) => ({
       //   D-108実測で skipWaiting を有効にすると新SWが waiting に留まらず即activate→画面フラッシュ(自動reload)=巡回入力中に飛ぶと入力吹き飛び(安全tier違反)。
       //   prompt戦略に skipWaiting/clientsClaim を手足しするのは autoUpdate相当の暴発を自作していた誤り (vite-plugin-pwa公式: prompt時は付けない)。
       //   precache は globPatterns + MD5改訂ハッシュで担保され skipWaiting/clientsClaim とは無関係 (D-095コメントの「precacheに必要」は誤解)。
+      // SPEC-PWA-SW-IOS-DETECT-FIX-01 (D-111) AC4 updateViaCache:'none' 相当:
+      //   vite-plugin-pwa 1.3.0 は SW登録を new Workbox("__SW__", { scope, type }) にハードコードしており updateViaCache を注入する経路が無い (dist/client 実査済)。
+      //   目的(SWスクリプト取得時のHTTPキャッシュをバイパスし Safari の積極キャッシュで検知が遅れるのを防ぐ)は、
+      //   vercel.json の /sw.js = "Cache-Control: no-cache, no-store, must-revalidate" が既に達成済 (SWスクリプトは常に再検証、stale配信なし)。
+      //   ⇒ updateViaCache:'none' の実効等価は vercel.json 側で成立。プラグイン設定側は変更不能につき据置。
       registerType: 'prompt',
       injectRegister: null,
       manifest: false,

@@ -5,6 +5,10 @@
 // (console.warnのみ、UIバナーなし)。
 // SPEC-PWA-SW-UPDATE-FIX-A-01 (D-109): registerType='prompt' を正しく完成。skipWaiting/clientsClaim(層3)を撤去し
 // (vite.config)、onNeedRefresh で「更新ありフラグ→控えめバナー→タップで updateSW(true)」の prompt 本道を実装。
+// SPEC-PWA-SW-IOS-DETECT-FIX-01 (D-111): iOS Safari は updatefound/onNeedRefresh を取りこぼす(起動前に SW を更新して
+// installing に気づく隙を与えない)。onNeedRefresh イベント依存をやめ registration.waiting 実在チェックに切替
+// (イベントは非iOS用に保険併用)。(a)onRegisteredSW 起動時 waiting チェック + update() 即実行→解決後 waiting 再チェック、
+// (b)createUpdateChecker の update() 後 waiting ポーリング。自動 reload は依然しない(適用はバナー明示タップのみ)。
 import { registerSW } from 'virtual:pwa-register'
 
 export const UPDATE_INTERVAL_MS = 15 * 60 * 1000
@@ -17,10 +21,15 @@ export function createUpdateChecker(registration, now = () => Date.now()) {
     const t = now()
     if (t - lastCheckAt < MIN_CHECK_GAP_MS) return false
     lastCheckAt = t
-    registration.update().catch(() => {
-      // オフライン等でのupdate()失敗は正常系。UIバナーなし、console.errorも出さない。
-      console.warn('[ERR-SW-UPDATE-001] SW update check failed (offline?)')
-    })
+    registration.update()
+      .then(() => {
+        // D-111: iOS は updatefound/onNeedRefresh を取りこぼすため、update() 解決後に waiting 実在をポーリングで拾う。
+        if (registration.waiting) markNeedRefresh()
+      })
+      .catch(() => {
+        // オフライン等でのupdate()失敗は正常系。UIバナーなし、console.errorも出さない。
+        console.warn('[ERR-SW-UPDATE-001] SW update check failed (offline?)')
+      })
     return true
   }
 }
@@ -66,9 +75,22 @@ function markNeedRefresh() {
   _emitNeedRefresh()
 }
 
+// テスト専用: production では未使用。_needRefresh を初期化して各ケースを独立させる。
+export function __resetNeedRefreshForTest() {
+  _needRefresh = false
+}
+
 export const updateSW = registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registration) {
+    if (!registration) return
+    // D-111 (a): iOS Safari は起動前に SW を更新し waiting に留めるが updatefound を投げないことがある。
+    // 起動時に waiting 実在を能動チェックし、居たら即バナー (イベントを待たない)。
+    if (registration.waiting) markNeedRefresh()
+    // D-111 (b): KILL 再起動時の初回チェック確保 — 起動時に1回 update() を即実行し、解決後 waiting を再チェック。
+    Promise.resolve(registration.update?.())
+      .then(() => { if (registration.waiting) markNeedRefresh() })
+      .catch(() => {})
     setupPeriodicUpdateCheck(registration)
   },
   // SPEC-PWA-SW-UPDATE-FIX-A-01 (D-109): 筋A。新SW waiting検知で「更新ありフラグ」を立てバナー表示するのみ。
