@@ -160,3 +160,50 @@ describe('AC7/is_announcement: 受書xlsx付き/画像なしは案内でない',
     expect(isAnnouncement(INF_RULE, { hasImage: true, attachmentNames: ['photo.jpg'] })).toBe(true)
   })
 })
+
+// BUG-D090-JOUSHIN-NAMELINE (gate_3 実データ検証で発見): 上代同居型(type_B)の品名行が抽出0件になっていた。
+// 品名行に「上代」が同居すると旧 isAttrLine が部分マッチで属性行と誤判定し、品名ブロックが生成されなかった。
+// 実メール本文 (こびとづかん/リラックマ もこもこルームソックス)。
+describe('BUG-D090-JOUSHIN-NAMELINE: 上代同居型(type_B)を取りこぼさない', () => {
+  const TYPE_B_1 = [
+    'こびとづかん もこもこルームソックス（大人用）　上代￥３８０',
+    '単価：＠205',
+    '出荷単位：１９２足',
+  ].join('\n')
+  const TYPE_B_2 = [
+    'リラックマもこもこルームソックス（大人用）　上代￥３８０',
+    '単価：＠210',
+    '出荷単位：２１６足',
+  ].join('\n')
+
+  it('こびとづかん: 1件抽出、品名に上代/￥混入なし、単価205/入数192/上代は備考', () => {
+    const items = parseAnnouncements(INF_RULE, TYPE_B_1)
+    expect(items.length).toBe(1)
+    const a = items[0]
+    expect(a.prize_name).toContain('こびとづかん')
+    expect(a.prize_name).toContain('もこもこルームソックス')
+    expect(a.prize_name).not.toMatch(/上代/)
+    expect(a.prize_name).not.toMatch(/[￥¥]/)
+    expect(a.unit_cost).toBe(205)
+    expect(a.case_quantity).toBe(192)
+    expect(a.notes).toMatch(/上代/)
+    expect(a.notes).toMatch(/３８０/) // 備考は原文(全角)のまま保持
+  })
+
+  it('リラックマ: 全角数字入数216/単価210、品名に上代なし', () => {
+    const items = parseAnnouncements(INF_RULE, TYPE_B_2)
+    expect(items.length).toBe(1)
+    const a = items[0]
+    expect(a.prize_name).toContain('リラックマ')
+    expect(a.prize_name).not.toMatch(/上代/)
+    expect(a.unit_cost).toBe(210)
+    expect(a.case_quantity).toBe(216)
+  })
+
+  it('2ブロック同一本文でも両方抽出 (行番号dedupで衝突しない)', () => {
+    const items = parseAnnouncements(INF_RULE, TYPE_B_1 + '\n\n' + TYPE_B_2)
+    expect(items.length).toBe(2)
+    const keys = new Set(items.map((it) => dedupKey('msg1', it.prize_name, it.line_number)))
+    expect(keys.size).toBe(2)
+  })
+})

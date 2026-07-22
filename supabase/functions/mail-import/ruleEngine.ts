@@ -79,6 +79,19 @@ const HALF = /ハーフ/
 const SHURUI = /種類[：:]/
 const DELIVERY = /(再?入荷|発売|納期|[0-9０-９]{1,2}月[上中下末]|[0-9０-９]{1,2}[／/][0-9０-９]{1,2}\s*締|即納)/
 
+// BUG-D090-JOUSHIN-NAMELINE (gate_3): 品名行が上代等の属性トークンを同居していても、それらを剥がした残余に
+// 品名実体が残るなら品名行とみなす (H5: 単価/入数を連れた実体行を品名)。属性/価格/数量/ラベル/日付/記号だけで
+// 構成される行のみ非品名。ラベル語・日付断片は「品名実体が残るか」判定用のヒューリスティック (H4のマーカー列挙とは別問題)。
+const NAME_LABEL = /(商\s*品\s*名|販\s*売\s*単\s*位|出\s*荷\s*単\s*位|販売数量|入\s*数|単\s*価|上\s*代|品\s*番|品\s*名|納\s*期|内\s*訳|ケース|税抜き?|税込み?|物販ライセンス)[：:]?/g
+const DATE_FRAG = /([0-9０-９]{1,2}\s*[／/]\s*[0-9０-９]{1,2}|[0-9０-９]{1,4}\s*[年月日]|[上中下末旬]|[～〜]|即納|発売|再?入荷|締)/g
+const PUNCT_STRIP = /[\s　:：()（）「」『』〈〉[\]{}\-ー―、。,.＠@#*＊※\/／¥￥\\★☆●○◎◆◇■□▲△▼▽・0-9０-９]+/g
+
+// RegExp を global 化 (source を使い回し。null は素通し)。
+function globalize(re: RegExp | null): RegExp | null {
+  if (!re) return null
+  return re.flags.includes('g') ? re : new RegExp(re.source, re.flags + 'g')
+}
+
 interface RuleCompiled {
   unitRe: RegExp | null
   qtyRe: RegExp | null
@@ -138,11 +151,22 @@ function isPriceOrQty(c: RuleCompiled, s: string): boolean {
   return (!!c.unitRe && c.unitRe.test(s)) || (!!c.qtyRe && c.qtyRe.test(s))
 }
 
-// 品名候補行 = 除外でも価格数量でも属性でもない実体行 (B1 は value を採用)。
+// 行から マーカー/【】/属性(上代ハーフ種類納期)/価格/数量/ラベル語/日付/記号 を剥がした残余 = 品名実体。
+function nameResidual(c: RuleCompiled, s: string): string {
+  let r = s
+  const mk = r.match(c.markerRe); if (mk) r = r.slice(mk[0].length)
+  r = r.replace(BRACKET_KEY_VALUE, '$1') // B1: value を実体として残す
+  r = r.replace(BRACKET_INLINE, '')
+  for (const re of [globalize(c.joushinRe), globalize(c.halfRe), globalize(SHURUI), globalize(c.deliveryRe), globalize(c.unitRe), globalize(c.qtyRe)]) {
+    if (re) r = r.replace(re, '')
+  }
+  return r.replace(NAME_LABEL, '').replace(DATE_FRAG, '').replace(PUNCT_STRIP, '')
+}
+
+// 品名候補行 = 属性/価格/数量/ラベル/日付/記号 を剥がしても品名実体が2文字以上残る行。
+// (BUG-D090: 旧実装は上代等を部分マッチで属性行と断定し、上代同居の品名行を丸ごと落としていた)
 function isNameLine(c: RuleCompiled, s: string): boolean {
-  if (isPriceOrQty(c, s)) return false
-  if (isAttrLine(c, s)) return false
-  return true
+  return nameResidual(c, s).length >= 2
 }
 
 // 品名正規化: 行頭マーカー剥がし(H4) + 品名内【】外し(B2) + B1のkey剥がし。
@@ -158,6 +182,11 @@ function normalizeName(c: RuleCompiled, raw: string): { name: string; marker: st
   if (mk) { marker = mk[0].trim() || null; s = s.slice(mk[0].length) }
   // B2: 品名内の【…】は外して notes へ
   s = s.replace(BRACKET_INLINE, (m) => { bracketNotes.push(m); return '' })
+  // BUG-D090-JOUSHIN-NAMELINE: 品名行に同居する 上代/ハーフ/納期 を notes へ移し品名から除去 (AC4: prize_name に上代/￥混入なし)。
+  // 種類(N種)は品名の一部として残す (SHURUI は「種類:」ラベル形のみ対象=fixture の "6種"/"2種" は温存)。
+  for (const re of [globalize(c.joushinRe), globalize(c.halfRe), globalize(c.deliveryRe)]) {
+    if (re) s = s.replace(re, (m) => { const t = m.trim(); if (t) bracketNotes.push(t); return '' })
+  }
   return { name: s.trim(), marker, bracketNotes }
 }
 
