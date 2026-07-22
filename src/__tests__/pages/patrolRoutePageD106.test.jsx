@@ -48,17 +48,24 @@ beforeEach(() => { getLocationMock.mockReset(); saveMock.mockReset() })
 
 async function openAtab() {
   renderPage()
+  await waitFor(() => expect(getLocationMock).toHaveBeenCalled()) // D-116: 入場時に現在地を自動取得
   await waitFor(() => expect(screen.getByText('あ')).toBeTruthy()) // KanaIndex カナタブ (AC3)
   fireEvent.click(screen.getByText('あ'))
   await screen.findByTestId('store-card-NEAR')
+}
+
+// D-116: 自動取得の origin が距離に反映される(km表示)まで待つ
+async function waitOriginApplied() {
+  await waitFor(() => {
+    const dists = screen.getAllByTestId('store-card-distance')
+    expect(dists.some(d => /km/.test(d.textContent))).toBe(true)
+  })
 }
 
 describe('D-107 AC3/AC4: KanaIndex + StoreCard 店選択、距離併存', () => {
   it('カナタブ表示、座標なし店は追加されない (タップ無効)', async () => {
     getLocationMock.mockResolvedValue({ lat: 33.5, lng: 130.4, accuracy: 20 })
     await openAtab()
-    fireEvent.click(screen.getByTestId('route-locate'))
-    await waitFor(() => expect(getLocationMock).toHaveBeenCalled())
     // 座標なし店をタップ → 予定に入らない
     fireEvent.click(screen.getByTestId('store-card-NOGEO'))
     await waitFor(() => {})
@@ -69,8 +76,7 @@ describe('D-107 AC3/AC4: KanaIndex + StoreCard 店選択、距離併存', () => 
     getLocationMock.mockResolvedValue({ lat: 33.5, lng: 130.4, accuracy: 20 })
     const openMock = vi.fn(); window.open = openMock
     await openAtab()
-    fireEvent.click(screen.getByTestId('route-locate'))
-    await waitFor(() => expect(getLocationMock).toHaveBeenCalled())
+    await waitOriginApplied() // D-116: 自動取得の origin が距離に反映されるまで待つ
 
     fireEvent.click(screen.getByTestId('store-card-FAR'))
     await screen.findByTestId('route-item-FAR')
