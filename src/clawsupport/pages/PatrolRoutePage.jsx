@@ -35,6 +35,7 @@ export default function PatrolRoutePage() {
   const [stores, setStores] = useState([])
   const [origin, setOrigin] = useState(null) // { lat, lng, accuracy } | null
   const [locating, setLocating] = useState(false)
+  const [geoFailed, setGeoFailed] = useState(false) // D-116: 取得失敗した端末にだけ再取得ボタンを出す
   const [route, setRoute] = useState([])     // 順序付き予定 [{ store_code, store_name, lat, lng }]
   const [loading, setLoading] = useState(true)
   const [pinnedCodes, setPinnedCodes] = useState([]) // ★ (staff_pinned_stores 共有)
@@ -76,15 +77,29 @@ export default function PatrolRoutePage() {
     saveRouteToday(route).catch(e => logger.warn?.('ERR-ROUTE-SAVE', { message: e?.message }))
   }, [route, loading])
 
-  async function handleLocate() {
+  // SPEC-PATROL-ROUTE-AUTO-LOCATE-01 (D-116): 自動取得(入場時)と再取得ボタンの共通処理。
+  // isAlive でアンマウント後の setState をガード(自動取得の effect から渡す。ボタンは既定=常にtrue)。
+  // getLocation は throw せず失敗時 NULL_LOC(lat null) を返す契約 → lat null を失敗として geoFailed を立てる。
+  async function handleLocate(isAlive = () => true) {
     setLocating(true)
     try {
       const loc = await getLocation()
-      setOrigin(loc && loc.lat != null ? loc : null)
+      if (!isAlive()) return
+      const ok = loc && loc.lat != null
+      setOrigin(ok ? loc : null)
+      setGeoFailed(!ok)
     } finally {
-      setLocating(false)
+      if (isAlive()) setLocating(false)
     }
   }
+
+  // D-116: 画面入場のたびに現在地を自動取得 (deps 空=マウント毎に1回)。maximumAge 300000 で5分以内の再入場は即返る。
+  useEffect(() => {
+    let alive = true
+    handleLocate(() => alive)
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ★トグル (クレサポ本体と同じ staff_pinned_stores を共有。楽観更新+失敗ロールバック)
   async function handlePin(storeCode) {
@@ -157,21 +172,22 @@ export default function PatrolRoutePage() {
     <div className="h-svh flex flex-col bg-bg text-text">
       <PageHeader module="clawsupport" title="今日の巡回ルート" variant="compact" onBack={() => navigate('/clawsupport')} />
 
-      {/* 現地取得 */}
-      <div className="shrink-0 px-4 py-2 border-b border-border flex items-center gap-2">
-        <button
-          type="button"
-          data-testid="route-locate"
-          onClick={handleLocate}
-          disabled={locating}
-          className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-50"
-        >
-          {locating ? '取得中…' : '📍 現在地を取得'}
-        </button>
-        <span className="text-xs text-muted">
-          {origin ? `現在地取得済 (±${Math.round(origin.accuracy ?? 0)}m)` : '未取得 (距離表示・近い順に必要)'}
-        </span>
-      </div>
+      {/* SPEC-PATROL-ROUTE-AUTO-LOCATE-01 (D-116): 現在地は入場時に自動取得(常設ボタン/ステータス撤去)。
+          取得失敗した端末にだけ再取得ボタンを出す(位置を誤って拒否したスタッフが距離を永久に失う事故を防ぐ=B案)。 */}
+      {geoFailed && (
+        <div className="shrink-0 px-4 py-2 border-b border-border flex items-center gap-2">
+          <button
+            type="button"
+            data-testid="route-relocate"
+            onClick={() => handleLocate()}
+            disabled={locating}
+            className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold disabled:opacity-50"
+          >
+            {locating ? '取得中…' : '📍 現在地を再取得'}
+          </button>
+          <span className="text-xs text-amber-400/80">現在地を取得できませんでした（位置情報を許可してください）</span>
+        </div>
+      )}
 
       {/* 今日の巡回予定 (ドラッグ並べ替え) */}
       <div className="shrink-0 max-h-[42vh] overflow-y-auto px-4 pt-3 border-b border-border">
