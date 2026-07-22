@@ -69,8 +69,9 @@ function firstCapture(re: RegExp | null, s: string): string | null {
 }
 
 const DEFAULT_MARKER = /^[★☆●○◎◆◇■□▲△▼▽・\-*＊]+\s*/
-const BRACKET_KEY_VALUE = /^【[^】]*】\s*(.+)$/  // B1: 行頭【key】value
-const BRACKET_ONLY = /^【[^】]*】\s*$/            // B3: 単独【】
+// NG-1: ラベル別行FW/同一行いずれも 【key】[：]value 形を許容 (値先頭の全角/半角コロンを取り込む)。
+const BRACKET_KEY_VALUE = /^【[^】]*】[\s　]*[：:]?[\s　]*(.+)$/  // B1: 行頭【key】[：]value
+const BRACKET_ONLY = /^【[^】]*】[\s　]*[：:]?[\s　]*$/            // B3: 単独【】(値なし。ラベル別行の見出し行含む)
 const BRACKET_INLINE = /【[^】]*】/g              // B2: 品名内の【】
 
 // H1 の意味を持つ属性行判定に使う既定パターン (field_regex に無い場合の保険)。
@@ -102,6 +103,16 @@ const DATE_HEAD = /^(?:[0-9０-９]{1,2}\s*[／/]\s*[0-9０-９]|[0-9０-９]{1,
 // REG-3 対策: 上代を「金額込みで1トークン」として品名から除去する。rule.joushin_to_notes が欠落/破損して
 // c.joushinRe が既定 /上代/ に落ちても、ここで金額(税抜き/OPEN含む)まで確実に剥がす (品名に ￥ を残さない)。
 const JOUSHIN_STRIP = /上\s*代[\s　：:]*[￥¥\\]?\s*(?:[0-9０-９,，]+|OPEN|オープン)?[\s　]*(?:税抜き?|税込み?)?/g
+
+// NG-1 (FW転送): 行頭【KEY】の KEY が「商品名/品名」のときだけ値が品名。他KEY(単価/品番/種類/納期/販売単位/内訳等)は属性。
+// 品番の英数値(AST-10266)が nameResidual を素通りして品名化する事故を構造的に排除する。
+const NAME_KEY = /^(商品名|品名)$/
+// NG-2 (FW転送): 送料・配送・注意書きの散文。品名には現れない語彙に限定して非品名判定に使う (実データで品名と非衝突を確認)。
+const NOTICE = /(別\s*途\s*(送料|運賃|見積|お?見積り?)|本\s*州|北\s*海\s*道|沖\s*縄|離\s*島|個口|予めご了承|ご了承(下さい|ください)|になります|材料の高騰|為替|運\s*賃|値上げ|カートン|を除く|となります|掲\s*載|ご遠慮|出荷不可|問わず|ご注意|締\s*切|発生致します)/
+// NG-3 (FW転送): 品名末尾に同居する 数量(N入/個/足) / 単価(＠N[円-]) の句を末尾から剥がす (REG-2教訓=末尾句限定、行途中は削らない)。
+//   実データの markdown 装飾(* ＊ _)・全角空白・(ハーフ不可) 等の挿入に耐えるよう区切りを許容。
+const NAME_TAIL_TOKEN = '(?:[0-9０-９,，]+[\\s　*＊_]*(?:入|個|足)(?:単位)?|[＠@][\\s　*＊_]*[0-9０-９,，]+[\\s　*＊_]*円?[ー\\-－]*)'
+const NAME_TAIL_STRIP = new RegExp(`[\\s　*＊_]*(?:${NAME_TAIL_TOKEN}[\\s　*＊_]*(?:[（(][^）)]*[）)])?[\\s　*＊_]*)+$`)
 
 interface RuleCompiled {
   unitRe: RegExp | null
@@ -178,10 +189,22 @@ function nameResidual(c: RuleCompiled, s: string): string {
 // REG-1: 行頭が属性(入数/価格/出荷単位/上代/ハーフ/納期 等)や ＠/N入/N月 で始まる行は属性行 → 品名にしない。
 // type_B(上代同居)は行頭が実体で始まるので拾える。BUG-D090: 旧実装は上代の部分マッチで品名行を落としていた。
 function isNameLine(c: RuleCompiled, s: string): boolean {
+  // NG-2: 行頭※の注意書き / 送料・配送の散文は品名でない (markerで消える前に原文で判定)。
+  if (/^[\s　_*＊]*※/.test(s)) return false
+  if (NOTICE.test(s)) return false
   let head = s
   const mk = head.match(c.markerRe); if (mk) head = head.slice(mk[0].length)
-  head = head.replace(/^[\s　]+/, '')
+  head = head.replace(/^[\s　_*＊]+/, '') // markdown装飾/空白の先頭剥がし
   if (!head) return false
+  // NG-1: ラベル別行FWで値だけが独立した ：VALUE 行 = 属性値 (【商品名】の値は merge 済で head が【始まり)。
+  if (/^[：:]/.test(head)) return false
+  // NG-1/H2: 行頭【KEY】value は KEY で判定。商品名/品名=値が品名、他KEY(単価/品番/種類/納期/販売単位/内訳等)=属性。
+  const bk = head.match(/^【([^】]*)】/)
+  if (bk) {
+    const key = bk[1].replace(/[\s　]/g, '')
+    if (NAME_KEY.test(key)) return nameResidual(c, s).length >= 2
+    return false
+  }
   if (ATTR_HEAD.test(head) || PRICE_QTY_HEAD.test(head) || DATE_HEAD.test(head)) return false
   return nameResidual(c, s).length >= 2
 }
@@ -204,8 +227,13 @@ function normalizeName(c: RuleCompiled, raw: string): { name: string; marker: st
   //   (それらは属性行にあり isNameLine で除外済。品名行に同居するのは実データ上ほぼ 上代 のみ)。
   //   種類(N種)は品名の一部として残す (fixture の "6種"/"2種" 温存)。
   s = s.replace(JOUSHIN_STRIP, (m) => { const t = m.trim(); if (t && t !== '上代') bracketNotes.push(t); return '' })
-  // AC4 最終保証: 品名に 上代/【】/￥¥ が残っていたら除去 (万一の取りこぼしでも品名は必ずクリーン)。
-  const name = s.replace(/上\s*代/g, '').replace(/[【】￥¥]/g, '').replace(/\s+$/, '').trim()
+  // NG-3: 品名末尾に同居する 数量(N入/個/足)・単価(＠N) の句を末尾から剥がし notes へ (REG-2教訓=末尾句限定)。
+  s = s.replace(NAME_TAIL_STRIP, (m) => { const t = m.replace(/[\s　*＊_]/g, '').trim(); if (t) bracketNotes.push(t); return '' })
+  // AC4 最終保証: 品名に 上代/【】/￥¥ が残っていたら除去。先頭/末尾の markdown 装飾(* ＊ _)・空白も除去。
+  const name = s
+    .replace(/上\s*代/g, '').replace(/[【】￥¥]/g, '')
+    .replace(/^[\s　*＊_]+/, '').replace(/[\s　*＊_]+$/, '')
+    .trim()
   return { name, marker, bracketNotes }
 }
 
@@ -213,11 +241,25 @@ function normalizeName(c: RuleCompiled, raw: string): { name: string; marker: st
 export function parseAnnouncements(rule: MailRule, body: string): ParsedAnnouncement[] {
   const c = compileRule(rule)
   // 1) 行分解 (1始まり行番号を保持、空行除去)
-  const all: Line[] = []
+  const raw: Line[] = []
   String(body ?? '').split(/\r?\n/).forEach((t, i) => {
     const s = t.trim()
-    if (s) all.push({ n: i + 1, s })
+    if (s) raw.push({ n: i + 1, s })
   })
+  // 1.5) NG-1 (FW転送): 見出し行【KEY】が改行され値が次行 ：VALUE に落ちる形を結合 (【KEY】VALUE 化)。
+  //   ラベルと値が別行になり、値行の行頭が ： になって品名判定を素通りする事故を構造的に潰す。
+  //   品名行番号(dedup用)は見出し行の n を採用し安定させる。
+  const all: Line[] = []
+  for (let k = 0; k < raw.length; k++) {
+    const cur = raw[k]
+    const next = raw[k + 1]
+    if (next && /】[\s　]*$/.test(cur.s) && /^[\s　]*[：:]/.test(next.s)) {
+      all.push({ n: cur.n, s: cur.s.replace(/[\s　]*$/, '') + next.s.replace(/^[\s　]*[：:][\s　]*/, '') })
+      k++ // 値行を消費
+    } else {
+      all.push(cur)
+    }
+  }
   // 2) H6 署名区切り: 最初にマッチした行以降を全捨て
   const cutIdx = all.findIndex((l) => c.signatureRes.some((re) => re.test(l.s)))
   const kept0 = cutIdx >= 0 ? all.slice(0, cutIdx) : all
@@ -261,8 +303,10 @@ function buildItem(c: RuleCompiled, nameLine: Line, block: Line[], headerNotes: 
   const notesParts: string[] = []
 
   for (const b of block) {
-    if (unit_cost == null && c.unitRe && c.unitRe.test(b.s)) unit_cost = toNum(firstCapture(c.unitRe, b.s))
-    if (case_quantity == null && c.qtyRe && c.qtyRe.test(b.s)) case_quantity = toInt(firstCapture(c.qtyRe, b.s))
+    // NG-3: markdown装飾(* ＊ _)が数字と単位の間に挟まる実データ("108**入")でも単価/入数を取りこぼさない。
+    const t = b.s.replace(/[*＊_]/g, '')
+    if (unit_cost == null && c.unitRe && c.unitRe.test(t)) unit_cost = toNum(firstCapture(c.unitRe, t))
+    if (case_quantity == null && c.qtyRe && c.qtyRe.test(t)) case_quantity = toInt(firstCapture(c.qtyRe, t))
     // 属性行 (品名行自身は除く) を notes へ
     if (b.n !== nameLine.n && isAttrLine(c, b.s)) notesParts.push(b.s)
   }

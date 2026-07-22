@@ -297,3 +297,140 @@ describe('REG-1/2/3: 実データ8通で属性行を品名に化けさせない 
     expect(real[0].case_quantity).toBe(72)
   })
 })
+
+// NG-1/NG-2/NG-3 (chat gate_3 デプロイ後 dry_run 実データ検証で判明、全て FW転送型のレイアウト):
+//   NG-1 ラベル別行FW: 【KEY】と値が別行になり値行が ：VALUE 始まりで品名判定を素通り (：AST-10266 / ：＠1000 等が品名化)。
+//   NG-2 送料・配送注意の散文 (今回より1カートン…本州の場合、/ 北海道、沖縄、離島は…別途見積り) が品名化。
+//   NG-3 品名に単価・入数が同居 (ちいかわ フィギュアキーホルダー⑤ 108入＠550) → 品名文字列から剥がせていない。
+// mail_sampling_raw の FW転送実メール本文をそのまま流し、抽出品名の不変条件を検証する (fixtureでなく実データ)。
+// SDY(info@sdy-co.com=ワンズアミューズ)の bracket-label / markdown装飾レイアウトが FW転送型の実物。
+const SDY_RULE = {
+  supplier_id: 'SDY',
+  from_pattern: 'info@sdy-co\\.com',
+  is_announcement_rule: { require_image: true, forbid_attachment_regex: '請書.*\\.xlsx?$' },
+  name_marker_regex: [],
+  marker_strip_regex: '^[★☆●○◎◆◇■□▲△▼▽・\\-*＊_]+\\s*',
+  exclude_line_regex: ['^\\s*$', '株式会社', '◇◆', 'ONES', 'TEL', 'FAX', '〒', 'E-mail', '大阪府'],
+  signature_cut_regex: ['^--\\s*$', '◇◆◇', '株式会社\\s*ワンズアミューズ'],
+  field_regex: {
+    unit_cost: '[＠@]\\s*([0-9０-９][0-9０-９,，]{2,})',
+    case_quantity: '([0-9０-９]+)\\s*(?:入|個単位|枚単位|個|足)',
+    half_to_notes: 'ハーフ[\\s]*(不可|可|ＯＫ|OK|送料[0-9０-９]+)',
+    joushin_to_notes: '上代[\\s￥¥\\\\]*[0-9０-９,，]+',
+    delivery_to_notes: '(納期|発売|入荷|[0-9０-９]{1,2}月)',
+  },
+  freshness_months: 2,
+}
+
+describe('NG-1/2/3: FW転送実メールで属性値行/散文/同居数量を品名に化けさせない', () => {
+  // FW-1 (実メール verbatim): NG-3 品名に数量・単価が同居 + markdown装飾(* ＊ _)。
+  const FW_NAME_QTY = [
+    'お世話になります。',
+    '',
+    '*ちいかわ フィギュアキーホルダー⑤** 108**入　＠550*',
+    '種類：9種アソート',
+    '_納期：8月上中予定_',
+    '',
+    '*ポケモンネックコード付き ミニおでかけウォレット**100**入　＠460*',
+    '種類：1種',
+    '_納期：7月中予定_',
+    '',
+    '*ちいかわウォーターシューター**48**入　＠780*',
+    '種類：2種アソート',
+    '_納期：7月下予定_',
+    '',
+    '*たまごっちキャラぷくオーロラKH6種**60**入**(ハーフ不可)**　＠860*',
+    '種類：8種アソート',
+    '_納期：7月中予定_',
+    '',
+    '※SNS等のネット関連への掲載NGにてお願いします。',
+    '※ハーフＯＫ（別途送料1000円）',
+    '※北海道や沖縄・離島などは別途送料が発生致します。',
+  ].join('\n')
+
+  // FW-2 (実メール verbatim): NG-1 bracket-label(同一行) + NG-2 送料散文の混在。
+  const FW_BRACKET = [
+    'お世話になります。',
+    '【商　品　名】：ミニオンズ＆モンスターズ　超ドでかっ！もちもちクッション',
+    '【品　　　番】：OTH-10588',
+    '【単　 　 価】：＠1000',
+    '【種　　　類】：全2種均等アソート',
+    '【納　　　期】：8月下旬予定',
+    '【販売　単位】：56個（14個×4カートン）＊本商品は4個口となっております。予めご了承下さい',
+    '※ご注意！',
+    '※材料の高騰、為替の変動、運賃の値上げにより',
+    '今回より1カートン（14個入）に対し本州の場合、',
+    '別途送料￥1,000になります。予めご了承ください。',
+    '【商　品　名】：ミニオンズ＆モンスターズ　キラキラキーケース',
+    '通常ミニオンズとミニオンズ＆モンスターズのスペシャルアソートとなります。',
+    '【品　　　番】：OTH-10595',
+    '【単　　　価】：＠545',
+    '【種　　　類】：全3種均等アソート',
+    '【納　　　期】： 8月下旬予定',
+    '【販売　単位】：96個（48個×2BOX）',
+    '（ミニオンズ＆モンスターズ　超ドでかっ！もちもちクッションを除く）',
+    'ハーフ出荷可（別途送料がかかります。本州￥1000、',
+    '北海道、沖縄、離島は正カートン、ハーフカートンに問わず別途送料がかかります。別途見積り）',
+  ].join('\n')
+
+  // FW-3 (FW-2 を live-Gmail の行折返しに再現): 【KEY】と ：VALUE が別行 = chat が観測した NG-1 の生形。
+  const FW_LABEL_SPLIT = [
+    '【商　品　名】',
+    '：ミニオンズ＆モンスターズ　超ドでかっ！もちもちクッション',
+    '【品　　　番】',
+    '：OTH-10588',
+    '【単　 　 価】',
+    '：＠1000',
+    '【販売　単位】',
+    '：56個（14個×4カートン）',
+  ].join('\n')
+
+  const BAD_NAME = /^[：:＠@]|カートン|本\s*州|北\s*海\s*道|沖\s*縄|離\s*島|別\s*途|※|ご注意|を除く|になります|となります|^入\s*数|^単\s*価|^品\s*番|^販売|OTH-|AST-|[0-9０-９]+入|[＠@][0-9０-９]/
+
+  it('FW-1 NG-3: 4件、品名から数量・単価句が剥がれクリーン、unit/qty は構造化', () => {
+    const items = parseAnnouncements(SDY_RULE, FW_NAME_QTY)
+    expect(items.length).toBe(4)
+    expect(items[0].prize_name).toBe('ちいかわ フィギュアキーホルダー⑤')
+    expect(items[0].unit_cost).toBe(550)
+    expect(items[0].case_quantity).toBe(108)
+    expect(items[1].prize_name).toBe('ポケモンネックコード付き ミニおでかけウォレット')
+    expect(items[1].unit_cost).toBe(460)
+    expect(items[2].prize_name).toBe('ちいかわウォーターシューター')
+    expect(items[3].prize_name).toBe('たまごっちキャラぷくオーロラKH6種')
+    expect(items[3].unit_cost).toBe(860)
+    for (const a of items) {
+      expect(a.prize_name, `NG-3 品名に数量/単価/装飾残存: ${a.prize_name}`).not.toMatch(BAD_NAME)
+    }
+  })
+
+  it('FW-2 NG-1/NG-2: bracket-label で商品名2件のみ、属性値行/送料散文は品名化しない', () => {
+    const items = parseAnnouncements(SDY_RULE, FW_BRACKET)
+    expect(items.length).toBe(2)
+    expect(items[0].prize_name).toBe('ミニオンズ＆モンスターズ　超ドでかっ！もちもちクッション')
+    expect(items[0].unit_cost).toBe(1000)
+    expect(items[0].case_quantity).toBe(56)
+    expect(items[1].prize_name).toBe('ミニオンズ＆モンスターズ　キラキラキーケース')
+    expect(items[1].unit_cost).toBe(545)
+    for (const a of items) {
+      expect(a.prize_name, `NG-1/2 属性値/散文が品名化: ${a.prize_name}`).not.toMatch(BAD_NAME)
+    }
+  })
+
+  it('FW-3 NG-1: ラベル別行(：値)を結合し商品名のみ抽出、：OTH/：＠1000 が品名化しない', () => {
+    const items = parseAnnouncements(SDY_RULE, FW_LABEL_SPLIT)
+    expect(items.length).toBe(1)
+    expect(items[0].prize_name).toBe('ミニオンズ＆モンスターズ　超ドでかっ！もちもちクッション')
+    expect(items[0].unit_cost).toBe(1000)
+    expect(items[0].case_quantity).toBe(56)
+    expect(items[0].prize_name).not.toMatch(BAD_NAME)
+  })
+
+  it('FW全体不変条件: どの FW本文でも prize_name は属性値/散文/数量句を含まない', () => {
+    for (const [key, body] of Object.entries({ FW_NAME_QTY, FW_BRACKET, FW_LABEL_SPLIT })) {
+      for (const a of parseAnnouncements(SDY_RULE, body)) {
+        expect(a.prize_name, `${key}: 不正品名 ${a.prize_name}`).not.toMatch(BAD_NAME)
+        expect(a.prize_name.length, `${key}: 空品名`).toBeGreaterThan(1)
+      }
+    }
+  })
+})
