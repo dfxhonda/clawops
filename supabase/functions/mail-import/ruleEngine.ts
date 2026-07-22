@@ -92,6 +92,17 @@ function globalize(re: RegExp | null): RegExp | null {
   return re.flags.includes('g') ? re : new RegExp(re.source, re.flags + 'g')
 }
 
+// REG-1 対策: 行の「主たる内容」が属性か実体かで判定する。行頭(マーカー除去後)が 属性ラベル / 価格 / 数量 / 日付
+// で始まる行は属性行 = 品名行でない。type_B(上代同居)は上代が行末に付き行頭が実体で始まるため区別できる。
+// これらは供給属性の語彙であって品名先頭には現れない (H4のマーカー列挙とは別問題=属性ラベルの識別)。
+const ATTR_HEAD = /^(入\s*数|価\s*格|単\s*価|特\s*価|定\s*価|卸\s*値|仕\s*切り?|出\s*荷\s*単\s*位|発\s*送\s*単\s*位|販\s*売\s*単\s*位|販売数量|商\s*品\s*名|品\s*番|品\s*名|納\s*期|種\s*類|内\s*訳|上\s*代|ハーフ|物販ライセンス|物販品|別?途?送\s*料|ケース)/
+const PRICE_QTY_HEAD = /^(?:[＠@]\s*[0-9０-９]|[0-9０-９]+\s*(?:入|個単位|枚単位|個|足))/
+const DATE_HEAD = /^(?:[0-9０-９]{1,2}\s*[／/]\s*[0-9０-９]|[0-9０-９]{1,2}\s*月|即納|発売|再?入荷)/
+
+// REG-3 対策: 上代を「金額込みで1トークン」として品名から除去する。rule.joushin_to_notes が欠落/破損して
+// c.joushinRe が既定 /上代/ に落ちても、ここで金額(税抜き/OPEN含む)まで確実に剥がす (品名に ￥ を残さない)。
+const JOUSHIN_STRIP = /上\s*代[\s　：:]*[￥¥\\]?\s*(?:[0-9０-９,，]+|OPEN|オープン)?[\s　]*(?:税抜き?|税込み?)?/g
+
 interface RuleCompiled {
   unitRe: RegExp | null
   qtyRe: RegExp | null
@@ -163,9 +174,15 @@ function nameResidual(c: RuleCompiled, s: string): string {
   return r.replace(NAME_LABEL, '').replace(DATE_FRAG, '').replace(PUNCT_STRIP, '')
 }
 
-// 品名候補行 = 属性/価格/数量/ラベル/日付/記号 を剥がしても品名実体が2文字以上残る行。
-// (BUG-D090: 旧実装は上代等を部分マッチで属性行と断定し、上代同居の品名行を丸ごと落としていた)
+// 品名候補行 = 行頭(マーカー除去後)が 属性ラベル/価格/数量/日付 で始まらず、実体が2文字以上ある行。
+// REG-1: 行頭が属性(入数/価格/出荷単位/上代/ハーフ/納期 等)や ＠/N入/N月 で始まる行は属性行 → 品名にしない。
+// type_B(上代同居)は行頭が実体で始まるので拾える。BUG-D090: 旧実装は上代の部分マッチで品名行を落としていた。
 function isNameLine(c: RuleCompiled, s: string): boolean {
+  let head = s
+  const mk = head.match(c.markerRe); if (mk) head = head.slice(mk[0].length)
+  head = head.replace(/^[\s　]+/, '')
+  if (!head) return false
+  if (ATTR_HEAD.test(head) || PRICE_QTY_HEAD.test(head) || DATE_HEAD.test(head)) return false
   return nameResidual(c, s).length >= 2
 }
 
@@ -182,12 +199,14 @@ function normalizeName(c: RuleCompiled, raw: string): { name: string; marker: st
   if (mk) { marker = mk[0].trim() || null; s = s.slice(mk[0].length) }
   // B2: 品名内の【…】は外して notes へ
   s = s.replace(BRACKET_INLINE, (m) => { bracketNotes.push(m); return '' })
-  // BUG-D090-JOUSHIN-NAMELINE: 品名行に同居する 上代/ハーフ/納期 を notes へ移し品名から除去 (AC4: prize_name に上代/￥混入なし)。
-  // 種類(N種)は品名の一部として残す (SHURUI は「種類:」ラベル形のみ対象=fixture の "6種"/"2種" は温存)。
-  for (const re of [globalize(c.joushinRe), globalize(c.halfRe), globalize(c.deliveryRe)]) {
-    if (re) s = s.replace(re, (m) => { const t = m.trim(); if (t) bracketNotes.push(t); return '' })
-  }
-  return { name: s.trim(), marker, bracketNotes }
+  // BUG-D090-JOUSHIN-NAMELINE / REG-3: 品名行末尾に同居する 上代(金額込み) を notes へ移し品名から除去 (AC4)。
+  //   REG-2 教訓: ハーフ/納期の語単位除去は品名破損を招くため normalizeName では行わない
+  //   (それらは属性行にあり isNameLine で除外済。品名行に同居するのは実データ上ほぼ 上代 のみ)。
+  //   種類(N種)は品名の一部として残す (fixture の "6種"/"2種" 温存)。
+  s = s.replace(JOUSHIN_STRIP, (m) => { const t = m.trim(); if (t && t !== '上代') bracketNotes.push(t); return '' })
+  // AC4 最終保証: 品名に 上代/【】/￥¥ が残っていたら除去 (万一の取りこぼしでも品名は必ずクリーン)。
+  const name = s.replace(/上\s*代/g, '').replace(/[【】￥¥]/g, '').replace(/\s+$/, '').trim()
+  return { name, marker, bracketNotes }
 }
 
 // 本文をパースして案内配列を返す (品名行番号付き)。
