@@ -552,3 +552,154 @@ describe('BUG-D090-OKURIGANA-IRIKAZU: 「入り数」「入り」属性行を品
     expect(i2[0].unit_cost).toBe(1000)
   })
 })
+
+// BUG-D090-TANNI-SHIPPING (D-090 6周目, ひろGO=恒久対応): 「単位N個　ハーフ可別途＠1000 / 仕切り＠XXX」型で
+//   R1 行頭「単位N」が品名化し本来の品名が落ちる + R2 送料の＠1000が単価に採られ本来の仕切り単価が無視される。
+//   実データ本文(mail_parse_samples.body_head verbatim)で R1/R2/R3 を検証。
+describe('BUG-D090-TANNI-SHIPPING: 単位行を品名化させず送料＠を単価にしない (実データ)', () => {
+  const TANNI_RULE = {
+    supplier_id: 'INF',
+    is_announcement_rule: { require_image: true, forbid_attachment_regex: '請書.*\\.xlsx?$' },
+    name_marker_regex: [],
+    marker_strip_regex: '^[★☆●○◎◆◇■□▲△▼▽・\\-*＊]+\\s*',
+    exclude_line_regex: ['^\\s*$', 'INFINITY', '株式会社', '◇◆'],
+    signature_cut_regex: ['^--\\s*$', '◇◆◇', 'INFINITY', '株式会社インフィニティ'],
+    field_regex: {
+      unit_cost: '[＠@]\\s*([0-9０-９][0-9０-９,，]{1,})',
+      case_quantity: '([0-9０-９]+)\\s*(?:入り?|個単位|枚単位|個|足)',
+      half_to_notes: 'ハーフ[\\s]*(不可|可|[0-9０-９]+円|送料[0-9０-９]+)',
+      joushin_to_notes: '上代[\\s￥¥\\\\]*[0-9０-９,，]+',
+      delivery_to_notes: '(納期|発売|入荷|予定|即納|[0-9０-９]{1,2}月)',
+    },
+    freshness_months: 2,
+  }
+
+  // 19f5a2a835a09645 (verbatim body_head): ディズニーサンゴマイヤーハーフケット A/B セット
+  const TANNI_AB = [
+    'お世話になります。',
+    '５６８',
+    'ディズニーサンゴマイヤーハーフケット(絵羽柄)Aセット',
+    '単位７２個　　　ハーフ可別途＠１０００',
+    '仕切り＠９００',
+    '納期　　１０月中～下予定',
+    '５７５',
+    'ディズニーサンゴマイヤーハーフケット(絵羽柄)Bセット',
+    '単位７２個　　　ハーフ可別途＠１０００',
+    '仕切り＠９００',
+    '納期　　１０月中～下予定',
+    '※ご発注の際は必ず品番を記載して頂きますようお願いします。',
+    '※ネットでの販売はご遠慮下さい。ネットキャッチャーＯＫです。',
+  ].join('\n')
+
+  // 19f68d175fa7609a (verbatim): ディズニーもちもちダイカットフェイスクッション (単品)
+  const TANNI_1 = [
+    'お世話になります。',
+    '５８２',
+    'ディズニーもちもちダイカットフェイスクッション',
+    '単位４０個　　　ハーフ可別途＠１０００',
+    '仕切り＠９８０',
+    '納期　　９月下～１０月上予定',
+    '※現在、監修中です。',
+  ].join('\n')
+
+  // 19ef207d9e2e5a73 (verbatim): ベビージョージ他4商品 (INFINITY署名でH6カット)
+  const TANNI_4 = [
+    'お世話になります。',
+    'ベビージョージチャーム付きふわふわマスコットBC',
+    '単位１２０個　　　　ハーフ可別途＠１０００',
+    '仕切り＠４７５',
+    'ベビージョージパジャママスコットBC',
+    '単位１２０個　　　　ハーフ可別途＠１０００',
+    '仕切り＠４９５',
+    'トム＆ジェリーマリンルックマスコットBC',
+    '単位１２０個　　　　ハーフ可別途＠１０００',
+    '仕切り＠５１５',
+    'スヌーピーパールボアマスコットBC',
+    '単位１６０個　　　　ハーフ可別途＠１０００',
+    '仕切り＠４７５',
+    '納期　　ただいま即納',
+    '∞INFINITY∞INFINITY∞INFINITY∞',
+    '株式会社インフィニティ',
+  ].join('\n')
+
+  it('R1/R2/R3 対象1 (A/B 2件): 品名=ハーフケットA/Bセット、単価900(仕切り,送料1000でない)、入数72', () => {
+    const items = parseAnnouncements(TANNI_RULE, TANNI_AB)
+    expect(items.length).toBe(2)
+    expect(items[0].prize_name).toBe('ディズニーサンゴマイヤーハーフケット(絵羽柄)Aセット')
+    expect(items[1].prize_name).toBe('ディズニーサンゴマイヤーハーフケット(絵羽柄)Bセット')
+    for (const a of items) {
+      expect(a.unit_cost, 'R2: 仕切り900を採る (送料1000でない)').toBe(900)
+      expect(a.case_quantity, 'R3: 入数72維持').toBe(72)
+      expect(a.prize_name).not.toMatch(/^単位|ハーフ可別途/)
+    }
+  })
+
+  it('R1/R2/R3 対象2 (単品): 品名=ダイカットフェイスクッション、単価980、入数40', () => {
+    const items = parseAnnouncements(TANNI_RULE, TANNI_1)
+    expect(items.length).toBe(1)
+    expect(items[0].prize_name).toBe('ディズニーもちもちダイカットフェイスクッション')
+    expect(items[0].unit_cost).toBe(980)
+    expect(items[0].case_quantity).toBe(40)
+  })
+
+  it('R1/R2/R3 対象3 (4商品): 各 本来の品名 + 仕切り単価 (475/495/515/475)、入数120/160', () => {
+    const items = parseAnnouncements(TANNI_RULE, TANNI_4)
+    expect(items.length).toBe(4)
+    expect(items[0].prize_name).toBe('ベビージョージチャーム付きふわふわマスコットBC')
+    expect(items[0].unit_cost).toBe(475)
+    expect(items[0].case_quantity).toBe(120)
+    expect(items[1].prize_name).toBe('ベビージョージパジャママスコットBC')
+    expect(items[1].unit_cost).toBe(495)
+    expect(items[2].prize_name).toBe('トム＆ジェリーマリンルックマスコットBC')
+    expect(items[2].unit_cost).toBe(515)
+    expect(items[3].prize_name).toBe('スヌーピーパールボアマスコットBC')
+    expect(items[3].unit_cost).toBe(475)
+    expect(items[3].case_quantity).toBe(160)
+    for (const a of items) expect(a.prize_name).not.toMatch(/^単位|ハーフ可別途/)
+  })
+
+  // 回帰 (spec指定、実データ): 出荷単位ラベル型 / FW販売単位型 / 単位+非数字(誤剥がし無し)。
+  it('回帰1: 出荷単位ラベル型「出荷単位：７２個」は不変 (サンリオ ボアルームスリッパ, 単価880/入数72)', () => {
+    // 19?? (verbatim): 単価は「単価：＠880」、送料は「＊ハーフ：別途１０００円」(円=＠でない)
+    const body = [
+      'サンリオ　ボアルームスリッパ６種　',
+      '上代￥１，６８０（表記なし）',
+      '単価：＠880',
+      '出荷単位：７２個（６種各１２個）',
+      'サイズ：大人用（２３～２５ｃｍ）　',
+      '＊納期：１０月',
+      '＊ハーフ：別途１０００円',
+      '＊北海道、沖縄・その他離島の場合、別途送料かかります。',
+    ].join('\n')
+    const items = parseAnnouncements(TANNI_RULE, body)
+    const real = items.filter((a) => /ボアルームスリッパ/.test(a.prize_name))
+    expect(real.length).toBe(1)
+    expect(real[0].unit_cost).toBe(880) // 単価880 (別途1000円の送料に引きずられない)
+    expect(real[0].case_quantity).toBe(72)
+  })
+
+  it('回帰2: FW販売単位型「【販売　単位】：４８個」は不変 (日焼けキティ ブランケット, 単価1000/入数48)', () => {
+    const body = [
+      '【商　品　名】：サンリオ 日焼けキティ　フランネルボアブランケットVer.2',
+      '【品　　　番】：AST-10281',
+      '【単　　　価】：＠1000',
+      '【種　　　類】：全2種均等アソート',
+      '【納　　　期】： 10月上～中旬予定',
+      '【販売　単位】：48個（24個×2カートン）※本商品は2個口となっております。予めご了承ください。',
+    ].join('\n')
+    const items = parseAnnouncements(TANNI_RULE, body)
+    expect(items.length).toBe(1)
+    expect(items[0].prize_name).toBe('サンリオ 日焼けキティ　フランネルボアブランケットVer.2')
+    expect(items[0].unit_cost).toBe(1000) // 【単価】の＠1000は送料でないので採る
+    expect(items[0].case_quantity).toBe(48)
+  })
+
+  it('回帰3: 単位+非数字は誤剥がししない「単位展開マスコット５種」(品名維持, 単価800/入数72)', () => {
+    const body = ['単位展開マスコット５種', '出荷単位：７２個', '単価：＠800'].join('\n')
+    const items = parseAnnouncements(TANNI_RULE, body)
+    expect(items.length).toBe(1)
+    expect(items[0].prize_name).toBe('単位展開マスコット５種')
+    expect(items[0].unit_cost).toBe(800)
+    expect(items[0].case_quantity).toBe(72)
+  })
+})

@@ -97,7 +97,9 @@ function globalize(re: RegExp | null): RegExp | null {
 // で始まる行は属性行 = 品名行でない。type_B(上代同居)は上代が行末に付き行頭が実体で始まるため区別できる。
 // これらは供給属性の語彙であって品名先頭には現れない (H4のマーカー列挙とは別問題=属性ラベルの識別)。
 // BUG-D090-OKURIGANA-IRIKAZU: 送り仮名「入り数」を 入\s*り?\s*数 で拾う (入数/入　数 も従来通りマッチ)。
-const ATTR_HEAD = /^(入\s*り?\s*数|価\s*格|単\s*価|特\s*価|定\s*価|卸\s*値|仕\s*切り?|出\s*荷\s*単\s*位|発\s*送\s*単\s*位|販\s*売\s*単\s*位|販売数量|商\s*品\s*名|品\s*番|品\s*名|納\s*期|種\s*類|内\s*訳|上\s*代|ハーフ|物販ライセンス|物販品|別?途?送\s*料|ケース)/
+// BUG-D090-TANNI-SHIPPING R1: 行頭「単位N…」(単位の直後に全角/半角数字) を属性行に。多義回避のため数字が続く場合のみ
+//   (「単位展開マスコット」等 数字が続かない品名は誤剥がししない)。単価/出荷単位/販売単位 の各アンカーとは非衝突。
+const ATTR_HEAD = /^(単\s*位(?=[\s　]*[0-9０-９])|入\s*り?\s*数|価\s*格|単\s*価|特\s*価|定\s*価|卸\s*値|仕\s*切り?|出\s*荷\s*単\s*位|発\s*送\s*単\s*位|販\s*売\s*単\s*位|販売数量|商\s*品\s*名|品\s*番|品\s*名|納\s*期|種\s*類|内\s*訳|上\s*代|ハーフ|物販ライセンス|物販品|別?途?送\s*料|ケース)/
 const PRICE_QTY_HEAD = /^(?:[＠@]\s*[0-9０-９]|[0-9０-９]+\s*(?:入り?|個単位|枚単位|個|足))/
 // BUG-D090-OKURIGANA-IRIKAZU: 「すべて48入り…」等の数量前置修飾を剥がして属性判定に回す (数字が続く場合のみ)。
 const QTY_QUANTIFIER = /^(?:すべて|全て|全部)(?=[\s　]*[0-9０-９])/
@@ -116,6 +118,11 @@ const NOTICE = /(別\s*途\s*(送料|運賃|見積|お?見積り?)|本\s*州|北
 //   実データの markdown 装飾(* ＊ _)・全角空白・(ハーフ不可) 等の挿入に耐えるよう区切りを許容。
 const NAME_TAIL_TOKEN = '(?:[0-9０-９,，]+[\\s　*＊_]*(?:入り?|個|足)(?:単位)?|[＠@][\\s　*＊_]*[0-9０-９,，]+[\\s　*＊_]*円?[ー\\-－]*)'
 const NAME_TAIL_STRIP = new RegExp(`[\\s　*＊_]*(?:${NAME_TAIL_TOKEN}[\\s　*＊_]*(?:[（(][^）)]*[）)])?[\\s　*＊_]*)+$`)
+
+// BUG-D090-TANNI-SHIPPING R2: 「ハーフ可別途＠1000」等の送料(別途/送料/運賃)に付く ＠N は単価でない。
+//   単価抽出用の文字列から送料＠句のみ除去し、同ブロックの「仕切り＠N」「単価＠N」を本来の単価として拾う。
+//   数量抽出には影響させない (単位N個 の入数は維持=R3)。「仕切り＠900」等の前に送料語がない ＠ は残す。
+const SHIPPING_AT_STRIP = /(?:別\s*途|送\s*料|運\s*賃)(?:\s*(?:送\s*料|運\s*賃))?\s*[＠@]\s*[0-9０-９,，]+/g
 
 interface RuleCompiled {
   unitRe: RegExp | null
@@ -312,7 +319,9 @@ function buildItem(c: RuleCompiled, nameLine: Line, block: Line[], headerNotes: 
   for (const b of block) {
     // NG-3: markdown装飾(* ＊ _)が数字と単位の間に挟まる実データ("108**入")でも単価/入数を取りこぼさない。
     const t = b.s.replace(/[*＊_]/g, '')
-    if (unit_cost == null && c.unitRe && c.unitRe.test(t)) unit_cost = toNum(firstCapture(c.unitRe, t))
+    // R2: 送料の ＠N を単価に採らない (単価抽出用の文字列からのみ送料＠句を除去。数量抽出=R3 には影響させない)。
+    const tForUnit = t.replace(SHIPPING_AT_STRIP, '')
+    if (unit_cost == null && c.unitRe && c.unitRe.test(tForUnit)) unit_cost = toNum(firstCapture(c.unitRe, tForUnit))
     if (case_quantity == null && c.qtyRe && c.qtyRe.test(t)) case_quantity = toInt(firstCapture(c.qtyRe, t))
     // 属性行 (品名行自身は除く) を notes へ
     if (b.n !== nameLine.n && isAttrLine(c, b.s)) notesParts.push(b.s)
