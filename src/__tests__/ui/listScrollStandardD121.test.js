@@ -11,7 +11,7 @@ const SRC = resolve(__dirname, '../..') // src/__tests__/ui/ -> src
 // EXCLUDE 許可リスト (増やす場合は必ず理由コメントを残す)。src からの相対パス。
 const EXCLUDE_FILES = new Set([
   'admin/AdminLayout.jsx',                         // レイアウトの全体スクロール(子ページが個別スクロール、付与で二重余白)
-  'shared/ui/KanaIndex.jsx',                       // spec 明示EXCLUDE(共有UI、親に内包され二重化回避)
+  'shared/ui/KanaIndex.jsx',                       // 共有UIであり余白は listClassName で呼び出し元が決める (D-122)
   'admin/components/StoreCrudDrawer.jsx',          // ドロワー内スクロール(自前padding)
   'collection/components/DenominationDrawer.jsx',  // ドロワー内スクロール(自前padding)
   'clawsupport/components/PrizeSearchModal.jsx',   // モーダル内スクロール(自前padding)
