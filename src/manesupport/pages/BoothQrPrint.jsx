@@ -116,7 +116,7 @@ export default function BoothQrPrint() {
         <PageHeader module="admin" hideHome={true} title="QRコード印刷" onBack={() => navigate('/admin')} />
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-16 print:overflow-visible print:pb-0">
+      <div className="flex-1 overflow-y-auto print:overflow-visible print:pb-0 list-scroll">
       <div className="md:max-w-3xl md:mx-auto">
       {/* 操作パネル（印刷時非表示） */}
       <div className="print:hidden px-4 py-3 space-y-3">

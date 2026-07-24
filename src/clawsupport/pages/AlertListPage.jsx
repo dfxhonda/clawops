@@ -209,7 +209,7 @@ export default function AlertListPage() {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 list-scroll">
         {loading && <p className="text-center text-muted py-8">読み込み中…</p>}
         {error && <p className="text-center text-red-400 py-8">{error}</p>}
 

@@ -184,7 +184,7 @@ export default function AuditLog() {
       </div>
 
       {/* ログ一覧 */}
-      <div className="flex-1 overflow-y-auto px-4 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 list-scroll">
         {loading ? (
           <div className="text-center text-muted py-8">読み込み中...</div>
         ) : logs.length === 0 ? (

@@ -33,7 +33,9 @@ function getKanaTab(kana) {
 // pinnedKeys: ★に表示するidの配列
 // showPinned: false にすると★タブを非表示（デフォルト true）
 // renderCard(item, isPinned): カードJSX
-export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_code', groupKey = 'locality_kana', showPinned = true, renderCard }) {
+// listClassName: リスト本体の余白等を呼び出し元(親)が決めるための追加class (D-122 B案: スペーシング責務は親)。
+//   既定は空文字列 = 渡さない呼び出し元は現状と完全に同一 (回帰ゼロ、AC6)。
+export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_code', groupKey = 'locality_kana', showPinned = true, renderCard, listClassName = '' }) {
   const [activeTab, setActiveTab] = useState(showPinned ? '★' : null)
 
   const pinnedSet = useMemo(() => new Set(pinnedKeys), [pinnedKeys])
@@ -76,8 +78,8 @@ export default function KanaIndex({ items = [], pinnedKeys = [], idKey = 'store_
         ))}
       </div>
 
-      {/* リスト */}
-      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
+      {/* リスト (余白は listClassName で親が決める。既定''=現状不変) */}
+      <div className={`flex-1 overflow-y-auto px-5 py-3 space-y-2${listClassName ? ' ' + listClassName : ''}`}>
         {resolvedTab === '★' && displayItems.length === 0 ? (
           <p className="text-center text-muted text-lg py-8">長押しで★登録</p>
         ) : displayItems.length === 0 ? (

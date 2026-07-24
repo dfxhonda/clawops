@@ -178,7 +178,7 @@ export default function ManualEditor() {
         </div>
 
 
-        <div className="flex-1 overflow-y-auto pb-16">
+        <div className="flex-1 overflow-y-auto list-scroll">
         {modelsLoading && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full" />
@@ -234,7 +234,7 @@ export default function ManualEditor() {
       </div>
 
 
-      <div className="flex-1 overflow-y-auto pb-16">
+      <div className="flex-1 overflow-y-auto list-scroll">
       <div className="md:max-w-3xl md:mx-auto">
       {/* ── ヘッダー情報カード ── */}
       <div className="bg-surface border border-border rounded-xl p-4 mx-4 mt-4 space-y-3">

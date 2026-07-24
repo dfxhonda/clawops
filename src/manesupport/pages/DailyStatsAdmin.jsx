@@ -45,7 +45,7 @@ export default function DailyStatsAdmin() {
         <LogoutButton to="/admin" />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto list-scroll">
       <div className="px-4 py-6 max-w-md md:max-w-3xl mx-auto space-y-6">
         <div className="bg-surface border border-border rounded-xl p-4 space-y-4">
           <div>

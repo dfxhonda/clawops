@@ -100,7 +100,7 @@ export default function StocktakeTargetPage() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 pt-3 space-y-2 list-scroll">
         {tab === 'warehouse' && (
           <>
             {warehouses.length === 0 && (

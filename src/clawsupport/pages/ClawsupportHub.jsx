@@ -200,6 +200,7 @@ export default function ClawsupportHub() {
         idKey="store_code"
         groupKey="locality_kana"
         renderCard={renderCard}
+        listClassName="list-scroll"
       />
     </div>
   )

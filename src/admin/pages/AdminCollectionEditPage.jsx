@@ -71,7 +71,7 @@ export default function AdminCollectionEditPage() {
       )}
 
       {storeCode && !dataLoading && (
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 space-y-2 list-scroll">
           {rows.length === 0 && (
             <p className="text-center text-muted text-base py-12">この店舗の集金記録がありません</p>
           )}

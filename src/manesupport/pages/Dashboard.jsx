@@ -102,7 +102,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-4">
+      <div className="flex-1 overflow-y-auto list-scroll">
         <div className="md:max-w-3xl md:mx-auto">
           {/* 店舗セレクター */}
           <div className="px-3 py-2">

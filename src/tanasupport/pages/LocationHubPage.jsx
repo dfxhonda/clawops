@@ -105,7 +105,7 @@ export default function LocationHubPage() {
         <span className="ml-auto text-[10px] font-mono text-muted truncate max-w-[40%]">{ownerId}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-3 flex flex-col gap-3 list-scroll">
         <TaskTile
           title="入荷チェック"
           sub="入荷品の受取確認"

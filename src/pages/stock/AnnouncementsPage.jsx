@@ -187,7 +187,7 @@ export default function AnnouncementsPage() {
       )}
 
       {/* 本体 */}
-      <div className="flex-1 overflow-y-auto" data-testid="announce-list">
+      <div className="flex-1 overflow-y-auto list-scroll" data-testid="announce-list">
         {loading && (
           <p className="text-center text-sm text-muted py-8">読み込み中...</p>
         )}

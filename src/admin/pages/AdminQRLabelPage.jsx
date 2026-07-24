@@ -170,7 +170,7 @@ export default function AdminQRLabelPage() {
         </div>
 
         {/* label list */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
+        <div className="flex-1 overflow-y-auto px-3 pt-2 min-h-0 list-scroll">
           {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
           {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
           {!loading && filtered.length === 0 && (

@@ -222,7 +222,7 @@ export default function AdminSupplierPage() {
       )}
 
       {/* list */}
-      <div className="flex-1 overflow-auto px-3 pb-3 min-h-0">
+      <div className="flex-1 overflow-auto px-3 min-h-0 list-scroll">
         {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
         {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
         {error && !modal && <p className="text-red-400 text-sm px-3 py-2">{error}</p>}

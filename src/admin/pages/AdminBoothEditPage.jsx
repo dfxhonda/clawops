@@ -487,7 +487,7 @@ export default function AdminBoothEditPage() {
             <img src={imageUrl} alt="OCR撮影" className="w-full h-full object-contain" />
           </div>
         )}
-        <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 pb-6">
+        <div className="flex-1 overflow-y-auto bg-bg px-4 pt-4 list-scroll">
           <div className="rounded-2xl border border-border bg-surface/60 p-4 mb-4">
             <div className="text-sm font-bold text-muted mb-3">OCR認識値 — タップして修正可</div>
             <div className="grid grid-cols-2 gap-4 mb-2">

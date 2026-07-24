@@ -247,7 +247,7 @@ function CountingPhase({ sessionId, owner, staffId, onComplete, onSuspend }) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-24">
+      <div className="flex-1 min-h-0 overflow-y-auto list-scroll">
         {lines.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-muted text-sm gap-2">
             <span>在庫データなし</span>
