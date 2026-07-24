@@ -458,7 +458,7 @@ export default function PatrolStorePage() {
 
       {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): 単一 overflow-auto コンテナ + table(table-fixed) + セル単位 sticky 十字フリーズ。
           colgroup で列幅固定 (左端160 / 累計64 / 日付10列×44 = 664px)。thead=sticky top, 左端th=sticky left, 左上=両軸。 */}
-      <div className="flex-1 min-h-0 overflow-auto" ref={unifiedScrollRef}>
+      <div className="flex-1 min-h-0 pb-40 overflow-auto" ref={unifiedScrollRef}>
         <table className="table-fixed border-collapse text-text" style={{ width: 664 }}>
           <colgroup>
             <col style={{ width: 160 }} />
