@@ -95,7 +95,7 @@ export default function StockDashboard() {
       </div>
 
       {/* コンテンツ */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto list-scroll">
         {loading && (
           <div className="flex items-center justify-center h-32 text-muted text-sm">読み込み中...</div>
         )}

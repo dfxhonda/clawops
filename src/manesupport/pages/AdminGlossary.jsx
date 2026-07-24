@@ -187,7 +187,7 @@ export default function AdminGlossary() {
       </div>
 
       {/* リスト (スクロールエリア) */}
-      <div className="flex-1 overflow-y-auto overscroll-contain pb-8">
+      <div className="flex-1 overflow-y-auto overscroll-contain list-scroll">
         {loading ? (
           <div className="text-muted text-sm text-center py-12">読み込み中...</div>
         ) : filtered.length === 0 ? (

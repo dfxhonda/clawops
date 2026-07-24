@@ -1,5 +1,6 @@
-// SPEC-LIST-BOTTOM-PADDING-URGENT-01 (D-120): 巡回/過去メーター編集の一覧スクロールコンテナに下部余白(pb-40=160px)。
-// 採用方式=D1(スクロールコンテナへ padding-bottom)。sticky は崩れない(bottom padding は top/left sticky に無影響)ため D2 スペーサー行は不採用。
+// SPEC-LIST-BOTTOM-PADDING-URGENT-01 (D-120) → D-121 で標準クラス list-scroll に吸収済み。
+// 本テストは D-121(SPEC-LIST-SCROLL-STANDARD-01)で pb-40 を list-scroll に置き換えた前提に書き換え。
+// 実装をテストに合わせて戻すことはしない(spec D-121 SCOPE_WRITE)。
 // PatrolStorePage/AdminMachineListPage は full render 前例がなく、既存(crossFreezeTableD110/D119)同様ソース文字列で検証する。
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -11,28 +12,29 @@ const admin = read('../../admin/pages/AdminMachineListPage.jsx')
 const machineRow = read('../../clawsupport/components/MachineRow.jsx')
 const boothRows = read('../../clawsupport/components/MachineRowExpandedBoothList.jsx')
 
-describe('AC1/AC2/D1: 両画面のスクロールコンテナに pb-40 (160px 下部余白)', () => {
-  it('PatrolStorePage: overflow-auto コンテナに pb-40、ref/overflow-auto は不変', () => {
-    expect(patrol).toMatch(/flex-1 min-h-0 pb-40 overflow-auto"\s+ref=\{unifiedScrollRef\}/) // D1 + 構造不変
+describe('AC1/AC2/AC6(D-121): 両画面のスクロールコンテナに list-scroll (下部余白は標準クラスへ)', () => {
+  it('PatrolStorePage: list-scroll 付与 + overflow-auto/ref は不変 (十字フリーズ構造保持)', () => {
+    expect(patrol).toMatch(/flex-1 min-h-0 list-scroll overflow-auto"\s+ref=\{unifiedScrollRef\}/)
   })
-  it('AdminMachineListPage: overflow-auto コンテナに pb-40、ref/overflow-auto は不変', () => {
-    expect(admin).toMatch(/flex-1 min-h-0 pb-40 overflow-auto"\s+ref=\{scrollRef\}/)
+  it('AdminMachineListPage: list-scroll 付与 + overflow-auto/ref は不変', () => {
+    expect(admin).toMatch(/flex-1 min-h-0 list-scroll overflow-auto"\s+ref=\{scrollRef\}/)
   })
-})
-
-describe('D4: 両画面で同一方式 (pb-40、スペーサー行は使わない)', () => {
-  it('両画面とも pb-40 を採用', () => {
-    expect(patrol).toContain('pb-40 overflow-auto')
-    expect(admin).toContain('pb-40 overflow-auto')
-  })
-  it('D2 スペーサー行(aria-hidden の高さ160 td)は不採用', () => {
-    // sticky が崩れないため D1 で完結。スペーサー行方式は入れていない。
-    expect(patrol).not.toMatch(/aria-hidden[^>]*height:\s*160/)
-    expect(admin).not.toMatch(/aria-hidden[^>]*height:\s*160/)
+  it('D-120 の pb-40 は削除済み(list-scroll に吸収)', () => {
+    expect(patrol).not.toContain('pb-40')
+    expect(admin).not.toContain('pb-40')
   })
 })
 
-describe('AC4/AC5/AC6/FORBIDDEN: 十字フリーズ構造とcolgroup列幅は不変', () => {
+describe('AC7/FORBIDDEN: 行コンポーネントに余白を付けない (リスト間引き防止)', () => {
+  it('MachineRow / BoothFlatRows に pb-40 も list-scroll も無い', () => {
+    expect(machineRow).not.toContain('pb-40')
+    expect(machineRow).not.toContain('list-scroll')
+    expect(boothRows).not.toContain('pb-40')
+    expect(boothRows).not.toContain('list-scroll')
+  })
+})
+
+describe('AC8/FORBIDDEN: 十字フリーズ構造とcolgroup列幅は不変', () => {
   it('単一 overflow-auto のまま (overflow-x/y-auto 入れ子を作らない)', () => {
     for (const src of [patrol, admin]) {
       expect(src).toContain('table-fixed')
@@ -47,12 +49,5 @@ describe('AC4/AC5/AC6/FORBIDDEN: 十字フリーズ構造とcolgroup列幅は不
       expect(src).toContain('width: 64')
       expect(src).toContain('width: 44')
     }
-  })
-})
-
-describe('AC7/FORBIDDEN: 行コンポーネントに余白を付けない (リスト間引き防止)', () => {
-  it('MachineRow / BoothFlatRows に pb-40 は無い', () => {
-    expect(machineRow).not.toContain('pb-40')
-    expect(boothRows).not.toContain('pb-40')
   })
 })

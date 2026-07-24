@@ -103,3 +103,12 @@ textarea {
   position: absolute;
   right: 0;
 }
+
+/* SPEC-LIST-SCROLL-STANDARD-01 (D-121): 一覧系スクロール領域の標準下部余白。
+   Apple HIG 準拠 = ホームインジケーター回避 env(safe-area-inset-bottom) + 標準スペーシング 24px。
+   ホームボタン機では inset=0 で 24px に自動縮退。overscroll-behavior: contain で
+   端送り時にページ全体が連鎖スクロールして入力中の画面が飛ぶのを防ぐ。 */
+.list-scroll {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+  overscroll-behavior: contain;
+}

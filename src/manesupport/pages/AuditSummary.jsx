@@ -109,7 +109,7 @@ export default function AuditSummary() {
     <div className="h-full flex flex-col max-w-lg md:max-w-3xl mx-auto">
       <PageHeader module="admin" hideHome={true} title="監査サマリ" onBack={() => navigate('/admin')} />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-4 list-scroll">
         {errorProps && <ErrorDisplay {...errorProps} />}
 
         {/* 期間選択 */}

@@ -50,7 +50,7 @@ export default function OcrCountTestPage() {
         onBack={() => navigate('/stock')}
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 pt-3 space-y-4 list-scroll">
         <p className="text-xs text-muted">
           景品個数 OCR の精度確認用 (テスト版)。撮影 → 自動OCR → 確認 → 記録。
           DB 保存なし、ブラウザに一時保存のみ。

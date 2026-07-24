@@ -507,7 +507,7 @@ export default function AdminMachineList() {
         <LogoutButton to="/admin/masters" />
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-16">
+      <div className="flex-1 overflow-y-auto list-scroll">
       <div className="md:max-w-3xl md:mx-auto">
 
       {/* Store selector */}

@@ -125,7 +125,7 @@ export default function StockMove() {
         <div className="flex items-center justify-center flex-1 text-muted text-sm">読み込み中...</div>
       ) : step === STEP_SELECT ? (
         /* Step 1: 選択 */
-        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-4 list-scroll">
 
           <div>
             <div className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5">移動元</div>
@@ -196,7 +196,7 @@ export default function StockMove() {
         </div>
       ) : (
         /* Step 2: 確認 */
-        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-3 list-scroll">
           <div className="rounded-xl bg-surface border border-border p-4 space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-muted">景品</span>

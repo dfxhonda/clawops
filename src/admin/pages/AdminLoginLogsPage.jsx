@@ -84,7 +84,7 @@ export default function AdminLoginLogsPage() {
       {error && <p className="text-red-400 text-sm px-3 py-1">{error}</p>}
 
       {/* list */}
-      <div className="flex-1 overflow-auto px-3 pb-3 min-h-0">
+      <div className="flex-1 overflow-auto px-3 min-h-0 list-scroll">
         {loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">読込中…</p>}
         {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
 

@@ -183,7 +183,7 @@ export default function AdminCollectionFlagPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0">
+      <div className="flex-1 overflow-y-auto px-3 pt-2 min-h-0 list-scroll">
         {loading && <p className="text-center text-muted text-base py-8">読み込み中…</p>}
         {loaded && rows.length === 0 && <p className="text-center text-muted text-base py-8">該当する巡回データがありません</p>}
         {!storeCode && <p className="text-center text-muted text-base py-8">店舗を選択してください</p>}

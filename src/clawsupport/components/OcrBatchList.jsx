@@ -47,7 +47,7 @@ export default function OcrBatchList({ items, onCheck, onUpdate, staffId, onSave
   return (
     <div className="flex flex-col h-full">
       {/* リスト */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto list-scroll">
         {items.map((item, i) => {
           const res = item.result
           const is2B = is2BoothType(res?.machine_type_guess)

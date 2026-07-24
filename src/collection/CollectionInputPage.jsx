@@ -361,7 +361,7 @@ export default function CollectionInputPage() {
       {error && <p data-testid="collection-error" className="text-red-400 text-sm px-3 py-1 flex-shrink-0">{error}</p>}
 
       {/* SPEC-MOTION-W1-COLLAPSE-AND-NUMPAD-01 (D-069) F5: overflow-anchor で開閉時のスクロール位置を安定化 */}
-      <div className="flex-1 overflow-auto min-h-0" style={{ overflowAnchor: 'auto' }}>
+      <div className="flex-1 overflow-auto min-h-0 list-scroll" style={{ overflowAnchor: 'auto' }}>
         {!loaded && !loading && <p className="text-center text-muted text-base py-8">店舗を選んで読み込んでください</p>}
         {loaded && booths.length === 0 && <p className="text-center text-muted text-base py-8">アクティブブースがありません</p>}
         {loaded && booths.length > 0 && (

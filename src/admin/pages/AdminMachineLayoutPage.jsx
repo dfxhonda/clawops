@@ -116,7 +116,7 @@ export default function AdminMachineLayoutPage() {
               </button>
             ))}
           </div>
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 list-scroll">
             {loading && <p className="text-sm text-muted p-3">読み込み中...</p>}
             {filtered.map(m => (
               <button key={m.model_id} onClick={() => selectModel(m)}
@@ -136,7 +136,7 @@ export default function AdminMachineLayoutPage() {
         {!selected ? (
           <div className="flex-1 flex items-center justify-center text-muted text-sm">左から機種を選択</div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 max-w-2xl">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 flex flex-col gap-4 max-w-2xl list-scroll">
             <div>
               <p className="text-xs text-muted mb-1">機種名</p>
               <p className="font-bold text-base">{selected.model_name}</p>

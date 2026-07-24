@@ -542,7 +542,7 @@ export default function AdminStoreListPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto min-h-0">
+      <div className="flex-1 overflow-auto min-h-0 list-scroll">
         {(() => {
         // SPEC-LIST-FILTER-SORT-01-fix-02: store_type 絞込 + useListSort.sorted() 適用。
         const displayRows = sorted(

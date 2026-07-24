@@ -143,7 +143,7 @@ export default function BoothList() {
       <PageHeader module="admin" hideHome={true} title="ブース一覧" onBack={() => navigate('/admin/masters')} />
 
 
-      <div className="flex-1 overflow-y-auto pb-16">
+      <div className="flex-1 overflow-y-auto list-scroll">
       <div className="px-4 mt-4 space-y-3 md:max-w-3xl md:mx-auto">
         <div>
           <label className="block text-xs text-muted mb-1">店舗</label>

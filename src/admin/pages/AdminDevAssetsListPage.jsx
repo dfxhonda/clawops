@@ -77,7 +77,7 @@ export default function AdminDevAssetsListPage() {
 
       {error && <p data-testid="dev-asset-error" className="text-red-400 text-sm px-3 py-1">{error}</p>}
 
-      <div className="flex-1 overflow-y-auto p-3 min-h-0">
+      <div className="flex-1 overflow-y-auto px-3 pt-3 min-h-0 list-scroll">
         {loading && <p className="text-center text-muted py-4">読込中…</p>}
         {!loading && rows.length === 0 && <p className="text-center text-muted py-4">資産がありません</p>}
         <ul className="space-y-2">

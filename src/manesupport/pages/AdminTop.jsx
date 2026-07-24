@@ -27,7 +27,7 @@ export default function AdminTop() {
         <LogoutButton to="/admin" />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto list-scroll">
         <div className="px-4 pt-4 pb-8 grid grid-cols-1 gap-3 md:grid-cols-2 md:max-w-3xl md:mx-auto">
           {ITEMS.map(item => (
             <button

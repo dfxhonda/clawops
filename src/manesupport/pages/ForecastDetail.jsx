@@ -315,7 +315,7 @@ export default function ForecastDetail() {
     <div className="h-svh flex flex-col landscape-short:flex-row max-w-lg md:max-w-3xl mx-auto">
       <LandscapeSideHeader module="admin" title={storeName} subtitle={storeCode} onBack={() => navigate('/admin/forecast')} />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-4 list-scroll">
         {error && <ErrorDisplay error={error} onRetry={load} onDismiss={() => setError(null)} />}
 
         {store && !noOrigin && (

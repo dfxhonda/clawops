@@ -117,7 +117,7 @@ export default function CashReconcilePage() {
     <div data-testid="cash-reconcile" className="flex flex-col min-w-0" style={{ height: '100svh' }} onPointerDown={handleOutsideTap}>
       <PageHeader module="admin" title="集金額照合" onBack={() => navigate('/admin/collection')} />
 
-      <div className="flex-1 overflow-y-auto min-h-0 min-w-0 p-3 pb-2 space-y-4">
+      <div className="flex-1 overflow-y-auto min-h-0 min-w-0 px-3 pt-3 space-y-4 list-scroll">
         {error && <p data-testid="recon-error" className="text-red-400 text-sm">{error}</p>}
 
         <div className="grid grid-cols-2 gap-3 min-w-0">

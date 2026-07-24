@@ -122,7 +122,7 @@ export default function AdminOrderHistoryPage() {
       </div>
 
       {/* list */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0 overflow-x-auto">
+      <div className="flex-1 overflow-y-auto px-3 min-h-0 overflow-x-auto list-scroll">
         {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
         {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
         {!loading && rows.length === 0 && (

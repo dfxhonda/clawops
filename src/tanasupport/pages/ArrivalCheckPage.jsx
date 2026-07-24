@@ -191,7 +191,7 @@ export default function ArrivalCheckPage() {
       />
 
       {/* order list */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-6 space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 space-y-2 list-scroll">
         {loading && (
           <p className="text-muted text-center py-8 text-sm">読み込み中...</p>
         )}

@@ -56,7 +56,7 @@ export default function AdminDevAssetsUploadPage() {
     <div data-testid="admin-dev-assets-upload" className="flex flex-col bg-bg text-text" style={{ height: '100dvh' }}>
       <PageHeader module="admin" title="ファイル受け渡し / アップロード" hideHome={true} />
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto px-3 pt-3 space-y-3 min-h-0 list-scroll">
         <div className="space-y-2">
           <label className="block">
             <span className="text-sm text-muted">ラベル（必須）</span>

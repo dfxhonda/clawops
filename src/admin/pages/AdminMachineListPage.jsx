@@ -193,7 +193,7 @@ export default function AdminMachineListPage() {
           </div>
           {/* SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): PatrolStorePage と同一の単一 overflow-auto + table(table-fixed) 十字フリーズ構造。
               共通コンポーネント(StoreTotalsHeader/MachineRow)を両ページ同構造で使い、片割れ回帰(HEATMAP-05)を構造的に潰す。 */}
-          <div className="flex-1 min-h-0 pb-40 overflow-auto" ref={scrollRef}>
+          <div className="flex-1 min-h-0 list-scroll overflow-auto" ref={scrollRef}>
             <table className="table-fixed border-collapse text-text" style={{ width: 664 }}>
               <colgroup>
                 <col style={{ width: 160 }} />

@@ -53,7 +53,7 @@ export default function ForecastList() {
     <div className="h-svh flex flex-col landscape-short:flex-row max-w-lg md:max-w-3xl mx-auto">
       <LandscapeSideHeader module="admin" hideHome={true} title="売上予測" onBack={() => navigate('/admin')} />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-3 list-scroll">
         {error && <ErrorDisplay error={error} onRetry={load} onDismiss={() => setError(null)} />}
 
         {/* 全店合計 */}

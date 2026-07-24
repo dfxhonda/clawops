@@ -94,7 +94,7 @@ export default function PatrolScreenV1() {
       )}
 
       {/* 機械リスト */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-8">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 list-scroll">
         {loading && (
           <div className="flex items-center justify-center py-16 text-muted text-sm">
             読み込み中...

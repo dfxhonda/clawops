@@ -90,7 +90,7 @@ export default function RankingView() {
           <LogoutButton />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-10">
+      <div className="flex-1 overflow-y-auto px-4 list-scroll">
 
       {/* モード切替 */}
       <div className="flex bg-surface2 rounded-xl p-1 mb-4">

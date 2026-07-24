@@ -151,7 +151,7 @@ export default function StockHubPage() {
         <div className="px-4 py-2 shrink-0 flex items-center gap-3">
           <span className="text-xs text-muted">{selectedStore.store_code}</span>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+        <div className="flex-1 overflow-y-auto px-4 pt-3 flex flex-col gap-3 list-scroll">
           <TaskTile
             title="入荷チェック"
             sub="入荷品の受取確認"
@@ -209,7 +209,7 @@ export default function StockHubPage() {
         variant="compact"
         onBack={() => navigate('/launcher')}
       />
-      <div className="flex-1 overflow-y-auto pb-6">
+      <div className="flex-1 overflow-y-auto list-scroll">
         {/* J-STOCK-OCR-COUNT-TEST-01 fix-01: spec '常時表示 (store_id 不要)' に従い、
             step='select' (店舗選択前) にも同タイルを最上部に配置。
             step='menu' (店舗選択後) 側にも追加済 (重複表示は意図、店舗選択前後どちらの動線からも到達可能)。 */}

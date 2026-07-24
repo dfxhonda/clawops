@@ -315,7 +315,7 @@ export default function MachineModelLinkPage() {
       </div>
 
       {/* グリッド (タブレット以上想定の横広編集グリッド) */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto list-scroll">
         {loading ? (
           <div className="flex items-center justify-center py-10 gap-2">
             <div className="animate-spin w-5 h-5 border-2 border-accent border-t-transparent rounded-full" />

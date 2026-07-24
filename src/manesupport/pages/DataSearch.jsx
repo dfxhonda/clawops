@@ -271,7 +271,7 @@ export default function DataSearch() {
 
       {/* スクロール可能なデータリスト（店舗選択済み時のみ） */}
       {filterStore && (
-      <div className="flex-1 overflow-auto px-4 pb-28">
+      <div className="flex-1 overflow-auto px-4 list-scroll">
       {filtered.length===0 && (
         <div className="bg-surface border border-border rounded-xl text-center text-muted p-8">
           条件に一致するデータがありません

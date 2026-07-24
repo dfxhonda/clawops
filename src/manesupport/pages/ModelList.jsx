@@ -260,7 +260,7 @@ export default function ModelList() {
 
       <PageHeader module="admin" hideHome={true} title="機種マスタ" onBack={() => navigate('/admin')} />
 
-      <div className="flex-1 overflow-y-auto pb-16">
+      <div className="flex-1 overflow-y-auto list-scroll">
 
         {/* 検索 / フィルタ / ソート / 新規 / 表編集 */}
         <div className="px-4 pt-3 pb-2 space-y-2 border-b border-border">
@@ -451,7 +451,7 @@ export default function ModelList() {
               <button onClick={closeModal} className="text-muted text-xl leading-none px-1">✕</button>
             </div>
 
-            <form id="model-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-4 py-3 space-y-3">
+            <form id="model-form" onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-4 pt-3 space-y-3 list-scroll">
 
               {/* 機種名 + 仕様検索 */}
               <div>

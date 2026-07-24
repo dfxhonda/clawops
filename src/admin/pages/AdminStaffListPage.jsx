@@ -552,7 +552,7 @@ export default function AdminStaffListPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto min-h-0">
+      <div className="flex-1 overflow-auto min-h-0 list-scroll">
         {error && <p data-testid="staff-error" className="text-red-400 text-sm p-3">{error}</p>}
         {loading && <p className="text-center text-muted text-sm py-8">読込中…</p>}
         {!loading && rows.length === 0 && <p className="text-center text-muted text-sm py-8">該当なし</p>}
