@@ -77,8 +77,8 @@ describe('AC6/AC7: 2ビュータブ + ブースビュー並び順トグル', () 
     expect(patrolPage).toContain('patrol-view-tab-booth')
     expect(patrolPage).toContain('patrol-booth-order-machine')
     expect(patrolPage).toContain('patrol-booth-order-ranking')
-    // デフォルト 機械順 / 機械ビュー
-    expect(patrolPage).toMatch(/useState\('machine'\)/)
+    // D-119: view 初期は booth に変更。boothOrder の既定は引き続き機械順 (useState('machine') は boothOrder 行が保持)。
+    expect(patrolPage).toContain("const [boothOrder, setBoothOrder] = useState('machine')")
   })
   it('アコーディオン(全開全閉/expandedSet)は廃止', () => {
     expect(patrolPage).not.toContain('expand-all-toggle')
