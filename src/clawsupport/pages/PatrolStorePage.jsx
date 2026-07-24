@@ -58,7 +58,7 @@ export default function PatrolStorePage() {
   const [syncing, setSyncing] = useState(false)
   const [changerExpanded, setChangerExpanded] = useState(false)
   // SPEC-PATROL-HISTORY-CROSS-FREEZE-02 (D-110): 2ビュー(機械集約/ブースフラット) + ブースビュー並び順トグル。
-  const [view, setView] = useState('machine')            // 'machine' | 'booth'
+  const [view, setView] = useState('booth')              // 'machine' | 'booth' (D-119: 初期ブースビュー。過去メーター編集D-118と体感統一)
   const [boothOrder, setBoothOrder] = useState('machine') // 'machine' | 'ranking'
 
   // SPEC-LF1: IDB → 描画。
