@@ -27,6 +27,7 @@ import {
   batchUpdateOrder,
 } from '../../services/masters'
 import LogoutButton from '../../components/LogoutButton'
+import { UNIT_MARKS, buildMachineName, computeUsedMarks } from '../../lib/machineNaming'
 
 const EMPTY_FORM = {
   machine_name: '',
@@ -37,9 +38,11 @@ const EMPTY_FORM = {
   in_meter_count: '',
   out_meter_count: '',
   notes: '',
+  unit_mark: '',      // D-117: 丸数字 (「なし」は '')
+  name_manual: false, // D-117: ユーザーが機械名を手編集したら true (以後自動上書きしない)
 }
 
-function MachineFields({ form, onChange, machineModels, hideModel = false }) {
+function MachineFields({ form, onChange, machineModels, hideModel = false, showUnitMark = false, unitMarkUsed = null, unitMarkDisabled = false }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div className="sm:col-span-2">
@@ -65,6 +68,27 @@ function MachineFields({ form, onChange, machineModels, hideModel = false }) {
             {machineModels.map(m => (
               <option key={m.model_id} value={m.model_id}>
                 {m.model_name}（{m.manufacturer || 'メーカー不明'}）
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {showUnitMark && (
+        <div className="sm:col-span-2">
+          <label className="block text-xs text-muted mb-1">番号（丸数字）</label>
+          <select
+            value={form.unit_mark || ''}
+            onChange={e => onChange('unit_mark', e.target.value)}
+            disabled={unitMarkDisabled}
+            aria-label="番号（丸数字）"
+            className="w-full bg-surface2 border border-border text-text rounded-lg px-3 py-2 text-sm outline-none focus:border-accent disabled:opacity-50"
+          >
+            <option value="" disabled={!!(unitMarkUsed && unitMarkUsed.has(null))}>
+              なし{unitMarkUsed && unitMarkUsed.has(null) ? '（使用済）' : ''}
+            </option>
+            {UNIT_MARKS.map(mk => (
+              <option key={mk} value={mk} disabled={!!(unitMarkUsed && unitMarkUsed.has(mk))}>
+                {mk}{unitMarkUsed && unitMarkUsed.has(mk) ? '（使用済）' : ''}
               </option>
             ))}
           </select>
@@ -314,13 +338,31 @@ export default function AdminMachineList() {
   const handleFormChange = (field, value) => {
     setForm(f => {
       const next = { ...f, [field]: value }
-      if (field === 'model_id' && value) {
-        const m = machineModels.find(m => m.model_id === value)
+      // D5: ユーザーが機械名を手編集したら以後は自動上書きしない
+      if (field === 'machine_name') next.name_manual = true
+      if (field === 'model_id') {
+        const m = value ? machineModels.find(mm => mm.model_id === value) : null
         if (m) {
           next.booth_count = String(m.booth_count || '')
           next.in_meter_count = String(m.in_meter_count || '')
           next.out_meter_count = String(m.out_meter_count || '')
           next.play_price = String(m.meter_unit_price || '100')
+        }
+        // D3: 未編集(name_manual=false)時のみ機械名を再合成
+        if (!next.name_manual && m) {
+          if (m.type_id === 'changer') {
+            next.machine_name = '両替機' // R4: 両替機は固定文字列、丸数字なし
+            next.unit_mark = ''
+          } else if (m.short_name) { // D9: short_name 空/null は自動入力しない
+            next.machine_name = buildMachineName(m.short_name, next.unit_mark)
+          }
+        }
+      }
+      // D4: 丸数字変更時、未編集なら再合成 (changer/short_name無しは対象外)。手入力時は unit_mark だけ保持。
+      if (field === 'unit_mark' && !next.name_manual) {
+        const m = machineModels.find(mm => mm.model_id === next.model_id)
+        if (m && m.type_id !== 'changer' && m.short_name) {
+          next.machine_name = buildMachineName(m.short_name, value)
         }
       }
       return next
@@ -442,6 +484,16 @@ export default function AdminMachineList() {
 
   const selectedModel = machineModels.find(m => m.model_id === form.model_id)
 
+  // D-117: 追加フォームの丸数字 使用済み集合 (short_name グルーピング)。changer/short_name無しは対象外。
+  const addUnitMarkUsed = useMemo(
+    () => (selectedModel && selectedModel.type_id !== 'changer' && selectedModel.short_name)
+      ? computeUsedMarks(machines, machineModels, selectedModel.short_name)
+      : new Set(),
+    [selectedModel, machines, machineModels]
+  )
+  // R4/AC7: 両替機は丸数字ドロップダウン非表示。それ以外(未選択含む)は表示。
+  const showAddUnitMark = !(selectedModel && selectedModel.type_id === 'changer')
+
   return (
     <div className="h-full flex flex-col">
 
@@ -491,6 +543,9 @@ export default function AdminMachineList() {
                   form={form}
                   onChange={handleFormChange}
                   machineModels={machineModels}
+                  showUnitMark={showAddUnitMark}
+                  unitMarkUsed={addUnitMarkUsed}
+                  unitMarkDisabled={!form.model_id}
                 />
                 {selectedModel && Number(form.booth_count) > 0 && (
                   <p className="text-xs text-accent3">
